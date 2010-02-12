@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="src-test"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
+	<classpathentry kind="var" path="LIBREPOSITORY/j2ee/jta-1.1.jar"/>
+	<classpathentry kind="var" path="LIBREPOSITORY/jts/jts-1.7.2.jar"/>
+	<classpathentry kind="var" path="LIBREPOSITORY/geotools/gt2-api-2.3.3.jar"/>
+	<classpathentry kind="var" path="LIBREPOSITORY/geotools/gt2-shapefile-2.3.3.jar"/>
+	<classpathentry kind="var" path="LIBREPOSITORY/lucene/lucene-core-2.9.1.jar"/>
+	<classpathentry kind="var" path="LIBREPOSITORY/neo4j/neo4j-kernel-1.0-rc.jar"/>
+	<classpathentry kind="var" path="LIBREPOSITORY/neo4j/neo4j-index-1.0-b1.jar"/>
+	<classpathentry kind="var" path="LIBREPOSITORY/neo4j/neo4j-commons-0.4.jar"/>
+	<classpathentry kind="var" path="LIBREPOSITORY/spring/spring-1.2.9.jar"/>
+	<classpathentry kind="var" path="LIBREPOSITORY/postgresql/postgresql-8.4-701.jdbc3.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
