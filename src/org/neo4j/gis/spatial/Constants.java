@@ -29,8 +29,8 @@ public interface Constants {
 	
 	String PROP_TYPE = "gtype";
 	String PROP_BBOX = "bbox";
-	String PROP_OFFSETS = "offsets";
-	String PROP_ORDINATES = "ordinates";
+	String PROP_COORDINATES_LENGTH = "xy_n";
+	String PROP_COORDINATES = "xy";
 		
 	
 	// OpenGIS geometry type numbers 
@@ -38,8 +38,5 @@ public interface Constants {
 	Integer GTYPE_POINT = 1;
 	Integer GTYPE_LINESTRING = 2; 
 	Integer GTYPE_POLYGON = 3;
-	Integer GTYPE_MULTIPOINT = 4; 	
-	Integer GTYPE_MULTILINESTRING = 5;
-	Integer GTYPE_MULTIPOLYGON = 6;
 	
 }

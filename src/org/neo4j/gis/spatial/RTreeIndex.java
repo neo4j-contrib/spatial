@@ -14,15 +14,12 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.index;
+package org.neo4j.gis.spatial;
 
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-import org.neo4j.gis.spatial.Constants;
-import org.neo4j.gis.spatial.SpatialIndexWriter;
-import org.neo4j.gis.spatial.SpatialRelationshipTypes;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -33,11 +30,13 @@ import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 
+import static org.neo4j.gis.spatial.GeometryUtils.*;
+
 
 /**
  * @author Davide Savazzi
  */
-public class RTreeIndex extends AbstractSpatialIndex implements SpatialIndexWriter, Constants {
+public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Constants {
 
 	// Constructor
 	
@@ -82,64 +81,42 @@ public class RTreeIndex extends AbstractSpatialIndex implements SpatialIndexWrit
 		return getEnvelope(root);
 	}
 	
-	public List<Node> search(Envelope searchEnvelope) {
-		Node root = getIndexRoot();
-		
-		GeometryFactory geomFactory = new GeometryFactory();
-		Geometry searchEnvelopeGeom = geomFactory.toGeometry(searchEnvelope);
-		
-		List<Node> result = search(root, searchEnvelope, searchEnvelopeGeom, geomFactory);
-		if (result == null) result = new ArrayList<Node>(0);
-		return result;
+	public int count() {
+		RecordCounterVisitor counter = new RecordCounterVisitor();
+		visit(counter, getIndexRoot());
+		return counter.getResult();
+	}
+	
+	public List<SpatialDatabaseRecord> search(GeometryFactory geometryFactory, Envelope boundingBox) {
+		BoundingBoxSearchVisitor search = new BoundingBoxSearchVisitor(geometryFactory, boundingBox);
+		visit(search, getIndexRoot());
+		return search.getResults();
 	}
 
+	public void warmUp() {
+		visit(new WarmUpVisitor(), getIndexRoot());
+	}
+	
 	
 	// Private methods
 
-	private List<Node> search(Node node, Envelope searchEnvelope, Geometry searchEnvelopeGeom, GeometryFactory geomFactory) {
-		if (!searchEnvelope.intersects(getEnvelope(node))) return null;
+	private void visit(SpatialIndexVisitor visitor, Node indexNode) {
+		if (!visitor.needsToVisit(indexNode)) return;
 		
-		List<Node> result = null;
-		
-		if (node.hasRelationship(SpatialRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
+		if (indexNode.hasRelationship(SpatialRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
 			// Node is not a leaf
-			for (Relationship rel : node.getRelationships(SpatialRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
+			for (Relationship rel : indexNode.getRelationships(SpatialRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
 				Node child = rel.getEndNode();
 				// collect children results
-				List<Node> childResult = search(child, searchEnvelope, searchEnvelopeGeom, geomFactory);
-				if (childResult != null) {
-					if (result == null) {
-						result = new ArrayList<Node>(childResult);
-					} else {
-						result.addAll(childResult);
-					}
-				}
+				visit(visitor, child);
 			}
-		} else if (node.hasRelationship(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)) {
+		} else if (indexNode.hasRelationship(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)) {
 			// Node is a leaf
-			for (Relationship rel : node.getRelationships(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)) {
-				Node geomRootNode = rel.getEndNode();
-				
-				Envelope geomEnvelope = getEnvelope(geomRootNode);
-				if (searchEnvelope.contains(geomEnvelope)) {
-					if (result == null) {
-						result = new ArrayList<Node>();
-					}					
-					result.add(geomRootNode);
-				} else if (searchEnvelope.intersects(geomEnvelope)) {
-					Geometry geom = getGeometry(geomFactory, geomRootNode);
-					if (searchEnvelopeGeom.intersects(geom)) {
-						if (result == null) {
-							result = new ArrayList<Node>();
-						}
-						result.add(geomRootNode);
-					}
-				}
+			for (Relationship rel : indexNode.getRelationships(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)) {
+				visitor.onIndexReference(rel.getEndNode());
 			}
 		}
-		
-		return result;
-	}	
+	}
 	
 	private void initIndexMetadata() {
 		Node layerNode = database.getNodeById(layerNodeId);
@@ -330,8 +307,9 @@ public class RTreeIndex extends AbstractSpatialIndex implements SpatialIndexWrit
 			Node bestEntry = null;
 			double expansionMin = Double.POSITIVE_INFINITY;
 			for (Node e : entries) {
-				double expansion1 = getArea(getEnvelope(getEnvelope(e), group1envelope)) - getArea(group1envelope);
-				double expansion2 = getArea(getEnvelope(getEnvelope(e), group2envelope)) - getArea(group2envelope);
+				Envelope nodeEnvelope = getEnvelope(e);
+				double expansion1 = getArea(getEnvelope(nodeEnvelope, group1envelope)) - getArea(group1envelope);
+				double expansion2 = getArea(getEnvelope(nodeEnvelope, group2envelope)) - getArea(group2envelope);
 						
 				if (expansion1 < expansion2 && expansion1 < expansionMin) {
 					bestGroup = group1;
@@ -405,12 +383,6 @@ public class RTreeIndex extends AbstractSpatialIndex implements SpatialIndexWrit
 		return adjustParentBoundingBox(parent, newChild);
 	}
 	
-	private Envelope getEnvelope(Envelope e, Envelope e1) {
-		Envelope result = new Envelope(e);
-		result.expandToInclude(e1);
-		return result;
-	}
-	
 	private void adjustPathBoundingBox(Node indexNode) {
 		Node parent = getParent(indexNode);
 		if (parent != null) {
@@ -480,4 +452,73 @@ public class RTreeIndex extends AbstractSpatialIndex implements SpatialIndexWrit
 	private long layerNodeId;
 	private int maxNodeReferences;
 	private int minNodeReferences;
+}
+
+class RecordCounterVisitor implements SpatialIndexVisitor {
+	
+	// Public methods
+	
+	public boolean needsToVisit(Node indexNode) { return true; }	
+	
+	public void onIndexReference(Node geomNode) { count++; }
+	
+	public int getResult() { return count; }
+	
+	
+	// Attributes
+	
+	private int count = 0;
+}
+
+class WarmUpVisitor implements SpatialIndexVisitor {
+	
+	// Public methods
+	
+	public boolean needsToVisit(Node indexNode) { getEnvelope(indexNode); return true; }	
+	
+	public void onIndexReference(Node geomNode) { }
+	
+}
+
+class BoundingBoxSearchVisitor implements SpatialIndexVisitor {
+
+	// Constructor
+	
+	public BoundingBoxSearchVisitor(GeometryFactory geometryFactory, Envelope boundingBox) {
+		this.geometryFactory = geometryFactory;
+		this.boundingBox = boundingBox;
+		this.boundingBoxGeometry = geometryFactory.toGeometry(boundingBox);
+		this.results = new ArrayList<SpatialDatabaseRecord>();
+	}
+	
+	
+	// Public methods
+	
+	public boolean needsToVisit(Node indexNode) {
+		return boundingBox.intersects(getEnvelope(indexNode));
+	}
+
+	public void onIndexReference(Node geomNode) {
+		Envelope geomEnvelope = getEnvelope(geomNode);
+		if (boundingBox.contains(geomEnvelope)) {
+			results.add(new SpatialDatabaseRecord(geomNode, geometryFactory));
+		} else if (boundingBox.intersects(geomEnvelope)) {
+			Geometry geometry = decode(geomNode, geometryFactory);
+			if (boundingBoxGeometry.intersects(geometry)) {
+				results.add(new SpatialDatabaseRecord(geomNode, geometryFactory));
+			}
+		}
+	}
+
+	public List<SpatialDatabaseRecord> getResults() {
+		return results;
+	}
+	
+	
+	// Attributes
+	
+	private GeometryFactory geometryFactory;
+	private Envelope boundingBox;
+	private Geometry boundingBoxGeometry;
+	private List<SpatialDatabaseRecord> results;
 }

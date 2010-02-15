@@ -18,9 +18,8 @@ package org.neo4j.gis.spatial;
 
 import java.util.List;
 
-import org.neo4j.graphdb.Node;
-
 import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.GeometryFactory;
 
 
 /**
@@ -30,6 +29,8 @@ public interface SpatialIndexReader {
 
 	Envelope getBoundingBox();
 
-	List<Node> search(Envelope bbox);
+	int count();
+	
+	List<SpatialDatabaseRecord> search(GeometryFactory geometryFactory, Envelope bbox);
 	
 }

@@ -19,9 +19,9 @@ package org.neo4j.gis.spatial;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.RandomAccessFile;
+import java.nio.charset.Charset;
 
-import org.geotools.data.shapefile.Lock;
+import org.geotools.data.shapefile.ShpFiles;
 import org.geotools.data.shapefile.dbf.DbaseFileHeader;
 import org.geotools.data.shapefile.dbf.DbaseFileReader;
 import org.geotools.data.shapefile.shp.ShapefileException;
@@ -32,6 +32,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 
 import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.GeometryFactory;
 
 
 /**
@@ -58,7 +59,9 @@ public class ShapefileImporter implements Constants {
 		String layerName;
 		int commitInterval = 1000;
 
-		// TODO check parameters
+		if (args.length < 2 || args.length > 4) {
+			throw new IllegalArgumentException("Parameters: neo4jDirectory shapefile [layerName commitInterval]");
+		}
 		
 		neoPath = args[0];
 		
@@ -71,7 +74,6 @@ public class ShapefileImporter implements Constants {
 		} else if (args.length == 3) {
 			layerName = args[2];
 		} else {
-			// args.length >= 4
 			layerName = args[2];
 			commitInterval = Integer.parseInt(args[3]);
 		}
@@ -90,12 +92,18 @@ public class ShapefileImporter implements Constants {
 	
 	public void importShapefile(String dataset, String layerName) throws ShapefileException, FileNotFoundException, IOException {
 		Layer layer = getOrCreateLayer(layerName);
+		GeometryFactory geomFactory = layer.getGeometryFactory();
+		
+		boolean strict = false;
+		boolean shpMemoryMapped = true;
 		
 		long startTime = System.currentTimeMillis();
 		
-		ShapefileReader shpReader = new ShapefileReader(new RandomAccessFile(dataset + ".shp", "r").getChannel(), new Lock());
+		ShpFiles shpFiles = new ShpFiles(new File(dataset + ".shp"));
+		ShapefileReader shpReader = new ShapefileReader(shpFiles, strict, shpMemoryMapped, geomFactory);
 		try {
-			DbaseFileReader dbfReader = new DbaseFileReader(new RandomAccessFile(dataset + ".dbf", "r").getChannel(), true);
+			// TODO ask charset to user?
+			DbaseFileReader dbfReader = new DbaseFileReader(shpFiles, shpMemoryMapped, Charset.defaultCharset());
 			try {
 				DbaseFileHeader dbaseFileHeader = dbfReader.getHeader();
 				
@@ -118,11 +126,11 @@ public class ShapefileImporter implements Constants {
 								try {
 									geometry = (Geometry) record.shape();
 									fields = dbfReader.readEntry();
-									if (!geometry.isValid()) {
-										log("warn | found invalid geometry in record " + recordCounter);										
-									} else if (geometry.isEmpty()) {
+									
+									if (geometry.isEmpty()) {
 										log("warn | found empty geometry in record " + recordCounter);
 									} else {
+										// TODO check geometry.isValid() ?
 										layer.add(geometry, fieldsName, fields);
 									}
 								} catch (IllegalArgumentException e) {
@@ -132,14 +140,12 @@ public class ShapefileImporter implements Constants {
 							}
 						}
 						
-						log("info | commit");
+						log("info | inserted geometries: " + recordCounter);
 						tx.success();
 					} finally {
 						tx.finish();
 					}
 				}
-				
-				log("info | found " + recordCounter + " records");
 			} finally {
 				dbfReader.close();
 			}			
