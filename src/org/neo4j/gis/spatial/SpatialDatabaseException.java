@@ -30,6 +30,4 @@ public class SpatialDatabaseException extends RuntimeException {
 		super(message);
 	}
 
-	
-	
 }

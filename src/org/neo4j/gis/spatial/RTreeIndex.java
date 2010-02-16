@@ -194,7 +194,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 			return indexNodes.get(0);
 		} else {
 			// this shouldn't happen
-			throw new SpatialIndexException("No IndexNode found for new geometry");
+			throw new SpatialDatabaseException("No IndexNode found for new geometry");
 		}
 	}
 

@@ -18,12 +18,12 @@ package org.neo4j.gis.spatial;
 
 import org.neo4j.graphdb.Node;
 
-import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.Polygon;
+import com.vividsolutions.jts.io.ParseException;
+import com.vividsolutions.jts.io.WKBReader;
+import com.vividsolutions.jts.io.WKBWriter;
 
 
 /**
@@ -44,7 +44,7 @@ public class GeometryUtils implements Constants {
 		Envelope result = new Envelope(e);
 		result.expandToInclude(e1);
 		return result;
-	}	
+	}
 	
 	public static void encode(Geometry geom, Node geomNode) {
 		geomNode.setProperty(PROP_TYPE, encodeGeometryType(geom.getGeometryType()));
@@ -52,107 +52,37 @@ public class GeometryUtils implements Constants {
 		Envelope mbb = geom.getEnvelopeInternal();				
 		geomNode.setProperty(PROP_BBOX, new double[] { mbb.getMinX(), mbb.getMinY(), mbb.getMaxX(), mbb.getMaxY() });					
 
-		if (geom.getNumGeometries() == 1) {
-			geomNode.setProperty(PROP_COORDINATES, encodeCoordinates(geom.getCoordinates()));			
-		} else {
-			// geometry collection
-			int[] coordinatesLength = new int[geom.getNumGeometries()];
-			for (int i = 0; i < geom.getNumGeometries(); i++) {
-				Geometry childGeom = geom.getGeometryN(i);
-				coordinatesLength[i] = childGeom.getCoordinates().length;
-			}
-			
-			geomNode.setProperty(PROP_COORDINATES_LENGTH, coordinatesLength);
-			geomNode.setProperty(PROP_COORDINATES, geom.getCoordinates());
-		}
+		WKBWriter writer = new WKBWriter();
+		geomNode.setProperty(PROP_WKB, writer.write(geom));
 	}
 
 	public static Geometry decode(Node geomNode, GeometryFactory geomFactory) {
-		Integer type = (Integer) geomNode.getProperty(PROP_TYPE);
-		Coordinate[] coordinates = decodeCoordinates((double[]) geomNode.getProperty(PROP_COORDINATES));
-
-		boolean isGeometryCollection = geomNode.hasProperty(PROP_COORDINATES_LENGTH);
-		if (isGeometryCollection) {
-			int[] coordinatesLength = (int[]) geomNode.getProperty(PROP_COORDINATES_LENGTH);
-			
-			if (GTYPE_POINT == type) {
-				return geomFactory.createMultiPoint(coordinates);
-			} else if (GTYPE_LINESTRING == type) {
-				LineString[] lineStrings = new LineString[coordinatesLength.length];
-				for (int i = 0; i < lineStrings.length; i++) {
-					lineStrings[i] = geomFactory.createLineString(extractCoordinates(coordinates, coordinatesLength, i));
-				}
-				return geomFactory.createMultiLineString(lineStrings);
-			} else if (GTYPE_POLYGON == type) {
-				Polygon[] polygons = new Polygon[coordinatesLength.length];
-				for (int i = 0; i < polygons.length; i++) {
-					// TODO Polygon holes not yet supported
-					polygons[i] = geomFactory.createPolygon(geomFactory.createLinearRing(extractCoordinates(coordinates, coordinatesLength, i)), null);
-				}
-				return geomFactory.createMultiPolygon(polygons);
-			} else {
-				throw new UnsupportedOperationException("unknown type:" + type);
-			}
-		} else {
-			return createGeometry(geomFactory, type, coordinates);
+		try {
+			WKBReader reader = new WKBReader();
+			return reader.read((byte[]) geomNode.getProperty(PROP_WKB));
+		} catch (ParseException e) {
+			throw new SpatialDatabaseException(e.getMessage(), e);
 		}
 	}
 	
-	
+
 	// Private methods
-
-	private static Coordinate[] extractCoordinates(Coordinate[] coordinates, int[] coordinatesLength, int index) {
-		int start = 0;
-		for (int i = 0; i < index; i++) {
-			start += coordinatesLength[i];
-		}
-		
-		Coordinate[] extracted = new Coordinate[coordinatesLength[index]];
-		for (int i = start; i < (start + extracted.length); i++) {
-			extracted[i - start] = coordinates[i];
-		}
-		return extracted;
-	}
-	
-	private static Geometry createGeometry(GeometryFactory geomFactory, Integer type, Coordinate[] coordinates) {
-		if (GTYPE_POINT == type) {
-			return geomFactory.createPoint(coordinates[0]);
-		} else if (GTYPE_LINESTRING == type) {
-			return geomFactory.createLineString(coordinates);
-		} else if (GTYPE_POLYGON == type) {
-			// TODO Polygon holes not yet supported
-			return geomFactory.createPolygon(geomFactory.createLinearRing(coordinates), null);
-		} else {
-			throw new UnsupportedOperationException("unknown type:" + type);
-		}
-	}
 	
 	private static Integer encodeGeometryType(String jtsGeometryType) {
-		if ("Point".equals(jtsGeometryType) || "MultiPoint".equals(jtsGeometryType)) {
+		if ("Point".equals(jtsGeometryType)) {
 			return GTYPE_POINT;
-		} else if ("LineString".equals(jtsGeometryType) || "MultiLineString".equals(jtsGeometryType)) {
+		} else if ("MultiPoint".equals(jtsGeometryType)) {
+			return GTYPE_MULTIPOINT;
+		} else if ("LineString".equals(jtsGeometryType)) {
 			return GTYPE_LINESTRING;
-		} else if ("Polygon".equals(jtsGeometryType) || "MultiPolygon".equals(jtsGeometryType)) {
+		} else if ("MultiLineString".equals(jtsGeometryType)) {
+			return GTYPE_MULTILINESTRING;
+		} else if ("Polygon".equals(jtsGeometryType)) {
 			return GTYPE_POLYGON;
+		} else if ("MultiPolygon".equals(jtsGeometryType)) {
+			return GTYPE_MULTIPOLYGON;
 		} else {
-			throw new UnsupportedOperationException("unknown type:" + jtsGeometryType);
+			throw new IllegalArgumentException("unknown type:" + jtsGeometryType);
 		}
-	}
-
-	private static double[] encodeCoordinates(Coordinate[] rawCoordinates) {
-		double[] coordinates = new double[rawCoordinates.length * 2];
-		for (int i = 0; i < rawCoordinates.length; i++) {
-			coordinates[i * 2] = rawCoordinates[i].x;
-			coordinates[i * 2 + 1] = rawCoordinates[i].y;
-		}
-		return coordinates;
-	}
-	
-	private static Coordinate[] decodeCoordinates(double[] coordinates) {
-		Coordinate[] rawCoordinates = new Coordinate[coordinates.length / 2];
-		for (int i = 0; i < rawCoordinates.length; i++) {
-			rawCoordinates[i] = new Coordinate(coordinates[i * 2], coordinates[i * 2 + 1]);
-		}
-		return rawCoordinates;
 	}
 }

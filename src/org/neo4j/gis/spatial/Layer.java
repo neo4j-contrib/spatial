@@ -63,7 +63,7 @@ public class Layer implements Constants {
 	
 	private Node addGeomNode(Geometry geom, String[] fieldsName, Object[] fields) {
 		Node geomNode = database.createNode();
-		encode(geom, database.createNode());
+		encode(geom, geomNode);
 		
 		// other properties
 		for (int i = 0; i < fieldsName.length; i++) {
