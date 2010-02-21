@@ -14,20 +14,33 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial;
+package org.neo4j.gis.spatial.query;
+
+import static org.neo4j.gis.spatial.GeometryUtils.decode;
+
+import org.neo4j.graphdb.Node;
 
 import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
 
 
 /**
+ * Find geometries covered by the given geometry
+ * 
  * @author Davide Savazzi
  */
-public interface SpatialIndexReader {
+public class SearchCoveredBy extends AbstractSearchIntersection {
 
-	Envelope getLayerBoundingBox();
+	public SearchCoveredBy(Geometry other) {
+		super(other);
+	}
 
-	int count();
-		
-	void executeSearch(Search search);
+	protected void onEnvelopeIntersection(Node geomNode, Envelope geomEnvelope) {
+		// check if every point of this geometry is a point of the other geometry
+	    if (other.getEnvelopeInternal().covers(geomEnvelope)) {
+	    	Geometry geometry = decode(geomNode, geometryFactory);
+			if (geometry.coveredBy(other)) add(geomNode, geometry);
+	    }		
+	}
 
 }

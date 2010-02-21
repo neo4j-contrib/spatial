@@ -111,13 +111,21 @@ public class ShapefileImporter implements Constants {
 				for (int i = 0; i < fieldsName.length; i++) {
 					fieldsName[i] = dbaseFileHeader.getFieldName(i);
 				}
+
+				Transaction tx = database.beginTx();
+				try {
+					layer.mergeExtraPropertyNames(fieldsName);
+					tx.success();
+				} finally {
+					tx.finish();
+				}
 				
 				Record record;
 				Geometry geometry;
 				Object[] fields;
 				int recordCounter = 0;
 				while (shpReader.hasNext() && dbfReader.hasNext()) {
-					Transaction tx = database.beginTx();
+					tx = database.beginTx();
 					try {
 						for (int i = 0; i < commitInterval; i++) {
 							if (shpReader.hasNext() && dbfReader.hasNext()) {

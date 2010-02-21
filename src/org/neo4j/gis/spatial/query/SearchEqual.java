@@ -14,34 +14,30 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial;
+package org.neo4j.gis.spatial.query;
+
+import static org.neo4j.gis.spatial.GeometryUtils.*;
+
+import org.neo4j.graphdb.Node;
+
+import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
 
 
 /**
  * @author Davide Savazzi
  */
-public interface Constants {
+public class SearchEqual extends AbstractSearchIntersection {
 
-	// Node properties
-	
-	String PROP_LAYER = "layer";
-	String PROP_LAYERNODEEXTRAPROPS = "layerprops";
-	String PROP_CREATIONTIME = "ctime";
-	
-	String PROP_TYPE = "gtype";
-	String PROP_BBOX = "bbox";
-	String PROP_WKB = "wkb";
-	
-	String[] RESERVED_PROPS = new String[] { PROP_LAYER, PROP_LAYERNODEEXTRAPROPS, PROP_CREATIONTIME, PROP_TYPE, PROP_BBOX, PROP_WKB };
-	
-	
-	// OpenGIS geometry type numbers 
-	
-	Integer GTYPE_POINT = 1;
-	Integer GTYPE_LINESTRING = 2; 
-	Integer GTYPE_POLYGON = 3;
-	Integer GTYPE_MULTIPOINT = 4; 	
-	Integer GTYPE_MULTILINESTRING = 5; 
-	Integer GTYPE_MULTIPOLYGON = 6; 
-	
+	public SearchEqual(Geometry other) {
+		super(other);
+	}
+
+	protected void onEnvelopeIntersection(Node geomNode, Envelope geomEnvelope) {
+		if (geomEnvelope.equals(other.getEnvelopeInternal())) {		
+			Geometry geometry = decode(geomNode, geometryFactory);
+			if (geometry.equals(other)) add(geomNode, geometry);
+		}
+	}
+
 }

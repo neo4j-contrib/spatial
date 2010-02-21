@@ -16,32 +16,18 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.util.List;
+
+import com.vividsolutions.jts.geom.GeometryFactory;
+
 
 /**
  * @author Davide Savazzi
  */
-public interface Constants {
+public interface Search extends SpatialIndexVisitor {
 
-	// Node properties
+	void setGeometryFactory(GeometryFactory geometryFactory);
 	
-	String PROP_LAYER = "layer";
-	String PROP_LAYERNODEEXTRAPROPS = "layerprops";
-	String PROP_CREATIONTIME = "ctime";
-	
-	String PROP_TYPE = "gtype";
-	String PROP_BBOX = "bbox";
-	String PROP_WKB = "wkb";
-	
-	String[] RESERVED_PROPS = new String[] { PROP_LAYER, PROP_LAYERNODEEXTRAPROPS, PROP_CREATIONTIME, PROP_TYPE, PROP_BBOX, PROP_WKB };
-	
-	
-	// OpenGIS geometry type numbers 
-	
-	Integer GTYPE_POINT = 1;
-	Integer GTYPE_LINESTRING = 2; 
-	Integer GTYPE_POLYGON = 3;
-	Integer GTYPE_MULTIPOINT = 4; 	
-	Integer GTYPE_MULTILINESTRING = 5; 
-	Integer GTYPE_MULTIPOLYGON = 6; 
+	List<SpatialDatabaseRecord> getResults();
 	
 }

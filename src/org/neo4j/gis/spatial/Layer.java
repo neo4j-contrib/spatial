@@ -16,13 +16,16 @@
  */
 package org.neo4j.gis.spatial;
 
+import static org.neo4j.gis.spatial.GeometryUtils.encode;
+
+import java.util.HashSet;
+import java.util.Set;
+
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
-
-import static org.neo4j.gis.spatial.GeometryUtils.encode;
 
 
 /**
@@ -38,6 +41,18 @@ public class Layer implements Constants {
 		return geomNode.getId();
 	}	
 	
+	public void update(long geomNodeId, Geometry geometry) {
+		index.delete(geomNodeId, false);
+		
+		Node geomNode = database.getNodeById(geomNodeId);		
+		encode(geometry, geomNode);
+		index.add(geomNode);
+	}
+	
+	public void delete(long geomNodeId) {
+		index.delete(geomNodeId, true);
+	}
+	
 	public SpatialIndexReader getIndex() {
 		return index;
 	}
@@ -46,16 +61,55 @@ public class Layer implements Constants {
 		return geometryFactory;
 	}
 	
+	public String[] getExtraPropertyNames() {
+		Node layerNode = getLayerNode();
+		if (layerNode.hasProperty(PROP_LAYERNODEEXTRAPROPS)) {
+			return (String[]) layerNode.getProperty(PROP_LAYERNODEEXTRAPROPS);
+		} else {
+			return new String[] {};
+		}
+	}
 	
-	// Private constructor
+	public void setExtraPropertyNames(String[] names) {
+		getLayerNode().setProperty(PROP_LAYERNODEEXTRAPROPS, names);
+	}
+	
+	public void mergeExtraPropertyNames(String[] names) {
+		Node layerNode = getLayerNode();
+		if (layerNode.hasProperty(PROP_LAYERNODEEXTRAPROPS)) {
+			String[] actualNames = (String[]) layerNode.getProperty(PROP_LAYERNODEEXTRAPROPS);
+			
+			Set<String> mergedNames = new HashSet<String>();
+			for (String name : names) mergedNames.add(name);
+			for (String name : actualNames) mergedNames.add(name);
+
+			layerNode.setProperty(PROP_LAYERNODEEXTRAPROPS, (String[]) mergedNames.toArray(new String[mergedNames.size()]));
+		} else {
+			layerNode.setProperty(PROP_LAYERNODEEXTRAPROPS, names);
+		}
+	}
+	
+	
+	// Protected constructor
 
 	protected Layer(GraphDatabaseService database, Node layerNode) {
 		this.database = database;
 		this.layerNodeId = layerNode.getId();
-		this.index = new RTreeIndex(database, layerNodeId);
+		this.index = new RTreeIndex(database, this);
 		
 		// TODO read Precision Model and SRID from layer properties and use them to construct GeometryFactory
 		this.geometryFactory = new GeometryFactory();
+	}
+	
+
+	// Protected methods
+	
+	protected Node getLayerNode() {
+		return database.getNodeById(layerNodeId);
+	}
+	
+	protected long getLayerNodeId() {
+		return layerNodeId;
 	}
 	
 	
@@ -63,6 +117,7 @@ public class Layer implements Constants {
 	
 	private Node addGeomNode(Geometry geom, String[] fieldsName, Object[] fields) {
 		Node geomNode = database.createNode();
+		geomNode.setProperty(PROP_LAYER, layerNodeId);
 		encode(geom, geomNode);
 		
 		// other properties

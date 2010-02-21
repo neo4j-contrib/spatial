@@ -14,20 +14,35 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial;
+package org.neo4j.gis.spatial.query;
+
+import static org.neo4j.gis.spatial.GeometryUtils.decode;
+
+import org.neo4j.graphdb.Node;
 
 import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
 
 
 /**
+ * Find geometries that overlap the given geometry
+ * 
  * @author Davide Savazzi
  */
-public interface SpatialIndexReader {
+public class SearchOverlap extends AbstractSearchIntersection {
 
-	Envelope getLayerBoundingBox();
+	public SearchOverlap(Geometry other) {
+		super(other);
+	}
 
-	int count();
+	protected void onEnvelopeIntersection(Node geomNode, Envelope geomEnvelope) {
+		// check if the geometries have some but not all points in common,
+		// they have the same dimension,
+		// and the intersection of the interiors of the two geometries has
+		// the same dimension as the geometries themselves
 		
-	void executeSearch(Search search);
+		Geometry geometry = decode(geomNode, geometryFactory);
+		if (geometry.overlaps(other)) add(geomNode, geometry);
+	}
 
 }

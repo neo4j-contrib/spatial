@@ -28,7 +28,7 @@ import static org.neo4j.gis.spatial.GeometryUtils.decode;
  * @author Davide Savazzi
  */
 public class SpatialDatabaseRecord implements Constants {
-
+	
 	// Public methods
 	
 	public long getId() {
@@ -51,6 +51,11 @@ public class SpatialDatabaseRecord implements Constants {
 		return geomNode.getProperty(name);
 	}
 	
+	public void setProperty(String name, Object value) {
+		checkIsNotReservedProperty(name);
+		geomNode.setProperty(name, value);
+	}
+	
 	public int hashcode() {
 		return ((Long) geomNode.getId()).hashCode();
 	}
@@ -63,7 +68,7 @@ public class SpatialDatabaseRecord implements Constants {
 	}
 	
 	
-	// Protected constructor
+	// Protected Constructors
 	
 	protected SpatialDatabaseRecord(Node geomNode, GeometryFactory geometryFactory) {
 		this.geomNode = geomNode;
@@ -72,6 +77,24 @@ public class SpatialDatabaseRecord implements Constants {
 	protected SpatialDatabaseRecord(Node geomNode, Geometry geometry) {
 		this.geomNode = geomNode;
 		this.geometry = geometry;
+	}
+
+	
+	// Protected methods
+	
+	protected Node getGeomNode() {
+		return geomNode;
+	}
+	
+	
+	// Private methods
+	
+	private void checkIsNotReservedProperty(String name) {
+		for (String property : RESERVED_PROPS) {
+			if (property.equals(name)) {
+				throw new SpatialDatabaseException("Updating not allowed for Reserved Property: " + name);
+			}
+		}
 	}
 	
 
