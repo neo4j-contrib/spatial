@@ -58,7 +58,7 @@ public class GeometryUtils implements Constants {
 
 	public static Geometry decode(Node geomNode, GeometryFactory geomFactory) {
 		try {
-			WKBReader reader = new WKBReader();
+			WKBReader reader = new WKBReader(geomFactory);
 			return reader.read((byte[]) geomNode.getProperty(PROP_WKB));
 		} catch (ParseException e) {
 			throw new SpatialDatabaseException(e.getMessage(), e);

@@ -37,7 +37,9 @@ public class SearchIntersect extends AbstractSearchIntersection {
 
 	protected void onEnvelopeIntersection(Node geomNode, Envelope geomEnvelope) {
 		Geometry geometry = decode(geomNode, geometryFactory);
-		if (geometry.intersects(other)) add(geomNode, geometry);
+		if (geometry.intersects(other)) {
+			add(geomNode, geometry);
+		}
 	}
 
 }

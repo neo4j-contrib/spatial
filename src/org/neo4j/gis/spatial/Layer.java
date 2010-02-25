@@ -34,6 +34,10 @@ import com.vividsolutions.jts.geom.GeometryFactory;
 public class Layer implements Constants {
 
 	// Public methods
+
+	public long add(Geometry geometry) {
+		return add(geometry, null, null);
+	}
 	
 	public long add(Geometry geometry, String[] fieldsName, Object[] fields) {
 		Node geomNode = addGeomNode(geometry, fieldsName, fields);
@@ -121,8 +125,10 @@ public class Layer implements Constants {
 		encode(geom, geomNode);
 		
 		// other properties
-		for (int i = 0; i < fieldsName.length; i++) {
-			geomNode.setProperty(fieldsName[i], fields[i]);
+		if (fieldsName != null) {
+			for (int i = 0; i < fieldsName.length; i++) {
+				geomNode.setProperty(fieldsName[i], fields[i]);
+			}
 		}
 		
 		return geomNode;

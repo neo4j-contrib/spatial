@@ -40,6 +40,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 	// Constructor
 	
 	public RTreeIndex(GraphDatabaseService database, Layer layer) {
+		// this(database, layer, 4, 2);
 		this(database, layer, 100, 40);
 	}
 	
@@ -188,19 +189,16 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 
 	private void initIndexRoot() {
 		Node layerNode = database.getNodeById(layer.getLayerNodeId());
-		if (layerNode.hasRelationship(SpatialRelationshipTypes.RTREE_ROOT, Direction.OUTGOING)) {
-			// index already present
-			indexRootNodeId = layerNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_ROOT, Direction.OUTGOING).getEndNode().getId();
-		} else {
+		if (!layerNode.hasRelationship(SpatialRelationshipTypes.RTREE_ROOT, Direction.OUTGOING)) {
 			// index initialization
 			Node root = database.createNode();
 			layerNode.createRelationshipTo(root, SpatialRelationshipTypes.RTREE_ROOT);
-			indexRootNodeId = root.getId();
 		}
 	}
 	
 	private Node getIndexRoot() {
-		return database.getNodeById(indexRootNodeId);
+		Node layerNode = database.getNodeById(layer.getLayerNodeId());
+		return layerNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_ROOT, Direction.OUTGOING).getEndNode();
 	}
 	
 	private boolean nodeIsLeaf(Node node) {
@@ -410,10 +408,13 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 			}
 		}
 		
+		// reset bounding box and add new children
+		indexNode.removeProperty(PROP_BBOX);
 		for (Node node : group1) {
 			addChild(indexNode, relationshipType, node);
 		}
 
+		// create new node from split
 		Node newIndexNode = database.createNode();
 		for (Node node: group2) {
 			addChild(newIndexNode, relationshipType, node);
@@ -558,7 +559,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 			else child = parent;
 		}
 		
-		if (root.getId() != indexRootNodeId) {
+		if (root.getId() != getIndexRoot().getId()) {
 			throw new SpatialDatabaseException("GeometryNode not indexed in this RTree: " + geomNode.getId());
 		} else {
 			return indexNodeLeaf;
@@ -570,7 +571,6 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 	
 	private GraphDatabaseService database;
 	private Layer layer;
-	private long indexRootNodeId;
 	private int maxNodeReferences;
 	private int minNodeReferences;
 }

@@ -72,6 +72,7 @@ public class SpatialDatabaseRecord implements Constants {
 	
 	protected SpatialDatabaseRecord(Node geomNode, GeometryFactory geometryFactory) {
 		this.geomNode = geomNode;
+		this.geometryFactory = geometryFactory;
 	}
 
 	protected SpatialDatabaseRecord(Node geomNode, Geometry geometry) {
