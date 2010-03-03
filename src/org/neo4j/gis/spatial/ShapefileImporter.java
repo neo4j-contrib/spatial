@@ -42,6 +42,10 @@ public class ShapefileImporter implements Constants {
 	
 	// Constructor
 
+	public ShapefileImporter(GraphDatabaseService database) {	
+		this(database, 1000);
+	}
+	
 	public ShapefileImporter(GraphDatabaseService database, int commitInterval) {
 		if (commitInterval < 1) throw new IllegalArgumentException("commitInterval must be >= 1");
 		
@@ -91,6 +95,9 @@ public class ShapefileImporter implements Constants {
 	// Public methods
 	
 	public void importShapefile(String dataset, String layerName) throws ShapefileException, FileNotFoundException, IOException {
+		// remove extension
+		dataset = dataset.substring(0, dataset.lastIndexOf("."));
+		
 		Layer layer = getOrCreateLayer(layerName);
 		GeometryFactory geomFactory = layer.getGeometryFactory();
 		
