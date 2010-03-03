@@ -5,11 +5,13 @@ This is a first prototype of a library to store spatial data in the [Neo4j open 
 You can import geometries from a shapefile and perform spatial searches.
 
 The most common 2D geometries are supported:
+
 * (multi)point
 * (multi)linestring
 * (multi)polygon
 
 Spatial queries implemented:
+
 * Contain
 * Cover
 * Covered By
@@ -27,6 +29,7 @@ Building
 --------
  
 You need a Java 6 environment, [Neo4J](http://neo4j.org/), [JTS](http://tsusiatsoftware.net/jts/main.html) and [GeoTools](http://www.geotools.org/):
+
 * jta-1.1.jar
 * neo4j-kernel-1.0-rc.jar
 * neo4j-commons-0.4.jar
