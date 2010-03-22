@@ -41,12 +41,10 @@ public class SearchWithinDistance extends AbstractSearch {
 		bbox.expandBy(distance);
 	}
 
-	@Override
 	public boolean needsToVisit(Node indexNode) {
 		return getEnvelope(indexNode).intersects(bbox);
 	}
 	
-	@Override
 	public void onIndexReference(Node geomNode) {
 	    double bboxDistance = getEnvelope(geomNode).distance(bbox);
 	    if (bboxDistance <= distance) {

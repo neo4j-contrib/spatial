@@ -57,7 +57,6 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 	
 	// Public methods
 	
-	@Override
 	public void add(Node geomNode) {
 		// initialize the search with root
 		Node parent = getIndexRoot();
@@ -78,7 +77,6 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 		}
 	}
 	
-	@Override
 	public void delete(long geomNodeId, boolean removeGeomNode) {
 		Node geomNode = database.getNodeById(geomNodeId);
 		
@@ -125,20 +123,17 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 		}
 	}
 	
-	@Override
 	public Envelope getLayerBoundingBox() {
 		Node root = getIndexRoot();
 		return getEnvelope(root);
 	}
 	
-	@Override
 	public int count() {
 		RecordCounter counter = new RecordCounter();
 		visit(counter, getIndexRoot());
 		return counter.getResult();
 	}
 
-	@Override
 	public void executeSearch(Search search) {
 		search.setGeometryFactory(layer.getGeometryFactory());
 		visit(search, getIndexRoot());

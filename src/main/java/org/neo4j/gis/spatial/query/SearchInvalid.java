@@ -16,38 +16,27 @@
  */
 package org.neo4j.gis.spatial.query;
 
-import static org.neo4j.gis.spatial.GeometryUtils.getEnvelope;
+
+import static org.neo4j.gis.spatial.GeometryUtils.decode;
 
 import org.neo4j.gis.spatial.AbstractSearch;
 import org.neo4j.graphdb.Node;
 
-import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 
 
 /**
  * @author Davide Savazzi
  */
-public abstract class AbstractSearchIntersection extends AbstractSearch {
-
-	public AbstractSearchIntersection(Geometry other) {
-		this.other = other;
-	}
-
-	@Override
+public class SearchInvalid extends AbstractSearch {
+	
 	public boolean needsToVisit(Node indexNode) {
-		return getEnvelope(indexNode).intersects(other.getEnvelopeInternal());
+		return true;
 	}
-	
-	@Override
-	public final void onIndexReference(Node geomNode) {	
-		Envelope geomEnvelope = getEnvelope(geomNode);
-		if (geomEnvelope.intersects(other.getEnvelopeInternal())) {
-			onEnvelopeIntersection(geomNode, geomEnvelope);
-		}
+
+	public void onIndexReference(Node geomNode) {
+		Geometry geom = decode(geomNode, geometryFactory);
+		if (!geom.isValid()) add(geomNode);
 	}
-	
-	protected abstract void onEnvelopeIntersection(Node geomNode, Envelope geomEnvelope);
-	
-	protected Geometry other;
+
 }

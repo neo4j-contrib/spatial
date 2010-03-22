@@ -18,6 +18,8 @@ package org.neo4j.gis.spatial;
 
 import java.util.List;
 
+import org.neo4j.graphdb.Node;
+
 import com.vividsolutions.jts.geom.GeometryFactory;
 
 
@@ -29,5 +31,6 @@ public interface Search extends SpatialIndexVisitor {
 	void setGeometryFactory(GeometryFactory geometryFactory);
 	
 	List<SpatialDatabaseRecord> getResults();
+
 	
 }

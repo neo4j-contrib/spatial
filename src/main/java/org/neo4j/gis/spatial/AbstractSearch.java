@@ -39,12 +39,10 @@ public abstract class AbstractSearch implements Search {
 	
 	// Public methods
 
-	@Override
 	public void setGeometryFactory(GeometryFactory geometryFactory) {
 		this.geometryFactory = geometryFactory;		
 	}	
 	
-	@Override	
 	public List<SpatialDatabaseRecord> getResults() {
 		return results;
 	}
@@ -65,4 +63,8 @@ public abstract class AbstractSearch implements Search {
 	
 	protected GeometryFactory geometryFactory;
 	private List<SpatialDatabaseRecord> results;
+    public abstract boolean needsToVisit( Node node );
+
+
+    public abstract void onIndexReference( Node node );
 }
