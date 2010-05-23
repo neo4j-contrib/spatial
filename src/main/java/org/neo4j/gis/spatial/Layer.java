@@ -21,9 +21,13 @@ import static org.neo4j.gis.spatial.GeometryUtils.encode;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.geotools.factory.FactoryRegistryException;
+import org.geotools.referencing.ReferencingFactoryFinder;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.opengis.referencing.FactoryException;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
@@ -64,6 +68,26 @@ public class Layer implements Constants {
 
 	public GeometryFactory getGeometryFactory() {
 		return geometryFactory;
+	}
+
+	public void setCoordinateReferenceSystem(CoordinateReferenceSystem crs) {
+		Node layerNode = getLayerNode();
+		layerNode.setProperty(PROP_CRS, crs.toWKT());
+	}	
+	
+	public CoordinateReferenceSystem getCoordinateReferenceSystem() {
+		Node layerNode = getLayerNode();
+		if (layerNode.hasProperty(PROP_CRS)) {
+			try {
+				return ReferencingFactoryFinder.getCRSFactory(null).createFromWKT((String) layerNode.getProperty(PROP_CRS));
+			} catch (FactoryRegistryException e) {
+				throw new SpatialDatabaseException(e);
+			} catch (FactoryException e) {
+				throw new SpatialDatabaseException(e);
+			}
+		} else {
+			return null;
+		}
 	}
 	
 	public String[] getExtraPropertyNames() {
