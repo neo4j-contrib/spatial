@@ -96,7 +96,7 @@ public class ShapefileImporter implements Constants {
 	
 	public void importShapefile(String dataset, String layerName) throws ShapefileException, FileNotFoundException, IOException {
 		// remove extension
-		dataset = dataset.substring(0, dataset.lastIndexOf("."));
+		//dataset = dataset.substring(0, dataset.lastIndexOf("."));
 		
 		Layer layer = getOrCreateLayer(layerName);
 		GeometryFactory geomFactory = layer.getGeometryFactory();
@@ -118,7 +118,7 @@ public class ShapefileImporter implements Constants {
 				for (int i = 0; i < fieldsName.length; i++) {
 					fieldsName[i] = dbaseFileHeader.getFieldName(i);
 				}
-
+				
 				Transaction tx = database.beginTx();
 				try {
 					layer.mergeExtraPropertyNames(fieldsName);

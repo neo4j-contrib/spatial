@@ -16,6 +16,9 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -36,6 +39,18 @@ public class SpatialDatabaseService implements Constants {
 	
 	// Public methods
 	
+	public String[] getLayerNames() {
+		List<String> names = new ArrayList<String>();
+		
+		Node refNode = database.getReferenceNode();
+		for (Relationship relationship : refNode.getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
+			Node layerNode = relationship.getEndNode();
+			names.add((String) layerNode.getProperty(PROP_LAYER));
+		}
+		
+		return names.toArray(new String[names.size()]);
+	}
+	
 	public Layer getLayer(String name) {
 		Node refNode = database.getReferenceNode();
 		for (Relationship relationship : refNode.getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
@@ -53,6 +68,8 @@ public class SpatialDatabaseService implements Constants {
 	}
 	
 	public Layer createLayer(String name) {
+		if (containsLayer(name)) throw new SpatialDatabaseException("Layer " + name + " already exists");
+		
 		Node layerNode = database.createNode();
 		layerNode.setProperty(PROP_LAYER, name);
 		layerNode.setProperty(PROP_CREATIONTIME, System.currentTimeMillis());
@@ -60,6 +77,13 @@ public class SpatialDatabaseService implements Constants {
 		Node refNode = database.getReferenceNode();
 		refNode.createRelationshipTo(layerNode, SpatialRelationshipTypes.LAYER);
 		return new Layer(database, layerNode);
+	}
+	
+	public void deleteLayer(String name) {
+		Layer layer = getLayer(name);
+		if (layer == null) throw new SpatialDatabaseException("Layer " + name + " does not exist");
+		
+		layer.delete();
 	}
 	
 	

@@ -36,12 +36,10 @@ public class SearchDisjoint extends AbstractSearch {
 		this.other = other;
 	}	
 	
-	@Override
 	public boolean needsToVisit(Node indexNode) {
 		return true;
 	}
 
-	@Override
 	public void onIndexReference(Node geomNode) {
 		Envelope geomEnvelope = getEnvelope(geomNode);
 		if (!geomEnvelope.intersects(other.getEnvelopeInternal())) {

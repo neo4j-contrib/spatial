@@ -21,6 +21,7 @@ import static org.neo4j.gis.spatial.GeometryUtils.encode;
 import java.util.HashSet;
 import java.util.Set;
 
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 
@@ -114,6 +115,17 @@ public class Layer implements Constants {
 	
 	protected long getLayerNodeId() {
 		return layerNodeId;
+	}
+	
+	/**
+	 * Delete Layer
+	 */
+	protected void delete() {
+		index.deleteAll();
+		
+		Node layerNode = getLayerNode();
+		layerNode.getSingleRelationship(SpatialRelationshipTypes.LAYER, Direction.INCOMING).delete();
+		layerNode.delete();
 	}
 	
 	

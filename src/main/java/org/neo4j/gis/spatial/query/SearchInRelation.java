@@ -41,12 +41,10 @@ public class SearchInRelation extends AbstractSearch {
 		this.intersectionPattern = intersectionPattern;
 	}
 
-	@Override
 	public boolean needsToVisit(Node indexNode) {
 		return true;
 	}
 	
-	@Override
 	public void onIndexReference(Node geomNode) {
 		Geometry geometry = decode(geomNode, geometryFactory);
 		if (geometry.relate(other, intersectionPattern)) add(geomNode, geometry);
