@@ -85,7 +85,7 @@ public class ShapefileImporter implements Constants {
 		GraphDatabaseService database = new EmbeddedGraphDatabase(neoPath);
 		try {
 	        ShapefileImporter importer = new ShapefileImporter(database, commitInterval);
-	        importer.importShapefile(shpPath, layerName);
+	        importer.importFile(shpPath, layerName);
 	    } finally {
 			database.shutdown();
 		}
@@ -94,9 +94,7 @@ public class ShapefileImporter implements Constants {
 	
 	// Public methods
 	
-	public void importShapefile(String dataset, String layerName) throws ShapefileException, FileNotFoundException, IOException {
-		// remove extension
-		dataset = dataset.substring(0, dataset.lastIndexOf("."));
+	public void importFile(String dataset, String layerName) throws ShapefileException, FileNotFoundException, IOException {
 		
 		Layer layer = getOrCreateLayer(layerName);
 		GeometryFactory geomFactory = layer.getGeometryFactory();
@@ -169,7 +167,7 @@ public class ShapefileImporter implements Constants {
 		}
 
 		long stopTime = System.currentTimeMillis();
-		log("info | elapsed time in seconds: " + ((stopTime - startTime) / 1000));
+		log("info | Elapsed time in seconds: " + (1.0 * (stopTime - startTime) / 1000.0));
 	}
 	
 	

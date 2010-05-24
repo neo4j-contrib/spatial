@@ -38,7 +38,22 @@ public class SpatialDatabaseRecord implements Constants {
 	public int getType() {
 		return (Integer) geomNode.getProperty(PROP_TYPE);
 	}
+
+	public String toString() {
+	    return "SpatialDatabaseRecord["+getId()+"]: type='"+getType()+"', props["+getPropString()+"]";
+	}
 	
+	public String getPropString() {
+	    StringBuffer text = new StringBuffer();
+	    for(String key:geomNode.getPropertyKeys()){
+	        if(text.length()>0) text.append(", ");
+            text.append(key);
+            text.append(": ");
+            text.append(geomNode.getProperty(key).toString());
+	    }
+	    return text.toString();
+	}
+
 	public Geometry getGeometry() {
 		if (geometry == null) {
 			geometry = decode(geomNode, geometryFactory);

@@ -24,10 +24,10 @@ import com.vividsolutions.jts.geom.Envelope;
  */
 public interface SpatialIndexReader {
 
-	Envelope getLayerBoundingBox();
+	public Envelope getLayerBoundingBox();
 
-	int count();
+	public int count();
 		
-	void executeSearch(Search search);
+	public void executeSearch(Search search);
 
 }
