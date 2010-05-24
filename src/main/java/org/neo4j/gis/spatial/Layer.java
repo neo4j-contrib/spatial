@@ -27,18 +27,25 @@ import org.neo4j.graphdb.Node;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 
-
 /**
+ * Instances of Layer provide the ability for developers to add/remove and edit geometries
+ * associated with a single dataset (or layer). This includes support for several storage
+ * mechanisms, like in-node (geometries in properties) and sub-graph (geometries describe by the
+ * graph).
+ * 
  * @author Davide Savazzi
  */
 public class Layer implements Constants {
 
 	// Public methods
 
-	public long add(Geometry geometry) {
-		return add(geometry, null, null);
-	}
+//	public long add(Geometry geometry) {
+//		return add(geometry, null, null);
+//	}
 	
+    /**
+     *  Add a geometry to this layer, including properties.
+     */
 	public long add(Geometry geometry, String[] fieldsName, Object[] fields) {
 		Node geomNode = addGeomNode(geometry, fieldsName, fields);
 		index.add(geomNode);
@@ -48,7 +55,7 @@ public class Layer implements Constants {
 	public void update(long geomNodeId, Geometry geometry) {
 		index.delete(geomNodeId, false);
 		
-		Node geomNode = database.getNodeById(geomNodeId);		
+		Node geomNode = database.getNodeById(geomNodeId);
 		encode(geometry, geomNode);
 		index.add(geomNode);
 	}
@@ -121,6 +128,8 @@ public class Layer implements Constants {
 	
 	private Node addGeomNode(Geometry geom, String[] fieldsName, Object[] fields) {
 		Node geomNode = database.createNode();
+		//TODO: don't store node ids as properties of other nodes, rather use relationships, or layer name string
+		//This seems to only be used by the FakeIndex to find all nodes in the layer. THat is a bad solution, rather just traverse whatever graph the layer normally uses (mostly the r-tree, but without using r-tree intelligence)
 		geomNode.setProperty(PROP_LAYER, layerNodeId);
 		encode(geom, geomNode);
 		
