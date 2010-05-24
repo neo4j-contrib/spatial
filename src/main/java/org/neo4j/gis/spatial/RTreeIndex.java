@@ -123,9 +123,44 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 		}
 	}
 	
+	public void deleteAll() {
+		Node indexRoot = getIndexRoot();
+		
+		// delete all geometry nodes
+		visit(new SpatialIndexVisitor() {
+			public boolean needsToVisit(Node indexNode) {
+				return true;
+			}
+
+			public void onIndexReference(Node geomNode) {
+				geomNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING).delete();
+				geomNode.delete();
+			}
+			
+		}, indexRoot);	
+		
+		// delete index root relationship
+		indexRoot.getSingleRelationship(SpatialRelationshipTypes.RTREE_ROOT, Direction.INCOMING).delete();
+		
+		// delete tree
+		deleteRecursivelyEmptySubtree(indexRoot);
+		
+		// delete tree metadata
+		Node layerNode = database.getNodeById(layer.getLayerNodeId());
+		Relationship metadataNodeRelationship = layerNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_METADATA, Direction.OUTGOING);
+		Node metadataNode = metadataNodeRelationship.getEndNode();
+		metadataNodeRelationship.delete();
+		metadataNode.delete();
+	}
+	
 	public Envelope getLayerBoundingBox() {
-		Node root = getIndexRoot();
-		return getEnvelope(root);
+		Node indexRoot = getIndexRoot();
+		if (!indexRoot.hasProperty(PROP_BBOX)) {
+			// layer is empty
+			return null;
+		}
+		
+		return getEnvelope(indexRoot);
 	}
 	
 	public int count() {
@@ -135,7 +170,13 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 	}
 
 	public void executeSearch(Search search) {
-		search.setGeometryFactory(layer.getGeometryFactory());
+		Node indexRoot = getIndexRoot();
+		if (!indexRoot.hasProperty(PROP_BBOX)) {
+			// layer is empty
+			return;
+		}
+		
+		search.setGeometryFactory(layer.getGeometryFactory());		
 		visit(search, getIndexRoot());
 	}
 	
@@ -534,7 +575,11 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 			deleteRecursivelyEmptySubtree(relationship.getEndNode());
 		}
 		
-		indexNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_CHILD, Direction.INCOMING).delete();
+		Relationship relationshipWithFather = indexNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_CHILD, Direction.INCOMING);
+		// the following check is needed because rootNode doesn't have this relationship
+		if (relationshipWithFather != null) {
+			relationshipWithFather.delete();
+		}
 		indexNode.delete();
 	}
 	

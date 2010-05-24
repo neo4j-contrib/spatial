@@ -25,12 +25,10 @@ import org.neo4j.graphdb.Node;
  */
 public class SearchAll extends AbstractSearch {
 
-	@Override
 	public boolean needsToVisit(Node indexNode) {
 		return true;
 	}
 
-	@Override
 	public void onIndexReference(Node geomNode) {
 		add(geomNode);
 	}

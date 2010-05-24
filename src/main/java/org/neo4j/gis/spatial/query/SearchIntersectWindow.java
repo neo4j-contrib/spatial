@@ -38,18 +38,15 @@ public class SearchIntersectWindow extends AbstractSearch {
 		this.window = window;
 	}
 	
-	@Override
 	public void setGeometryFactory(GeometryFactory geometryFactory) {
 		this.geometryFactory = geometryFactory;		
 		this.windowGeom = geometryFactory.toGeometry(window);		
 	}
 	
-	@Override
 	public boolean needsToVisit(Node indexNode) {
 		return getEnvelope(indexNode).intersects(window);
 	}
 	
-	@Override
 	public final void onIndexReference(Node geomNode) {	
 		Envelope geomEnvelope = getEnvelope(geomNode);
 		

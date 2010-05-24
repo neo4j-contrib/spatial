@@ -63,8 +63,4 @@ public abstract class AbstractSearch implements Search {
 	
 	protected GeometryFactory geometryFactory;
 	private List<SpatialDatabaseRecord> results;
-    public abstract boolean needsToVisit( Node node );
-
-
-    public abstract void onIndexReference( Node node );
 }

@@ -28,4 +28,6 @@ public interface SpatialIndexWriter extends SpatialIndexReader {
 	
 	void delete(long geomNodeId, boolean removeGeomNode);
 	
+	void deleteAll();
+	
 }

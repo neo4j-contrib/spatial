@@ -26,6 +26,7 @@ public interface Constants {
 	
 	String PROP_LAYER = "layer";
 	String PROP_LAYERNODEEXTRAPROPS = "layerprops";
+	String PROP_CRS = "layercrs";
 	String PROP_CREATIONTIME = "ctime";
 	
 	String PROP_TYPE = "gtype";

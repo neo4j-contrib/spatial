@@ -24,12 +24,14 @@ import java.nio.charset.Charset;
 import org.geotools.data.shapefile.ShpFiles;
 import org.geotools.data.shapefile.dbf.DbaseFileHeader;
 import org.geotools.data.shapefile.dbf.DbaseFileReader;
+import org.geotools.data.shapefile.prj.PrjFileReader;
 import org.geotools.data.shapefile.shp.ShapefileException;
 import org.geotools.data.shapefile.shp.ShapefileReader;
 import org.geotools.data.shapefile.shp.ShapefileReader.Record;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
@@ -105,6 +107,23 @@ public class ShapefileImporter implements Constants {
 		long startTime = System.currentTimeMillis();
 		
 		ShpFiles shpFiles = new ShpFiles(new File(dataset + ".shp"));
+		
+		PrjFileReader prjReader = new PrjFileReader(shpFiles);
+		try {
+			CoordinateReferenceSystem crs = prjReader.getCoodinateSystem();
+			if (crs != null) {
+				Transaction tx = database.beginTx();
+				try {
+					layer.setCoordinateReferenceSystem(crs);
+					tx.success();
+				} finally {
+					tx.finish();
+				}					
+			}
+		} finally {
+			prjReader.close();
+		}
+		
 		ShapefileReader shpReader = new ShapefileReader(shpFiles, strict, shpMemoryMapped, geomFactory);
 		try {
 			// TODO ask charset to user?

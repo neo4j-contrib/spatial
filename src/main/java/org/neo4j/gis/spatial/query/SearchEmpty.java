@@ -32,12 +32,10 @@ import com.vividsolutions.jts.geom.Geometry;
  */
 public class SearchEmpty extends AbstractSearch {
 	
-	@Override
 	public boolean needsToVisit(Node indexNode) {
 		return true;
 	}
 
-	@Override
 	public void onIndexReference(Node geomNode) {
 		Geometry geom = decode(geomNode, geometryFactory);
 		if (geom.isEmpty()) add(geomNode);
