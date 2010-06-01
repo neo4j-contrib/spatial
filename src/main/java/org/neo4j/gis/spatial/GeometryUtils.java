@@ -21,6 +21,12 @@ import org.neo4j.graphdb.Node;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.MultiLineString;
+import com.vividsolutions.jts.geom.MultiPoint;
+import com.vividsolutions.jts.geom.MultiPolygon;
+import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKBReader;
 import com.vividsolutions.jts.io.WKBWriter;
@@ -65,7 +71,37 @@ public class GeometryUtils implements Constants {
 		}
 	}
 	
-
+	public static Integer convertJtsClassToGeometryType(Class jtsClass) {
+		if (jtsClass.equals(Point.class)) {
+			return GTYPE_POINT;
+		} else if (jtsClass.equals(LineString.class)) {
+			return GTYPE_LINESTRING;
+		} else if (jtsClass.equals(Polygon.class)) {
+			return GTYPE_POLYGON;
+		} else if (jtsClass.equals(MultiPoint.class)) {
+			return GTYPE_MULTIPOINT;
+		} else if (jtsClass.equals(MultiLineString.class)) {
+			return GTYPE_MULTILINESTRING;
+		} else if (jtsClass.equals(MultiPolygon.class)) {
+			return GTYPE_MULTIPOLYGON;
+		} else {
+			return null;
+		}
+	}
+	
+	public static Class convertGeometryTypeToJtsClass(Integer geometryType) {
+		switch (geometryType) {
+			case GTYPE_POINT: return Point.class;
+			case GTYPE_LINESTRING: return LineString.class; 
+			case GTYPE_POLYGON: return Polygon.class;
+			case GTYPE_MULTIPOINT: return MultiPoint.class;
+			case GTYPE_MULTILINESTRING: return MultiLineString.class;
+			case GTYPE_MULTIPOLYGON: return MultiPolygon.class;
+			default: return null;
+		}
+	}
+	
+	
 	// Private methods
 	
 	private static Integer encodeGeometryType(String jtsGeometryType) {

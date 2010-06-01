@@ -42,37 +42,30 @@ public class DefaultResourceInfo implements ResourceInfo {
 	
 	// Public methods
 	
-	@Override
 	public String getName() {
 		return name;
 	}
 
-	@Override
 	public String getTitle() {
 		return name;
 	}			
 	
-	@Override
 	public String getDescription() {
 		return description;
 	}
 
-	@Override
 	public Set<String> getKeywords() {
         return keywords;
 	}
 	
-	@Override
 	public URI getSchema() {
         return FeatureTypes.DEFAULT_NAMESPACE;
 	}
 
-	@Override
 	public CoordinateReferenceSystem getCRS() {
 		return crs;
 	}    		
 	
-	@Override
 	public ReferencedEnvelope getBounds() {
 		return bbox;
 	}

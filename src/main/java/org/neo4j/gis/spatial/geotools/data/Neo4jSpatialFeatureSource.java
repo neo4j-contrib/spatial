@@ -43,22 +43,18 @@ public class Neo4jSpatialFeatureSource extends AbstractFeatureSource {
 	
 	// Public methods
 	
-	@Override
 	public DataStore getDataStore() {
 		return dataStore;
 	}
 
-	@Override
 	public void addFeatureListener(FeatureListener listener) {
 		this.dataStore.listenerManager.addFeatureListener(this, listener);
 	}
 
-	@Override
 	public void removeFeatureListener(FeatureListener listener) {
 		this.dataStore.listenerManager.removeFeatureListener(this, listener);
 	}
 	
-	@Override
 	public SimpleFeatureType getSchema() {
 		return featureType;
 	}

@@ -90,6 +90,28 @@ public class Layer implements Constants {
 		}
 	}
 	
+	public void setGeometryType(Integer geometryType) {
+		Node layerNode = getLayerNode();
+		if (geometryType != null) {
+			if (geometryType.intValue() < GTYPE_POINT || geometryType.intValue() > GTYPE_MULTIPOLYGON) {
+				throw new IllegalArgumentException("Unknown geometry type: " + geometryType);
+			}
+			
+			layerNode.setProperty(PROP_TYPE, geometryType);
+		} else {
+			layerNode.removeProperty(PROP_TYPE);
+		}
+	}
+	
+	public Integer getGeometryType() {
+		Node layerNode = getLayerNode();
+		if (layerNode.hasProperty(PROP_TYPE)) {
+			return (Integer) layerNode.getProperty(PROP_TYPE);
+		} else {
+			return null;
+		}
+	}
+	
 	public String[] getExtraPropertyNames() {
 		Node layerNode = getLayerNode();
 		if (layerNode.hasProperty(PROP_LAYERNODEEXTRAPROPS)) {

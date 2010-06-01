@@ -38,11 +38,11 @@ public interface Constants {
 	
 	// OpenGIS geometry type numbers 
 	
-	Integer GTYPE_POINT = 1;
-	Integer GTYPE_LINESTRING = 2; 
-	Integer GTYPE_POLYGON = 3;
-	Integer GTYPE_MULTIPOINT = 4; 	
-	Integer GTYPE_MULTILINESTRING = 5; 
-	Integer GTYPE_MULTIPOLYGON = 6; 
+	int GTYPE_POINT = 1;
+	int GTYPE_LINESTRING = 2; 
+	int GTYPE_POLYGON = 3;
+	int GTYPE_MULTIPOINT = 4; 	
+	int GTYPE_MULTILINESTRING = 5; 
+	int GTYPE_MULTIPOLYGON = 6; 
 	
 }

@@ -25,6 +25,7 @@ import org.geotools.data.shapefile.ShpFiles;
 import org.geotools.data.shapefile.dbf.DbaseFileHeader;
 import org.geotools.data.shapefile.dbf.DbaseFileReader;
 import org.geotools.data.shapefile.prj.PrjFileReader;
+import org.geotools.data.shapefile.shp.JTSUtilities;
 import org.geotools.data.shapefile.shp.ShapefileException;
 import org.geotools.data.shapefile.shp.ShapefileReader;
 import org.geotools.data.shapefile.shp.ShapefileReader.Record;
@@ -107,29 +108,24 @@ public class ShapefileImporter implements Constants {
 		
 		ShpFiles shpFiles = new ShpFiles(new File(dataset + ".shp"));
 		
+		CoordinateReferenceSystem crs;
 		PrjFileReader prjReader = new PrjFileReader(shpFiles);
 		try {
-			CoordinateReferenceSystem crs = prjReader.getCoodinateSystem();
-			if (crs != null) {
-				Transaction tx = database.beginTx();
-				try {
-					layer.setCoordinateReferenceSystem(crs);
-					tx.success();
-				} finally {
-					tx.finish();
-				}					
-			}
+			crs = prjReader.getCoodinateSystem();
 		} finally {
 			prjReader.close();
 		}
 		
 		ShapefileReader shpReader = new ShapefileReader(shpFiles, strict, shpMemoryMapped, geomFactory);
 		try {
+            Class geometryClass = JTSUtilities.findBestGeometryClass(shpReader.getHeader().getShapeType());
+            Integer geometryType = GeometryUtils.convertJtsClassToGeometryType(geometryClass);
+			
 			// TODO ask charset to user?
 			DbaseFileReader dbfReader = new DbaseFileReader(shpFiles, shpMemoryMapped, Charset.defaultCharset());
 			try {
 				DbaseFileHeader dbaseFileHeader = dbfReader.getHeader();
-				
+	            
 				String[] fieldsName = new String[dbaseFileHeader.getNumFields()];
 				for (int i = 0; i < fieldsName.length; i++) {
 					fieldsName[i] = dbaseFileHeader.getFieldName(i);
@@ -137,6 +133,14 @@ public class ShapefileImporter implements Constants {
 				
 				Transaction tx = database.beginTx();
 				try {
+					if (crs != null) {
+						layer.setCoordinateReferenceSystem(crs);
+					}
+
+					if (geometryType != null) {
+						layer.setGeometryType(geometryType);
+					}
+					
 					layer.mergeExtraPropertyNames(fieldsName);
 					tx.success();
 				} finally {

@@ -6,9 +6,9 @@ You can import geometries from a shapefile and perform spatial searches.
 
 The most common 2D geometries are supported:
 
-* (multi)point
-* (multi)linestring
-* (multi)polygon
+* (multi) point
+* (multi) linestring
+* (multi) polygon
 
 Spatial queries implemented:
 
@@ -31,14 +31,15 @@ Building
 You need a Java 6 environment, [Neo4J](http://neo4j.org/), [JTS](http://tsusiatsoftware.net/jts/main.html) and [GeoTools](http://www.geotools.org/):
 
 * jta-1.1.jar
-* neo4j-kernel-1.0-rc.jar
-* neo4j-commons-0.4.jar
+* neo4j-kernel-1.0.jar
+* neo4j-commons-1.0.jar
 * jts-1.10.jar
 * geoapi-2.3-M1.jar
-* gt-api-2.6.1.jar
-* gt-shapefile-2.6.1.jar
-* gt-main-2.6.1.jar
-* gt-metadata-2.6.1.jar
+* gt-api-2.6.3.jar
+* gt-shapefile-2.6.3.jar
+* gt-main-2.6.3.jar
+* gt-metadata-2.6.3.jar
+* gt-data-2.6.3.jar
 
  
 Importing a shapefile
