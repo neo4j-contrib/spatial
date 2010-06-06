@@ -34,6 +34,7 @@ import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.geotools.feature.type.BasicFeatureTypes;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.resources.Classes;
+import org.neo4j.gis.spatial.GeometryUtils;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.Search;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
@@ -99,6 +100,7 @@ public class Neo4jSpatialDataStore extends AbstractDataStore {
 					throw new IOException("Layer not found: " + typeName);
 				}
 				
+				// TODO
 				String[] extraPropertyNames = layer.getExtraPropertyNames();
 
 				List<AttributeDescriptor> types = readAttributes(typeName);
@@ -141,33 +143,37 @@ public class Neo4jSpatialDataStore extends AbstractDataStore {
     }
 
     public ReferencedEnvelope getBounds(String typeName) {
-		Envelope bbox = spatialDatabase.getLayer(typeName).getIndex().getLayerBoundingBox();
-		return convertEnvelopeToRefEnvelope(typeName, bbox);
+    	ReferencedEnvelope result = boundsIndex.get(typeName);
+    	if (result == null) {
+			Transaction tx = database.beginTx();
+			try {		
+				Envelope bbox = spatialDatabase.getLayer(typeName).getIndex().getLayerBoundingBox();
+				tx.success();
+				result = convertEnvelopeToRefEnvelope(typeName, bbox);
+				boundsIndex.put(typeName, result);
+			} finally {
+				tx.finish();
+			}		
+    	}
+    	return result;
     }
     
     
     // Protected methods
     
     protected List<AttributeDescriptor> readAttributes(String typeName) throws IOException {
-    	List<AttributeDescriptor> attributes = attributesIndex.get(typeName);
-    	if (attributes == null) {	
-	        // TODO
-	        Class<?> geometryClass = MultiPolygon.class;
+    	Class<?> geometryClass = GeometryUtils.convertGeometryTypeToJtsClass(getGeometryType(typeName));
 	            
-	        AttributeTypeBuilder build = new AttributeTypeBuilder();
-	        build.setName(Classes.getShortName(geometryClass));
-	        build.setNillable(true);
-	        build.setCRS(getCRS(typeName));
-	        build.setBinding(geometryClass);
+	    AttributeTypeBuilder build = new AttributeTypeBuilder();
+	    build.setName(Classes.getShortName(geometryClass));
+	    build.setNillable(true);
+	    build.setCRS(getCRS(typeName));
+	    build.setBinding(geometryClass);
 	
-	        GeometryType geometryType = build.buildGeometryType();
+	    GeometryType geometryType = build.buildGeometryType();
 	        
-	        attributes = new ArrayList<AttributeDescriptor>();
-	        attributes.add(build.buildDescriptor(BasicFeatureTypes.GEOMETRY_ATTRIBUTE_NAME, geometryType));
-
-	        attributesIndex.put(typeName, attributes);
-    	}
-    	
+	    List attributes = new ArrayList<AttributeDescriptor>();
+	    attributes.add(build.buildDescriptor(BasicFeatureTypes.GEOMETRY_ATTRIBUTE_NAME, geometryType));
         return attributes;
     }    
     
@@ -175,7 +181,6 @@ public class Neo4jSpatialDataStore extends AbstractDataStore {
     	return new DefaultResourceInfo(typeName, getCRS(typeName), getBounds(typeName));
     }
     
-	@Override
 	protected FeatureReader<SimpleFeatureType, SimpleFeature> getFeatureReader(String typeName) throws IOException {
 		Transaction tx = database.beginTx();
 		try {				
@@ -217,15 +222,26 @@ public class Neo4jSpatialDataStore extends AbstractDataStore {
     	
     	return result;
     }
-	
+
+    private Integer getGeometryType(String typeName) {
+    	Transaction tx = database.beginTx();
+    	try {
+    		Layer layer = spatialDatabase.getLayer(typeName);
+    		Integer geomType = layer.getGeometryType();
+    		tx.success();
+    		return geomType;
+    	} finally {
+    		tx.finish();
+    	}    	
+    }
+    
 	
 	// Attributes
 	
 	private String[] typeNames;
 	private Map<String,SimpleFeatureType> simpleFeatureTypeIndex = Collections.synchronizedMap(new HashMap());
-	private Map<String,List<AttributeDescriptor>> attributesIndex = Collections.synchronizedMap(new HashMap());
 	private Map<String,CoordinateReferenceSystem> crsIndex = Collections.synchronizedMap(new HashMap());
-	
+	private Map<String,ReferencedEnvelope> boundsIndex = Collections.synchronizedMap(new HashMap());
 	private GraphDatabaseService database;
 	private SpatialDatabaseService spatialDatabase;
 }

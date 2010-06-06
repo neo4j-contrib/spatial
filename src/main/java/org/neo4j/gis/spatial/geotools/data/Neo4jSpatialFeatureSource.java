@@ -43,7 +43,6 @@ public class Neo4jSpatialFeatureSource extends AbstractFeatureSource {
 	
 	// Public methods
 	
-	@Override
 	public DataStore getDataStore() {
 		return dataStore;
 	}
