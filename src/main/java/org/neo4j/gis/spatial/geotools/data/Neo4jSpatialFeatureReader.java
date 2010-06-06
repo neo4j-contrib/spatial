@@ -46,17 +46,14 @@ public class Neo4jSpatialFeatureReader implements FeatureReader<SimpleFeatureTyp
 	
 	// Public methods
 	
-	@Override
 	public SimpleFeatureType getFeatureType() {
 		return featureType;
 	}
 
-	@Override
 	public boolean hasNext() throws IOException {
 		return results.hasNext();
 	}
 
-	@Override
 	public SimpleFeature next() throws IOException, IllegalArgumentException, NoSuchElementException {
 		SpatialDatabaseRecord record = results.next();
 
@@ -74,7 +71,6 @@ public class Neo4jSpatialFeatureReader implements FeatureReader<SimpleFeatureTyp
 		}
 	}
 	
-	@Override
 	public void close() throws IOException {
 	}
 	
