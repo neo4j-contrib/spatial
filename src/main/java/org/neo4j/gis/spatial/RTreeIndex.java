@@ -169,13 +169,15 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 		return counter.getResult();
 	}
 
-	public void executeSearch(Search search) {
+	public boolean isEmpty() {
 		Node indexRoot = getIndexRoot();
-		if (!indexRoot.hasProperty(PROP_BBOX)) {
-			// layer is empty
-			return;
-		}
+		return !indexRoot.hasProperty(PROP_BBOX);
+	}
+	
+	public void executeSearch(Search search) {
+		if (isEmpty()) return;
 		
+		search.setCoordinateReferenceSystem(layer.getCoordinateReferenceSystem());
 		search.setGeometryFactory(layer.getGeometryFactory());		
 		visit(search, getIndexRoot());
 	}

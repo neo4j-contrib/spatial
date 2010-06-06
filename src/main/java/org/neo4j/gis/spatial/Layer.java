@@ -111,6 +111,17 @@ public class Layer implements Constants {
 			return null;
 		}
 	}
+
+	public Integer guessGeometryType() {
+		GuessGeometryTypeSearch geomTypeSearch = new GuessGeometryTypeSearch();
+		index.executeSearch(geomTypeSearch);
+		if (geomTypeSearch.firstFoundType != null) {
+			return geomTypeSearch.firstFoundType;
+		} else {
+			// layer is empty
+			return null;
+		}
+	}
 	
 	public String[] getExtraPropertyNames() {
 		Node layerNode = getLayerNode();
@@ -199,4 +210,20 @@ public class Layer implements Constants {
 	private long layerNodeId;
 	private GeometryFactory geometryFactory;
 	private SpatialIndexWriter index;
+	
+	class GuessGeometryTypeSearch extends AbstractSearch {
+
+		Integer firstFoundType;
+			
+		public boolean needsToVisit(Node indexNode) {
+			return firstFoundType == null;
+		}
+
+		public void onIndexReference(Node geomNode) {
+			if (firstFoundType == null) {
+				firstFoundType = (Integer) geomNode.getProperty(PROP_TYPE);
+			}
+		}
+	};
+
 }

@@ -18,6 +18,8 @@ package org.neo4j.gis.spatial;
 
 import java.util.List;
 
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
+
 import com.vividsolutions.jts.geom.GeometryFactory;
 
 
@@ -27,6 +29,8 @@ import com.vividsolutions.jts.geom.GeometryFactory;
 public interface Search extends SpatialIndexVisitor {
 
 	void setGeometryFactory(GeometryFactory geometryFactory);
+	
+	void setCoordinateReferenceSystem(CoordinateReferenceSystem crs);
 	
 	List<SpatialDatabaseRecord> getResults();
 	
