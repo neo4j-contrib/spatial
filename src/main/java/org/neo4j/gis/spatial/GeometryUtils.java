@@ -111,15 +111,6 @@ public class GeometryUtils implements Constants {
         geometryTypesMap.put("MultiPolygon", GTYPE_MULTIPOLYGON);
     }
 
-	public static Geometry decode(Node geomNode, GeometryFactory geomFactory) {
-		try {
-			WKBReader reader = new WKBReader(geomFactory);
-			return reader.read((byte[]) geomNode.getProperty(PROP_WKB));
-		} catch (ParseException e) {
-			throw new SpatialDatabaseException(e.getMessage(), e);
-		}
-	}
-	
 	public static Integer convertJtsClassToGeometryType(Class jtsClass) {
 		if (jtsClass.equals(Point.class)) {
 			return GTYPE_POINT;
