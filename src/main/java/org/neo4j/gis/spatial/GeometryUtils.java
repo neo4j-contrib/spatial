@@ -111,7 +111,7 @@ public class GeometryUtils implements Constants {
         geometryTypesMap.put("MultiPolygon", GTYPE_MULTIPOLYGON);
     }
 
-	public static Integer convertJtsClassToGeometryType(Class jtsClass) {
+	public static Integer convertJtsClassToGeometryType(Class<? extends Geometry> jtsClass) {
 		if (jtsClass.equals(Point.class)) {
 			return GTYPE_POINT;
 		} else if (jtsClass.equals(LineString.class)) {
@@ -129,7 +129,7 @@ public class GeometryUtils implements Constants {
 		}
 	}
 	
-	public static Class convertGeometryTypeToJtsClass(Integer geometryType) {
+	public static Class<? extends Geometry> convertGeometryTypeToJtsClass(Integer geometryType) {
 		switch (geometryType) {
 			case GTYPE_POINT: return Point.class;
 			case GTYPE_LINESTRING: return LineString.class; 
@@ -145,8 +145,8 @@ public class GeometryUtils implements Constants {
 	// Private methods
 	
 	private static Integer encodeGeometryType(String jtsGeometryType) {
-	        // TODO: Consider alternatives for specifying type, like relationship to type category
-	        // objects (or similar indexing structure)
+        // TODO: Consider alternatives for specifying type, like relationship to type category
+        // objects (or similar indexing structure)
 		if ("Point".equals(jtsGeometryType)) {
 			return GTYPE_POINT;
 		} else if ("MultiPoint".equals(jtsGeometryType)) {
