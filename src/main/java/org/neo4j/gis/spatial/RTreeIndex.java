@@ -40,7 +40,6 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 	// Constructor
 	
 	public RTreeIndex(GraphDatabaseService database, Layer layer) {
-		// this(database, layer, 4, 2);
 		this(database, layer, 100, 40);
 	}
 	

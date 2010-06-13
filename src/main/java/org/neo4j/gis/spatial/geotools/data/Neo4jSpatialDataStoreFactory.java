@@ -56,12 +56,12 @@ public class Neo4jSpatialDataStoreFactory implements DataStoreFactorySpi {
 		URL url = (URL) params.get(Neo4jSpatialDataStoreFactory.URLP.key);
 		File neostoreId = new File(url.getPath());
         GraphDatabaseService database = new EmbeddedReadOnlyGraphDatabase(neostoreId.getParent());
-        Neo4jSpatialDataStore datastore = new Neo4jSpatialDataStore(database);
-        return datastore;
+        return new Neo4jSpatialDataStore(database);
 	}
 	
 	public DataStore createNewDataStore(Map params) throws IOException {
-		return createDataStore(params);
+		// TODO
+		throw new UnsupportedOperationException();
 	}
 
 	public String getDisplayName() {
@@ -82,9 +82,7 @@ public class Neo4jSpatialDataStoreFactory implements DataStoreFactorySpi {
         	EmbeddedReadOnlyGraphDatabase.class.getName();
             GraphDatabaseService.class.getName();
         } catch (Exception e) {
-        	// TODO log?
         	e.printStackTrace();
-
             return false;
         }
 
@@ -92,10 +90,9 @@ public class Neo4jSpatialDataStoreFactory implements DataStoreFactorySpi {
 	}
 
     public Map getImplementationHints() {
-    	// TODO
         return Collections.EMPTY_MAP;
     }
-
+    
 	
 	// Attributes
 

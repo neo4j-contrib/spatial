@@ -36,11 +36,12 @@ public class Neo4jSpatialFeatureReader implements FeatureReader<SimpleFeatureTyp
 
 	// Constructor
 	
-	public Neo4jSpatialFeatureReader(GraphDatabaseService database, SimpleFeatureType featureType, Iterator<SpatialDatabaseRecord> results) {
+	public Neo4jSpatialFeatureReader(GraphDatabaseService database, SimpleFeatureType featureType, Iterator<SpatialDatabaseRecord> results, String[] extraPropertyNames) {
 		this.database = database;
 		this.featureType = featureType;
 		this.builder = new SimpleFeatureBuilder(featureType);
 		this.results = results;
+		this.extraPropertyNames = extraPropertyNames;
 	}
 	
 	
@@ -60,7 +61,16 @@ public class Neo4jSpatialFeatureReader implements FeatureReader<SimpleFeatureTyp
 		Transaction tx = database.beginTx();
 		try {				
 	        builder.reset();
-	        builder.set("the_geom", record.getGeometry());
+	        builder.set(FEATURE_PROP_GEOM, record.getGeometry());
+	        
+	        if (extraPropertyNames != null) {
+		        for (int i = 0; i < extraPropertyNames.length; i++) {
+		        	if (record.hasProperty(extraPropertyNames[i])) {
+		        		builder.set(extraPropertyNames[i], record.getProperty(extraPropertyNames[i]));
+		        	}
+		        }
+	        }
+	        
 	        SimpleFeature simpleFeature = builder.buildFeature(Long.toString(record.getId()));						
 			
 			tx.success();
@@ -72,6 +82,10 @@ public class Neo4jSpatialFeatureReader implements FeatureReader<SimpleFeatureTyp
 	}
 	
 	public void close() throws IOException {
+		database = null;
+		featureType = null;
+		builder = null;
+		results = null;
 	}
 	
 	
@@ -81,4 +95,7 @@ public class Neo4jSpatialFeatureReader implements FeatureReader<SimpleFeatureTyp
 	private SimpleFeatureType featureType;
     private SimpleFeatureBuilder builder;
 	private Iterator<SpatialDatabaseRecord> results;
+	private String[] extraPropertyNames;
+	
+	protected static final String FEATURE_PROP_GEOM = "the_geom";
 }

@@ -27,8 +27,6 @@ import org.opengis.feature.simple.SimpleFeatureType;
 
 
 /**
- * TODO Query and Filter support
- * 
  * @author Davide Savazzi
  */
 public class Neo4jSpatialFeatureSource extends AbstractFeatureSource {
@@ -66,8 +64,8 @@ public class Neo4jSpatialFeatureSource extends AbstractFeatureSource {
     public ResourceInfo getInfo() {
         return dataStore.getInfo(featureType.getTypeName());
     }
-    
-    
+        
+	
 	// Attributes
 
 	private SimpleFeatureType featureType;

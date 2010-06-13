@@ -39,6 +39,9 @@ public class GeometryUtils implements Constants {
 
 	// Public methods
 	
+    /**
+     * Find and extract the bounding box from the node properties.
+     */	
 	public static Envelope getEnvelope(Node node) {
 		double[] bbox = (double[]) node.getProperty(PROP_BBOX);
 			
@@ -46,12 +49,28 @@ public class GeometryUtils implements Constants {
 		return new Envelope(bbox[0], bbox[2], bbox[1], bbox[3]);
 	}	
 	
+    /**
+     * Create a bounding box encompassing the two bounding boxes passed in.
+     * 
+     * @param e
+     * @param e1
+     * @return
+     */	
 	public static Envelope getEnvelope(Envelope e, Envelope e1) {
 		Envelope result = new Envelope(e);
 		result.expandToInclude(e1);
 		return result;
 	}
 	
+    /**
+     * Encode the geometry information into the Node. Currently this stores the geometry in WKB as a
+     * byte[] property of the Node. Future versions will allow alternative storage, like WKT,
+     * sub-graphs and vertex point arrays with additional metadata properties. TODO: Support more
+     * encoding options TODO: Optimize (reduce object creation)
+     * 
+     * @param geom
+     * @param geomNode
+     */	
 	public static void encode(Geometry geom, Node geomNode) {
 		geomNode.setProperty(PROP_TYPE, encodeGeometryType(geom.getGeometryType()));
 
@@ -62,6 +81,15 @@ public class GeometryUtils implements Constants {
 		geomNode.setProperty(PROP_WKB, writer.write(geom));
 	}
 
+    /**
+     * Decode the geometry information in the Node, and create a JTS Geometry object. Currently this
+     * looks for a WKB byte[]. Future versions will also look for WKT, sub-graphs or other metadata
+     * options with different performance characteristics. TODO: Support more decoding options
+     * 
+     * @param geomNode
+     * @param geomFactory
+     * @return
+     */	
 	public static Geometry decode(Node geomNode, GeometryFactory geomFactory) {
 		try {
 			WKBReader reader = new WKBReader(geomFactory);
@@ -105,6 +133,8 @@ public class GeometryUtils implements Constants {
 	// Private methods
 	
 	private static Integer encodeGeometryType(String jtsGeometryType) {
+        // TODO: Consider alternatives for specifying type, like relationship to type category
+        // objects (or similar indexing structure)		
 		if ("Point".equals(jtsGeometryType)) {
 			return GTYPE_POINT;
 		} else if ("MultiPoint".equals(jtsGeometryType)) {
