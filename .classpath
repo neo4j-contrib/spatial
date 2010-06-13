@@ -1,16 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <classpath>
-	<classpathentry kind="src" path="src/main/java"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.6"/>
-	<classpathentry kind="var" path="LIBREPOSITORY/j2ee/jta-1.1.jar"/>
-	<classpathentry kind="var" path="LIBREPOSITORY/jts/jts-1.10.jar"/>
-	<classpathentry kind="var" path="LIBREPOSITORY/geotools/gt-api-2.6.3.jar"/>
-	<classpathentry kind="var" path="LIBREPOSITORY/geotools/gt-shapefile-2.6.3.jar"/>
-	<classpathentry kind="var" path="LIBREPOSITORY/neo4j/neo4j-commons-1.0.jar"/>
-	<classpathentry kind="var" path="LIBREPOSITORY/geotools/gt-main-2.6.3.jar"/>
-	<classpathentry kind="var" path="LIBREPOSITORY/geotools/geoapi-2.3-M1.jar"/>
-	<classpathentry kind="var" path="LIBREPOSITORY/geotools/gt-metadata-2.6.3.jar"/>
-	<classpathentry kind="var" path="LIBREPOSITORY/geotools/gt-data-2.6.3.jar"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/neo4j"/>
-	<classpathentry kind="output" path="bin"/>
+	<classpathentry kind="src" output="target/classes" path="src/main/java"/>
+	<classpathentry kind="src" output="target/test-classes" path="src/test/java"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/J2SE-1.5"/>
+	<classpathentry kind="con" path="org.maven.ide.eclipse.MAVEN2_CLASSPATH_CONTAINER"/>
+	<classpathentry kind="output" path="target/classes"/>
 </classpath>
