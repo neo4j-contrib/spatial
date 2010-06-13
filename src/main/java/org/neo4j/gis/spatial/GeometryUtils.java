@@ -33,7 +33,7 @@ import com.vividsolutions.jts.io.WKBWriter;
 
 
 /**
- * @author Davide Savazzi 
+ * @author Davide Savazzi
  */
 public class GeometryUtils implements Constants {
 
@@ -74,12 +74,12 @@ public class GeometryUtils implements Constants {
 	public static void encode(Geometry geom, Node geomNode) {
 		geomNode.setProperty(PROP_TYPE, encodeGeometryType(geom.getGeometryType()));
 
-		Envelope mbb = geom.getEnvelopeInternal();				
-		geomNode.setProperty(PROP_BBOX, new double[] { mbb.getMinX(), mbb.getMinY(), mbb.getMaxX(), mbb.getMaxY() });					
+        Envelope mbb = geom.getEnvelopeInternal();
+        geomNode.setProperty(PROP_BBOX, new double[] {mbb.getMinX(), mbb.getMinY(), mbb.getMaxX(), mbb.getMaxY()});
 
-		WKBWriter writer = new WKBWriter();
-		geomNode.setProperty(PROP_WKB, writer.write(geom));
-	}
+        WKBWriter writer = new WKBWriter();
+        geomNode.setProperty(PROP_WKB, writer.write(geom));
+    }
 
     /**
      * Decode the geometry information in the Node, and create a JTS Geometry object. Currently this
@@ -98,6 +98,17 @@ public class GeometryUtils implements Constants {
 			throw new SpatialDatabaseException(e.getMessage(), e);
 		}
 	}
+
+    /*
+    private static HashMap<String, Integer> geometryTypesMap = new HashMap<String, Integer>();
+    static {
+        geometryTypesMap.put("Point", GTYPE_POINT);
+        geometryTypesMap.put("MultiPoint", GTYPE_MULTIPOINT);
+        geometryTypesMap.put("LineString", GTYPE_LINESTRING);
+        geometryTypesMap.put("MultiLineString", GTYPE_MULTILINESTRING);
+        geometryTypesMap.put("Polygon", GTYPE_POLYGON);
+        geometryTypesMap.put("MultiPolygon", GTYPE_MULTIPOLYGON);
+    }*/
 	
 	public static Integer convertJtsClassToGeometryType(Class jtsClass) {
 		if (jtsClass.equals(Point.class)) {

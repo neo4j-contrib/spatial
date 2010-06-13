@@ -32,7 +32,6 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 
-
 /**
  * Instances of Layer provide the ability for developers to add/remove and edit geometries
  * associated with a single dataset (or layer). This includes support for several storage
@@ -45,10 +44,16 @@ public class Layer implements Constants {
 
 	// Public methods
 
+    /**
+     *  Add a geometry to this layer.
+     */	
 	public long add(Geometry geometry) {
 		return add(geometry, null, null);
 	}
 	
+    /**
+     *  Add a geometry to this layer, including properties.
+     */
 	public long add(Geometry geometry, String[] fieldsName, Object[] fields) {
 		Node geomNode = addGeomNode(geometry, fieldsName, fields);
 		index.add(geomNode);
@@ -58,7 +63,7 @@ public class Layer implements Constants {
 	public void update(long geomNodeId, Geometry geometry) {
 		index.delete(geomNodeId, false);
 		
-		Node geomNode = database.getNodeById(geomNodeId);		
+		Node geomNode = database.getNodeById(geomNodeId);
 		encode(geometry, geomNode);
 		index.add(geomNode);
 	}

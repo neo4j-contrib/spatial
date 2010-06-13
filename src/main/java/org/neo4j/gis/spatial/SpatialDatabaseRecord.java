@@ -40,9 +40,9 @@ public class SpatialDatabaseRecord implements Constants {
 	}
 
 	public String toString() {
-	    return "SpatialDatabaseRecord["+getId()+"]: type='"+getType()+"', props["+getPropString()+"]";
+	    return "SpatialDatabaseRecord[" + getId() + "]: type='" + getType() + "', props[" + getPropString() + "]";
 	}
-	
+
 	public Geometry getGeometry() {
 		if (geometry == null) {
 			geometry = decode(geomNode, geometryFactory);
