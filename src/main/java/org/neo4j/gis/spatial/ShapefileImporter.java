@@ -219,11 +219,7 @@ public class ShapefileImporter implements Constants {
 		Layer layer;
 		Transaction tx = database.beginTx();
 		try {
-			if (spatialDatabase.containsLayer(layerName)) {
-				layer = spatialDatabase.getLayer(layerName);				
-			} else {
-				layer = spatialDatabase.createLayer(layerName);
-			}
+			layer = spatialDatabase.getLayer(layerName, true);
 			tx.success();
 		} finally {
 			tx.finish();

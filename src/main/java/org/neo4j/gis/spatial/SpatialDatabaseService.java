@@ -52,6 +52,10 @@ public class SpatialDatabaseService implements Constants {
 	}
 	
 	public Layer getLayer(String name) {
+		return getLayer(name, false);
+	}
+
+	public Layer getLayer(String name, boolean createIfNotExists) {
 		Node refNode = database.getReferenceNode();
 		for (Relationship relationship : refNode.getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
 			Node layerNode = relationship.getEndNode();
@@ -60,7 +64,11 @@ public class SpatialDatabaseService implements Constants {
 			}
 		}
 		
-		return null;
+		if (createIfNotExists) {
+			return createLayer(name);
+		} else {
+			return null;
+		}
 	}
 	
 	public boolean containsLayer(String name) {
@@ -78,12 +86,16 @@ public class SpatialDatabaseService implements Constants {
 		refNode.createRelationshipTo(layerNode, SpatialRelationshipTypes.LAYER);
 		return new Layer(database, layerNode);
 	}
-	
+		
 	public void deleteLayer(String name) {
 		Layer layer = getLayer(name);
 		if (layer == null) throw new SpatialDatabaseException("Layer " + name + " does not exist");
 		
 		layer.delete();
+	}
+	
+	public GraphDatabaseService getDatabase() {
+		return database;
 	}
 	
 	
