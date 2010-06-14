@@ -47,17 +47,17 @@ public class Layer implements Constants {
     /**
      *  Add a geometry to this layer.
      */	
-	public long add(Geometry geometry) {
+	public SpatialDatabaseRecord add(Geometry geometry) {
 		return add(geometry, null, null);
 	}
 	
     /**
      *  Add a geometry to this layer, including properties.
      */
-	public long add(Geometry geometry, String[] fieldsName, Object[] fields) {
+	public SpatialDatabaseRecord add(Geometry geometry, String[] fieldsName, Object[] fields) {
 		Node geomNode = addGeomNode(geometry, fieldsName, fields);
 		index.add(geomNode);
-		return geomNode.getId();
+		return new SpatialDatabaseRecord(geomNode, geometry);
 	}	
 	
 	public void update(long geomNodeId, Geometry geometry) {
