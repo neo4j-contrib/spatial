@@ -16,7 +16,7 @@
  */
 package org.neo4j.gis.spatial;
 
-import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.PropertyContainer;
 
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
@@ -42,7 +42,7 @@ public class GeometryUtils implements Constants {
     /**
      * Find and extract the bounding box from the node properties.
      */	
-	public static Envelope getEnvelope(Node node) {
+	public static Envelope getEnvelope(PropertyContainer node) {
 		double[] bbox = (double[]) node.getProperty(PROP_BBOX);
 			
 		// Envelope parameters: xmin, xmax, ymin, ymax)
@@ -71,7 +71,7 @@ public class GeometryUtils implements Constants {
      * @param geom
      * @param geomNode
      */	
-	public static void encode(Geometry geom, Node geomNode) {
+	public static void encode(Geometry geom, PropertyContainer geomNode) {
 		geomNode.setProperty(PROP_TYPE, encodeGeometryType(geom.getGeometryType()));
 
         Envelope mbb = geom.getEnvelopeInternal();
@@ -90,7 +90,7 @@ public class GeometryUtils implements Constants {
      * @param geomFactory
      * @return
      */	
-	public static Geometry decode(Node geomNode, GeometryFactory geomFactory) {
+	public static Geometry decode(PropertyContainer geomNode, GeometryFactory geomFactory) {
 		try {
 			WKBReader reader = new WKBReader(geomFactory);
 			return reader.read((byte[]) geomNode.getProperty(PROP_WKB));
