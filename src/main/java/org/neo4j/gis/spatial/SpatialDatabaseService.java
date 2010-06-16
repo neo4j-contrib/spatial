@@ -52,7 +52,11 @@ public class SpatialDatabaseService implements Constants {
 		return names.toArray(new String[names.size()]);
 	}
 	
-    public Layer getLayer(String name) {
+	public Layer getLayer(String name) {
+		return getLayer(name, false);
+	}
+
+    public Layer getLayer(String name, boolean createIfNotExists) {
         Transaction tx = database.beginTx();
         try {
             Node refNode = database.getReferenceNode();
@@ -62,34 +66,50 @@ public class SpatialDatabaseService implements Constants {
                     return new Layer(database, layerNode);
                 }
             }
+            Layer layer = null;
+            if (createIfNotExists) {
+                layer = createLayer(name);
+            }
             tx.success();
+            return layer;
         } finally {
             tx.finish();
         }
-        return null;
     }
 	
 	public boolean containsLayer(String name) {
 		return getLayer(name) != null;
 	}
 	
-	public Layer createLayer(String name) {
-		if (containsLayer(name)) throw new SpatialDatabaseException("Layer " + name + " already exists");
+    public Layer createLayer(String name) {
+        Transaction tx = database.beginTx();
+        try {
+            if (containsLayer(name))
+                throw new SpatialDatabaseException("Layer " + name + " already exists");
+
+            Node layerNode = database.createNode();
+            layerNode.setProperty(PROP_LAYER, name);
+            layerNode.setProperty(PROP_CREATIONTIME, System.currentTimeMillis());
+
+            Node refNode = database.getReferenceNode();
+            refNode.createRelationshipTo(layerNode, SpatialRelationshipTypes.LAYER);
+            Layer layer = new Layer(database, layerNode);
+            tx.success();
+            return layer;
+        } finally {
+            tx.finish();
+        }
+    }
 		
-		Node layerNode = database.createNode();
-		layerNode.setProperty(PROP_LAYER, name);
-		layerNode.setProperty(PROP_CREATIONTIME, System.currentTimeMillis());
-		
-		Node refNode = database.getReferenceNode();
-		refNode.createRelationshipTo(layerNode, SpatialRelationshipTypes.LAYER);
-		return new Layer(database, layerNode);
-	}
-	
 	public void deleteLayer(String name) {
 		Layer layer = getLayer(name);
 		if (layer == null) throw new SpatialDatabaseException("Layer " + name + " does not exist");
 		
 		layer.delete();
+	}
+	
+	public GraphDatabaseService getDatabase() {
+		return database;
 	}
 	
 	

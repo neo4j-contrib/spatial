@@ -49,6 +49,10 @@ public class FakeIndex implements SpatialIndexReader, Constants {
 		return count;
 	}
 
+	public boolean isEmpty() {
+		return count() == 0;
+	}
+	
 	public Envelope getLayerBoundingBox() {
 		Envelope bbox = null;
 		for (Node node: database.getAllNodes()) {

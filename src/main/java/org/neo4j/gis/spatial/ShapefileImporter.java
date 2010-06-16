@@ -107,6 +107,10 @@ public class ShapefileImporter implements Constants {
 	
 	// Public methods
 	
+	public void setListener(ImporterListener listener) {
+		this.listener = listener;
+	}
+	
 	public void importFile(String dataset, String layerName) throws ShapefileException, FileNotFoundException, IOException {
 		Layer layer = getOrCreateLayer(layerName);
 		GeometryFactory geomFactory = layer.getGeometryFactory();
@@ -118,13 +122,7 @@ public class ShapefileImporter implements Constants {
 		
 		ShpFiles shpFiles = new ShpFiles(new File(dataset + ".shp"));
 		
-		CoordinateReferenceSystem crs;
-		PrjFileReader prjReader = new PrjFileReader(shpFiles);
-		try {
-			crs = prjReader.getCoodinateSystem();
-		} finally {
-			prjReader.close();
-		}
+		CoordinateReferenceSystem crs = readCRS(shpFiles);
 		
 		ShapefileReader shpReader = new ShapefileReader(shpFiles, strict, shpMemoryMapped, geomFactory);
 		try {
@@ -157,39 +155,47 @@ public class ShapefileImporter implements Constants {
 					tx.finish();
 				}
 				
-				Record record;
-				Geometry geometry;
-				Object[] fields;
-				int recordCounter = 0;
-				while (shpReader.hasNext() && dbfReader.hasNext()) {
-					tx = database.beginTx();
-					try {
-						for (int i = 0; i < commitInterval; i++) {
-							if (shpReader.hasNext() && dbfReader.hasNext()) {
-								record = shpReader.nextRecord();
-								recordCounter++;
-								try {
-									geometry = (Geometry) record.shape();
-									fields = dbfReader.readEntry();
-									
-									if (geometry.isEmpty()) {
-										log("warn | found empty geometry in record " + recordCounter);
-									} else {
-										// TODO check geometry.isValid() ?
-										layer.add(geometry, fieldsName, fields);
+				if (listener != null) listener.begin(dbaseFileHeader.getNumRecords());
+				try {
+					Record record;
+					Geometry geometry;
+					Object[] fields;
+					int recordCounter = 0;
+					while (shpReader.hasNext() && dbfReader.hasNext()) {
+						tx = database.beginTx();
+						try {
+							int committedSinceLastNotification = 0;
+							for (int i = 0; i < commitInterval; i++) {
+								if (shpReader.hasNext() && dbfReader.hasNext()) {
+									record = shpReader.nextRecord();
+									recordCounter++;
+									committedSinceLastNotification++;
+									try {
+										geometry = (Geometry) record.shape();
+										fields = dbfReader.readEntry();
+										
+										if (geometry.isEmpty()) {
+											log("warn | found empty geometry in record " + recordCounter);
+										} else {
+											// TODO check geometry.isValid() ?
+											layer.add(geometry, fieldsName, fields);
+										}
+									} catch (IllegalArgumentException e) {
+										// org.geotools.data.shapefile.shp.ShapefileReader.Record.shape() can throw this exception
+										log("warn | found invalid geometry: index=" + recordCounter, e);					
 									}
-								} catch (IllegalArgumentException e) {
-									// org.geotools.data.shapefile.shp.ShapefileReader.Record.shape() can throw this exception
-									log("warn | found invalid geometry: index=" + recordCounter, e);					
 								}
 							}
+							
+							log("info | inserted geometries: " + recordCounter);
+							if (listener != null) listener.worked(committedSinceLastNotification);
+							tx.success();
+						} finally {
+							tx.finish();
 						}
-						
-						log("info | inserted geometries: " + recordCounter);
-						tx.success();
-					} finally {
-						tx.finish();
 					}
+				} finally {
+					if (listener != null) listener.done();
 				}
 			} finally {
 				dbfReader.close();
@@ -205,15 +211,25 @@ public class ShapefileImporter implements Constants {
 	
 	// Private methods
 	
+	private CoordinateReferenceSystem readCRS(ShpFiles shpFiles) {
+		try {
+			PrjFileReader prjReader = new PrjFileReader(shpFiles);
+			try {
+				return prjReader.getCoodinateSystem();
+			} finally {
+				prjReader.close();
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			return null;
+		}		
+	}
+	
 	private Layer getOrCreateLayer(String layerName) {
 		Layer layer;
 		Transaction tx = database.beginTx();
 		try {
-			if (spatialDatabase.containsLayer(layerName)) {
-				layer = spatialDatabase.getLayer(layerName);				
-			} else {
-				layer = spatialDatabase.createLayer(layerName);
-			}
+			layer = spatialDatabase.getLayer(layerName, true);
 			tx.success();
 		} finally {
 			tx.finish();
@@ -233,6 +249,7 @@ public class ShapefileImporter implements Constants {
 	
 	// Attributes
 	
+	private ImporterListener listener;
 	private GraphDatabaseService database;
 	private BatchInserter batchInserter;
 	private SpatialDatabaseService spatialDatabase;

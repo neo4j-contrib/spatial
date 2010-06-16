@@ -39,6 +39,14 @@ public class SpatialIndexPerformanceProxy implements SpatialIndexReader {
         return result;
     }
 
+    public boolean isEmpty() {
+        long start = System.currentTimeMillis();    	
+    	boolean result = spatialIndex.isEmpty();
+    	long stop = System.currentTimeMillis();
+        System.out.println("# exec time(count): " + (stop - start) + "ms");
+        return result;    	
+    }
+    
     public int count() {
         long start = System.currentTimeMillis();
         int count = spatialIndex.count();

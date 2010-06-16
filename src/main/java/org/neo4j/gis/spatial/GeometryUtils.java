@@ -16,9 +16,7 @@
  */
 package org.neo4j.gis.spatial;
 
-import java.util.HashMap;
-
-import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.PropertyContainer;
 
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
@@ -33,36 +31,37 @@ import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKBReader;
 import com.vividsolutions.jts.io.WKBWriter;
 
+
 /**
  * @author Davide Savazzi
  */
 public class GeometryUtils implements Constants {
 
-    // Public methods
-
+	// Public methods
+	
     /**
      * Find and extract the bounding box from the node properties.
-     */
-    public static Envelope getEnvelope(Node node) {
-        double[] bbox = (double[])node.getProperty(PROP_BBOX);
-
-        // Envelope parameters: xmin, xmax, ymin, ymax)
-        return new Envelope(bbox[0], bbox[2], bbox[1], bbox[3]);
-    }
-
+     */	
+	public static Envelope getEnvelope(PropertyContainer node) {
+		double[] bbox = (double[]) node.getProperty(PROP_BBOX);
+			
+		// Envelope parameters: xmin, xmax, ymin, ymax)
+		return new Envelope(bbox[0], bbox[2], bbox[1], bbox[3]);
+	}	
+	
     /**
      * Create a bounding box encompassing the two bounding boxes passed in.
      * 
      * @param e
      * @param e1
      * @return
-     */
-    public static Envelope getEnvelope(Envelope e, Envelope e1) {
-        Envelope result = new Envelope(e);
-        result.expandToInclude(e1);
-        return result;
-    }
-
+     */	
+	public static Envelope getEnvelope(Envelope e, Envelope e1) {
+		Envelope result = new Envelope(e);
+		result.expandToInclude(e1);
+		return result;
+	}
+	
     /**
      * Encode the geometry information into the Node. Currently this stores the geometry in WKB as a
      * byte[] property of the Node. Future versions will allow alternative storage, like WKT,
@@ -71,9 +70,9 @@ public class GeometryUtils implements Constants {
      * 
      * @param geom
      * @param geomNode
-     */
-    public static void encode(Geometry geom, Node geomNode) {
-        geomNode.setProperty(PROP_TYPE, encodeGeometryType(geom.getGeometryType()));
+     */	
+	public static void encode(Geometry geom, PropertyContainer geomNode) {
+		geomNode.setProperty(PROP_TYPE, encodeGeometryType(geom.getGeometryType()));
 
         Envelope mbb = geom.getEnvelopeInternal();
         geomNode.setProperty(PROP_BBOX, new double[] {mbb.getMinX(), mbb.getMinY(), mbb.getMaxX(), mbb.getMaxY()});
@@ -90,17 +89,17 @@ public class GeometryUtils implements Constants {
      * @param geomNode
      * @param geomFactory
      * @return
-     */
-    public static Geometry decode(Node geomNode, GeometryFactory geomFactory) {
-        try {
-            WKBReader reader = new WKBReader(geomFactory);
-            return reader.read((byte[])geomNode.getProperty(PROP_WKB));
-        } catch (ParseException e) {
-            throw new SpatialDatabaseException(e.getMessage(), e);
-        }
-    }
+     */	
+	public static Geometry decode(PropertyContainer geomNode, GeometryFactory geomFactory) {
+		try {
+			WKBReader reader = new WKBReader(geomFactory);
+			return reader.read((byte[]) geomNode.getProperty(PROP_WKB));
+		} catch (ParseException e) {
+			throw new SpatialDatabaseException(e.getMessage(), e);
+		}
+	}
 
-    // Private methods
+    /*
     private static HashMap<String, Integer> geometryTypesMap = new HashMap<String, Integer>();
     static {
         geometryTypesMap.put("Point", GTYPE_POINT);
@@ -109,8 +108,8 @@ public class GeometryUtils implements Constants {
         geometryTypesMap.put("MultiLineString", GTYPE_MULTILINESTRING);
         geometryTypesMap.put("Polygon", GTYPE_POLYGON);
         geometryTypesMap.put("MultiPolygon", GTYPE_MULTIPOLYGON);
-    }
-
+    }*/
+	
 	public static Integer convertJtsClassToGeometryType(Class<? extends Geometry> jtsClass) {
 		if (jtsClass.equals(Point.class)) {
 			return GTYPE_POINT;

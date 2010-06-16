@@ -33,6 +33,7 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.impl.batchinsert.BatchInserter;
 import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
 
+
 /**
  * Base class for the meta model tests.
  */

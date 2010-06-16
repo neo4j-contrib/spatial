@@ -44,17 +44,20 @@ public class Layer implements Constants {
 
 	// Public methods
 
-//	public long add(Geometry geometry) {
-//		return add(geometry, null, null);
-//	}
+    /**
+     *  Add a geometry to this layer.
+     */	
+	public SpatialDatabaseRecord add(Geometry geometry) {
+		return add(geometry, null, null);
+	}
 	
     /**
      *  Add a geometry to this layer, including properties.
      */
-	public long add(Geometry geometry, String[] fieldsName, Object[] fields) {
+	public SpatialDatabaseRecord add(Geometry geometry, String[] fieldsName, Object[] fields) {
 		Node geomNode = addGeomNode(geometry, fieldsName, fields);
 		index.add(geomNode);
-		return geomNode.getId();
+		return new SpatialDatabaseRecord(geomNode, geometry);
 	}	
 	
 	public void update(long geomNodeId, Geometry geometry) {
@@ -115,6 +118,17 @@ public class Layer implements Constants {
 		if (layerNode.hasProperty(PROP_TYPE)) {
 			return (Integer) layerNode.getProperty(PROP_TYPE);
 		} else {
+			return null;
+		}
+	}
+
+	public Integer guessGeometryType() {
+		GuessGeometryTypeSearch geomTypeSearch = new GuessGeometryTypeSearch();
+		index.executeSearch(geomTypeSearch);
+		if (geomTypeSearch.firstFoundType != null) {
+			return geomTypeSearch.firstFoundType;
+		} else {
+			// layer is empty
 			return null;
 		}
 	}
@@ -208,4 +222,20 @@ public class Layer implements Constants {
 	private long layerNodeId;
 	private GeometryFactory geometryFactory;
 	private SpatialIndexWriter index;
+	
+	class GuessGeometryTypeSearch extends AbstractSearch {
+
+		Integer firstFoundType;
+			
+		public boolean needsToVisit(Node indexNode) {
+			return firstFoundType == null;
+		}
+
+		public void onIndexReference(Node geomNode) {
+			if (firstFoundType == null) {
+				firstFoundType = (Integer) geomNode.getProperty(PROP_TYPE);
+			}
+		}
+	};
+
 }

@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.neo4j.graphdb.Node;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
@@ -43,6 +44,10 @@ public abstract class AbstractSearch implements Search {
 		this.geometryFactory = geometryFactory;		
 	}	
 	
+	public void setCoordinateReferenceSystem(CoordinateReferenceSystem crs) {
+		this.crs = crs;
+	}
+	
 	public List<SpatialDatabaseRecord> getResults() {
 		return results;
 	}
@@ -62,5 +67,6 @@ public abstract class AbstractSearch implements Search {
 	// Attributes
 	
 	protected GeometryFactory geometryFactory;
+	protected CoordinateReferenceSystem crs;
 	private List<SpatialDatabaseRecord> results;
 }
