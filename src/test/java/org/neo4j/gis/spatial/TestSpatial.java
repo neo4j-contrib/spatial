@@ -113,10 +113,10 @@ public class TestSpatial extends Neo4jTestCase {
     }
 
     protected void setUp() throws Exception {
-        super.setUp(true); // pass true to delete previous database, speeding up the index test
+        super.setUp(true,false,false); // pass true to delete previous database, speeding up the index test
         long start = System.currentTimeMillis();
         SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-        for (String layerName : new String[] {"sweden.osm.administrative", "sweden_administrative"}) {
+        for (String layerName : new String[] {"sweden.osm.administrative"}) {
         // for (String layerName : new String[] {"sweden_highway"}) {
         // for (String layerName : new String[] {"sweden_administrative", "sweden_natural"}) {
         // for (String layerName : new String[] {"sweden_administrative", "sweden_natural", "sweden_water"}) {
@@ -136,15 +136,23 @@ public class TestSpatial extends Neo4jTestCase {
     private void loadTestShpData(String layerName, int commitInterval) throws ShapefileException, FileNotFoundException, IOException {
         String shpPath = SHP_DIR + File.separator + layerName;
         System.out.println("\n=== Loading layer " + layerName + " from " + shpPath + " ===");
-        ShapefileImporter importer = new ShapefileImporter(graphDb(), commitInterval);
+        ShapefileImporter importer =null;
+        if(isUsingBatchInserter()) {
+            importer = new ShapefileImporter(getBatchInserter());
+        } else {
+            importer = new ShapefileImporter(graphDb(), commitInterval);
+        }
         importer.importFile(shpPath, layerName);
     }
 
-    private void loadTestOsmData(String layerName, int commitInterval) throws IOException, XMLStreamException {
+    private void loadTestOsmData(String layerName, int commitInterval) throws Exception {
         String osmPath = OSM_DIR + File.separator + layerName;
         System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
-        OSMImporter importer = new OSMImporter(graphDb(), commitInterval);
-        importer.importFile(osmPath, layerName);
+        reActivateDatabase(false, true, false);
+        OSMImporter importer = new OSMImporter(layerName);
+        importer.importFile(getBatchInserter(), osmPath);
+        reActivateDatabase(false, false, false);
+        importer.reIndex(graphDb(), commitInterval);
     }
 
     public void testSpatialIndex() {

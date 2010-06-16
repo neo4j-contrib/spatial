@@ -23,6 +23,7 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.Transaction;
 
 
 /**
@@ -51,17 +52,22 @@ public class SpatialDatabaseService implements Constants {
 		return names.toArray(new String[names.size()]);
 	}
 	
-	public Layer getLayer(String name) {
-		Node refNode = database.getReferenceNode();
-		for (Relationship relationship : refNode.getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
-			Node layerNode = relationship.getEndNode();
-			if (name.equals(layerNode.getProperty(PROP_LAYER))) {
-				return new Layer(database, layerNode);
-			}
-		}
-		
-		return null;
-	}
+    public Layer getLayer(String name) {
+        Transaction tx = database.beginTx();
+        try {
+            Node refNode = database.getReferenceNode();
+            for (Relationship relationship : refNode.getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
+                Node layerNode = relationship.getEndNode();
+                if (name.equals(layerNode.getProperty(PROP_LAYER))) {
+                    return new Layer(database, layerNode);
+                }
+            }
+            tx.success();
+        } finally {
+            tx.finish();
+        }
+        return null;
+    }
 	
 	public boolean containsLayer(String name) {
 		return getLayer(name) != null;
