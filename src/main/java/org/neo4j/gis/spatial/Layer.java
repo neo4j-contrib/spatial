@@ -72,13 +72,17 @@ public class Layer implements Constants {
 	public void update(long geomNodeId, Geometry geometry) {
 		index.delete(geomNodeId, false);
 		
-		Node geomNode = database.getNodeById(geomNodeId);
+		Node geomNode = getDatabase().getNodeById(geomNodeId);
 		getGeometryEncoder().encodeGeometry(geometry, geomNode);
 		index.add(geomNode);
 	}
 	
 	public void delete(long geomNodeId) {
 		index.delete(geomNodeId, true);
+	}
+	
+	public SpatialDatabaseService getSpatialDatabase() {
+		return spatialDatabase;
 	}
 	
 	public SpatialIndexReader getIndex() {
@@ -177,10 +181,10 @@ public class Layer implements Constants {
 	
 	// Protected constructor
 
-	protected Layer(GraphDatabaseService database, Node layerNode) {
-		this.database = database;
+	protected Layer(SpatialDatabaseService spatialDatabase, Node layerNode) {
+		this.spatialDatabase = spatialDatabase;
 		this.layerNodeId = layerNode.getId();
-		this.index = new RTreeIndex(database, this);
+		this.index = new RTreeIndex(spatialDatabase.getDatabase(), this);
 		
 		// TODO read Precision Model and SRID from layer properties and use them to construct GeometryFactory
 		this.geometryFactory = new GeometryFactory();
@@ -202,7 +206,7 @@ public class Layer implements Constants {
 	// Protected methods
 	
 	protected Node getLayerNode() {
-		return database.getNodeById(layerNodeId);
+		return getDatabase().getNodeById(layerNodeId);
 	}
 	
 	protected long getLayerNodeId() {
@@ -223,8 +227,12 @@ public class Layer implements Constants {
 	
 	// Private methods
 	
+	private GraphDatabaseService getDatabase() {
+		return spatialDatabase.getDatabase();
+	}
+	
 	private Node addGeomNode(Geometry geom, String[] fieldsName, Object[] fields) {
-		Node geomNode = database.createNode();
+		Node geomNode = getDatabase().createNode();
 	
 		// TODO: don't store node ids as properties of other nodes, rather use relationships, or layer name string
 		// This seems to only be used by the FakeIndex to find all nodes in the layer. 
@@ -247,7 +255,7 @@ public class Layer implements Constants {
 	
 	// Attributes
 	
-	private GraphDatabaseService database;
+	private SpatialDatabaseService spatialDatabase;
 	private long layerNodeId;
 	private GeometryEncoder geometryEncoder;
 	private GeometryFactory geometryFactory;
