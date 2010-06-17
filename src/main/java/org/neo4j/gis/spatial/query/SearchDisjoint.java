@@ -22,8 +22,6 @@ import org.neo4j.graphdb.Node;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 
-import static org.neo4j.gis.spatial.GeometryUtils.*;
-
 
 /**
  * Find geometries that have no point in common with the given geometry
@@ -45,7 +43,7 @@ public class SearchDisjoint extends AbstractSearch {
 		if (!geomEnvelope.intersects(other.getEnvelopeInternal())) {
 			add(geomNode);
 		} else {
-			Geometry geometry = decode(geomNode, geometryFactory);
+			Geometry geometry = decode(geomNode);
 			if (geometry.disjoint(other)) add(geomNode, geometry);
 		}
 	}

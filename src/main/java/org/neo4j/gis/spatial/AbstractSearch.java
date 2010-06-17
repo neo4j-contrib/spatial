@@ -20,10 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.neo4j.graphdb.Node;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
+import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
 
 
 /**
@@ -40,13 +39,9 @@ public abstract class AbstractSearch implements Search {
 	
 	// Public methods
 
-	public void setGeometryFactory(GeometryFactory geometryFactory) {
-		this.geometryFactory = geometryFactory;		
+	public void setLayer(Layer layer) {
+		this.layer = layer;
 	}	
-	
-	public void setCoordinateReferenceSystem(CoordinateReferenceSystem crs) {
-		this.crs = crs;
-	}
 	
 	public List<SpatialDatabaseRecord> getResults() {
 		return results;
@@ -56,17 +51,24 @@ public abstract class AbstractSearch implements Search {
 	// Private methods
 	
 	protected void add(Node geomNode) {
-		results.add(new SpatialDatabaseRecord(geomNode, geometryFactory));
+		results.add(new SpatialDatabaseRecord(layer, geomNode));
 	}
 
 	protected void add(Node geomNode, Geometry geom) {
-		results.add(new SpatialDatabaseRecord(geomNode, geom));
+		results.add(new SpatialDatabaseRecord(layer, geomNode, geom));
+	}
+	
+	protected Envelope getEnvelope(Node geomNode) {
+		return layer.getGeometryEncoder().decodeEnvelope(geomNode);	
 	}
 		
+	protected Geometry decode(Node geomNode) {
+		return layer.getGeometryEncoder().decodeGeometry(geomNode);
+	}
+	
 	
 	// Attributes
 	
-	protected GeometryFactory geometryFactory;
-	protected CoordinateReferenceSystem crs;
+	protected Layer layer;
 	private List<SpatialDatabaseRecord> results;
 }

@@ -36,6 +36,12 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.MultiLineString;
+import com.vividsolutions.jts.geom.MultiPoint;
+import com.vividsolutions.jts.geom.MultiPolygon;
+import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.geom.Polygon;
 
 
 /**
@@ -117,7 +123,7 @@ public class ShapefileImporter implements Constants {
 		ShapefileReader shpReader = new ShapefileReader(shpFiles, strict, shpMemoryMapped, geomFactory);
 		try {
             Class geometryClass = JTSUtilities.findBestGeometryClass(shpReader.getHeader().getShapeType());
-            Integer geometryType = GeometryUtils.convertJtsClassToGeometryType(geometryClass);
+            Integer geometryType = convertJtsClassToGeometryType(geometryClass);
 			
 			// TODO ask charset to user?
 			DbaseFileReader dbfReader = new DbaseFileReader(shpFiles, shpMemoryMapped, Charset.defaultCharset());
@@ -225,6 +231,24 @@ public class ShapefileImporter implements Constants {
 			tx.finish();
 		}
 		return layer;
+	}
+	
+	private Integer convertJtsClassToGeometryType(Class jtsClass) {
+		if (jtsClass.equals(Point.class)) {
+			return GTYPE_POINT;
+		} else if (jtsClass.equals(LineString.class)) {
+			return GTYPE_LINESTRING;
+		} else if (jtsClass.equals(Polygon.class)) {
+			return GTYPE_POLYGON;
+		} else if (jtsClass.equals(MultiPoint.class)) {
+			return GTYPE_MULTIPOINT;
+		} else if (jtsClass.equals(MultiLineString.class)) {
+			return GTYPE_MULTILINESTRING;
+		} else if (jtsClass.equals(MultiPolygon.class)) {
+			return GTYPE_MULTIPOLYGON;
+		} else {
+			return null;
+		}
 	}
 	
 	private void log(String message) {

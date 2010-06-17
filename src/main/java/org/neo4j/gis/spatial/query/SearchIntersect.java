@@ -16,8 +16,6 @@
  */
 package org.neo4j.gis.spatial.query;
 
-import static org.neo4j.gis.spatial.GeometryUtils.decode;
-
 import org.neo4j.graphdb.Node;
 
 import com.vividsolutions.jts.geom.Envelope;
@@ -36,7 +34,7 @@ public class SearchIntersect extends AbstractSearchIntersection {
 	}
 
 	protected void onEnvelopeIntersection(Node geomNode, Envelope geomEnvelope) {
-		Geometry geometry = decode(geomNode, geometryFactory);
+		Geometry geometry = decode(geomNode);
 		if (geometry.intersects(other)) {
 			add(geomNode, geometry);
 		}

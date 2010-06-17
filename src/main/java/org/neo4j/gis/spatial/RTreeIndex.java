@@ -16,8 +16,6 @@
  */
 package org.neo4j.gis.spatial;
 
-import static org.neo4j.gis.spatial.GeometryUtils.getEnvelope;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -96,7 +94,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 			
 			// find all geomNodes in the subtree
 			SearchAll search = new SearchAll();
-			search.setGeometryFactory(layer.getGeometryFactory());
+			search.setLayer(layer);
 			visit(search, lastParentNodeToDelete);
 			List<SpatialDatabaseRecord> orphanedGeometryNodes = search.getResults();
 
@@ -176,8 +174,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 	public void executeSearch(Search search) {
 		if (isEmpty()) return;
 		
-		search.setCoordinateReferenceSystem(layer.getCoordinateReferenceSystem());
-		search.setGeometryFactory(layer.getGeometryFactory());		
+		search.setLayer(layer);
 		visit(search, getIndexRoot());
 	}
 	
@@ -188,6 +185,10 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 	
 	// Private methods
 
+	private Envelope getEnvelope(Node geomNode) {
+		return layer.getGeometryEncoder().decodeEnvelope(geomNode);
+	}
+	
 	private void visit(SpatialIndexVisitor visitor, Node indexNode) {
 		if (!visitor.needsToVisit(indexNode)) return;
 		
@@ -370,7 +371,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 			Envelope eEnvelope = getEnvelope(e);
 			for (Node e1 : entries) {
 				Envelope e1Envelope = getEnvelope(e1);
-				double deadSpace = getArea(getEnvelope(eEnvelope, e1Envelope)) - getArea(eEnvelope) - getArea(e1Envelope);
+				double deadSpace = getArea(createEnvelope(eEnvelope, e1Envelope)) - getArea(eEnvelope) - getArea(e1Envelope);
 				if (deadSpace > worst) {
 					worst = deadSpace;
 					seed1 = e;
@@ -397,8 +398,8 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 			double expansionMin = Double.POSITIVE_INFINITY;
 			for (Node e : entries) {
 				Envelope nodeEnvelope = getEnvelope(e);
-				double expansion1 = getArea(getEnvelope(nodeEnvelope, group1envelope)) - getArea(group1envelope);
-				double expansion2 = getArea(getEnvelope(nodeEnvelope, group2envelope)) - getArea(group2envelope);
+				double expansion1 = getArea(createEnvelope(nodeEnvelope, group1envelope)) - getArea(group1envelope);
+				double expansion2 = getArea(createEnvelope(nodeEnvelope, group2envelope)) - getArea(group2envelope);
 						
 				if (expansion1 < expansion2 && expansion1 < expansionMin) {
 					bestGroup = group1;
@@ -606,7 +607,16 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 			return indexNodeLeaf;
 		}
 	}
-		
+	
+    /**
+     * Create a bounding box encompassing the two bounding boxes passed in.
+     */	
+	private static Envelope createEnvelope(Envelope e, Envelope e1) {
+		Envelope result = new Envelope(e);
+		result.expandToInclude(e1);
+		return result;
+	}
+
 	
 	// Attributes
 	
@@ -614,22 +624,25 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 	private Layer layer;
 	private int maxNodeReferences;
 	private int minNodeReferences;
-}
 
-class RecordCounter implements SpatialIndexVisitor {
 	
-	public boolean needsToVisit(Node indexNode) { return true; }	
-	
-	public void onIndexReference(Node geomNode) { count++; }
-	
-	public int getResult() { return count; }
-	
-	private int count = 0;
-}
+	// Private classes
 
-class WarmUpVisitor implements SpatialIndexVisitor {
-	
-	public boolean needsToVisit(Node indexNode) { getEnvelope(indexNode); return true; }	
-	
-	public void onIndexReference(Node geomNode) { }	
+	class RecordCounter implements SpatialIndexVisitor {
+		
+		public boolean needsToVisit(Node indexNode) { return true; }	
+		
+		public void onIndexReference(Node geomNode) { count++; }
+		
+		public int getResult() { return count; }
+		
+		private int count = 0;
+	}
+
+	class WarmUpVisitor implements SpatialIndexVisitor {
+		
+		public boolean needsToVisit(Node indexNode) { getEnvelope(indexNode); return true; }	
+		
+		public void onIndexReference(Node geomNode) { }	
+	}
 }

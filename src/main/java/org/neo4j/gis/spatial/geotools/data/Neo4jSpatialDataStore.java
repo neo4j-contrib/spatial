@@ -41,7 +41,7 @@ import org.geotools.filter.LiteralExpression;
 import org.geotools.filter.spatial.IntersectsImpl;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.resources.Classes;
-import org.neo4j.gis.spatial.GeometryUtils;
+import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.Search;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
@@ -73,7 +73,7 @@ import com.vividsolutions.jts.geom.Polygon;
 /**
  * @author Davide Savazzi
  */
-public class Neo4jSpatialDataStore extends AbstractDataStore {
+public class Neo4jSpatialDataStore extends AbstractDataStore implements Constants {
 
 	// Constructor
 	
@@ -186,6 +186,10 @@ public class Neo4jSpatialDataStore extends AbstractDataStore {
     	return result;
     }
     
+	public SpatialDatabaseService getSpatialDatabaseService() {
+		return spatialDatabase;
+	}
+	
     public void clearCache() {
     	typeNames = null;
     	simpleFeatureTypeIndex.clear();
@@ -193,13 +197,7 @@ public class Neo4jSpatialDataStore extends AbstractDataStore {
     	boundsIndex.clear();
     	featureSourceIndex.clear();
     }	
-	
-	public void dispose() {
-		System.out.println("################      DISPOSE!!!");
 		
-		this.database.shutdown();
-	}
-	
     
     // Protected methods
     
@@ -263,7 +261,7 @@ public class Neo4jSpatialDataStore extends AbstractDataStore {
     }
     
 	protected List<AttributeDescriptor> readAttributes(String typeName, String[] extraPropertyNames) throws IOException {
-    	Class<?> geometryClass = GeometryUtils.convertGeometryTypeToJtsClass(getGeometryType(typeName));
+    	Class<?> geometryClass = convertGeometryTypeToJtsClass(getGeometryType(typeName));
 	            
 	    AttributeTypeBuilder build = new AttributeTypeBuilder();
 	    build.setName(Classes.getShortName(geometryClass));
@@ -366,6 +364,18 @@ public class Neo4jSpatialDataStore extends AbstractDataStore {
     	}    	
     }
         
+	private Class convertGeometryTypeToJtsClass(Integer geometryType) {
+		switch (geometryType) {
+			case GTYPE_POINT: return Point.class;
+			case GTYPE_LINESTRING: return LineString.class; 
+			case GTYPE_POLYGON: return Polygon.class;
+			case GTYPE_MULTIPOINT: return MultiPoint.class;
+			case GTYPE_MULTILINESTRING: return MultiLineString.class;
+			case GTYPE_MULTIPOLYGON: return MultiPolygon.class;
+			default: return null;
+		}
+	}    
+    
 	
 	// Attributes
 	

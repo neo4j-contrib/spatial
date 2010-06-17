@@ -16,8 +16,6 @@
  */
 package org.neo4j.gis.spatial;
 
-import static org.neo4j.gis.spatial.GeometryUtils.encode;
-
 import java.util.HashSet;
 import java.util.Set;
 
@@ -31,6 +29,7 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
+
 
 /**
  * Instances of Layer provide the ability for developers to add/remove and edit geometries
@@ -57,14 +56,24 @@ public class Layer implements Constants {
 	public SpatialDatabaseRecord add(Geometry geometry, String[] fieldsName, Object[] fields) {
 		Node geomNode = addGeomNode(geometry, fieldsName, fields);
 		index.add(geomNode);
-		return new SpatialDatabaseRecord(geomNode, geometry);
+		return new SpatialDatabaseRecord(this, geomNode, geometry);
 	}	
+	
+	/**
+	 * Add the geometry encoded in the given Node.
+	 */
+	public SpatialDatabaseRecord add(Node geomNode) {
+		Geometry geometry = getGeometryEncoder().decodeGeometry(geomNode);		
+		
+		index.add(geomNode);
+		return new SpatialDatabaseRecord(this, geomNode, geometry);		
+	}
 	
 	public void update(long geomNodeId, Geometry geometry) {
 		index.delete(geomNodeId, false);
 		
 		Node geomNode = database.getNodeById(geomNodeId);
-		encode(geometry, geomNode);
+		getGeometryEncoder().encodeGeometry(geometry, geomNode);
 		index.add(geomNode);
 	}
 	
@@ -98,6 +107,10 @@ public class Layer implements Constants {
 		} else {
 			return null;
 		}
+	}
+	
+	public GeometryEncoder getGeometryEncoder() {
+		return geometryEncoder;
 	}
 	
 	public void setGeometryType(Integer geometryType) {
@@ -171,6 +184,18 @@ public class Layer implements Constants {
 		
 		// TODO read Precision Model and SRID from layer properties and use them to construct GeometryFactory
 		this.geometryFactory = new GeometryFactory();
+		
+		if (layerNode.hasProperty(PROP_GEOMENCODER)) {
+			String encoderClassName = (String) layerNode.getProperty(PROP_GEOMENCODER);
+			try {
+				this.geometryEncoder = (GeometryEncoder) Class.forName(encoderClassName).newInstance();
+			} catch (Exception e) {
+				throw new SpatialDatabaseException(e);
+			}
+		} else {
+			this.geometryEncoder = new WKBGeometryEncoder();
+		}
+		this.geometryEncoder.init(this);
 	}
 	
 
@@ -200,10 +225,14 @@ public class Layer implements Constants {
 	
 	private Node addGeomNode(Geometry geom, String[] fieldsName, Object[] fields) {
 		Node geomNode = database.createNode();
-		//TODO: don't store node ids as properties of other nodes, rather use relationships, or layer name string
-		//This seems to only be used by the FakeIndex to find all nodes in the layer. THat is a bad solution, rather just traverse whatever graph the layer normally uses (mostly the r-tree, but without using r-tree intelligence)
+	
+		// TODO: don't store node ids as properties of other nodes, rather use relationships, or layer name string
+		// This seems to only be used by the FakeIndex to find all nodes in the layer. 
+		// That is a bad solution, rather just traverse whatever graph the layer normally uses (mostly the r-tree, 
+		// but without using r-tree intelligence)
 		geomNode.setProperty(PROP_LAYER, layerNodeId);
-		encode(geom, geomNode);
+		
+		getGeometryEncoder().encodeGeometry(geom, geomNode);
 		
 		// other properties
 		if (fieldsName != null) {
@@ -220,6 +249,7 @@ public class Layer implements Constants {
 	
 	private GraphDatabaseService database;
 	private long layerNodeId;
+	private GeometryEncoder geometryEncoder;
 	private GeometryFactory geometryFactory;
 	private SpatialIndexWriter index;
 	

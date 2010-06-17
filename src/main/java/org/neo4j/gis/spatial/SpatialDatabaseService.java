@@ -76,11 +76,16 @@ public class SpatialDatabaseService implements Constants {
 	}
 	
 	public Layer createLayer(String name) {
+		return createLayer(name, WKBGeometryEncoder.class);
+	}
+	
+	public Layer createLayer(String name, Class geometryEncoderClass) {
 		if (containsLayer(name)) throw new SpatialDatabaseException("Layer " + name + " already exists");
 		
 		Node layerNode = database.createNode();
 		layerNode.setProperty(PROP_LAYER, name);
 		layerNode.setProperty(PROP_CREATIONTIME, System.currentTimeMillis());
+		layerNode.setProperty(PROP_GEOMENCODER, geometryEncoderClass.getCanonicalName());
 		
 		Node refNode = database.getReferenceNode();
 		refNode.createRelationshipTo(layerNode, SpatialRelationshipTypes.LAYER);

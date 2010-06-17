@@ -16,8 +16,6 @@
  */
 package org.neo4j.gis.spatial.query;
 
-import static org.neo4j.gis.spatial.GeometryUtils.decode;
-
 import org.neo4j.graphdb.Node;
 
 import com.vividsolutions.jts.geom.Envelope;
@@ -41,7 +39,7 @@ public class SearchOverlap extends AbstractSearchIntersection {
 		// and the intersection of the interiors of the two geometries has
 		// the same dimension as the geometries themselves
 		
-		Geometry geometry = decode(geomNode, geometryFactory);
+		Geometry geometry = decode(geomNode);
 		if (geometry.overlaps(other)) add(geomNode, geometry);
 	}
 
