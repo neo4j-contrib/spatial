@@ -52,6 +52,20 @@ public class SpatialDatabaseRecord implements Constants {
 		return geomNode.hasProperty(name);
 	}
 	
+	public String[] getPropertyNames() {
+		return layer.getExtraPropertyNames();
+	}
+	
+	public Object[] getPropertyValues() {
+		String[] names = getPropertyNames();
+		if (names == null) return null;
+		Object[] values = new Object[names.length];
+		for (int i = 0; i < names.length; i++) {
+			values[i] = getProperty(names[i]);
+		}
+		return values;
+	}
+	
 	public Object getProperty(String name) {
 		return geomNode.getProperty(name);
 	}

@@ -35,7 +35,16 @@ public interface Constants {
 	String PROP_WKB = "wkb";
 	String PROP_WKT = "wkt";
 	
-	String[] RESERVED_PROPS = new String[] { PROP_LAYER, PROP_LAYERNODEEXTRAPROPS, PROP_CREATIONTIME, PROP_TYPE, PROP_BBOX, PROP_WKB };
+	String[] RESERVED_PROPS = new String[] { 
+			PROP_LAYER, 
+			PROP_LAYERNODEEXTRAPROPS, 
+			PROP_CRS, 
+			PROP_CREATIONTIME, 
+			PROP_TYPE, 
+			PROP_BBOX, 
+			PROP_WKB, 
+			PROP_WKT 
+	};
 	
 	
 	// OpenGIS geometry type numbers 
