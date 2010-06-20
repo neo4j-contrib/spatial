@@ -26,6 +26,7 @@ import org.geotools.data.DataStore;
 import org.geotools.data.DataStoreFactorySpi;
 import org.geotools.util.KVP;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.EmbeddedReadOnlyGraphDatabase;
 
 
@@ -55,7 +56,7 @@ public class Neo4jSpatialDataStoreFactory implements DataStoreFactorySpi {
 	public DataStore createDataStore(Map params) throws IOException {
 		URL url = (URL) params.get(Neo4jSpatialDataStoreFactory.URLP.key);
 		File neostoreId = new File(url.getPath());
-        GraphDatabaseService database = new EmbeddedReadOnlyGraphDatabase(neostoreId.getParent());
+        GraphDatabaseService database = new EmbeddedGraphDatabase(neostoreId.getParent());
         return new Neo4jSpatialDataStore(database);
 	}
 	

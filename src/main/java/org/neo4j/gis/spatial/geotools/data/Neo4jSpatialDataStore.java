@@ -190,6 +190,10 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 		return spatialDatabase;
 	}
 	
+	public Transaction beginTx() {
+		return database.beginTx();
+	}
+	
     public void clearCache() {
     	typeNames = null;
     	simpleFeatureTypeIndex.clear();
@@ -198,9 +202,15 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
     	featureSourceIndex.clear();
     }	
 		
+	public void dispose() {
+		database.shutdown();
+		
+		super.dispose();
+	}
+	
     
     // Protected methods
-    
+
 	/**
 	 * Implemented basic support for Queries used in uDig
 	 */
