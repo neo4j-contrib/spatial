@@ -42,6 +42,10 @@ import com.vividsolutions.jts.geom.GeometryFactory;
 public class Layer implements Constants {
 
 	// Public methods
+	
+	public String getName() {
+		return name;
+	}
 
     /**
      *  Add a geometry to this layer.
@@ -181,8 +185,9 @@ public class Layer implements Constants {
 	
 	// Protected constructor
 
-	protected Layer(SpatialDatabaseService spatialDatabase, Node layerNode) {
+	protected Layer(SpatialDatabaseService spatialDatabase, String name, Node layerNode) {
 		this.spatialDatabase = spatialDatabase;
+		this.name = name;
 		this.layerNodeId = layerNode.getId();
 		this.index = new RTreeIndex(spatialDatabase.getDatabase(), this);
 		
@@ -256,6 +261,7 @@ public class Layer implements Constants {
 	// Attributes
 	
 	private SpatialDatabaseService spatialDatabase;
+	private String name;
 	private long layerNodeId;
 	private GeometryEncoder geometryEncoder;
 	private GeometryFactory geometryFactory;

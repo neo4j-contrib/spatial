@@ -60,7 +60,7 @@ public class SpatialDatabaseService implements Constants {
 		for (Relationship relationship : refNode.getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
 			Node layerNode = relationship.getEndNode();
 			if (name.equals(layerNode.getProperty(PROP_LAYER))) {
-				return new Layer(this, layerNode);
+				return new Layer(this, name, layerNode);
 			}
 		}
 		
@@ -89,7 +89,7 @@ public class SpatialDatabaseService implements Constants {
 		
 		Node refNode = database.getReferenceNode();
 		refNode.createRelationshipTo(layerNode, SpatialRelationshipTypes.LAYER);
-		return new Layer(this, layerNode);
+		return new Layer(this, name, layerNode);
 	}
 		
 	public void deleteLayer(String name) {
