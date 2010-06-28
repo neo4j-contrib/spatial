@@ -66,6 +66,10 @@ public abstract class AbstractSearch implements Search {
 		return layer.getGeometryEncoder().decodeGeometry(geomNode);
 	}
 	
+	protected void clearResults() {
+		this.results.clear();
+	}
+	
 	
 	// Attributes
 	

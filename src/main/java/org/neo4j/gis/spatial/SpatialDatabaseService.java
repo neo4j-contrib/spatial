@@ -23,6 +23,7 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.Transaction;
 
 
 /**
@@ -92,11 +93,21 @@ public class SpatialDatabaseService implements Constants {
 		return new Layer(this, name, layerNode);
 	}
 		
-	public void deleteLayer(String name) {
-		Layer layer = getLayer(name);
-		if (layer == null) throw new SpatialDatabaseException("Layer " + name + " does not exist");
+	public void deleteLayer(String name, Listener monitor) {
+		Layer layer = null;
 		
-		layer.delete();
+		Transaction tx = database.beginTx();
+		try {
+			layer = getLayer(name);
+			
+			tx.success();
+		} finally {
+			tx.finish();
+		}
+		
+		if (layer == null) throw new SpatialDatabaseException("Layer " + name + " does not exist");
+
+		layer.delete(monitor);
 	}
 	
 	public GraphDatabaseService getDatabase() {

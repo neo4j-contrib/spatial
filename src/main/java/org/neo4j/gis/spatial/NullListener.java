@@ -20,11 +20,39 @@ package org.neo4j.gis.spatial;
 /**
  * @author Davide Savazzi
  */
-public interface ImporterListener {
+public class NullListener implements Listener {
 
-	void begin(int totalWork);
-
-	void worked(int workedSinceLastNotification);
+	// Constructor
 	
-	void done();
+	public NullListener() {
+		this(1000);
+	}
+	
+	public NullListener(int commitInterval) {
+		if (commitInterval < 1) {
+			throw new IllegalArgumentException("commitInterval must be > 0");
+		}
+		this.commitInterval = commitInterval;
+	}
+	
+	
+	// Public methods
+	
+	public void begin(int unitsOfWork) {
+	}
+
+	public void worked(int workedSinceLastNotification) {
+	}	
+	
+	public void done() {
+	}
+
+	public int suggestedCommitInterval() {
+		return commitInterval;
+	}
+
+
+	// Attributes
+	
+	private int commitInterval;
 }

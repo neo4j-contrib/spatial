@@ -51,16 +51,16 @@ public class ShapefileImporter implements Constants {
 	
 	// Constructor
 
-	public ShapefileImporter(GraphDatabaseService database) {	
-		this(database, 1000);
-	}
-	
-	public ShapefileImporter(GraphDatabaseService database, int commitInterval) {
-		if (commitInterval < 1) throw new IllegalArgumentException("commitInterval must be >= 1");
-		
+	public ShapefileImporter(GraphDatabaseService database, Listener monitor) {	
 		this.database = database;
 		this.spatialDatabase = new SpatialDatabaseService(database);
-		this.commitInterval = commitInterval;
+		
+		if (monitor == null) monitor = new NullListener();
+		this.monitor = monitor;
+	}
+	
+	public ShapefileImporter(GraphDatabaseService database) {	
+		this(database, null);
 	}
 	
 	
@@ -93,7 +93,7 @@ public class ShapefileImporter implements Constants {
 		
 		GraphDatabaseService database = new EmbeddedGraphDatabase(neoPath);
 		try {
-	        ShapefileImporter importer = new ShapefileImporter(database, commitInterval);
+	        ShapefileImporter importer = new ShapefileImporter(database, new NullListener(commitInterval));
 	        importer.importFile(shpPath, layerName);
 	    } finally {
 			database.shutdown();
@@ -102,10 +102,6 @@ public class ShapefileImporter implements Constants {
 
 	
 	// Public methods
-	
-	public void setListener(ImporterListener listener) {
-		this.listener = listener;
-	}
 	
 	public void importFile(String dataset, String layerName) throws ShapefileException, FileNotFoundException, IOException {
 		Layer layer = getOrCreateLayer(layerName);
@@ -151,7 +147,7 @@ public class ShapefileImporter implements Constants {
 					tx.finish();
 				}
 				
-				if (listener != null) listener.begin(dbaseFileHeader.getNumRecords());
+				monitor.begin(dbaseFileHeader.getNumRecords());
 				try {
 					Record record;
 					Geometry geometry;
@@ -161,7 +157,7 @@ public class ShapefileImporter implements Constants {
 						tx = database.beginTx();
 						try {
 							int committedSinceLastNotification = 0;
-							for (int i = 0; i < commitInterval; i++) {
+							for (int i = 0; i < monitor.suggestedCommitInterval(); i++) {
 								if (shpReader.hasNext() && dbfReader.hasNext()) {
 									record = shpReader.nextRecord();
 									recordCounter++;
@@ -184,14 +180,14 @@ public class ShapefileImporter implements Constants {
 							}
 							
 							log("info | inserted geometries: " + recordCounter);
-							if (listener != null) listener.worked(committedSinceLastNotification);
+							monitor.worked(committedSinceLastNotification);
 							tx.success();
 						} finally {
 							tx.finish();
 						}
 					}
 				} finally {
-					if (listener != null) listener.done();
+					monitor.done();
 				}
 			} finally {
 				dbfReader.close();
@@ -263,8 +259,7 @@ public class ShapefileImporter implements Constants {
 	
 	// Attributes
 	
-	private ImporterListener listener;
+	private Listener monitor;
 	private GraphDatabaseService database;
 	private SpatialDatabaseService spatialDatabase;
-	private int commitInterval;
 }

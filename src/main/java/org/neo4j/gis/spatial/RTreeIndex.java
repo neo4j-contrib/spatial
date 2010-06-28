@@ -26,6 +26,7 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.Transaction;
 
 import com.vividsolutions.jts.geom.Envelope;
 
@@ -74,7 +75,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 		}
 	}
 	
-	public void delete(long geomNodeId, boolean removeGeomNode) {
+	public void remove(long geomNodeId, boolean deleteGeomNode) {
 		Node geomNode = database.getNodeById(geomNodeId);
 		
 		// be sure geomNode is inside this RTree
@@ -82,7 +83,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 		
 		// remove the entry 
 		geomNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING).delete();
-		if (removeGeomNode) geomNode.delete();
+		if (deleteGeomNode) deleteNode(geomNode);
 		
 		// reorganize the tree if needed
 		if (getIndexNodeParent(indexNode) != null && countChildren(indexNode, SpatialRelationshipTypes.RTREE_REFERENCE) < minNodeReferences) {
@@ -120,34 +121,58 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 		}
 	}
 	
-	public void deleteAll() {
-		Node indexRoot = getIndexRoot();
+	public void removeAll(final boolean deleteGeomNodes, final Listener monitor) {
+		Node indexRoot;
+		int count;
 		
-		// delete all geometry nodes
-		visit(new SpatialIndexVisitor() {
-			public boolean needsToVisit(Node indexNode) {
-				return true;
-			}
+		Transaction tx = database.beginTx();
+		try {
+			indexRoot = getIndexRoot();
+			count = count();
+		
+			tx.success();
+		} finally {
+			tx.finish();
+		}
+		
+		monitor.begin(count);
+		try {
+			// delete all geometry nodes
+			visitInTx(new SpatialIndexVisitor() {
+				public boolean needsToVisit(Node indexNode) {
+					return true;
+				}
+	
+				public void onIndexReference(Node geomNode) {
+					geomNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING).delete();
+					if (deleteGeomNodes) deleteNode(geomNode);
+					
+					monitor.worked(1);
+				}
+			}, indexRoot.getId());	
+		} finally {
+			monitor.done();
+		}
 
-			public void onIndexReference(Node geomNode) {
-				geomNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING).delete();
-				geomNode.delete();
-			}
+		tx = database.beginTx();
+		try {
+			// delete index root relationship
+			indexRoot.getSingleRelationship(SpatialRelationshipTypes.RTREE_ROOT, Direction.INCOMING).delete();
 			
-		}, indexRoot);	
+			// delete tree
+			deleteRecursivelyEmptySubtree(indexRoot);
+			
+			// delete tree metadata
+			Node layerNode = database.getNodeById(layer.getLayerNodeId());
+			Relationship metadataNodeRelationship = layerNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_METADATA, Direction.OUTGOING);
+			Node metadataNode = metadataNodeRelationship.getEndNode();
+			metadataNodeRelationship.delete();
+			metadataNode.delete();
 		
-		// delete index root relationship
-		indexRoot.getSingleRelationship(SpatialRelationshipTypes.RTREE_ROOT, Direction.INCOMING).delete();
-		
-		// delete tree
-		deleteRecursivelyEmptySubtree(indexRoot);
-		
-		// delete tree metadata
-		Node layerNode = database.getNodeById(layer.getLayerNodeId());
-		Relationship metadataNodeRelationship = layerNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_METADATA, Direction.OUTGOING);
-		Node metadataNode = metadataNodeRelationship.getEndNode();
-		metadataNodeRelationship.delete();
-		metadataNode.delete();
+			tx.success();
+		} finally {
+			tx.finish();
+		}		
 	}
 	
 	public Envelope getLayerBoundingBox() {
@@ -203,6 +228,64 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 			// Node is a leaf
 			for (Relationship rel : indexNode.getRelationships(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)) {
 				visitor.onIndexReference(rel.getEndNode());
+			}
+		}
+	}
+	
+	private void visitInTx(SpatialIndexVisitor visitor, Long indexNodeId) {
+		boolean visitorNeedsToVisit = false;
+		boolean foundChildNodes = false;
+		boolean foundReferenceNodes = false;
+		
+		Transaction tx = database.beginTx();
+		try {
+			Node indexNode = database.getNodeById(indexNodeId);
+			visitorNeedsToVisit = visitor.needsToVisit(indexNode);
+			if (visitorNeedsToVisit) {
+				foundChildNodes = indexNode.hasRelationship(SpatialRelationshipTypes.RTREE_CHILD, Direction.OUTGOING);
+				foundReferenceNodes = indexNode.hasRelationship(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING);
+			}
+			
+			tx.success();
+		} finally {
+			tx.finish();
+		}
+
+		if (!visitorNeedsToVisit) return;
+		
+		if (foundChildNodes) {
+			// Node is not a leaf
+			
+			// collect children
+			List<Long> children = new ArrayList<Long>();
+			tx = database.beginTx();
+			try {
+				Node indexNode = database.getNodeById(indexNodeId);				
+				for (Relationship rel : indexNode.getRelationships(SpatialRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
+					children.add(rel.getEndNode().getId());
+				}				
+				
+				tx.success();
+			} finally {
+				tx.finish();
+			}
+
+			// visit children
+			for (Long child : children) {
+				visitInTx(visitor, child);	
+			}
+		} else if (foundReferenceNodes) {
+			// Node is a leaf
+			tx = database.beginTx();
+			try {
+				Node indexNode = database.getNodeById(indexNodeId);	
+				for (Relationship rel : indexNode.getRelationships(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)) {
+					visitor.onIndexReference(rel.getEndNode());
+				}
+			
+				tx.success();
+			} finally {
+				tx.finish();
 			}
 		}
 	}
@@ -607,6 +690,13 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 			return indexNodeLeaf;
 		}
 	}
+	
+	private void deleteNode(Node node) {
+		for (Relationship r : node.getRelationships()) {
+			r.delete();
+		}
+		node.delete();
+	}	
 	
     /**
      * Create a bounding box encompassing the two bounding boxes passed in.

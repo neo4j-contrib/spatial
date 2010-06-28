@@ -52,6 +52,11 @@ public class Neo4jSpatialDataStoreFactory implements DataStoreFactorySpi {
         
         return false;
     }
+    
+    public String getDataStoreUniqueIdentifier(Map params) {
+		URL url = (URL) params.get(Neo4jSpatialDataStoreFactory.URLP.key);
+		return url.getPath();    	
+    }
 
 	public DataStore createDataStore(Map params) throws IOException {
 		URL url = (URL) params.get(Neo4jSpatialDataStoreFactory.URLP.key);

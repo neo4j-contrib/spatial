@@ -24,6 +24,7 @@ import org.geotools.referencing.ReferencingFactoryFinder;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
@@ -74,7 +75,7 @@ public class Layer implements Constants {
 	}
 	
 	public void update(long geomNodeId, Geometry geometry) {
-		index.delete(geomNodeId, false);
+		index.remove(geomNodeId, false);
 		
 		Node geomNode = getDatabase().getNodeById(geomNodeId);
 		getGeometryEncoder().encodeGeometry(geometry, geomNode);
@@ -82,7 +83,7 @@ public class Layer implements Constants {
 	}
 	
 	public void delete(long geomNodeId) {
-		index.delete(geomNodeId, true);
+		index.remove(geomNodeId, true);
 	}
 	
 	public SpatialDatabaseService getSpatialDatabase() {
@@ -221,12 +222,19 @@ public class Layer implements Constants {
 	/**
 	 * Delete Layer
 	 */
-	protected void delete() {
-		index.deleteAll();
-		
-		Node layerNode = getLayerNode();
-		layerNode.getSingleRelationship(SpatialRelationshipTypes.LAYER, Direction.INCOMING).delete();
-		layerNode.delete();
+	protected void delete(Listener monitor) {
+		index.removeAll(true, monitor);
+
+		Transaction tx = getDatabase().beginTx();
+		try {
+			Node layerNode = getLayerNode();
+			layerNode.getSingleRelationship(SpatialRelationshipTypes.LAYER, Direction.INCOMING).delete();
+			layerNode.delete();
+			
+			tx.success();
+		} finally {
+			tx.finish();
+		}
 	}
 	
 	
