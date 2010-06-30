@@ -16,18 +16,20 @@
  */
 package org.neo4j.gis.spatial.geotools.data;
 
+import java.awt.RenderingHints.Key;
 import java.io.File;
-import java.io.IOException;
+import java.io.Serializable;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Collections;
 import java.util.Map;
 
+import org.apache.log4j.Logger;
 import org.geotools.data.DataStore;
 import org.geotools.data.DataStoreFactorySpi;
 import org.geotools.util.KVP;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
-import org.neo4j.kernel.EmbeddedReadOnlyGraphDatabase;
 
 
 /**
@@ -44,30 +46,27 @@ public class Neo4jSpatialDataStoreFactory implements DataStoreFactorySpi {
      * @param params A map of parameters describing the location of a datastore
      * @return true if params contains a url param which points to a file named 'neostore.id'
      */
-    public boolean canProcess(Map params) {
-        if (params.containsKey(URLP.key)) {
-        	URL url = (URL) params.get(Neo4jSpatialDataStoreFactory.URLP.key);
-        	return url.getFile().endsWith("neostore.id");
-        }
-        
-        return false;
+    public boolean canProcess(Map<String,Serializable> params) {
+        if (params == null) {
+            return false;
+        }    	
+
+    	File neo4jDir = getNeo4jDir(params.get(URLP.key));
+    	return neo4jDir != null && neo4jDir.isDirectory() && neo4jDir.canWrite();
     }
     
-    public String getDataStoreUniqueIdentifier(Map params) {
-		URL url = (URL) params.get(Neo4jSpatialDataStoreFactory.URLP.key);
-		return url.getPath();    	
+    public String getDataStoreUniqueIdentifier(Map<String,Serializable> params) {
+		File neo4jDir = getNeo4jDir(params.get(URLP.key));
+		return neo4jDir.getAbsolutePath();
     }
 
-	public DataStore createDataStore(Map params) throws IOException {
-		URL url = (URL) params.get(Neo4jSpatialDataStoreFactory.URLP.key);
-		File neostoreId = new File(url.getPath());
-        GraphDatabaseService database = new EmbeddedGraphDatabase(neostoreId.getParent());
-        return new Neo4jSpatialDataStore(database);
+	public DataStore createDataStore(Map<String,Serializable> params) {
+    	File neo4jDir = getNeo4jDir(params.get(URLP.key));
+        return new Neo4jSpatialDataStore(new EmbeddedGraphDatabase(neo4jDir.getAbsolutePath()));
 	}
 	
-	public DataStore createNewDataStore(Map params) throws IOException {
-		// TODO
-		throw new UnsupportedOperationException();
+	public DataStore createNewDataStore(Map<String,Serializable> params) {
+		return createDataStore(params);
 	}
 
 	public String getDisplayName() {
@@ -85,20 +84,44 @@ public class Neo4jSpatialDataStoreFactory implements DataStoreFactorySpi {
 
 	public boolean isAvailable() {
         try {
-        	EmbeddedReadOnlyGraphDatabase.class.getName();
+        	EmbeddedGraphDatabase.class.getName();
             GraphDatabaseService.class.getName();
         } catch (Exception e) {
-        	e.printStackTrace();
+        	log.error(e.getMessage(), e);
             return false;
         }
 
         return true;
 	}
+	
+	public Map<Key, ?> getImplementationHints() {
+        return Collections.EMPTY_MAP;		
+	}	
 
-    public Map getImplementationHints() {
-        return Collections.EMPTY_MAP;
-    }
-    
+	
+	// Private methods
+	
+	private File getNeo4jDir(Object param) {
+		if (param == null) return null;
+		
+		URL url;
+		if (param instanceof URL) {
+        	url = (URL) param;
+		} else if (param instanceof String) {
+			try {
+				url = new URL((String) param);
+			} catch (MalformedURLException e) {
+				log.warn(e.getMessage(), e);
+				return null;
+			}
+		} else {
+			return null;
+		}
+		
+		File neostoreId = new File(url.getPath());
+        return neostoreId.getParentFile();		
+	}
+	
 	
 	// Attributes
 
@@ -108,4 +131,6 @@ public class Neo4jSpatialDataStoreFactory implements DataStoreFactorySpi {
     public static final Param URLP = new Param("url", URL.class,
             "url to a neostore.id file", true, null,
             new KVP(Param.EXT, "id"));
+    
+    private static final Logger log = Logger.getLogger("neo4j");
 }
