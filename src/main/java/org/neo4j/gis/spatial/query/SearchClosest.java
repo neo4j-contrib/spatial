@@ -53,6 +53,7 @@ public class SearchClosest extends AbstractSearch {
 		double distance = geometry.distance(other);
 		if (distance < minDistance) {
 			clearResults();
+			minDistance = distance;
 			add(geomNode, geometry);
 		} else if (distance == minDistance) {
 			add(geomNode, geometry);
