@@ -32,7 +32,6 @@ import org.geotools.data.shapefile.shp.ShapefileReader.Record;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
-import org.neo4j.kernel.impl.batchinsert.BatchInserter;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Geometry;
@@ -64,16 +63,6 @@ public class ShapefileImporter implements Constants {
 		this(database, null);
 	}
 	
-
-	/**
-	 * Support running the import using a BatchInserter for speed
-	 * @param batchInserter
-	 */
-	public ShapefileImporter(BatchInserter batchInserter) {
-        this(batchInserter.getGraphDbService());
-        this.batchInserter = batchInserter;
-    }	    
-
 	// Main
 	
 	public static void main(String[] args) throws Exception {
@@ -271,6 +260,5 @@ public class ShapefileImporter implements Constants {
 	
 	private Listener monitor;
 	private GraphDatabaseService database;
-	private BatchInserter batchInserter;
 	private SpatialDatabaseService spatialDatabase;
 }
