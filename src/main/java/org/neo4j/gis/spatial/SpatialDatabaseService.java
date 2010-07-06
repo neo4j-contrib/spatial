@@ -77,6 +77,27 @@ public class SpatialDatabaseService implements Constants {
         }
     }
 	
+	public Layer findLayerContainingGeometryNode(Node geometryNode) {
+		Relationship indexRel = geometryNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING);
+		if (indexRel == null) return null;
+		
+		Node startNode = null;
+		while (indexRel != null) {
+			startNode = indexRel.getStartNode();
+			indexRel = startNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_CHILD, Direction.INCOMING);
+		}
+		
+		indexRel = startNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_ROOT, Direction.INCOMING);	
+		if (indexRel != null) {
+			startNode = indexRel.getStartNode();
+			if (startNode.hasProperty(PROP_LAYER)) {
+				return new Layer(this, (String) startNode.getProperty(PROP_LAYER), startNode);
+			}
+		}
+		
+		return null;
+	}
+	
 	public boolean containsLayer(String name) {
 		return getLayer(name) != null;
 	}
