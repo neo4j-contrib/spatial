@@ -120,4 +120,11 @@
 			</snapshots>
 		</repository>
 	</repositories>
+	<distributionManagement>
+		<repository>
+			<id>neo4j-upload-repository</id>
+			<name>Developers-only Maven 2 upload repository for Neo4j</name>
+			<url>scpexe://m2.neo4j.org/home/neo/maven2</url>
+		</repository>
+	</distributionManagement>
 </project>
