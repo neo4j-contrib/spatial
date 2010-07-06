@@ -16,15 +16,12 @@
  */
 package org.neo4j.gis.spatial.query;
 
-import static org.neo4j.gis.spatial.GeometryUtils.decode;
-import static org.neo4j.gis.spatial.GeometryUtils.getEnvelope;
-
 import org.neo4j.gis.spatial.AbstractSearch;
+import org.neo4j.gis.spatial.Layer;
 import org.neo4j.graphdb.Node;
 
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
 
 
 /**
@@ -38,25 +35,22 @@ public class SearchIntersectWindow extends AbstractSearch {
 		this.window = window;
 	}
 	
-	@Override
-	public void setGeometryFactory(GeometryFactory geometryFactory) {
-		this.geometryFactory = geometryFactory;		
-		this.windowGeom = geometryFactory.toGeometry(window);		
+	public void setLayer(Layer layer) {
+		super.setLayer(layer);
+		this.windowGeom = layer.getGeometryFactory().toGeometry(window);		
 	}
 	
-	@Override
 	public boolean needsToVisit(Node indexNode) {
 		return getEnvelope(indexNode).intersects(window);
 	}
 	
-	@Override
 	public final void onIndexReference(Node geomNode) {	
 		Envelope geomEnvelope = getEnvelope(geomNode);
 		
 		if (window.covers(geomEnvelope)) {
 			add(geomNode);
 		} else if (window.intersects(geomEnvelope)) {
-			Geometry geometry = decode(geomNode, geometryFactory);
+			Geometry geometry = decode(geomNode);
 			if (geometry.intersects(windowGeom)) {
 				add(geomNode, geometry);
 			}

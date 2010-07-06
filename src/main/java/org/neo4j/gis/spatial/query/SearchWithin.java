@@ -16,9 +16,6 @@
  */
 package org.neo4j.gis.spatial.query;
 
-import static org.neo4j.gis.spatial.GeometryUtils.decode;
-import static org.neo4j.gis.spatial.GeometryUtils.getEnvelope;
-
 import org.neo4j.graphdb.Node;
 
 import com.vividsolutions.jts.geom.Envelope;
@@ -41,7 +38,7 @@ public class SearchWithin extends AbstractSearchIntersection {
 		// and the interiors of the two geometries have at least one point in common
 
 	    if (other.getEnvelopeInternal().contains(getEnvelope(geomNode))) {
-			Geometry geometry = decode(geomNode, geometryFactory);
+			Geometry geometry = decode(geomNode);
 			if (geometry.within(other)) add(geomNode, geometry);
 	    }
 	}

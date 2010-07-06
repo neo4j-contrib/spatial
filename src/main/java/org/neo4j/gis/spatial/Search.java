@@ -18,19 +18,14 @@ package org.neo4j.gis.spatial;
 
 import java.util.List;
 
-import org.neo4j.graphdb.Node;
-
-import com.vividsolutions.jts.geom.GeometryFactory;
-
 
 /**
  * @author Davide Savazzi
  */
 public interface Search extends SpatialIndexVisitor {
 
-	void setGeometryFactory(GeometryFactory geometryFactory);
+	void setLayer(Layer layer);
 	
 	List<SpatialDatabaseRecord> getResults();
-
 	
 }

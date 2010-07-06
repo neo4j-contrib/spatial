@@ -17,17 +17,22 @@
 package org.neo4j.gis.spatial;
 
 import org.neo4j.graphdb.Node;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
-
-import static org.neo4j.gis.spatial.GeometryUtils.decode;
 
 
 /**
  * @author Davide Savazzi
  */
 public class SpatialDatabaseRecord implements Constants {
+	
+	// Constructor
+	
+	public SpatialDatabaseRecord(Layer layer, Node geomNode) {
+		this(layer, geomNode, null);
+	}
+
 	
 	// Public methods
 	
@@ -40,11 +45,33 @@ public class SpatialDatabaseRecord implements Constants {
 	}
 	
 	public Geometry getGeometry() {
-		if (geometry == null) {
-			geometry = decode(geomNode, geometryFactory);
-			geometryFactory = null;
-		}
 		return geometry;
+	}
+	
+	public CoordinateReferenceSystem getCoordinateReferenceSystem() {
+		return crs;
+	}
+	
+	public String getLayerName() {
+		return layerName;
+	}
+	
+	public boolean hasProperty(String name) {
+		return geomNode.hasProperty(name);
+	}
+	
+	public String[] getPropertyNames() {
+		return propertyNames;
+	}
+	
+	public Object[] getPropertyValues() {
+		String[] names = getPropertyNames();
+		if (names == null) return null;
+		Object[] values = new Object[names.length];
+		for (int i = 0; i < names.length; i++) {
+			values[i] = getProperty(names[i]);
+		}
+		return values;
 	}
 	
 	public Object getProperty(String name) {
@@ -67,17 +94,25 @@ public class SpatialDatabaseRecord implements Constants {
 		return getId() == anotherRecord.getId();
 	}
 	
+	public String toString() {
+	    return "SpatialDatabaseRecord[" + getId() + "]: type='" + getType() + "', props[" + getPropString() + "]";
+	}
+
 	
 	// Protected Constructors
 	
-	protected SpatialDatabaseRecord(Node geomNode, GeometryFactory geometryFactory) {
+	protected SpatialDatabaseRecord(Layer layer, Node geomNode, Geometry geometry) {
 		this.geomNode = geomNode;
-		this.geometryFactory = geometryFactory;
-	}
-
-	protected SpatialDatabaseRecord(Node geomNode, Geometry geometry) {
-		this.geomNode = geomNode;
-		this.geometry = geometry;
+		
+		if (geometry != null) {
+			this.geometry = geometry;
+		} else {
+			this.geometry = layer.getGeometryEncoder().decodeGeometry(geomNode);
+		}
+		
+		this.layerName = layer.getName();
+		this.propertyNames = layer.getExtraPropertyNames();
+		this.crs = layer.getCoordinateReferenceSystem();
 	}
 
 	
@@ -98,10 +133,22 @@ public class SpatialDatabaseRecord implements Constants {
 		}
 	}
 	
+	private String getPropString() {
+	    StringBuffer text = new StringBuffer();
+	    for (String key : geomNode.getPropertyKeys()) {
+	        if (text.length() > 0) text.append(", ");
+            text.append(key).append(": ").append(geomNode.getProperty(key).toString());
+	    }
+	    return text.toString();
+	}
+	
 
 	// Attributes
 	
 	private Node geomNode;
-	private GeometryFactory geometryFactory;
 	private Geometry geometry;
+	
+	private String layerName;
+	private String[] propertyNames;
+	private CoordinateReferenceSystem crs;
 }

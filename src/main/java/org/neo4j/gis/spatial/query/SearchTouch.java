@@ -16,8 +16,6 @@
  */
 package org.neo4j.gis.spatial.query;
 
-import static org.neo4j.gis.spatial.GeometryUtils.decode;
-
 import org.neo4j.graphdb.Node;
 
 import com.vividsolutions.jts.geom.Envelope;
@@ -36,7 +34,7 @@ public class SearchTouch extends AbstractSearchIntersection {
 	}
 
 	protected void onEnvelopeIntersection(Node geomNode, Envelope geomEnvelope) {
-		Geometry geometry = decode(geomNode, geometryFactory);
+		Geometry geometry = decode(geomNode);
 		// if the geometries have at least one point in common, but their interiors do not intersect
 		if (geometry.touches(other)) add(geomNode, geometry);
 	}

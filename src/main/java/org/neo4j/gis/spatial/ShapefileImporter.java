@@ -24,15 +24,24 @@ import java.nio.charset.Charset;
 import org.geotools.data.shapefile.ShpFiles;
 import org.geotools.data.shapefile.dbf.DbaseFileHeader;
 import org.geotools.data.shapefile.dbf.DbaseFileReader;
+import org.geotools.data.shapefile.prj.PrjFileReader;
+import org.geotools.data.shapefile.shp.JTSUtilities;
 import org.geotools.data.shapefile.shp.ShapefileException;
 import org.geotools.data.shapefile.shp.ShapefileReader;
 import org.geotools.data.shapefile.shp.ShapefileReader.Record;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.MultiLineString;
+import com.vividsolutions.jts.geom.MultiPoint;
+import com.vividsolutions.jts.geom.MultiPolygon;
+import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.geom.Polygon;
 
 
 /**
@@ -42,18 +51,17 @@ public class ShapefileImporter implements Constants {
 	
 	// Constructor
 
-	public ShapefileImporter(GraphDatabaseService database) {	
-		this(database, 1000);
-	}
-	
-	public ShapefileImporter(GraphDatabaseService database, int commitInterval) {
-		if (commitInterval < 1) throw new IllegalArgumentException("commitInterval must be >= 1");
-		
+	public ShapefileImporter(GraphDatabaseService database, Listener monitor) {	
 		this.database = database;
 		this.spatialDatabase = new SpatialDatabaseService(database);
-		this.commitInterval = commitInterval;
+		
+		if (monitor == null) monitor = new NullListener();
+		this.monitor = monitor;
 	}
 	
+	public ShapefileImporter(GraphDatabaseService database) {	
+		this(database, null);
+	}
 	
 	// Main
 	
@@ -84,8 +92,8 @@ public class ShapefileImporter implements Constants {
 		
 		GraphDatabaseService database = new EmbeddedGraphDatabase(neoPath);
 		try {
-	        ShapefileImporter importer = new ShapefileImporter(database, commitInterval);
-	        importer.importShapefile(shpPath, layerName);
+	        ShapefileImporter importer = new ShapefileImporter(database, new NullListener(commitInterval));
+	        importer.importFile(shpPath, layerName);
 	    } finally {
 			database.shutdown();
 		}
@@ -94,10 +102,7 @@ public class ShapefileImporter implements Constants {
 	
 	// Public methods
 	
-	public void importShapefile(String dataset, String layerName) throws ShapefileException, FileNotFoundException, IOException {
-		// remove extension
-		dataset = dataset.substring(0, dataset.lastIndexOf("."));
-		
+	public void importFile(String dataset, String layerName) throws ShapefileException, FileNotFoundException, IOException {
 		Layer layer = getOrCreateLayer(layerName);
 		GeometryFactory geomFactory = layer.getGeometryFactory();
 		
@@ -107,59 +112,81 @@ public class ShapefileImporter implements Constants {
 		long startTime = System.currentTimeMillis();
 		
 		ShpFiles shpFiles = new ShpFiles(new File(dataset + ".shp"));
+		
+		CoordinateReferenceSystem crs = readCRS(shpFiles);
+		
 		ShapefileReader shpReader = new ShapefileReader(shpFiles, strict, shpMemoryMapped, geomFactory);
 		try {
+            Class geometryClass = JTSUtilities.findBestGeometryClass(shpReader.getHeader().getShapeType());
+            Integer geometryType = convertJtsClassToGeometryType(geometryClass);
+			
 			// TODO ask charset to user?
 			DbaseFileReader dbfReader = new DbaseFileReader(shpFiles, shpMemoryMapped, Charset.defaultCharset());
 			try {
 				DbaseFileHeader dbaseFileHeader = dbfReader.getHeader();
-				
+	            
 				String[] fieldsName = new String[dbaseFileHeader.getNumFields()];
 				for (int i = 0; i < fieldsName.length; i++) {
 					fieldsName[i] = dbaseFileHeader.getFieldName(i);
 				}
-
+				
 				Transaction tx = database.beginTx();
 				try {
+					if (crs != null) {
+						layer.setCoordinateReferenceSystem(crs);
+					}
+
+					if (geometryType != null) {
+						layer.setGeometryType(geometryType);
+					}
+					
 					layer.mergeExtraPropertyNames(fieldsName);
 					tx.success();
 				} finally {
 					tx.finish();
 				}
 				
-				Record record;
-				Geometry geometry;
-				Object[] fields;
-				int recordCounter = 0;
-				while (shpReader.hasNext() && dbfReader.hasNext()) {
-					tx = database.beginTx();
-					try {
-						for (int i = 0; i < commitInterval; i++) {
-							if (shpReader.hasNext() && dbfReader.hasNext()) {
-								record = shpReader.nextRecord();
-								recordCounter++;
-								try {
-									geometry = (Geometry) record.shape();
-									fields = dbfReader.readEntry();
-									
-									if (geometry.isEmpty()) {
-										log("warn | found empty geometry in record " + recordCounter);
-									} else {
-										// TODO check geometry.isValid() ?
-										layer.add(geometry, fieldsName, fields);
+				monitor.begin(dbaseFileHeader.getNumRecords());
+				try {
+					Record record;
+					Geometry geometry;
+					Object[] fields;
+					int recordCounter = 0;
+					while (shpReader.hasNext() && dbfReader.hasNext()) {
+						tx = database.beginTx();
+						try {
+							int committedSinceLastNotification = 0;
+							for (int i = 0; i < monitor.suggestedCommitInterval(); i++) {
+								if (shpReader.hasNext() && dbfReader.hasNext()) {
+									record = shpReader.nextRecord();
+									recordCounter++;
+									committedSinceLastNotification++;
+									try {
+										geometry = (Geometry) record.shape();
+										fields = dbfReader.readEntry();
+										
+										if (geometry.isEmpty()) {
+											log("warn | found empty geometry in record " + recordCounter);
+										} else {
+											// TODO check geometry.isValid() ?
+											layer.add(geometry, fieldsName, fields);
+										}
+									} catch (IllegalArgumentException e) {
+										// org.geotools.data.shapefile.shp.ShapefileReader.Record.shape() can throw this exception
+										log("warn | found invalid geometry: index=" + recordCounter, e);					
 									}
-								} catch (IllegalArgumentException e) {
-									// org.geotools.data.shapefile.shp.ShapefileReader.Record.shape() can throw this exception
-									log("warn | found invalid geometry: index=" + recordCounter, e);					
 								}
 							}
+							
+							log("info | inserted geometries: " + recordCounter);
+							monitor.worked(committedSinceLastNotification);
+							tx.success();
+						} finally {
+							tx.finish();
 						}
-						
-						log("info | inserted geometries: " + recordCounter);
-						tx.success();
-					} finally {
-						tx.finish();
 					}
+				} finally {
+					monitor.done();
 				}
 			} finally {
 				dbfReader.close();
@@ -169,26 +196,54 @@ public class ShapefileImporter implements Constants {
 		}
 
 		long stopTime = System.currentTimeMillis();
-		log("info | elapsed time in seconds: " + ((stopTime - startTime) / 1000));
+		log("info | elapsed time in seconds: " + (1.0 * (stopTime - startTime) / 1000));
 	}
 	
 	
 	// Private methods
 	
+	private CoordinateReferenceSystem readCRS(ShpFiles shpFiles) {
+		try {
+			PrjFileReader prjReader = new PrjFileReader(shpFiles);
+			try {
+				return prjReader.getCoodinateSystem();
+			} finally {
+				prjReader.close();
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			return null;
+		}		
+	}
+	
 	private Layer getOrCreateLayer(String layerName) {
 		Layer layer;
 		Transaction tx = database.beginTx();
 		try {
-			if (spatialDatabase.containsLayer(layerName)) {
-				layer = spatialDatabase.getLayer(layerName);				
-			} else {
-				layer = spatialDatabase.createLayer(layerName);
-			}
+			layer = spatialDatabase.getLayer(layerName, true);
 			tx.success();
 		} finally {
 			tx.finish();
 		}
 		return layer;
+	}
+	
+	private Integer convertJtsClassToGeometryType(Class jtsClass) {
+		if (jtsClass.equals(Point.class)) {
+			return GTYPE_POINT;
+		} else if (jtsClass.equals(LineString.class)) {
+			return GTYPE_LINESTRING;
+		} else if (jtsClass.equals(Polygon.class)) {
+			return GTYPE_POLYGON;
+		} else if (jtsClass.equals(MultiPoint.class)) {
+			return GTYPE_MULTIPOINT;
+		} else if (jtsClass.equals(MultiLineString.class)) {
+			return GTYPE_MULTILINESTRING;
+		} else if (jtsClass.equals(MultiPolygon.class)) {
+			return GTYPE_MULTIPOLYGON;
+		} else {
+			return null;
+		}
 	}
 	
 	private void log(String message) {
@@ -203,7 +258,7 @@ public class ShapefileImporter implements Constants {
 	
 	// Attributes
 	
+	private Listener monitor;
 	private GraphDatabaseService database;
 	private SpatialDatabaseService spatialDatabase;
-	private int commitInterval;
 }

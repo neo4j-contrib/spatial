@@ -16,9 +16,6 @@
  */
 package org.neo4j.gis.spatial.query;
 
-import static org.neo4j.gis.spatial.GeometryUtils.decode;
-import static org.neo4j.gis.spatial.GeometryUtils.getEnvelope;
-
 import org.neo4j.gis.spatial.AbstractSearch;
 import org.neo4j.graphdb.Node;
 
@@ -48,10 +45,11 @@ public class SearchWithinDistance extends AbstractSearch {
 	public void onIndexReference(Node geomNode) {
 	    double bboxDistance = getEnvelope(geomNode).distance(bbox);
 	    if (bboxDistance <= distance) {
-	    	Geometry geometry = decode(geomNode, geometryFactory);
+	    	Geometry geometry = decode(geomNode);
 	    	if (DistanceOp.isWithinDistance(geometry, point, distance)) add(geomNode, geometry);
 	    }
 	}
+	
 
 	private Point point;
 	private double distance;

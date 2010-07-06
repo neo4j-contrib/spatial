@@ -16,8 +16,6 @@
  */
 package org.neo4j.gis.spatial;
 
-import static org.neo4j.gis.spatial.GeometryUtils.getEnvelope;
-
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -28,6 +26,7 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.Transaction;
 
 import com.vividsolutions.jts.geom.Envelope;
 
@@ -40,7 +39,6 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 	// Constructor
 	
 	public RTreeIndex(GraphDatabaseService database, Layer layer) {
-		// this(database, layer, 4, 2);
 		this(database, layer, 100, 40);
 	}
 	
@@ -77,7 +75,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 		}
 	}
 	
-	public void delete(long geomNodeId, boolean removeGeomNode) {
+	public void remove(long geomNodeId, boolean deleteGeomNode) {
 		Node geomNode = database.getNodeById(geomNodeId);
 		
 		// be sure geomNode is inside this RTree
@@ -85,7 +83,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 		
 		// remove the entry 
 		geomNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING).delete();
-		if (removeGeomNode) geomNode.delete();
+		if (deleteGeomNode) deleteNode(geomNode);
 		
 		// reorganize the tree if needed
 		if (getIndexNodeParent(indexNode) != null && countChildren(indexNode, SpatialRelationshipTypes.RTREE_REFERENCE) < minNodeReferences) {
@@ -97,7 +95,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 			
 			// find all geomNodes in the subtree
 			SearchAll search = new SearchAll();
-			search.setGeometryFactory(layer.getGeometryFactory());
+			search.setLayer(layer);
 			visit(search, lastParentNodeToDelete);
 			List<SpatialDatabaseRecord> orphanedGeometryNodes = search.getResults();
 
@@ -123,9 +121,68 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 		}
 	}
 	
+	public void removeAll(final boolean deleteGeomNodes, final Listener monitor) {
+		Node indexRoot;
+		int count;
+		
+		Transaction tx = database.beginTx();
+		try {
+			indexRoot = getIndexRoot();
+			count = count();
+		
+			tx.success();
+		} finally {
+			tx.finish();
+		}
+		
+		monitor.begin(count);
+		try {
+			// delete all geometry nodes
+			visitInTx(new SpatialIndexVisitor() {
+				public boolean needsToVisit(Node indexNode) {
+					return true;
+				}
+	
+				public void onIndexReference(Node geomNode) {
+					geomNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING).delete();
+					if (deleteGeomNodes) deleteNode(geomNode);
+					
+					monitor.worked(1);
+				}
+			}, indexRoot.getId());	
+		} finally {
+			monitor.done();
+		}
+
+		tx = database.beginTx();
+		try {
+			// delete index root relationship
+			indexRoot.getSingleRelationship(SpatialRelationshipTypes.RTREE_ROOT, Direction.INCOMING).delete();
+			
+			// delete tree
+			deleteRecursivelyEmptySubtree(indexRoot);
+			
+			// delete tree metadata
+			Node layerNode = database.getNodeById(layer.getLayerNodeId());
+			Relationship metadataNodeRelationship = layerNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_METADATA, Direction.OUTGOING);
+			Node metadataNode = metadataNodeRelationship.getEndNode();
+			metadataNodeRelationship.delete();
+			metadataNode.delete();
+		
+			tx.success();
+		} finally {
+			tx.finish();
+		}		
+	}
+	
 	public Envelope getLayerBoundingBox() {
-		Node root = getIndexRoot();
-		return getEnvelope(root);
+		Node indexRoot = getIndexRoot();
+		if (!indexRoot.hasProperty(PROP_BBOX)) {
+			// layer is empty
+			return null;
+		}
+		
+		return getEnvelope(indexRoot);
 	}
 	
 	public int count() {
@@ -134,8 +191,15 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 		return counter.getResult();
 	}
 
+	public boolean isEmpty() {
+		Node indexRoot = getIndexRoot();
+		return !indexRoot.hasProperty(PROP_BBOX);
+	}
+	
 	public void executeSearch(Search search) {
-		search.setGeometryFactory(layer.getGeometryFactory());
+		if (isEmpty()) return;
+		
+		search.setLayer(layer);
 		visit(search, getIndexRoot());
 	}
 	
@@ -146,6 +210,10 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 	
 	// Private methods
 
+	private Envelope getEnvelope(Node geomNode) {
+		return layer.getGeometryEncoder().decodeEnvelope(geomNode);
+	}
+	
 	private void visit(SpatialIndexVisitor visitor, Node indexNode) {
 		if (!visitor.needsToVisit(indexNode)) return;
 		
@@ -160,6 +228,64 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 			// Node is a leaf
 			for (Relationship rel : indexNode.getRelationships(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)) {
 				visitor.onIndexReference(rel.getEndNode());
+			}
+		}
+	}
+	
+	private void visitInTx(SpatialIndexVisitor visitor, Long indexNodeId) {
+		boolean visitorNeedsToVisit = false;
+		boolean foundChildNodes = false;
+		boolean foundReferenceNodes = false;
+		
+		Transaction tx = database.beginTx();
+		try {
+			Node indexNode = database.getNodeById(indexNodeId);
+			visitorNeedsToVisit = visitor.needsToVisit(indexNode);
+			if (visitorNeedsToVisit) {
+				foundChildNodes = indexNode.hasRelationship(SpatialRelationshipTypes.RTREE_CHILD, Direction.OUTGOING);
+				foundReferenceNodes = indexNode.hasRelationship(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING);
+			}
+			
+			tx.success();
+		} finally {
+			tx.finish();
+		}
+
+		if (!visitorNeedsToVisit) return;
+		
+		if (foundChildNodes) {
+			// Node is not a leaf
+			
+			// collect children
+			List<Long> children = new ArrayList<Long>();
+			tx = database.beginTx();
+			try {
+				Node indexNode = database.getNodeById(indexNodeId);				
+				for (Relationship rel : indexNode.getRelationships(SpatialRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
+					children.add(rel.getEndNode().getId());
+				}				
+				
+				tx.success();
+			} finally {
+				tx.finish();
+			}
+
+			// visit children
+			for (Long child : children) {
+				visitInTx(visitor, child);	
+			}
+		} else if (foundReferenceNodes) {
+			// Node is a leaf
+			tx = database.beginTx();
+			try {
+				Node indexNode = database.getNodeById(indexNodeId);	
+				for (Relationship rel : indexNode.getRelationships(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)) {
+					visitor.onIndexReference(rel.getEndNode());
+				}
+			
+				tx.success();
+			} finally {
+				tx.finish();
 			}
 		}
 	}
@@ -328,7 +454,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 			Envelope eEnvelope = getEnvelope(e);
 			for (Node e1 : entries) {
 				Envelope e1Envelope = getEnvelope(e1);
-				double deadSpace = getArea(getEnvelope(eEnvelope, e1Envelope)) - getArea(eEnvelope) - getArea(e1Envelope);
+				double deadSpace = getArea(createEnvelope(eEnvelope, e1Envelope)) - getArea(eEnvelope) - getArea(e1Envelope);
 				if (deadSpace > worst) {
 					worst = deadSpace;
 					seed1 = e;
@@ -355,8 +481,8 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 			double expansionMin = Double.POSITIVE_INFINITY;
 			for (Node e : entries) {
 				Envelope nodeEnvelope = getEnvelope(e);
-				double expansion1 = getArea(getEnvelope(nodeEnvelope, group1envelope)) - getArea(group1envelope);
-				double expansion2 = getArea(getEnvelope(nodeEnvelope, group2envelope)) - getArea(group2envelope);
+				double expansion1 = getArea(createEnvelope(nodeEnvelope, group1envelope)) - getArea(group1envelope);
+				double expansion2 = getArea(createEnvelope(nodeEnvelope, group2envelope)) - getArea(group2envelope);
 						
 				if (expansion1 < expansion2 && expansion1 < expansionMin) {
 					bestGroup = group1;
@@ -534,7 +660,11 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 			deleteRecursivelyEmptySubtree(relationship.getEndNode());
 		}
 		
-		indexNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_CHILD, Direction.INCOMING).delete();
+		Relationship relationshipWithFather = indexNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_CHILD, Direction.INCOMING);
+		// the following check is needed because rootNode doesn't have this relationship
+		if (relationshipWithFather != null) {
+			relationshipWithFather.delete();
+		}
 		indexNode.delete();
 	}
 	
@@ -560,7 +690,23 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 			return indexNodeLeaf;
 		}
 	}
-		
+	
+	private void deleteNode(Node node) {
+		for (Relationship r : node.getRelationships()) {
+			r.delete();
+		}
+		node.delete();
+	}	
+	
+    /**
+     * Create a bounding box encompassing the two bounding boxes passed in.
+     */	
+	private static Envelope createEnvelope(Envelope e, Envelope e1) {
+		Envelope result = new Envelope(e);
+		result.expandToInclude(e1);
+		return result;
+	}
+
 	
 	// Attributes
 	
@@ -568,22 +714,25 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 	private Layer layer;
 	private int maxNodeReferences;
 	private int minNodeReferences;
-}
 
-class RecordCounter implements SpatialIndexVisitor {
 	
-	public boolean needsToVisit(Node indexNode) { return true; }	
-	
-	public void onIndexReference(Node geomNode) { count++; }
-	
-	public int getResult() { return count; }
-	
-	private int count = 0;
-}
+	// Private classes
 
-class WarmUpVisitor implements SpatialIndexVisitor {
-	
-	public boolean needsToVisit(Node indexNode) { getEnvelope(indexNode); return true; }	
-	
-	public void onIndexReference(Node geomNode) { }	
+	class RecordCounter implements SpatialIndexVisitor {
+		
+		public boolean needsToVisit(Node indexNode) { return true; }	
+		
+		public void onIndexReference(Node geomNode) { count++; }
+		
+		public int getResult() { return count; }
+		
+		private int count = 0;
+	}
+
+	class WarmUpVisitor implements SpatialIndexVisitor {
+		
+		public boolean needsToVisit(Node indexNode) { getEnvelope(indexNode); return true; }	
+		
+		public void onIndexReference(Node geomNode) { }	
+	}
 }

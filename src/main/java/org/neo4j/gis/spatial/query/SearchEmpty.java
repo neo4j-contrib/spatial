@@ -17,8 +17,6 @@
 package org.neo4j.gis.spatial.query;
 
 
-import static org.neo4j.gis.spatial.GeometryUtils.decode;
-
 import org.neo4j.gis.spatial.AbstractSearch;
 import org.neo4j.graphdb.Node;
 
@@ -32,14 +30,12 @@ import com.vividsolutions.jts.geom.Geometry;
  */
 public class SearchEmpty extends AbstractSearch {
 	
-	@Override
 	public boolean needsToVisit(Node indexNode) {
 		return true;
 	}
 
-	@Override
 	public void onIndexReference(Node geomNode) {
-		Geometry geom = decode(geomNode, geometryFactory);
+		Geometry geom = decode(geomNode);
 		if (geom.isEmpty()) add(geomNode);
 	}
 

@@ -21,8 +21,8 @@ import java.util.List;
 
 import org.neo4j.graphdb.Node;
 
+import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
 
 
 /**
@@ -39,8 +39,8 @@ public abstract class AbstractSearch implements Search {
 	
 	// Public methods
 
-	public void setGeometryFactory(GeometryFactory geometryFactory) {
-		this.geometryFactory = geometryFactory;		
+	public void setLayer(Layer layer) {
+		this.layer = layer;
 	}	
 	
 	public List<SpatialDatabaseRecord> getResults() {
@@ -51,20 +51,28 @@ public abstract class AbstractSearch implements Search {
 	// Private methods
 	
 	protected void add(Node geomNode) {
-		results.add(new SpatialDatabaseRecord(geomNode, geometryFactory));
+		results.add(new SpatialDatabaseRecord(layer, geomNode));
 	}
 
 	protected void add(Node geomNode, Geometry geom) {
-		results.add(new SpatialDatabaseRecord(geomNode, geom));
+		results.add(new SpatialDatabaseRecord(layer, geomNode, geom));
+	}
+	
+	protected Envelope getEnvelope(Node geomNode) {
+		return layer.getGeometryEncoder().decodeEnvelope(geomNode);	
 	}
 		
+	protected Geometry decode(Node geomNode) {
+		return layer.getGeometryEncoder().decodeGeometry(geomNode);
+	}
+	
+	protected void clearResults() {
+		this.results.clear();
+	}
+	
 	
 	// Attributes
 	
-	protected GeometryFactory geometryFactory;
+	protected Layer layer;
 	private List<SpatialDatabaseRecord> results;
-    public abstract boolean needsToVisit( Node node );
-
-
-    public abstract void onIndexReference( Node node );
 }
