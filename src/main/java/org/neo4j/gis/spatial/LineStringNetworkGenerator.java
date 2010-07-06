@@ -80,6 +80,9 @@ public class LineStringNetworkGenerator {
 			edge = edgesLayer.add(line);
 		}
 		
+		// TODO reserved property?
+		edge.setProperty("_network_length", edge.getGeometry().getLength());
+		
 		addEdgePoint(edge.getGeomNode(), line.getStartPoint());
 		addEdgePoint(edge.getGeomNode(), line.getEndPoint());
 	}
