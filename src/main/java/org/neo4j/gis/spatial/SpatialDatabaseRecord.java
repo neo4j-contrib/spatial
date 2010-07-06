@@ -17,6 +17,7 @@
 package org.neo4j.gis.spatial;
 
 import org.neo4j.graphdb.Node;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Geometry;
 
@@ -25,6 +26,13 @@ import com.vividsolutions.jts.geom.Geometry;
  * @author Davide Savazzi
  */
 public class SpatialDatabaseRecord implements Constants {
+	
+	// Constructor
+	
+	public SpatialDatabaseRecord(Layer layer, Node geomNode) {
+		this(layer, geomNode, null);
+	}
+
 	
 	// Public methods
 	
@@ -35,17 +43,17 @@ public class SpatialDatabaseRecord implements Constants {
 	public int getType() {
 		return (Integer) geomNode.getProperty(PROP_TYPE);
 	}
-
-	public String toString() {
-	    return "SpatialDatabaseRecord[" + getId() + "]: type='" + getType() + "', props[" + getPropString() + "]";
-	}
-
+	
 	public Geometry getGeometry() {
-		if (geometry == null) {
-			geometry = layer.getGeometryEncoder().decodeGeometry(geomNode);
-			layer = null;
-		}
 		return geometry;
+	}
+	
+	public CoordinateReferenceSystem getCoordinateReferenceSystem() {
+		return crs;
+	}
+	
+	public String getLayerName() {
+		return layerName;
 	}
 	
 	public boolean hasProperty(String name) {
@@ -53,7 +61,7 @@ public class SpatialDatabaseRecord implements Constants {
 	}
 	
 	public String[] getPropertyNames() {
-		return layer.getExtraPropertyNames();
+		return propertyNames;
 	}
 	
 	public Object[] getPropertyValues() {
@@ -86,18 +94,25 @@ public class SpatialDatabaseRecord implements Constants {
 		return getId() == anotherRecord.getId();
 	}
 	
+	public String toString() {
+	    return "SpatialDatabaseRecord[" + getId() + "]: type='" + getType() + "', props[" + getPropString() + "]";
+	}
+
 	
 	// Protected Constructors
 	
-	protected SpatialDatabaseRecord(Layer layer, Node geomNode) {
-		this.layer = layer;
-		this.geomNode = geomNode;
-	}
-
 	protected SpatialDatabaseRecord(Layer layer, Node geomNode, Geometry geometry) {
-		this.layer = layer;
 		this.geomNode = geomNode;
-		this.geometry = geometry;
+		
+		if (geometry != null) {
+			this.geometry = geometry;
+		} else {
+			this.geometry = layer.getGeometryEncoder().decodeGeometry(geomNode);
+		}
+		
+		this.layerName = layer.getName();
+		this.propertyNames = layer.getExtraPropertyNames();
+		this.crs = layer.getCoordinateReferenceSystem();
 	}
 
 	
@@ -130,7 +145,10 @@ public class SpatialDatabaseRecord implements Constants {
 
 	// Attributes
 	
-	private Layer layer;
 	private Node geomNode;
 	private Geometry geometry;
+	
+	private String layerName;
+	private String[] propertyNames;
+	private CoordinateReferenceSystem crs;
 }
