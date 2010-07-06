@@ -75,6 +75,7 @@ public class TestSpatial extends Neo4jTestCase {
     private static final HashMap<String, DataFormat> layerTestFormats = new HashMap<String, DataFormat>();
     static {
         //TODO: Rather load this from a configuration file, properties file or JRuby test code
+        addTestLayer("sweden.osm", DataFormat.OSM);
         addTestLayer("sweden.osm.administrative", DataFormat.OSM);
         addTestGeometry("sweden_administrative.103", "Dalby söderskog", "(13.32406,55.671652), (13.336948,55.679243)");
         addTestGeometry("sweden_administrative.83", "Söderåsen", "(13.167721,56.002416), (13.289724,56.047099)");
@@ -116,6 +117,7 @@ public class TestSpatial extends Neo4jTestCase {
         super.setUp(true,false,false); // pass true to delete previous database, speeding up the index test
         long start = System.currentTimeMillis();
         SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+        // for (String layerName : new String[] {"sweden.osm"}) {
         for (String layerName : new String[] {"sweden.osm.administrative"}) {
         // for (String layerName : new String[] {"sweden_highway"}) {
         // for (String layerName : new String[] {"sweden_administrative", "sweden_natural"}) {
@@ -136,12 +138,7 @@ public class TestSpatial extends Neo4jTestCase {
     private void loadTestShpData(String layerName, int commitInterval) throws ShapefileException, FileNotFoundException, IOException {
         String shpPath = SHP_DIR + File.separator + layerName;
         System.out.println("\n=== Loading layer " + layerName + " from " + shpPath + " ===");
-        ShapefileImporter importer =null;
-        if(isUsingBatchInserter()) {
-            importer = new ShapefileImporter(getBatchInserter());
-        } else {
-            importer = new ShapefileImporter(graphDb(), commitInterval);
-        }
+        ShapefileImporter importer = new ShapefileImporter(graphDb(), new NullListener(commitInterval));
         importer.importFile(shpPath, layerName);
     }
 

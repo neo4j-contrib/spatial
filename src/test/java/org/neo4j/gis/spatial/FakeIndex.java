@@ -16,8 +16,6 @@
  */
 package org.neo4j.gis.spatial;
 
-import static org.neo4j.gis.spatial.GeometryUtils.getEnvelope;
-
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 
@@ -58,9 +56,9 @@ public class FakeIndex implements SpatialIndexReader, Constants {
 		for (Node node: database.getAllNodes()) {
 			if (nodeIsInLayer(node)) {
 				if (bbox == null) {
-					bbox = getEnvelope(node);
+					bbox = layer.getGeometryEncoder().decodeEnvelope(node);
 				} else {
-					bbox.expandToInclude(getEnvelope(node));
+					bbox.expandToInclude(layer.getGeometryEncoder().decodeEnvelope(node));
 				}
 			}
 		}
@@ -68,7 +66,7 @@ public class FakeIndex implements SpatialIndexReader, Constants {
 	}
 
 	public void executeSearch(Search search) {
-        search.setGeometryFactory(layer.getGeometryFactory());
+        search.setLayer(layer);
 		for (Node node: database.getAllNodes()) {
 			if (nodeIsInLayer(node)) {
 				search.onIndexReference(node);

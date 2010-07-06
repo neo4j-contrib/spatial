@@ -16,8 +16,6 @@
  */
 package org.neo4j.gis.spatial;
 
-import static org.neo4j.gis.spatial.GeometryUtils.encode;
-
 import java.util.HashSet;
 import java.util.Set;
 
@@ -26,11 +24,13 @@ import org.geotools.referencing.ReferencingFactoryFinder;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
+
 
 /**
  * Instances of Layer provide the ability for developers to add/remove and edit geometries
@@ -43,6 +43,10 @@ import com.vividsolutions.jts.geom.GeometryFactory;
 public class Layer implements Constants {
 
 	// Public methods
+	
+	public String getName() {
+		return name;
+	}
 
     /**
      *  Add a geometry to this layer.
@@ -57,19 +61,33 @@ public class Layer implements Constants {
 	public SpatialDatabaseRecord add(Geometry geometry, String[] fieldsName, Object[] fields) {
 		Node geomNode = addGeomNode(geometry, fieldsName, fields);
 		index.add(geomNode);
-		return new SpatialDatabaseRecord(geomNode, geometry);
+		return new SpatialDatabaseRecord(this, geomNode, geometry);
 	}	
 	
-	public void update(long geomNodeId, Geometry geometry) {
-		index.delete(geomNodeId, false);
+	/**
+	 * Add the geometry encoded in the given Node.
+	 */
+	public SpatialDatabaseRecord add(Node geomNode) {
+		Geometry geometry = getGeometryEncoder().decodeGeometry(geomNode);		
 		
-		Node geomNode = database.getNodeById(geomNodeId);
-		encode(geometry, geomNode);
+		index.add(geomNode);
+		return new SpatialDatabaseRecord(this, geomNode, geometry);		
+	}
+	
+	public void update(long geomNodeId, Geometry geometry) {
+		index.remove(geomNodeId, false);
+		
+		Node geomNode = getDatabase().getNodeById(geomNodeId);
+		getGeometryEncoder().encodeGeometry(geometry, geomNode);
 		index.add(geomNode);
 	}
 	
 	public void delete(long geomNodeId) {
-		index.delete(geomNodeId, true);
+		index.remove(geomNodeId, true);
+	}
+	
+	public SpatialDatabaseService getSpatialDatabase() {
+		return spatialDatabase;
 	}
 	
 	public SpatialIndexReader getIndex() {
@@ -98,6 +116,10 @@ public class Layer implements Constants {
 		} else {
 			return null;
 		}
+	}
+	
+	public GeometryEncoder getGeometryEncoder() {
+		return geometryEncoder;
 	}
 	
 	public void setGeometryType(Integer geometryType) {
@@ -164,20 +186,33 @@ public class Layer implements Constants {
 	
 	// Protected constructor
 
-	protected Layer(GraphDatabaseService database, Node layerNode) {
-		this.database = database;
+	protected Layer(SpatialDatabaseService spatialDatabase, String name, Node layerNode) {
+		this.spatialDatabase = spatialDatabase;
+		this.name = name;
 		this.layerNodeId = layerNode.getId();
-		this.index = new RTreeIndex(database, this);
+		this.index = new RTreeIndex(spatialDatabase.getDatabase(), this);
 		
 		// TODO read Precision Model and SRID from layer properties and use them to construct GeometryFactory
 		this.geometryFactory = new GeometryFactory();
+		
+		if (layerNode.hasProperty(PROP_GEOMENCODER)) {
+			String encoderClassName = (String) layerNode.getProperty(PROP_GEOMENCODER);
+			try {
+				this.geometryEncoder = (GeometryEncoder) Class.forName(encoderClassName).newInstance();
+			} catch (Exception e) {
+				throw new SpatialDatabaseException(e);
+			}
+		} else {
+			this.geometryEncoder = new WKBGeometryEncoder();
+		}
+		this.geometryEncoder.init(this);
 	}
 	
 
 	// Protected methods
 	
 	protected Node getLayerNode() {
-		return database.getNodeById(layerNodeId);
+		return getDatabase().getNodeById(layerNodeId);
 	}
 	
 	protected long getLayerNodeId() {
@@ -187,23 +222,38 @@ public class Layer implements Constants {
 	/**
 	 * Delete Layer
 	 */
-	protected void delete() {
-		index.deleteAll();
-		
-		Node layerNode = getLayerNode();
-		layerNode.getSingleRelationship(SpatialRelationshipTypes.LAYER, Direction.INCOMING).delete();
-		layerNode.delete();
+	protected void delete(Listener monitor) {
+		index.removeAll(true, monitor);
+
+		Transaction tx = getDatabase().beginTx();
+		try {
+			Node layerNode = getLayerNode();
+			layerNode.getSingleRelationship(SpatialRelationshipTypes.LAYER, Direction.INCOMING).delete();
+			layerNode.delete();
+			
+			tx.success();
+		} finally {
+			tx.finish();
+		}
 	}
 	
 	
 	// Private methods
 	
+	private GraphDatabaseService getDatabase() {
+		return spatialDatabase.getDatabase();
+	}
+	
 	private Node addGeomNode(Geometry geom, String[] fieldsName, Object[] fields) {
-		Node geomNode = database.createNode();
-		//TODO: don't store node ids as properties of other nodes, rather use relationships, or layer name string
-		//This seems to only be used by the FakeIndex to find all nodes in the layer. THat is a bad solution, rather just traverse whatever graph the layer normally uses (mostly the r-tree, but without using r-tree intelligence)
+		Node geomNode = getDatabase().createNode();
+	
+		// TODO: don't store node ids as properties of other nodes, rather use relationships, or layer name string
+		// This seems to only be used by the FakeIndex to find all nodes in the layer. 
+		// That is a bad solution, rather just traverse whatever graph the layer normally uses (mostly the r-tree, 
+		// but without using r-tree intelligence)
 		geomNode.setProperty(PROP_LAYER, layerNodeId);
-		encode(geom, geomNode);
+		
+		getGeometryEncoder().encodeGeometry(geom, geomNode);
 		
 		// other properties
 		if (fieldsName != null) {
@@ -218,8 +268,10 @@ public class Layer implements Constants {
 	
 	// Attributes
 	
-	private GraphDatabaseService database;
+	private SpatialDatabaseService spatialDatabase;
+	private String name;
 	private long layerNodeId;
+	private GeometryEncoder geometryEncoder;
 	private GeometryFactory geometryFactory;
 	private SpatialIndexWriter index;
 	

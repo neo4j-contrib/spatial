@@ -19,9 +19,6 @@ package org.neo4j.gis.spatial;
 import org.neo4j.graphdb.Node;
 
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
-
-import static org.neo4j.gis.spatial.GeometryUtils.decode;
 
 
 /**
@@ -45,14 +42,28 @@ public class SpatialDatabaseRecord implements Constants {
 
 	public Geometry getGeometry() {
 		if (geometry == null) {
-			geometry = decode(geomNode, geometryFactory);
-			geometryFactory = null;
+			geometry = layer.getGeometryEncoder().decodeGeometry(geomNode);
+			layer = null;
 		}
 		return geometry;
 	}
 	
 	public boolean hasProperty(String name) {
 		return geomNode.hasProperty(name);
+	}
+	
+	public String[] getPropertyNames() {
+		return layer.getExtraPropertyNames();
+	}
+	
+	public Object[] getPropertyValues() {
+		String[] names = getPropertyNames();
+		if (names == null) return null;
+		Object[] values = new Object[names.length];
+		for (int i = 0; i < names.length; i++) {
+			values[i] = getProperty(names[i]);
+		}
+		return values;
 	}
 	
 	public Object getProperty(String name) {
@@ -78,12 +89,13 @@ public class SpatialDatabaseRecord implements Constants {
 	
 	// Protected Constructors
 	
-	protected SpatialDatabaseRecord(Node geomNode, GeometryFactory geometryFactory) {
+	protected SpatialDatabaseRecord(Layer layer, Node geomNode) {
+		this.layer = layer;
 		this.geomNode = geomNode;
-		this.geometryFactory = geometryFactory;
 	}
 
-	protected SpatialDatabaseRecord(Node geomNode, Geometry geometry) {
+	protected SpatialDatabaseRecord(Layer layer, Node geomNode, Geometry geometry) {
+		this.layer = layer;
 		this.geomNode = geomNode;
 		this.geometry = geometry;
 	}
@@ -108,11 +120,9 @@ public class SpatialDatabaseRecord implements Constants {
 	
 	private String getPropString() {
 	    StringBuffer text = new StringBuffer();
-	    for(String key:geomNode.getPropertyKeys()){
-	        if(text.length()>0) text.append(", ");
-            text.append(key);
-            text.append(": ");
-            text.append(geomNode.getProperty(key).toString());
+	    for (String key : geomNode.getPropertyKeys()) {
+	        if (text.length() > 0) text.append(", ");
+            text.append(key).append(": ").append(geomNode.getProperty(key).toString());
 	    }
 	    return text.toString();
 	}
@@ -120,7 +130,7 @@ public class SpatialDatabaseRecord implements Constants {
 
 	// Attributes
 	
+	private Layer layer;
 	private Node geomNode;
-	private GeometryFactory geometryFactory;
 	private Geometry geometry;
 }

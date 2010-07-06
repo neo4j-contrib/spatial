@@ -16,9 +16,6 @@
  */
 package org.neo4j.gis.spatial.query;
 
-import static org.neo4j.gis.spatial.GeometryUtils.decode;
-import static org.neo4j.gis.spatial.GeometryUtils.getEnvelope;
-
 import org.neo4j.gis.spatial.AbstractSearch;
 import org.neo4j.graphdb.Node;
 
@@ -56,7 +53,7 @@ public class SearchPointsWithinOrthodromicDistance extends AbstractSearch {
 	}
 	
 	public void onIndexReference(Node geomNode) {
-		Geometry geometry = decode(geomNode, geometryFactory);
+		Geometry geometry = decode(geomNode);
 		Point point = geometry.getInteriorPoint();
 		
 		// d = acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon2 - lon1)) * R

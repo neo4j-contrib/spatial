@@ -63,7 +63,7 @@ public class SpatialDatabaseService implements Constants {
             for (Relationship relationship : refNode.getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
                 Node layerNode = relationship.getEndNode();
                 if (name.equals(layerNode.getProperty(PROP_LAYER))) {
-                    return new Layer(database, layerNode);
+                    return new Layer(this, name, layerNode);
                 }
             }
             Layer layer = null;
@@ -81,7 +81,11 @@ public class SpatialDatabaseService implements Constants {
 		return getLayer(name) != null;
 	}
 	
-    public Layer createLayer(String name) {
+	public Layer createLayer(String name) {
+		return createLayer(name, WKBGeometryEncoder.class);
+	}
+	
+	public Layer createLayer(String name, Class geometryEncoderClass) {
         Transaction tx = database.beginTx();
         try {
             if (containsLayer(name))
@@ -90,22 +94,23 @@ public class SpatialDatabaseService implements Constants {
             Node layerNode = database.createNode();
             layerNode.setProperty(PROP_LAYER, name);
             layerNode.setProperty(PROP_CREATIONTIME, System.currentTimeMillis());
+            layerNode.setProperty(PROP_GEOMENCODER, geometryEncoderClass.getCanonicalName());
 
             Node refNode = database.getReferenceNode();
             refNode.createRelationshipTo(layerNode, SpatialRelationshipTypes.LAYER);
-            Layer layer = new Layer(database, layerNode);
+            Layer layer = new Layer(this, name, layerNode);
             tx.success();
             return layer;
         } finally {
             tx.finish();
         }
-    }
+	}
 		
-	public void deleteLayer(String name) {
-		Layer layer = getLayer(name);
-		if (layer == null) throw new SpatialDatabaseException("Layer " + name + " does not exist");
-		
-		layer.delete();
+	public void deleteLayer(String name, Listener monitor) {
+        Layer layer = getLayer(name);
+        if (layer == null) throw new SpatialDatabaseException("Layer " + name + " does not exist");
+        
+		layer.delete(monitor);
 	}
 	
 	public GraphDatabaseService getDatabase() {

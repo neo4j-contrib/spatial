@@ -18,19 +18,13 @@ package org.neo4j.gis.spatial;
 
 import java.util.List;
 
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
-
-import com.vividsolutions.jts.geom.GeometryFactory;
-
 
 /**
  * @author Davide Savazzi
  */
 public interface Search extends SpatialIndexVisitor {
 
-	void setGeometryFactory(GeometryFactory geometryFactory);
-	
-	void setCoordinateReferenceSystem(CoordinateReferenceSystem crs);
+	void setLayer(Layer layer);
 	
 	List<SpatialDatabaseRecord> getResults();
 	

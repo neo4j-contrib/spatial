@@ -25,7 +25,7 @@ import org.neo4j.graphdb.Node;
 public interface SpatialIndexVisitor {
 
 	boolean needsToVisit(Node indexNode);
-	
+
 	void onIndexReference(Node geomNode);
 	
 }

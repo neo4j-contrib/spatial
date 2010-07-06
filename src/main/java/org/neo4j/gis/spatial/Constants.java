@@ -28,12 +28,23 @@ public interface Constants {
 	String PROP_LAYERNODEEXTRAPROPS = "layerprops";
 	String PROP_CRS = "layercrs";
 	String PROP_CREATIONTIME = "ctime";
+	String PROP_GEOMENCODER = "geomencoder";
 	
 	String PROP_TYPE = "gtype";
 	String PROP_BBOX = "bbox";
 	String PROP_WKB = "wkb";
+	String PROP_WKT = "wkt";
 	
-	String[] RESERVED_PROPS = new String[] { PROP_LAYER, PROP_LAYERNODEEXTRAPROPS, PROP_CREATIONTIME, PROP_TYPE, PROP_BBOX, PROP_WKB };
+	String[] RESERVED_PROPS = new String[] { 
+			PROP_LAYER, 
+			PROP_LAYERNODEEXTRAPROPS, 
+			PROP_CRS, 
+			PROP_CREATIONTIME, 
+			PROP_TYPE, 
+			PROP_BBOX, 
+			PROP_WKB, 
+			PROP_WKT 
+	};
 	
 	
 	// OpenGIS geometry type numbers 
