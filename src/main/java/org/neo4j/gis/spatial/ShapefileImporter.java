@@ -63,7 +63,6 @@ public class ShapefileImporter implements Constants {
 		this(database, null);
 	}
 	
-	
 	// Main
 	
 	public static void main(String[] args) throws Exception {

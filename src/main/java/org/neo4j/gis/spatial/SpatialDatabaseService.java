@@ -56,21 +56,26 @@ public class SpatialDatabaseService implements Constants {
 		return getLayer(name, false);
 	}
 
-	public Layer getLayer(String name, boolean createIfNotExists) {
-		Node refNode = database.getReferenceNode();
-		for (Relationship relationship : refNode.getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
-			Node layerNode = relationship.getEndNode();
-			if (name.equals(layerNode.getProperty(PROP_LAYER))) {
-				return new Layer(this, name, layerNode);
-			}
-		}
-		
-		if (createIfNotExists) {
-			return createLayer(name);
-		} else {
-			return null;
-		}
-	}
+    public Layer getLayer(String name, boolean createIfNotExists) {
+        Transaction tx = database.beginTx();
+        try {
+            Node refNode = database.getReferenceNode();
+            for (Relationship relationship : refNode.getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
+                Node layerNode = relationship.getEndNode();
+                if (name.equals(layerNode.getProperty(PROP_LAYER))) {
+                    return new Layer(this, name, layerNode);
+                }
+            }
+            Layer layer = null;
+            if (createIfNotExists) {
+                layer = createLayer(name);
+            }
+            tx.success();
+            return layer;
+        } finally {
+            tx.finish();
+        }
+    }
 	
 	public Layer findLayerContainingGeometryNode(Node geometryNode) {
 		Relationship indexRel = geometryNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING);
@@ -102,32 +107,30 @@ public class SpatialDatabaseService implements Constants {
 	}
 	
 	public Layer createLayer(String name, Class geometryEncoderClass) {
-		if (containsLayer(name)) throw new SpatialDatabaseException("Layer " + name + " already exists");
-		
-		Node layerNode = database.createNode();
-		layerNode.setProperty(PROP_LAYER, name);
-		layerNode.setProperty(PROP_CREATIONTIME, System.currentTimeMillis());
-		layerNode.setProperty(PROP_GEOMENCODER, geometryEncoderClass.getCanonicalName());
-		
-		Node refNode = database.getReferenceNode();
-		refNode.createRelationshipTo(layerNode, SpatialRelationshipTypes.LAYER);
-		return new Layer(this, name, layerNode);
+        Transaction tx = database.beginTx();
+        try {
+            if (containsLayer(name))
+                throw new SpatialDatabaseException("Layer " + name + " already exists");
+
+            Node layerNode = database.createNode();
+            layerNode.setProperty(PROP_LAYER, name);
+            layerNode.setProperty(PROP_CREATIONTIME, System.currentTimeMillis());
+            layerNode.setProperty(PROP_GEOMENCODER, geometryEncoderClass.getCanonicalName());
+
+            Node refNode = database.getReferenceNode();
+            refNode.createRelationshipTo(layerNode, SpatialRelationshipTypes.LAYER);
+            Layer layer = new Layer(this, name, layerNode);
+            tx.success();
+            return layer;
+        } finally {
+            tx.finish();
+        }
 	}
 		
 	public void deleteLayer(String name, Listener monitor) {
-		Layer layer = null;
-		
-		Transaction tx = database.beginTx();
-		try {
-			layer = getLayer(name);
-			
-			tx.success();
-		} finally {
-			tx.finish();
-		}
-		
-		if (layer == null) throw new SpatialDatabaseException("Layer " + name + " does not exist");
-
+        Layer layer = getLayer(name);
+        if (layer == null) throw new SpatialDatabaseException("Layer " + name + " does not exist");
+        
 		layer.delete(monitor);
 	}
 	

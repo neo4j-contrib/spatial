@@ -22,8 +22,8 @@ import com.vividsolutions.jts.geom.Envelope;
  * @author Craig Taverner
  */
 public class TestSpatial extends Neo4jTestCase {
-    private final String SHP_DIR = System.getenv().get("HOME")+"/Desktop/OSM/SHP/osm_sweden";
-    private final String OSM_DIR = System.getenv().get("HOME")+"/Desktop/OSM";
+    private final String SHP_DIR = "target/shp";
+    private final String OSM_DIR = "target/osm";
     private enum DataFormat {
         SHP("ESRI Shapefile"),
         OSM("OpenStreetMap");
@@ -75,6 +75,7 @@ public class TestSpatial extends Neo4jTestCase {
     private static final HashMap<String, DataFormat> layerTestFormats = new HashMap<String, DataFormat>();
     static {
         //TODO: Rather load this from a configuration file, properties file or JRuby test code
+        addTestLayer("sweden.osm", DataFormat.OSM);
         addTestLayer("sweden.osm.administrative", DataFormat.OSM);
         addTestGeometry("sweden_administrative.103", "Dalby söderskog", "(13.32406,55.671652), (13.336948,55.679243)");
         addTestGeometry("sweden_administrative.83", "Söderåsen", "(13.167721,56.002416), (13.289724,56.047099)");
@@ -113,10 +114,11 @@ public class TestSpatial extends Neo4jTestCase {
     }
 
     protected void setUp() throws Exception {
-        super.setUp(true); // pass true to delete previous database, speeding up the index test
+        super.setUp(true,false,false); // pass true to delete previous database, speeding up the index test
         long start = System.currentTimeMillis();
         SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-        for (String layerName : new String[] {"sweden.osm.administrative", "sweden_administrative"}) {
+        // for (String layerName : new String[] {"sweden.osm"}) {
+        for (String layerName : new String[] {"sweden.osm.administrative"}) {
         // for (String layerName : new String[] {"sweden_highway"}) {
         // for (String layerName : new String[] {"sweden_administrative", "sweden_natural"}) {
         // for (String layerName : new String[] {"sweden_administrative", "sweden_natural", "sweden_water"}) {
@@ -140,11 +142,14 @@ public class TestSpatial extends Neo4jTestCase {
         importer.importFile(shpPath, layerName);
     }
 
-    private void loadTestOsmData(String layerName, int commitInterval) throws IOException, XMLStreamException {
+    private void loadTestOsmData(String layerName, int commitInterval) throws Exception {
         String osmPath = OSM_DIR + File.separator + layerName;
         System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
-        OSMImporter importer = new OSMImporter(graphDb(), commitInterval);
-        importer.importFile(osmPath, layerName);
+        reActivateDatabase(false, true, false);
+        OSMImporter importer = new OSMImporter(layerName);
+        importer.importFile(getBatchInserter(), osmPath);
+        reActivateDatabase(false, false, false);
+        importer.reIndex(graphDb(), commitInterval);
     }
 
     public void testSpatialIndex() {

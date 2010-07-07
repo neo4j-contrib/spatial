@@ -38,12 +38,40 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<configuration>
-					<source>1.5</source>
-					<target>1.5</target>
+					<source>1.6</source>
+					<target>1.6</target>
 				</configuration>
 			</plugin>
 			<plugin>
 				<artifactId>maven-dependency-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>1.4</version>
+				<executions>
+					<execution>
+						<phase>compile</phase>
+						<id>build-config-files</id>
+						<configuration>
+							<tasks>
+								<echo message="To skip me, just call mvn -Dmaven.test.skip=true" />
+								<mkdir dir="target/shp"/>
+								<mkdir dir="target/osm"/>
+								<get
+									src="http://downloads.cloudmade.com/europe/sweden/sweden.shapefiles.zip "
+									dest="target/shp/sweden.zip" verbose="true" usetimestamp="true" />
+								<unzip src="target/shp/sweden.zip" dest="target/shp/"/>
+								<get
+									src="http://downloads.cloudmade.com/europe/sweden/sweden.osm.administrative.bz2"
+									dest="target/osm/sweden.osm.administrative.bz2" verbose="true" usetimestamp="true" />
+								<bunzip2 src="target/osm/sweden.osm.administrative.bz2" dest="target/osm/"/>
+							</tasks>
+						</configuration>
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
+				</executions>
 			</plugin>
 		</plugins>
 	</build>
@@ -98,6 +126,11 @@
 			<version>1.0-SNAPSHOT</version>
 		</dependency>
 		<dependency>
+			<groupId>org.neo4j</groupId>
+			<artifactId>neo4j-index</artifactId>
+			<version>1.0-SNAPSHOT</version>
+		</dependency>
+		<dependency>
 			<groupId>org.geotools</groupId>
 			<artifactId>gt-main</artifactId>
 			<version>${geotools.version}</version>
@@ -106,6 +139,13 @@
 			<groupId>org.geotools</groupId>
 			<artifactId>gt-shapefile</artifactId>
 			<version>${geotools.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.14</version>
+			<type>jar</type>
+			<scope>compile</scope>
 		</dependency>
 	</dependencies>
 	<repositories>
@@ -123,4 +163,11 @@
 			</snapshots>
 		</repository>
 	</repositories>
+	<distributionManagement>
+		<repository>
+			<id>neo4j-upload-repository</id>
+			<name>Developers-only Maven 2 upload repository for Neo4j</name>
+			<url>scpexe://m2.neo4j.org/home/neo/maven2</url>
+		</repository>
+	</distributionManagement>
 </project>
