@@ -22,8 +22,8 @@ import com.vividsolutions.jts.geom.Envelope;
  * @author Craig Taverner
  */
 public class TestSpatial extends Neo4jTestCase {
-    private final String SHP_DIR = System.getenv().get("HOME")+"/Desktop/OSM/SHP/osm_sweden";
-    private final String OSM_DIR = System.getenv().get("HOME")+"/Desktop/OSM";
+    private final String SHP_DIR = "target/shp";
+    private final String OSM_DIR = "target/osm";
     private enum DataFormat {
         SHP("ESRI Shapefile"),
         OSM("OpenStreetMap");

@@ -45,6 +45,34 @@
 			<plugin>
 				<artifactId>maven-dependency-plugin</artifactId>
 			</plugin>
+			<plugin>
+				<artifactId>maven-antrun-plugin</artifactId>
+				<version>1.4</version>
+				<executions>
+					<execution>
+						<phase>compile</phase>
+						<id>build-config-files</id>
+						<configuration>
+							<tasks>
+								<echo message="To skip me, just call mvn -Dmaven.test.skip=true" />
+								<mkdir dir="target/shp"/>
+								<mkdir dir="target/osm"/>
+								<get
+									src="http://downloads.cloudmade.com/europe/sweden/sweden.shapefiles.zip "
+									dest="target/shp/sweden.zip" verbose="true" usetimestamp="true" />
+								<unzip src="target/shp/sweden.zip" dest="target/shp/"/>
+								<get
+									src="http://downloads.cloudmade.com/europe/sweden/sweden.osm.administrative.bz2"
+									dest="target/osm/sweden.osm.administrative.bz2" verbose="true" usetimestamp="true" />
+								<bunzip2 src="target/osm/sweden.osm.administrative.bz2" dest="target/osm/"/>
+							</tasks>
+						</configuration>
+						<goals>
+							<goal>run</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 
