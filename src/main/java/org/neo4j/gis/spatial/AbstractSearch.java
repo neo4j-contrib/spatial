@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.neo4j.graphdb.Node;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
@@ -40,7 +41,10 @@ public abstract class AbstractSearch implements Search {
 	// Public methods
 
 	public void setLayer(Layer layer) {
-		this.layer = layer;
+		this.layerName = layer.getName();
+		this.geometryEncoder = layer.getGeometryEncoder();
+		this.crs = layer.getCoordinateReferenceSystem();
+		this.propertyNames = layer.getExtraPropertyNames();
 	}	
 	
 	public List<SpatialDatabaseRecord> getResults() {
@@ -51,19 +55,19 @@ public abstract class AbstractSearch implements Search {
 	// Private methods
 	
 	protected void add(Node geomNode) {
-		results.add(new SpatialDatabaseRecord(layer, geomNode));
+		results.add(new SpatialDatabaseRecord(layerName, geometryEncoder, crs, propertyNames, geomNode));
 	}
 
 	protected void add(Node geomNode, Geometry geom) {
-		results.add(new SpatialDatabaseRecord(layer, geomNode, geom));
+		results.add(new SpatialDatabaseRecord(layerName, geometryEncoder, crs, propertyNames, geomNode, geom));
 	}
 	
 	protected Envelope getEnvelope(Node geomNode) {
-		return layer.getGeometryEncoder().decodeEnvelope(geomNode);	
+		return geometryEncoder.decodeEnvelope(geomNode);	
 	}
 		
 	protected Geometry decode(Node geomNode) {
-		return layer.getGeometryEncoder().decodeGeometry(geomNode);
+		return geometryEncoder.decodeGeometry(geomNode);
 	}
 	
 	protected void clearResults() {
@@ -73,6 +77,10 @@ public abstract class AbstractSearch implements Search {
 	
 	// Attributes
 	
-	protected Layer layer;
+	private String layerName;
+	private GeometryEncoder geometryEncoder;
+	private CoordinateReferenceSystem crs;
+	private String[] propertyNames;
+	
 	private List<SpatialDatabaseRecord> results;
 }

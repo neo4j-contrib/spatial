@@ -29,8 +29,8 @@ public class SpatialDatabaseRecord implements Constants {
 	
 	// Constructor
 	
-	public SpatialDatabaseRecord(Layer layer, Node geomNode) {
-		this(layer, geomNode, null);
+	public SpatialDatabaseRecord(String layerName, GeometryEncoder geometryEncoder, CoordinateReferenceSystem crs, String[] propertyNames, Node geomNode) {
+		this(layerName, geometryEncoder, crs, propertyNames, geomNode, null);
 	}
 
 	
@@ -101,18 +101,18 @@ public class SpatialDatabaseRecord implements Constants {
 	
 	// Protected Constructors
 	
-	protected SpatialDatabaseRecord(Layer layer, Node geomNode, Geometry geometry) {
+	protected SpatialDatabaseRecord(String layerName, GeometryEncoder geometryEncoder, CoordinateReferenceSystem crs, String[] propertyNames, Node geomNode, Geometry geometry) {
 		this.geomNode = geomNode;
 		
 		if (geometry != null) {
 			this.geometry = geometry;
 		} else {
-			this.geometry = layer.getGeometryEncoder().decodeGeometry(geomNode);
+			this.geometry = geometryEncoder.decodeGeometry(geomNode);
 		}
 		
-		this.layerName = layer.getName();
-		this.propertyNames = layer.getExtraPropertyNames();
-		this.crs = layer.getCoordinateReferenceSystem();
+		this.layerName = layerName;
+		this.propertyNames = propertyNames;
+		this.crs = crs;
 	}
 
 	
