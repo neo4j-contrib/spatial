@@ -16,7 +16,6 @@
  */
 package org.neo4j.gis.spatial;
 
-import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 
 import com.vividsolutions.jts.geom.Envelope;
@@ -29,8 +28,7 @@ public class FakeIndex implements SpatialIndexReader, Constants {
 
 	// Constructor
 	
-	public FakeIndex(GraphDatabaseService database, Layer layer) {
-		this.database = database;
+	public FakeIndex(Layer layer) {
 		this.layer = layer;
 	}
 		
@@ -39,10 +37,10 @@ public class FakeIndex implements SpatialIndexReader, Constants {
 	
 	public int count() {
 		int count = 0;
-		for (Node node: database.getAllNodes()) {
-			if (nodeIsInLayer(node)) {
-				count++;
-			}
+        // @TODO: Consider adding a count method to Layer or SpatialDataset to allow for
+        // optimization of this if this kind of code gets used elsewhere
+		for (@SuppressWarnings("unused") Node node: layer.getAllGeometryNodes()) {
+		    count++;
 		}
 		return count;
 	}
@@ -53,13 +51,11 @@ public class FakeIndex implements SpatialIndexReader, Constants {
 	
 	public Envelope getLayerBoundingBox() {
 		Envelope bbox = null;
-		for (Node node: database.getAllNodes()) {
-			if (nodeIsInLayer(node)) {
-				if (bbox == null) {
-					bbox = layer.getGeometryEncoder().decodeEnvelope(node);
-				} else {
-					bbox.expandToInclude(layer.getGeometryEncoder().decodeEnvelope(node));
-				}
+		for (Node node: layer.getAllGeometryNodes()) {
+			if (bbox == null) {
+				bbox = layer.getGeometryEncoder().decodeEnvelope(node);
+			} else {
+				bbox.expandToInclude(layer.getGeometryEncoder().decodeEnvelope(node));
 			}
 		}
 		return bbox;
@@ -67,23 +63,11 @@ public class FakeIndex implements SpatialIndexReader, Constants {
 
 	public void executeSearch(Search search) {
         search.setLayer(layer);
-		for (Node node: database.getAllNodes()) {
-			if (nodeIsInLayer(node)) {
-				search.onIndexReference(node);
-			}
+		for (Node node: layer.getAllGeometryNodes()) {
+			search.onIndexReference(node);
 		}
 	}
 	
-	
-	// Private methods
-	
-	private boolean nodeIsInLayer(Node geomNode) {
-		return geomNode.hasProperty(PROP_WKB) && ((Long) geomNode.getProperty(PROP_LAYER)) == layer.getLayerNodeId();
-	}
-	
-	
 	// Attributes
-	
-	private GraphDatabaseService database;
 	private Layer layer;
 }

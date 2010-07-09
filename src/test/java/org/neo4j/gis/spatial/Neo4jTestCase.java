@@ -38,8 +38,8 @@ import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
  * Base class for the meta model tests.
  */
 public abstract class Neo4jTestCase extends TestCase {
-    private File basePath = new File("target/var");
-    private File dbPath = new File(basePath, "neo4j-db");
+    private static File basePath = new File("target/var");
+    private static File dbPath = new File(basePath, "neo4j-db");
     private GraphDatabaseService graphDb;
     private Transaction tx;
     private BatchInserter batchInserter;
@@ -84,7 +84,7 @@ public abstract class Neo4jTestCase extends TestCase {
             batchInserter = null;
         }
         if (deleteDb) {
-            deleteFileOrDirectory(dbPath);
+            deleteDatabase();
         }
         if (useBatchInserter) {
             batchInserter = new BatchInserterImpl(dbPath.getAbsolutePath());
@@ -120,7 +120,11 @@ public abstract class Neo4jTestCase extends TestCase {
         return dbPath;
     }
 
-    protected void deleteFileOrDirectory(File file) {
+    protected static void deleteDatabase() {
+        deleteFileOrDirectory(dbPath);
+    }
+
+    protected static void deleteFileOrDirectory(File file) {
         if (!file.exists()) {
             return;
         }

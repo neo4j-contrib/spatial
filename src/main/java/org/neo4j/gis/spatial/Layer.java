@@ -17,30 +17,35 @@
 package org.neo4j.gis.spatial;
 
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Set;
 
 import org.geotools.factory.FactoryRegistryException;
 import org.geotools.referencing.ReferencingFactoryFinder;
 import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.DynamicRelationshipType;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.ReturnableEvaluator;
+import org.neo4j.graphdb.StopEvaluator;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.Traverser.Order;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 
-
 /**
  * Instances of Layer provide the ability for developers to add/remove and edit geometries
  * associated with a single dataset (or layer). This includes support for several storage
  * mechanisms, like in-node (geometries in properties) and sub-graph (geometries describe by the
- * graph).
+ * graph). A Layer can be associated with a dataset. In cases where the dataset contains only one
+ * layer, the layer itself is the dataset.
  * 
  * @author Davide Savazzi
  */
-public class Layer implements Constants {
+public class Layer implements Constants, SpatialDataset {
 
 	// Public methods
 	
@@ -118,10 +123,6 @@ public class Layer implements Constants {
 		}
 	}
 	
-	public GeometryEncoder getGeometryEncoder() {
-		return geometryEncoder;
-	}
-	
 	public void setGeometryType(Integer geometryType) {
 		Node layerNode = getLayerNode();
 		if (geometryType != null) {
@@ -183,13 +184,66 @@ public class Layer implements Constants {
 		}
 	}
 	
-	
 	// Protected constructor
+    protected Layer() {
+    }
+    
+    /**
+     * Factory method to construct a layer from an existing layerNode. This will read the layer
+     * class from the layer node properties and construct the correct class from that.
+     * 
+     * @param spatialDatabase
+     * @param layerNode
+     * @return new layer instance from existing layer node
+     */
+    @SuppressWarnings("unchecked")
+    protected static Layer makeLayer(SpatialDatabaseService spatialDatabase, Node layerNode) {
+        try {
+            String name = (String)layerNode.getProperty(PROP_LAYER);
+            if (name == null)
+                return null;
+            String className = (String)layerNode.getProperty(PROP_LAYER_CLASS);
+            Class<? extends Layer> layerClass = className == null ? Layer.class : (Class<? extends Layer>)Class.forName(className);
+            return makeLayer(spatialDatabase, name, layerNode, layerClass);
+        } catch (Exception e) {
+            throw (RuntimeException)new RuntimeException().initCause(e);
+        }
+    }
 
-	protected Layer(SpatialDatabaseService spatialDatabase, String name, Node layerNode) {
+    /**
+     * Factory method to construct a layer with the specified layer class. This can be used when
+     * creating a layer for the first time.
+     * 
+     * @param spatialDatabase
+     * @param name
+     * @param layerClass
+     * @return new Layer instance based on newly created layer Node
+     */
+    protected static Layer makeLayer(SpatialDatabaseService spatialDatabase, String name,
+            Class< ? extends GeometryEncoder> geometryEncoderClass, Class< ? extends Layer> layerClass) {
+        try {
+            Node layerNode = spatialDatabase.getDatabase().createNode();
+            layerNode.setProperty(PROP_LAYER, name);
+            layerNode.setProperty(PROP_CREATIONTIME, System.currentTimeMillis());
+            layerNode.setProperty(PROP_GEOMENCODER, geometryEncoderClass.getCanonicalName());
+            layerNode.setProperty(PROP_LAYER_CLASS, layerClass.getCanonicalName());
+            return Layer.makeLayer(spatialDatabase, name, layerNode, layerClass);
+        } catch (Exception e) {
+            throw (RuntimeException)new RuntimeException().initCause(e);
+        }
+    }
+
+    private static Layer makeLayer(SpatialDatabaseService spatialDatabase, String name, Node layerNode, Class<? extends Layer> layerClass) throws InstantiationException, IllegalAccessException {
+        if(layerClass == null) layerClass = Layer.class;
+        Layer layer = layerClass.newInstance();
+        layer.initialize(spatialDatabase, name, layerNode);
+        return layer;
+    }
+
+	protected void initialize(SpatialDatabaseService spatialDatabase, String name, Node layerNode) {
 		this.spatialDatabase = spatialDatabase;
 		this.name = name;
-		this.layerNodeId = layerNode.getId();
+		this.layerNode = layerNode;
 		this.index = new RTreeIndex(spatialDatabase.getDatabase(), this);
 		
 		// TODO read Precision Model and SRID from layer properties and use them to construct GeometryFactory
@@ -212,11 +266,7 @@ public class Layer implements Constants {
 	// Protected methods
 	
 	protected Node getLayerNode() {
-		return getDatabase().getNodeById(layerNodeId);
-	}
-	
-	protected long getLayerNodeId() {
-		return layerNodeId;
+		return layerNode;
 	}
 	
 	/**
@@ -246,12 +296,17 @@ public class Layer implements Constants {
 	
 	private Node addGeomNode(Geometry geom, String[] fieldsName, Object[] fields) {
 		Node geomNode = getDatabase().createNode();
+		if(lastGeomNode!=null) {
+		    lastGeomNode.createRelationshipTo(geomNode, DynamicRelationshipType.withName("NEXT_GEOM"));
+		}else{
+		    layerNode.createRelationshipTo(geomNode, DynamicRelationshipType.withName("GEOMETRIES"));
+		}
 	
 		// TODO: don't store node ids as properties of other nodes, rather use relationships, or layer name string
 		// This seems to only be used by the FakeIndex to find all nodes in the layer. 
 		// That is a bad solution, rather just traverse whatever graph the layer normally uses (mostly the r-tree, 
 		// but without using r-tree intelligence)
-		geomNode.setProperty(PROP_LAYER, layerNodeId);
+//		geomNode.setProperty(PROP_LAYER, layerNode.getId());
 		
 		getGeometryEncoder().encodeGeometry(geom, geomNode);
 		
@@ -270,9 +325,10 @@ public class Layer implements Constants {
 	
 	private SpatialDatabaseService spatialDatabase;
 	private String name;
-	private long layerNodeId;
-	private GeometryEncoder geometryEncoder;
-	private GeometryFactory geometryFactory;
+	private Node layerNode;
+	private Node lastGeomNode;
+	protected GeometryEncoder geometryEncoder;
+	protected GeometryFactory geometryFactory;
 	private SpatialIndexWriter index;
 	
 	class GuessGeometryTypeSearch extends AbstractSearch {
@@ -288,6 +344,77 @@ public class Layer implements Constants {
 				firstFoundType = (Integer) geomNode.getProperty(PROP_TYPE);
 			}
 		}
-	};
+	}
 
+    public SpatialDataset getDataset() {
+        return this;
+    };
+
+    /**
+     * Provides a method for iterating over all nodes that represent geometries in this dataset.
+     * This is similar to the getAllNodes() methods from GraphDatabaseService but will only return
+     * nodes that this dataset considers its own, and can be passed to the GeometryEncoder to
+     * generate a Geometry. There is no restricting on a node belonging to multiple datasets, or
+     * multiple layers within the same dataset.
+     * 
+     * @return iterable over geometry nodes in the dataset
+     */
+    public Iterable<Node> getAllGeometryNodes() {
+        return layerNode.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH, ReturnableEvaluator.ALL_BUT_START_NODE,
+                SpatialRelationshipTypes.GEOMETRIES, Direction.OUTGOING, SpatialRelationshipTypes.NEXT_GEOM, Direction.OUTGOING);
+    }
+
+    /**
+     * Provides a method for iterating over all geometries in this dataset. This is similar to the
+     * getAllGeometryNodes() method but internally converts the Node to a Geometry.
+     * 
+     * @return iterable over geometries in the dataset
+     */
+    public Iterable<? extends Geometry> getAllGeometries() {
+        return new NodeToGeometryIterable(getAllGeometryNodes());
+    }
+    
+    /**
+     * In order to wrap one iterable or iterator in another that converts the objects from one type
+     * to another without loading all into memory, we need to use this ugly java-magic. Man, I miss
+     * Ruby right now!
+     * 
+     * @author craig
+     * @since 1.0.0
+     */
+    private class NodeToGeometryIterable implements Iterable<Geometry>  {
+        private Iterator<Node> allGeometryNodeIterator;
+        private class GeometryIterator implements Iterator<Geometry> {
+
+            public boolean hasNext() {
+                return NodeToGeometryIterable.this.allGeometryNodeIterator.hasNext();
+            }
+
+            public Geometry next() {
+                return geometryEncoder.decodeGeometry(NodeToGeometryIterable.this.allGeometryNodeIterator.next());
+            }
+
+            public void remove() {
+            }
+            
+        }
+        public NodeToGeometryIterable(Iterable<Node> allGeometryNodes) {
+            this.allGeometryNodeIterator = allGeometryNodes.iterator();
+        }
+
+        public Iterator<Geometry> iterator() {
+            return new GeometryIterator();
+        }
+        
+    }
+
+    /**
+     * Return the geometry encoder used by this SpatialDataset to convert individual geometries to
+     * and from the database structure.
+     * 
+     * @return GeometryEncoder for this dataset
+     */
+    public GeometryEncoder getGeometryEncoder() {
+        return geometryEncoder;
+    }
 }

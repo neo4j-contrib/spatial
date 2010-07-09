@@ -34,20 +34,23 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 		this.layer = layer;
 	}
 	
-	public void encodeGeometry(Geometry geometry, PropertyContainer container) {
-		container.setProperty(PROP_TYPE, encodeGeometryType(geometry.getGeometryType()));
+    public void encodeEnvelope(Envelope mbb, PropertyContainer container) {
+        container.setProperty(PROP_BBOX, new double[] {mbb.getMinX(), mbb.getMaxX(), mbb.getMinY(), mbb.getMaxY()});
+    }
 
-        Envelope mbb = geometry.getEnvelopeInternal();
-        container.setProperty(PROP_BBOX, new double[] {mbb.getMinX(), mbb.getMinY(), mbb.getMaxX(), mbb.getMaxY()});
+    public void encodeGeometry(Geometry geometry, PropertyContainer container) {
+        container.setProperty(PROP_TYPE, encodeGeometryType(geometry.getGeometryType()));
+
+        encodeEnvelope(geometry.getEnvelopeInternal(), container);
 
         encodeGeometryShape(geometry, container);
-	}
+    }
 
 	public Envelope decodeEnvelope(PropertyContainer container) {
 		double[] bbox = (double[]) container.getProperty(PROP_BBOX);
 		
-		// Envelope parameters: xmin, xmax, ymin, ymax)
-		return new Envelope(bbox[0], bbox[2], bbox[1], bbox[3]);
+		// Envelope parameters: xmin, ymin, xmax, ymax)
+		return new Envelope(bbox[0], bbox[1], bbox[2], bbox[3]);
 	}
 
 	
@@ -74,8 +77,7 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 			throw new IllegalArgumentException("unknown type:" + jtsGeometryType);
 		}
 	}
-	
-	
+
 	// Attributes
 	
 	protected Layer layer;

@@ -163,8 +163,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 			deleteRecursivelyEmptySubtree(indexRoot);
 			
 			// delete tree metadata
-			Node layerNode = database.getNodeById(layer.getLayerNodeId());
-			Relationship metadataNodeRelationship = layerNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_METADATA, Direction.OUTGOING);
+			Relationship metadataNodeRelationship = layer.getLayerNode().getSingleRelationship(SpatialRelationshipTypes.RTREE_METADATA, Direction.OUTGOING);
 			Node metadataNode = metadataNodeRelationship.getEndNode();
 			metadataNodeRelationship.delete();
 			metadataNode.delete();
@@ -291,7 +290,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 	}
 	
 	private void initIndexMetadata() {
-		Node layerNode = database.getNodeById(layer.getLayerNodeId());
+		Node layerNode = layer.getLayerNode();
 		if (layerNode.hasRelationship(SpatialRelationshipTypes.RTREE_METADATA, Direction.OUTGOING)) {
 			// metadata already present
 			Node metadataNode = layerNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_METADATA, Direction.OUTGOING).getEndNode();
@@ -309,7 +308,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 	}
 
 	private void initIndexRoot() {
-		Node layerNode = database.getNodeById(layer.getLayerNodeId());
+		Node layerNode = layer.getLayerNode();
 		if (!layerNode.hasRelationship(SpatialRelationshipTypes.RTREE_ROOT, Direction.OUTGOING)) {
 			// index initialization
 			Node root = database.createNode();
@@ -318,8 +317,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 	}
 	
 	private Node getIndexRoot() {
-		Node layerNode = database.getNodeById(layer.getLayerNodeId());
-		return layerNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_ROOT, Direction.OUTGOING).getEndNode();
+		return layer.getLayerNode().getSingleRelationship(SpatialRelationshipTypes.RTREE_ROOT, Direction.OUTGOING).getEndNode();
 	}
 	
 	private boolean nodeIsLeaf(Node node) {
@@ -420,7 +418,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 			// if indexNode is the root
 			createNewRoot(indexNode, newIndexNode);
 		} else {
-			adjustParentBoundingBox(parent, indexNode);
+			adjustParentBoundingBox(parent, (double[])indexNode.getProperty(PROP_BBOX));
 			
 			addChild(parent, SpatialRelationshipTypes.RTREE_CHILD, newIndexNode);
 
@@ -549,20 +547,34 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 		addChild(newRoot, SpatialRelationshipTypes.RTREE_CHILD, oldRoot);
 		addChild(newRoot, SpatialRelationshipTypes.RTREE_CHILD, newIndexNode);
 		
-		Node layerNode = database.getNodeById(layer.getLayerNodeId());
+		Node layerNode = layer.getLayerNode();
 		layerNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_ROOT, Direction.OUTGOING).delete();
 		layerNode.createRelationshipTo(newRoot, SpatialRelationshipTypes.RTREE_ROOT);
 	}
-	
+
+    private double[] envelopeToBBox(Envelope bounds) {
+        return new double[]{bounds.getMinX(), bounds.getMinY(), bounds.getMaxX(), bounds.getMaxY()};
+    }
+
+    private Envelope bboxToEnvelope(double[] bbox) {
+        return new Envelope(bbox[0],bbox[2],bbox[1],bbox[3]);
+    }
+
 	private boolean addChild(Node parent, RelationshipType type, Node newChild) {
+	    double[] childBBox = null;
+	    if(type == SpatialRelationshipTypes.RTREE_REFERENCE) {
+	        childBBox = envelopeToBBox(this.layer.getGeometryEncoder().decodeEnvelope(newChild));
+	    } else {
+	        childBBox = (double[]) newChild.getProperty(PROP_BBOX);
+	    }
 		parent.createRelationshipTo(newChild, type);
-		return adjustParentBoundingBox(parent, newChild);
+		return adjustParentBoundingBox(parent, childBBox);
 	}
 	
 	private void adjustPathBoundingBox(Node indexNode) {
 		Node parent = getIndexNodeParent(indexNode);
 		if (parent != null) {
-			if (adjustParentBoundingBox(parent, indexNode)) {
+			if (adjustParentBoundingBox(parent, (double[])indexNode.getProperty(PROP_BBOX))) {
 				// entry has been modified: adjust the path for the parent
 				adjustPathBoundingBox(parent);
 			}
@@ -592,15 +604,13 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 	 * @param child geomNode inserted
 	 * @return is bbox changed?
 	 */
-	private boolean adjustParentBoundingBox(Node parent, Node child) {
+	private boolean adjustParentBoundingBox(Node parent, double[] childBBox) {
 		if (!parent.hasProperty(PROP_BBOX)) {
-			double[] childBBox = (double[]) child.getProperty(PROP_BBOX);
 			parent.setProperty(PROP_BBOX, new double[] { childBBox[0], childBBox[1], childBBox[2], childBBox[3] });
 			return true;
 		}
 		
 		double[] parentBBox = (double[]) parent.getProperty(PROP_BBOX);
-		double[] childBBox = (double[]) child.getProperty(PROP_BBOX);
 		
 		boolean valueChanged = setMin(parentBBox, childBBox, 0);
 		valueChanged = setMin(parentBBox, childBBox, 1) || valueChanged;

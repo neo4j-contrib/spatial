@@ -23,7 +23,12 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.ReturnableEvaluator;
+import org.neo4j.graphdb.StopEvaluator;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.TraversalPosition;
+import org.neo4j.graphdb.Traverser.Order;
 
 
 /**
@@ -53,22 +58,33 @@ public class SpatialDatabaseService implements Constants {
 	}
 	
 	public Layer getLayer(String name) {
-		return getLayer(name, false);
-	}
-
-    public Layer getLayer(String name, boolean createIfNotExists) {
+	    //TODO: Remove transaction for newer versions of Neo4j (which do not need transactions for read access)
         Transaction tx = database.beginTx();
         try {
             Node refNode = database.getReferenceNode();
             for (Relationship relationship : refNode.getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
                 Node layerNode = relationship.getEndNode();
                 if (name.equals(layerNode.getProperty(PROP_LAYER))) {
-                    return new Layer(this, name, layerNode);
+                    return Layer.makeLayer(this, layerNode);
                 }
             }
-            Layer layer = null;
-            if (createIfNotExists) {
-                layer = createLayer(name);
+            tx.success();
+            return null;
+        } finally {
+            tx.finish();
+        }
+	}
+
+    public Layer getOrCreateLayer(String name) {
+        return getOrCreateLayer(name, WKBGeometryEncoder.class, Layer.class);
+    }
+
+    public Layer getOrCreateLayer(String name, Class<? extends GeometryEncoder> geometryEncoder, Class<? extends Layer> layerClass) {
+        Transaction tx = database.beginTx();
+        try {
+            Layer layer = getLayer(name);
+            if (layer == null) {
+                layer = createLayer(name, geometryEncoder,layerClass);
             }
             tx.success();
             return layer;
@@ -76,50 +92,68 @@ public class SpatialDatabaseService implements Constants {
             tx.finish();
         }
     }
-	
-	public Layer findLayerContainingGeometryNode(Node geometryNode) {
-		Relationship indexRel = geometryNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING);
-		if (indexRel == null) return null;
-		
-		Node startNode = null;
-		while (indexRel != null) {
-			startNode = indexRel.getStartNode();
-			indexRel = startNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_CHILD, Direction.INCOMING);
-		}
-		
-		indexRel = startNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_ROOT, Direction.INCOMING);	
-		if (indexRel != null) {
-			startNode = indexRel.getStartNode();
-			if (startNode.hasProperty(PROP_LAYER)) {
-				return new Layer(this, (String) startNode.getProperty(PROP_LAYER), startNode);
-			}
-		}
-		
-		return null;
-	}
+
+    /**
+     * This method will find the Layer when given a geometry node that this layer contains. It first
+     * searches up the RTree index if it exists, and if it cannot find the layer node, it searches
+     * back the NEXT_GEOM chain. This is the structure created by the default implementation of the
+     * Layer class, so we should consider moving this to the Layer class, so it can be overridden by
+     * other implementations that do not use that structure.
+     * 
+     * @TODO: Find a way to override this as we can override normal Layer with different graph structures.
+     * 
+     * @param geometryNode to start search
+     * @return Layer object containing this geometry
+     */
+    public Layer findLayerContainingGeometryNode(Node geometryNode) {
+        Node root = null;
+        for (Node node : geometryNode.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH,
+                ReturnableEvaluator.ALL_BUT_START_NODE, SpatialRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING,
+                SpatialRelationshipTypes.RTREE_CHILD, Direction.INCOMING)) {
+            root = node;
+        }
+        if (root != null) {
+            return getLayerFromChild(root, SpatialRelationshipTypes.RTREE_ROOT);
+        }
+        System.out.println("Failed to find layer by following RTree index, will search back geometry list");
+        for (Node node : geometryNode.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH,
+                ReturnableEvaluator.ALL_BUT_START_NODE, SpatialRelationshipTypes.NEXT_GEOM, Direction.INCOMING)) {
+            root = node;
+        }
+        if (root != null) {
+            return getLayerFromChild(root, SpatialRelationshipTypes.NEXT_GEOM);
+        }
+        return null;
+    }
+
+    private Layer getLayerFromChild(Node child, RelationshipType relType) {
+        Relationship indexRel = child.getSingleRelationship(relType, Direction.INCOMING);
+        if (indexRel != null) {
+            Node layerNode = indexRel.getStartNode();
+            if (layerNode.hasProperty(PROP_LAYER)) {
+                return Layer.makeLayer(this, layerNode);
+            }
+        }
+        return null;
+    }
 	
 	public boolean containsLayer(String name) {
 		return getLayer(name) != null;
 	}
 	
-	public Layer createLayer(String name) {
-		return createLayer(name, WKBGeometryEncoder.class);
-	}
-	
-	public Layer createLayer(String name, Class geometryEncoderClass) {
+    public Layer createLayer(String name) {
+        return createLayer(name, WKBGeometryEncoder.class, Layer.class);
+    }
+
+    public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass, Class<? extends Layer> layerClass) {
         Transaction tx = database.beginTx();
         try {
             if (containsLayer(name))
                 throw new SpatialDatabaseException("Layer " + name + " already exists");
 
-            Node layerNode = database.createNode();
-            layerNode.setProperty(PROP_LAYER, name);
-            layerNode.setProperty(PROP_CREATIONTIME, System.currentTimeMillis());
-            layerNode.setProperty(PROP_GEOMENCODER, geometryEncoderClass.getCanonicalName());
-
+            Layer layer = Layer.makeLayer(this, name, geometryEncoderClass, layerClass);
             Node refNode = database.getReferenceNode();
-            refNode.createRelationshipTo(layerNode, SpatialRelationshipTypes.LAYER);
-            Layer layer = new Layer(this, name, layerNode);
+            refNode.createRelationshipTo(layer.getLayerNode(), SpatialRelationshipTypes.LAYER);
             tx.success();
             return layer;
         } finally {

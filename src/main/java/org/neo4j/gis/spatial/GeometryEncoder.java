@@ -21,18 +21,66 @@ import org.neo4j.graphdb.PropertyContainer;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 
-
 /**
+ * Implementations of this interface define custom approaches to storing geometries in the database
+ * graph. There are two primary approaches:
+ * <ul>
+ * <dt>In-node</dt>
+ * <dd>This approach makes use of properties of an individual node to store the geometry. The
+ * built-in WKT and WKB encoders use this approach, but a custom encoder that simply stored a
+ * float[] of coordinates for a LineString would also be classed here.</dd>
+ * <dt>Sub-graph</dt>
+ * <dd>This approach makes use of a graph of nodes and relationships to describe a single geometry.
+ * This could be as simple as a chain of nodes representing a LineString or a complex nested graph
+ * like the OSM approach to MultiPolygons.</dd>
+ * </ul>
+ * Classes that implement this interface must have a public constructor taking no parameters, and
+ * should be able to interface to the Layer class using the init(Layer) method. When a new Layer is
+ * created, it is a single node that has a property containing the class name of the
+ * GeometryEncoder, and if the Layer needs to be read later, that node will be read, and a Layer
+ * created from it, and the Layer will create an instance of the required GeometryEncoder, which in
+ * turn should be capable of reading and writing all Geometries supported by that Layer.
+ * 
  * @author Davide Savazzi
  */
 public interface GeometryEncoder {
 
-	void init(Layer layer);
-	
-	void encodeGeometry(Geometry geometry, PropertyContainer container);
+    /**
+     * When accessing an existing layer, the Layer is constructed from a single node in the graph
+     * that represents a layer. This node is expected to have a property containing the class name
+     * of the GeometryEncoder for that layer, and it will be constructed and passed the layer using
+     * this method, allowing the Layer and the GeometryEncoder to interact.
+     * 
+     * @param layer recently created Layer class
+     */
+    void init(Layer layer);
 
-	Geometry decodeGeometry(PropertyContainer container);
+    /**
+     * This method is called to store a geometry object to the database. It should write it to the
+     * container supplied. If the container is a node, it can be the root of an entire sub-graph.
+     * 
+     * @param geometry
+     * @param container
+     */
+    void encodeGeometry(Geometry geometry, PropertyContainer container);
 
-	Envelope decodeEnvelope(PropertyContainer container);
+    /**
+     * This method is called on an individual container when we need to extract the geometry. If the
+     * container is a node, this could be the root of a sub-graph containing the geometry.
+     * 
+     * @param container
+     * @return
+     */
+    Geometry decodeGeometry(PropertyContainer container);
+
+    /**
+     * This method is called on an individual container when we need to extract the bounding box,
+     * but do not need the entire geometry. For example, this is useful for the RTree index, which
+     * works on bounding boxes only.
+     * 
+     * @param container
+     * @return
+     */
+    Envelope decodeEnvelope(PropertyContainer container);
 
 }

@@ -13,42 +13,38 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
 import org.geotools.referencing.datum.DefaultEllipsoid;
+import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
+import org.neo4j.gis.spatial.osm.OSMLayer;
+import org.neo4j.gis.spatial.osm.OSMRelation;
+import org.neo4j.gis.spatial.osm.RoadDirection;
 import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.DynamicRelationshipType;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.ReturnableEvaluator;
+import org.neo4j.graphdb.StopEvaluator;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.Traverser.Order;
 import org.neo4j.index.lucene.LuceneIndexBatchInserter;
 import org.neo4j.index.lucene.LuceneIndexBatchInserterImpl;
 import org.neo4j.kernel.impl.batchinsert.BatchInserter;
-import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
 import org.neo4j.kernel.impl.batchinsert.SimpleRelationship;
 
 import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 
 public class OSMImporter implements Constants {
     public static DefaultEllipsoid WGS84 = DefaultEllipsoid.WGS84;
-
-    public enum OSMRelation implements RelationshipType {
-        NODES, OTHER, NEXT, OSM, WAYS, RELATIONS, MEMBERS, MEMBER, TAGS, GEOM, BBOX;
-    }
-
-    public enum RoadDirection {
-        BOTH, FORWARD, BACKWARD;
-    }
 
     private static HashMap<String, String[]> geometryTypesMap = new LinkedHashMap<String, String[]>();
     private static HashMap<String, String> tagKeyToGeometryMap = new LinkedHashMap<String, String>();
     static {
         geometryTypesMap.put("Point", new String[] {});
         geometryTypesMap.put("MultiPoint", new String[] {});
-        geometryTypesMap.put("LineString", new String[] {"highway"});
+        geometryTypesMap.put("LineString", new String[] {"highway","boundary"});
         geometryTypesMap.put("MultiLineString", new String[] {});
-        geometryTypesMap.put("Polygon", new String[] {"boundary"});
+        geometryTypesMap.put("Polygon", new String[] {});
         geometryTypesMap.put("MultiPolygon", new String[] {});
         for (String geom : geometryTypesMap.keySet()) {
             String[] tagKeys = geometryTypesMap.get(geom);
@@ -87,15 +83,10 @@ public class OSMImporter implements Constants {
     protected boolean nodesProcessingFinished = false;
     private String layerName;
     private long osm_root;
-    private long osm_layer;
+    private long osm_dataset;
 
     public OSMImporter(String layerName) {
         this.layerName = layerName;
-    }
-
-    private Iterable<Node> getWays() {
-        ArrayList<Node> ways = new ArrayList<Node>();
-        return ways;
     }
 
     public void reIndex(GraphDatabaseService database, int commitInterval) {
@@ -104,15 +95,17 @@ public class OSMImporter implements Constants {
 
         setLogContext("Index");
         SpatialDatabaseService spatialDatabase = new SpatialDatabaseService(database);
-        Layer layer = getOrCreateLayer(database, spatialDatabase, layerName);
-        GeometryFactory geomFactory = layer.getGeometryFactory();
+        OSMLayer layer = (OSMLayer)spatialDatabase.getOrCreateLayer(layerName, OSMGeometryEncoder.class, OSMLayer.class);
 
         long startTime = System.currentTimeMillis();
         Transaction tx = database.beginTx();
         int count = 0;
         try {
-            for (Node way : getWays()) {
+            for (Node way : database.getNodeById(osm_dataset).traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH,
+                    ReturnableEvaluator.ALL_BUT_START_NODE, OSMRelation.WAYS, Direction.OUTGOING, OSMRelation.NEXT,
+                    Direction.OUTGOING)) {
                 incrLogContext();
+                layer.addWay(way);
                 if (++count % commitInterval == 0) {
                     tx.success();
                     tx.finish();
@@ -131,7 +124,7 @@ public class OSMImporter implements Constants {
     @SuppressWarnings("restriction")
     public void importFile(BatchInserter batchGraphDb, String dataset) throws IOException, XMLStreamException {
         batchIndexService = new LuceneIndexBatchInserterImpl(batchGraphDb);
-        getOrCreateOSMLayer(batchGraphDb, layerName);
+        getOrCreateOSMDataset(batchGraphDb, layerName);
 
         long startTime = System.currentTimeMillis();
         javax.xml.stream.XMLInputFactory factory = javax.xml.stream.XMLInputFactory.newInstance();
@@ -166,12 +159,12 @@ public class OSMImporter implements Constants {
                     }
                     if (tagPath.equals("[osm]")) {
                         LinkedHashMap<String, Object> properties = new LinkedHashMap<String, Object>();
-                        properties.putAll(batchGraphDb.getNodeProperties(osm_layer));
+                        properties.putAll(batchGraphDb.getNodeProperties(osm_dataset));
                         properties.putAll(extractProperties(parser));
-                        batchGraphDb.setNodeProperties(osm_layer, properties);
+                        batchGraphDb.setNodeProperties(osm_dataset, properties);
                     } else if (tagPath.equals("[osm, bounds]")) {
                         long bbox = addNode(batchGraphDb, "bbox", parser, null);
-                        batchGraphDb.createRelationship(osm_layer, bbox, OSMRelation.BBOX, null);
+                        batchGraphDb.createRelationship(osm_dataset, bbox, OSMRelation.BBOX, null);
                     } else if (tagPath.equals("[osm, node]")) {
                         currentNode = addNode(batchGraphDb, "node", parser, "node_osm_id");
                     } else if (tagPath.equals("[osm, way]")) {
@@ -199,8 +192,7 @@ public class OSMImporter implements Constants {
                     }
                     if (startedRelations) {
                         if (count < 10) {
-                            log("Starting tag at depth " + depth + ": " + currentTags.get(depth) + " - "
-                                    + currentTags.toString());
+                            log("Starting tag at depth " + depth + ": " + currentTags.get(depth) + " - " + currentTags.toString());
                             for (int i = 0; i < parser.getAttributeCount(); i++) {
                                 log("\t" + currentTags.toString() + ": " + parser.getAttributeLocalName(i) + "["
                                         + parser.getAttributeNamespace(i) + "," + parser.getAttributePrefix(i) + ","
@@ -230,7 +222,7 @@ public class OSMImporter implements Constants {
                         }
                         long way = addNode(batchGraphDb, "way", wayProperties, "way_osm_id");
                         if (prev_way < 0) {
-                            batchGraphDb.createRelationship(osm_layer, way, OSMRelation.WAYS, null);
+                            batchGraphDb.createRelationship(osm_dataset, way, OSMRelation.WAYS, null);
                         } else {
                             batchGraphDb.createRelationship(prev_way, way, OSMRelation.NEXT, null);
                         }
@@ -255,7 +247,7 @@ public class OSMImporter implements Constants {
                             double[] location = new double[] {(Double)nodeProps.get("lon"), (Double)nodeProps.get("lat")};
                             bbox.expandToInclude(location[0], location[1]);
                             if (prevNode < 0) {
-                                batchGraphDb.createRelationship(way, node, OSMRelation.NODES, null);
+                                batchGraphDb.createRelationship(way, node, OSMRelation.FIRST_NODE, null);
                             } else {
                                 relProps.clear();
                                 Map<String, Object> prevProps = batchGraphDb.getNodeProperties(prevNode);
@@ -275,6 +267,9 @@ public class OSMImporter implements Constants {
                             }
                             prevNode = node;
                         }
+                        if (prevNode > 0) {
+                            batchGraphDb.createRelationship(way, prevNode, OSMRelation.LAST_NODE, null);
+                        }
                         addNodeGeometry(batchGraphDb, way, geometry, bbox, wayNodes.size());
                     } else if (currentTags.toString().equals("[osm, relation]")) {
                         String name = (String)currentNodeTags.get("name");
@@ -286,7 +281,7 @@ public class OSMImporter implements Constants {
                         }
                         long relation = addNode(batchGraphDb, "relation", relationProperties, "relation_osm_id");
                         if (prev_relation < 0) {
-                            batchGraphDb.createRelationship(osm_layer, relation, OSMRelation.RELATIONS, null);
+                            batchGraphDb.createRelationship(osm_dataset, relation, OSMRelation.RELATIONS, null);
                         } else {
                             batchGraphDb.createRelationship(prev_relation, relation, OSMRelation.NEXT, null);
                         }
@@ -310,7 +305,8 @@ public class OSMImporter implements Constants {
                                     continue;
                                 }
                                 if (member == relation) {
-                                    error("Cannot add relation to same member: relation["+currentNodeTags+"] - member["+memberProps+"]");
+                                    error("Cannot add relation to same member: relation[" + currentNodeTags + "] - member["
+                                            + memberProps + "]");
                                     continue;
                                 }
                                 Map<String, Object> nodeProps = batchGraphDb.getNodeProperties(member);
@@ -420,22 +416,6 @@ public class OSMImporter implements Constants {
 
     // Private methods
 
-    private Layer getOrCreateLayer(GraphDatabaseService database, SpatialDatabaseService spatialDatabase, String layerName) {
-        Layer layer;
-        Transaction tx = database.beginTx();
-        try {
-            if (spatialDatabase.containsLayer(layerName)) {
-                layer = spatialDatabase.getLayer(layerName);
-            } else {
-                layer = spatialDatabase.createLayer(layerName);
-            }
-            tx.success();
-        } finally {
-            tx.finish();
-        }
-        return layer;
-    }
-
     private Node findNode(GraphDatabaseService database, String name, Node parent, RelationshipType relType) {
         for (Relationship relationship : parent.getRelationships(relType, Direction.OUTGOING)) {
             Node node = relationship.getEndNode();
@@ -480,12 +460,12 @@ public class OSMImporter implements Constants {
         return node;
     }
 
-    public long getOrCreateOSMLayer(BatchInserter batchInserter, String name) {
-        if (osm_layer <= 0) {
+    public long getOrCreateOSMDataset(BatchInserter batchInserter, String name) {
+        if (osm_dataset <= 0) {
             osm_root = getOrCreateNode(batchInserter, "osm_root", batchInserter.getReferenceNode(), OSMRelation.OSM);
-            osm_layer = getOrCreateNode(batchInserter, name, osm_root, OSMRelation.OSM);
+            osm_dataset = getOrCreateNode(batchInserter, name, osm_root, OSMRelation.OSM);
         }
-        return osm_layer;
+        return osm_dataset;
     }
 
     /**

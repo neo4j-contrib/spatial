@@ -6,11 +6,20 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Properties;
+import java.util.Map.Entry;
 
 import javax.xml.stream.XMLStreamException;
 
+import junit.framework.Test;
+import junit.framework.TestCase;
+import junit.framework.TestSuite;
+
 import org.geotools.data.shapefile.shp.ShapefileException;
+import org.junit.Before;
+import org.junit.BeforeClass;
 import org.neo4j.gis.spatial.query.SearchIntersect;
+import org.neo4j.graphdb.Transaction;
 
 import com.vividsolutions.jts.geom.Envelope;
 
@@ -22,16 +31,18 @@ import com.vividsolutions.jts.geom.Envelope;
  * @author Craig Taverner
  */
 public class TestSpatial extends Neo4jTestCase {
-    private final String SHP_DIR = System.getenv().get("HOME")+"/Desktop/OSM/SHP/osm_sweden";
-    private final String OSM_DIR = System.getenv().get("HOME")+"/Desktop/OSM";
+    private final String SHP_DIR = System.getenv().get("HOME") + "/Desktop/OSM/SHP/osm_sweden";
+    private final String OSM_DIR = System.getenv().get("HOME") + "/Desktop/OSM";
+
     private enum DataFormat {
-        SHP("ESRI Shapefile"),
-        OSM("OpenStreetMap");
+        SHP("ESRI Shapefile"), OSM("OpenStreetMap");
         private String description;
+
         DataFormat(String description) {
             this.description = description;
         }
-        public String toString(){
+
+        public String toString() {
             return description;
         }
     }
@@ -73,14 +84,17 @@ public class TestSpatial extends Neo4jTestCase {
     private static final ArrayList<String> layers = new ArrayList<String>();
     private static final HashMap<String, ArrayList<TestGeometry>> layerTestGeometries = new HashMap<String, ArrayList<TestGeometry>>();
     private static final HashMap<String, DataFormat> layerTestFormats = new HashMap<String, DataFormat>();
+    private static String spatialTestMode;
     static {
-        //TODO: Rather load this from a configuration file, properties file or JRuby test code
+        // TODO: Rather load this from a configuration file, properties file or JRuby test code
         addTestLayer("sweden.osm", DataFormat.OSM);
         addTestLayer("sweden.osm.administrative", DataFormat.OSM);
-        addTestGeometry("sweden_administrative.103", "Dalby söderskog", "(13.32406,55.671652), (13.336948,55.679243)");
-        addTestGeometry("sweden_administrative.83", "Söderåsen", "(13.167721,56.002416), (13.289724,56.047099)");
+        // addTestGeometry("sweden_administrative.103", "Dalby söderskog",
+        // "(13.32406,55.671652), (13.336948,55.679243)");
+        // addTestGeometry("sweden_administrative.83", "Söderåsen",
+        // "(13.167721,56.002416), (13.289724,56.047099)");
 
-        //TODO: Rather load this from a configuration file, properties file or JRuby test code
+        // TODO: Rather load this from a configuration file, properties file or JRuby test code
         addTestLayer("sweden_administrative", DataFormat.SHP);
         addTestGeometry("sweden_administrative.103", "Dalby söderskog", "(13.32406,55.671652), (13.336948,55.679243)");
         addTestGeometry("sweden_administrative.83", "Söderåsen", "(13.167721,56.002416), (13.289724,56.047099)");
@@ -101,41 +115,102 @@ public class TestSpatial extends Neo4jTestCase {
 
     private static void addTestLayer(String layer, DataFormat format) {
         layers.add(layer);
-        layerTestFormats.put(layer,format);
+        layerTestFormats.put(layer, format);
+        layerTestGeometries.put(layer, new ArrayList<TestGeometry>());
     }
 
     private static void addTestGeometry(String id, String name, String bounds) {
         String layer = layers.get(layers.size() - 1);
-        if (layerTestGeometries.get(layer) == null) {
-            layerTestGeometries.put(layer, new ArrayList<TestGeometry>());
-        }
         ArrayList<TestGeometry> geoms = layerTestGeometries.get(layer);
         geoms.add(new TestGeometry(id, name, bounds));
     }
 
-    protected void setUp() throws Exception {
-        super.setUp(true,false,false); // pass true to delete previous database, speeding up the index test
-        long start = System.currentTimeMillis();
-        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-        // for (String layerName : new String[] {"sweden.osm"}) {
-        for (String layerName : new String[] {"sweden.osm.administrative"}) {
-        // for (String layerName : new String[] {"sweden_highway"}) {
-        // for (String layerName : new String[] {"sweden_administrative", "sweden_natural"}) {
-        // for (String layerName : new String[] {"sweden_administrative", "sweden_natural", "sweden_water"}) {
-        // for (String layerName : layers) {
-            Layer layer = spatialService.getLayer(layerName);
-            if (layer == null || layer.getIndex() == null || layer.getIndex().count() < 1) {
-                switch(TestSpatial.layerTestFormats.get(layerName)) {
-                case SHP: loadTestShpData(layerName, 1000); break;
-                case OSM: loadTestOsmData(layerName, 1000); break;
-                default: System.err.println("Unknown format: "+layerTestFormats.get(layerName));
+    public TestSpatial(String name) {
+        setName(name);
+    }
+
+    public static Test suite() {
+        spatialTestMode = System.getProperty("spatial.test.mode");
+        deleteDatabase();
+        TestSuite suite = new TestSuite();
+        // suite.addTest(new TestSpatial("testSpatialIndex"));
+        // TODO: Split different layers to different test cases here for nicer control and
+        // visibility
+
+        String[] layersToTest = null;
+        if (spatialTestMode != null && spatialTestMode.equals("long")) {
+            // Very long running tests
+            layersToTest = new String[] {"sweden.osm.administrative", "sweden_administrative", "sweden_natural", "sweden_water",
+                    "sweden_highway"};
+        } else if (spatialTestMode != null && spatialTestMode.equals("short")) {
+            // Tests used for a quick check
+            layersToTest = new String[] {"sweden_administrative"};
+        } else if (spatialTestMode != null && spatialTestMode.equals("dev")) {
+            // Tests relevant to current development
+            layersToTest = new String[] {"sweden.osm.administrative", "sweden_administrative", "sweden_natural", "sweden_water"};
+        } else {
+            // Tests to run by default for regression (not too long running, and should always pass)
+            layersToTest = new String[] {"sweden_administrative", "sweden_natural", "sweden_water"};
+        }
+        for (final String layerName : layersToTest) {
+            suite.addTest(new TestSpatial("Test Import of "+layerName) {
+                public void runTest() {
+                    try {
+                        testImport(layerName);
+                    } catch (Exception e) {
+                        // assertTrue("Failed to run import test due to exception: " + e, false);
+                        throw new RuntimeException(e.getMessage(), e);
+                    }
                 }
+            });
+            suite.addTest(new TestSpatial("Test Spatial Index on "+layerName) {
+                public void runTest() {
+                    try {
+                        testSpatialIndex(layerName);
+                    } catch (Exception e) {
+                        // assertTrue("Failed to run import test due to exception: " + e, false);
+                        throw new RuntimeException(e.getMessage(), e);
+                    }
+                }
+            });
+        }
+        System.out.println("This suite has " + suite.testCount() + " tests");
+        for (int i = 0; i < suite.testCount(); i++) {
+            System.out.println("\t" + suite.testAt(i).toString());
+        }
+        return suite;
+    }
+
+    public void testBlank() {
+
+    }
+
+    protected void setUp() throws Exception {
+        super.setUp(false, false, false);
+    }
+
+    protected void testImport(String layerName) throws Exception {
+        long start = System.currentTimeMillis();
+        System.out.println("\n===========\n=========== Import Test: " + layerName + "\n===========");
+        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+        Layer layer = spatialService.getLayer(layerName);
+        if (layer == null || layer.getIndex() == null || layer.getIndex().count() < 1) {
+            switch (TestSpatial.layerTestFormats.get(layerName)) {
+            case SHP:
+                loadTestShpData(layerName, 1000);
+                break;
+            case OSM:
+                loadTestOsmData(layerName, 1000);
+                break;
+            default:
+                System.err.println("Unknown format: " + layerTestFormats.get(layerName));
             }
         }
         System.out.println("Total time for load: " + 1.0 * (System.currentTimeMillis() - start) / 1000.0 + "s");
     }
 
-    private void loadTestShpData(String layerName, int commitInterval) throws ShapefileException, FileNotFoundException, IOException {
+    private void loadTestShpData(String layerName, int commitInterval) throws ShapefileException, FileNotFoundException,
+            IOException {
         String shpPath = SHP_DIR + File.separator + layerName;
         System.out.println("\n=== Loading layer " + layerName + " from " + shpPath + " ===");
         ShapefileImporter importer = new ShapefileImporter(graphDb(), new NullListener(commitInterval));
@@ -152,16 +227,20 @@ public class TestSpatial extends Neo4jTestCase {
         importer.reIndex(graphDb(), commitInterval);
     }
 
-    public void testSpatialIndex() {
+    public void testSpatialIndex(String layerName) {
+        System.out.println("\n=== Spatial Index Test: " + layerName + " ===");
         long start = System.currentTimeMillis();
-        for (String layer : layers) {
-            testSpatialIndex(layer);
+        Transaction tx = graphDb().beginTx();
+        try {
+            doTestSpatialIndex(layerName);
+            tx.success();
+        } finally {
+            tx.finish();
         }
         System.out.println("Total time for index test: " + 1.0 * (System.currentTimeMillis() - start) / 1000.0 + "s");
     }
 
-    private void testSpatialIndex(String layerName) {
-        System.out.println("\n=== Testing layer: " + layerName + " ===");
+    private void doTestSpatialIndex(String layerName) {
         SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
         Layer layer = spatialService.getLayer(layerName);
         if (layer == null || layer.getIndex() == null || layer.getIndex().count() < 1) {
@@ -171,7 +250,7 @@ public class TestSpatial extends Neo4jTestCase {
 
         ((RTreeIndex)layer.getIndex()).warmUp();
 
-        SpatialIndexReader fakeIndex = new SpatialIndexPerformanceProxy(new FakeIndex(graphDb(), layer));
+        SpatialIndexReader fakeIndex = new SpatialIndexPerformanceProxy(new FakeIndex(layer));
         SpatialIndexReader rtreeIndex = new SpatialIndexPerformanceProxy(layer.getIndex());
 
         System.out.println("FakeIndex bounds:  " + fakeIndex.getLayerBoundingBox());
