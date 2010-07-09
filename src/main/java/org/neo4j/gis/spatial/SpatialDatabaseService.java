@@ -162,9 +162,19 @@ public class SpatialDatabaseService implements Constants {
 	}
 		
 	public void deleteLayer(String name, Listener monitor) {
-        Layer layer = getLayer(name);
-        if (layer == null) throw new SpatialDatabaseException("Layer " + name + " does not exist");
-        
+		Layer layer = null;
+		
+		Transaction tx = database.beginTx();
+		try {
+			layer = getLayer(name);
+			
+			tx.success();
+		} finally {
+			tx.finish();
+		}
+		
+		if (layer == null) throw new SpatialDatabaseException("Layer " + name + " does not exist");
+
 		layer.delete(monitor);
 	}
 	

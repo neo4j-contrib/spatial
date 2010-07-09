@@ -66,7 +66,7 @@ public class Layer implements Constants, SpatialDataset {
 	public SpatialDatabaseRecord add(Geometry geometry, String[] fieldsName, Object[] fields) {
 		Node geomNode = addGeomNode(geometry, fieldsName, fields);
 		index.add(geomNode);
-		return new SpatialDatabaseRecord(this, geomNode, geometry);
+		return new SpatialDatabaseRecord(getName(), getGeometryEncoder(), getCoordinateReferenceSystem(), getExtraPropertyNames(), geomNode, geometry);
 	}	
 	
 	/**
@@ -76,7 +76,7 @@ public class Layer implements Constants, SpatialDataset {
 		Geometry geometry = getGeometryEncoder().decodeGeometry(geomNode);		
 		
 		index.add(geomNode);
-		return new SpatialDatabaseRecord(this, geomNode, geometry);		
+		return new SpatialDatabaseRecord(getName(), getGeometryEncoder(), getCoordinateReferenceSystem(), getExtraPropertyNames(), geomNode, geometry);
 	}
 	
 	public void update(long geomNodeId, Geometry geometry) {

@@ -6,18 +6,13 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Properties;
-import java.util.Map.Entry;
 
 import javax.xml.stream.XMLStreamException;
 
 import junit.framework.Test;
-import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
 import org.geotools.data.shapefile.shp.ShapefileException;
-import org.junit.Before;
-import org.junit.BeforeClass;
 import org.neo4j.gis.spatial.query.SearchIntersect;
 import org.neo4j.graphdb.Transaction;
 
@@ -31,9 +26,8 @@ import com.vividsolutions.jts.geom.Envelope;
  * @author Craig Taverner
  */
 public class TestSpatial extends Neo4jTestCase {
-    private final String SHP_DIR = System.getenv().get("HOME") + "/Desktop/OSM/SHP/osm_sweden";
-    private final String OSM_DIR = System.getenv().get("HOME") + "/Desktop/OSM";
-
+    private final String SHP_DIR = "target/shp";
+    private final String OSM_DIR = "target/osm";
     private enum DataFormat {
         SHP("ESRI Shapefile"), OSM("OpenStreetMap");
         private String description;
@@ -140,17 +134,17 @@ public class TestSpatial extends Neo4jTestCase {
         String[] layersToTest = null;
         if (spatialTestMode != null && spatialTestMode.equals("long")) {
             // Very long running tests
-            layersToTest = new String[] {"sweden.osm.administrative", "sweden_administrative", "sweden_natural", "sweden_water",
+            layersToTest = new String[] {"sweden.osm", "sweden.osm.administrative", "sweden_administrative", "sweden_natural", "sweden_water",
                     "sweden_highway"};
         } else if (spatialTestMode != null && spatialTestMode.equals("short")) {
             // Tests used for a quick check
             layersToTest = new String[] {"sweden_administrative"};
         } else if (spatialTestMode != null && spatialTestMode.equals("dev")) {
             // Tests relevant to current development
-            layersToTest = new String[] {"sweden.osm.administrative", "sweden_administrative", "sweden_natural", "sweden_water"};
+            layersToTest = new String[] {"sweden.osm.administrative", "sweden_administrative"};
         } else {
             // Tests to run by default for regression (not too long running, and should always pass)
-            layersToTest = new String[] {"sweden_administrative", "sweden_natural", "sweden_water"};
+            layersToTest = new String[] {"sweden.osm.administrative", "sweden_administrative", "sweden_natural", "sweden_water"};
         }
         for (final String layerName : layersToTest) {
             suite.addTest(new TestSpatial("Test Import of "+layerName) {

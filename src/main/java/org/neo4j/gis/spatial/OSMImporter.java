@@ -42,7 +42,7 @@ public class OSMImporter implements Constants {
     static {
         geometryTypesMap.put("Point", new String[] {});
         geometryTypesMap.put("MultiPoint", new String[] {});
-        geometryTypesMap.put("LineString", new String[] {"highway","boundary"});
+        geometryTypesMap.put("LineString", new String[] {"highway", "boundary"});
         geometryTypesMap.put("MultiLineString", new String[] {});
         geometryTypesMap.put("Polygon", new String[] {});
         geometryTypesMap.put("MultiPolygon", new String[] {});
@@ -154,9 +154,6 @@ public class OSMImporter implements Constants {
                 case javax.xml.stream.XMLStreamConstants.START_ELEMENT:
                     currentTags.add(depth, parser.getLocalName());
                     String tagPath = currentTags.toString();
-                    if (tagPath.contains("relation")) {
-                        log("Found relation");
-                    }
                     if (tagPath.equals("[osm]")) {
                         LinkedHashMap<String, Object> properties = new LinkedHashMap<String, Object>();
                         properties.putAll(batchGraphDb.getNodeProperties(osm_dataset));
@@ -240,7 +237,7 @@ public class OSMImporter implements Constants {
                                  * This can happen if we import not whole planet, so some referenced
                                  * nodes will be unavailable
                                  */
-                                error("Cannot find node for osm-id: " + nd_ref);
+                                missingNode(nd_ref);
                                 continue;
                             }
                             Map<String, Object> nodeProps = batchGraphDb.getNodeProperties(node);
@@ -301,7 +298,7 @@ public class OSMImporter implements Constants {
                                      * This can happen if we import not whole planet, so some
                                      * referenced nodes will be unavailable
                                      */
-                                    error("Cannot find member: " + memberProps.toString());
+                                    missingMember(memberProps.toString());
                                     continue;
                                 }
                                 if (member == relation) {
@@ -351,9 +348,35 @@ public class OSMImporter implements Constants {
         } finally {
             parser.close();
         }
+        describeMissing();
 
         long stopTime = System.currentTimeMillis();
         log("info | Elapsed time in seconds: " + (1.0 * (stopTime - startTime) / 1000.0));
+    }
+
+    private int missingNodeCount = 0;
+
+    private void missingNode(long ndRef) {
+        if (missingNodeCount++ < 10) {
+            error("Cannot find node for osm-id " + ndRef);
+        }
+    }
+
+    private void describeMissing() {
+        if (missingNodeCount > 0) {
+            error("When processing the ways, there were " + missingNodeCount + " missing nodes");
+        }
+        if (missingMemberCount > 0) {
+            error("When processing the relations, there were " + missingMemberCount + " missing members");
+        }
+    }
+
+    private int missingMemberCount = 0;
+
+    private void missingMember(String description) {
+        if (missingMemberCount++ < 10) {
+            error("Cannot find member: " + description);
+        }
     }
 
     private void addNodeTags(BatchInserter batchGraphDb, long currentNode, LinkedHashMap<String, Object> currentNodeTags) {
