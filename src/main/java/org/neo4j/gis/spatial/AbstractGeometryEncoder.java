@@ -49,7 +49,7 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 	public Envelope decodeEnvelope(PropertyContainer container) {
 		double[] bbox = (double[]) container.getProperty(PROP_BBOX);
 		
-		// Envelope parameters: xmin, ymin, xmax, ymax)
+		// Envelope parameters: xmin, xmax, ymin, ymax)
 		return new Envelope(bbox[0], bbox[1], bbox[2], bbox[3]);
 	}
 

@@ -553,11 +553,11 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 	}
 
     private double[] envelopeToBBox(Envelope bounds) {
-        return new double[]{bounds.getMinX(), bounds.getMinY(), bounds.getMaxX(), bounds.getMaxY()};
+        return new double[]{ bounds.getMinX(), bounds.getMaxX(), bounds.getMinY(), bounds.getMaxY() };
     }
 
     private Envelope bboxToEnvelope(double[] bbox) {
-        return new Envelope(bbox[0],bbox[2],bbox[1],bbox[3]);
+        return new Envelope(bbox[0], bbox[1], bbox[2], bbox[3]);
     }
 
 	private boolean addChild(Node parent, RelationshipType type, Node newChild) {
