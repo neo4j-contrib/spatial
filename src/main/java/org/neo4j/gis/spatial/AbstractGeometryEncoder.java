@@ -35,7 +35,7 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 	}
 	
     public void encodeEnvelope(Envelope mbb, PropertyContainer container) {
-        container.setProperty(PROP_BBOX, new double[] {mbb.getMinX(), mbb.getMaxX(), mbb.getMinY(), mbb.getMaxY()});
+        container.setProperty(PROP_BBOX, new double[] { mbb.getMinX(), mbb.getMinY(), mbb.getMaxX(), mbb.getMaxY()});
     }
 
     public void encodeGeometry(Geometry geometry, PropertyContainer container) {
@@ -49,8 +49,8 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 	public Envelope decodeEnvelope(PropertyContainer container) {
 		double[] bbox = (double[]) container.getProperty(PROP_BBOX);
 		
-		// Envelope parameters: xmin, xmax, ymin, ymax)
-		return new Envelope(bbox[0], bbox[1], bbox[2], bbox[3]);
+		// Envelope parameters: xmin, xmax, ymin, ymax
+		return new Envelope(bbox[0], bbox[2], bbox[1], bbox[3]);
 	}
 
 	
@@ -78,6 +78,7 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 		}
 	}
 
+	
 	// Attributes
 	
 	protected Layer layer;

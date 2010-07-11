@@ -418,7 +418,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 			// if indexNode is the root
 			createNewRoot(indexNode, newIndexNode);
 		} else {
-			adjustParentBoundingBox(parent, (double[])indexNode.getProperty(PROP_BBOX));
+			adjustParentBoundingBox(parent, (double[]) indexNode.getProperty(PROP_BBOX));
 			
 			addChild(parent, SpatialRelationshipTypes.RTREE_CHILD, newIndexNode);
 
@@ -553,11 +553,12 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 	}
 
     private double[] envelopeToBBox(Envelope bounds) {
-        return new double[]{ bounds.getMinX(), bounds.getMaxX(), bounds.getMinY(), bounds.getMaxY() };
+        return new double[]{ bounds.getMinX(), bounds.getMinY(), bounds.getMaxX(), bounds.getMaxY() };
     }
 
     private Envelope bboxToEnvelope(double[] bbox) {
-        return new Envelope(bbox[0], bbox[1], bbox[2], bbox[3]);
+    	// Envelope parameters: xmin, xmax, ymin, ymax
+        return new Envelope(bbox[0], bbox[2], bbox[1], bbox[3]);
     }
 
 	private boolean addChild(Node parent, RelationshipType type, Node newChild) {
@@ -574,7 +575,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 	private void adjustPathBoundingBox(Node indexNode) {
 		Node parent = getIndexNodeParent(indexNode);
 		if (parent != null) {
-			if (adjustParentBoundingBox(parent, (double[])indexNode.getProperty(PROP_BBOX))) {
+			if (adjustParentBoundingBox(parent, (double[]) indexNode.getProperty(PROP_BBOX))) {
 				// entry has been modified: adjust the path for the parent
 				adjustPathBoundingBox(parent);
 			}
