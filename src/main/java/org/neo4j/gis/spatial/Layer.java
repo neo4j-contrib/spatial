@@ -196,17 +196,22 @@ public class Layer implements Constants, SpatialDataset {
      * @param layerNode
      * @return new layer instance from existing layer node
      */
-    @SuppressWarnings("unchecked")
     protected static Layer makeLayer(SpatialDatabaseService spatialDatabase, Node layerNode) {
         try {
-            String name = (String)layerNode.getProperty(PROP_LAYER);
-            if (name == null)
+            String name = (String) layerNode.getProperty(PROP_LAYER);
+            if (name == null) {
                 return null;
-            String className = (String)layerNode.getProperty(PROP_LAYER_CLASS);
-            Class<? extends Layer> layerClass = className == null ? Layer.class : (Class<? extends Layer>)Class.forName(className);
+            }
+            
+            String className = null;
+            if (layerNode.hasProperty(PROP_LAYER_CLASS)) {
+            	className = (String) layerNode.getProperty(PROP_LAYER_CLASS);
+            }
+            
+            Class<? extends Layer> layerClass = className == null ? Layer.class : (Class<? extends Layer>) Class.forName(className);
             return makeLayer(spatialDatabase, name, layerNode, layerClass);
         } catch (Exception e) {
-            throw (RuntimeException)new RuntimeException().initCause(e);
+            throw new RuntimeException(e);
         }
     }
 
