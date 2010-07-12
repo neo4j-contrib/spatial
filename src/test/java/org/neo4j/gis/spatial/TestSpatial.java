@@ -51,13 +51,15 @@ public class TestSpatial extends Neo4jTestCase {
      * @since 1.0.0
      */
     private static class TestGeometry {
-        private String id;
+        private Integer id;
         private String name;
+        private String comments;
         Envelope bounds;
 
-        public TestGeometry(String id, String name, String bounds) {
+        public TestGeometry(Integer id, String name, String comments, String bounds) {
             this.id = id;
-            this.name = name;
+            this.name = name == null ? "" : name;
+            this.comments = comments;
             float bf[] = new float[4];
             int bi = 0;
             for (String bound : bounds.replaceAll("[\\(\\)\\s]+", "").split(",")) {
@@ -67,7 +69,7 @@ public class TestSpatial extends Neo4jTestCase {
         }
 
         public String toString() {
-            return name.length() > 0 ? name : id;
+            return (name.length() > 0 ? name : "ID[" + id + "]") + (comments == null || comments.length() < 1 ? "" : " (" + comments + ")");
         }
 
         public boolean inOrIntersects(Envelope env) {
@@ -83,28 +85,30 @@ public class TestSpatial extends Neo4jTestCase {
         // TODO: Rather load this from a configuration file, properties file or JRuby test code
         addTestLayer("sweden.osm", DataFormat.OSM);
         addTestLayer("sweden.osm.administrative", DataFormat.OSM);
-        // addTestGeometry("sweden_administrative.103", "Dalby söderskog",
-        // "(13.32406,55.671652), (13.336948,55.679243)");
-        // addTestGeometry("sweden_administrative.83", "Söderåsen",
-        // "(13.167721,56.002416), (13.289724,56.047099)");
 
         // TODO: Rather load this from a configuration file, properties file or JRuby test code
         addTestLayer("sweden_administrative", DataFormat.SHP);
-        addTestGeometry("sweden_administrative.103", "Dalby söderskog", "(13.32406,55.671652), (13.336948,55.679243)");
-        addTestGeometry("sweden_administrative.83", "Söderåsen", "(13.167721,56.002416), (13.289724,56.047099)");
+        addTestGeometry(1055, "Söderåsens nationalpark", "near top edge", "(13.167721,56.002416), (13.289724,56.047099)");
+        addTestGeometry(1067, "", "inside", "(13.2122907,55.6969478), (13.5614499,55.7835819)");
+        addTestGeometry(943, "", "crosses left edge", "(12.9120438,55.8253138), (13.0501381,55.8484289)");
+        addTestGeometry(884, "", "outside left", "(12.7492433,55.9269403), (12.9503304,55.964951)");
+        addTestGeometry(1362, "", "crosses top right", "(13.7453871,55.9483067), (14.0084487,56.1538786)");
+        addTestGeometry(1521, "", "outside right", "(14.0762394,55.4889569), (14.1869043,55.7592587)");
+        addTestGeometry(1184, "", "outside above", "(13.4215555,56.109138), (13.4683671,56.2681347)");
 
         addTestLayer("sweden_natural", DataFormat.SHP);
-        addTestGeometry("sweden_natural.208", "Bokskogen", "(13.1935576,55.5324763), (13.2710125,55.5657891)");
-        addTestGeometry("sweden_natural.6110", "Pålsjö skog", "(12.6744031,56.0636946), (12.6934147,56.0771857)");
+        addTestGeometry(208, "Bokskogen", "", "(13.1935576,55.5324763), (13.2710125,55.5657891)");
+        addTestGeometry(6110, "Pålsjö skog", "", "(12.6744031,56.0636946), (12.6934147,56.0771857)");
+        addTestGeometry(647, "Dalby söderskog", "", "(13.32406,55.671652), (13.336948,55.679243)");
 
         addTestLayer("sweden_water", DataFormat.SHP);
-        addTestGeometry("sweden_water.9548", "Yddingesjön", "(13.23564,55.5360264), (13.2676649,55.5558856)");
-        addTestGeometry("sweden_water.10494", "Finjasjön", "(13.6718979,56.1157516), (13.7398759,56.1566911)");
+        addTestGeometry(9548, "Yddingesjön", "", "(13.23564,55.5360264), (13.2676649,55.5558856)");
+        addTestGeometry(10494, "Finjasjön", "", "(13.6718979,56.1157516), (13.7398759,56.1566911)");
 
         addTestLayer("sweden_highway", DataFormat.SHP);
-        addTestGeometry("sweden_highway.58904", "Holmeja byväg", "(13.2819022,55.5561414), (13.2820848,55.5575418)");
-        addTestGeometry("sweden_highway.45305", "Yttre RIngvägen", "(12.9827334,55.5473645), (13.0118313,55.5480455)");
-        addTestGeometry("sweden_highway.43536", "Yttre RIngvägen", "(12.9412071,55.5564264), (12.9422181,55.5571701)");
+        addTestGeometry(58904, "Holmeja byväg", "", "(13.2819022,55.5561414), (13.2820848,55.5575418)");
+        addTestGeometry(45305, "Yttre RIngvägen", "", "(12.9827334,55.5473645), (13.0118313,55.5480455)");
+        addTestGeometry(43536, "Yttre RIngvägen", "", "(12.9412071,55.5564264), (12.9422181,55.5571701)");
     }
 
     private static void addTestLayer(String layer, DataFormat format) {
@@ -113,10 +117,10 @@ public class TestSpatial extends Neo4jTestCase {
         layerTestGeometries.put(layer, new ArrayList<TestGeometry>());
     }
 
-    private static void addTestGeometry(String id, String name, String bounds) {
+    private static void addTestGeometry(Integer id, String name, String comments, String bounds) {
         String layer = layers.get(layers.size() - 1);
         ArrayList<TestGeometry> geoms = layerTestGeometries.get(layer);
-        geoms.add(new TestGeometry(id, name, bounds));
+        geoms.add(new TestGeometry(id, name, comments, bounds));
     }
 
     public TestSpatial(String name) {
@@ -141,7 +145,8 @@ public class TestSpatial extends Neo4jTestCase {
             layersToTest = new String[] {"sweden_administrative"};
         } else if (spatialTestMode != null && spatialTestMode.equals("dev")) {
             // Tests relevant to current development
-            layersToTest = new String[] {"sweden.osm.administrative", "sweden_administrative"};
+            //layersToTest = new String[] {"sweden.osm.administrative", "sweden_administrative"};
+            layersToTest = new String[] {"sweden_administrative"};
         } else {
             // Tests to run by default for regression (not too long running, and should always pass)
             layersToTest = new String[] {"sweden.osm.administrative", "sweden_administrative", "sweden_natural", "sweden_water"};
@@ -273,22 +278,28 @@ public class TestSpatial extends Neo4jTestCase {
             System.out.println("\tIndex[" + index.getClass() + "] found results: " + results.size());
             int ri = 0;
             for (SpatialDatabaseRecord r : results) {
-                if (r.getGeomNode().hasProperty("NAME")) {
-                    String name = (String)r.getProperty("NAME");
-                    if (name != null && name.length() > 0) {
-                        System.out.println("\tRTreeIndex result[" + ri + "]: " + r.getId() + ":" + r.getType() + " - "
-                                + r.toString());
-                        if (ri++ > 10)
-                            break;
+                if (ri++ < 10) {
+                    StringBuffer props = new StringBuffer();
+                    for (String prop : r.getPropertyNames()) {
+                        if(props.length()>0) props.append(", ");
+                        props.append(prop + ": " + r.getProperty(prop));
                     }
+                    System.out.println("\tRTreeIndex result[" + ri + "]: " + r.getId() + ":" + r.getType() + " - " + r.toString() + ": PROPS["+props+"]");
+                } else if (ri == 10) {
+                    System.out.println("\t.. and " + (results.size() - ri) + " more ..");
+                }
+                String name = (String)r.getProperty("NAME");
+                Integer id = (Integer)r.getProperty("ID");
+                if (name != null && name.length() > 0 || id != null) {
                     for (TestGeometry testData : layerTestGeometries.get(layerName)) {
-                        if (testData.name.equals(name)) {
+                        if ((name != null && name.length()>0 && testData.name.equals(name)) || (id != null && testData.id.equals(id))) {
                             System.out.println("\tFound match in test data: test[" + testData + "] == result[" + r + "]");
                             foundData.add(testData);
                         }
                     }
                 } else {
-                    System.err.println("\tNo name in RTreeIndex result: " + r.getId() + ":" + r.getType() + " - " + r.toString());
+                    System.err.println("\tNo name or id in RTreeIndex result: " + r.getId() + ":" + r.getType() + " - "
+                            + r.toString());
                 }
             }
             System.out.println("Found " + foundData.size() + " test datasets in region[" + bbox + "]");

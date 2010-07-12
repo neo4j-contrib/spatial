@@ -20,6 +20,10 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 
 import org.geotools.data.shapefile.ShpFiles;
 import org.geotools.data.shapefile.dbf.DbaseFileHeader;
@@ -125,9 +129,10 @@ public class ShapefileImporter implements Constants {
 			try {
 				DbaseFileHeader dbaseFileHeader = dbfReader.getHeader();
 	            
-				String[] fieldsName = new String[dbaseFileHeader.getNumFields()];
-				for (int i = 0; i < fieldsName.length; i++) {
-					fieldsName[i] = dbaseFileHeader.getFieldName(i);
+				String[] fieldsName = new String[dbaseFileHeader.getNumFields()+1];
+				fieldsName[0] = "ID";
+				for (int i = 1; i < fieldsName.length; i++) {
+					fieldsName[i] = dbaseFileHeader.getFieldName(i-1);
 				}
 				
 				Transaction tx = database.beginTx();
@@ -150,7 +155,8 @@ public class ShapefileImporter implements Constants {
 				try {
 					Record record;
 					Geometry geometry;
-					Object[] fields;
+					Object[] values;
+                    ArrayList<Object> fields = new ArrayList<Object>();
 					int recordCounter = 0;
 					while (shpReader.hasNext() && dbfReader.hasNext()) {
 						tx = database.beginTx();
@@ -162,14 +168,16 @@ public class ShapefileImporter implements Constants {
 									recordCounter++;
 									committedSinceLastNotification++;
 									try {
+                                        fields.clear();
 										geometry = (Geometry) record.shape();
-										fields = dbfReader.readEntry();
-										
+										values = dbfReader.readEntry();
+										fields.add(recordCounter);
+										Collections.addAll(fields, values);
 										if (geometry.isEmpty()) {
 											log("warn | found empty geometry in record " + recordCounter);
 										} else {
 											// TODO check geometry.isValid() ?
-											layer.add(geometry, fieldsName, fields);
+											layer.add(geometry, fieldsName, fields.toArray(values));
 										}
 									} catch (IllegalArgumentException e) {
 										// org.geotools.data.shapefile.shp.ShapefileReader.Record.shape() can throw this exception
