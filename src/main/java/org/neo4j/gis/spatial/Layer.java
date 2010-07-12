@@ -156,6 +156,12 @@ public class Layer implements Constants, SpatialDataset {
 		}
 	}
 	
+	public Integer getOrGuessGeometryType() {
+		Integer geomType = getGeometryType();
+		if (geomType == null) geomType = guessGeometryType();
+		return geomType;
+	}
+	
 	public String[] getExtraPropertyNames() {
 		Node layerNode = getLayerNode();
 		if (layerNode.hasProperty(PROP_LAYERNODEEXTRAPROPS)) {
