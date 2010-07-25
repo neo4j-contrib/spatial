@@ -19,6 +19,7 @@ package org.neo4j.gis.spatial;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Set;
 
 import org.neo4j.gis.spatial.query.SearchAll;
 import org.neo4j.graphdb.Direction;
@@ -39,7 +40,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 	// Constructor
 	
 	public RTreeIndex(GraphDatabaseService database, Layer layer) {
-		this(database, layer, 100, 40);
+		this(database, layer, 100, 51);
 	}
 	
 	public RTreeIndex(GraphDatabaseService database, Layer layer, int maxNodeReferences, int minNodeReferences) {
@@ -195,6 +196,27 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 		return !indexRoot.hasProperty(PROP_BBOX);
 	}
 	
+	public SpatialDatabaseRecord get(Long geomNodeId) {
+		Node geomNode = database.getNodeById(geomNodeId);			
+		// be sure geomNode is inside this RTree
+		findLeafContainingGeometryNode(geomNode);
+
+		return new SpatialDatabaseRecord(
+				layer.getName(), 
+				layer.getGeometryEncoder(), 
+				layer.getCoordinateReferenceSystem(), 
+				layer.getExtraPropertyNames(), 
+				geomNode);
+	}
+	
+	public List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds) {
+		List<SpatialDatabaseRecord> results = new ArrayList<SpatialDatabaseRecord>();
+		for (Long geomNodeId : geomNodeIds) {
+			results.add(get(geomNodeId));
+		}
+		return results;
+	}
+
 	public void executeSearch(Search search) {
 		if (isEmpty()) return;
 		

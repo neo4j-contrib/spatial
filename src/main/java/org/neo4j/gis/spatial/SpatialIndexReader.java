@@ -16,6 +16,9 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.util.List;
+import java.util.Set;
+
 import com.vividsolutions.jts.geom.Envelope;
 
 
@@ -29,7 +32,11 @@ public interface SpatialIndexReader {
 	Envelope getLayerBoundingBox();
 
 	int count();
-			
+
+	SpatialDatabaseRecord get(Long geomNodeId);
+	
+	List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds);
+	
 	void executeSearch(Search search);
 
 }
