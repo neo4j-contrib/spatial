@@ -13,6 +13,7 @@ import junit.framework.Test;
 import junit.framework.TestSuite;
 
 import org.geotools.data.shapefile.shp.ShapefileException;
+import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.query.SearchIntersect;
 import org.neo4j.graphdb.Transaction;
 
@@ -146,7 +147,7 @@ public class TestSpatial extends Neo4jTestCase {
         } else if (spatialTestMode != null && spatialTestMode.equals("dev")) {
             // Tests relevant to current development
             layersToTest = new String[] {"sweden.osm.administrative", "sweden_administrative"};
-            layersToTest = new String[] {"sweden_administrative"};
+            //layersToTest = new String[] {"sweden_administrative"};
         } else {
             // Tests to run by default for regression (not too long running, and should always pass)
             layersToTest = new String[] {"sweden.osm.administrative", "sweden_administrative", "sweden_natural", "sweden_water"};

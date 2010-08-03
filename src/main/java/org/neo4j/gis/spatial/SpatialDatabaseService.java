@@ -35,7 +35,10 @@ import org.neo4j.graphdb.Traverser.Order;
  */
 public class SpatialDatabaseService implements Constants {
 
-	// Constructor
+    private Node spatialRoot;
+
+
+    // Constructor
 	
 	public SpatialDatabaseService(GraphDatabaseService database) {
 		this.database = database;
@@ -43,25 +46,55 @@ public class SpatialDatabaseService implements Constants {
 
 	
 	// Public methods
-	
+
+    private Node getOrCreateRootFrom(Node ref, RelationshipType relType) {
+        Relationship rel = ref.getSingleRelationship(relType, Direction.OUTGOING);
+        if (rel == null) {
+            Transaction tx = database.beginTx();
+            try {
+                Node node = database.createNode();
+                node.setProperty("type", "spatial");
+                ref.createRelationshipTo(node, relType);
+                tx.success();
+                return node;
+            } finally {
+                tx.finish();
+            }
+        } else {
+            return rel.getEndNode();
+        }
+    }
+
+    protected Node getSpatialRoot() {
+        if (spatialRoot == null) {
+            spatialRoot = getOrCreateRootFrom(database.getReferenceNode(), SpatialRelationshipTypes.SPATIAL);
+        }
+        return spatialRoot;
+    }
+
 	public String[] getLayerNames() {
 		List<String> names = new ArrayList<String>();
 		
-		Node refNode = database.getReferenceNode();
-		for (Relationship relationship : refNode.getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
-			Node layerNode = relationship.getEndNode();
-			names.add((String) layerNode.getProperty(PROP_LAYER));
-		}
-		
+		// First find all static layers
+		for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
+            Node layerNode = relationship.getEndNode();
+            names.add((String) layerNode.getProperty(PROP_LAYER));
+        }
+        
+		// Now add also the dynamic layers
+		for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYERS, Direction.OUTGOING)) {
+            DynamicLayer layer = (DynamicLayer)Layer.makeLayer(this, relationship.getEndNode());
+            names.addAll(layer.getLayerNames());
+        }
+        
 		return names.toArray(new String[names.size()]);
 	}
 	
     public Layer getLayer(String name) {
-        Node refNode = database.getReferenceNode();
-        for (Relationship relationship : refNode.getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
-            Node layerNode = relationship.getEndNode();
-            if (name.equals(layerNode.getProperty(PROP_LAYER))) {
-                return Layer.makeLayer(this, layerNode);
+        for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
+            Node node = relationship.getEndNode();
+            if (name.equals(node.getProperty(PROP_LAYER))) {
+                return Layer.makeLayer(this, node);
             }
         }
         return null;
@@ -138,15 +171,14 @@ public class SpatialDatabaseService implements Constants {
                 throw new SpatialDatabaseException("Layer " + name + " already exists");
 
             Layer layer = Layer.makeLayer(this, name, geometryEncoderClass, layerClass);
-            Node refNode = database.getReferenceNode();
-            refNode.createRelationshipTo(layer.getLayerNode(), SpatialRelationshipTypes.LAYER);
+            getSpatialRoot().createRelationshipTo(layer.getLayerNode(), SpatialRelationshipTypes.LAYER);
             tx.success();
             return layer;
         } finally {
             tx.finish();
         }
 	}
-		
+
     public void deleteLayer(String name, Listener monitor) {
         Layer layer = getLayer(name);
         if (layer == null)

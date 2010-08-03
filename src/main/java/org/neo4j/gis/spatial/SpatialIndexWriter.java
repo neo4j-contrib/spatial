@@ -30,4 +30,5 @@ public interface SpatialIndexWriter extends SpatialIndexReader {
 	
 	void removeAll(boolean deleteGeomNodes, Listener monitor);
 	
+	void clear(Listener monitor);
 }

@@ -1,4 +1,4 @@
-package org.neo4j.gis.spatial;
+package org.neo4j.gis.spatial.osm;
 
 import java.io.FileReader;
 import java.io.IOException;
@@ -13,10 +13,8 @@ import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
 import org.geotools.referencing.datum.DefaultEllipsoid;
-import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
-import org.neo4j.gis.spatial.osm.OSMLayer;
-import org.neo4j.gis.spatial.osm.OSMRelation;
-import org.neo4j.gis.spatial.osm.RoadDirection;
+import org.neo4j.gis.spatial.Constants;
+import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -32,7 +30,6 @@ import org.neo4j.kernel.impl.batchinsert.BatchInserter;
 import org.neo4j.kernel.impl.batchinsert.SimpleRelationship;
 
 import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.GeometryFactory;
 
 public class OSMImporter implements Constants {
     public static DefaultEllipsoid WGS84 = DefaultEllipsoid.WGS84;
@@ -96,6 +93,8 @@ public class OSMImporter implements Constants {
         setLogContext("Index");
         SpatialDatabaseService spatialDatabase = new SpatialDatabaseService(database);
         OSMLayer layer = (OSMLayer)spatialDatabase.getOrCreateLayer(layerName, OSMGeometryEncoder.class, OSMLayer.class);
+        OSMDataset dataset = layer.getDataset(osm_dataset);
+        layer.clear();
 
         long startTime = System.currentTimeMillis();
         Transaction tx = database.beginTx();
@@ -325,11 +324,12 @@ public class OSMImporter implements Constants {
                                 relProps.clear();
                                 relProps.put("role", (String)memberProps.get("role"));
                                 batchGraphDb.createRelationship(relation, member, OSMRelation.MEMBER, relProps);
-                                if (prevMember < 0) {
-                                    batchGraphDb.createRelationship(relation, member, OSMRelation.MEMBERS, null);
-                                } else {
-                                    batchGraphDb.createRelationship(prevMember, member, OSMRelation.NEXT, null);
-                                }
+                                // members can belong to multiple relations, in multiple orders, so NEXT will clash (also with NEXT between ways in original way load)
+//                                if (prevMember < 0) {
+//                                    batchGraphDb.createRelationship(relation, member, OSMRelation.MEMBERS, null);
+//                                } else {
+//                                    batchGraphDb.createRelationship(prevMember, member, OSMRelation.NEXT, null);
+//                                }
                                 prevMember = member;
                             } else {
                                 System.err.println("Cannot process invalid relation member: " + memberProps.toString());
@@ -472,11 +472,12 @@ public class OSMImporter implements Constants {
         return node;
     }
 
-    private long getOrCreateNode(BatchInserter batchInserter, String name, long parent, RelationshipType relType) {
+    private long getOrCreateNode(BatchInserter batchInserter, String name, String type, long parent, RelationshipType relType) {
         long node = findNode(batchInserter, name, parent, relType);
         if (node < 0) {
             HashMap<String, Object> properties = new HashMap<String, Object>();
             properties.put("name", name);
+            properties.put("type", type);
             node = batchInserter.createNode(properties);
             batchInserter.createRelationship(parent, node, relType, null);
         }
@@ -485,8 +486,8 @@ public class OSMImporter implements Constants {
 
     public long getOrCreateOSMDataset(BatchInserter batchInserter, String name) {
         if (osm_dataset <= 0) {
-            osm_root = getOrCreateNode(batchInserter, "osm_root", batchInserter.getReferenceNode(), OSMRelation.OSM);
-            osm_dataset = getOrCreateNode(batchInserter, name, osm_root, OSMRelation.OSM);
+            osm_root = getOrCreateNode(batchInserter, "osm_root", "osm", batchInserter.getReferenceNode(), OSMRelation.OSM);
+            osm_dataset = getOrCreateNode(batchInserter, name, "osm", osm_root, OSMRelation.OSM);
         }
         return osm_dataset;
     }
@@ -495,9 +496,7 @@ public class OSMImporter implements Constants {
      * Detects if road has the only direction
      * 
      * @param wayProperties
-     * @return 0 - road is opened in both directions <br/>
-     *         1 - road is oneway (forward direction)<br/>
-     *         2 - road is oneway (backward direction)
+     * @return RoadDirection
      */
     public static RoadDirection isOneway(Map<String, Object> wayProperties) {
         String oneway = (String)wayProperties.get("oneway");

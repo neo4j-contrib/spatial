@@ -164,6 +164,18 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 		}		
 	}
 	
+    public void clear(final Listener monitor) {
+        removeAll(false, new NullListener());
+        Transaction tx = database.beginTx();
+        try {
+            initIndexMetadata();
+            initIndexRoot();
+            tx.success();
+        } finally {
+            tx.finish();
+        }
+    }
+	
 	public Envelope getLayerBoundingBox() {
 		Node indexRoot = getIndexRoot();
 		if (!indexRoot.hasProperty(PROP_BBOX)) {

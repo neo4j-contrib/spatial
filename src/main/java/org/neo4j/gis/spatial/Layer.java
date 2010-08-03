@@ -339,7 +339,7 @@ public class Layer implements Constants, SpatialDataset {
 	
 	private SpatialDatabaseService spatialDatabase;
 	private String name;
-	private Node layerNode;
+	protected Node layerNode;
 	private Node lastGeomNode;
 	protected GeometryEncoder geometryEncoder;
 	protected GeometryFactory geometryFactory;
