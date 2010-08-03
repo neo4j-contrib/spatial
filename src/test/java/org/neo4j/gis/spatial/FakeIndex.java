@@ -43,7 +43,7 @@ public class FakeIndex implements SpatialIndexReader, Constants {
 		int count = 0;
         // @TODO: Consider adding a count method to Layer or SpatialDataset to allow for
         // optimization of this if this kind of code gets used elsewhere
-		for (@SuppressWarnings("unused") Node node: layer.getAllGeometryNodes()) {
+		for (@SuppressWarnings("unused") Node node: layer.getDataset().getAllGeometryNodes()) {
 		    count++;
 		}
 		return count;
@@ -55,7 +55,7 @@ public class FakeIndex implements SpatialIndexReader, Constants {
 	
 	public Envelope getLayerBoundingBox() {
 		Envelope bbox = null;
-		for (Node node: layer.getAllGeometryNodes()) {
+		for (Node node: layer.getDataset().getAllGeometryNodes()) {
 			if (bbox == null) {
 				bbox = layer.getGeometryEncoder().decodeEnvelope(node);
 			} else {
@@ -85,7 +85,7 @@ public class FakeIndex implements SpatialIndexReader, Constants {
 	
 	public void executeSearch(Search search) {
         search.setLayer(layer);
-		for (Node node: layer.getAllGeometryNodes()) {
+		for (Node node: layer.getDataset().getAllGeometryNodes()) {
 			search.onIndexReference(node);
 		}
 	}

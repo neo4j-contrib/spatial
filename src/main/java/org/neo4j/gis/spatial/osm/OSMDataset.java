@@ -1,5 +1,7 @@
 package org.neo4j.gis.spatial.osm;
 
+import java.util.Arrays;
+
 import org.neo4j.gis.spatial.GeometryEncoder;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
@@ -17,13 +19,22 @@ public class OSMDataset implements SpatialDataset {
     private SpatialDatabaseService spatialDatabase;
     private Node datasetNode;
 
-    public OSMDataset(SpatialDatabaseService spatialDatabaseService, OSMLayer osmLayer, Node layerNode, long datasetId) {
-        this.spatialDatabase = spatialDatabaseService;
+    /**
+     * This method is used to construct the dataset on an existing node when the node id is known,
+     * which is the case with OSM importers.
+     * 
+     * @param spatialDatabase
+     * @param osmLayer
+     * @param layerNode
+     * @param datasetId
+     */
+    public OSMDataset(SpatialDatabaseService spatialDatabase, OSMLayer osmLayer, Node layerNode, long datasetId) {
+        this.spatialDatabase = spatialDatabase;
         this.layer = osmLayer;
-        this.datasetNode = spatialDatabaseService.getDatabase().getNodeById(datasetId);
+        this.datasetNode = spatialDatabase.getDatabase().getNodeById(datasetId);
         Relationship rel = layerNode.getSingleRelationship(SpatialRelationshipTypes.LAYERS, Direction.INCOMING);
         if (rel == null) {
-            Transaction tx = spatialDatabaseService.getDatabase().beginTx();
+            Transaction tx = spatialDatabase.getDatabase().beginTx();
             try {
                 datasetNode.createRelationshipTo(layerNode, SpatialRelationshipTypes.LAYERS);
                 tx.success();
@@ -38,20 +49,42 @@ public class OSMDataset implements SpatialDataset {
         }
     }
 
+    /**
+     * This method is used to construct the dataset when only the layer node is known, and the
+     * dataset node needs to be searched for.
+     * 
+     * @param spatialDatabase2
+     * @param osmLayer
+     * @param layerNode
+     */
+    public OSMDataset(SpatialDatabaseService spatialDatabase, OSMLayer osmLayer, Node layerNode) {
+        this.spatialDatabase = spatialDatabase;
+        this.layer = osmLayer;
+        Relationship rel = layerNode.getSingleRelationship(SpatialRelationshipTypes.LAYERS, Direction.INCOMING);
+        if (rel == null) {
+            throw new RuntimeException("Layer '" + osmLayer + "' does not have an associated dataset");
+        } else {
+            datasetNode = rel.getStartNode();
+        }
+    }
+
     public Iterable< ? extends Geometry> getAllGeometries() {
-        return null;
+        //@TODO: support multiple layers
+        return layer.getAllGeometries();
     }
 
     public Iterable<Node> getAllGeometryNodes() {
-        return null;
+        //@TODO: support multiple layers
+        return layer.getAllGeometryNodes();
     }
 
     public GeometryEncoder getGeometryEncoder() {
-        return null;
+        //@TODO: support multiple layers
+        return layer.getGeometryEncoder();
     }
 
     public Iterable< ? extends Layer> getLayers() {
-        return null;
+        return Arrays.asList(new Layer[]{layer});
     }
 
 }

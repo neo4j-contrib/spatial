@@ -46,6 +46,7 @@ import org.geotools.filter.LiteralExpression;
 import org.geotools.filter.spatial.IntersectsImpl;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.resources.Classes;
+import org.neo4j.gis.spatial.AbstractSearch;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.Search;
@@ -55,6 +56,7 @@ import org.neo4j.gis.spatial.query.SearchAll;
 import org.neo4j.gis.spatial.query.SearchIntersect;
 import org.neo4j.gis.spatial.query.SearchIntersectWindow;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
@@ -88,7 +90,6 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 		this.database = database;
         this.spatialDatabase = new SpatialDatabaseService(database);
 	}
-	
 	
 	// Public methods
 		
@@ -402,11 +403,33 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
         Layer layer = spatialDatabase.getLayer(typeName);
         Integer geomType = layer.getGeometryType();
         if (geomType == null) {
-            geomType = layer.guessGeometryType();
+            GuessGeometryTypeSearch geomTypeSearch = new GuessGeometryTypeSearch();
+            layer.getIndex().executeSearch(geomTypeSearch);
+            if (geomTypeSearch.firstFoundType != null) {
+                return geomTypeSearch.firstFoundType;
+            } else {
+                // layer is empty
+                return null;
+            }
         }
         return geomType;
     }
-        
+
+    class GuessGeometryTypeSearch extends AbstractSearch {
+
+        Integer firstFoundType;
+            
+        public boolean needsToVisit(Node indexNode) {
+            return firstFoundType == null;
+        }
+
+        public void onIndexReference(Node geomNode) {
+            if (firstFoundType == null) {
+                firstFoundType = (Integer) geomNode.getProperty(PROP_TYPE);
+            }
+        }
+    }
+
 	private Class convertGeometryTypeToJtsClass(Integer geometryType) {
 		switch (geometryType) {
 			case GTYPE_POINT: return Point.class;

@@ -21,8 +21,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 
 import org.geotools.data.shapefile.ShpFiles;
@@ -112,7 +110,7 @@ public class ShapefileImporter implements Constants {
 	// Public methods
 	
 	public void importFile(String dataset, String layerName) throws ShapefileException, FileNotFoundException, IOException {
-		Layer layer = getOrCreateLayer(layerName);
+		DefaultLayer layer = (DefaultLayer)spatialDatabase.getOrCreateLayer(layerName, WKBGeometryEncoder.class, DefaultLayer.class);
 		GeometryFactory geomFactory = layer.getGeometryFactory();
 		
 		boolean strict = false;
@@ -228,10 +226,6 @@ public class ShapefileImporter implements Constants {
 			return null;
 		}		
 	}
-	
-    private Layer getOrCreateLayer(String layerName) {
-        return spatialDatabase.getOrCreateLayer(layerName);
-    }
 	
 	private Integer convertJtsClassToGeometryType(Class jtsClass) {
 		if (jtsClass.equals(Point.class)) {

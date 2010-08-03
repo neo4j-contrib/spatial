@@ -17,6 +17,9 @@ public class OSMLayer extends DynamicLayer {
     private OSMDataset osmDataset;
 
     public SpatialDataset getDataset() {
+        if(osmDataset==null) {
+            osmDataset = new OSMDataset(getSpatialDatabase(), this, layerNode);
+        }
         return osmDataset;
     }
 

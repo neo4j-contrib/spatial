@@ -39,11 +39,11 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 
 	// Constructor
 	
-	public RTreeIndex(GraphDatabaseService database, Layer layer) {
+	public RTreeIndex(GraphDatabaseService database, DefaultLayer layer) {
 		this(database, layer, 100, 51);
 	}
 	
-	public RTreeIndex(GraphDatabaseService database, Layer layer, int maxNodeReferences, int minNodeReferences) {
+	public RTreeIndex(GraphDatabaseService database, DefaultLayer layer, int maxNodeReferences, int minNodeReferences) {
 		this.database = database;
 		this.layer = layer;
 		this.maxNodeReferences = maxNodeReferences;
@@ -729,7 +729,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 	// Attributes
 	
 	private GraphDatabaseService database;
-	private Layer layer;
+	private DefaultLayer layer;
 	private int maxNodeReferences;
 	private int minNodeReferences;
 

@@ -83,7 +83,7 @@ public class SpatialDatabaseService implements Constants {
         
 		// Now add also the dynamic layers
 		for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYERS, Direction.OUTGOING)) {
-            DynamicLayer layer = (DynamicLayer)Layer.makeLayer(this, relationship.getEndNode());
+            DynamicLayer layer = (DynamicLayer)DefaultLayer.makeLayer(this, relationship.getEndNode());
             names.addAll(layer.getLayerNames());
         }
         
@@ -94,15 +94,15 @@ public class SpatialDatabaseService implements Constants {
         for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
             Node node = relationship.getEndNode();
             if (name.equals(node.getProperty(PROP_LAYER))) {
-                return Layer.makeLayer(this, node);
+                return DefaultLayer.makeLayer(this, node);
             }
         }
         return null;
     }
 
-    public Layer getOrCreateLayer(String name) {
-        return getOrCreateLayer(name, WKBGeometryEncoder.class, Layer.class);
-    }
+//    public Layer getOrCreateLayer(String name) {
+//        return getOrCreateLayer(name, WKBGeometryEncoder.class, DefaultLayer.class);
+//    }
 
     public Layer getOrCreateLayer(String name, Class< ? extends GeometryEncoder> geometryEncoder, Class< ? extends Layer> layerClass) {
         Layer layer = getLayer(name);
@@ -150,7 +150,7 @@ public class SpatialDatabaseService implements Constants {
         if (indexRel != null) {
             Node layerNode = indexRel.getStartNode();
             if (layerNode.hasProperty(PROP_LAYER)) {
-                return Layer.makeLayer(this, layerNode);
+                return DefaultLayer.makeLayer(this, layerNode);
             }
         }
         return null;
@@ -170,7 +170,7 @@ public class SpatialDatabaseService implements Constants {
             if (containsLayer(name))
                 throw new SpatialDatabaseException("Layer " + name + " already exists");
 
-            Layer layer = Layer.makeLayer(this, name, geometryEncoderClass, layerClass);
+            Layer layer = DefaultLayer.makeLayer(this, name, geometryEncoderClass, layerClass);
             getSpatialRoot().createRelationshipTo(layer.getLayerNode(), SpatialRelationshipTypes.LAYER);
             tx.success();
             return layer;

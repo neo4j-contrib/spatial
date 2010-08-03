@@ -21,7 +21,7 @@ import org.neo4j.graphdb.Relationship;
  * @author craig
  * @since 1.0.0
  */
-public class DynamicLayer extends Layer {
+public class DynamicLayer extends DefaultLayer {
 
     /**
      * <p>

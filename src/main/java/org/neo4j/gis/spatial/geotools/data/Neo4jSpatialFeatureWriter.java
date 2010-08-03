@@ -102,7 +102,7 @@ public class Neo4jSpatialFeatureWriter implements FeatureWriter<SimpleFeatureTyp
             
             Transaction tx = layer.getSpatialDatabase().getDatabase().beginTx();
             try {
-            	layer.delete(new Long(live.getID()));  
+            	layer.delete(Long.parseLong(live.getID()));  
             	tx.success();
             } finally {
             	tx.finish();
@@ -132,7 +132,7 @@ public class Neo4jSpatialFeatureWriter implements FeatureWriter<SimpleFeatureTyp
                 LOGGER.fine("Updating " + current);
                 Transaction tx = layer.getSpatialDatabase().getDatabase().beginTx();
                 try {
-                	layer.update(new Long(current.getID()), (Geometry) current.getDefaultGeometry());  
+                	layer.update(Long.parseLong(current.getID()), (Geometry) current.getDefaultGeometry());  
                 	tx.success();
                 } finally {
                 	tx.finish();
