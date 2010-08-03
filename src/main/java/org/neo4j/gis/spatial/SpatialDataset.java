@@ -39,7 +39,7 @@ public interface SpatialDataset {
      * 
      * @return iterable over geometries in the dataset
      */
-    public Iterable<? extends Geometry> getAllGeometries();
+    public Iterable< ? extends Geometry> getAllGeometries();
 
     /**
      * Return the geometry encoder used by this SpatialDataset to convert individual geometries to
@@ -48,4 +48,12 @@ public interface SpatialDataset {
      * @return GeometryEncoder for this dataset
      */
     public GeometryEncoder getGeometryEncoder();
+
+    /**
+     * Each dataset can have one or more layers. This methods provides a way to iterate over all
+     * layers.
+     * 
+     * @return iterable over all Layers that can be viewed from this dataset
+     */
+    public Iterable< ? extends Layer> getLayers();
 }

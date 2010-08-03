@@ -122,20 +122,9 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 	}
 	
 	public void removeAll(final boolean deleteGeomNodes, final Listener monitor) {
-		Node indexRoot;
-		int count;
+		Node indexRoot = getIndexRoot();
 		
-		Transaction tx = database.beginTx();
-		try {
-			indexRoot = getIndexRoot();
-			count = count();
-		
-			tx.success();
-		} finally {
-			tx.finish();
-		}
-		
-		monitor.begin(count);
+		monitor.begin(count());
 		try {
 			// delete all geometry nodes
 			visitInTx(new SpatialIndexVisitor() {
@@ -154,7 +143,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 			monitor.done();
 		}
 
-		tx = database.beginTx();
+		Transaction tx = database.beginTx();
 		try {
 			// delete index root relationship
 			indexRoot.getSingleRelationship(SpatialRelationshipTypes.RTREE_ROOT, Direction.INCOMING).delete();
@@ -236,19 +225,12 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 		boolean foundChildNodes = false;
 		boolean foundReferenceNodes = false;
 		
-		Transaction tx = database.beginTx();
-		try {
-			Node indexNode = database.getNodeById(indexNodeId);
-			visitorNeedsToVisit = visitor.needsToVisit(indexNode);
-			if (visitorNeedsToVisit) {
-				foundChildNodes = indexNode.hasRelationship(SpatialRelationshipTypes.RTREE_CHILD, Direction.OUTGOING);
-				foundReferenceNodes = indexNode.hasRelationship(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING);
-			}
-			
-			tx.success();
-		} finally {
-			tx.finish();
-		}
+        Node indexNode = database.getNodeById(indexNodeId);
+        visitorNeedsToVisit = visitor.needsToVisit(indexNode);
+        if (visitorNeedsToVisit) {
+            foundChildNodes = indexNode.hasRelationship(SpatialRelationshipTypes.RTREE_CHILD, Direction.OUTGOING);
+            foundReferenceNodes = indexNode.hasRelationship(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING);
+        }
 
 		if (!visitorNeedsToVisit) return;
 		
@@ -257,17 +239,9 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 			
 			// collect children
 			List<Long> children = new ArrayList<Long>();
-			tx = database.beginTx();
-			try {
-				Node indexNode = database.getNodeById(indexNodeId);				
-				for (Relationship rel : indexNode.getRelationships(SpatialRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
-					children.add(rel.getEndNode().getId());
-				}				
-				
-				tx.success();
-			} finally {
-				tx.finish();
-			}
+            for (Relationship rel : indexNode.getRelationships(SpatialRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
+                children.add(rel.getEndNode().getId());
+            }
 
 			// visit children
 			for (Long child : children) {
@@ -275,9 +249,8 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 			}
 		} else if (foundReferenceNodes) {
 			// Node is a leaf
-			tx = database.beginTx();
+			Transaction tx = database.beginTx();
 			try {
-				Node indexNode = database.getNodeById(indexNodeId);	
 				for (Relationship rel : indexNode.getRelationships(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)) {
 					visitor.onIndexReference(rel.getEndNode());
 				}

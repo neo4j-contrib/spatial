@@ -18,6 +18,11 @@ package org.neo4j.gis.spatial;
 
 
 /**
+ * Classes that implement this interface will be notified of units of work done, and can therefor be used for progress bars or console logging or similar activities. There are two provided implementations:
+ * <dl>
+ * <dt>NullListener<dt><dd>Does nothing with progress information</dd>
+ * <dt>ConsoleListener<dt><dd>Logs progress to stdout</dd>
+ * </dl>
  * @author Davide Savazzi
  */
 public interface Listener {
@@ -28,6 +33,4 @@ public interface Listener {
 
 	void done();
 
-	int suggestedCommitInterval();
-	
 }

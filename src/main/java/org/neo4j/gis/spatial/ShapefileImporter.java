@@ -53,9 +53,14 @@ import com.vividsolutions.jts.geom.Polygon;
  */
 public class ShapefileImporter implements Constants {
 	
-	// Constructor
+	private int commitInterval;
+    // Constructor
 
-	public ShapefileImporter(GraphDatabaseService database, Listener monitor) {	
+	public ShapefileImporter(GraphDatabaseService database, Listener monitor, int commitInterval) {	
+        if (commitInterval < 1) {
+            throw new IllegalArgumentException("commitInterval must be > 0");
+        }
+        this.commitInterval = commitInterval;
 		this.database = database;
 		this.spatialDatabase = new SpatialDatabaseService(database);
 		
@@ -64,7 +69,7 @@ public class ShapefileImporter implements Constants {
 	}
 	
 	public ShapefileImporter(GraphDatabaseService database) {	
-		this(database, null);
+		this(database, null, 1000);
 	}
 	
 	// Main
@@ -96,7 +101,7 @@ public class ShapefileImporter implements Constants {
 		
 		GraphDatabaseService database = new EmbeddedGraphDatabase(neoPath);
 		try {
-	        ShapefileImporter importer = new ShapefileImporter(database, new NullListener(commitInterval));
+	        ShapefileImporter importer = new ShapefileImporter(database, new NullListener(), commitInterval);
 	        importer.importFile(shpPath, layerName);
 	    } finally {
 			database.shutdown();
@@ -162,7 +167,7 @@ public class ShapefileImporter implements Constants {
 						tx = database.beginTx();
 						try {
 							int committedSinceLastNotification = 0;
-							for (int i = 0; i < monitor.suggestedCommitInterval(); i++) {
+							for (int i = 0; i < commitInterval; i++) {
 								if (shpReader.hasNext() && dbfReader.hasNext()) {
 									record = shpReader.nextRecord();
 									recordCounter++;
@@ -224,17 +229,9 @@ public class ShapefileImporter implements Constants {
 		}		
 	}
 	
-	private Layer getOrCreateLayer(String layerName) {
-		Layer layer;
-		Transaction tx = database.beginTx();
-		try {
-			layer = spatialDatabase.getOrCreateLayer(layerName);
-			tx.success();
-		} finally {
-			tx.finish();
-		}
-		return layer;
-	}
+    private Layer getOrCreateLayer(String layerName) {
+        return spatialDatabase.getOrCreateLayer(layerName);
+    }
 	
 	private Integer convertJtsClassToGeometryType(Class jtsClass) {
 		if (jtsClass.equals(Point.class)) {

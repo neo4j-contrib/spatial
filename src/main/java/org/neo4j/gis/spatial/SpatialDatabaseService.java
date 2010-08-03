@@ -56,40 +56,27 @@ public class SpatialDatabaseService implements Constants {
 		return names.toArray(new String[names.size()]);
 	}
 	
-	public Layer getLayer(String name) {
-	    //TODO: Remove transaction for newer versions of Neo4j (which do not need transactions for read access)
-        Transaction tx = database.beginTx();
-        try {
-            Node refNode = database.getReferenceNode();
-            for (Relationship relationship : refNode.getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
-                Node layerNode = relationship.getEndNode();
-                if (name.equals(layerNode.getProperty(PROP_LAYER))) {
-                    return Layer.makeLayer(this, layerNode);
-                }
+    public Layer getLayer(String name) {
+        Node refNode = database.getReferenceNode();
+        for (Relationship relationship : refNode.getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
+            Node layerNode = relationship.getEndNode();
+            if (name.equals(layerNode.getProperty(PROP_LAYER))) {
+                return Layer.makeLayer(this, layerNode);
             }
-            tx.success();
-            return null;
-        } finally {
-            tx.finish();
         }
-	}
+        return null;
+    }
 
     public Layer getOrCreateLayer(String name) {
         return getOrCreateLayer(name, WKBGeometryEncoder.class, Layer.class);
     }
 
-    public Layer getOrCreateLayer(String name, Class<? extends GeometryEncoder> geometryEncoder, Class<? extends Layer> layerClass) {
-        Transaction tx = database.beginTx();
-        try {
-            Layer layer = getLayer(name);
-            if (layer == null) {
-                layer = createLayer(name, geometryEncoder,layerClass);
-            }
-            tx.success();
-            return layer;
-        } finally {
-            tx.finish();
+    public Layer getOrCreateLayer(String name, Class< ? extends GeometryEncoder> geometryEncoder, Class< ? extends Layer> layerClass) {
+        Layer layer = getLayer(name);
+        if (layer == null) {
+            layer = createLayer(name, geometryEncoder, layerClass);
         }
+        return layer;
     }
 
     /**
@@ -160,22 +147,13 @@ public class SpatialDatabaseService implements Constants {
         }
 	}
 		
-	public void deleteLayer(String name, Listener monitor) {
-		Layer layer = null;
-		
-		Transaction tx = database.beginTx();
-		try {
-			layer = getLayer(name);
-			
-			tx.success();
-		} finally {
-			tx.finish();
-		}
-		
-		if (layer == null) throw new SpatialDatabaseException("Layer " + name + " does not exist");
+    public void deleteLayer(String name, Listener monitor) {
+        Layer layer = getLayer(name);
+        if (layer == null)
+            throw new SpatialDatabaseException("Layer " + name + " does not exist");
 
-		layer.delete(monitor);
-	}
+        layer.delete(monitor);
+    }
 	
 	public GraphDatabaseService getDatabase() {
 		return database;

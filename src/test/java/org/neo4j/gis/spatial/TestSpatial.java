@@ -145,7 +145,7 @@ public class TestSpatial extends Neo4jTestCase {
             layersToTest = new String[] {"sweden_administrative"};
         } else if (spatialTestMode != null && spatialTestMode.equals("dev")) {
             // Tests relevant to current development
-            //layersToTest = new String[] {"sweden.osm.administrative", "sweden_administrative"};
+            layersToTest = new String[] {"sweden.osm.administrative", "sweden_administrative"};
             layersToTest = new String[] {"sweden_administrative"};
         } else {
             // Tests to run by default for regression (not too long running, and should always pass)
@@ -212,7 +212,7 @@ public class TestSpatial extends Neo4jTestCase {
             IOException {
         String shpPath = SHP_DIR + File.separator + layerName;
         System.out.println("\n=== Loading layer " + layerName + " from " + shpPath + " ===");
-        ShapefileImporter importer = new ShapefileImporter(graphDb(), new NullListener(commitInterval));
+        ShapefileImporter importer = new ShapefileImporter(graphDb(), new NullListener(), commitInterval);
         importer.importFile(shpPath, layerName);
     }
 
@@ -229,13 +229,7 @@ public class TestSpatial extends Neo4jTestCase {
     public void testSpatialIndex(String layerName) {
         System.out.println("\n=== Spatial Index Test: " + layerName + " ===");
         long start = System.currentTimeMillis();
-        Transaction tx = graphDb().beginTx();
-        try {
-            doTestSpatialIndex(layerName);
-            tx.success();
-        } finally {
-            tx.finish();
-        }
+        doTestSpatialIndex(layerName);
         System.out.println("Total time for index test: " + 1.0 * (System.currentTimeMillis() - start) / 1000.0 + "s");
     }
 

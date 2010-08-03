@@ -88,76 +88,60 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 	
 	// Public methods
 		
-	public String[] getTypeNames() throws IOException {
-		if (typeNames == null) {
-			Transaction tx = database.beginTx();
-			try {
-				List<String> notEmptyTypes = new ArrayList<String>();
-				String[] allTypeNames = spatialDatabase.getLayerNames();
-				for (int i = 0; i < allTypeNames.length; i++) {
-					// discard empty layers
-					Layer layer = spatialDatabase.getLayer(allTypeNames[i]);
-					if (!layer.getIndex().isEmpty()) {
-						notEmptyTypes.add(allTypeNames[i]);
-					}
-				}
-				
-				typeNames = notEmptyTypes.toArray(new String[] {});
-				
-				tx.success();
-			} finally {
-				tx.finish();
-			}
-		}
-		
-		return typeNames;
-	}	
+    public String[] getTypeNames() throws IOException {
+        if (typeNames == null) {
+            List<String> notEmptyTypes = new ArrayList<String>();
+            String[] allTypeNames = spatialDatabase.getLayerNames();
+            for (int i = 0; i < allTypeNames.length; i++) {
+                // discard empty layers
+                Layer layer = spatialDatabase.getLayer(allTypeNames[i]);
+                if (!layer.getIndex().isEmpty()) {
+                    notEmptyTypes.add(allTypeNames[i]);
+                }
+            }
+            typeNames = notEmptyTypes.toArray(new String[] {});
+        }
+        return typeNames;
+    }
 	
-	public SimpleFeatureType getSchema(String typeName) throws IOException {
-		SimpleFeatureType result = simpleFeatureTypeIndex.get(typeName);
-		if (result == null) {
-			Transaction tx = database.beginTx();
-			try {		
-				Layer layer = spatialDatabase.getLayer(typeName);
-				if (layer == null) {
-					throw new IOException("Layer not found: " + typeName);
-				}
-				
-				String[] extraPropertyNames = layer.getExtraPropertyNames();
-				List<AttributeDescriptor> types = readAttributes(typeName, extraPropertyNames);
-            
-				SimpleFeatureType parent = null;
-				GeometryDescriptor geomDescriptor = (GeometryDescriptor) types.get(0);            
-				Class<?> geomBinding = geomDescriptor.getType().getBinding();
-				if ((geomBinding == Point.class) || (geomBinding == MultiPoint.class)) {
-					parent = BasicFeatureTypes.POINT;
-				} else if ((geomBinding == Polygon.class) || (geomBinding == MultiPolygon.class)) {
-					parent = BasicFeatureTypes.POLYGON;
-				} else if ((geomBinding == LineString.class) || (geomBinding == MultiLineString.class)) {
-					parent = BasicFeatureTypes.LINE;
-				}
+    public SimpleFeatureType getSchema(String typeName) throws IOException {
+        SimpleFeatureType result = simpleFeatureTypeIndex.get(typeName);
+        if (result == null) {
+            Layer layer = spatialDatabase.getLayer(typeName);
+            if (layer == null) {
+                throw new IOException("Layer not found: " + typeName);
+            }
 
-				SimpleFeatureTypeBuilder builder = new SimpleFeatureTypeBuilder();
-				builder.setDefaultGeometry(geomDescriptor.getLocalName());
-				builder.addAll(types);
-				builder.setName(typeName);
-				builder.setNamespaceURI(BasicFeatureTypes.DEFAULT_NAMESPACE);
-				builder.setAbstract(false);
-				if (parent != null) {
-					builder.setSuperType(parent);
-				}  
-            
-				result = builder.buildFeatureType();
-				simpleFeatureTypeIndex.put(typeName, result);
+            String[] extraPropertyNames = layer.getExtraPropertyNames();
+            List<AttributeDescriptor> types = readAttributes(typeName, extraPropertyNames);
 
-				tx.success();
-			} finally {
-				tx.finish();
-			}
-		}
-		
-		return result;
-	}
+            SimpleFeatureType parent = null;
+            GeometryDescriptor geomDescriptor = (GeometryDescriptor)types.get(0);
+            Class< ? > geomBinding = geomDescriptor.getType().getBinding();
+            if ((geomBinding == Point.class) || (geomBinding == MultiPoint.class)) {
+                parent = BasicFeatureTypes.POINT;
+            } else if ((geomBinding == Polygon.class) || (geomBinding == MultiPolygon.class)) {
+                parent = BasicFeatureTypes.POLYGON;
+            } else if ((geomBinding == LineString.class) || (geomBinding == MultiLineString.class)) {
+                parent = BasicFeatureTypes.LINE;
+            }
+
+            SimpleFeatureTypeBuilder builder = new SimpleFeatureTypeBuilder();
+            builder.setDefaultGeometry(geomDescriptor.getLocalName());
+            builder.addAll(types);
+            builder.setName(typeName);
+            builder.setNamespaceURI(BasicFeatureTypes.DEFAULT_NAMESPACE);
+            builder.setAbstract(false);
+            if (parent != null) {
+                builder.setSuperType(parent);
+            }
+
+            result = builder.buildFeatureType();
+            simpleFeatureTypeIndex.put(typeName, result);
+        }
+
+        return result;
+    }
 	    
     public FeatureSource<SimpleFeatureType, SimpleFeature> getFeatureSource(String typeName) throws IOException {
     	Neo4jSpatialFeatureSource result = featureSourceIndex.get(typeName);
@@ -315,20 +299,12 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 		return getFeatureReader(typeName, new SearchAll());
 	}
 	
-	protected FeatureReader<SimpleFeatureType, SimpleFeature> getFeatureReader(String typeName, Search search) throws IOException {
-		Transaction tx = database.beginTx();
-		try {				
-			Layer layer = spatialDatabase.getLayer(typeName);		
-			layer.getIndex().executeSearch(search);
-			Iterator<SpatialDatabaseRecord> results = search.getResults().iterator();
-
-			tx.success();
-			
-			return new Neo4jSpatialFeatureReader(database, getSchema(typeName), results, layer.getExtraPropertyNames());
-		} finally {
-			tx.finish();
-		}		
-	}
+    protected FeatureReader<SimpleFeatureType, SimpleFeature> getFeatureReader(String typeName, Search search) throws IOException {
+        Layer layer = spatialDatabase.getLayer(typeName);
+        layer.getIndex().executeSearch(search);
+        Iterator<SpatialDatabaseRecord> results = search.getResults().iterator();
+        return new Neo4jSpatialFeatureReader(database, getSchema(typeName), results, layer.getExtraPropertyNames());
+    }
 		
     private ReferencedEnvelope convertEnvelopeToRefEnvelope(String typeName, Envelope bbox) {
     	return new ReferencedEnvelope(bbox, getCRS(typeName));
@@ -340,38 +316,22 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 
     private CoordinateReferenceSystem getCRS(String typeName) {
     	CoordinateReferenceSystem result = crsIndex.get(typeName);
-    	if (result == null) {
-	    	Transaction tx = database.beginTx();
-	    	try {
-	    		Layer layer = spatialDatabase.getLayer(typeName);
-	    		result = layer.getCoordinateReferenceSystem();
-	    		
-	    		tx.success();
-	    		
-	    		crsIndex.put(typeName, result);
-	    	} finally {
-	    		tx.finish();
-	    	}
-    	}
+        if (result == null) {
+            Layer layer = spatialDatabase.getLayer(typeName);
+            result = layer.getCoordinateReferenceSystem();
+            crsIndex.put(typeName, result);
+        }
     	
     	return result;
     }
 
     private Integer getGeometryType(String typeName) {
-    	Transaction tx = database.beginTx();
-    	try {
-    		Layer layer = spatialDatabase.getLayer(typeName);
-    		Integer geomType = layer.getGeometryType();
-    		if (geomType == null) {
-    			geomType = layer.guessGeometryType();
-    		}
-    		
-    		tx.success();
-    		
-    		return geomType;
-    	} finally {
-    		tx.finish();
-    	}    	
+        Layer layer = spatialDatabase.getLayer(typeName);
+        Integer geomType = layer.getGeometryType();
+        if (geomType == null) {
+            geomType = layer.guessGeometryType();
+        }
+        return geomType;
     }
         
 	private Class convertGeometryTypeToJtsClass(Integer geometryType) {

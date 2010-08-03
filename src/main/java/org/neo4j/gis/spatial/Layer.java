@@ -16,6 +16,9 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
@@ -334,7 +337,7 @@ public class Layer implements Constants, SpatialDataset {
 	private Node lastGeomNode;
 	protected GeometryEncoder geometryEncoder;
 	protected GeometryFactory geometryFactory;
-	private SpatialIndexWriter index;
+	protected SpatialIndexWriter index;
 	
 	class GuessGeometryTypeSearch extends AbstractSearch {
 
@@ -353,7 +356,7 @@ public class Layer implements Constants, SpatialDataset {
 
     public SpatialDataset getDataset() {
         return this;
-    };
+    }
 
     /**
      * Provides a method for iterating over all nodes that represent geometries in this dataset.
@@ -422,4 +425,14 @@ public class Layer implements Constants, SpatialDataset {
     public GeometryEncoder getGeometryEncoder() {
         return geometryEncoder;
     }
+
+    /**
+     * This dataset contains only one layer, itself.
+     * 
+     * @return iterable over all Layers that can be viewed from this dataset
+     */
+    public Iterable< ? extends Layer> getLayers() {
+        return Arrays.asList(new Layer[]{this});
+    }
+
 }

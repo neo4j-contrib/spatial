@@ -16,43 +16,27 @@
  */
 package org.neo4j.gis.spatial;
 
-
 /**
+ * This listener ignores all notifications of progress. It is useful when progress is not necessary.
+ * 
  * @author Davide Savazzi
  */
 public class NullListener implements Listener {
 
-	// Constructor
-	
-	public NullListener() {
-		this(1000);
-	}
-	
-	public NullListener(int commitInterval) {
-		if (commitInterval < 1) {
-			throw new IllegalArgumentException("commitInterval must be > 0");
-		}
-		this.commitInterval = commitInterval;
-	}
-	
-	
-	// Public methods
-	
-	public void begin(int unitsOfWork) {
-	}
+    // Constructor
 
-	public void worked(int workedSinceLastNotification) {
-	}	
-	
-	public void done() {
-	}
+    public NullListener() {
+    }
 
-	public int suggestedCommitInterval() {
-		return commitInterval;
-	}
+    // Public methods
 
+    public void begin(int unitsOfWork) {
+    }
 
-	// Attributes
-	
-	private int commitInterval;
+    public void worked(int workedSinceLastNotification) {
+    }
+
+    public void done() {
+    }
+
 }
