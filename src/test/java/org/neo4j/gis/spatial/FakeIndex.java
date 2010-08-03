@@ -16,6 +16,10 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
+
 import org.neo4j.graphdb.Node;
 
 import com.vividsolutions.jts.geom.Envelope;
@@ -61,6 +65,24 @@ public class FakeIndex implements SpatialIndexReader, Constants {
 		return bbox;
 	}
 
+	public SpatialDatabaseRecord get(Long geomNodeId) {
+		return new SpatialDatabaseRecord(layer.getName(), 
+				layer.getGeometryEncoder(), 
+				layer.getCoordinateReferenceSystem(), 
+				layer.getExtraPropertyNames(),
+				layer.getSpatialDatabase().getDatabase().getNodeById(geomNodeId));
+	}
+	
+    public List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds) {
+    	List<SpatialDatabaseRecord> results = new ArrayList<SpatialDatabaseRecord>();
+
+    	for (Long geomNodeId : geomNodeIds) {
+    		results.add(get(geomNodeId));
+    	}
+    	
+    	return results;
+    }	
+	
 	public void executeSearch(Search search) {
         search.setLayer(layer);
 		for (Node node: layer.getAllGeometryNodes()) {

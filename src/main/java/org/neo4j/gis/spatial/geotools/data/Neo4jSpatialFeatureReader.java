@@ -22,6 +22,7 @@ import java.util.NoSuchElementException;
 
 import org.geotools.data.FeatureReader;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
+import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
@@ -36,12 +37,13 @@ public class Neo4jSpatialFeatureReader implements FeatureReader<SimpleFeatureTyp
 
 	// Constructor
 	
-	public Neo4jSpatialFeatureReader(GraphDatabaseService database, SimpleFeatureType featureType, Iterator<SpatialDatabaseRecord> results, String[] extraPropertyNames) {
+	public Neo4jSpatialFeatureReader(GraphDatabaseService database, Layer layer, SimpleFeatureType featureType, Iterator<SpatialDatabaseRecord> results) {
 		this.database = database;
+		this.layer = layer;
+		this.extraPropertyNames = layer.getExtraPropertyNames();		
 		this.featureType = featureType;
 		this.builder = new SimpleFeatureBuilder(featureType);
 		this.results = results;
-		this.extraPropertyNames = extraPropertyNames;
 	}
 	
 	
@@ -88,10 +90,15 @@ public class Neo4jSpatialFeatureReader implements FeatureReader<SimpleFeatureTyp
 		results = null;
 	}
 	
+	protected Layer getLayer() {
+		return layer;
+	}
+	
 	
 	// Attributes
 	
 	private GraphDatabaseService database;
+	private Layer layer;
 	private SimpleFeatureType featureType;
     private SimpleFeatureBuilder builder;
 	private Iterator<SpatialDatabaseRecord> results;

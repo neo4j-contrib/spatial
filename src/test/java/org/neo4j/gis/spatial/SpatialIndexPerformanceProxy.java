@@ -16,6 +16,9 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.util.List;
+import java.util.Set;
+
 import com.vividsolutions.jts.geom.Envelope;
 
 /**
@@ -54,12 +57,28 @@ public class SpatialIndexPerformanceProxy implements SpatialIndexReader {
         System.out.println("# exec time(count): " + (stop - start) + "ms");
         return count;
     }
-
+    
+    public SpatialDatabaseRecord get(Long geomNodeId) {
+        long start = System.currentTimeMillis();
+        SpatialDatabaseRecord result = spatialIndex.get(geomNodeId);
+        long stop = System.currentTimeMillis();
+        System.out.println("# exec time(get(" + geomNodeId + ")): " + (stop - start) + "ms");    	
+        return result;    	
+    }
+    
+    public List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds) {
+        long start = System.currentTimeMillis();
+        List<SpatialDatabaseRecord> result = spatialIndex.get(geomNodeIds);
+        long stop = System.currentTimeMillis();
+        System.out.println("# exec time(get(" + geomNodeIds + ")): " + (stop - start) + "ms");    	
+        return result;
+    }
+    
     public void executeSearch(Search search) {
         long start = System.currentTimeMillis();
         spatialIndex.executeSearch(search);
         long stop = System.currentTimeMillis();
-        System.out.println("# exec time(executeSearch("+search+")): " + (stop - start) + "ms");
+        System.out.println("# exec time(executeSearch(" + search + ")): " + (stop - start) + "ms");
     }
 
     // Attributes
