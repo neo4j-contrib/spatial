@@ -13,7 +13,11 @@
 	<name>Neo4j Spatial components</name>
 	<description>Spatial utilities and components for neo4j</description>
 	<url>http://github.com/neo4j/neo4j-spatial/</url>
-
+	<parent>
+		<artifactId>parent-pom</artifactId>
+		<groupId>org.neo4j</groupId>
+		<version>7</version>
+	</parent>
 	<scm>
 		<url>git@github.com:neo4j/neo4j-spatial.git</url>
 	</scm>
@@ -126,12 +130,12 @@
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-kernel</artifactId>
-			<version>1.0-SNAPSHOT</version>
+			<version>1.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-index</artifactId>
-			<version>1.0-SNAPSHOT</version>
+			<version>1.1</version>
 		</dependency>
 		<dependency>
 			<groupId>org.geotools</groupId>
@@ -166,11 +170,11 @@
 			</snapshots>
 		</repository>
 	</repositories>
-	<distributionManagement>
-		<repository>
-			<id>neo4j-upload-repository</id>
-			<name>Developers-only Maven 2 upload repository for Neo4j</name>
-			<url>scpexe://m2.neo4j.org/home/neo/maven2</url>
-		</repository>
-	</distributionManagement>
+<!--	<distributionManagement>-->
+<!--		<repository>-->
+<!--			<id>neo4j-upload-repository</id>-->
+<!--			<name>Developers-only Maven 2 upload repository for Neo4j</name>-->
+<!--			<url>scpexe://m2.neo4j.org/home/neo/maven2</url>-->
+<!--		</repository>-->
+<!--	</distributionManagement>-->
 </project>
