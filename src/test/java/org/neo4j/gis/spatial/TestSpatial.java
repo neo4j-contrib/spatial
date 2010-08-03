@@ -86,7 +86,7 @@ public class TestSpatial extends Neo4jTestCase {
 
         // TODO: Rather load this from a configuration file, properties file or JRuby test code
         addTestLayer("sweden_administrative", DataFormat.SHP);
-        addTestGeometry(1055, "SÃ¶derÃ¥sens nationalpark", "near top edge", "(13.167721,56.002416), (13.289724,56.047099)");
+        addTestGeometry(1055, "Söderåsens nationalpark", "near top edge", "(13.167721,56.002416), (13.289724,56.047099)");
         addTestGeometry(1067, "", "inside", "(13.2122907,55.6969478), (13.5614499,55.7835819)");
         addTestGeometry(943, "", "crosses left edge", "(12.9120438,55.8253138), (13.0501381,55.8484289)");
         addTestGeometry(884, "", "outside left", "(12.7492433,55.9269403), (12.9503304,55.964951)");
