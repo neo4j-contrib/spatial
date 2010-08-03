@@ -19,7 +19,7 @@ import com.vividsolutions.jts.geom.Envelope;
 /**
  * Test cases for initial version of Neo4j-Spatial. This was converted directly from Davide
  * Savazzi's console applications: ShapefileImporter, Test, Test2 and Test3.
- * 
+ *  
  * @author Davide Savazzi
  * @author Craig Taverner
  */
@@ -96,17 +96,17 @@ public class TestSpatial extends Neo4jTestCase {
 
         addTestLayer("sweden_natural", DataFormat.SHP);
         addTestGeometry(208, "Bokskogen", "", "(13.1935576,55.5324763), (13.2710125,55.5657891)");
-        addTestGeometry(6110, "Pålsjö skog", "", "(12.6744031,56.0636946), (12.6934147,56.0771857)");
-        addTestGeometry(647, "Dalby söderskog", "", "(13.32406,55.671652), (13.336948,55.679243)");
+        addTestGeometry(6110, "PÃ¥lsjÃ¶ skog", "", "(12.6744031,56.0636946), (12.6934147,56.0771857)");
+        addTestGeometry(647, "Dalby sÃ¶derskog", "", "(13.32406,55.671652), (13.336948,55.679243)");
 
         addTestLayer("sweden_water", DataFormat.SHP);
-        addTestGeometry(9548, "Yddingesjön", "", "(13.23564,55.5360264), (13.2676649,55.5558856)");
-        addTestGeometry(10494, "Finjasjön", "", "(13.6718979,56.1157516), (13.7398759,56.1566911)");
+        addTestGeometry(9548, "YddingesjÃ¶n", "", "(13.23564,55.5360264), (13.2676649,55.5558856)");
+        addTestGeometry(10494, "FinjasjÃ¶n", "", "(13.6718979,56.1157516), (13.7398759,56.1566911)");
 
         addTestLayer("sweden_highway", DataFormat.SHP);
-        addTestGeometry(58904, "Holmeja byväg", "", "(13.2819022,55.5561414), (13.2820848,55.5575418)");
-        addTestGeometry(45305, "Yttre RIngvägen", "", "(12.9827334,55.5473645), (13.0118313,55.5480455)");
-        addTestGeometry(43536, "Yttre RIngvägen", "", "(12.9412071,55.5564264), (12.9422181,55.5571701)");
+        addTestGeometry(58904, "Holmeja byvÃ¤g", "", "(13.2819022,55.5561414), (13.2820848,55.5575418)");
+        addTestGeometry(45305, "Yttre RIngvÃ¤gen", "", "(12.9827334,55.5473645), (13.0118313,55.5480455)");
+        addTestGeometry(43536, "Yttre RIngvÃ¤gen", "", "(12.9412071,55.5564264), (12.9422181,55.5571701)");
     }
 
     private static void addTestLayer(String layer, DataFormat format) {
@@ -251,9 +251,9 @@ public class TestSpatial extends Neo4jTestCase {
         System.out.println("RTreeIndex count: " + rtreeIndex.count());
 
         // Bounds for sweden_administrative: 11.1194502 : 24.1585511, 55.3550515 : 69.0600767
-        // Envelope bbox = new Envelope(12.85, 13.25, 55.5, 55.65); // cover Malmö
-        Envelope bbox = new Envelope(13.0, 14.00, 55.0, 56.0); // cover central Skåne
-        // Envelope bbox = new Envelope(13, 14, 55, 58); // cover admin area 'Söderåsen'
+        // Envelope bbox = new Envelope(12.85, 13.25, 55.5, 55.65); // cover MalmÃ¶
+        Envelope bbox = new Envelope(13.0, 14.00, 55.0, 56.0); // cover central SkÃ¥ne
+        // Envelope bbox = new Envelope(13, 14, 55, 58); // cover admin area 'SÃ¶derÃ¥sen'
         // Envelope bbox = new Envelope(7, 10, 37, 40);
 
         System.out.println("Displaying test geometries for layer '" + layerName + "'");

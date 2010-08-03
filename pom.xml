@@ -3,6 +3,7 @@
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<properties>
 		<geotools.version>2.6.3</geotools.version>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 	</properties>
 
 	<modelVersion>4.0.0</modelVersion>
@@ -169,11 +170,11 @@
 			</snapshots>
 		</repository>
 	</repositories>
-<!--	<distributionManagement>-->
-<!--		<repository>-->
-<!--			<id>neo4j-upload-repository</id>-->
-<!--			<name>Developers-only Maven 2 upload repository for Neo4j</name>-->
-<!--			<url>scpexe://m2.neo4j.org/home/neo/maven2</url>-->
-<!--		</repository>-->
-<!--	</distributionManagement>-->
+	<!-- <distributionManagement> -->
+	<!-- <repository> -->
+	<!-- <id>neo4j-upload-repository</id> -->
+	<!-- <name>Developers-only Maven 2 upload repository for Neo4j</name> -->
+	<!-- <url>scpexe://m2.neo4j.org/home/neo/maven2</url> -->
+	<!-- </repository> -->
+	<!-- </distributionManagement> -->
 </project>
