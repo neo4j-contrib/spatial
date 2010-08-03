@@ -22,7 +22,7 @@ import com.vividsolutions.jts.geom.Envelope;
 /**
  * Test cases for initial version of Neo4j-Spatial. This was converted directly from Davide
  * Savazzi's console applications: ShapefileImporter, Test, Test2 and Test3.
- * 
+ *  
  * @author Davide Savazzi
  * @author Craig Taverner
  */
