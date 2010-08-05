@@ -42,8 +42,6 @@ import com.vividsolutions.jts.geom.GeometryFactory;
  * mechanisms, like in-node (geometries in properties) and sub-graph (geometries describe by the
  * graph). A Layer can be associated with a dataset. In cases where the dataset contains only one
  * layer, the layer itself is the dataset.
- * 
- * @author Davide Savazzi
  */
 public class DefaultLayer implements Constants, Layer, SpatialDataset {
 
@@ -145,6 +143,23 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         }
     }
 
+    public Integer getOrGuessGeometryType() {
+		Integer geomType = getGeometryType();
+		if (geomType == null) geomType = guessGeometryType();
+		return geomType;
+	}    
+    
+    public Integer guessGeometryType() {
+		GuessGeometryTypeSearch geomTypeSearch = new GuessGeometryTypeSearch();
+		index.executeSearch(geomTypeSearch);
+		if (geomTypeSearch.firstFoundType != null) {
+			return geomTypeSearch.firstFoundType;
+		} else {
+			// layer is empty
+			return null;
+		}
+	}    
+    
     public String[] getExtraPropertyNames() {
         Node layerNode = getLayerNode();
         if (layerNode.hasProperty(PROP_LAYERNODEEXTRAPROPS)) {
@@ -257,7 +272,6 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         this.geometryEncoder.init(this);
     }
     
-
     /**
      * All layers are associated with a single node in the database. This node will have properties,
      * relationships (sub-graph) or both to describe the contents of the layer
@@ -403,4 +417,18 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         return Arrays.asList(new Layer[]{this});
     }
 
+    class GuessGeometryTypeSearch extends AbstractSearch {
+
+		Integer firstFoundType;
+
+		public boolean needsToVisit(Node indexNode) {
+			return firstFoundType == null;
+		}
+
+		public void onIndexReference(Node geomNode) {
+			if (firstFoundType == null) {
+				firstFoundType = (Integer) geomNode.getProperty(PROP_TYPE);
+			}
+		}
+	}
 }
