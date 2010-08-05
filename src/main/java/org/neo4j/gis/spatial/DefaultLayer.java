@@ -42,8 +42,6 @@ import com.vividsolutions.jts.geom.GeometryFactory;
  * mechanisms, like in-node (geometries in properties) and sub-graph (geometries describe by the
  * graph). A Layer can be associated with a dataset. In cases where the dataset contains only one
  * layer, the layer itself is the dataset.
- * 
- * @author Davide Savazzi
  */
 public class DefaultLayer implements Constants, Layer, SpatialDataset {
 
@@ -138,7 +136,6 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
             }
         }
     }
-
 
     public String[] getExtraPropertyNames() {
         Node layerNode = getLayerNode();
@@ -252,7 +249,6 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         this.geometryEncoder.init(this);
     }
     
-
     /**
      * All layers are associated with a single node in the database. This node will have properties,
      * relationships (sub-graph) or both to describe the contents of the layer
