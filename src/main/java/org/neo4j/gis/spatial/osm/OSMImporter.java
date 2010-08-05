@@ -94,7 +94,7 @@ public class OSMImporter implements Constants {
         SpatialDatabaseService spatialDatabase = new SpatialDatabaseService(database);
         OSMLayer layer = (OSMLayer)spatialDatabase.getOrCreateLayer(layerName, OSMGeometryEncoder.class, OSMLayer.class);
         OSMDataset dataset = layer.getDataset(osm_dataset);
-        layer.clear();
+        layer.clear();  // clear the index without destroying underlying data
 
         long startTime = System.currentTimeMillis();
         Transaction tx = database.beginTx();

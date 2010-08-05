@@ -33,7 +33,7 @@ import com.vividsolutions.jts.geom.GeometryFactory;
  * @author Davide Savazzi
  * @author Craig Taverner
  */
-public interface Layer extends Constants {
+public interface Layer {
 
     /**
      * The layer is constructed from metadata in the layer node, which requires that the layer have
@@ -48,36 +48,20 @@ public interface Layer extends Constants {
     void initialize(SpatialDatabaseService spatialDatabase, String name, Node layerNode);
 
     /**
-     * Add a new geometry to the layer. This will add the geometry to the index.
-     * 
-     * @param geometry
-     * @return
-     */
-    SpatialDatabaseRecord add(Geometry geometry);
-
-    /**
-     * Delete the geometry identified by the passed node id. This might be as simple as deleting the
-     * geometry node, or it might require extracting and deleting an entire sub-graph.
-     * 
-     * @param geoemtryNodeId
-     */
-    void delete(long geometryNodeId);
-
-    /**
-     * Update the geometry identified by the passed node id. This might be as simple as changing
-     * node properties or it might require editing an entire sub-graph.
-     * 
-     * @param geoemtryNodeId
-     */
-    void update(long geometryNodeId, Geometry geometry);
-
-    /**
      * Every layer using a specific implementation of the SpatialIndexReader and SpatialIndexWriter
      * for indexing the data in that layer.
      * 
      * @return the SpatialIndexReader used to perform searches on the data in the layer
      */
     SpatialIndexReader getIndex();
+
+    /**
+     * This method adds existing geometries to the layer for indexing. After this method is called the geometry should be searchable.
+     *
+     * @param geomNode
+     * @return SpatialDatabaseRecord representation of the geometry added to the database
+     */
+    SpatialDatabaseRecord add(Node geomNode);
 
     GeometryFactory getGeometryFactory();
 

@@ -48,6 +48,7 @@ import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.resources.Classes;
 import org.neo4j.gis.spatial.AbstractSearch;
 import org.neo4j.gis.spatial.Constants;
+import org.neo4j.gis.spatial.EditableLayer;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.Search;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
@@ -374,10 +375,10 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 	}
 	
     protected FeatureReader<SimpleFeatureType, SimpleFeature> getFeatureReader(String typeName, Search search) throws IOException {
-	Layer layer = spatialDatabase.getLayer(typeName);		
-	layer.getIndex().executeSearch(search);
-	Iterator<SpatialDatabaseRecord> results = search.getResults().iterator();
-	return new Neo4jSpatialFeatureReader(database, layer, getSchema(typeName), results);
+        Layer layer = spatialDatabase.getLayer(typeName);
+        layer.getIndex().executeSearch(search);
+        Iterator<SpatialDatabaseRecord> results = search.getResults().iterator();
+        return new Neo4jSpatialFeatureReader(database, layer, getSchema(typeName), results);
     }
 		
     private ReferencedEnvelope convertEnvelopeToRefEnvelope(String typeName, Envelope bbox) {
@@ -401,33 +402,7 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 
     private Integer getGeometryType(String typeName) {
         Layer layer = spatialDatabase.getLayer(typeName);
-        Integer geomType = layer.getGeometryType();
-        if (geomType == null) {
-            GuessGeometryTypeSearch geomTypeSearch = new GuessGeometryTypeSearch();
-            layer.getIndex().executeSearch(geomTypeSearch);
-            if (geomTypeSearch.firstFoundType != null) {
-                return geomTypeSearch.firstFoundType;
-            } else {
-                // layer is empty
-                return null;
-            }
-        }
-        return geomType;
-    }
-
-    class GuessGeometryTypeSearch extends AbstractSearch {
-
-        Integer firstFoundType;
-            
-        public boolean needsToVisit(Node indexNode) {
-            return firstFoundType == null;
-        }
-
-        public void onIndexReference(Node geomNode) {
-            if (firstFoundType == null) {
-                firstFoundType = (Integer) geomNode.getProperty(PROP_TYPE);
-            }
-        }
+        return layer.getGeometryType();
     }
 
 	private Class convertGeometryTypeToJtsClass(Integer geometryType) {
@@ -444,51 +419,36 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 
 	
 	// Tmp
-	
-	public FeatureWriter getFeatureWriterAppend(String typeName, org.geotools.data.Transaction transaction) throws IOException {
-		System.out.println("getFeatureWriterAppend(" + typeName + "," + transaction + ")");
-		
-		Transaction tx = database.beginTx();
-		try {		
-			Layer layer = spatialDatabase.getLayer(typeName);
-			if (layer == null) {
-				throw new IOException("Layer not found: " + typeName);
-			}
-			
-			tx.success();
-			
-			return new Neo4jSpatialFeatureWriter(listenerManager, transaction, layer, getSchema(typeName));
-		} finally {
-			tx.finish();
-		}
+
+	public EditableLayer getEditableLayer(String typeName) throws IOException {
+        Layer layer = spatialDatabase.getLayer(typeName);
+        if (layer == null) {
+            throw new IOException("Layer not found: " + typeName);
+        }
+        if (!(layer instanceof EditableLayer)) {
+            throw new IOException("Cannot create a FeatureWriter on a read-only layer: " + layer);
+        }
+        return (EditableLayer)layer;
 	}
 
-	public FeatureWriter getFeatureWriter(String typeName, Filter filter, org.geotools.data.Transaction transaction) throws IOException {
-		System.out.println("getFeatureWriter(" + typeName + "," + filter.getClass() + " " + filter + "," + transaction + ")");
-		
-		if (filter instanceof FidFilterImpl) {
-			Transaction tx = database.beginTx();
-			try {		
-				Layer layer = spatialDatabase.getLayer(typeName);
-				if (layer == null) {
-					throw new IOException("Layer not found: " + typeName);
-				}
-				
-				List<SpatialDatabaseRecord> results = layer.getIndex().get(convertToGeomNodeIds((FidFilterImpl) filter));
-				Neo4jSpatialFeatureWriter writer = new Neo4jSpatialFeatureWriter(
-						listenerManager, transaction, 
-						new Neo4jSpatialFeatureReader(database, layer, getSchema(typeName), results.iterator()));
-				
-				tx.success();
-				
-				return writer;
-			} finally {
-				tx.finish();
-			}
-		} else {
-			return getFeatureWriter(typeName, transaction, new SearchAll());
-		}
-	}
+	public FeatureWriter getFeatureWriterAppend(String typeName, org.geotools.data.Transaction transaction) throws IOException {
+        System.out.println("getFeatureWriterAppend(" + typeName + "," + transaction + ")");
+        return new Neo4jSpatialFeatureWriter(listenerManager, transaction, getEditableLayer(typeName), getSchema(typeName));
+    }
+
+    public FeatureWriter getFeatureWriter(String typeName, Filter filter, org.geotools.data.Transaction transaction)
+            throws IOException {
+        System.out.println("getFeatureWriter(" + typeName + "," + filter.getClass() + " " + filter + "," + transaction + ")");
+
+        if (filter instanceof FidFilterImpl) {
+            EditableLayer layer = getEditableLayer(typeName);
+            List<SpatialDatabaseRecord> results = layer.getIndex().get(convertToGeomNodeIds((FidFilterImpl)filter));
+            return new Neo4jSpatialFeatureWriter(listenerManager, transaction, new Neo4jSpatialFeatureReader(database, layer,
+                    getSchema(typeName), results.iterator()));
+        } else {
+            return getFeatureWriter(typeName, transaction, new SearchAll());
+        }
+    }
 	
 	private Set<Long> convertToGeomNodeIds(FidFilterImpl fidFilter) {
 		Set<Long> nodeIds = new HashSet<Long>();

@@ -53,50 +53,22 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         return name;
     }
 
-    /**
-     *  Add a geometry to this layer.
-     */ 
-    public SpatialDatabaseRecord add(Geometry geometry) {
-        return add(geometry, null, null);
-    }
-    
-    /**
-     *  Add a geometry to this layer, including properties.
-     */
-    public SpatialDatabaseRecord add(Geometry geometry, String[] fieldsName, Object[] fields) {
-        Node geomNode = addGeomNode(geometry, fieldsName, fields);
-        index.add(geomNode);
-        return new SpatialDatabaseRecord(getName(), getGeometryEncoder(), getCoordinateReferenceSystem(), getExtraPropertyNames(), geomNode, geometry);
-    }   
-    
-    /**
-     * Add the geometry encoded in the given Node.
-     */
-    public SpatialDatabaseRecord add(Node geomNode) {
-        Geometry geometry = getGeometryEncoder().decodeGeometry(geomNode);      
-        
-        index.add(geomNode);
-        return new SpatialDatabaseRecord(getName(), getGeometryEncoder(), getCoordinateReferenceSystem(), getExtraPropertyNames(), geomNode, geometry);
-    }
-    
-    public void update(long geomNodeId, Geometry geometry) {
-        index.remove(geomNodeId, false);
-        
-        Node geomNode = getDatabase().getNodeById(geomNodeId);
-        getGeometryEncoder().encodeGeometry(geometry, geomNode);
-        index.add(geomNode);
-    }
-    
-    public void delete(long geomNodeId) {
-        index.remove(geomNodeId, true);
-    }
-    
     public SpatialDatabaseService getSpatialDatabase() {
         return spatialDatabase;
     }
     
     public SpatialIndexReader getIndex() {
         return index;
+    }
+
+    /**
+     * Add the geometry encoded in the given Node. This causes the geometry to appear in the index.
+     */
+    public SpatialDatabaseRecord add(Node geomNode) {
+        Geometry geometry = getGeometryEncoder().decodeGeometry(geomNode);      
+        
+        index.add(geomNode);
+        return new SpatialDatabaseRecord(getName(), getGeometryEncoder(), getCoordinateReferenceSystem(), getExtraPropertyNames(), geomNode, geometry);
     }
 
     public GeometryFactory getGeometryFactory() {
@@ -141,9 +113,32 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         if (layerNode.hasProperty(PROP_TYPE)) {
             return (Integer) layerNode.getProperty(PROP_TYPE);
         } else {
-            return null;
+            GuessGeometryTypeSearch geomTypeSearch = new GuessGeometryTypeSearch();
+            index.executeSearch(geomTypeSearch);
+            if (geomTypeSearch.firstFoundType != null) {
+                return geomTypeSearch.firstFoundType;
+            } else {
+                // layer is empty
+                return null;
+            }
         }
     }
+
+    private static class GuessGeometryTypeSearch extends AbstractSearch {
+
+        Integer firstFoundType;
+            
+        public boolean needsToVisit(Node indexNode) {
+            return firstFoundType == null;
+        }
+
+        public void onIndexReference(Node geomNode) {
+            if (firstFoundType == null) {
+                firstFoundType = (Integer) geomNode.getProperty(PROP_TYPE);
+            }
+        }
+    }
+
 
     public String[] getExtraPropertyNames() {
         Node layerNode = getLayerNode();
@@ -186,7 +181,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
      * @return new layer instance from existing layer node
      */
     @SuppressWarnings("unchecked")
-    protected static Layer makeLayer(SpatialDatabaseService spatialDatabase, Node layerNode) {
+    protected static Layer makeLayerFromNode(SpatialDatabaseService spatialDatabase, Node layerNode) {
         try {
             String name = (String) layerNode.getProperty(PROP_LAYER);
             if (name == null) {
@@ -199,7 +194,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
             }
             
             Class<? extends Layer> layerClass = className == null ? Layer.class : (Class<? extends Layer>) Class.forName(className);
-            return makeLayer(spatialDatabase, name, layerNode, layerClass);
+            return makeLayerInstance(spatialDatabase, name, layerNode, layerClass);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -207,14 +202,14 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 
     /**
      * Factory method to construct a layer with the specified layer class. This can be used when
-     * creating a layer for the first time.
+     * creating a layer for the first time. It will also construct the underlying Node in the graph.
      * 
      * @param spatialDatabase
      * @param name
      * @param layerClass
      * @return new Layer instance based on newly created layer Node
      */
-    protected static Layer makeLayer(SpatialDatabaseService spatialDatabase, String name,
+    protected static Layer makeLayerAndNode(SpatialDatabaseService spatialDatabase, String name,
             Class< ? extends GeometryEncoder> geometryEncoderClass, Class< ? extends Layer> layerClass) {
         try {
             Node layerNode = spatialDatabase.getDatabase().createNode();
@@ -222,13 +217,13 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
             layerNode.setProperty(PROP_CREATIONTIME, System.currentTimeMillis());
             layerNode.setProperty(PROP_GEOMENCODER, geometryEncoderClass.getCanonicalName());
             layerNode.setProperty(PROP_LAYER_CLASS, layerClass.getCanonicalName());
-            return DefaultLayer.makeLayer(spatialDatabase, name, layerNode, layerClass);
+            return DefaultLayer.makeLayerInstance(spatialDatabase, name, layerNode, layerClass);
         } catch (Exception e) {
             throw (RuntimeException)new RuntimeException().initCause(e);
         }
     }
 
-    private static Layer makeLayer(SpatialDatabaseService spatialDatabase, String name, Node layerNode, Class<? extends Layer> layerClass) throws InstantiationException, IllegalAccessException {
+    private static Layer makeLayerInstance(SpatialDatabaseService spatialDatabase, String name, Node layerNode, Class<? extends Layer> layerClass) throws InstantiationException, IllegalAccessException {
         if(layerClass == null) layerClass = Layer.class;
         Layer layer = layerClass.newInstance();
         layer.initialize(spatialDatabase, name, layerNode);
@@ -287,28 +282,8 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
     
     // Private methods
     
-    private GraphDatabaseService getDatabase() {
+    protected GraphDatabaseService getDatabase() {
         return spatialDatabase.getDatabase();
-    }
-    
-    private Node addGeomNode(Geometry geom, String[] fieldsName, Object[] fields) {
-        Node geomNode = getDatabase().createNode();
-        if(previousGeomNode!=null) {
-            previousGeomNode.createRelationshipTo(geomNode, SpatialRelationshipTypes.NEXT_GEOM);
-        }else{
-            layerNode.createRelationshipTo(geomNode, SpatialRelationshipTypes.GEOMETRIES);
-        }
-        previousGeomNode = geomNode;
-        getGeometryEncoder().encodeGeometry(geom, geomNode);
-        
-        // other properties
-        if (fieldsName != null) {
-            for (int i = 0; i < fieldsName.length; i++) {
-                geomNode.setProperty(fieldsName[i], fields[i]);
-            }
-        }
-        
-        return geomNode;
     }
     
     
@@ -317,7 +292,6 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
     private SpatialDatabaseService spatialDatabase;
     private String name;
     protected Node layerNode;
-    private Node previousGeomNode;
     protected GeometryEncoder geometryEncoder;
     protected GeometryFactory geometryFactory;
     protected SpatialIndexWriter index;

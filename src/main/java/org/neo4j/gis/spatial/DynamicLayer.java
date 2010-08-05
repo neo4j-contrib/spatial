@@ -40,7 +40,7 @@ public class DynamicLayer extends DefaultLayer {
             this.configNode = configNode;
         }
 
-        public String getLayerName() {
+        public String getName() {
             return (String)configNode.getProperty("layer_name");
         }
         // TODO: Code rules for specifying layer configurations (attributes/properties to match, or
@@ -52,7 +52,7 @@ public class DynamicLayer extends DefaultLayer {
         names.add(this.getName());
         for (Relationship rel : layerNode.getRelationships(SpatialRelationshipTypes.LAYER_CONFIG, Direction.OUTGOING)) {
             LayerConfig config = new LayerConfig(rel.getEndNode());
-            names.add(config.getLayerName());
+            names.add(config.getName());
         }
         return names;
     }

@@ -33,11 +33,11 @@ public class LineStringNetworkGenerator {
 
 	// Constructor
 
-	public LineStringNetworkGenerator(Layer pointsLayer, Layer edgesLayer) {
+	public LineStringNetworkGenerator(EditableLayer pointsLayer, EditableLayer edgesLayer) {
 		this(pointsLayer, edgesLayer, null);
 	}
 	
-	public LineStringNetworkGenerator(Layer pointsLayer, Layer edgesLayer, Double buffer) {
+	public LineStringNetworkGenerator(EditableLayer pointsLayer, EditableLayer edgesLayer, Double buffer) {
 		this.pointsLayer = pointsLayer;
 		this.edgesLayer = edgesLayer;
 		this.buffer = buffer;
@@ -106,7 +106,7 @@ public class LineStringNetworkGenerator {
 	
 	// Attributes
 	
-	private Layer pointsLayer;
-	private Layer edgesLayer;
+	private EditableLayer pointsLayer;
+	private EditableLayer edgesLayer;
 	private Double buffer;
 }

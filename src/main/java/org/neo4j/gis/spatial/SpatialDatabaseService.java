@@ -83,7 +83,7 @@ public class SpatialDatabaseService implements Constants {
         
 		// Now add also the dynamic layers
 		for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYERS, Direction.OUTGOING)) {
-            DynamicLayer layer = (DynamicLayer)DefaultLayer.makeLayer(this, relationship.getEndNode());
+            DynamicLayer layer = (DynamicLayer)DefaultLayer.makeLayerFromNode(this, relationship.getEndNode());
             names.addAll(layer.getLayerNames());
         }
         
@@ -94,22 +94,29 @@ public class SpatialDatabaseService implements Constants {
         for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
             Node node = relationship.getEndNode();
             if (name.equals(node.getProperty(PROP_LAYER))) {
-                return DefaultLayer.makeLayer(this, node);
+                return DefaultLayer.makeLayerFromNode(this, node);
             }
         }
         return null;
     }
 
-//    public Layer getOrCreateLayer(String name) {
-//        return getOrCreateLayer(name, WKBGeometryEncoder.class, DefaultLayer.class);
-//    }
+    public DefaultLayer getOrCreateDefaultLayer(String name) {
+        return (DefaultLayer)getOrCreateLayer(name, WKBGeometryEncoder.class, DefaultLayer.class);
+    }
+
+    public EditableLayer getOrCreateEditableLayer(String name) {
+        return (EditableLayer)getOrCreateLayer(name, WKBGeometryEncoder.class, EditableLayerImpl.class);
+    }
 
     public Layer getOrCreateLayer(String name, Class< ? extends GeometryEncoder> geometryEncoder, Class< ? extends Layer> layerClass) {
         Layer layer = getLayer(name);
         if (layer == null) {
-            layer = createLayer(name, geometryEncoder, layerClass);
+            return createLayer(name, geometryEncoder, layerClass);
+        } else if(layerClass == null || layerClass.isInstance(layer)) {
+        	return layer;
+        } else {
+        	throw new RuntimeException("Existing layer '"+layer+"' is not of the expected type: "+layerClass);
         }
-        return layer;
     }
 
     /**
@@ -150,7 +157,7 @@ public class SpatialDatabaseService implements Constants {
         if (indexRel != null) {
             Node layerNode = indexRel.getStartNode();
             if (layerNode.hasProperty(PROP_LAYER)) {
-                return DefaultLayer.makeLayer(this, layerNode);
+                return DefaultLayer.makeLayerFromNode(this, layerNode);
             }
         }
         return null;
@@ -170,7 +177,7 @@ public class SpatialDatabaseService implements Constants {
             if (containsLayer(name))
                 throw new SpatialDatabaseException("Layer " + name + " already exists");
 
-            Layer layer = DefaultLayer.makeLayer(this, name, geometryEncoderClass, layerClass);
+            Layer layer = DefaultLayer.makeLayerAndNode(this, name, geometryEncoderClass, layerClass);
             getSpatialRoot().createRelationshipTo(layer.getLayerNode(), SpatialRelationshipTypes.LAYER);
             tx.success();
             return layer;

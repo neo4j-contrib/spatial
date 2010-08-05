@@ -23,6 +23,7 @@ import org.geotools.data.FeatureListenerManager;
 import org.geotools.data.FeatureWriter;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.neo4j.gis.spatial.EditableLayer;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.graphdb.Transaction;
 import org.opengis.feature.simple.SimpleFeature;
@@ -42,11 +43,11 @@ public class Neo4jSpatialFeatureWriter implements FeatureWriter<SimpleFeatureTyp
 		this.transaction = transaction;
 		this.listener = listener;
 		this.reader = reader;
-		this.layer = reader.getLayer();
+		this.layer = (EditableLayer)reader.getLayer();
 		this.featureType = reader.getFeatureType();
 	}
 	
-	public Neo4jSpatialFeatureWriter(FeatureListenerManager listener, org.geotools.data.Transaction transaction, Layer layer, SimpleFeatureType featureType) {
+	public Neo4jSpatialFeatureWriter(FeatureListenerManager listener, org.geotools.data.Transaction transaction, EditableLayer layer, SimpleFeatureType featureType) {
 		this.transaction = transaction;
 		this.listener = listener;
 		this.layer = layer;
@@ -177,7 +178,7 @@ public class Neo4jSpatialFeatureWriter implements FeatureWriter<SimpleFeatureTyp
 	private org.geotools.data.Transaction transaction;
 	private SimpleFeatureType featureType;
 	private Neo4jSpatialFeatureReader reader;	
-	private Layer layer;
+	private EditableLayer layer;
 	private boolean closed;	
 	
     private static final Logger LOGGER = org.geotools.util.logging.Logging.getLogger("org.neo4j.gis.spatial");

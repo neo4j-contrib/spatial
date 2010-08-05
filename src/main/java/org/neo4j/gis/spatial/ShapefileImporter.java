@@ -66,6 +66,10 @@ public class ShapefileImporter implements Constants {
 		this.monitor = monitor;
 	}
 	
+	public ShapefileImporter(GraphDatabaseService database, Listener monitor) {	
+		this(database, monitor, 1000);
+	}
+
 	public ShapefileImporter(GraphDatabaseService database) {	
 		this(database, null, 1000);
 	}
@@ -110,7 +114,7 @@ public class ShapefileImporter implements Constants {
 	// Public methods
 	
 	public void importFile(String dataset, String layerName) throws ShapefileException, FileNotFoundException, IOException {
-		DefaultLayer layer = (DefaultLayer)spatialDatabase.getOrCreateLayer(layerName, WKBGeometryEncoder.class, DefaultLayer.class);
+		EditableLayerImpl layer = (EditableLayerImpl)spatialDatabase.getOrCreateLayer(layerName, WKBGeometryEncoder.class, EditableLayerImpl.class);
 		GeometryFactory geomFactory = layer.getGeometryFactory();
 		
 		boolean strict = false;
