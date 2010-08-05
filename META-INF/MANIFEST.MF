@@ -1,0 +1,10 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Neo4j Spatial
+Bundle-SymbolicName: org.neo4j.spatial
+Bundle-Version: 1.0.0
+Export-Package: org.neo4j.gis.spatial,
+ org.neo4j.gis.spatial.geotools.data,
+ org.neo4j.gis.spatial.osm,
+ org.neo4j.gis.spatial.query
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
