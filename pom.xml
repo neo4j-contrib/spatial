@@ -75,7 +75,7 @@
 									dest="target/osm/sweden.osm.administrative.bz2" verbose="true"
 									usetimestamp="true" />
 								<bunzip2 src="target/osm/sweden.osm.administrative.bz2"
-									dest="target/osm/" overwrite="false"/>
+									dest="target/osm/"/>
 							</tasks>
 						</configuration>
 						<goals>
