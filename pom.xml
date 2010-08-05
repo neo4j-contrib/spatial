@@ -2,8 +2,9 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<properties>
-		<geotools.version>2.6.3</geotools.version>
+		<geotools.version>2.6.4</geotools.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<bundle.namespace>org.neo4j.gis</bundle.namespace>
 	</properties>
 
 	<modelVersion>4.0.0</modelVersion>
@@ -13,6 +14,8 @@
 	<name>Neo4j Spatial components</name>
 	<description>Spatial utilities and components for neo4j</description>
 	<url>http://github.com/neo4j/neo4j-spatial/</url>
+
+	<packaging>bundle</packaging>
 	<parent>
 		<artifactId>parent-pom</artifactId>
 		<groupId>org.neo4j</groupId>
@@ -60,19 +63,19 @@
 						<id>build-config-files</id>
 						<configuration>
 							<tasks>
-								<echo message="To skip me, just call mvn -Dmaven.test.skip=true" />
 								<mkdir dir="target/shp" />
 								<mkdir dir="target/osm" />
 								<get
-									src="http://downloads.cloudmade.com/europe/sweden/sweden.shapefiles.zip "
+									src="http://downloads.cloudmade.com/europe/sweden/sweden.shapefiles.zip
+				"
 									dest="target/shp/sweden.zip" verbose="true" usetimestamp="true" />
-								<unzip src="target/shp/sweden.zip" dest="target/shp/" />
+								<unzip src="target/shp/sweden.zip" dest="target/shp/" overwrite="false"/>
 								<get
 									src="http://downloads.cloudmade.com/europe/sweden/sweden.osm.administrative.bz2"
 									dest="target/osm/sweden.osm.administrative.bz2" verbose="true"
 									usetimestamp="true" />
 								<bunzip2 src="target/osm/sweden.osm.administrative.bz2"
-									dest="target/osm/" />
+									dest="target/osm/" overwrite="false"/>
 							</tasks>
 						</configuration>
 						<goals>
@@ -132,28 +135,32 @@
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-kernel</artifactId>
 			<version>1.1</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-index</artifactId>
 			<version>1.1</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.geotools</groupId>
 			<artifactId>gt-main</artifactId>
 			<version>${geotools.version}</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.geotools</groupId>
 			<artifactId>gt-shapefile</artifactId>
 			<version>${geotools.version}</version>
+			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>log4j</groupId>
 			<artifactId>log4j</artifactId>
 			<version>1.2.14</version>
 			<type>jar</type>
-			<scope>compile</scope>
+			<scope>provided</scope>
 		</dependency>
 	</dependencies>
 	<repositories>
@@ -174,7 +181,9 @@
 	<!-- <distributionManagement> -->
 	<!-- <repository> -->
 	<!-- <id>neo4j-upload-repository</id> -->
-	<!-- <name>Developers-only Maven 2 upload repository for Neo4j</name> -->
+	<!--
+		<name>Developers-only Maven 2 upload repository for Neo4j</name>
+	-->
 	<!-- <url>scpexe://m2.neo4j.org/home/neo/maven2</url> -->
 	<!-- </repository> -->
 	<!-- </distributionManagement> -->
