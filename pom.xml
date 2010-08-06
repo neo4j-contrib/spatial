@@ -133,13 +133,19 @@
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-kernel</artifactId>
-			<version>1.1</version>
+			<version>1.2-SNAPSHOT</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.neo4j</groupId>
+			<artifactId>neo4j-graph-algo</artifactId>
+			<version>0.7-SNAPSHOT</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-index</artifactId>
-			<version>1.1</version>
+			<version>1.2-SNAPSHOT</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
@@ -177,13 +183,30 @@
 			</snapshots>
 		</repository>
 	</repositories>
-	<!-- <distributionManagement> -->
-	<!-- <repository> -->
-	<!-- <id>neo4j-upload-repository</id> -->
-	<!--
-		<name>Developers-only Maven 2 upload repository for Neo4j</name>
-	-->
-	<!-- <url>scpexe://m2.neo4j.org/home/neo/maven2</url> -->
-	<!-- </repository> -->
-	<!-- </distributionManagement> -->
+	<profiles>
+		<profile>
+			<id>appserverConfig-dev</id>
+			<activation>
+				<property>
+					<name>env</name>
+					<value>dev</value>
+				</property>
+			</activation>
+			<properties>
+				<appserver.home>/path/to/dev/appserver</appserver.home>
+			</properties>
+		</profile>
+		<profile>
+			<id>appserverConfig-dev-2</id>
+			<activation>
+				<property>
+					<name>env</name>
+					<value>dev-2</value>
+				</property>
+			</activation>
+			<properties>
+				<appserver.home>/path/to/another/dev/appserver2</appserver.home>
+			</properties>
+		</profile>
+	</profiles>
 </project>
