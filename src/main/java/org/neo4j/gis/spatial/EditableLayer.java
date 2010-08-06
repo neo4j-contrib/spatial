@@ -42,6 +42,15 @@ public interface EditableLayer extends Layer {
     SpatialDatabaseRecord add(Geometry geometry);
 
     /**
+     * Add a new geometry to the layer. This will add the geometry to the index.
+     * @TODO: Rather use a HashMap of properties
+     * 
+     * @param geometry
+     * @return
+     */
+    SpatialDatabaseRecord add(Geometry geometry, String[] fieldsName, Object[] fields);
+
+    /**
      * Delete the geometry identified by the passed node id. This might be as simple as deleting the
      * geometry node, or it might require extracting and deleting an entire sub-graph.
      * 
