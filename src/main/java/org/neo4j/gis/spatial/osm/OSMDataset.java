@@ -4,6 +4,7 @@ import java.util.Arrays;
 
 import org.neo4j.gis.spatial.GeometryEncoder;
 import org.neo4j.gis.spatial.Layer;
+import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.SpatialDataset;
 import org.neo4j.gis.spatial.SpatialRelationshipTypes;
@@ -44,7 +45,7 @@ public class OSMDataset implements SpatialDataset {
         } else {
             Node node = rel.getStartNode();
             if (!node.equals(datasetNode)) {
-                throw new RuntimeException("Layer '" + osmLayer + "' already belongs to another dataset: " + node);
+                throw new SpatialDatabaseException("Layer '" + osmLayer + "' already belongs to another dataset: " + node);
             }
         }
     }
@@ -62,7 +63,7 @@ public class OSMDataset implements SpatialDataset {
         this.layer = osmLayer;
         Relationship rel = layerNode.getSingleRelationship(SpatialRelationshipTypes.LAYERS, Direction.INCOMING);
         if (rel == null) {
-            throw new RuntimeException("Layer '" + osmLayer + "' does not have an associated dataset");
+            throw new SpatialDatabaseException("Layer '" + osmLayer + "' does not have an associated dataset");
         } else {
             datasetNode = rel.getStartNode();
         }

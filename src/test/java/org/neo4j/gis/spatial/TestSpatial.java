@@ -156,7 +156,7 @@ public class TestSpatial extends Neo4jTestCase {
                         testImport(layerName);
                     } catch (Exception e) {
                         // assertTrue("Failed to run import test due to exception: " + e, false);
-                        throw new RuntimeException(e.getMessage(), e);
+                        throw new SpatialDatabaseException(e.getMessage(), e);
                     }
                 }
             });
@@ -166,7 +166,7 @@ public class TestSpatial extends Neo4jTestCase {
                         testSpatialIndex(layerName);
                     } catch (Exception e) {
                         // assertTrue("Failed to run import test due to exception: " + e, false);
-                        throw new RuntimeException(e.getMessage(), e);
+                        throw new SpatialDatabaseException(e.getMessage(), e);
                     }
                 }
             });

@@ -201,11 +201,11 @@ public class DynamicLayer extends DefaultLayer {
 		}
 
 		public SpatialDatabaseRecord add(Node geomNode) {
-			throw new RuntimeException("Cannot add nodes to dynamic layers, add the node to the base layer instead");
+			throw new SpatialDatabaseException("Cannot add nodes to dynamic layers, add the node to the base layer instead");
 		}
 
 		public void delete(Listener monitor) {
-			throw new RuntimeException("Cannot delete dynamic layers, delete the base layer instead");
+			throw new SpatialDatabaseException("Cannot delete dynamic layers, delete the base layer instead");
 		}
 
 		public CoordinateReferenceSystem getCoordinateReferenceSystem() {
@@ -236,7 +236,7 @@ public class DynamicLayer extends DefaultLayer {
 			if (index instanceof SpatialTreeIndex) {
 				return new DynamicIndexReader((SpatialTreeIndex) DynamicLayer.this.getIndex(), getQuery());
 			} else {
-				throw new RuntimeException("Cannot make a DynamicLayer from a non-SpatialTreeIndex Layer");
+				throw new SpatialDatabaseException("Cannot make a DynamicLayer from a non-SpatialTreeIndex Layer");
 			}
 		}
 
@@ -252,7 +252,7 @@ public class DynamicLayer extends DefaultLayer {
 		}
 
 		public void initialize(SpatialDatabaseService spatialDatabase, String name, Node layerNode) {
-			throw new RuntimeException("Cannot initialize the layer config, initialize only the dynamic layer node");
+			throw new SpatialDatabaseException("Cannot initialize the layer config, initialize only the dynamic layer node");
 		}
 	}
 

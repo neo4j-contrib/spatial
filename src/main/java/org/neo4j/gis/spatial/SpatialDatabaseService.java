@@ -115,7 +115,7 @@ public class SpatialDatabaseService implements Constants {
         } else if(layerClass == null || layerClass.isInstance(layer)) {
         	return layer;
         } else {
-        	throw new RuntimeException("Existing layer '"+layer+"' is not of the expected type: "+layerClass);
+        	throw new SpatialDatabaseException("Existing layer '"+layer+"' is not of the expected type: "+layerClass);
         }
     }
 

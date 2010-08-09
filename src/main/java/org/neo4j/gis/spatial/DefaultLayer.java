@@ -216,7 +216,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
             layerNode.setProperty(PROP_LAYER_CLASS, layerClass.getCanonicalName());
             return DefaultLayer.makeLayerInstance(spatialDatabase, name, layerNode, layerClass);
         } catch (Exception e) {
-            throw (RuntimeException)new RuntimeException().initCause(e);
+            throw new SpatialDatabaseException(e);
         }
     }
 
