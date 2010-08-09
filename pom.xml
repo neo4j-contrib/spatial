@@ -185,28 +185,24 @@
 	</repositories>
 	<profiles>
 		<profile>
-			<id>appserverConfig-dev</id>
-			<activation>
-				<property>
-					<name>env</name>
-					<value>dev</value>
-				</property>
-			</activation>
-			<properties>
-				<appserver.home>/path/to/dev/appserver</appserver.home>
-			</properties>
+			<id>test-default</id>
+			<activation><property><name>env</name><value>default</value></property></activation>
+			<properties><spatial.test.mode>default</spatial.test.mode></properties>
 		</profile>
 		<profile>
-			<id>appserverConfig-dev-2</id>
-			<activation>
-				<property>
-					<name>env</name>
-					<value>dev-2</value>
-				</property>
-			</activation>
-			<properties>
-				<appserver.home>/path/to/another/dev/appserver2</appserver.home>
-			</properties>
+			<id>test-short</id>
+			<activation><property><name>env</name><value>short</value></property></activation>
+			<properties><spatial.test.mode>short</spatial.test.mode></properties>
+		</profile>
+		<profile>
+			<id>test-dev</id>
+			<activation><property><name>env</name><value>dev</value></property></activation>
+			<properties><spatial.test.mode>dev</spatial.test.mode></properties>
+		</profile>
+		<profile>
+			<id>test-long</id>
+			<activation><property><name>env</name><value>long</value></property></activation>
+			<properties><spatial.test.mode>long</spatial.test.mode></properties>
 		</profile>
 	</profiles>
 </project>
