@@ -29,6 +29,7 @@ import org.geotools.data.DataStore;
 import org.geotools.data.DataStoreFactorySpi;
 import org.geotools.util.KVP;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.TransactionFailureException;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 
 
@@ -62,7 +63,15 @@ public class Neo4jSpatialDataStoreFactory implements DataStoreFactorySpi {
 
 	public DataStore createDataStore(Map<String,Serializable> params) {
     	File neo4jDir = getNeo4jDir(params.get(URLP.key));
-        return new Neo4jSpatialDataStore(new EmbeddedGraphDatabase(neo4jDir.getAbsolutePath()));
+    	EmbeddedGraphDatabase db = null;
+    	Neo4jSpatialDataStore neo4jSpatialDataStore = null;
+		try {
+			db = new EmbeddedGraphDatabase(neo4jDir.getAbsolutePath());
+			neo4jSpatialDataStore  = new Neo4jSpatialDataStore(db);
+    	} catch (TransactionFailureException tfe) {
+    		tfe.printStackTrace();
+    	}
+		return neo4jSpatialDataStore;
 	}
 	
 	public DataStore createNewDataStore(Map<String,Serializable> params) {
