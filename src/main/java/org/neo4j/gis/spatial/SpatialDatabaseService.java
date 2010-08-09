@@ -168,7 +168,7 @@ public class SpatialDatabaseService implements Constants {
 	}
 	
     public Layer createLayer(String name) {
-        return createLayer(name, WKBGeometryEncoder.class, Layer.class);
+        return createLayer(name, WKBGeometryEncoder.class, DefaultLayer.class);
     }
 
     public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass, Class<? extends Layer> layerClass) {
