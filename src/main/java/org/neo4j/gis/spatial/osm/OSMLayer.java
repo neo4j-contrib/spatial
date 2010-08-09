@@ -30,6 +30,11 @@ public class OSMLayer extends DynamicLayer {
         return osmDataset;
     }
 
+    public Integer getGeometryType() {
+    	// The core layer in OSM is based on the Ways, and we return all of them as LINESTRING
+    	return GTYPE_LINESTRING;
+    }
+
     protected void clear() {
         index.clear(new NullListener());
     }

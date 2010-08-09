@@ -31,11 +31,16 @@ import org.neo4j.graphdb.Transaction;
 
 import com.vividsolutions.jts.geom.Envelope;
 
-
 /**
+ * The RTreeIndex is the first and still standard index for Neo4j Spatial. It
+ * implements both SpatialIndexReader and SpatialIndexWriter for read and write
+ * support. In addition it implements SpatialTreeIndex which allows it to be
+ * wrapped with modifying search functions to thatcustom classes can be used to
+ * perform filterintg searches on the tree.
+ * 
  * @author Davide Savazzi
  */
-public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Constants {
+public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constants {
 
 	// Constructor
 	
@@ -236,7 +241,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 		return layer.getGeometryEncoder().decodeEnvelope(geomNode);
 	}
 	
-	private void visit(SpatialIndexVisitor visitor, Node indexNode) {
+	public void visit(SpatialIndexVisitor visitor, Node indexNode) {
 		if (!visitor.needsToVisit(indexNode)) return;
 		
 		if (indexNode.hasRelationship(SpatialRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
@@ -323,7 +328,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 		}
 	}
 	
-	private Node getIndexRoot() {
+	public Node getIndexRoot() {
 		return layer.getLayerNode().getSingleRelationship(SpatialRelationshipTypes.RTREE_ROOT, Direction.OUTGOING).getEndNode();
 	}
 	
@@ -736,7 +741,7 @@ public class RTreeIndex implements SpatialIndexReader, SpatialIndexWriter, Const
 	
 	// Private classes
 
-	class RecordCounter implements SpatialIndexVisitor {
+	static class RecordCounter implements SpatialIndexVisitor {
 		
 		public boolean needsToVisit(Node indexNode) { return true; }	
 		
