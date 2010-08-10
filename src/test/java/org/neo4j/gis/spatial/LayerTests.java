@@ -30,7 +30,13 @@ public class LayerTests extends Neo4jTestCase {
 		SpatialDatabaseService db = new SpatialDatabaseService(graphDb());
 		EditableLayer layer = (EditableLayer) db.getOrCreateEditableLayer("test");
 		assertNotNull(layer);
-		layer.add(layer.getGeometryFactory().createPoint(new Coordinate(15.3, 56.2)));
+		SpatialDatabaseRecord record = layer.add(layer.getGeometryFactory().createPoint(new Coordinate(15.3, 56.2)));
+		assertNotNull(record);
+		//get back our point
+		SearchContain searchQuery = new SearchContain(layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)));
+		layer.getIndex().executeSearch(searchQuery);
+        List<SpatialDatabaseRecord> results = searchQuery.getResults();
+        assertEquals(1, results.size());
 	}
 
 	@Test
