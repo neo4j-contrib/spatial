@@ -29,6 +29,14 @@ import org.neo4j.graphdb.StopEvaluator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.Traverser.Order;
 
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.MultiLineString;
+import com.vividsolutions.jts.geom.MultiPoint;
+import com.vividsolutions.jts.geom.MultiPolygon;
+import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.geom.Polygon;
+
 
 /**
  * @author Davide Savazzi
@@ -202,4 +210,35 @@ public class SpatialDatabaseService implements Constants {
 	// Attributes
 	
 	private GraphDatabaseService database;
+
+	public static Class<? extends Geometry> convertGeometryTypeToJtsClass(Integer geometryType) {
+		switch (geometryType) {
+			case GTYPE_POINT: return Point.class;
+			case GTYPE_LINESTRING: return LineString.class; 
+			case GTYPE_POLYGON: return Polygon.class;
+			case GTYPE_MULTIPOINT: return MultiPoint.class;
+			case GTYPE_MULTILINESTRING: return MultiLineString.class;
+			case GTYPE_MULTIPOLYGON: return MultiPolygon.class;
+			default: return null;
+		}
+	}
+
+	public static Integer convertJtsClassToGeometryType(Class<? extends Geometry> jtsClass) {
+		if (jtsClass.equals(Point.class)) {
+			return GTYPE_POINT;
+		} else if (jtsClass.equals(LineString.class)) {
+			return GTYPE_LINESTRING;
+		} else if (jtsClass.equals(Polygon.class)) {
+			return GTYPE_POLYGON;
+		} else if (jtsClass.equals(MultiPoint.class)) {
+			return GTYPE_MULTIPOINT;
+		} else if (jtsClass.equals(MultiLineString.class)) {
+			return GTYPE_MULTILINESTRING;
+		} else if (jtsClass.equals(MultiPolygon.class)) {
+			return GTYPE_MULTIPOLYGON;
+		} else {
+			return null;
+		}
+	}
+
 }

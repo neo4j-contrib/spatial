@@ -329,8 +329,8 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
     }
     
 	protected List<AttributeDescriptor> readAttributes(String typeName, String[] extraPropertyNames) throws IOException {
-    	Class<?> geometryClass = convertGeometryTypeToJtsClass(getGeometryType(typeName));
-	            
+    	Class<? extends Geometry> geometryClass = SpatialDatabaseService.convertGeometryTypeToJtsClass(getGeometryType(typeName));
+
 	    AttributeTypeBuilder build = new AttributeTypeBuilder();
 	    build.setName(Classes.getShortName(geometryClass));
 	    build.setNillable(true);
@@ -404,18 +404,6 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
         Layer layer = spatialDatabase.getLayer(typeName);
         return layer.getGeometryType();
     }
-
-	private Class convertGeometryTypeToJtsClass(Integer geometryType) {
-		switch (geometryType) {
-			case GTYPE_POINT: return Point.class;
-			case GTYPE_LINESTRING: return LineString.class; 
-			case GTYPE_POLYGON: return Polygon.class;
-			case GTYPE_MULTIPOINT: return MultiPoint.class;
-			case GTYPE_MULTILINESTRING: return MultiLineString.class;
-			case GTYPE_MULTIPOLYGON: return MultiPolygon.class;
-			default: return null;
-		}
-	}    
 
 	
 	// Tmp

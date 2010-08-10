@@ -26,14 +26,20 @@ import com.vividsolutions.jts.geom.GeometryFactory;
  * relationships. One key example of where this type of capability is very
  * valuable is for example when a layer contains geometries of multiple types,
  * but geotools can only express one type in each layer. Then we can use
- * DynamicLayer to expose each of the different geopetry types as a different
+ * DynamicLayer to expose each of the different geometry types as a different
  * layer to the consuming application (desktop or web application).
+ * </p>
+ * <p>
+ * DynamicLayer extends EdiableLayerImpl, and is therefore editable. Not that
+ * this support is dependant on the correct working of the appropriate
+ * GeometryEncoder, and also does not extend to the sub-layers provided. Those
+ * are read-only views.
  * </p>
  * 
  * @author craig
  * @since 1.0.0
  */
-public class DynamicLayer extends DefaultLayer {
+public class DynamicLayer extends EditableLayerImpl {
 
 	private LinkedHashMap<String, Layer> layers;
 
