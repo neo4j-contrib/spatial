@@ -12,6 +12,7 @@ import com.vividsolutions.jts.geom.GeometryFactory;
  * 
  * @TODO: Consider generalizing this code and making a float[] type
  *        geometry store available in the library
+ * @TODO: Consider switching from Float to Double according to Davide Savazzi
  * @author craig
  */
 public class SimplePropertyEncoder extends AbstractGeometryEncoder {
