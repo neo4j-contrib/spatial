@@ -51,6 +51,9 @@ public class SearchIntersectWindow extends AbstractSearch {
 			add(geomNode);
 		} else if (window.intersects(geomEnvelope)) {
 			Geometry geometry = decode(geomNode);
+			// The next line just calls the method that is causing exceptions on OSM data for testing
+			// TODO: Remove when OSM is working properly
+			geometry.getEnvelopeInternal();
 			if (geometry.intersects(windowGeom)) {
 				add(geomNode, geometry);
 			}

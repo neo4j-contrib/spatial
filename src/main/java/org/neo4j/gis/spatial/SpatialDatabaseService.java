@@ -99,6 +99,7 @@ public class SpatialDatabaseService implements Constants {
 	}
 	
     public Layer getLayer(String name) {
+    	//TODO: Support dynamic layers also
         for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
             Node node = relationship.getEndNode();
             if (name.equals(node.getProperty(PROP_LAYER))) {

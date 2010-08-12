@@ -1,5 +1,7 @@
 package org.neo4j.gis.spatial.osm;
 
+import java.util.ArrayList;
+
 import org.neo4j.gis.spatial.AbstractGeometryEncoder;
 import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.graphdb.Direction;
@@ -35,12 +37,12 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
         if (!(container instanceof Node)) {
             throw new OSMGraphException("Cannot decode non-node geometry: " + container);
         }
-        return (Node)container;
+        return (Node) container;
     }
 
     public Envelope decodeEnvelope(PropertyContainer container) {
         Node geomNode = testIsNode(container);
-        double[] bbox = (double[])geomNode.getProperty("bbox");
+        double[] bbox = (double[]) geomNode.getProperty("bbox");
         return new Envelope(bbox[0], bbox[1], bbox[2], bbox[3]);
     }
 
@@ -67,31 +69,34 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
         Node geomNode = testIsNode(container);
         try {
             GeometryFactory geomFactory = layer.getGeometryFactory();
-            int vertices = (Integer)geomNode.getProperty("vertices");
-            Coordinate[] coordinates = new Coordinate[vertices];
-            int index = 0;
+            int vertices = (Integer) geomNode.getProperty("vertices");
+            ArrayList<Coordinate> coordinates = new ArrayList<Coordinate>();
             boolean overrun = false;
             for (Node node : getPointNodesFromWayNode(getWayNodeFromGeometryNode(geomNode))) {
-                if (index >= vertices) {
-                    // System.err.println("Exceeding expected number of way nodes: " + (index + 1) +
+                if (coordinates.size() >= vertices) {
+                    // System.err.println("Exceeding expected number of way nodes: "
+                    // + (index + 1) +
                     // " > " + vertices);
                     overrun = true;
-                    overrunCount ++;
+                    overrunCount++;
                     break;
                 }
-                coordinates[index++] = new Coordinate((Double)node.getProperty("lat"), (Double)node.getProperty("lon"));
+                coordinates.add(new Coordinate((Double) node.getProperty("lat"), (Double) node.getProperty("lon")));
             }
-            decodedCount ++;
+            decodedCount++;
             if (overrun) {
                 System.out.println("Overran expected number of way nodes: " + geomNode + " (" + overrunCount + "/" + decodedCount + ")");
             }
-            switch (vertices) {
+            if (coordinates.size() != vertices) {
+                System.err.println("Mismatching vertices size: " + coordinates.size() + " != " + vertices);
+            }
+            switch (coordinates.size()) {
             case 0:
                 return null;
             case 1:
-                return geomFactory.createPoint(coordinates[0]);
+                return geomFactory.createPoint(coordinates.get(0));
             default:
-                return geomFactory.createLineString(coordinates);
+                return geomFactory.createLineString(coordinates.toArray(new Coordinate[coordinates.size()]));
             }
         } catch (Exception e) {
             throw new OSMGraphException("Failed to decode OSM geometry: " + e.getMessage(), e);
@@ -101,7 +106,8 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
     @Override
     protected void encodeGeometryShape(Geometry geometry, PropertyContainer container) {
         // Node geomNode = testIsNode(container);
-        // TODO: implement this similarly to OSMImporter code, but with normal GraphDatabaseService
+        // TODO: implement this similarly to OSMImporter code, but with normal
+        // GraphDatabaseService
     }
 
 }
