@@ -3,6 +3,8 @@ package org.neo4j.gis.spatial;
 import java.util.List;
 
 import org.junit.Test;
+import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
+import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.query.SearchContain;
 import org.neo4j.gis.spatial.query.SearchIntersect;
 import org.neo4j.gis.spatial.query.SearchWithin;
@@ -33,12 +35,11 @@ public class LayerTests extends Neo4jTestCase {
 		assertNotNull(layer);
 		SpatialDatabaseRecord record = layer.add(layer.getGeometryFactory().createPoint(new Coordinate(15.3, 56.2)));
 		assertNotNull(record);
-		//finds geometries that contain the
-		//given geometry
+        // finds geometries that contain the given geometry
 		SearchContain searchQuery = new SearchContain(layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)));
 		layer.getIndex().executeSearch(searchQuery);
         List<SpatialDatabaseRecord> results = searchQuery.getResults();
-        //should not be contained
+        // should not be contained
         assertEquals(0, results.size());
 		SearchWithin withinQuery = new SearchWithin(layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)));
 		layer.getIndex().executeSearch(withinQuery);
@@ -51,6 +52,7 @@ public class LayerTests extends Neo4jTestCase {
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
 		testSpecificDynamicLayer(spatialService, (DynamicLayer)spatialService.createLayer("test dynamic layer with property encoder", SimplePropertyEncoder.class, DynamicLayer.class));
 		testSpecificDynamicLayer(spatialService, (DynamicLayer)spatialService.createLayer("test dynamic layer with graph encoder", SimpleGraphEncoder.class, DynamicLayer.class));
+		testSpecificDynamicLayer(spatialService, (DynamicLayer)spatialService.createLayer("test dynamic layer with OSM encoder", OSMGeometryEncoder.class, OSMLayer.class));
 	}
 
 	private void testSpecificDynamicLayer(SpatialDatabaseService spatialService, DynamicLayer layer){
@@ -62,18 +64,18 @@ public class LayerTests extends Neo4jTestCase {
 
 		CoordinateList coordinates = new CoordinateList();
 		coordinates.add(new Coordinate(13.1, 56.2), false);
-		coordinates.add(new Coordinate(13.2, 56.1), false);
-		coordinates.add(new Coordinate(13.3, 56.0), false);
-		coordinates.add(new Coordinate(13.2, 56.1), false);
+		coordinates.add(new Coordinate(13.2, 56.0), false);
+		coordinates.add(new Coordinate(13.3, 56.2), false);
+		coordinates.add(new Coordinate(13.2, 56.0), false);
 		coordinates.add(new Coordinate(13.1, 56.2), false);
-		coordinates.add(new Coordinate(13.0, 56.3), false);
+		coordinates.add(new Coordinate(13.0, 56.0), false);
 		layer.add(layer.getGeometryFactory().createLineString(coordinates.toCoordinateArray()));
 
 		coordinates = new CoordinateList();
-		coordinates.add(new Coordinate(14.1, 56.2), false);
-		coordinates.add(new Coordinate(14.3, 56.0), false);
+		coordinates.add(new Coordinate(14.1, 56.0), false);
+		coordinates.add(new Coordinate(14.3, 56.1), false);
 		coordinates.add(new Coordinate(14.2, 56.1), false);
-		coordinates.add(new Coordinate(14.0, 56.3), false);
+		coordinates.add(new Coordinate(14.0, 56.0), false);
 		layer.add(layer.getGeometryFactory().createLineString(coordinates.toCoordinateArray()));
 
         doSearch(layer, new SearchIntersect(layer.getGeometryFactory().toGeometry(new Envelope(13.2, 14.1, 56.1, 56.2))));
