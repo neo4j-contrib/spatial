@@ -34,6 +34,9 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 
 
 /**
+ * DataStoreFactorySpi implementation.
+ * It needs an "url" parameter containing a path of a Neo4j neostore.id file.
+ * 
  * @author Davide Savazzi
  */
 public class Neo4jSpatialDataStoreFactory implements DataStoreFactorySpi {

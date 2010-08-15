@@ -20,11 +20,11 @@ import java.io.IOException;
 import java.util.logging.Logger;
 
 import org.geotools.data.FeatureListenerManager;
+import org.geotools.data.FeatureReader;
 import org.geotools.data.FeatureWriter;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.neo4j.gis.spatial.EditableLayer;
-import org.neo4j.gis.spatial.Layer;
 import org.neo4j.graphdb.Transaction;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
@@ -33,25 +33,21 @@ import com.vividsolutions.jts.geom.Geometry;
 
 
 /**
+ * FeatureWriter implementation.
+ * Instances of this class are created by Neo4jSpatialDataStore.
+ * 
  * @author Davide Savazzi
  */
 public class Neo4jSpatialFeatureWriter implements FeatureWriter<SimpleFeatureType, SimpleFeature> {
 
 	// Constructor
 	
-	public Neo4jSpatialFeatureWriter(FeatureListenerManager listener, org.geotools.data.Transaction transaction, Neo4jSpatialFeatureReader reader) {
+	protected Neo4jSpatialFeatureWriter(FeatureListenerManager listener, org.geotools.data.Transaction transaction, EditableLayer layer, FeatureReader<SimpleFeatureType, SimpleFeature> reader) {
 		this.transaction = transaction;
 		this.listener = listener;
 		this.reader = reader;
-		this.layer = (EditableLayer)reader.getLayer();
-		this.featureType = reader.getFeatureType();
-	}
-	
-	public Neo4jSpatialFeatureWriter(FeatureListenerManager listener, org.geotools.data.Transaction transaction, EditableLayer layer, SimpleFeatureType featureType) {
-		this.transaction = transaction;
-		this.listener = listener;
 		this.layer = layer;
-		this.featureType = featureType;
+		this.featureType = reader.getFeatureType();
 	}
 	
 	
@@ -110,7 +106,7 @@ public class Neo4jSpatialFeatureWriter implements FeatureWriter<SimpleFeatureTyp
             }
             
             listener.fireFeaturesRemoved(featureType.getTypeName(), 
-            		transaction, new ReferencedEnvelope(live.getBounds()), false);
+            		transaction, new ReferencedEnvelope(live.getBounds()), true);
         }
         
         live = null;
@@ -140,7 +136,7 @@ public class Neo4jSpatialFeatureWriter implements FeatureWriter<SimpleFeatureTyp
                 }
                 
                 listener.fireFeaturesChanged(featureType.getTypeName(), 
-                		transaction, new ReferencedEnvelope(current.getBounds()), false);            
+                		transaction, new ReferencedEnvelope(current.getBounds()), true);            
 
             }
         } else {
@@ -154,7 +150,7 @@ public class Neo4jSpatialFeatureWriter implements FeatureWriter<SimpleFeatureTyp
             }
             
             listener.fireFeaturesAdded(featureType.getTypeName(), 
-            		transaction, new ReferencedEnvelope(current.getBounds()), false);            
+            		transaction, new ReferencedEnvelope(current.getBounds()), true);            
         }
         
         live = null;
@@ -177,9 +173,9 @@ public class Neo4jSpatialFeatureWriter implements FeatureWriter<SimpleFeatureTyp
 	private FeatureListenerManager listener;
 	private org.geotools.data.Transaction transaction;
 	private SimpleFeatureType featureType;
-	private Neo4jSpatialFeatureReader reader;	
+	private FeatureReader<SimpleFeatureType, SimpleFeature> reader;	
 	private EditableLayer layer;
-	private boolean closed;	
+	private boolean closed;
 	
     private static final Logger LOGGER = org.geotools.util.logging.Logging.getLogger("org.neo4j.gis.spatial");
 }
