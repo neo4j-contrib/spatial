@@ -27,6 +27,10 @@ import com.vividsolutions.jts.geom.MultiLineString;
 
 
 /**
+ * Creates a Network of LineStrings.
+ * If a LineString start point or end point is equal to some other LineString start point or end point, 
+ * the two LineStrings are connected together with a Relationship. 
+ * 
  * @author Davide Savazzi
  */
 public class LineStringNetworkGenerator {
