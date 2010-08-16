@@ -4,6 +4,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -81,6 +83,53 @@ public class OSMImporter implements Constants {
     private String layerName;
     private long osm_root;
     private long osm_dataset;
+    private HashMap<String,TagStats> tagStats = new HashMap<String,TagStats>();
+    
+	private class TagStats {
+		private String name;
+		private int count = 0;
+		private HashMap<String, Integer> stats = new HashMap<String, Integer>();
+
+		TagStats(String name) {
+			this.name = name;
+		}
+
+		int add(String key) {
+			count++;
+			if (stats.containsKey(key)) {
+				int num = stats.get(key);
+				stats.put(key, ++num);
+				return num;
+			} else {
+				stats.put(key, 1);
+				return 1;
+			}
+		}
+
+		/**
+		 * Return only reasonably commonly used tags.
+		 * 
+		 * @return
+		 */
+		public String[] getTags() {
+			if (stats.size() > 0) {
+				int threshold = count / (stats.size() * 3);
+				ArrayList<String> tags = new ArrayList<String>();
+				for (String key : stats.keySet()) {
+					if (stats.get(key) > threshold)
+						tags.add(key);
+				}
+				Collections.sort(tags);
+				return tags.toArray(new String[tags.size()]);
+			} else {
+				return new String[0];
+			}
+		}
+
+		public String toString() {
+			return "TagStats[" + name + "]: " + getTags();
+		}
+	}
 
     public OSMImporter(String layerName) {
         this.layerName = layerName;
@@ -100,6 +149,7 @@ public class OSMImporter implements Constants {
         Transaction tx = database.beginTx();
         int count = 0;
         try {
+            layer.setExtraPropertyNames(tagStats.get("way").getTags());
             for (Node way : database.getNodeById(osm_dataset).traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH,
                     ReturnableEvaluator.ALL_BUT_START_NODE, OSMRelation.WAYS, Direction.OUTGOING, OSMRelation.NEXT,
                     Direction.OUTGOING)) {
@@ -120,6 +170,21 @@ public class OSMImporter implements Constants {
         log("info | Re-indexing elapsed time in seconds: " + (1.0 * (stopTime - startTime) / 1000.0));
     }
 
+    private int addToTagStats(String type, String key) {
+    	if(!tagStats.containsKey(type)) {
+    		tagStats.put(type,new TagStats(type));
+    	}
+    	return tagStats.get(type).add(key);
+    }
+
+    private int addToTagStats(String type, Collection<String> keys) {
+    	int count = 0;
+    	for(String  key:keys) {
+    		count += addToTagStats(type, key);
+    	}
+    	return count;
+    }
+
     @SuppressWarnings("restriction")
     public void importFile(BatchInserter batchGraphDb, String dataset) throws IOException, XMLStreamException {
         batchIndexService = new LuceneIndexBatchInserterImpl(batchGraphDb);
@@ -133,7 +198,7 @@ public class OSMImporter implements Constants {
         boolean startedWays = false;
         boolean startedRelations = false;
         try {
-            ArrayList<String> currentTags = new ArrayList<String>();
+            ArrayList<String> currentXMLTags = new ArrayList<String>();
             int depth = 0;
             long currentNode = -1;
             long prev_way = -1;
@@ -151,8 +216,8 @@ public class OSMImporter implements Constants {
                 }
                 switch (event) {
                 case javax.xml.stream.XMLStreamConstants.START_ELEMENT:
-                    currentTags.add(depth, parser.getLocalName());
-                    String tagPath = currentTags.toString();
+                    currentXMLTags.add(depth, parser.getLocalName());
+                    String tagPath = currentXMLTags.toString();
                     if (tagPath.equals("[osm]")) {
                         LinkedHashMap<String, Object> properties = new LinkedHashMap<String, Object>();
                         properties.putAll(batchGraphDb.getNodeProperties(osm_dataset));
@@ -188,9 +253,9 @@ public class OSMImporter implements Constants {
                     }
                     if (startedRelations) {
                         if (count < 10) {
-                            log("Starting tag at depth " + depth + ": " + currentTags.get(depth) + " - " + currentTags.toString());
+                            log("Starting tag at depth " + depth + ": " + currentXMLTags.get(depth) + " - " + currentXMLTags.toString());
                             for (int i = 0; i < parser.getAttributeCount(); i++) {
-                                log("\t" + currentTags.toString() + ": " + parser.getAttributeLocalName(i) + "["
+                                log("\t" + currentXMLTags.toString() + ": " + parser.getAttributeLocalName(i) + "["
                                         + parser.getAttributeNamespace(i) + "," + parser.getAttributePrefix(i) + ","
                                         + parser.getAttributeType(i) + "," + "] = " + parser.getAttributeValue(i));
                             }
@@ -200,9 +265,9 @@ public class OSMImporter implements Constants {
                     depth++;
                     break;
                 case javax.xml.stream.XMLStreamConstants.END_ELEMENT:
-                    if (currentTags.toString().equals("[osm, node]")) {
-                        addNodeTags(batchGraphDb, currentNode, currentNodeTags);
-                    } else if (currentTags.toString().equals("[osm, way]")) {
+                    if (currentXMLTags.toString().equals("[osm, node]")) {
+                        addNodeTags(batchGraphDb, currentNode, currentNodeTags,"node");
+                    } else if (currentXMLTags.toString().equals("[osm, way]")) {
                         RoadDirection direction = isOneway(currentNodeTags);
                         String name = (String)currentNodeTags.get("name");
                         String geometry = getGeomFromTags(currentNodeTags);
@@ -223,7 +288,7 @@ public class OSMImporter implements Constants {
                             batchGraphDb.createRelationship(prev_way, way, OSMRelation.NEXT, null);
                         }
                         prev_way = way;
-                        addNodeTags(batchGraphDb, way, currentNodeTags);
+                        addNodeTags(batchGraphDb, way, currentNodeTags, "way") ;
                         Envelope bbox = new Envelope();
                         long prevNode = -1;
                         LinkedHashMap<String, Object> relProps = new LinkedHashMap<String, Object>();
@@ -267,7 +332,7 @@ public class OSMImporter implements Constants {
                             batchGraphDb.createRelationship(way, prevNode, OSMRelation.LAST_NODE, null);
                         }
                         addNodeGeometry(batchGraphDb, way, geometry, bbox, wayNodes.size());
-                    } else if (currentTags.toString().equals("[osm, relation]")) {
+                    } else if (currentXMLTags.toString().equals("[osm, relation]")) {
                         String name = (String)currentNodeTags.get("name");
                         String geometry = getGeomFromTags(currentNodeTags);
                         if (name != null) {
@@ -282,7 +347,7 @@ public class OSMImporter implements Constants {
                             batchGraphDb.createRelationship(prev_relation, relation, OSMRelation.NEXT, null);
                         }
                         prev_relation = relation;
-                        addNodeTags(batchGraphDb, relation, currentNodeTags);
+                        addNodeTags(batchGraphDb, relation, currentNodeTags, "relation");
                         Envelope bbox = new Envelope();
                         long prevMember = -1;
                         int vertices = 0;
@@ -338,7 +403,7 @@ public class OSMImporter implements Constants {
                         addNodeGeometry(batchGraphDb, relation, geometry, bbox, vertices);
                     }
                     depth--;
-                    currentTags.remove(depth);
+                    currentXMLTags.remove(depth);
                     // log("Ending tag at depth "+depth+": "+currentTags.get(depth));
                     break;
                 default:
@@ -379,11 +444,12 @@ public class OSMImporter implements Constants {
         }
     }
 
-    private void addNodeTags(BatchInserter batchGraphDb, long currentNode, LinkedHashMap<String, Object> currentNodeTags) {
-        if (currentNode > 0 && currentNodeTags.size() > 0) {
-            long id = batchGraphDb.createNode(currentNodeTags);
+    private void addNodeTags(BatchInserter batchGraphDb, long currentNode, LinkedHashMap<String, Object> tags, String type) {
+        if (currentNode > 0 && tags.size() > 0) {
+        	addToTagStats(type, tags.keySet());
+            long id = batchGraphDb.createNode(tags);
             batchGraphDb.createRelationship(currentNode, id, OSMRelation.TAGS, null);
-            currentNodeTags.clear();
+            tags.clear();
         }
     }
 

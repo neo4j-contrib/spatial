@@ -281,6 +281,7 @@ public class TestSpatial extends Neo4jTestCase {
                     System.out.println("\t.. and " + (results.size() - ri) + " more ..");
                 }
                 String name = (String)r.getProperty("NAME");
+                if(name==null) name = (String)r.getProperty("name");
                 Integer id = (Integer)r.getProperty("ID");
                 if (name != null && name.length() > 0 || id != null) {
                     for (TestGeometry testData : layerTestGeometries.get(layerName)) {

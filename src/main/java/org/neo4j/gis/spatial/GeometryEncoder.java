@@ -16,6 +16,7 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.PropertyContainer;
 
 import com.vividsolutions.jts.geom.Envelope;
@@ -82,5 +83,31 @@ public interface GeometryEncoder {
      * @return
      */
     Envelope decodeEnvelope(PropertyContainer container);
+
+	/**
+	 * Each geometry might have a set of associated attributes, or properties.
+	 * These are seen as a map of String to Object types, where the Objects
+	 * should be primitives or Strings. This can be encoded as properties of the
+	 * geometry node itself (default behaviour), or stored in the graph in some
+	 * other way.
+	 * 
+	 * @param geomNode
+	 * @param attribute to test
+	 * @return
+	 */
+	boolean hasAttribute(Node geomNode, String name);
+
+	/**
+	 * Each geometry might have a set of associated attributes, or properties.
+	 * These are seen as a map of String to Object types, where the Objects
+	 * should be primitives or Strings. This can be encoded as properties of the
+	 * geometry node itself (default behaviour), or stored in the graph in some
+	 * other way.
+	 * 
+	 * @param geomNode
+	 * @param attribute to test
+	 * @return
+	 */
+	Object getAttribute(Node geomNode, String name);
 
 }

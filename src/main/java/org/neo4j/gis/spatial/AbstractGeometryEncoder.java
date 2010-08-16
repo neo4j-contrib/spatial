@@ -16,51 +16,50 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.PropertyContainer;
 
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
-
 
 /**
  * @author Davide Savazzi
  */
 public abstract class AbstractGeometryEncoder implements GeometryEncoder, Constants {
 
-
 	// Public methods
-	
+
 	public void init(Layer layer) {
 		this.layer = layer;
 	}
-	
-    public void encodeEnvelope(Envelope mbb, PropertyContainer container) {
-        container.setProperty(PROP_BBOX, new double[] { mbb.getMinX(), mbb.getMinY(), mbb.getMaxX(), mbb.getMaxY()});
-    }
 
-    public void encodeGeometry(Geometry geometry, PropertyContainer container) {
-        container.setProperty(PROP_TYPE, encodeGeometryType(geometry.getGeometryType()));
+	public void encodeEnvelope(Envelope mbb, PropertyContainer container) {
+		container.setProperty(PROP_BBOX, new double[] { mbb.getMinX(), mbb.getMinY(), mbb.getMaxX(), mbb.getMaxY() });
+	}
 
-        encodeEnvelope(geometry.getEnvelopeInternal(), container);
+	public void encodeGeometry(Geometry geometry, PropertyContainer container) {
+		container.setProperty(PROP_TYPE, encodeGeometryType(geometry.getGeometryType()));
 
-        encodeGeometryShape(geometry, container);
-    }
+		encodeEnvelope(geometry.getEnvelopeInternal(), container);
+
+		encodeGeometryShape(geometry, container);
+	}
 
 	public Envelope decodeEnvelope(PropertyContainer container) {
 		double[] bbox = (double[]) container.getProperty(PROP_BBOX);
-		
+
 		// Envelope parameters: xmin, xmax, ymin, ymax
 		return new Envelope(bbox[0], bbox[2], bbox[1], bbox[3]);
 	}
 
-	
 	// Protected methods
-	
+
 	protected abstract void encodeGeometryShape(Geometry geometry, PropertyContainer container);
-	
+
 	protected Integer encodeGeometryType(String jtsGeometryType) {
-        // TODO: Consider alternatives for specifying type, like relationship to type category
-        // objects (or similar indexing structure)		
+		// TODO: Consider alternatives for specifying type, like relationship to
+		// type category
+		// objects (or similar indexing structure)
 		if ("Point".equals(jtsGeometryType)) {
 			return GTYPE_POINT;
 		} else if ("MultiPoint".equals(jtsGeometryType)) {
@@ -78,8 +77,38 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 		}
 	}
 
-	
+	/**
+	 * This method wraps the hasProperty(String) method on the geometry node.
+	 * This means the default way of storing attributes is simply as properties
+	 * of the geometry node. This behaviour can be changed by other domain
+	 * models with different encodings.
+	 * 
+	 * @param geomNode
+	 * @param attribute
+	 *            to test
+	 * @return
+	 */
+	public boolean hasAttribute(Node geomNode, String name) {
+		return geomNode.hasProperty(name);
+	}
+
+	/**
+	 * This method wraps the getProperty(String,null) method on the geometry
+	 * node. This means the default way of storing attributes is simply as
+	 * properties of the geometry node. This behaviour can be changed by other
+	 * domain models with different encodings. If the property does not exist,
+	 * the method returns null.
+	 * 
+	 * @param geomNode
+	 * @param attribute
+	 *            to test
+	 * @return attribute, or null
+	 */
+	public Object getAttribute(Node geomNode, String name) {
+		return geomNode.getProperty(name, null);
+	}
+
 	// Attributes
-	
+
 	protected Layer layer;
 }

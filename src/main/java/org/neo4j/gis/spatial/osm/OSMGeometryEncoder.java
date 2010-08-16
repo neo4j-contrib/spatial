@@ -35,7 +35,44 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	private DateFormat dateTimeFormatter;
 	private int vertices;
 
-    public static class OSMGraphException extends SpatialDatabaseException {
+	/**
+	 * This class allows for OSM to avoid having empty tags nodes when there are no properties on a geometry.
+	 * @author craig
+	 */
+    private final class NullProperties implements PropertyContainer {
+	    public GraphDatabaseService getGraphDatabase() {
+	        return null;
+	    }
+
+	    public Object getProperty(String key) {
+	        return null;
+	    }
+
+	    public Object getProperty(String key, Object defaultValue) {
+	        return null;
+	    }
+
+	    public Iterable<String> getPropertyKeys() {
+	        return null;
+	    }
+
+	    public Iterable<Object> getPropertyValues() {
+	        return null;
+	    }
+
+	    public boolean hasProperty(String key) {
+	        return false;
+	    }
+
+	    public Object removeProperty(String key) {
+	        return null;
+	    }
+
+	    public void setProperty(String key, Object value) {
+	    }
+    }
+
+	public static class OSMGraphException extends SpatialDatabaseException {
         private static final long serialVersionUID = -6892234738075001044L;
 
         public OSMGraphException(String message) {
@@ -95,7 +132,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
                     overrunCount++;
                     break;
                 }
-                coordinates.add(new Coordinate((Double) node.getProperty("lat"), (Double) node.getProperty("lon")));
+                coordinates.add(new Coordinate((Double) node.getProperty("lon"), (Double) node.getProperty("lat")));
             }
             decodedCount++;
             if (overrun) {
@@ -204,6 +241,54 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 		if (dateTimeFormatter == null)
 			dateTimeFormatter = new java.text.SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ");
 		return dateTimeFormatter.format(new Date(System.currentTimeMillis()));
+	}
+
+	private Node lastGeom = null;
+	private PropertyContainer lastProp = null;
+
+	private PropertyContainer getProperties(Node geomNode) {
+		if (geomNode != lastGeom) {
+			lastGeom = geomNode;
+			try {
+				lastProp = geomNode.getSingleRelationship(OSMRelation.GEOM, Direction.INCOMING).getStartNode().getSingleRelationship(
+				        OSMRelation.TAGS, Direction.OUTGOING).getEndNode();
+			} catch (NullPointerException e) {
+				System.err.println("Geometry has no related tags node: " + e.getMessage());
+				lastProp = new NullProperties();
+			}
+		}
+		return lastProp;
+	}
+
+	/**
+	 * This method wraps the hasProperty(String) method on the geometry node.
+	 * This means the default way of storing attributes is simply as properties
+	 * of the geometry node. This behaviour can be changed by other domain
+	 * models with different encodings.
+	 * 
+	 * @param geomNode
+	 * @param attribute
+	 *            to test
+	 * @return
+	 */
+	public boolean hasAttribute(Node geomNode, String name) {
+		return getProperties(geomNode).hasProperty(name);
+	}
+
+	/**
+	 * This method wraps the getProperty(String,null) method on the geometry
+	 * node. This means the default way of storing attributes is simply as
+	 * properties of the geometry node. This behaviour can be changed by other
+	 * domain models with different encodings. If the property does not exist,
+	 * the method returns null.
+	 * 
+	 * @param geomNode
+	 * @param attribute
+	 *            to test
+	 * @return attribute, or null
+	 */
+	public Object getAttribute(Node geomNode, String name) {
+		return getProperties(geomNode).getProperty(name, null);
 	}
 
 	public enum OSMId {
