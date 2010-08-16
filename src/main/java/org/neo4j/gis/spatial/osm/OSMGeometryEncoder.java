@@ -3,27 +3,21 @@ package org.neo4j.gis.spatial.osm;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.Locale;
+import java.util.Iterator;
 
-import org.geotools.referencing.operation.projection.NewZealandMapGrid;
 import org.neo4j.gis.spatial.AbstractGeometryEncoder;
 import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
-import org.neo4j.gis.spatial.SpatialRelationshipTypes;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.PropertyContainer;
-import org.neo4j.graphdb.RelationshipType;
-import org.neo4j.graphdb.ReturnableEvaluator;
-import org.neo4j.graphdb.StopEvaluator;
-import org.neo4j.graphdb.TraversalPosition;
-import org.neo4j.graphdb.Traverser.Order;
+import org.neo4j.kernel.impl.traversal.TraversalDescriptionImpl;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryCollection;
 import com.vividsolutions.jts.geom.GeometryFactory;
 
 public class OSMGeometryEncoder extends AbstractGeometryEncoder {
@@ -105,15 +99,40 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
         return wayNode.getSingleRelationship(OSMRelation.GEOM, Direction.OUTGOING).getEndNode();
     }
 
+	/**
+	 * This wrapper class allows the traverser to run simply down the NEXT
+	 * chain, but we wrap this to return the --NODE-->(node) results instead of
+	 * the proxy nodes.
+	 * 
+	 * @author craig
+	 */
+    private class NodeProxyIterator implements Iterator<Node> {
+        Iterator<Path> traverser;
+        NodeProxyIterator(Node first) {
+        	traverser = new TraversalDescriptionImpl().relationships(OSMRelation.NEXT, Direction.OUTGOING).traverse(first).iterator();
+        }
+
+		public boolean hasNext() {
+	        return traverser.hasNext();
+        }
+
+		public Node next() {
+			return traverser.next().endNode().getSingleRelationship(OSMRelation.NODE, Direction.OUTGOING).getEndNode();
+        }
+
+		public void remove() {
+        }
+    	
+    }
+
     public Iterable<Node> getPointNodesFromWayNode(Node wayNode) {
         final Node firstNode = wayNode.getSingleRelationship(OSMRelation.FIRST_NODE, Direction.OUTGOING).getEndNode();
-        final Node lastNode = wayNode.getSingleRelationship(OSMRelation.LAST_NODE, Direction.OUTGOING).getEndNode();
-        return firstNode.traverse(Order.DEPTH_FIRST, new StopEvaluator() {
+        final NodeProxyIterator iterator = new NodeProxyIterator(firstNode);
+        return new Iterable<Node>(){
 
-            public boolean isStopNode(TraversalPosition currentPos) {
-                return currentPos.currentNode().equals(lastNode);
-            }
-        }, ReturnableEvaluator.ALL, OSMRelation.NEXT, Direction.OUTGOING);
+			public Iterator<Node> iterator() {
+	            return iterator;
+            }};
     }
 
     public Geometry decodeGeometry(PropertyContainer container) {
@@ -216,20 +235,18 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 		// version, name
 		way.createRelationshipTo(geomNode, OSMRelation.GEOM);
 		Node prev = null;
-		Node node = null;
 		for (Coordinate coord : geometry.getCoordinates()) {
-			node = makeOSMNode(coord, db);
+			Node node = makeOSMNode(coord, db);
+			Node proxyNode = db.createNode();
+			proxyNode.createRelationshipTo(node, OSMRelation.NODE);
 			if (prev == null) {
-				way.createRelationshipTo(node, OSMRelation.FIRST_NODE);
+				way.createRelationshipTo(proxyNode, OSMRelation.FIRST_NODE);
 			} else {
-				prev.createRelationshipTo(node, OSMRelation.NEXT);
+				prev.createRelationshipTo(proxyNode, OSMRelation.NEXT);
 			}
-			prev = node;
+			prev = proxyNode;
 		}
-		if (node != null) {
-			way.createRelationshipTo(node, OSMRelation.LAST_NODE);
-		}
-		return node;
+		return way;
 	}
 
 	private Node makeOSMRelation(Geometry geometry, Node geomNode) {

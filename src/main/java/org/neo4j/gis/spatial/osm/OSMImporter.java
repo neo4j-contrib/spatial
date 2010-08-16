@@ -291,12 +291,15 @@ public class OSMImporter implements Constants {
                         addNodeTags(batchGraphDb, way, currentNodeTags, "way") ;
                         Envelope bbox = new Envelope();
                         long prevNode = -1;
+                        long prevProxy = -1;
+                        Map<String, Object> prevProps = null;
                         LinkedHashMap<String, Object> relProps = new LinkedHashMap<String, Object>();
                         HashMap<String, Object> directionProps = new HashMap<String, Object>();
                         directionProps.put("oneway", true);
                         for (long nd_ref : wayNodes) {
-                            long node = batchIndexService.getSingleNode("node_osm_id", nd_ref);
-                            if (-1 == node || prevNode == node) {
+                            long pointNode = batchIndexService.getSingleNode("node_osm_id", nd_ref);
+                            long proxyNode = batchGraphDb.createNode(null);
+                            if (-1 == pointNode || prevNode == pointNode) {
                                 /*
                                  * This can happen if we import not whole planet, so some referenced
                                  * nodes will be unavailable
@@ -304,14 +307,14 @@ public class OSMImporter implements Constants {
                                 missingNode(nd_ref);
                                 continue;
                             }
-                            Map<String, Object> nodeProps = batchGraphDb.getNodeProperties(node);
+                            batchGraphDb.createRelationship(proxyNode, pointNode, OSMRelation.NODE, null);
+                            Map<String, Object> nodeProps = batchGraphDb.getNodeProperties(pointNode);
                             double[] location = new double[] {(Double)nodeProps.get("lon"), (Double)nodeProps.get("lat")};
                             bbox.expandToInclude(location[0], location[1]);
-                            if (prevNode < 0) {
-                                batchGraphDb.createRelationship(way, node, OSMRelation.FIRST_NODE, null);
+                            if (prevProxy < 0) {
+                                batchGraphDb.createRelationship(way, proxyNode, OSMRelation.FIRST_NODE, null);
                             } else {
                                 relProps.clear();
-                                Map<String, Object> prevProps = batchGraphDb.getNodeProperties(prevNode);
                                 double[] prevLoc = new double[] {(Double)prevProps.get("lon"), (Double)prevProps.get("lat")};
 
                                 double length = distance(prevLoc[0], prevLoc[1], location[0], location[1]);
@@ -321,16 +324,18 @@ public class OSMImporter implements Constants {
                                 // way node), but if it is one-way we mark it as such, and define
                                 // the direction using the relationship direction
                                 if (direction == RoadDirection.BACKWARD) {
-                                    batchGraphDb.createRelationship(node, prevNode, OSMRelation.NEXT, relProps);
+                                    batchGraphDb.createRelationship(proxyNode, prevProxy, OSMRelation.NEXT, relProps);
                                 } else {
-                                    batchGraphDb.createRelationship(prevNode, node, OSMRelation.NEXT, relProps);
+                                    batchGraphDb.createRelationship(prevProxy, proxyNode, OSMRelation.NEXT, relProps);
                                 }
                             }
-                            prevNode = node;
+                            prevNode = pointNode;
+                            prevProxy = proxyNode;
+                            prevProps = nodeProps;
                         }
-                        if (prevNode > 0) {
-                            batchGraphDb.createRelationship(way, prevNode, OSMRelation.LAST_NODE, null);
-                        }
+//                        if (prevNode > 0) {
+//                            batchGraphDb.createRelationship(way, prevNode, OSMRelation.LAST_NODE, null);
+//                        }
                         addNodeGeometry(batchGraphDb, way, geometry, bbox, wayNodes.size());
                     } else if (currentXMLTags.toString().equals("[osm, relation]")) {
                         String name = (String)currentNodeTags.get("name");
