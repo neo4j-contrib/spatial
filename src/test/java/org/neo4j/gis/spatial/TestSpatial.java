@@ -76,16 +76,30 @@ public class TestSpatial extends Neo4jTestCase {
     }
 
     private static final ArrayList<String> layers = new ArrayList<String>();
+    private static final HashMap<String, Envelope> layerTestEnvelope = new HashMap<String, Envelope>();
     private static final HashMap<String, ArrayList<TestGeometry>> layerTestGeometries = new HashMap<String, ArrayList<TestGeometry>>();
     private static final HashMap<String, DataFormat> layerTestFormats = new HashMap<String, DataFormat>();
     private static String spatialTestMode;
     static {
         // TODO: Rather load this from a configuration file, properties file or JRuby test code
-        addTestLayer("sweden.osm", DataFormat.OSM);
-        addTestLayer("sweden.osm.administrative", DataFormat.OSM);
 
-        // TODO: Rather load this from a configuration file, properties file or JRuby test code
-        addTestLayer("sweden_administrative", DataFormat.SHP);
+        Envelope bbox = new Envelope(12.97, 13.0, 56.05, 56.06); // covers half of Billesholm
+
+    	addTestLayer("billesholm.osm", DataFormat.OSM, bbox);
+        addTestGeometry(70423036, "Ljungsgårdsvägen", "outside top left", "(12.9599540,56.0570692), (12.9624780,56.0716282)");
+        addTestGeometry(67835020, "Villagatan", "in the middle", "(12.9776065,56.0561477), (12.9814421,56.0572131)");
+        addTestGeometry(60966388, "Storgatan", "crossing left edge", "(12.9682980,56.0524546), (12.9710302,56.0538436)");
+
+        bbox = new Envelope(13.0, 14.00, 55.0, 56.0); // cover central Skåne
+        // Bounds for sweden_administrative: 11.1194502 : 24.1585511, 55.3550515 : 69.0600767
+        // Envelope bbox = new Envelope(12.85, 13.25, 55.5, 55.65); // cover Malmö
+        // Envelope bbox = new Envelope(13, 14, 55, 58); // cover admin area 'Söderåsen'
+        // Envelope bbox = new Envelope(7, 10, 37, 40);
+
+        addTestLayer("sweden.osm", DataFormat.OSM, bbox);
+        addTestLayer("sweden.osm.administrative", DataFormat.OSM, bbox);
+
+        addTestLayer("sweden_administrative", DataFormat.SHP, bbox);
         addTestGeometry(1055, "Söderåsens nationalpark", "near top edge", "(13.167721,56.002416), (13.289724,56.047099)");
         addTestGeometry(1067, "", "inside", "(13.2122907,55.6969478), (13.5614499,55.7835819)");
         addTestGeometry(943, "", "crosses left edge", "(12.9120438,55.8253138), (13.0501381,55.8484289)");
@@ -94,23 +108,24 @@ public class TestSpatial extends Neo4jTestCase {
         addTestGeometry(1521, "", "outside right", "(14.0762394,55.4889569), (14.1869043,55.7592587)");
         addTestGeometry(1184, "", "outside above", "(13.4215555,56.109138), (13.4683671,56.2681347)");
 
-        addTestLayer("sweden_natural", DataFormat.SHP);
+        addTestLayer("sweden_natural", DataFormat.SHP, bbox);
         addTestGeometry(208, "Bokskogen", "", "(13.1935576,55.5324763), (13.2710125,55.5657891)");
         addTestGeometry(6110, "Pålsjö skog", "", "(12.6744031,56.0636946), (12.6934147,56.0771857)");
         addTestGeometry(647, "Dalby söderskog", "", "(13.32406,55.671652), (13.336948,55.679243)");
 
-        addTestLayer("sweden_water", DataFormat.SHP);
+        addTestLayer("sweden_water", DataFormat.SHP, bbox);
         addTestGeometry(9548, "Yddingesjön", "", "(13.23564,55.5360264), (13.2676649,55.5558856)");
         addTestGeometry(10494, "Finjasjön", "", "(13.6718979,56.1157516), (13.7398759,56.1566911)");
 
-        addTestLayer("sweden_highway", DataFormat.SHP);
+        addTestLayer("sweden_highway", DataFormat.SHP, bbox);
         addTestGeometry(58904, "Holmeja byväg", "", "(13.2819022,55.5561414), (13.2820848,55.5575418)");
         addTestGeometry(45305, "Yttre RIngvägen", "", "(12.9827334,55.5473645), (13.0118313,55.5480455)");
         addTestGeometry(43536, "Yttre RIngvägen", "", "(12.9412071,55.5564264), (12.9422181,55.5571701)");
     }
 
-    private static void addTestLayer(String layer, DataFormat format) {
+    private static void addTestLayer(String layer, DataFormat format, Envelope bbox) {
         layers.add(layer);
+        layerTestEnvelope.put(layer, bbox);
         layerTestFormats.put(layer, format);
         layerTestGeometries.put(layer, new ArrayList<TestGeometry>());
     }
@@ -143,7 +158,7 @@ public class TestSpatial extends Neo4jTestCase {
             layersToTest = new String[] {"sweden_administrative"};
         } else if (spatialTestMode != null && spatialTestMode.equals("dev")) {
             // Tests relevant to current development
-            layersToTest = new String[] {"sweden.osm.administrative", "sweden_administrative"};
+            layersToTest = new String[] {"billesholm.osm", "sweden.osm.administrative", "sweden_administrative"};
             //layersToTest = new String[] {"sweden_administrative"};
         } else {
             // Tests to run by default for regression (not too long running, and should always pass)
@@ -250,13 +265,9 @@ public class TestSpatial extends Neo4jTestCase {
         System.out.println("FakeIndex count:  " + fakeIndex.count());
         System.out.println("RTreeIndex count: " + rtreeIndex.count());
 
-        // Bounds for sweden_administrative: 11.1194502 : 24.1585511, 55.3550515 : 69.0600767
-        // Envelope bbox = new Envelope(12.85, 13.25, 55.5, 55.65); // cover Malmö
-        Envelope bbox = new Envelope(13.0, 14.00, 55.0, 56.0); // cover central Skåne
-        // Envelope bbox = new Envelope(13, 14, 55, 58); // cover admin area 'Söderåsen'
-        // Envelope bbox = new Envelope(7, 10, 37, 40);
+        Envelope bbox = layerTestEnvelope.get(layerName);
 
-        System.out.println("Displaying test geometries for layer '" + layerName + "'");
+        System.out.println("Displaying test geometries for layer '" + layerName + "' including expected search results");
         for (TestGeometry testData : layerTestGeometries.get(layerName)) {
             System.out.println("\tGeometry: " + testData.toString() + " " + (testData.inOrIntersects(bbox) ? "is" : "is NOT")
                     + " inside search region");
