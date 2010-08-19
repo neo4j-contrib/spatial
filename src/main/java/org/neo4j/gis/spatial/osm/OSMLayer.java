@@ -3,6 +3,7 @@ package org.neo4j.gis.spatial.osm;
 import org.geotools.factory.FactoryRegistryException;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.ReferencingFactoryFinder;
+import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.geotools.resources.CRSUtilities;
 import org.neo4j.gis.spatial.DynamicLayer;
 import org.neo4j.gis.spatial.NullListener;
@@ -48,7 +49,7 @@ public class OSMLayer extends DynamicLayer {
      */
     public CoordinateReferenceSystem getCoordinateReferenceSystem() {
     	try {
-	        return CRS.decode("EPSG:4326");
+    		return DefaultGeographicCRS.WGS84;
         } catch (Exception e) {
         	System.err.println("Failed to decode WGS84 CRS: "+e.getMessage());
 	        e.printStackTrace(System.err);
