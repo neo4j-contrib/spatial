@@ -94,6 +94,11 @@ public class LayerTests extends Neo4jTestCase {
         	System.out.println("\t\tGeometry: "+r);
         }
     }
+	
+	@Test
+	public void testShapefileExport() {
+		
+	}
 
 	enum TestRelationshipTypes implements RelationshipType {
 		FIRST, NEXT;

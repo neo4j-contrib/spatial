@@ -32,20 +32,6 @@
   <build>
     <plugins>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-javadoc-plugin</artifactId>
-        <configuration>
-          <tags>
-            <tag>
-              <name>complexity</name>
-              <placement>a</placement>
-              <head>Complexity:</head>
-            </tag>
-          </tags>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>
         <configuration>
           <source>1.6</source>
@@ -224,5 +210,22 @@
       </properties>
     </profile>
   </profiles>
+
+  <reporting>
+    <plugins>
+      <plugin>
+        <artifactId>maven-javadoc-plugin</artifactId>
+            <configuration>
+            <groups>
+              <group>
+                <title>GIS and Spatial</title>
+                <packages>org.neo4j.gis:org.neo4j.gis.*</packages>
+              </group>
+            </groups>
+            </configuration>
+      </plugin>
+    </plugins>
+  </reporting>
+
 
 </project>
