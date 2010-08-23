@@ -417,6 +417,7 @@ public class OSMImporter implements Constants {
             }
         } finally {
             parser.close();
+            batchIndexService.shutdown();
         }
         describeMissing();
 
