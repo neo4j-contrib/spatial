@@ -18,7 +18,7 @@
         <menu name="Neo4j kernel">
             <item name="Introduction" href="index.html" />
             <item name="Wiki" href="http://wiki.neo4j.org/content/Neo4j Spatial" />
-            <item name="JavaDocs" href="/neo4j-spatial/apidocs/" />
+            <item name="JavaDocs" href="/apidocs/" />
             <item name="Source Repository" href="http://github.com/neo4j/neo4j-spatial" />
         </menu>
         <menu ref="reports" />
