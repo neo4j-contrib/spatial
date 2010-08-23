@@ -92,4 +92,8 @@ public class FakeIndex implements SpatialIndexReader, Constants {
 	
 	// Attributes
 	private Layer layer;
+
+	public Iterable<Node> getAllGeometryNodes() {
+	    return layer.getIndex().getAllGeometryNodes();
+    }
 }

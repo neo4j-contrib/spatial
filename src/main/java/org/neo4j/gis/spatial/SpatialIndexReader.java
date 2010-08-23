@@ -19,6 +19,12 @@ package org.neo4j.gis.spatial;
 import java.util.List;
 import java.util.Set;
 
+import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.ReturnableEvaluator;
+import org.neo4j.graphdb.StopEvaluator;
+import org.neo4j.graphdb.Traverser.Order;
+
 import com.vividsolutions.jts.geom.Envelope;
 
 
@@ -38,5 +44,7 @@ public interface SpatialIndexReader {
 	List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds);
 	
 	void executeSearch(Search search);
+
+    Iterable<Node> getAllGeometryNodes();
 
 }

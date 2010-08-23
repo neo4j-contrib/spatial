@@ -158,11 +158,12 @@ public class TestSpatial extends Neo4jTestCase {
             layersToTest = new String[] {"sweden_administrative"};
         } else if (spatialTestMode != null && spatialTestMode.equals("dev")) {
             // Tests relevant to current development
+            //layersToTest = new String[] {"billesholm.osm"};
             layersToTest = new String[] {"billesholm.osm", "sweden.osm.administrative", "sweden_administrative"};
             //layersToTest = new String[] {"sweden_administrative"};
         } else {
             // Tests to run by default for regression (not too long running, and should always pass)
-            layersToTest = new String[] {"sweden.osm.administrative", "sweden_administrative", "sweden_natural", "sweden_water"};
+            layersToTest = new String[] {"billesholm.osm", "sweden.osm.administrative", "sweden_administrative", "sweden_natural", "sweden_water"};
         }
         for (final String layerName : layersToTest) {
             suite.addTest(new TestSpatial("Test Import of "+layerName) {
@@ -255,6 +256,7 @@ public class TestSpatial extends Neo4jTestCase {
         }
 
         ((RTreeIndex)layer.getIndex()).warmUp();
+        //((RTreeIndex)layer.getIndex()).debugIndexTree();
 
         SpatialIndexReader fakeIndex = new SpatialIndexPerformanceProxy(new FakeIndex(layer));
         SpatialIndexReader rtreeIndex = new SpatialIndexPerformanceProxy(layer.getIndex());
@@ -299,6 +301,8 @@ public class TestSpatial extends Neo4jTestCase {
                         if ((name != null && name.length()>0 && testData.name.equals(name)) || (id != null && testData.id.equals(id))) {
                             System.out.println("\tFound match in test data: test[" + testData + "] == result[" + r + "]");
                             foundData.add(testData);
+                        } else if(name != null && name.length()>0 && name.startsWith(testData.name.substring(0,1))) {
+                            System.out.println("\tOnly first character matched: test[" + testData + "] == result[" + r + "]");
                         }
                     }
                 } else {

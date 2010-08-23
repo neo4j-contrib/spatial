@@ -19,6 +19,8 @@ package org.neo4j.gis.spatial;
 import java.util.List;
 import java.util.Set;
 
+import org.neo4j.graphdb.Node;
+
 import com.vividsolutions.jts.geom.Envelope;
 
 /**
@@ -79,6 +81,10 @@ public class SpatialIndexPerformanceProxy implements SpatialIndexReader {
         spatialIndex.executeSearch(search);
         long stop = System.currentTimeMillis();
         System.out.println("# exec time(executeSearch(" + search + ")): " + (stop - start) + "ms");
+    }
+
+    public Iterable<Node> getAllGeometryNodes() {
+	    return spatialIndex.getAllGeometryNodes();
     }
 
     // Attributes

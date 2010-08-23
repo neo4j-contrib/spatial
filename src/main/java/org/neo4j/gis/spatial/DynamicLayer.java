@@ -84,6 +84,10 @@ public class DynamicLayer extends EditableLayerImpl {
 			return index.isEmpty();
 		}
 
+		public Iterable<Node> getAllGeometryNodes() {
+	        return index.getAllGeometryNodes();
+        }
+
 	}
 
 	public class DynamicIndexReader extends SpatialIndexReaderWrapper {

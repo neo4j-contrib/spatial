@@ -27,7 +27,10 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.ReturnableEvaluator;
+import org.neo4j.graphdb.StopEvaluator;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.Traverser.Order;
 
 import com.vividsolutions.jts.geom.Envelope;
 
@@ -188,7 +191,7 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 			return null;
 		}
 		
-		return getEnvelope(indexRoot);
+		return bboxToEnvelope((double[])indexRoot.getProperty(PROP_BBOX));
 	}
 	
 	public int count() {
@@ -758,4 +761,88 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 		
 		public void onIndexReference(Node geomNode) { }	
 	}
+
+	/**
+	 * In order to wrap one iterable or iterator in another that converts the
+	 * objects from one type to another without loading all into memory, we need
+	 * to use this ugly java-magic. Man, I miss Ruby right now!
+	 * 
+	 * @author craig
+	 * @since 1.0.0
+	 */
+	private class IndexNodeToGeometryNodeIterable implements Iterable<Node> {
+		private Iterator<Node> allIndexNodeIterator;
+
+		private class GeometryNodeIterator implements Iterator<Node> {
+			Iterator<Node> geometryNodeIterator = null;
+
+			public boolean hasNext() {
+				checkGeometryNodeIterator();
+				return geometryNodeIterator != null && geometryNodeIterator.hasNext();
+			}
+
+			public Node next() {
+				checkGeometryNodeIterator();
+				return geometryNodeIterator == null ? null : geometryNodeIterator.next();
+			}
+
+			private void checkGeometryNodeIterator() {
+				while ((geometryNodeIterator == null || !geometryNodeIterator.hasNext()) && allIndexNodeIterator.hasNext()) {
+					geometryNodeIterator = allIndexNodeIterator.next().traverse(Order.DEPTH_FIRST, StopEvaluator.DEPTH_ONE,
+					        ReturnableEvaluator.ALL_BUT_START_NODE, SpatialRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)
+					        .iterator();
+				}
+			}
+
+			public void remove() {
+			}
+
+		}
+
+		public IndexNodeToGeometryNodeIterable(Iterable<Node> allIndexNodes) {
+			this.allIndexNodeIterator = allIndexNodes.iterator();
+		}
+
+		public Iterator<Node> iterator() {
+			return new GeometryNodeIterator();
+		}
+
+	}
+
+	public Iterable<Node> getAllIndexNodes() {
+		return getIndexRoot().traverse(Order.BREADTH_FIRST, StopEvaluator.END_OF_GRAPH, ReturnableEvaluator.ALL_BUT_START_NODE,
+		        SpatialRelationshipTypes.RTREE_CHILD, Direction.OUTGOING);
+	}
+
+	public Iterable<Node> getAllGeometryNodes() {
+		return new IndexNodeToGeometryNodeIterable(getAllIndexNodes());
+	}
+
+	public void debugIndexTree() {
+		printTree(getIndexRoot(), 0);
+	}
+
+	private void printTree(Node root, int depth) {
+		StringBuffer tab = new StringBuffer();
+		for (int i = 0; i < depth; i++) {
+			tab.append("  ");
+		}
+		System.out.println(tab.toString() + "INDEX: " + root);
+		StringBuffer data = new StringBuffer();
+		for (Relationship rel : root.getRelationships(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)) {
+			if (data.length() > 0) {
+				data.append(", ");
+			} else {
+				data.append("DATA: ");
+			}
+			data.append(rel.getEndNode().toString());
+		}
+		if (data.length() > 0) {
+			System.out.println("  " + tab + data);
+		}
+		for (Relationship rel : root.getRelationships(SpatialRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
+			printTree(rel.getEndNode(), depth + 1);
+		}
+	}
+
 }
