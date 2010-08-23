@@ -523,7 +523,7 @@ public class OSMImporter implements Constants {
 
     private long findNode(BatchInserter batchInserter, String name, long parent, RelationshipType relType) {
         for (SimpleRelationship relationship : batchInserter.getRelationships(parent)) {
-            if (relationship.getType() == relType) {
+            if (relationship.getType().name().equals(relType.name())) {
                 long node = relationship.getEndNode();
                 Object nodeName = batchInserter.getNodeProperties(node).get("name");
                 if (nodeName != null && name.equals(nodeName.toString())) {
