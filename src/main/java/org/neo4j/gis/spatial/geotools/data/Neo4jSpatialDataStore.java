@@ -153,6 +153,7 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
             builder.setName(typeName);
             builder.setNamespaceURI(BasicFeatureTypes.DEFAULT_NAMESPACE);
             builder.setAbstract(false);
+            builder.setCRS(layer.getCoordinateReferenceSystem());
             if (parent != null) {
                 builder.setSuperType(parent);
             }
