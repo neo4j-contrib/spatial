@@ -1,27 +1,30 @@
 package org.neo4j.gis.spatial;
 
+import java.io.File;
 import java.io.Serializable;
-import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.geotools.data.DataStore;
-import org.geotools.data.FileDataStoreFactorySpi;
-import org.geotools.data.shapefile.ShapefileDataStoreFactory;
 import org.junit.Test;
+import org.neo4j.gis.spatial.geotools.data.Neo4jSpatialDataStore;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.query.SearchContain;
 import org.neo4j.gis.spatial.query.SearchIntersect;
 import org.neo4j.gis.spatial.query.SearchWithin;
 import org.neo4j.graphdb.RelationshipType;
-import org.opengis.feature.simple.SimpleFeatureType;
-
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateList;
 import com.vividsolutions.jts.geom.Envelope;
+
+import org.geotools.data.shapefile.ShapefileDataStoreFactory;
+import org.geotools.data.FeatureStore;
+import org.geotools.data.shapefile.ShapefileDataStore;
+import org.opengis.feature.simple.SimpleFeatureType;
+import org.opengis.feature.type.GeometryDescriptor;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 public class LayerTests extends Neo4jTestCase {
 
@@ -64,7 +67,7 @@ public class LayerTests extends Neo4jTestCase {
 		testSpecificDynamicLayer(spatialService, (DynamicLayer)spatialService.createLayer("test dynamic layer with OSM encoder", OSMGeometryEncoder.class, OSMLayer.class));
 	}
 
-	private void testSpecificDynamicLayer(SpatialDatabaseService spatialService, DynamicLayer layer){
+	private Layer testSpecificDynamicLayer(SpatialDatabaseService spatialService, DynamicLayer layer){
 		assertNotNull(layer);
 		assertTrue("Should be a dynamic layer", layer instanceof DynamicLayer);
 		layer = (DynamicLayer)spatialService.getLayer(layer.getName());
@@ -92,6 +95,8 @@ public class LayerTests extends Neo4jTestCase {
 
 //		spatialService.deleteLayer(layer.getName(), new NullListener());
 //		assertNull(spatialService.getLayer(layer.getName()));
+        
+        return layer;
 	}
 
 	private void doSearch(DynamicLayer layer, Search searchQuery) {
@@ -107,15 +112,38 @@ public class LayerTests extends Neo4jTestCase {
 	@Test
 	public void testShapefileExport() throws Exception {
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-		String name = "test dynamic layer with property encoder";
-		testSpecificDynamicLayer(spatialService, (DynamicLayer)spatialService.createLayer(name, SimplePropertyEncoder.class, DynamicLayer.class));
-		FileDataStoreFactorySpi factory = new ShapefileDataStoreFactory();
+		exportShapefile(testSpecificDynamicLayer(spatialService, (DynamicLayer)spatialService.createLayer("test dynamic layer with property encoder", SimplePropertyEncoder.class, DynamicLayer.class)).getName());
+		exportShapefile(testSpecificDynamicLayer(spatialService, (DynamicLayer)spatialService.createLayer("test dynamic layer with graph encoder", SimpleGraphEncoder.class, DynamicLayer.class)).getName());
+		exportShapefile(testSpecificDynamicLayer(spatialService, (DynamicLayer)spatialService.createLayer("test dynamic layer with OSM encoder", OSMGeometryEncoder.class, OSMLayer.class)).getName());
+	}
+	
+	private void exportShapefile(String layerName) throws Exception {
+		ShapefileDataStoreFactory factory = new ShapefileDataStoreFactory();
 		Map<String, Serializable> create = new HashMap<String, Serializable>();
-        create.put("url", new URL("file:target/export/test.shp"));
+		String fileName = layerName.replace(" ", "-");
+        File file = new File("target/export/"+fileName+".shp");
+        file.getParentFile().mkdirs();
+        if(file.exists()) {
+        	System.out.println("Deleting previous file: "+file);
+        	file.delete();
+        }
+        URL url = file.toURI().toURL();
+		create.put("url", url);
         create.put("create spatial index", Boolean.TRUE);
-        DataStore dataStore = factory.createNewDataStore(create);
-        //dataStore.createSchema(spatialService.getDatab)
-        //TODO: get the Neo4j datastore, the schema and export on of the layers to the file ...
+        ShapefileDataStore shpDataStore = (ShapefileDataStore) factory.createNewDataStore(create);
+        Neo4jSpatialDataStore neo4jDataStore = new Neo4jSpatialDataStore(graphDb());
+        SimpleFeatureType featureType = neo4jDataStore.getSchema(layerName);
+        GeometryDescriptor geometryType = featureType.getGeometryDescriptor();
+        CoordinateReferenceSystem crs = geometryType.getCoordinateReferenceSystem();
+        //crs = neo4jDataStore.getFeatureSource(layerName).getInfo().getCRS();
+        
+        shpDataStore.createSchema(featureType);
+        FeatureStore store = (FeatureStore) shpDataStore.getFeatureSource();
+        store.addFeatures( neo4jDataStore.getFeatureSource(layerName).getFeatures() );
+        if(crs!=null) shpDataStore.forceSchemaCRS( crs );
+
+        assertTrue("Shapefile was not created: "+file,file.exists());
+        assertTrue("Shapefile was unexpectedly small, only "+file.length()+" bytes: "+file,file.length()>100);
 	}
 
 	enum TestRelationshipTypes implements RelationshipType {
