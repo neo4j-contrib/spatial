@@ -4,13 +4,9 @@ import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.neo4j.gis.spatial.DynamicLayer;
 import org.neo4j.gis.spatial.NullListener;
 import org.neo4j.gis.spatial.SpatialDataset;
-import org.neo4j.gis.spatial.SpatialRelationshipTypes;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.ReturnableEvaluator;
-import org.neo4j.graphdb.StopEvaluator;
-import org.neo4j.graphdb.Traverser.Order;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 /**

@@ -16,8 +16,6 @@
  */
 package org.neo4j.gis.spatial;
 
-import java.util.Map;
-
 import org.neo4j.graphdb.Node;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
