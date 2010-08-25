@@ -1,9 +1,9 @@
 package org.neo4j.gis.spatial;
 
-import org.neo4j.gis.spatial.LayerTests.TestRelationshipTypes;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.PropertyContainer;
+import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.ReturnableEvaluator;
 import org.neo4j.graphdb.StopEvaluator;
 import org.neo4j.graphdb.Traverser.Order;
@@ -23,6 +23,9 @@ import com.vividsolutions.jts.geom.GeometryFactory;
  */
 class SimpleGraphEncoder extends AbstractGeometryEncoder {
 	private GeometryFactory geometryFactory;
+	enum SimpleRelationshipTypes implements RelationshipType {
+		FIRST, NEXT;
+	}
 
 	private GeometryFactory getGeometryFactory() {
 		if(geometryFactory==null) geometryFactory = new GeometryFactory();
@@ -47,9 +50,9 @@ class SimpleGraphEncoder extends AbstractGeometryEncoder {
 			point.setProperty("y", coord.y);
 			point.setProperty("z", coord.z);
 			if (prev == null) {
-				node.createRelationshipTo(point, TestRelationshipTypes.FIRST);
+				node.createRelationshipTo(point, SimpleRelationshipTypes.FIRST);
 			} else {
-				prev.createRelationshipTo(point, TestRelationshipTypes.NEXT);
+				prev.createRelationshipTo(point, SimpleRelationshipTypes.NEXT);
 			}
 			prev = point;
 		}
@@ -59,7 +62,7 @@ class SimpleGraphEncoder extends AbstractGeometryEncoder {
 		Node node = testIsNode(container);
 		CoordinateList coordinates = new CoordinateList();
 		for (Node point : node.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH, ReturnableEvaluator.ALL_BUT_START_NODE,
-		        TestRelationshipTypes.FIRST, Direction.OUTGOING, TestRelationshipTypes.NEXT, Direction.OUTGOING)) {
+		        SimpleRelationshipTypes.FIRST, Direction.OUTGOING, SimpleRelationshipTypes.NEXT, Direction.OUTGOING)) {
 			coordinates.add(new Coordinate((Double) point.getProperty("x"), (Double) point.getProperty("y"), (Double) point.getProperty("z")), false);
 		}
 		return getGeometryFactory().createLineString(coordinates.toCoordinateArray());
