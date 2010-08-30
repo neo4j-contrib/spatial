@@ -13,7 +13,7 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateList;
 import com.vividsolutions.jts.geom.Envelope;
 
-public class LayerTests extends Neo4jTestCase {
+public class LayersTest extends Neo4jTestCase {
 
 	@Test
 	public void testBasicLayerOperations() {
