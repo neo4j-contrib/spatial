@@ -1,6 +1,9 @@
 package org.neo4j.gis.spatial.osm;
 
+import java.util.HashMap;
+
 import org.geotools.referencing.crs.DefaultGeographicCRS;
+import org.json.simple.JSONObject;
 import org.neo4j.gis.spatial.DynamicLayer;
 import org.neo4j.gis.spatial.NullListener;
 import org.neo4j.gis.spatial.SpatialDataset;
@@ -27,6 +30,11 @@ public class OSMLayer extends DynamicLayer {
 		return osmDataset;
 	}
 
+	/**
+	 * This method is used to find or construct the necessary dataset object on
+	 * an existing dataset node and layer. This will create the relationships
+	 * between the two if it is missing.
+	 */
 	public OSMDataset getDataset(long datasetId) {
 		if (osmDataset == null) {
 			osmDataset = new OSMDataset(this.getSpatialDatabase(), this, layerNode, datasetId);
@@ -78,4 +86,40 @@ public class OSMLayer extends DynamicLayer {
         return index.getAllGeometryNodes();
     }
 
+    @SuppressWarnings("unchecked")
+	/**
+	 * <pre>
+	 * { "step": {"type": "GEOM", "direction": "INCOMING"
+	 *     "step": {"type": "TAGS", "direction": "OUTGOING"
+	 *       "properties": {"highway": "residential"}
+	 *     }
+	 *   }
+	 * }
+	 * </pre>
+	 * 
+	 * This will work with OSM datasets, traversing from the geometry node
+	 * to the way node and then to the tags node to test if the way is a
+	 * residential street.
+	 */
+    public LayerConfig addDynamicLayerOnWayTags(String name, int type, HashMap<String,String> wayTags) {
+    	JSONObject query = new JSONObject();
+    	JSONObject step2tags = new JSONObject();
+    	JSONObject step2way = new JSONObject();
+    	JSONObject properties = new JSONObject();
+    	for(String key:wayTags.keySet()){
+    		properties.put(key, wayTags.get(key));
+    	}
+
+    	step2tags.put("properties",properties);
+    	step2tags.put("type", "TAGS");
+    	step2tags.put("direction", "OUTGOING");
+
+    	step2way.put("step", step2tags);
+    	step2way.put("type", "GEOM");
+    	step2way.put("direction", "INCOMING");
+
+    	query.put("step", step2way);
+    	
+    	return addLayerConfig(name, type, query.toJSONString());
+    }
 }

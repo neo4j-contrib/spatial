@@ -47,19 +47,22 @@ public class LayersTest extends Neo4jTestCase {
 	}
 
 	@Test
-	public void testDynamicLayer() {
+	public void testEditableLayers() {
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-		testSpecificDynamicLayer(spatialService, (DynamicLayer)spatialService.createLayer("test dynamic layer with property encoder", SimplePropertyEncoder.class, DynamicLayer.class));
-		testSpecificDynamicLayer(spatialService, (DynamicLayer)spatialService.createLayer("test dynamic layer with graph encoder", SimpleGraphEncoder.class, DynamicLayer.class));
-		testSpecificDynamicLayer(spatialService, (DynamicLayer)spatialService.createLayer("test dynamic layer with OSM encoder", OSMGeometryEncoder.class, OSMLayer.class));
+		testSpecificEditableLayer(spatialService, (EditableLayer)spatialService.createLayer("test dynamic layer with property encoder", SimplePropertyEncoder.class, DynamicLayer.class));
+		testSpecificEditableLayer(spatialService, (EditableLayer)spatialService.createLayer("test dynamic layer with graph encoder", SimpleGraphEncoder.class, DynamicLayer.class));
+		testSpecificEditableLayer(spatialService, (EditableLayer)spatialService.createLayer("test OSM layer with OSM encoder", OSMGeometryEncoder.class, OSMLayer.class));
+		testSpecificEditableLayer(spatialService, (EditableLayer)spatialService.createLayer("test editable layer with property encoder", SimplePropertyEncoder.class, EditableLayerImpl.class));
+		testSpecificEditableLayer(spatialService, (EditableLayer)spatialService.createLayer("test editable layer with graph encoder", SimpleGraphEncoder.class, EditableLayerImpl.class));
+		testSpecificEditableLayer(spatialService, (EditableLayer)spatialService.createLayer("test editable layer with OSM encoder", OSMGeometryEncoder.class, EditableLayerImpl.class));
 	}
 
-	private Layer testSpecificDynamicLayer(SpatialDatabaseService spatialService, DynamicLayer layer){
+	private Layer testSpecificEditableLayer(SpatialDatabaseService spatialService, EditableLayer layer){
 		assertNotNull(layer);
-		assertTrue("Should be a dynamic layer", layer instanceof DynamicLayer);
-		layer = (DynamicLayer)spatialService.getLayer(layer.getName());
+		assertTrue("Should be a dynamic layer", layer instanceof EditableLayer);
+		layer = (EditableLayer)spatialService.getLayer(layer.getName());
 		assertNotNull(layer);
-		assertTrue("Should be a dynamic layer", layer instanceof DynamicLayer);
+		assertTrue("Should be a dynamic layer", layer instanceof EditableLayer);
 
 		CoordinateList coordinates = new CoordinateList();
 		coordinates.add(new Coordinate(13.1, 56.2), false);
@@ -86,9 +89,9 @@ public class LayersTest extends Neo4jTestCase {
         return layer;
 	}
 
-	private void doSearch(DynamicLayer layer, Search searchQuery) {
+	private void doSearch(Layer layer, Search searchQuery) {
 	    System.out.println("Testing search intersection:");
-        layer.index.executeSearch(searchQuery);
+        layer.getIndex().executeSearch(searchQuery);
         List<SpatialDatabaseRecord> results = searchQuery.getResults();
         System.out.println("\tTesting layer '" + layer.getName() +"' (class "+layer.getClass() + "), found results: " + results.size());
         for (SpatialDatabaseRecord r : results) {
@@ -102,9 +105,9 @@ public class LayersTest extends Neo4jTestCase {
 		exporter.setExportDir("target/export");
 		ArrayList<Layer> layers = new ArrayList<Layer>();
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-		layers.add(testSpecificDynamicLayer(spatialService, (DynamicLayer)spatialService.createLayer("test dynamic layer with property encoder", SimplePropertyEncoder.class, DynamicLayer.class)));
-		layers.add(testSpecificDynamicLayer(spatialService, (DynamicLayer)spatialService.createLayer("test dynamic layer with graph encoder", SimpleGraphEncoder.class, DynamicLayer.class)));
-		layers.add(testSpecificDynamicLayer(spatialService, (DynamicLayer)spatialService.createLayer("test dynamic layer with OSM encoder", OSMGeometryEncoder.class, OSMLayer.class)));
+		layers.add(testSpecificEditableLayer(spatialService, (EditableLayer)spatialService.createLayer("test dynamic layer with property encoder", SimplePropertyEncoder.class, DynamicLayer.class)));
+		layers.add(testSpecificEditableLayer(spatialService, (EditableLayer)spatialService.createLayer("test dynamic layer with graph encoder", SimpleGraphEncoder.class, DynamicLayer.class)));
+		layers.add(testSpecificEditableLayer(spatialService, (EditableLayer)spatialService.createLayer("test dynamic layer with OSM encoder", OSMGeometryEncoder.class, OSMLayer.class)));
 		for(Layer layer:layers){
 			exporter.exportLayer(layer.getName());
 		}

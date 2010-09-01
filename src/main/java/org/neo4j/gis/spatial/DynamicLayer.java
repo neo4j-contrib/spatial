@@ -6,11 +6,15 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.json.simple.JSONObject;
+import org.json.simple.JSONValue;
 import org.neo4j.gis.spatial.RTreeIndex.RecordCounter;
 import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.DynamicRelationshipType;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
@@ -91,7 +95,7 @@ public class DynamicLayer extends EditableLayerImpl {
 	}
 
 	public class DynamicIndexReader extends SpatialIndexReaderWrapper {
-		private String query;
+		private JSONObject query;
 
 		private class DynamicRecordCounter extends RecordCounter {
 			public boolean needsToVisit(Node indexNode) {
@@ -107,7 +111,7 @@ public class DynamicLayer extends EditableLayerImpl {
 
 		public DynamicIndexReader(SpatialTreeIndex index, String query) {
 			super(index);
-			this.query = query;
+			this.query = (JSONObject)JSONValue.parse(query);
 		}
 
 		private boolean queryIndexNode(Node indexNode) {
@@ -115,9 +119,59 @@ public class DynamicLayer extends EditableLayerImpl {
 			return true;
 		}
 
+		/**
+		 * Supports querying the geometry node for certain characteristics
+		 * defined by the original JSON query string. Initially this is only the
+		 * existence of certain properties and values, as well as the ability to
+		 * step through single relationships, testing nodes properties along the
+		 * way. For example:
+		 * 
+		 * <pre>
+		 * { "properties": {"type": "geometry"},
+		 *   "step": {"type": "GEOM", "direction": "INCOMING"
+		 *     "step": {"type": "TAGS", "direction": "OUTGOING"
+		 *       "properties": {"highway": "residential"}
+		 *     }
+		 *   }
+		 * }
+		 * </pre>
+		 * 
+		 * This will work with OSM datasets, traversing from the geometry node
+		 * to the way node and then to the tags node to test if the way is a
+		 * residential street.
+		 * 
+		 * @param geomNode
+		 * @return true if the node matches the query string, or the query
+		 *         string is empty
+		 */
 		private boolean queryLeafNode(Node geomNode) {
-			// TODO: Support making the query on each node for supporting the
-			// dynamic index
+			// TODO: Extend support for more complex queries
+			JSONObject properties = (JSONObject)query.get("properties");
+			JSONObject step = (JSONObject)query.get("step");
+			return queryNodeProperties(geomNode,properties) || stepAndQuery(geomNode,step);
+		}
+		
+		private boolean stepAndQuery(Node source, JSONObject step) {
+			if (step != null) {
+				JSONObject properties = (JSONObject) step.get("properties");
+				Node node = source.getSingleRelationship(DynamicRelationshipType.withName(step.get("type").toString()),
+				        Direction.valueOf(step.get("direction").toString())).getOtherNode(source);
+				step = (JSONObject) step.get("step");
+				return queryNodeProperties(node, properties) || stepAndQuery(node, step);
+			} else {
+				return false;
+			}
+		}
+
+		private boolean queryNodeProperties(Node node, JSONObject properties) {
+			if(properties !=null) {
+				for(Object key: properties.keySet()){
+					Object value = node.getProperty(key.toString(),null);
+					if(value == null || !value.equals(properties.get(key))){
+						return false;
+					}
+				}
+			}
 			return true;
 		}
 
@@ -177,7 +231,7 @@ public class DynamicLayer extends EditableLayerImpl {
 		}
 
 		/**
-		 * Construct a new layer config by build the database structure to
+		 * Construct a new layer config by building the database structure to
 		 * support the necessary configuration
 		 * 
 		 * @param name
@@ -197,6 +251,7 @@ public class DynamicLayer extends EditableLayerImpl {
 				node.setProperty(PROP_QUERY, query);
 				DynamicLayer.this.getLayerNode().createRelationshipTo(node, SpatialRelationshipTypes.LAYER_CONFIG);
 				tx.success();
+				configNode = node;
 			} finally {
 				tx.finish();
 			}
@@ -276,6 +331,27 @@ public class DynamicLayer extends EditableLayerImpl {
 			}
 		}
 		return layers;
+	}
+	
+	protected LayerConfig addLayerConfig(String name, int type, String query) {
+		Layer layer = getLayerMap().get(name);
+		if (layer != null) {
+			if (layer instanceof LayerConfig) {
+				LayerConfig config = (LayerConfig) layer;
+				if (config.getGeometryType() != type || !config.getQuery().equals(query)) {
+					System.err.println("Existing LayerConfig with different geometry type or query: " + config);
+					return null;
+				} else {
+					return config;
+				}
+			} else {
+				System.err.println("Existing Layer has same name as requested LayerConfig: " + layer);
+				return null;
+			}
+		} else {
+			LayerConfig config = new LayerConfig(name, type, query);
+			return config;
+		}
 	}
 
 	public List<String> getLayerNames() {

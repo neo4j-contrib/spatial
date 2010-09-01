@@ -98,16 +98,29 @@ public class SpatialDatabaseService implements Constants {
 		return names.toArray(new String[names.size()]);
 	}
 	
-    public Layer getLayer(String name) {
-    	//TODO: Support dynamic layers also
-        for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
-            Node node = relationship.getEndNode();
-            if (name.equals(node.getProperty(PROP_LAYER))) {
-                return DefaultLayer.makeLayerFromNode(this, node);
-            }
-        }
-        return null;
-    }
+	public Layer getLayer(String name) {
+		ArrayList<DynamicLayer> dynamicLayers = new ArrayList<DynamicLayer>();
+		for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
+			Node node = relationship.getEndNode();
+			if (name.equals(node.getProperty(PROP_LAYER))) {
+				return DefaultLayer.makeLayerFromNode(this, node);
+			}
+			if (!node.getProperty(PROP_LAYER_CLASS, "").toString().startsWith("DefaultLayer")) {
+				Layer layer = DefaultLayer.makeLayerFromNode(this, node);
+				if (layer instanceof DynamicLayer) {
+					dynamicLayers.add((DynamicLayer) DefaultLayer.makeLayerFromNode(this, node));
+				}
+			}
+		}
+		for (DynamicLayer layer : dynamicLayers) {
+			for (String dynLayerName : layer.getLayerNames()) {
+				if (name.equals(dynLayerName)) {
+					return layer.getLayer(dynLayerName);
+				}
+			}
+		}
+		return null;
+	}
 
     public DefaultLayer getOrCreateDefaultLayer(String name) {
         return (DefaultLayer)getOrCreateLayer(name, WKBGeometryEncoder.class, DefaultLayer.class);

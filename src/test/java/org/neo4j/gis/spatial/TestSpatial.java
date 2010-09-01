@@ -17,9 +17,40 @@ import org.neo4j.gis.spatial.query.SearchIntersect;
 import com.vividsolutions.jts.geom.Envelope;
 
 /**
- * Test cases for initial version of Neo4j-Spatial. This was converted directly from Davide
- * Savazzi's console applications: ShapefileImporter, Test, Test2 and Test3.
- *  
+ * <p>
+ * Test cases for initial version of Neo4j-Spatial. This was originally
+ * converted directly from Davide Savazzi's console applications:
+ * ShapefileImporter, Test, Test2 and Test3. It was then extended substantially
+ * by Craig to include tests for successful search of a number of specific
+ * geometries in a number of specific shapefiles. After this tests for OSM
+ * dataset import and search were added. The latest OSM work, specific to
+ * DynamicLayer's is tested in the new test class TestDynamicLayers.
+ * </p>
+ * <p>
+ * This class can also be configured on the command-line, java runtime
+ * configuration or maven configuration. Set the java system property
+ * spatial.test.mode to one of the following options:
+ * <dl>
+ * <dt>long</dt>
+ * <dd>All known tests are run, regardless of the size of data or length of time
+ * taken to test. This is good for infrequent tests with laeger data. It is
+ * possible the maven dependencies will not include the necessary data to run
+ * this test, so if you get failures, check that it is not simply missing data.
+ * <dt>short</dt>
+ * <dd>A very short set of tests are run, just as a quite check. This might be
+ * one small SHP and one small OSM file, or even less</dd>
+ * <dt>dev</dt>
+ * <dd>Tests here change all the time as the developers are coding new features.
+ * Craig in particular uses this place for a kind of TDD approach, writing tests
+ * as he codes to drive the development. No guarranteee these tests will pass,
+ * especially if something is only half coded</dd>
+ * <dt>any other value, or leave unset</dt>
+ * <dd>The default set of tests to run. This should be something that will work
+ * well in the hudson build, as well as for developers downloading and trying
+ * out neo4j-spatial</dd>
+ * </dl>
+ * </p>
+ * 
  * @author Davide Savazzi
  * @author Craig Taverner
  */
