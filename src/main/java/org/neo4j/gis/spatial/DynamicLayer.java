@@ -148,7 +148,7 @@ public class DynamicLayer extends EditableLayerImpl {
 			// TODO: Extend support for more complex queries
 			JSONObject properties = (JSONObject)query.get("properties");
 			JSONObject step = (JSONObject)query.get("step");
-			return queryNodeProperties(geomNode,properties) || stepAndQuery(geomNode,step);
+			return queryNodeProperties(geomNode,properties) && stepAndQuery(geomNode,step);
 		}
 		
 		private boolean stepAndQuery(Node source, JSONObject step) {
@@ -157,17 +157,18 @@ public class DynamicLayer extends EditableLayerImpl {
 				Node node = source.getSingleRelationship(DynamicRelationshipType.withName(step.get("type").toString()),
 				        Direction.valueOf(step.get("direction").toString())).getOtherNode(source);
 				step = (JSONObject) step.get("step");
-				return queryNodeProperties(node, properties) || stepAndQuery(node, step);
+				return queryNodeProperties(node, properties) && stepAndQuery(node, step);
 			} else {
-				return false;
+				return true;
 			}
 		}
 
 		private boolean queryNodeProperties(Node node, JSONObject properties) {
-			if(properties !=null) {
-				for(Object key: properties.keySet()){
-					Object value = node.getProperty(key.toString(),null);
-					if(value == null || !value.equals(properties.get(key))){
+			if (properties != null) {
+				for (Object key : properties.keySet()) {
+					Object value = node.getProperty(key.toString(), null);
+					Object match = properties.get(key);
+					if (value == null || (match != null && !value.equals(match))) {
 						return false;
 					}
 				}
