@@ -4,6 +4,7 @@ import java.util.HashMap;
 
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.json.simple.JSONObject;
+import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.DynamicLayer;
 import org.neo4j.gis.spatial.NullListener;
 import org.neo4j.gis.spatial.SpatialDataset;
@@ -122,4 +123,21 @@ public class OSMLayer extends DynamicLayer {
     	
     	return addLayerConfig(name, type, query.toJSONString());
     }
+
+	/**
+	 * Add a rule for a pure way based search, with a single property key/value
+	 * match on the way tags. All ways with the specified tag property will be
+	 * returned. This convenience method will automatically name the layer based
+	 * on the key/value passed, namely 'key-value'. If you want more control
+	 * over the naming, revert to the addDynamicLayerOnWayTags method.
+	 * 
+	 * @param key
+	 * @param value
+	 */
+	public LayerConfig addSimpleDynamicLayer(String key, String value) {
+		HashMap<String, String> tags = new HashMap<String, String>();
+		tags.put(key, value);
+		return addDynamicLayerOnWayTags(value==null ? key : key + "-" + value, Constants.GTYPE_LINESTRING, tags);
+	}
+
 }

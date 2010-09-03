@@ -1,5 +1,6 @@
 package org.neo4j.gis.spatial.osm;
 
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -28,7 +29,9 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.Traverser.Order;
 import org.neo4j.index.lucene.LuceneIndexBatchInserter;
 import org.neo4j.index.lucene.LuceneIndexBatchInserterImpl;
+import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.impl.batchinsert.BatchInserter;
+import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
 import org.neo4j.kernel.impl.batchinsert.SimpleRelationship;
 
 import com.vividsolutions.jts.geom.Envelope;
@@ -477,13 +480,29 @@ public class OSMImporter implements Constants {
         return addNode(batchInserter, name, extractProperties(name, parser), indexKey);
     }
 
-    private long addNode(BatchInserter batchInserter, String name, Map<String, Object> properties, String indexKey) {
-        long id = batchInserter.createNode(properties);
-        if (indexKey != null && properties.containsKey(indexKey)) {
-            batchIndexService.index(id, indexKey, properties.get(indexKey));
-        }
-        return id;
-    }
+	private long addNodeWithCheck(BatchInserter batchInserter, String name, Map<String, Object> properties, String indexKey) {
+		// TODO: This code allows for importing into existing data, but slows
+		// the import down by almost three times
+		long id = -1;
+		if (indexKey != null && properties.containsKey(indexKey)) {
+			id = batchIndexService.getSingleNode(indexKey, properties.get(indexKey));
+		}
+		if (id < 0) {
+			id = batchInserter.createNode(properties);
+			if (indexKey != null && properties.containsKey(indexKey)) {
+				batchIndexService.index(id, indexKey, properties.get(indexKey));
+			}
+		}
+		return id;
+	}
+
+	private long addNode(BatchInserter batchInserter, String name, Map<String, Object> properties, String indexKey) {
+		long id = batchInserter.createNode(properties);
+		if (indexKey != null && properties.containsKey(indexKey)) {
+			batchIndexService.index(id, indexKey, properties.get(indexKey));
+		}
+		return id;
+	}
 
     private Map<String, Object> extractProperties(XMLStreamReader parser) {
         return extractProperties(null, parser);
@@ -628,4 +647,80 @@ public class OSMImporter implements Constants {
         contextLine++;
     }
 
+	/**
+	 * This method allows for a console, command-line application for loading
+	 * one or more *.osm files into a new database.
+	 * 
+	 * @param args
+	 *            , the database directory followed by one or more osm files
+	 */
+	public static void main(String[] args) {
+		if (args.length < 2) {
+			System.out.println("Usage: osmimporter databasedir osmfile <..osmfiles..>");
+		} else {
+			OSMImportManager importer = new OSMImportManager(args[0]);
+			for (int i = 1; i < args.length; i++) {
+				try {
+					importer.loadTestOsmData(args[i], 1000);
+				} catch (Exception e) {
+					System.err.println("Error importing OSM file '" + args[i] + "': " + e);
+					e.printStackTrace();
+				} finally {
+					importer.shutdown();
+				}
+			}
+		}
+	}
+
+	private static class OSMImportManager {
+		private GraphDatabaseService graphDb;
+		private BatchInserter batchInserter;
+		private File dbPath;
+
+		public OSMImportManager(String path) {
+			setDbPath(path);
+		}
+
+		public void setDbPath(String path) {
+			dbPath = new File(path);
+			if (dbPath.exists()) {
+				if (!dbPath.isDirectory()) {
+					throw new RuntimeException("Database path is an existing file: " + dbPath.getAbsolutePath());
+				}
+			} else {
+				dbPath.mkdirs();
+			}
+		}
+
+		private void loadTestOsmData(String layerName, int commitInterval) throws Exception {
+			String osmPath = layerName;
+			System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
+			switchToBatchInserter();
+			OSMImporter importer = new OSMImporter(layerName);
+			importer.importFile(batchInserter, osmPath);
+			switchToEmbeddedGraphDatabase();
+			importer.reIndex(graphDb, commitInterval);
+			shutdown();
+		}
+
+		private void switchToEmbeddedGraphDatabase() {
+			shutdown();
+			graphDb = new EmbeddedGraphDatabase(dbPath.getAbsolutePath());
+		}
+
+		private void switchToBatchInserter() {
+			shutdown();
+			batchInserter = new BatchInserterImpl(dbPath.getAbsolutePath());
+			graphDb = batchInserter.getGraphDbService();
+		}
+
+		protected void shutdown() {
+			if (graphDb != null) {
+				graphDb.shutdown(); // shuts down batchInserter also, if this
+									// was made from that
+				graphDb = null;
+				batchInserter = null;
+			}
+		}
+	}
 }
