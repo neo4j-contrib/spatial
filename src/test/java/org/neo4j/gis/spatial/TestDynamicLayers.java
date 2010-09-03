@@ -35,7 +35,8 @@ public class TestDynamicLayers extends Neo4jTestCase {
 		addSimpleDynamicLayer(osmLayer, layers, "amenity", "parking");
 		addSimpleDynamicLayer(osmLayer, layers, "railway", null);
 		addSimpleDynamicLayer(osmLayer, layers, "highway", null);
-		assertEquals(12, osmLayer.getLayerNames().size());
+		assertEquals(13, osmLayer.getLayerNames().size());
+
 		// Now export the layers to files
 		ShapefileExporter exporter = new ShapefileExporter(graphDb());
 		exporter.setExportDir("target/export");

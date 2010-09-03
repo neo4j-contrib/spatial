@@ -322,7 +322,7 @@ public class DynamicLayer extends EditableLayerImpl {
 		}
 	}
 
-	private Map<String, Layer> getLayerMap() {
+	private synchronized Map<String, Layer> getLayerMap() {
 		if (layers == null) {
 			layers = new LinkedHashMap<String, Layer>();
 			layers.put(getName(), this);
@@ -349,8 +349,9 @@ public class DynamicLayer extends EditableLayerImpl {
 				System.err.println("Existing Layer has same name as requested LayerConfig: " + layer);
 				return null;
 			}
-		} else {
+		} else synchronized (this) {
 			LayerConfig config = new LayerConfig(name, type, query);
+			layers = null;	// force recalculation of layers cache
 			return config;
 		}
 	}
