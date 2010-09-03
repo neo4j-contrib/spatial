@@ -300,7 +300,7 @@ public class DynamicLayer extends EditableLayerImpl {
 
 		public SpatialIndexReader getIndex() {
 			if (index instanceof SpatialTreeIndex) {
-				return new DynamicIndexReader((SpatialTreeIndex) DynamicLayer.this.getIndex(), getQuery());
+				return new DynamicIndexReader((SpatialTreeIndex) index, getQuery());
 			} else {
 				throw new SpatialDatabaseException("Cannot make a DynamicLayer from a non-SpatialTreeIndex Layer");
 			}
