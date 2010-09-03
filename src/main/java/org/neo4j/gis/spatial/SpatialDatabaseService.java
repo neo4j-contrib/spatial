@@ -83,16 +83,13 @@ public class SpatialDatabaseService implements Constants {
 	public String[] getLayerNames() {
 		List<String> names = new ArrayList<String>();
 		
-		// First find all static layers
 		for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
-            Node layerNode = relationship.getEndNode();
-            names.add((String) layerNode.getProperty(PROP_LAYER));
-        }
-        
-		// Now add also the dynamic layers
-		for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
-            DynamicLayer layer = (DynamicLayer)DefaultLayer.makeLayerFromNode(this, relationship.getEndNode());
-            names.addAll(layer.getLayerNames());
+            Layer layer = DefaultLayer.makeLayerFromNode(this, relationship.getEndNode());
+            if (layer instanceof DynamicLayer) {
+            	names.addAll(((DynamicLayer)layer).getLayerNames());
+            } else {
+            	names.add(layer.getName());
+            }
         }
         
 		return names.toArray(new String[names.size()]);
