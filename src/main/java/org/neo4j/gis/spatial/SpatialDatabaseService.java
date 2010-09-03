@@ -90,7 +90,7 @@ public class SpatialDatabaseService implements Constants {
         }
         
 		// Now add also the dynamic layers
-		for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYERS, Direction.OUTGOING)) {
+		for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
             DynamicLayer layer = (DynamicLayer)DefaultLayer.makeLayerFromNode(this, relationship.getEndNode());
             names.addAll(layer.getLayerNames());
         }
