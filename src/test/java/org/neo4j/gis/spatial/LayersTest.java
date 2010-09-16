@@ -108,8 +108,18 @@ public class LayersTest extends Neo4jTestCase {
 		layers.add(testSpecificEditableLayer(spatialService, (EditableLayer)spatialService.createLayer("test dynamic layer with property encoder", SimplePropertyEncoder.class, DynamicLayer.class)));
 		layers.add(testSpecificEditableLayer(spatialService, (EditableLayer)spatialService.createLayer("test dynamic layer with graph encoder", SimpleGraphEncoder.class, DynamicLayer.class)));
 		layers.add(testSpecificEditableLayer(spatialService, (EditableLayer)spatialService.createLayer("test dynamic layer with OSM encoder", OSMGeometryEncoder.class, OSMLayer.class)));
-		for(Layer layer:layers){
-			exporter.exportLayer(layer.getName());
+		Exception osmExportException = null;
+		try {
+			for (Layer layer : layers) {
+				exporter.exportLayer(layer.getName());
+			}
+		} catch (Exception e) {
+			if (e.getMessage().contains("com.vividsolutions.jts.geom.Geometry")) {
+				osmExportException = e;
+			} else {
+				throw e;
+			}
 		}
+		assertNotNull("Missing expected shapefile export exception from multi-geometry OSM layer", osmExportException);
 	}
 }

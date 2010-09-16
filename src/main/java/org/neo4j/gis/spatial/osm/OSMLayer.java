@@ -7,6 +7,7 @@ import org.json.simple.JSONObject;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.DynamicLayer;
 import org.neo4j.gis.spatial.NullListener;
+import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDataset;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
@@ -45,8 +46,8 @@ public class OSMLayer extends DynamicLayer {
 
 	public Integer getGeometryType() {
 		// The core layer in OSM is based on the Ways, and we return all of them
-		// as LINESTRING
-		return GTYPE_LINESTRING;
+		// as LINESTRING and POLYGON, so we use the parent GEOMETRY
+		return GTYPE_GEOMETRY;
 	}
 
 	/**
@@ -66,15 +67,17 @@ public class OSMLayer extends DynamicLayer {
 		index.clear(new NullListener());
 	}
 
-	public void addWay(Node way) {
+	public SpatialDatabaseRecord addWay(Node way) {
 		Relationship geomRel = way.getSingleRelationship(OSMRelation.GEOM, Direction.OUTGOING);
 		if (geomRel != null) {
 			Node geomNode = geomRel.getEndNode();
-			add(geomNode);
+			return add(geomNode);
+		} else {
+			return null;
 		}
 	}
 
-    /**
+	/**
      * Provides a method for iterating over all nodes that represent geometries in this layer.
      * This is similar to the getAllNodes() methods from GraphDatabaseService but will only return
      * nodes that this dataset considers its own, and can be passed to the GeometryEncoder to
@@ -120,6 +123,11 @@ public class OSMLayer extends DynamicLayer {
     	step2way.put("direction", "INCOMING");
 
     	query.put("step", step2way);
+		if (type > 0) {
+			properties = new JSONObject();
+			properties.put(PROP_TYPE, type);
+			query.put("properties", properties);
+		}
     	
     	return addLayerConfig(name, type, query.toJSONString());
     }
@@ -130,14 +138,30 @@ public class OSMLayer extends DynamicLayer {
 	 * returned. This convenience method will automatically name the layer based
 	 * on the key/value passed, namely 'key-value'. If you want more control
 	 * over the naming, revert to the addDynamicLayerOnWayTags method.
+	 * The geometry is assumed to be LineString, the most common type for ways.
 	 * 
 	 * @param key
 	 * @param value
 	 */
 	public LayerConfig addSimpleDynamicLayer(String key, String value) {
+		return addSimpleDynamicLayer(key, value, Constants.GTYPE_LINESTRING);
+	}
+
+	/**
+	 * Add a rule for a pure way based search, with a single property key/value
+	 * match on the way tags. All ways with the specified tag property will be
+	 * returned. This convenience method will automatically name the layer based
+	 * on the key/value passed, namely 'key-value'. If you want more control
+	 * over the naming, revert to the addDynamicLayerOnWayTags method.
+	 * 
+	 * @param key
+	 * @param value
+	 * @param geometry type as defined in Constants.
+	 */
+	public LayerConfig addSimpleDynamicLayer(String key, String value, int gtype) {
 		HashMap<String, String> tags = new HashMap<String, String>();
 		tags.put(key, value);
-		return addDynamicLayerOnWayTags(value==null ? key : key + "-" + value, Constants.GTYPE_LINESTRING, tags);
+		return addDynamicLayerOnWayTags(value==null ? key : key + "-" + value, gtype, tags);
 	}
 
 }

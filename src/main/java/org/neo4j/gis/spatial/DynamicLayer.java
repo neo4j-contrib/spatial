@@ -154,10 +154,15 @@ public class DynamicLayer extends EditableLayerImpl {
 		private boolean stepAndQuery(Node source, JSONObject step) {
 			if (step != null) {
 				JSONObject properties = (JSONObject) step.get("properties");
-				Node node = source.getSingleRelationship(DynamicRelationshipType.withName(step.get("type").toString()),
-				        Direction.valueOf(step.get("direction").toString())).getOtherNode(source);
-				step = (JSONObject) step.get("step");
-				return queryNodeProperties(node, properties) && stepAndQuery(node, step);
+				Relationship rel = source.getSingleRelationship(DynamicRelationshipType.withName(step.get("type").toString()), Direction
+				        .valueOf(step.get("direction").toString()));
+				if (rel != null) {
+					Node node = rel.getOtherNode(source);
+					step = (JSONObject) step.get("step");
+					return queryNodeProperties(node, properties) && stepAndQuery(node, step);
+				} else {
+					return false;
+				}
 			} else {
 				return true;
 			}
@@ -168,7 +173,8 @@ public class DynamicLayer extends EditableLayerImpl {
 				for (Object key : properties.keySet()) {
 					Object value = node.getProperty(key.toString(), null);
 					Object match = properties.get(key);
-					if (value == null || (match != null && !value.equals(match))) {
+					//TODO: Find a better way to solve minor type mismatches (Long!=Integer) than the string conversion below
+					if (value == null || (match != null && !value.equals(match) && !value.toString().equals(match.toString()))) {
 						return false;
 					}
 				}

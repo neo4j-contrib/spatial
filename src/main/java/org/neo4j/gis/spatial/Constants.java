@@ -51,6 +51,7 @@ public interface Constants {
 	
 	// OpenGIS geometry type numbers 
 	
+	int GTYPE_GEOMETRY = 0;
 	int GTYPE_POINT = 1;
 	int GTYPE_LINESTRING = 2; 
 	int GTYPE_POLYGON = 3;

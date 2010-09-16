@@ -17,6 +17,7 @@ import javax.xml.stream.XMLStreamReader;
 
 import org.geotools.referencing.datum.DefaultEllipsoid;
 import org.neo4j.gis.spatial.Constants;
+import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -39,42 +40,6 @@ import com.vividsolutions.jts.geom.Envelope;
 public class OSMImporter implements Constants {
     public static DefaultEllipsoid WGS84 = DefaultEllipsoid.WGS84;
 
-    private static HashMap<String, String[]> geometryTypesMap = new LinkedHashMap<String, String[]>();
-    private static HashMap<String, String> tagKeyToGeometryMap = new LinkedHashMap<String, String>();
-    static {
-        geometryTypesMap.put("Point", new String[] {});
-        geometryTypesMap.put("MultiPoint", new String[] {});
-        geometryTypesMap.put("LineString", new String[] {"highway", "boundary"});
-        geometryTypesMap.put("MultiLineString", new String[] {});
-        geometryTypesMap.put("Polygon", new String[] {});
-        geometryTypesMap.put("MultiPolygon", new String[] {});
-        for (String geom : geometryTypesMap.keySet()) {
-            String[] tagKeys = geometryTypesMap.get(geom);
-            for (String key : tagKeys) {
-                tagKeyToGeometryMap.put(key, geom);
-            }
-        }
-    }
-
-    private static String getGeomFromTags(Map<String, Object> tags) {
-        // First process any "type" tag (as used in relation tags)
-        String type = (String)tags.get("type");
-        if (type != null) {
-            for (String key : tagKeyToGeometryMap.keySet()) {
-                if (key.toLowerCase().equals(type)) {
-                    return key;
-                }
-            }
-        }
-        // Then try look for existence of some known tags (as used in way tags)
-        for (String key : tagKeyToGeometryMap.keySet()) {
-            if (tags.keySet().contains(key)) {
-                return tagKeyToGeometryMap.get(key);
-            }
-        }
-        return null;
-    }
-
     protected static final List<String> NODE_INDEXING_KEYS = new ArrayList<String>();
     static {
         NODE_INDEXING_KEYS.add("node_osm_id");
@@ -87,6 +52,7 @@ public class OSMImporter implements Constants {
     private long osm_root;
     private long osm_dataset;
     private HashMap<String,TagStats> tagStats = new HashMap<String,TagStats>();
+	private HashMap<Integer,Integer> geomStats = new HashMap<Integer,Integer>();;
     
 	private class TagStats {
 		private String name;
@@ -138,6 +104,24 @@ public class OSMImporter implements Constants {
         this.layerName = layerName;
     }
 
+	private void addGeomStats(Node geomNode) {
+		addGeomStats((Integer)geomNode.getProperty(PROP_TYPE, null));
+	}
+	
+	private void addGeomStats(Integer geom) {
+		Integer count = geomStats.get(geom);
+		geomStats.put(geom, count == null ? 1 : count + 1);
+	}
+	
+	private void dumpGeomStats() {
+		System.out.println("Geometry statistics for " + geomStats.size() + " geometry types:");
+		for (Object key : geomStats.keySet()) {
+			Integer count = geomStats.get(key);
+			System.out.println("\t" + SpatialDatabaseService.convertGeometryTypeToName((Integer)key) + ": " + count);
+		}
+		geomStats.clear();
+	}
+
     public void reIndex(GraphDatabaseService database, int commitInterval) {
         if (commitInterval < 1)
             throw new IllegalArgumentException("commitInterval must be >= 1");
@@ -157,7 +141,8 @@ public class OSMImporter implements Constants {
                     ReturnableEvaluator.ALL_BUT_START_NODE, OSMRelation.WAYS, Direction.OUTGOING, OSMRelation.NEXT,
                     Direction.OUTGOING)) {
                 incrLogContext();
-                layer.addWay(way);
+                SpatialDatabaseRecord record = layer.addWay(way);
+                addGeomStats(record.getGeomNode());
                 if (++count % commitInterval == 0) {
                     tx.success();
                     tx.finish();
@@ -171,6 +156,7 @@ public class OSMImporter implements Constants {
 
         long stopTime = System.currentTimeMillis();
         log("info | Re-indexing elapsed time in seconds: " + (1.0 * (stopTime - startTime) / 1000.0));
+        dumpGeomStats();
     }
 
     private int addToTagStats(String type, String key) {
@@ -273,7 +259,7 @@ public class OSMImporter implements Constants {
                     } else if (currentXMLTags.toString().equals("[osm, way]")) {
                         RoadDirection direction = isOneway(currentNodeTags);
                         String name = (String)currentNodeTags.get("name");
-                        String geometry = getGeomFromTags(currentNodeTags);
+                        int geometry = GTYPE_LINESTRING;
                         boolean isRoad = currentNodeTags.containsKey("highway");
                         if (isRoad) {
                             wayProperties.put("oneway", direction.toString());
@@ -293,6 +279,7 @@ public class OSMImporter implements Constants {
                         prev_way = way;
                         addNodeTags(batchGraphDb, way, currentNodeTags, "way") ;
                         Envelope bbox = new Envelope();
+                        long firstNode = -1;
                         long prevNode = -1;
                         long prevProxy = -1;
                         Map<String, Object> prevProps = null;
@@ -302,12 +289,18 @@ public class OSMImporter implements Constants {
                         for (long nd_ref : wayNodes) {
                             long pointNode = batchIndexService.getSingleNode("node_osm_id", nd_ref);
                             long proxyNode = batchGraphDb.createNode(null);
-                            if (-1 == pointNode || prevNode == pointNode) {
+                            if (-1 == pointNode) {
                                 /*
                                  * This can happen if we import not whole planet, so some referenced
                                  * nodes will be unavailable
                                  */
                                 missingNode(nd_ref);
+                                continue;
+                            }
+							if (firstNode == -1) {
+								firstNode = pointNode;
+							}
+                            if (prevNode == pointNode) {
                                 continue;
                             }
                             batchGraphDb.createRelationship(proxyNode, pointNode, OSMRelation.NODE, null);
@@ -339,10 +332,17 @@ public class OSMImporter implements Constants {
 //                        if (prevNode > 0) {
 //                            batchGraphDb.createRelationship(way, prevNode, OSMRelation.LAST_NODE, null);
 //                        }
+						if (firstNode > 0 && prevNode == firstNode) {
+							geometry = GTYPE_POLYGON;
+						}
+						if (wayNodes.size() < 2) {
+							geometry = GTYPE_POINT;
+						}
                         addNodeGeometry(batchGraphDb, way, geometry, bbox, wayNodes.size());
                     } else if (currentXMLTags.toString().equals("[osm, relation]")) {
                         String name = (String)currentNodeTags.get("name");
-                        String geometry = getGeomFromTags(currentNodeTags);
+                        // We will test for cases that invalidate multilinestring further down
+                        int geometry = GTYPE_MULTILINESTRING;
                         if (name != null) {
                             // Copy name tag to way because this seems like a valuable location for
                             // such a property
@@ -383,10 +383,15 @@ public class OSMImporter implements Constants {
                                     double[] location = new double[] {(Double)nodeProps.get("lon"), (Double)nodeProps.get("lat")};
                                     bbox.expandToInclude(location[0], location[1]);
                                     vertices++;
+                                    geometry = -1;
                                 } else {
                                     for (SimpleRelationship rel : batchGraphDb.getRelationships(member)) {
                                         if (rel.getType().equals(OSMRelation.GEOM)) {
                                             nodeProps = batchGraphDb.getNodeProperties(rel.getEndNode());
+                                            Integer memGType = (Integer)nodeProps.get("gtype");
+											if ((memGType == null || memGType != GTYPE_LINESTRING) && geometry != GTYPE_POLYGON) {
+												geometry = -1;
+											}
                                             double[] sbb = (double[])nodeProps.get("bbox");
                                             bbox.expandToInclude(sbb[0], sbb[2]);
                                             bbox.expandToInclude(sbb[1], sbb[3]);
@@ -395,7 +400,13 @@ public class OSMImporter implements Constants {
                                     }
                                 }
                                 relProps.clear();
-                                relProps.put("role", (String)memberProps.get("role"));
+								String role = (String) memberProps.get("role");
+								if (role != null && role.length() > 0) {
+									relProps.put("role", role);
+									if(role.equals("outer")){
+										geometry = GTYPE_POLYGON;
+									}
+								}
                                 batchGraphDb.createRelationship(relation, member, OSMRelation.MEMBER, relProps);
                                 // members can belong to multiple relations, in multiple orders, so NEXT will clash (also with NEXT between ways in original way load)
 //                                if (prevMember < 0) {
@@ -408,7 +419,9 @@ public class OSMImporter implements Constants {
                                 System.err.println("Cannot process invalid relation member: " + memberProps.toString());
                             }
                         }
-                        addNodeGeometry(batchGraphDb, relation, geometry, bbox, vertices);
+						if (geometry > 0) {
+							addNodeGeometry(batchGraphDb, relation, geometry, bbox, vertices);
+						}
                     }
                     depth--;
                     currentXMLTags.remove(depth);
@@ -426,6 +439,7 @@ public class OSMImporter implements Constants {
 
         long stopTime = System.currentTimeMillis();
         log("info | Elapsed time in seconds: " + (1.0 * (stopTime - startTime) / 1000.0));
+        dumpGeomStats();
     }
 
     private int missingNodeCount = 0;
@@ -462,17 +476,18 @@ public class OSMImporter implements Constants {
         }
     }
 
-    private void addNodeGeometry(BatchInserter batchGraphDb, long currentNode, String type, Envelope bbox, int vertices) {
+    private void addNodeGeometry(BatchInserter batchGraphDb, long currentNode, int gtype, Envelope bbox, int vertices) {
         if (currentNode > 0 && !bbox.isNull() && vertices > 0) {
             LinkedHashMap<String, Object> properties = new LinkedHashMap<String, Object>();
-            if (type == null)
-                type = vertices > 1 ? "MultiPoint" : "Point";
-            properties.put("geometry", type);
+            if (gtype == GTYPE_GEOMETRY)
+                gtype = vertices > 1 ? GTYPE_MULTIPOINT : GTYPE_POINT;
+            properties.put("gtype", gtype);
             properties.put("vertices", vertices);
             properties.put("bbox", new double[] {bbox.getMinX(), bbox.getMaxX(), bbox.getMinY(), bbox.getMaxY()});
             long id = batchGraphDb.createNode(properties);
             batchGraphDb.createRelationship(currentNode, id, OSMRelation.GEOM, null);
             properties.clear();
+            addGeomStats(gtype);
         }
     }
 

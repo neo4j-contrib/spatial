@@ -222,6 +222,10 @@ public class SpatialDatabaseService implements Constants {
 	
 	private GraphDatabaseService database;
 
+	public static String convertGeometryTypeToName(Integer geometryType) {
+		return convertGeometryTypeToJtsClass(geometryType).getName().replace("com.vividsolutions.jts.geom.", "");
+	}
+
 	public static Class<? extends Geometry> convertGeometryTypeToJtsClass(Integer geometryType) {
 		switch (geometryType) {
 			case GTYPE_POINT: return Point.class;
@@ -230,11 +234,11 @@ public class SpatialDatabaseService implements Constants {
 			case GTYPE_MULTIPOINT: return MultiPoint.class;
 			case GTYPE_MULTILINESTRING: return MultiLineString.class;
 			case GTYPE_MULTIPOLYGON: return MultiPolygon.class;
-			default: return null;
+			default: return Geometry.class;
 		}
 	}
 
-	public static Integer convertJtsClassToGeometryType(Class<? extends Geometry> jtsClass) {
+	public static int convertJtsClassToGeometryType(Class<? extends Geometry> jtsClass) {
 		if (jtsClass.equals(Point.class)) {
 			return GTYPE_POINT;
 		} else if (jtsClass.equals(LineString.class)) {
@@ -248,7 +252,7 @@ public class SpatialDatabaseService implements Constants {
 		} else if (jtsClass.equals(MultiPolygon.class)) {
 			return GTYPE_MULTIPOLYGON;
 		} else {
-			return null;
+			return GTYPE_GEOMETRY;
 		}
 	}
 

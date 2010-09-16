@@ -13,12 +13,12 @@ public class TestDynamicLayers extends Neo4jTestCase {
 		// TODO: Consider merits of using dependency data in target/osm,
 		// downloaded by maven, as done in TestSpatial, versus the test data
 		// commited to source code as done here
-		loadTestOsmData("map.osm", 1000);
+		loadTestOsmData("map2.osm", 1000);
 
 		// Define dynamic layers
 		ArrayList<Layer> layers = new ArrayList<Layer>();
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-		OSMLayer osmLayer = (OSMLayer) spatialService.getLayer("map.osm");
+		OSMLayer osmLayer = (OSMLayer) spatialService.getLayer("map2.osm");
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "primary"));
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "secondary"));
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "tertiary"));
@@ -28,11 +28,11 @@ public class TestDynamicLayers extends Neo4jTestCase {
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "track"));
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "path"));
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "unclassified"));
-		layers.add(osmLayer.addSimpleDynamicLayer("amenity", "parking"));
+		layers.add(osmLayer.addSimpleDynamicLayer("amenity", "parking", Constants.GTYPE_POLYGON));
 		layers.add(osmLayer.addSimpleDynamicLayer("railway", null));
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", null));
 		layers.add(osmLayer.addSimpleDynamicLayer("waterway", null));
-		layers.add(osmLayer.addSimpleDynamicLayer("building", null));
+		layers.add(osmLayer.addSimpleDynamicLayer("building", null, Constants.GTYPE_POLYGON));
 		assertEquals(layers.size() + 1, osmLayer.getLayerNames().size());
 
 		// Now export the layers to files

@@ -22,15 +22,16 @@ public class OSMLayerToShapefileExporter {
 	 *            specifications.
 	 */
 	public static void main(String[] args) {
-		if (args.length < 3) {
-			System.out.println("Usage: osmtoshp databasedir osmdataset layerspec <..layerspecs..>");
+		if (args.length < 4) {
+			System.out.println("Usage: osmtoshp databasedir exportdir osmdataset layerspec <..layerspecs..>");
 		} else {
 			GraphDatabaseService db = new EmbeddedGraphDatabase((new File(args[0])).getAbsolutePath());
 			SpatialDatabaseService spatial = new SpatialDatabaseService(db);
-			OSMLayer layer = (OSMLayer) spatial.getLayer(args[1]);
+			OSMLayer layer = (OSMLayer) spatial.getLayer(args[2]);
 			if (layer != null) {
 				ShapefileExporter exporter = new ShapefileExporter(db);
-				for (int i = 2; i < args.length; i++) {
+				exporter.setExportDir(args[1]+File.separator+layer.getName());
+				for (int i = 3; i < args.length; i++) {
 					String[] fields = args[i].split("[\\.\\-]");
 					HashMap<String, String> tags = new HashMap<String, String>();
 					String key = fields[0];
@@ -56,7 +57,7 @@ public class OSMLayerToShapefileExporter {
 					}
 				}
 			} else {
-				System.err.println("No such layer: " + args[1]);
+				System.err.println("No such layer: " + args[2]);
 			}
 			db.shutdown();
 		}

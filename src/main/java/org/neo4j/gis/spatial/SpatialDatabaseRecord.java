@@ -134,13 +134,9 @@ public class SpatialDatabaseRecord implements Constants {
 		this.crs = crs;
 	}
 
-	
-	// Protected methods
-	
-	protected Node getGeomNode() {
+	public Node getGeomNode() {
 		return geomNode;
 	}
-	
 	
 	// Private methods
 	

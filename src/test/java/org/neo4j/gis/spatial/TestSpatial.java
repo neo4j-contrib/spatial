@@ -13,6 +13,7 @@ import junit.framework.TestSuite;
 import org.geotools.data.shapefile.shp.ShapefileException;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.query.SearchIntersect;
+import org.neo4j.graphdb.Node;
 
 import com.vividsolutions.jts.geom.Envelope;
 
@@ -167,6 +168,8 @@ public class TestSpatial extends Neo4jTestCase {
         geoms.add(new TestGeometry(id, name, comments, bounds));
     }
 
+	private HashMap<Integer,Integer> geomStats = new HashMap<Integer,Integer>();;
+
     public TestSpatial(String name) {
         setName(name);
     }
@@ -189,8 +192,8 @@ public class TestSpatial extends Neo4jTestCase {
             layersToTest = new String[] {"sweden_administrative"};
         } else if (spatialTestMode != null && spatialTestMode.equals("dev")) {
             // Tests relevant to current development
-            //layersToTest = new String[] {"billesholm.osm"};
-            layersToTest = new String[] {"billesholm.osm", "sweden.osm.administrative", "sweden_administrative"};
+            layersToTest = new String[] {"billesholm.osm"};
+            //layersToTest = new String[] {"billesholm.osm", "sweden.osm.administrative", "sweden_administrative"};
             //layersToTest = new String[] {"sweden_administrative"};
         } else {
             // Tests to run by default for regression (not too long running, and should always pass)
@@ -324,6 +327,7 @@ public class TestSpatial extends Neo4jTestCase {
                 } else if (ri == 10) {
                     System.out.println("\t.. and " + (results.size() - ri) + " more ..");
                 }
+                addGeomStats(r.getGeomNode());
                 String name = (String)r.getProperty("NAME");
                 if(name==null) name = (String)r.getProperty("name");
                 Integer id = (Integer)r.getProperty("ID");
@@ -341,6 +345,7 @@ public class TestSpatial extends Neo4jTestCase {
                             + r.toString());
                 }
             }
+            dumpGeomStats();
             System.out.println("Found " + foundData.size() + " test datasets in region[" + bbox + "]");
             for (TestGeometry testData : foundData) {
                 System.out.println("\t" + testData + ": " + testData.bounds);
@@ -357,5 +362,23 @@ public class TestSpatial extends Neo4jTestCase {
         }
 
     }
+
+	private void addGeomStats(Node geomNode) {
+		addGeomStats((Integer)geomNode.getProperty(Constants.PROP_TYPE, null));
+	}
+	
+	private void addGeomStats(Integer geom) {
+		Integer count = geomStats.get(geom);
+		geomStats.put(geom, count == null ? 1 : count + 1);
+	}
+	
+	private void dumpGeomStats() {
+		System.out.println("Geometry statistics for " + geomStats.size() + " geometry types:");
+		for (Object key : geomStats.keySet()) {
+			Integer count = geomStats.get(key);
+			System.out.println("\t" + SpatialDatabaseService.convertGeometryTypeToName((Integer)key) + ": " + count);
+		}
+		geomStats.clear();
+	}
 
 }

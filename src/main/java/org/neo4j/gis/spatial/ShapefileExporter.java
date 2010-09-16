@@ -58,6 +58,7 @@ public class ShapefileExporter {
 		URL url = file.toURI().toURL();
 		create.put("url", url);
 		create.put("create spatial index", Boolean.TRUE);
+		create.put("charset", "UTF-8");
 		ShapefileDataStore shpDataStore = (ShapefileDataStore) factory.createNewDataStore(create);
 		SimpleFeatureType featureType = neo4jDataStore.getSchema(layerName);
 		GeometryDescriptor geometryType = featureType.getGeometryDescriptor();
