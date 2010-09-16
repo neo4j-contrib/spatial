@@ -2,6 +2,7 @@ package org.neo4j.gis.spatial;
 
 import java.util.ArrayList;
 
+import org.geotools.data.DataSourceException;
 import org.junit.Test;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
@@ -33,14 +34,36 @@ public class TestDynamicLayers extends Neo4jTestCase {
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", null));
 		layers.add(osmLayer.addSimpleDynamicLayer("waterway", null));
 		layers.add(osmLayer.addSimpleDynamicLayer("building", null, Constants.GTYPE_POLYGON));
+		layers.add(osmLayer.addSimpleDynamicLayer("natural", null, Constants.GTYPE_GEOMETRY));
+		layers.add(osmLayer.addSimpleDynamicLayer("natural", "water", Constants.GTYPE_POLYGON));
+		layers.add(osmLayer.addSimpleDynamicLayer("natural", "wood", Constants.GTYPE_POLYGON));
+		layers.add(osmLayer.addSimpleDynamicLayer("natural", "coastline"));
+		layers.add(osmLayer.addSimpleDynamicLayer("natural", "beach"));
 		assertEquals(layers.size() + 1, osmLayer.getLayerNames().size());
 
 		// Now export the layers to files
 		ShapefileExporter exporter = new ShapefileExporter(graphDb());
 		exporter.setExportDir("target/export");
+		int countMultiGeometryLayers = 0;
+		int countMultiGeometryExceptions = 0;
 		for (Layer layer : layers) {
-			exporter.exportLayer(layer.getName());
+			if (layer.getGeometryType() == Constants.GTYPE_GEOMETRY) {
+				countMultiGeometryLayers++;
+			}
+			try {
+				exporter.exportLayer(layer.getName());
+			} catch (Exception e) {
+				if (e instanceof DataSourceException && e.getMessage().contains("geom.Geometry")) {
+					System.out.println("Got geometry exception on layer with geometry["
+					        + SpatialDatabaseService.convertGeometryTypeToName(layer.getGeometryType()) + "]: " + e.getMessage());
+					countMultiGeometryExceptions++;
+				} else {
+					throw e;
+				}
+			}
 		}
+		assertEquals("Mismatching number of data source exceptions and raw geometry layers", countMultiGeometryLayers,
+		        countMultiGeometryExceptions);
 	}
 
 	private void loadTestOsmData(String layerName, int commitInterval) throws Exception {
