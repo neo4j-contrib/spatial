@@ -67,11 +67,32 @@ public class OSMLayer extends DynamicLayer {
 		index.clear(new NullListener());
 	}
 
-	public SpatialDatabaseRecord addWay(Node way) {
+	public Node addWay(Node way) {
+		return addWay(way,false);
+	}
+
+	public Node addWay(Node way, boolean verifyGeom) {
 		Relationship geomRel = way.getSingleRelationship(OSMRelation.GEOM, Direction.OUTGOING);
 		if (geomRel != null) {
 			Node geomNode = geomRel.getEndNode();
-			return add(geomNode);
+			try {
+				// This is a test of the validity of the geometry, throws exception on error
+				if (verifyGeom)
+					getGeometryEncoder().decodeGeometry(geomNode);
+				index.add(geomNode);
+			} catch (Exception e) {
+				System.err.println("Failed geometry test on node " + geomNode.getProperty("name", geomNode.toString()) + ": "
+				        + e.getMessage());
+				for (String key : geomNode.getPropertyKeys()) {
+					System.err.println("\t" + key + ": " + geomNode.getProperty(key));
+				}
+				System.err.println("For way node " + way);
+				for (String key : way.getPropertyKeys()) {
+					System.err.println("\t" + key + ": " + way.getProperty(key));
+				}
+				// e.printStackTrace(System.err);
+			}
+			return geomNode;
 		} else {
 			return null;
 		}

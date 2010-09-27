@@ -7,6 +7,7 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -17,7 +18,6 @@ import javax.xml.stream.XMLStreamReader;
 
 import org.geotools.referencing.datum.DefaultEllipsoid;
 import org.neo4j.gis.spatial.Constants;
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -28,6 +28,7 @@ import org.neo4j.graphdb.ReturnableEvaluator;
 import org.neo4j.graphdb.StopEvaluator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.Traverser.Order;
+import org.neo4j.index.IndexHits;
 import org.neo4j.index.lucene.LuceneIndexBatchInserter;
 import org.neo4j.index.lucene.LuceneIndexBatchInserterImpl;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
@@ -36,6 +37,7 @@ import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
 import org.neo4j.kernel.impl.batchinsert.SimpleRelationship;
 
 import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
 
 public class OSMImporter implements Constants {
     public static DefaultEllipsoid WGS84 = DefaultEllipsoid.WGS84;
@@ -105,7 +107,9 @@ public class OSMImporter implements Constants {
     }
 
 	private void addGeomStats(Node geomNode) {
-		addGeomStats((Integer)geomNode.getProperty(PROP_TYPE, null));
+		if (geomNode != null) {
+			addGeomStats((Integer) geomNode.getProperty(PROP_TYPE, null));
+		}
 	}
 	
 	private void addGeomStats(Integer geom) {
@@ -141,8 +145,7 @@ public class OSMImporter implements Constants {
                     ReturnableEvaluator.ALL_BUT_START_NODE, OSMRelation.WAYS, Direction.OUTGOING, OSMRelation.NEXT,
                     Direction.OUTGOING)) {
                 incrLogContext();
-                SpatialDatabaseRecord record = layer.addWay(way);
-                addGeomStats(record.getGeomNode());
+				addGeomStats(layer.addWay(way, true));
                 if (++count % commitInterval == 0) {
                     tx.success();
                     tx.finish();
@@ -180,9 +183,10 @@ public class OSMImporter implements Constants {
         getOrCreateOSMDataset(batchGraphDb, layerName);
 
         long startTime = System.currentTimeMillis();
+        long[] times = new long[]{0L,0L,0L,0L};
         javax.xml.stream.XMLInputFactory factory = javax.xml.stream.XMLInputFactory.newInstance();
         javax.xml.stream.XMLStreamReader parser = factory.createXMLStreamReader(new FileReader(dataset));
-        int count = 0;
+        int countXMLTags = 0;
         setLogContext(dataset);
         boolean startedWays = false;
         boolean startedRelations = false;
@@ -219,8 +223,10 @@ public class OSMImporter implements Constants {
                         currentNode = addNode(batchGraphDb, "node", parser, "node_osm_id");
                     } else if (tagPath.equals("[osm, way]")) {
                         if (!startedWays) {
-                            batchIndexService.optimize();
                             startedWays = true;
+                            times[0] = System.currentTimeMillis();
+                            batchIndexService.optimize();
+                            times[1] = System.currentTimeMillis();
                         }
                         wayProperties = extractProperties("way", parser);
                         wayNodes.clear();
@@ -232,8 +238,10 @@ public class OSMImporter implements Constants {
                         currentNodeTags.put(properties.get("k").toString(), properties.get("v").toString());
                     } else if (tagPath.equals("[osm, relation]")) {
                         if (!startedRelations) {
-                            batchIndexService.optimize();
                             startedRelations = true;
+                            times[2] = System.currentTimeMillis();
+                            batchIndexService.optimize();
+                            times[3] = System.currentTimeMillis();
                         }
                         relationProperties = extractProperties("relation", parser);
                         relationMembers.clear();
@@ -241,7 +249,7 @@ public class OSMImporter implements Constants {
                         relationMembers.add(extractProperties(parser));
                     }
                     if (startedRelations) {
-                        if (count < 10) {
+                        if (countXMLTags < 10) {
                             log("Starting tag at depth " + depth + ": " + currentXMLTags.get(depth) + " - " + currentXMLTags.toString());
                             for (int i = 0; i < parser.getAttributeCount(); i++) {
                                 log("\t" + currentXMLTags.toString() + ": " + parser.getAttributeLocalName(i) + "["
@@ -249,13 +257,13 @@ public class OSMImporter implements Constants {
                                         + parser.getAttributeType(i) + "," + "] = " + parser.getAttributeValue(i));
                             }
                         }
-                        count++;
+                        countXMLTags++;
                     }
                     depth++;
                     break;
                 case javax.xml.stream.XMLStreamConstants.END_ELEMENT:
                     if (currentXMLTags.toString().equals("[osm, node]")) {
-                        addNodeTags(batchGraphDb, currentNode, currentNodeTags,"node");
+                        addNodeTags(batchGraphDb, currentNode, currentNodeTags, "node");
                     } else if (currentXMLTags.toString().equals("[osm, way]")) {
                         RoadDirection direction = isOneway(currentNodeTags);
                         String name = (String)currentNodeTags.get("name");
@@ -287,16 +295,24 @@ public class OSMImporter implements Constants {
                         HashMap<String, Object> directionProps = new HashMap<String, Object>();
                         directionProps.put("oneway", true);
                         for (long nd_ref : wayNodes) {
-                            long pointNode = batchIndexService.getSingleNode("node_osm_id", nd_ref);
-                            long proxyNode = batchGraphDb.createNode(null);
-                            if (-1 == pointNode) {
+                            //long pointNode = batchIndexService.getSingleNode("node_osm_id", nd_ref);
+							IndexHits<Long> hits = batchIndexService.getNodes("node_osm_id", nd_ref);
+							if (hits.size() == 0) {
                                 /*
                                  * This can happen if we import not whole planet, so some referenced
                                  * nodes will be unavailable
                                  */
                                 missingNode(nd_ref);
-                                continue;
-                            }
+								continue;
+							} else if (hits.size() > 1) {
+								System.err.println("More than one way node with node_osm_id: " + nd_ref);
+								for (long hit : hits) {
+									Map<String, Object> hitProps = batchGraphDb.getNodeProperties(hit);
+									System.err.println("\tid = " + hit + ", name = " + hitProps.get("name"));
+								}
+							}
+							long pointNode = hits.next();
+                            long proxyNode = batchGraphDb.createNode(null);
 							if (firstNode == -1) {
 								firstNode = pointNode;
 							}
@@ -435,12 +451,24 @@ public class OSMImporter implements Constants {
             parser.close();
             batchIndexService.shutdown();
         }
+        describeTimes(startTime,times);
         describeMissing();
+        describeLoaded();
 
         long stopTime = System.currentTimeMillis();
         log("info | Elapsed time in seconds: " + (1.0 * (stopTime - startTime) / 1000.0));
         dumpGeomStats();
     }
+
+	private void describeTimes(long startTime, long[] times) {
+		long endTime = System.currentTimeMillis();
+		log("Completed load in " + (1.0 * (endTime - startTime) / 1000.0) + "s");
+		log("\tImported nodes:  " + (1.0 * (times[0] - startTime) / 1000.0) + "s");
+		log("\tOptimized index: " + (1.0 * (times[1] - times[0]) / 1000.0) + "s");
+		log("\tImported ways:   " + (1.0 * (times[2] - times[1]) / 1000.0) + "s");
+		log("\tOptimized index: " + (1.0 * (times[3] - times[2]) / 1000.0) + "s");
+		log("\tImported rels:   " + (1.0 * (endTime - times[3]) / 1000.0) + "s");
+	}
 
     private int missingNodeCount = 0;
 
@@ -459,6 +487,15 @@ public class OSMImporter implements Constants {
         }
     }
 
+	private void describeLoaded() {
+		for (String type : new String[] { "node", "way", "relation" }) {
+			Integer count = stats.get(type);
+			if (count != null) {
+				log("Loaded " + count + " " + type + "s");
+			}
+		}
+	}
+
     private int missingMemberCount = 0;
 
     private void missingMember(String description) {
@@ -467,14 +504,35 @@ public class OSMImporter implements Constants {
         }
     }
 
-    private void addNodeTags(BatchInserter batchGraphDb, long currentNode, LinkedHashMap<String, Object> tags, String type) {
-        if (currentNode > 0 && tags.size() > 0) {
-        	addToTagStats(type, tags.keySet());
-            long id = batchGraphDb.createNode(tags);
-            batchGraphDb.createRelationship(currentNode, id, OSMRelation.TAGS, null);
-            tags.clear();
-        }
-    }
+	private HashMap<String, Integer> stats = new HashMap<String, Integer>();
+	private long logTime = 0;
+
+	private void logNodeAddition(long currentNode, LinkedHashMap<String, Object> tags, String type) {
+		Integer count = stats.get(type);
+		if (count == null) {
+			count = 1;
+		} else {
+			count++;
+		}
+		stats.put(type, count);
+		long currentTime = System.currentTimeMillis();
+		if (currentTime - logTime > 1432) {
+			System.out.println(new Date(currentTime) + ": Saving " + type + " " + count + " (created " + createdNodes + ", found "
+			        + foundNodes + ")");
+			logTime = currentTime;
+			//batchIndexService.optimize();
+		}
+	}
+
+	private void addNodeTags(BatchInserter batchGraphDb, long currentNode, LinkedHashMap<String, Object> tags, String type) {
+		logNodeAddition(currentNode, tags, type);
+		if (currentNode > 0 && tags.size() > 0) {
+			addToTagStats(type, tags.keySet());
+			long id = batchGraphDb.createNode(tags);
+			batchGraphDb.createRelationship(currentNode, id, OSMRelation.TAGS, null);
+			tags.clear();
+		}
+	}
 
     private void addNodeGeometry(BatchInserter batchGraphDb, long currentNode, int gtype, Envelope bbox, int vertices) {
         if (currentNode > 0 && !bbox.isNull() && vertices > 0) {
@@ -492,31 +550,38 @@ public class OSMImporter implements Constants {
     }
 
     private long addNode(BatchInserter batchInserter, String name, XMLStreamReader parser, String indexKey) {
-        return addNode(batchInserter, name, extractProperties(name, parser), indexKey);
+        return addNodeWithCheck(batchInserter, name, extractProperties(name, parser), indexKey);
     }
 
+    private static int foundNodes=0;
+    private static int createdNodes=0;
 	private long addNodeWithCheck(BatchInserter batchInserter, String name, Map<String, Object> properties, String indexKey) {
 		// TODO: This code allows for importing into existing data, but slows
 		// the import down by almost three times
 		long id = -1;
-		if (indexKey != null && properties.containsKey(indexKey)) {
+		Object indexValue = (indexKey==null) ? null : properties.get(indexKey);
+		if (indexValue != null && (createdNodes+foundNodes < 100 || foundNodes > 10)) {
 			id = batchIndexService.getSingleNode(indexKey, properties.get(indexKey));
 		}
 		if (id < 0) {
 			id = batchInserter.createNode(properties);
-			if (indexKey != null && properties.containsKey(indexKey)) {
+			if (indexValue != null) {
 				batchIndexService.index(id, indexKey, properties.get(indexKey));
 			}
+			createdNodes++;
+		}else{
+			foundNodes++;
 		}
 		return id;
 	}
 
 	private long addNode(BatchInserter batchInserter, String name, Map<String, Object> properties, String indexKey) {
-		long id = batchInserter.createNode(properties);
-		if (indexKey != null && properties.containsKey(indexKey)) {
-			batchIndexService.index(id, indexKey, properties.get(indexKey));
-		}
-		return id;
+//		long id = batchInserter.createNode(properties);
+//		if (indexKey != null && properties.containsKey(indexKey)) {
+//			batchIndexService.index(id, indexKey, properties.get(indexKey));
+//		}
+//		return id;
+		return addNodeWithCheck(batchInserter, name, properties, indexKey);
 	}
 
     private Map<String, Object> extractProperties(XMLStreamReader parser) {
@@ -710,12 +775,14 @@ public class OSMImporter implements Constants {
 		private void loadTestOsmData(String layerName, int commitInterval) throws Exception {
 			String osmPath = layerName;
 			System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
+			long start = System.currentTimeMillis();
 			switchToBatchInserter();
 			OSMImporter importer = new OSMImporter(layerName);
 			importer.importFile(batchInserter, osmPath);
 			switchToEmbeddedGraphDatabase();
 			importer.reIndex(graphDb, commitInterval);
 			shutdown();
+			System.out.println("=== Completed loading " + layerName + " in " + (System.currentTimeMillis() - start) / 1000.0 + " seconds ===");
 		}
 
 		private void switchToEmbeddedGraphDatabase() {
