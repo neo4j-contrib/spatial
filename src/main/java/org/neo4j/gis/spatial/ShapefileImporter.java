@@ -116,7 +116,16 @@ public class ShapefileImporter implements Constants {
 		
 		long startTime = System.currentTimeMillis();
 		
-		ShpFiles shpFiles = new ShpFiles(new File(dataset + ".shp"));
+		ShpFiles shpFiles = null;
+		try {
+			shpFiles = new ShpFiles(new File(dataset));
+		} catch (Exception e) {
+			try {
+				shpFiles = new ShpFiles(new File(dataset + ".shp"));
+			} catch (Exception e2) {
+				throw new IllegalArgumentException("Failed to access the shapefile at either '" + dataset + "' or '" + dataset + ".shp'", e);
+			}
+		}
 		
 		CoordinateReferenceSystem crs = readCRS(shpFiles);
 		
