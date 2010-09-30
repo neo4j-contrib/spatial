@@ -77,6 +77,7 @@ import com.vividsolutions.jts.geom.MultiPoint;
 import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
+import org.geotools.data.simple.SimpleFeatureSource;
 
 
 /**
@@ -169,8 +170,9 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
      * Return a FeatureSource implementation.
      * A FeatureSource can be used to retrieve Layer metadata, bounds and geometries.
      */
-    public FeatureSource<SimpleFeatureType, SimpleFeature> getFeatureSource(String typeName) throws IOException {
-    	FeatureSource<SimpleFeatureType, SimpleFeature> result = featureSourceIndex.get(typeName);
+    @Override
+    public SimpleFeatureSource getFeatureSource(String typeName) throws IOException {
+    	SimpleFeatureSource result = featureSourceIndex.get(typeName);
     	if (result == null) {
         	final SimpleFeatureType featureType = getSchema(typeName);    		
 
@@ -532,7 +534,7 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 	private Map<String,SimpleFeatureType> simpleFeatureTypeIndex = Collections.synchronizedMap(new HashMap<String,SimpleFeatureType>());
 	private Map<String,CoordinateReferenceSystem> crsIndex = Collections.synchronizedMap(new HashMap<String,CoordinateReferenceSystem>());
 	private Map<String,ReferencedEnvelope> boundsIndex = Collections.synchronizedMap(new HashMap<String,ReferencedEnvelope>());
-	private Map<String,FeatureSource> featureSourceIndex = Collections.synchronizedMap(new HashMap<String,FeatureSource>());	
+	private Map<String,SimpleFeatureSource> featureSourceIndex = Collections.synchronizedMap(new HashMap<String,SimpleFeatureSource>());
 	private GraphDatabaseService database;
 	private SpatialDatabaseService spatialDatabase;
 	
