@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import mapnik
+import os
 
 m = mapnik.Map(2000,2000,"+proj=latlong +datum=WGS84")
 m.background = mapnik.Color('grey')
@@ -64,5 +65,7 @@ m.layers.append(l_highway)
 m.layers.append(l_water)
 m.layers.append(l_natural)
 m.zoom_to_box(l_highway.envelope())
-mapnik.render_to_file(m,'target/export.png', 'png')
+img_loc = 'target/export.png'
+mapnik.render_to_file(m, img_loc, 'png')
 mapnik.save_map(m,"target/map.xml")
+os.system('open ' + img_loc)
