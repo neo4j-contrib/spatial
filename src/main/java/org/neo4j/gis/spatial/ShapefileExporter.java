@@ -22,7 +22,6 @@ public class ShapefileExporter {
 	public ShapefileExporter(GraphDatabaseService db) {
 		neo4jDataStore = new Neo4jSpatialDataStore(db);
 		exportDir = null;
-		new File(new File("./.."), "neo4j/neo4j-spatial/target");
 	}
 
 	public void setExportDir(String dir) {

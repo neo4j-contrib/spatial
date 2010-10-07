@@ -4,8 +4,10 @@ import java.util.ArrayList;
 
 import org.geotools.data.DataSourceException;
 import org.junit.Test;
+import org.neo4j.gis.spatial.geotools.data.StyledImageExporter;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
+import org.neo4j.kernel.EmbeddedGraphDatabase;
 
 public class TestDynamicLayers extends Neo4jTestCase {
 
@@ -44,6 +46,9 @@ public class TestDynamicLayers extends Neo4jTestCase {
 		// Now export the layers to files
 		ShapefileExporter exporter = new ShapefileExporter(graphDb());
 		exporter.setExportDir("target/export");
+		StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
+		imageExporter.setExportDir("target/export");
+		imageExporter.setZoom(3.0);
 		int countMultiGeometryLayers = 0;
 		int countMultiGeometryExceptions = 0;
 		for (Layer layer : layers) {
@@ -52,6 +57,7 @@ public class TestDynamicLayers extends Neo4jTestCase {
 			}
 			try {
 				exporter.exportLayer(layer.getName());
+	        	imageExporter.saveLayerImage(layer.getName(), "neo.sld.xml");
 			} catch (Exception e) {
 				if (e instanceof DataSourceException && e.getMessage().contains("geom.Geometry")) {
 					System.out.println("Got geometry exception on layer with geometry["

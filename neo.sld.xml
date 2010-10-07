@@ -1,0 +1,294 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<StyledLayerDescriptor version="1.0.0"
+	xmlns="http://www.opengis.net/sld" xmlns:ogc="http://www.opengis.net/ogc"
+	xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.opengis.net/sld http://schemas.opengis.net/sld/1.0.0/StyledLayerDescriptor.xsd">
+	<NamedLayer>
+		<UserStyle>
+			<FeatureTypeStyle>
+				<Rule>
+					<PolygonSymbolizer>
+						<Fill>
+							<CssParameter name="fill">
+								<ogc:Literal>#eeeeee</ogc:Literal>
+							</CssParameter>
+							<CssParameter name="fill-opacity">
+								<ogc:Literal>0.4</ogc:Literal>
+							</CssParameter>
+						</Fill>
+						<Stroke>
+							<CssParameter name="fill">#bbbbbb</CssParameter>
+						</Stroke>
+					</PolygonSymbolizer>
+				</Rule>
+			</FeatureTypeStyle>
+			<FeatureTypeStyle>
+				<Rule>
+					<ogc:Filter>
+						<ogc:Not>
+							<ogc:PropertyIsNull>
+								<ogc:PropertyName>landuse</ogc:PropertyName>
+							</ogc:PropertyIsNull>
+						</ogc:Not>
+					</ogc:Filter>
+					<PolygonSymbolizer>
+						<Fill>
+							<CssParameter name="fill">
+								<ogc:Literal>#5BF864</ogc:Literal>
+							</CssParameter>
+							<CssParameter name="fill-opacity">
+								<ogc:Literal>0.6</ogc:Literal>
+							</CssParameter>
+						</Fill>
+						<Stroke>
+							<CssParameter name="fill">#21CE18</CssParameter>
+						</Stroke>
+					</PolygonSymbolizer>
+				</Rule>
+			</FeatureTypeStyle>
+			<FeatureTypeStyle>
+				<Rule>
+					<LineSymbolizer>
+						<Stroke>
+							<CssParameter name="stroke">#dddddd</CssParameter>
+							<CssParameter name="stroke-width">1</CssParameter>
+						</Stroke>
+					</LineSymbolizer>
+				</Rule>
+			</FeatureTypeStyle>
+			<FeatureTypeStyle>
+				<Rule>
+					<ogc:Filter>
+						<ogc:And>
+							<ogc:Not>
+								<ogc:PropertyIsEqualTo>
+									<ogc:PropertyName>highway</ogc:PropertyName>
+									<ogc:Literal>track</ogc:Literal>
+								</ogc:PropertyIsEqualTo>
+							</ogc:Not>
+							<ogc:Not>
+								<ogc:PropertyIsEqualTo>
+									<ogc:PropertyName>highway</ogc:PropertyName>
+									<ogc:Literal>path</ogc:Literal>
+								</ogc:PropertyIsEqualTo>
+							</ogc:Not>
+							<ogc:Not>
+								<ogc:PropertyIsEqualTo>
+									<ogc:PropertyName>highway</ogc:PropertyName>
+									<ogc:Literal>cycleway</ogc:Literal>
+								</ogc:PropertyIsEqualTo>
+							</ogc:Not>
+							<ogc:Not>
+								<ogc:PropertyIsEqualTo>
+									<ogc:PropertyName>highway</ogc:PropertyName>
+									<ogc:Literal>footway</ogc:Literal>
+								</ogc:PropertyIsEqualTo>
+							</ogc:Not>
+							<ogc:Not>
+								<ogc:PropertyIsNull>
+									<ogc:PropertyName>highway</ogc:PropertyName>
+								</ogc:PropertyIsNull>
+							</ogc:Not>
+						</ogc:And>
+					</ogc:Filter>
+					<LineSymbolizer>
+						<Stroke>
+							<CssParameter name="stroke">#444444</CssParameter>
+							<CssParameter name="stroke-width">4</CssParameter>
+						</Stroke>
+					</LineSymbolizer>
+				</Rule>
+			</FeatureTypeStyle>
+			<FeatureTypeStyle>
+				<Rule>
+					<ogc:Filter>
+						<ogc:Not>
+							<ogc:PropertyIsNull>
+								<ogc:PropertyName>railway</ogc:PropertyName>
+							</ogc:PropertyIsNull>
+						</ogc:Not>
+					</ogc:Filter>
+					<LineSymbolizer>
+						<Stroke>
+							<CssParameter name="stroke">#000000</CssParameter>
+							<CssParameter name="stroke-width">1</CssParameter>
+						</Stroke>
+					</LineSymbolizer>
+				</Rule>
+			</FeatureTypeStyle>
+			<FeatureTypeStyle>
+				<Rule>
+					<ogc:Filter>
+						<ogc:Or>
+							<ogc:PropertyIsEqualTo>
+								<ogc:PropertyName>highway</ogc:PropertyName>
+								<ogc:Literal>track</ogc:Literal>
+							</ogc:PropertyIsEqualTo>
+							<ogc:PropertyIsEqualTo>
+								<ogc:PropertyName>highway</ogc:PropertyName>
+								<ogc:Literal>path</ogc:Literal>
+							</ogc:PropertyIsEqualTo>
+							<ogc:PropertyIsEqualTo>
+								<ogc:PropertyName>highway</ogc:PropertyName>
+								<ogc:Literal>cycleway</ogc:Literal>
+							</ogc:PropertyIsEqualTo>
+							<ogc:PropertyIsEqualTo>
+								<ogc:PropertyName>highway</ogc:PropertyName>
+								<ogc:Literal>footway</ogc:Literal>
+							</ogc:PropertyIsEqualTo>
+						</ogc:Or>
+					</ogc:Filter>
+					<LineSymbolizer>
+						<Stroke>
+							<CssParameter name="stroke">#888833</CssParameter>
+							<CssParameter name="stroke-width">1</CssParameter>
+						</Stroke>
+					</LineSymbolizer>
+				</Rule>
+			</FeatureTypeStyle>
+			<FeatureTypeStyle>
+				<Rule>
+					<ogc:Filter>
+						<ogc:PropertyIsEqualTo>
+							<ogc:PropertyName>highway</ogc:PropertyName>
+							<ogc:Literal>secondary</ogc:Literal>
+						</ogc:PropertyIsEqualTo>
+					</ogc:Filter>
+					<LineSymbolizer>
+						<Stroke>
+							<CssParameter name="stroke">#444444</CssParameter>
+							<CssParameter name="stroke-width">7</CssParameter>
+						</Stroke>
+					</LineSymbolizer>
+				</Rule>
+			</FeatureTypeStyle>
+			<FeatureTypeStyle>
+				<Rule>
+					<ogc:Filter>
+						<ogc:And>
+							<ogc:PropertyIsNull>
+								<ogc:PropertyName>bridge</ogc:PropertyName>
+							</ogc:PropertyIsNull>
+							<ogc:Not>
+								<ogc:PropertyIsNull>
+									<ogc:PropertyName>highway</ogc:PropertyName>
+								</ogc:PropertyIsNull>
+							</ogc:Not>
+							<ogc:Not>
+								<ogc:PropertyIsEqualTo>
+									<ogc:PropertyName>highway</ogc:PropertyName>
+									<ogc:Literal>track</ogc:Literal>
+								</ogc:PropertyIsEqualTo>
+							</ogc:Not>
+							<ogc:Not>
+								<ogc:PropertyIsEqualTo>
+									<ogc:PropertyName>highway</ogc:PropertyName>
+									<ogc:Literal>path</ogc:Literal>
+								</ogc:PropertyIsEqualTo>
+							</ogc:Not>
+							<ogc:Not>
+								<ogc:PropertyIsEqualTo>
+									<ogc:PropertyName>highway</ogc:PropertyName>
+									<ogc:Literal>cycleway</ogc:Literal>
+								</ogc:PropertyIsEqualTo>
+							</ogc:Not>
+							<ogc:Not>
+								<ogc:PropertyIsEqualTo>
+									<ogc:PropertyName>highway</ogc:PropertyName>
+									<ogc:Literal>footway</ogc:Literal>
+								</ogc:PropertyIsEqualTo>
+							</ogc:Not>
+						</ogc:And>
+					</ogc:Filter>
+					<LineSymbolizer>
+						<Stroke>
+							<CssParameter name="stroke">#eeeebb</CssParameter>
+							<CssParameter name="stroke-width">2</CssParameter>
+						</Stroke>
+					</LineSymbolizer>
+				</Rule>
+			</FeatureTypeStyle>
+			<FeatureTypeStyle>
+				<Rule>
+					<ogc:Filter>
+						<ogc:PropertyIsEqualTo>
+							<ogc:PropertyName>highway</ogc:PropertyName>
+							<ogc:Literal>residential</ogc:Literal>
+						</ogc:PropertyIsEqualTo>
+					</ogc:Filter>
+					<LineSymbolizer>
+						<Stroke>
+							<CssParameter name="stroke">#99eedd</CssParameter>
+							<CssParameter name="stroke-width">2</CssParameter>
+						</Stroke>
+					</LineSymbolizer>
+				</Rule>
+			</FeatureTypeStyle>
+			<FeatureTypeStyle>
+				<Rule>
+					<ogc:Filter>
+						<ogc:PropertyIsEqualTo>
+							<ogc:PropertyName>highway</ogc:PropertyName>
+							<ogc:Literal>secondary</ogc:Literal>
+						</ogc:PropertyIsEqualTo>
+					</ogc:Filter>
+					<LineSymbolizer>
+						<Stroke>
+							<CssParameter name="stroke">#dddddd</CssParameter>
+							<CssParameter name="stroke-width">5</CssParameter>
+						</Stroke>
+					</LineSymbolizer>
+				</Rule>
+			</FeatureTypeStyle>
+			<FeatureTypeStyle>
+				<Rule>
+					<ogc:Filter>
+						<ogc:Not>
+							<ogc:PropertyIsNull>
+								<ogc:PropertyName>bridge</ogc:PropertyName>
+							</ogc:PropertyIsNull>
+						</ogc:Not>
+					</ogc:Filter>
+					<LineSymbolizer>
+						<Stroke>
+							<CssParameter name="stroke">#0000FF</CssParameter>
+							<CssParameter name="stroke-width">4</CssParameter>
+						</Stroke>
+					</LineSymbolizer>
+					<LineSymbolizer>
+						<Stroke>
+							<CssParameter name="stroke">#FFFF00</CssParameter>
+							<CssParameter name="stroke-width">2</CssParameter>
+						</Stroke>
+					</LineSymbolizer>
+					<TextSymbolizer>
+						<Label>
+							<ogc:PropertyName>name</ogc:PropertyName>
+						</Label>
+
+						<Font>
+							<CssParameter name="font-family">Times New Roman</CssParameter>
+							<CssParameter name="font-style">Normal</CssParameter>
+							<CssParameter name="font-size">14</CssParameter>
+							<CssParameter name="font-weight">bold</CssParameter>
+						</Font>
+
+						<Halo>
+							<Radius>
+								<ogc:Literal>2</ogc:Literal>
+							</Radius>
+							<Fill>
+								<CssParameter name="fill">#FFF88B</CssParameter>
+								<CssParameter name="fill-opacity">0.85</CssParameter>
+							</Fill>
+						</Halo>
+
+						<Fill>
+							<CssParameter name="fill">#FF0000</CssParameter>
+						</Fill>
+					</TextSymbolizer>
+				</Rule>
+			</FeatureTypeStyle>
+		</UserStyle>
+	</NamedLayer>
+</StyledLayerDescriptor>
