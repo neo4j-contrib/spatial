@@ -15,7 +15,7 @@
             <item name="components" href=".." />
             <item name="apidocs" href="http://api.neo4j.org/" />
         </links>
-        <menu name="Neo4j kernel">
+        <menu name="Neo4j Spatial">
             <item name="Introduction" href="index.html" />
             <item name="Wiki" href="http://wiki.neo4j.org/content/Neo4j Spatial" />
             <item name="JavaDocs" href="/apidocs/" />
