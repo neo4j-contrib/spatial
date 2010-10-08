@@ -28,10 +28,13 @@ import java.util.List;
 import junit.framework.TestCase;
 
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.impl.batchinsert.BatchInserter;
 import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
+import org.neo4j.kernel.impl.nioneo.store.PropertyStore;
 
 
 /**
@@ -137,7 +140,34 @@ public abstract class Neo4jTestCase extends TestCase {
             file.delete();
         }
     }
+    
+    protected long calculateDiskUsage(File file) {
+    	if(file.isDirectory()) {
+    		long count = 0;
+    		for(File sub:file.listFiles()) {
+    			count += calculateDiskUsage(sub);
+    		}
+    		return count;
+    	} else {
+    		return file.length();
+    	}
+    }
 
+    protected long databaseDiskUsage() {
+    	return calculateDiskUsage(dbPath);
+    }
+
+    protected long countNodes(Class<?> cls) {
+    	return ((EmbeddedGraphDatabase)graphDb).getConfig().getGraphDbModule().getNodeManager().getNumberOfIdsInUse(cls);
+    }
+
+    protected void printDatabaseStats() {
+    	System.out.println("Database stats:");
+    	System.out.println("\tTotal disk usage: "+((float)databaseDiskUsage())/(1024.0*1024.0)+"MB");
+    	System.out.println("\tTotal # nodes:    "+countNodes(Node.class));
+    	System.out.println("\tTotal # rels:     "+countNodes(Relationship.class));
+    	System.out.println("\tTotal # props:    "+countNodes(PropertyStore.class));
+    }
     protected void restartTx() {
         restartTx(true);
     }

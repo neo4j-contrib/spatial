@@ -24,8 +24,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 			Node geomNode = addGeomNode(geometry, fieldsName, fields);
 			index.add(geomNode);
 			tx.success();
-			return new SpatialDatabaseRecord(getName(), getGeometryEncoder(), getCoordinateReferenceSystem(), getExtraPropertyNames(),
-			        geomNode, geometry);
+			return new SpatialDatabaseRecord(this, geomNode, geometry);
 		} finally {
 			tx.finish();
 		}

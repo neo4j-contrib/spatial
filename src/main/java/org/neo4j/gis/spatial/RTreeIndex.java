@@ -210,12 +210,7 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 		// be sure geomNode is inside this RTree
 		findLeafContainingGeometryNode(geomNode);
 
-		return new SpatialDatabaseRecord(
-				layer.getName(), 
-				layer.getGeometryEncoder(), 
-				layer.getCoordinateReferenceSystem(), 
-				layer.getExtraPropertyNames(), 
-				geomNode);
+		return new SpatialDatabaseRecord(layer,geomNode);
 	}
 	
 	public List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds) {

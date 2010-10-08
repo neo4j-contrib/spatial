@@ -66,7 +66,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         Geometry geometry = getGeometryEncoder().decodeGeometry(geomNode);      
         
         index.add(geomNode);
-        return new SpatialDatabaseRecord(getName(), getGeometryEncoder(), getCoordinateReferenceSystem(), getExtraPropertyNames(), geomNode, geometry);
+        return new SpatialDatabaseRecord(this, geomNode, geometry);
     }
 
     public GeometryFactory getGeometryFactory() {

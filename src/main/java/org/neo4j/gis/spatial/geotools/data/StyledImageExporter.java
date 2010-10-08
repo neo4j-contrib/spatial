@@ -132,28 +132,28 @@ public class StyledImageExporter {
 	}
 
 	public static void main(String[] args) {
-        try {
-//            HashMap<String, Serializable> params = new HashMap<String, Serializable>();
-//            params.put(
-//                Neo4jSpatialDataStoreFactory.URLP.key,
-//                "file:../neo4j-spatial/target/var/neo4j-db/neostore.id"
-//            );
-//            DataStore store = new Neo4jSpatialDataStoreFactory().createDataStore(params);
+		if (args.length < 4) {
+			System.err.println("Too few arguments. Provide: 'database' 'exportdir' 'stylefile' zoom layer <layers..>");
+			return;
+		}
+		String database = args[0];
+		String exportdir = args[1];
+		String stylefile = args[2];
+		double zoom = new Double(args[3]);
+		GraphDatabaseService db = new EmbeddedGraphDatabase(database);
+		try {
+			StyledImageExporter imageExporter = new StyledImageExporter(db);
+			imageExporter.setExportDir(exportdir);
+			imageExporter.setZoom(zoom);
+			imageExporter.setSize(800, 600);
+			for (int i = 4; i < args.length; i++) {
+				imageExporter.saveLayerImage(args[i], stylefile);
+			}
 
-        	GraphDatabaseService db = new EmbeddedGraphDatabase("target/var/neo4j-db");
-        	StyledImageExporter imageExporter = new StyledImageExporter(db);
-        	imageExporter.setExportDir("target/export");
-        	imageExporter.setZoom(3.0);
-        	imageExporter.setSize(800,600);
-        	imageExporter.saveLayerImage("highway", "neo.sld.xml");
-        	imageExporter.saveLayerImage("highway-residential", "neo.sld.xml");
-        	imageExporter.saveLayerImage("railway", "neo.sld.xml");
-        	imageExporter.saveLayerImage("map2.osm", "neo.sld.xml");
-        	
-        	db.shutdown();
-
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		} finally {
+			db.shutdown();
+		}
+	}
 }

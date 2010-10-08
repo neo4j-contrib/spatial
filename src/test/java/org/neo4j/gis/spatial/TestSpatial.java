@@ -192,8 +192,8 @@ public class TestSpatial extends Neo4jTestCase {
             layersToTest = new String[] {"sweden_administrative"};
         } else if (spatialTestMode != null && spatialTestMode.equals("dev")) {
             // Tests relevant to current development
-            layersToTest = new String[] {"billesholm.osm"};
-            //layersToTest = new String[] {"billesholm.osm", "sweden.osm.administrative", "sweden_administrative"};
+            //layersToTest = new String[] {"billesholm.osm"};
+            layersToTest = new String[] {"billesholm.osm", "sweden.osm.administrative", "sweden_administrative"};
             //layersToTest = new String[] {"sweden_administrative"};
         } else {
             // Tests to run by default for regression (not too long running, and should always pass)

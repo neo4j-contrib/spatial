@@ -1,5 +1,7 @@
 package org.neo4j.gis.spatial.osm;
 
+import static java.util.Arrays.asList;
+
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
@@ -37,7 +39,6 @@ import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
 import org.neo4j.kernel.impl.batchinsert.SimpleRelationship;
 
 import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
 
 public class OSMImporter implements Constants {
     public static DefaultEllipsoid WGS84 = DefaultEllipsoid.WGS84;
@@ -84,9 +85,12 @@ public class OSMImporter implements Constants {
 		 */
 		public String[] getTags() {
 			if (stats.size() > 0) {
-				int threshold = count / (stats.size() * 3);
+				int threshold = count / (stats.size() * 20);
 				ArrayList<String> tags = new ArrayList<String>();
 				for (String key : stats.keySet()) {
+					if(key.equals("waterway")){
+						System.out.println("debug["+key+"]: "+stats.get(key));
+					}
 					if (stats.get(key) > threshold)
 						tags.add(key);
 				}
@@ -98,7 +102,7 @@ public class OSMImporter implements Constants {
 		}
 
 		public String toString() {
-			return "TagStats[" + name + "]: " + getTags();
+			return "TagStats[" + name + "]: " + asList(getTags());
 		}
 	}
 
@@ -125,6 +129,14 @@ public class OSMImporter implements Constants {
 		}
 		geomStats.clear();
 	}
+	
+	private void printTagStats() {
+		System.out.println("Tag statistics for " + tagStats.size() + " types:");
+		for (String key : tagStats.keySet()) {
+			TagStats stats = tagStats.get(key);
+			System.out.println("\t" + key + ": " + stats);
+		}
+	}
 
     public void reIndex(GraphDatabaseService database, int commitInterval) {
         if (commitInterval < 1)
@@ -140,7 +152,7 @@ public class OSMImporter implements Constants {
         Transaction tx = database.beginTx();
         int count = 0;
         try {
-            layer.setExtraPropertyNames(tagStats.get("way").getTags());
+            layer.setExtraPropertyNames(tagStats.get("all").getTags());
             for (Node way : database.getNodeById(osm_dataset).traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH,
                     ReturnableEvaluator.ALL_BUT_START_NODE, OSMRelation.WAYS, Direction.OUTGOING, OSMRelation.NEXT,
                     Direction.OUTGOING)) {
@@ -162,11 +174,16 @@ public class OSMImporter implements Constants {
         dumpGeomStats();
     }
 
-    private int addToTagStats(String type, String key) {
+    private TagStats getTagStats(String type) {
     	if(!tagStats.containsKey(type)) {
     		tagStats.put(type,new TagStats(type));
     	}
-    	return tagStats.get(type).add(key);
+    	return tagStats.get(type);
+    }
+
+    private int addToTagStats(String type, String key) {
+    	getTagStats("all").add(key);
+    	return getTagStats(type).add(key);
     }
 
     private int addToTagStats(String type, Collection<String> keys) {
@@ -277,6 +294,10 @@ public class OSMImporter implements Constants {
                             // Copy name tag to way because this seems like a valuable location for
                             // such a property
                             wayProperties.put("name", name);
+                        }
+                        String way_osm_id = (String)wayProperties.get("way_osm_id");
+                        if(way_osm_id.equals("28338132")) {
+                        	System.out.println("Debug way: "+way_osm_id);
                         }
                         long way = addNode(batchGraphDb, "way", wayProperties, "way_osm_id");
                         if (prev_way < 0) {
@@ -458,6 +479,7 @@ public class OSMImporter implements Constants {
         long stopTime = System.currentTimeMillis();
         log("info | Elapsed time in seconds: " + (1.0 * (stopTime - startTime) / 1000.0));
         dumpGeomStats();
+        printTagStats();
     }
 
 	private void describeTimes(long startTime, long[] times) {

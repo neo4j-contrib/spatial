@@ -4,7 +4,9 @@
 	xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.opengis.net/sld http://schemas.opengis.net/sld/1.0.0/StyledLayerDescriptor.xsd">
 	<NamedLayer>
+		<Name>Example Neo4j Spatial OSM Style</Name>
 		<UserStyle>
+			<Name>Example Neo4j Spatial OSM Style</Name>
 			<FeatureTypeStyle>
 				<Rule>
 					<PolygonSymbolizer>
@@ -17,7 +19,7 @@
 							</CssParameter>
 						</Fill>
 						<Stroke>
-							<CssParameter name="fill">#bbbbbb</CssParameter>
+							<CssParameter name="fill">#ffbbbb</CssParameter>
 						</Stroke>
 					</PolygonSymbolizer>
 				</Rule>
@@ -34,14 +36,14 @@
 					<PolygonSymbolizer>
 						<Fill>
 							<CssParameter name="fill">
-								<ogc:Literal>#5BF864</ogc:Literal>
+								<ogc:Literal>#d0d0d0</ogc:Literal>
 							</CssParameter>
 							<CssParameter name="fill-opacity">
 								<ogc:Literal>0.6</ogc:Literal>
 							</CssParameter>
 						</Fill>
 						<Stroke>
-							<CssParameter name="fill">#21CE18</CssParameter>
+							<CssParameter name="fill">#e0e0e0</CssParameter>
 						</Stroke>
 					</PolygonSymbolizer>
 				</Rule>
@@ -54,6 +56,99 @@
 							<CssParameter name="stroke-width">1</CssParameter>
 						</Stroke>
 					</LineSymbolizer>
+				</Rule>
+			</FeatureTypeStyle>
+			<FeatureTypeStyle>
+				<Rule>
+					<ogc:Filter>
+						<ogc:Or>
+							<ogc:PropertyIsEqualTo>
+								<ogc:PropertyName>leisure</ogc:PropertyName>
+								<ogc:Literal>park</ogc:Literal>
+							</ogc:PropertyIsEqualTo>
+							<ogc:Not>
+								<ogc:PropertyIsNull>
+									<ogc:PropertyName>natural</ogc:PropertyName>
+								</ogc:PropertyIsNull>
+							</ogc:Not>
+						</ogc:Or>
+					</ogc:Filter>
+					<PolygonSymbolizer>
+						<Fill>
+							<CssParameter name="fill">#8BF884</CssParameter>
+							<CssParameter name="fill-opacity">0.8</CssParameter>
+						</Fill>
+						<Stroke>
+							<CssParameter name="fill">#51CE48</CssParameter>
+						</Stroke>
+					</PolygonSymbolizer>
+				</Rule>
+			</FeatureTypeStyle>
+			<FeatureTypeStyle>
+				<Rule>
+					<ogc:Filter>
+						<ogc:PropertyIsEqualTo>
+							<ogc:PropertyName>natural</ogc:PropertyName>
+							<ogc:Literal>wood</ogc:Literal>
+						</ogc:PropertyIsEqualTo>
+					</ogc:Filter>
+					<PolygonSymbolizer>
+						<Fill>
+							<CssParameter name="fill">#5BF864</CssParameter>
+							<CssParameter name="fill-opacity">0.8</CssParameter>
+						</Fill>
+						<Stroke>
+							<CssParameter name="fill">#21CE18</CssParameter>
+						</Stroke>
+					</PolygonSymbolizer>
+				</Rule>
+			</FeatureTypeStyle>
+			<FeatureTypeStyle>
+				<Rule>
+					<ogc:Filter>
+						<ogc:Or>
+							<ogc:Not>
+								<ogc:PropertyIsNull>
+									<ogc:PropertyName>waterway</ogc:PropertyName>
+								</ogc:PropertyIsNull>
+							</ogc:Not>
+							<ogc:PropertyIsEqualTo>
+								<ogc:PropertyName>natural</ogc:PropertyName>
+								<ogc:Literal>water</ogc:Literal>
+							</ogc:PropertyIsEqualTo>
+						</ogc:Or>
+					</ogc:Filter>
+					<PolygonSymbolizer>
+						<Fill>
+							<CssParameter name="fill">#4040e0</CssParameter>
+							<CssParameter name="fill-opacity">0.8</CssParameter>
+						</Fill>
+						<Stroke>
+							<CssParameter name="fill">#000080</CssParameter>
+						</Stroke>
+					</PolygonSymbolizer>
+				</Rule>
+			</FeatureTypeStyle>
+			<FeatureTypeStyle>
+				<Rule>
+					<ogc:Filter>
+						<ogc:Not>
+							<ogc:PropertyIsNull>
+								<ogc:PropertyName>building</ogc:PropertyName>
+							</ogc:PropertyIsNull>
+						</ogc:Not>
+					</ogc:Filter>
+					<PolygonSymbolizer>
+						<Fill>
+							<CssParameter name="fill">#b0aa90</CssParameter>
+							<CssParameter name="fill-opacity">1.0</CssParameter>
+						</Fill>
+						<Stroke>
+							<CssParameter name="stroke">#b0b0b0</CssParameter>
+							<CssParameter name="stroke-width">1</CssParameter>
+							<CssParameter name="stroke-dasharray">1</CssParameter>
+						</Stroke>
+					</PolygonSymbolizer>
 				</Rule>
 			</FeatureTypeStyle>
 			<FeatureTypeStyle>
@@ -110,8 +205,15 @@
 					</ogc:Filter>
 					<LineSymbolizer>
 						<Stroke>
-							<CssParameter name="stroke">#000000</CssParameter>
+							<CssParameter name="stroke">#707070</CssParameter>
+							<CssParameter name="stroke-width">3</CssParameter>
+						</Stroke>
+					</LineSymbolizer>
+					<LineSymbolizer>
+						<Stroke>
+							<CssParameter name="stroke">#ffffff</CssParameter>
 							<CssParameter name="stroke-width">1</CssParameter>
+							<CssParameter name="stroke-dasharray">4</CssParameter>
 						</Stroke>
 					</LineSymbolizer>
 				</Rule>
@@ -158,6 +260,8 @@
 						<Stroke>
 							<CssParameter name="stroke">#444444</CssParameter>
 							<CssParameter name="stroke-width">7</CssParameter>
+							<CssParameter name="stroke-linecap">round</CssParameter>
+							<CssParameter name="stroke-linejoin">round</CssParameter>
 						</Stroke>
 					</LineSymbolizer>
 				</Rule>
@@ -236,6 +340,8 @@
 						<Stroke>
 							<CssParameter name="stroke">#dddddd</CssParameter>
 							<CssParameter name="stroke-width">5</CssParameter>
+							<CssParameter name="stroke-linecap">round</CssParameter>
+							<CssParameter name="stroke-linejoin">round</CssParameter>
 						</Stroke>
 					</LineSymbolizer>
 				</Rule>
@@ -253,12 +359,16 @@
 						<Stroke>
 							<CssParameter name="stroke">#0000FF</CssParameter>
 							<CssParameter name="stroke-width">4</CssParameter>
+							<CssParameter name="stroke-linecap">round</CssParameter>
+							<CssParameter name="stroke-linejoin">round</CssParameter>
 						</Stroke>
 					</LineSymbolizer>
 					<LineSymbolizer>
 						<Stroke>
 							<CssParameter name="stroke">#FFFF00</CssParameter>
 							<CssParameter name="stroke-width">2</CssParameter>
+							<CssParameter name="stroke-linecap">round</CssParameter>
+							<CssParameter name="stroke-linejoin">round</CssParameter>
 						</Stroke>
 					</LineSymbolizer>
 					<TextSymbolizer>

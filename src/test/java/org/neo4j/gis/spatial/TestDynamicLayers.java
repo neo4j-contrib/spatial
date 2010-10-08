@@ -16,7 +16,9 @@ public class TestDynamicLayers extends Neo4jTestCase {
 		// TODO: Consider merits of using dependency data in target/osm,
 		// downloaded by maven, as done in TestSpatial, versus the test data
 		// commited to source code as done here
+		printDatabaseStats();
 		loadTestOsmData("map2.osm", 1000);
+		printDatabaseStats();
 
 		// Define dynamic layers
 		ArrayList<Layer> layers = new ArrayList<Layer>();

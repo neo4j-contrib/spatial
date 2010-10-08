@@ -66,11 +66,7 @@ public class FakeIndex implements SpatialIndexReader, Constants {
 	}
 
 	public SpatialDatabaseRecord get(Long geomNodeId) {
-		return new SpatialDatabaseRecord(layer.getName(), 
-				layer.getGeometryEncoder(), 
-				layer.getCoordinateReferenceSystem(), 
-				layer.getExtraPropertyNames(),
-				layer.getSpatialDatabase().getDatabase().getNodeById(geomNodeId));
+		return new SpatialDatabaseRecord(layer, layer.getSpatialDatabase().getDatabase().getNodeById(geomNodeId));
 	}
 	
     public List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds) {

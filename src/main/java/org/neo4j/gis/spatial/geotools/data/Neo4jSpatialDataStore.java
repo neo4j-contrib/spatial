@@ -32,7 +32,6 @@ import org.geotools.data.AbstractFeatureStore;
 import org.geotools.data.DataStore;
 import org.geotools.data.FeatureListener;
 import org.geotools.data.FeatureReader;
-import org.geotools.data.FeatureSource;
 import org.geotools.data.FeatureWriter;
 import org.geotools.data.FilteringFeatureWriter;
 import org.geotools.data.InProcessLockingManager;
@@ -418,19 +417,16 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 		    // record names in case of duplicates
 	        usedNames.add(BasicFeatureTypes.GEOMETRY_ATTRIBUTE_NAME);
 	
-	        for (int i = 0; i < extraPropertyNames.length; i++) {
-	        	if (!usedNames.contains(extraPropertyNames[i])) {
-	            	usedNames.add(extraPropertyNames[i]);
-	
-	                build.setNillable(true);
-	                
-	                // TODO I don't have these informations
-	                // build.setLength(int length);
-	                build.setBinding(String.class);
-	                
-	            	attributes.add(build.buildDescriptor(extraPropertyNames[i]));            	
-	            }
-	        }
+			for (String propertyName : extraPropertyNames) {
+				if (!usedNames.contains(propertyName)) {
+					usedNames.add(propertyName);
+
+					build.setNillable(true);
+					build.setBinding(String.class);
+
+					attributes.add(build.buildDescriptor(propertyName));
+				}
+			}
 	    }
 	    
         return attributes;

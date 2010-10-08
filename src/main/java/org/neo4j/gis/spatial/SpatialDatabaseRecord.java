@@ -26,20 +26,19 @@ import com.vividsolutions.jts.geom.Geometry;
  * @author Davide Savazzi
  */
 public class SpatialDatabaseRecord implements Constants {
-	
-	private GeometryEncoder geometryEncoder;
-	private Object propertyMap;
-	// Constructor
-	
-	public SpatialDatabaseRecord(String layerName, GeometryEncoder geometryEncoder, CoordinateReferenceSystem crs, String[] propertyNames, Node geomNode) {
-		this(layerName, geometryEncoder, crs, propertyNames, geomNode, null);
-	}
 
+	public SpatialDatabaseRecord(Layer layer, Node geomNode) {
+		this(layer, geomNode, null);
+	}
 	
 	// Public methods
 	
 	public long getId() {
 		return geomNode.getId();
+	}
+	
+	public Node getGeomNode() {
+		return geomNode;
 	}
 	
 	/**
@@ -60,16 +59,16 @@ public class SpatialDatabaseRecord implements Constants {
 	
 	public Geometry getGeometry() {
 		if (geometry == null)
-			geometry = geometryEncoder.decodeGeometry(geomNode);
+			geometry = layer.getGeometryEncoder().decodeGeometry(geomNode);
 		return geometry;
 	}
 	
 	public CoordinateReferenceSystem getCoordinateReferenceSystem() {
-		return crs;
+		return layer.getCoordinateReferenceSystem();
 	}
 	
 	public String getLayerName() {
-		return layerName;
+		return layer.getName();
 	}
 	
 	/**
@@ -80,11 +79,11 @@ public class SpatialDatabaseRecord implements Constants {
 	 * @return
 	 */
 	public boolean hasProperty(String name) {
-		return geometryEncoder.hasAttribute(geomNode,name);
+		return layer.getGeometryEncoder().hasAttribute(geomNode,name);
 	}
 
 	public String[] getPropertyNames() {
-		return propertyNames;
+		return layer.getExtraPropertyNames();
 	}
 	
 	public Object[] getPropertyValues() {
@@ -96,9 +95,9 @@ public class SpatialDatabaseRecord implements Constants {
 		}
 		return values;
 	}
-	
+
 	public Object getProperty(String name) {
-		return geometryEncoder.getAttribute(geomNode,name);
+		return layer.getGeometryEncoder().getAttribute(geomNode,name);
 	}
 	
 	public void setProperty(String name, Object value) {
@@ -124,20 +123,12 @@ public class SpatialDatabaseRecord implements Constants {
 	
 	// Protected Constructors
 	
-	protected SpatialDatabaseRecord(String layerName, GeometryEncoder geometryEncoder, CoordinateReferenceSystem crs, String[] propertyNames, Node geomNode, Geometry geometry) {
+	protected SpatialDatabaseRecord(Layer layer, Node geomNode, Geometry geometry) {
+		this.layer = layer;
 		this.geomNode = geomNode;
-		this.geometryEncoder = geometryEncoder;
 		this.geometry = geometry;
-		
-		this.layerName = layerName;
-		this.propertyNames = propertyNames;
-		this.crs = crs;
 	}
 
-	public Node getGeomNode() {
-		return geomNode;
-	}
-	
 	// Private methods
 	
 	private void checkIsNotReservedProperty(String name) {
@@ -162,8 +153,6 @@ public class SpatialDatabaseRecord implements Constants {
 	
 	private Node geomNode;
 	private Geometry geometry;
-	
-	private String layerName;
-	private String[] propertyNames;
-	private CoordinateReferenceSystem crs;
+	private Layer layer;
+
 }
