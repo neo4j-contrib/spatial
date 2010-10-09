@@ -145,7 +145,10 @@ public class OSMImporter implements Constants {
         setLogContext("Index");
         SpatialDatabaseService spatialDatabase = new SpatialDatabaseService(database);
         OSMLayer layer = (OSMLayer)spatialDatabase.getOrCreateLayer(layerName, OSMGeometryEncoder.class, OSMLayer.class);
-        //OSMDataset dataset = layer.getDataset(osm_dataset);
+		// TODO: The next line creates the relationship between the dataset and
+		// layer, but this seems more like a side-effect and should be done
+		// explicitly
+		layer.getDataset(osm_dataset);
         layer.clear();  // clear the index without destroying underlying data
 
         long startTime = System.currentTimeMillis();
