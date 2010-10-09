@@ -7,7 +7,7 @@ import org.json.simple.JSONObject;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.DynamicLayer;
 import org.neo4j.gis.spatial.NullListener;
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.SpatialDataset;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
@@ -126,31 +126,32 @@ public class OSMLayer extends DynamicLayer {
 	 * to the way node and then to the tags node to test if the way is a
 	 * residential street.
 	 */
-    public LayerConfig addDynamicLayerOnWayTags(String name, int type, HashMap<String,String> wayTags) {
-    	JSONObject query = new JSONObject();
-    	JSONObject step2tags = new JSONObject();
-    	JSONObject step2way = new JSONObject();
-    	JSONObject properties = new JSONObject();
-    	for(String key:wayTags.keySet()){
-    		properties.put(key, wayTags.get(key));
-    	}
+    public LayerConfig addDynamicLayerOnWayTags(String name, int type, HashMap<String,String> tags) {
+		JSONObject query = new JSONObject();
+		if (tags != null && !tags.isEmpty()) {
+			JSONObject step2tags = new JSONObject();
+			JSONObject step2way = new JSONObject();
+			JSONObject properties = new JSONObject();
+			for (String key : tags.keySet()) {
+				properties.put(key, tags.get(key));
+			}
 
-    	step2tags.put("properties",properties);
-    	step2tags.put("type", "TAGS");
-    	step2tags.put("direction", "OUTGOING");
+			step2tags.put("properties", properties);
+			step2tags.put("type", "TAGS");
+			step2tags.put("direction", "OUTGOING");
 
-    	step2way.put("step", step2tags);
-    	step2way.put("type", "GEOM");
-    	step2way.put("direction", "INCOMING");
+			step2way.put("step", step2tags);
+			step2way.put("type", "GEOM");
+			step2way.put("direction", "INCOMING");
 
-    	query.put("step", step2way);
+			query.put("step", step2way);
+		}
 		if (type > 0) {
-			properties = new JSONObject();
+			JSONObject properties = new JSONObject();
 			properties.put(PROP_TYPE, type);
 			query.put("properties", properties);
 		}
-    	
-    	return addLayerConfig(name, type, query.toJSONString());
+		return addLayerConfig(name, type, query.toJSONString());
     }
 
 	/**
@@ -183,6 +184,15 @@ public class OSMLayer extends DynamicLayer {
 		HashMap<String, String> tags = new HashMap<String, String>();
 		tags.put(key, value);
 		return addDynamicLayerOnWayTags(value==null ? key : key + "-" + value, gtype, tags);
+	}
+
+	/**
+	 * Add a rule for a pure way based search, with a check on geometry type only.
+	 * 
+	 * @param geometry type as defined in Constants.
+	 */
+	public LayerConfig addSimpleDynamicLayer(int gtype) {
+		return addDynamicLayerOnWayTags(SpatialDatabaseService.convertGeometryTypeToName(gtype), gtype, null);
 	}
 
 }

@@ -9,17 +9,31 @@
 			<Name>Example Neo4j Spatial OSM Style</Name>
 			<FeatureTypeStyle>
 				<Rule>
+					<LineSymbolizer>
+						<Stroke>
+							<CssParameter name="stroke">#dddddd</CssParameter>
+							<CssParameter name="stroke-width">1</CssParameter>
+						</Stroke>
+					</LineSymbolizer>
+				</Rule>
+			</FeatureTypeStyle>
+			<FeatureTypeStyle>
+				<Rule>
+					<ogc:Filter>
+						<ogc:PropertyIsEqualTo>
+							<ogc:Function name="geometryType">
+								<ogc:PropertyName>the_geom</ogc:PropertyName>
+							</ogc:Function>
+							<ogc:Literal>Polygon</ogc:Literal>
+						</ogc:PropertyIsEqualTo>
+					</ogc:Filter>
 					<PolygonSymbolizer>
 						<Fill>
-							<CssParameter name="fill">
-								<ogc:Literal>#eeeeee</ogc:Literal>
-							</CssParameter>
-							<CssParameter name="fill-opacity">
-								<ogc:Literal>0.4</ogc:Literal>
-							</CssParameter>
+							<CssParameter name="fill">#aaaaaa</CssParameter>
+							<CssParameter name="fill-opacity">0.4</CssParameter>
 						</Fill>
 						<Stroke>
-							<CssParameter name="fill">#ffbbbb</CssParameter>
+							<CssParameter name="fill">#ffe0e0</CssParameter>
 						</Stroke>
 					</PolygonSymbolizer>
 				</Rule>
@@ -27,11 +41,19 @@
 			<FeatureTypeStyle>
 				<Rule>
 					<ogc:Filter>
-						<ogc:Not>
-							<ogc:PropertyIsNull>
-								<ogc:PropertyName>landuse</ogc:PropertyName>
-							</ogc:PropertyIsNull>
-						</ogc:Not>
+						<ogc:And>
+							<ogc:PropertyIsEqualTo>
+								<ogc:Function name="geometryType">
+									<ogc:PropertyName>the_geom</ogc:PropertyName>
+								</ogc:Function>
+								<ogc:Literal>Polygon</ogc:Literal>
+							</ogc:PropertyIsEqualTo>
+							<ogc:Not>
+								<ogc:PropertyIsNull>
+									<ogc:PropertyName>landuse</ogc:PropertyName>
+								</ogc:PropertyIsNull>
+							</ogc:Not>
+						</ogc:And>
 					</ogc:Filter>
 					<PolygonSymbolizer>
 						<Fill>
@@ -50,28 +72,26 @@
 			</FeatureTypeStyle>
 			<FeatureTypeStyle>
 				<Rule>
-					<LineSymbolizer>
-						<Stroke>
-							<CssParameter name="stroke">#dddddd</CssParameter>
-							<CssParameter name="stroke-width">1</CssParameter>
-						</Stroke>
-					</LineSymbolizer>
-				</Rule>
-			</FeatureTypeStyle>
-			<FeatureTypeStyle>
-				<Rule>
 					<ogc:Filter>
-						<ogc:Or>
+						<ogc:And>
 							<ogc:PropertyIsEqualTo>
-								<ogc:PropertyName>leisure</ogc:PropertyName>
-								<ogc:Literal>park</ogc:Literal>
+								<ogc:Function name="geometryType">
+									<ogc:PropertyName>the_geom</ogc:PropertyName>
+								</ogc:Function>
+								<ogc:Literal>Polygon</ogc:Literal>
 							</ogc:PropertyIsEqualTo>
-							<ogc:Not>
-								<ogc:PropertyIsNull>
-									<ogc:PropertyName>natural</ogc:PropertyName>
-								</ogc:PropertyIsNull>
-							</ogc:Not>
-						</ogc:Or>
+							<ogc:Or>
+								<ogc:PropertyIsEqualTo>
+									<ogc:PropertyName>leisure</ogc:PropertyName>
+									<ogc:Literal>park</ogc:Literal>
+								</ogc:PropertyIsEqualTo>
+								<ogc:Not>
+									<ogc:PropertyIsNull>
+										<ogc:PropertyName>natural</ogc:PropertyName>
+									</ogc:PropertyIsNull>
+								</ogc:Not>
+							</ogc:Or>
+						</ogc:And>
 					</ogc:Filter>
 					<PolygonSymbolizer>
 						<Fill>
@@ -87,10 +107,18 @@
 			<FeatureTypeStyle>
 				<Rule>
 					<ogc:Filter>
-						<ogc:PropertyIsEqualTo>
-							<ogc:PropertyName>natural</ogc:PropertyName>
-							<ogc:Literal>wood</ogc:Literal>
-						</ogc:PropertyIsEqualTo>
+						<ogc:And>
+							<ogc:PropertyIsEqualTo>
+								<ogc:Function name="geometryType">
+									<ogc:PropertyName>the_geom</ogc:PropertyName>
+								</ogc:Function>
+								<ogc:Literal>Polygon</ogc:Literal>
+							</ogc:PropertyIsEqualTo>
+							<ogc:PropertyIsEqualTo>
+								<ogc:PropertyName>natural</ogc:PropertyName>
+								<ogc:Literal>wood</ogc:Literal>
+							</ogc:PropertyIsEqualTo>
+						</ogc:And>
 					</ogc:Filter>
 					<PolygonSymbolizer>
 						<Fill>
@@ -106,21 +134,29 @@
 			<FeatureTypeStyle>
 				<Rule>
 					<ogc:Filter>
-						<ogc:Or>
-							<ogc:Not>
-								<ogc:PropertyIsNull>
-									<ogc:PropertyName>waterway</ogc:PropertyName>
-								</ogc:PropertyIsNull>
-							</ogc:Not>
+						<ogc:And>
 							<ogc:PropertyIsEqualTo>
-								<ogc:PropertyName>natural</ogc:PropertyName>
-								<ogc:Literal>water</ogc:Literal>
+								<ogc:Function name="geometryType">
+									<ogc:PropertyName>the_geom</ogc:PropertyName>
+								</ogc:Function>
+								<ogc:Literal>Polygon</ogc:Literal>
 							</ogc:PropertyIsEqualTo>
-						</ogc:Or>
+							<ogc:Or>
+								<ogc:Not>
+									<ogc:PropertyIsNull>
+										<ogc:PropertyName>waterway</ogc:PropertyName>
+									</ogc:PropertyIsNull>
+								</ogc:Not>
+								<ogc:PropertyIsEqualTo>
+									<ogc:PropertyName>natural</ogc:PropertyName>
+									<ogc:Literal>water</ogc:Literal>
+								</ogc:PropertyIsEqualTo>
+							</ogc:Or>
+						</ogc:And>
 					</ogc:Filter>
 					<PolygonSymbolizer>
 						<Fill>
-							<CssParameter name="fill">#4040e0</CssParameter>
+							<CssParameter name="fill">#8080e0</CssParameter>
 							<CssParameter name="fill-opacity">0.8</CssParameter>
 						</Fill>
 						<Stroke>
@@ -347,6 +383,7 @@
 				</Rule>
 			</FeatureTypeStyle>
 			<FeatureTypeStyle>
+				<Name>Labeled Bridges</Name>
 				<Rule>
 					<ogc:Filter>
 						<ogc:Not>
@@ -374,6 +411,61 @@
 					<TextSymbolizer>
 						<Label>
 							<ogc:PropertyName>name</ogc:PropertyName>
+						</Label>
+
+						<Font>
+							<CssParameter name="font-family">Times New Roman</CssParameter>
+							<CssParameter name="font-style">Normal</CssParameter>
+							<CssParameter name="font-size">14</CssParameter>
+							<CssParameter name="font-weight">bold</CssParameter>
+						</Font>
+
+						<Halo>
+							<Radius>
+								<ogc:Literal>2</ogc:Literal>
+							</Radius>
+							<Fill>
+								<CssParameter name="fill">#FFFFBB</CssParameter>
+								<CssParameter name="fill-opacity">0.85</CssParameter>
+							</Fill>
+						</Halo>
+
+						<Fill>
+							<CssParameter name="fill">#0000FF</CssParameter>
+						</Fill>
+					</TextSymbolizer>
+				</Rule>
+			</FeatureTypeStyle>
+			<FeatureTypeStyle>
+				<Name>Labeled Parking</Name>
+				<Rule>
+					<ogc:Filter>
+						<ogc:And>
+							<ogc:PropertyIsEqualTo>
+								<ogc:Function name="geometryType">
+									<ogc:PropertyName>the_geom</ogc:PropertyName>
+								</ogc:Function>
+								<ogc:Literal>Polygon</ogc:Literal>
+							</ogc:PropertyIsEqualTo>
+							<ogc:PropertyIsEqualTo>
+								<ogc:PropertyName>amenity</ogc:PropertyName>
+								<ogc:Literal>parking</ogc:Literal>
+							</ogc:PropertyIsEqualTo>
+						</ogc:And>
+					</ogc:Filter>
+					<PolygonSymbolizer>
+						<Fill>
+							<CssParameter name="fill">#bbbb22</CssParameter>
+							<CssParameter name="fill-opacity">1.0</CssParameter>
+						</Fill>
+						<Stroke>
+							<CssParameter name="stroke">#1111aa</CssParameter>
+							<CssParameter name="stroke-width">1</CssParameter>
+						</Stroke>
+					</PolygonSymbolizer>
+					<TextSymbolizer>
+						<Label>
+							<ogc:Literal>P </ogc:Literal>
 						</Label>
 
 						<Font>

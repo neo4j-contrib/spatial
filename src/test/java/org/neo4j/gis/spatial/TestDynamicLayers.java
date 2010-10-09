@@ -7,7 +7,6 @@ import org.junit.Test;
 import org.neo4j.gis.spatial.geotools.data.StyledImageExporter;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
-import org.neo4j.kernel.EmbeddedGraphDatabase;
 
 public class TestDynamicLayers extends Neo4jTestCase {
 
@@ -43,14 +42,22 @@ public class TestDynamicLayers extends Neo4jTestCase {
 		layers.add(osmLayer.addSimpleDynamicLayer("natural", "wood", Constants.GTYPE_POLYGON));
 		layers.add(osmLayer.addSimpleDynamicLayer("natural", "coastline"));
 		layers.add(osmLayer.addSimpleDynamicLayer("natural", "beach"));
+		layers.add(osmLayer.addSimpleDynamicLayer(Constants.GTYPE_POLYGON));
 		assertEquals(layers.size() + 1, osmLayer.getLayerNames().size());
 
 		// Now export the layers to files
-		ShapefileExporter exporter = new ShapefileExporter(graphDb());
-		exporter.setExportDir("target/export");
+		// First prepare the SHP and PNG exporters
+		ShapefileExporter shpExporter = new ShapefileExporter(graphDb());
+		shpExporter.setExportDir("target/export");
 		StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
 		imageExporter.setExportDir("target/export");
 		imageExporter.setZoom(3.0);
+		imageExporter.setSize(1024, 768);
+		imageExporter.saveLayerImage(osmLayer.getName(), "neo.sld.xml");
+
+		// Now loop through all dynamic layers and export them to shapefiles,
+		// where possible. Layers will multiple geometries cannot be exported
+		// and we take note of how many times that happens
 		int countMultiGeometryLayers = 0;
 		int countMultiGeometryExceptions = 0;
 		for (Layer layer : layers) {
@@ -58,8 +65,8 @@ public class TestDynamicLayers extends Neo4jTestCase {
 				countMultiGeometryLayers++;
 			}
 			try {
-				exporter.exportLayer(layer.getName());
 	        	imageExporter.saveLayerImage(layer.getName(), "neo.sld.xml");
+				shpExporter.exportLayer(layer.getName());
 			} catch (Exception e) {
 				if (e instanceof DataSourceException && e.getMessage().contains("geom.Geometry")) {
 					System.out.println("Got geometry exception on layer with geometry["
