@@ -24,18 +24,17 @@ import com.vividsolutions.jts.linearref.LocationIndexedLine;
  */
 public class SpatialTopologyUtils {
 	/**
-	 * Inner class associating points and geometries to facilitate the result set returned.
+	 * Inner class associating points and resulting geometry records to facilitate the result set returned.
 	 * @author craig
-	 *
 	 */
-	public class PointAndGeom implements Map.Entry<Point,Geometry>, Comparable<PointAndGeom> {
+	public static class PointResult implements Map.Entry<Point,SpatialDatabaseRecord>, Comparable<PointResult> {
 		private Point point;
-		private Geometry geom;
+		private SpatialDatabaseRecord record;
 		private double distance;
 
-		private PointAndGeom(Point point, Geometry geom, double distance) {
+		private PointResult(Point point, SpatialDatabaseRecord record, double distance) {
 			this.point = point;
-			this.geom = geom;
+			this.record = record;
 			this.distance = distance;
 		}
 
@@ -43,34 +42,37 @@ public class SpatialTopologyUtils {
 			return point;
         }
 
-		public Geometry getValue() {
-	        return geom;
+		public SpatialDatabaseRecord getValue() {
+	        return record;
         }
 
 		public double getDistance() {
 			return distance;
 		}
 
-		public Geometry setValue(Geometry arg0) {
-	        return this.geom = arg0;
+		public SpatialDatabaseRecord setValue(SpatialDatabaseRecord value) {
+	        return this.record = value;
         }
 
-		public int compareTo(PointAndGeom arg0) {
-			if (this.distance == arg0.distance) {
+		public int compareTo(PointResult other) {
+			if (this.distance == other.distance) {
 				return 0;
-			} else if (this.distance < arg0.distance) {
+			} else if (this.distance < other.distance) {
 				return -1;
 			} else {
 				return 1;
 			}
 		}
 		
+		public String toString() {
+			return "Point[" + point + "] distance[" + distance + "] record[" + record + "]";
+		}
 	}
 	
-	public ArrayList<PointAndGeom> findClosestEdges(Point point, Layer layer) {
+	public static ArrayList<PointResult> findClosestEdges(Point point, Layer layer) {
 		return findClosestEdges(point,layer,0.0);
 	}
-	public ArrayList<PointAndGeom> findClosestEdges(Point point, Layer layer, double distance) {
+	public static ArrayList<PointResult> findClosestEdges(Point point, Layer layer, double distance) {
 		ReferencedEnvelope env = new ReferencedEnvelope(layer.getIndex().getLayerBoundingBox(),layer.getCoordinateReferenceSystem());
 		if(distance<=0.0) distance = env.getSpan(0) / 100.0;
 		Envelope search = new Envelope(point.getCoordinate());
@@ -78,8 +80,8 @@ public class SpatialTopologyUtils {
 		GeometryFactory factory = layer.getGeometryFactory();
 		return findClosestEdges(point,layer,factory.toGeometry(search));
 	}
-	public ArrayList<PointAndGeom> findClosestEdges(Point point, Layer layer, Geometry filter) {
-		ArrayList<PointAndGeom> results = new ArrayList<PointAndGeom>();
+	public static ArrayList<PointResult> findClosestEdges(Point point, Layer layer, Geometry filter) {
+		ArrayList<PointResult> results = new ArrayList<PointResult>();
         Search searchQuery = new SearchIntersect(filter);
         layer.getIndex().executeSearch(searchQuery);
 		for (SpatialDatabaseRecord record : searchQuery.getResults()) {
@@ -88,7 +90,7 @@ public class SpatialTopologyUtils {
 			LinearLocation here = line.project(point.getCoordinate());
 			Coordinate snap = line.extractPoint(here);
 			double distance = snap.distance(point.getCoordinate());
-			results.add(new PointAndGeom(layer.getGeometryFactory().createPoint(snap),geom,distance));
+			results.add(new PointResult(layer.getGeometryFactory().createPoint(snap),record,distance));
 		}
 		Collections.sort(results);
 		return results;
