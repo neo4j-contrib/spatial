@@ -17,6 +17,7 @@ import org.geotools.map.DefaultMapContext;
 import org.geotools.renderer.lite.StreamingRenderer;
 import org.geotools.styling.SLDParser;
 import org.geotools.styling.Style;
+import org.neo4j.gis.spatial.SpatialTopologyUtils;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 
@@ -101,7 +102,7 @@ public class StyledImageExporter {
 
 		if (bounds == null)
 			bounds = featureSource.getBounds();
-		bounds = scaleBounds(bounds, 1.0 / zoom);
+		bounds = SpatialTopologyUtils.scaleBounds(bounds, 1.0 / zoom);
 		if (displaySize == null)
 			displaySize = new Rectangle(0, 0, 800, 600);
 
@@ -113,22 +114,6 @@ public class StyledImageExporter {
 
 		System.out.println("Exporting layer '" + layerName + "' to styled image " + imagefile.getPath());
         ImageIO.write(image, "png", imagefile);
-	}
-
-	private ReferencedEnvelope scaleBounds(ReferencedEnvelope bounds, double factor) {
-		ReferencedEnvelope scaled = new ReferencedEnvelope(bounds);
-		if (Math.abs(factor - 1.0) > 0.01) {
-			double[] min = scaled.getLowerCorner().getCoordinate();
-			double[] max = scaled.getUpperCorner().getCoordinate();
-			for(int i=0;i<scaled.getDimension();i++){
-				double span = scaled.getSpan(i);
-				double delta = (span - span * factor) / 2.0;
-				min[i] += delta;
-				max[i] -= delta;
-			}
-			scaled = new ReferencedEnvelope(min[0],max[0],min[1],max[1],scaled.getCoordinateReferenceSystem());
-		}
-		return scaled;
 	}
 
 	public static void main(String[] args) {
