@@ -147,7 +147,13 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
     }
     
     public void setExtraPropertyNames(String[] names) {
-        getLayerNode().setProperty(PROP_LAYERNODEEXTRAPROPS, names);
+        Transaction tx = getDatabase().beginTx();
+        try {
+            getLayerNode().setProperty(PROP_LAYERNODEEXTRAPROPS, names);
+            tx.success();
+        } finally {
+            tx.finish();
+        }
     }
     
     public void mergeExtraPropertyNames(String[] names) {
