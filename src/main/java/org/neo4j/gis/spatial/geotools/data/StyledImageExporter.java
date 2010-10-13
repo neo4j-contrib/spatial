@@ -133,7 +133,12 @@ public class StyledImageExporter {
 		renderer.paint(graphics, displaySize, bounds);
 		graphics.dispose();
 
-		System.out.println("Exporting layers '" + layerNames
+		StringBuffer names = new StringBuffer();
+		for(String name : layerNames) {
+			names.append(name);
+			names.append(",");
+		}
+		System.out.println("Exporting layers '" + names 
 				+ "' to styled image " + imagefile.getPath());
 		ImageIO.write(image, "png", imagefile);
 	}
