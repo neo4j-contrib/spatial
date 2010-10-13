@@ -29,22 +29,23 @@ public class StyledImageExporter {
 	private GraphDatabaseService db;
 	private File exportDir;
 	double zoom = 1.0;
-	Rectangle displaySize = new Rectangle(400,300);
-	
+	Rectangle displaySize = new Rectangle(400, 300);
+
 	public StyledImageExporter(GraphDatabaseService db) {
 		this.db = db;
 	}
 
 	public void setExportDir(String dir) {
-		exportDir = (dir == null || dir.length() == 0) ? null : (new File(dir)).getAbsoluteFile();
+		exportDir = (dir == null || dir.length() == 0) ? null : (new File(dir))
+				.getAbsoluteFile();
 	}
 
-	public void setZoom(double zoom){
+	public void setZoom(double zoom) {
 		this.zoom = zoom;
 	}
 
-	public void setSize(int width, int height){
-		this.displaySize = new Rectangle(width,height);
+	public void setSize(int width, int height) {
+		this.displaySize = new Rectangle(width, height);
 	}
 
 	private File checkFile(File file) {
@@ -61,64 +62,86 @@ public class StyledImageExporter {
 	}
 
 	@SuppressWarnings("unchecked")
-    private void debugStore(DataStore store, String layerName) throws IOException {
-        System.out.println(asList(store.getTypeNames()));
-        System.out.println(asList(store.getSchema(layerName).getAttributeDescriptors()));
+	private void debugStore(DataStore store, String[] layerNames)
+			throws IOException {
+		for (int i = 0; i < layerNames.length; i++) {
+			System.out.println(asList(store.getTypeNames()));
+			System.out.println(asList(store.getSchema(layerNames[i])
+					.getAttributeDescriptors()));
+		}
 	}
 
-	public void saveLayerImage(String layerName, String sldFile) throws IOException {
+	public void saveLayerImage(String layerName, String sldFile)
+			throws IOException {
 		saveLayerImage(layerName, sldFile, new File(layerName + ".png"), null);
 	}
 
-	public void saveLayerImage(String layerName, String sldFile, String imageFile)
-	        throws IOException {
+	public void saveLayerImage(String layerName, String sldFile,
+			String imageFile) throws IOException {
 		saveLayerImage(layerName, sldFile, new File(imageFile), null);
 	}
 
-	public void saveLayerImage(String layerName, String sldFile, File imagefile, ReferencedEnvelope bounds, int width, int height,
-	        double zoom) throws IOException {
+	public void saveLayerImage(String layerName, String sldFile,
+			File imagefile, ReferencedEnvelope bounds, int width, int height,
+			double zoom) throws IOException {
 		setZoom(zoom);
 		setSize(width, height);
 		saveLayerImage(layerName, sldFile, imagefile, bounds);
 	}
 
-	public void saveLayerImage(String layerName, String sldFile, File imagefile, ReferencedEnvelope bounds) throws IOException {
+	public void saveLayerImage(String layerName, String sldFile,
+			File imagefile, ReferencedEnvelope bounds) throws IOException {
+		String[] layerNames = new String[] { layerName };
+		saveLayerImage(layerNames, sldFile, imagefile, bounds);
+	}
+
+	public void saveLayerImage(String[] layerNames, String sldFile,
+			File imagefile, ReferencedEnvelope bounds) throws IOException {
 		imagefile = checkFile(imagefile);
-        DataStore store = new Neo4jSpatialDataStore(db);
-        debugStore(store,layerName);
+		DataStore store = new Neo4jSpatialDataStore(db);
+		debugStore(store, layerNames);
 
-        SimpleFeatureSource featureSource = store.getFeatureSource(layerName);
+		URL styleURL = new File(sldFile).toURI().toURL();
+		Style style = new SLDParser(getStyleFactory(null), styleURL).readXML()[0];
+		StreamingRenderer renderer = new StreamingRenderer();
+		RenderingHints hints = new RenderingHints(KEY_ANTIALIASING,
+				VALUE_ANTIALIAS_ON);
+		hints.put(KEY_TEXT_ANTIALIASING, VALUE_TEXT_ANTIALIAS_ON);
+		renderer.setJava2DHints(hints);
 
-        URL styleURL = new File(sldFile).toURI().toURL();
-        Style style = new SLDParser(getStyleFactory(null), styleURL).readXML()[0];
-        StreamingRenderer renderer = new StreamingRenderer();
-        RenderingHints hints = new RenderingHints(KEY_ANTIALIASING, VALUE_ANTIALIAS_ON);
-        hints.put(KEY_TEXT_ANTIALIASING, VALUE_TEXT_ANTIALIAS_ON);
-        renderer.setJava2DHints(hints);
-
-        DefaultMapContext context = new DefaultMapContext();
-        renderer.setContext(context);
-        context.addLayer(new org.geotools.map.FeatureLayer(featureSource, style));
-
-		if (bounds == null)
-			bounds = featureSource.getBounds();
+		DefaultMapContext context = new DefaultMapContext();
+		renderer.setContext(context);
+		for (int i = 0; i < layerNames.length; i++) {
+			SimpleFeatureSource featureSource = store
+					.getFeatureSource(layerNames[i]);
+			context.addLayer(new org.geotools.map.FeatureLayer(featureSource,
+					style));
+			if (bounds == null) {
+				bounds = featureSource.getBounds();
+			} else {
+				bounds.expandToInclude(featureSource.getBounds());
+			}
+		}
 		bounds = SpatialTopologyUtils.scaleBounds(bounds, 1.0 / zoom);
 		if (displaySize == null)
 			displaySize = new Rectangle(0, 0, 800, 600);
 
-		BufferedImage image = new BufferedImage(displaySize.width, displaySize.height, BufferedImage.TYPE_INT_ARGB);
+		BufferedImage image = new BufferedImage(displaySize.width,
+				displaySize.height, BufferedImage.TYPE_INT_ARGB);
 
-        Graphics2D graphics = image.createGraphics();
-        renderer.paint(graphics, displaySize, bounds);
-        graphics.dispose();
+		Graphics2D graphics = image.createGraphics();
+		renderer.paint(graphics, displaySize, bounds);
+		graphics.dispose();
 
-		System.out.println("Exporting layer '" + layerName + "' to styled image " + imagefile.getPath());
-        ImageIO.write(image, "png", imagefile);
+		System.out.println("Exporting layers '" + layerNames
+				+ "' to styled image " + imagefile.getPath());
+		ImageIO.write(image, "png", imagefile);
 	}
 
 	public static void main(String[] args) {
 		if (args.length < 4) {
-			System.err.println("Too few arguments. Provide: 'database' 'exportdir' 'stylefile' zoom layer <layers..>");
+			System.err
+					.println("Too few arguments. Provide: 'database' 'exportdir' 'stylefile' zoom layer <layers..>");
 			return;
 		}
 		String database = args[0];
