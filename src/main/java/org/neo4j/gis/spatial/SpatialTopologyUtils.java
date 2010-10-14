@@ -146,4 +146,9 @@ public class SpatialTopologyUtils {
 		return scaled;
 	}
 
+	public static ReferencedEnvelope offsetBounds(ReferencedEnvelope bounds,
+			double[] offset) {
+		return bounds;
+	}
+
 }

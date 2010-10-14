@@ -1,5 +1,12 @@
 package org.neo4j.gis.spatial.geotools.data;
 
+import static java.awt.RenderingHints.KEY_ANTIALIASING;
+import static java.awt.RenderingHints.KEY_TEXT_ANTIALIASING;
+import static java.awt.RenderingHints.VALUE_ANTIALIAS_ON;
+import static java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_ON;
+import static java.util.Arrays.asList;
+import static org.geotools.factory.CommonFactoryFinder.getStyleFactory;
+
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -21,14 +28,11 @@ import org.neo4j.gis.spatial.SpatialTopologyUtils;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 
-import static java.awt.RenderingHints.*;
-import static java.util.Arrays.asList;
-import static org.geotools.factory.CommonFactoryFinder.getStyleFactory;
-
 public class StyledImageExporter {
 	private GraphDatabaseService db;
 	private File exportDir;
 	double zoom = 1.0;
+	double[] offset = new double[]{0,0};
 	Rectangle displaySize = new Rectangle(400, 300);
 
 	public StyledImageExporter(GraphDatabaseService db) {
@@ -46,6 +50,12 @@ public class StyledImageExporter {
 
 	public void setSize(int width, int height) {
 		this.displaySize = new Rectangle(width, height);
+	}
+
+	public void setOffsetFractions(double boundaryFractionX, double boundaryFractionY) {
+		this.offset[0] = boundaryFractionX;
+		this.offset[1] = boundaryFractionY;
+		
 	}
 
 	private File checkFile(File file) {
