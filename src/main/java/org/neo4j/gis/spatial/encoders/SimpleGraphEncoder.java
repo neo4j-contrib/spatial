@@ -1,5 +1,7 @@
-package org.neo4j.gis.spatial;
+package org.neo4j.gis.spatial.encoders;
 
+import org.neo4j.gis.spatial.AbstractGeometryEncoder;
+import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.PropertyContainer;
@@ -21,7 +23,7 @@ import com.vividsolutions.jts.geom.GeometryFactory;
  *        list geometry store available in the library
  * @author craig
  */
-class SimpleGraphEncoder extends AbstractGeometryEncoder {
+public class SimpleGraphEncoder extends AbstractGeometryEncoder {
 	private GeometryFactory geometryFactory;
 	enum SimpleRelationshipTypes implements RelationshipType {
 		FIRST, NEXT;

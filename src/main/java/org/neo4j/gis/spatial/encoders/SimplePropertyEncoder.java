@@ -1,5 +1,7 @@
-package org.neo4j.gis.spatial;
+package org.neo4j.gis.spatial.encoders;
 
+import org.neo4j.gis.spatial.AbstractGeometryEncoder;
+import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.graphdb.PropertyContainer;
 
 import com.vividsolutions.jts.geom.Coordinate;
