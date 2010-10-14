@@ -52,6 +52,7 @@ public class TestDynamicLayers extends Neo4jTestCase {
 		StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
 		imageExporter.setExportDir("target/export");
 		imageExporter.setZoom(3.0);
+		imageExporter.setOffset(-0.05, -0.05);
 		imageExporter.setSize(1024, 768);
 		imageExporter.saveLayerImage(osmLayer.getName(), "neo.sld.xml");
 

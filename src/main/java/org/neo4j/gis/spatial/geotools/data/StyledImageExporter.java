@@ -52,10 +52,17 @@ public class StyledImageExporter {
 		this.displaySize = new Rectangle(width, height);
 	}
 
-	public void setOffsetFractions(double boundaryFractionX, double boundaryFractionY) {
-		this.offset[0] = boundaryFractionX;
-		this.offset[1] = boundaryFractionY;
-		
+	/**
+	 * When zooming in, it is useful to also control the location of the visable
+	 * window using offsets from the center, in fractions of the bounding box
+	 * dimensions. Use negative values to adjust left or down.
+	 * 
+	 * @param fractionWidth fraction of the width to shift right/left
+	 * @param fractionHeigh fraction of the height to shift up/down
+	 */
+	public void setOffset(double fractionWidth, double fractionHeight) {
+		this.offset[0] = fractionWidth;
+		this.offset[1] = fractionHeight;
 	}
 
 	private File checkFile(File file) {
@@ -132,7 +139,7 @@ public class StyledImageExporter {
 				bounds.expandToInclude(featureSource.getBounds());
 			}
 		}
-		bounds = SpatialTopologyUtils.scaleBounds(bounds, 1.0 / zoom);
+		bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
 		if (displaySize == null)
 			displaySize = new Rectangle(0, 0, 800, 600);
 

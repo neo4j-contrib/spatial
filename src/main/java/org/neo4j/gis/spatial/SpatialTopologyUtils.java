@@ -112,17 +112,22 @@ public class SpatialTopologyUtils {
 		return results;
 	}
 
-	public static ReferencedEnvelope scaleBounds(ReferencedEnvelope bounds,
-			double factor) {
+	public static ReferencedEnvelope adjustBounds(ReferencedEnvelope bounds,
+			double zoomFactor, double[] offset) {
+		if(offset==null || offset.length < bounds.getDimension()) {
+			offset = new double[bounds.getDimension()];
+		}
 		ReferencedEnvelope scaled = new ReferencedEnvelope(bounds);
-		if (Math.abs(factor - 1.0) > 0.01) {
+		if (Math.abs(zoomFactor - 1.0) > 0.01) {
 			double[] min = scaled.getLowerCorner().getCoordinate();
 			double[] max = scaled.getUpperCorner().getCoordinate();
 			for (int i = 0; i < scaled.getDimension(); i++) {
 				double span = scaled.getSpan(i);
-				double delta = (span - span * factor) / 2.0;
-				min[i] += delta;
-				max[i] -= delta;
+				double delta = (span - span * zoomFactor) / 2.0;
+				double shift = span * offset[i];
+				System.out.println("Have offset["+i+"]: "+shift);
+				min[i] += shift + delta;
+				max[i] += shift - delta;
 			}
 			scaled = new ReferencedEnvelope(min[0], max[0], min[1], max[1],
 					scaled.getCoordinateReferenceSystem());
@@ -130,25 +135,25 @@ public class SpatialTopologyUtils {
 		return scaled;
 	}
 
-	public static Envelope scaleBounds(Envelope bounds, double factor) {
+	public static Envelope adjustBounds(Envelope bounds, double zoomFactor, double[] offset) {
+		if(offset==null || offset.length < 2) {
+			offset = new double[]{0,0};
+		}
 		Envelope scaled = new Envelope(bounds);
-		if (Math.abs(factor - 1.0) > 0.01) {
+		if (Math.abs(zoomFactor - 1.0) > 0.01) {
 			double[] min = new double[] { scaled.getMinX(), scaled.getMinY() };
 			double[] max = new double[] { scaled.getMaxX(), scaled.getMaxY() };
 			for (int i = 0; i < 2; i++) {
+				double shift = offset[i];
+				System.out.println("Have offset["+i+"]: "+shift);
 				double span = (i == 0) ? scaled.getWidth() : scaled.getHeight();
-				double delta = (span - span * factor) / 2.0;
-				min[i] += delta;
-				max[i] -= delta;
+				double delta = (span - span * zoomFactor) / 2.0;
+				min[i] += shift + delta;
+				max[i] += shift - delta;
 			}
 			scaled = new Envelope(min[0], max[0], min[1], max[1]);
 		}
 		return scaled;
-	}
-
-	public static ReferencedEnvelope offsetBounds(ReferencedEnvelope bounds,
-			double[] offset) {
-		return bounds;
 	}
 
 }
