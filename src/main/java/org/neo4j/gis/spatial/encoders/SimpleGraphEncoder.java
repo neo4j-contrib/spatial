@@ -25,7 +25,7 @@ import com.vividsolutions.jts.geom.GeometryFactory;
  */
 public class SimpleGraphEncoder extends AbstractGeometryEncoder {
 	private GeometryFactory geometryFactory;
-	enum SimpleRelationshipTypes implements RelationshipType {
+	protected enum SimpleRelationshipTypes implements RelationshipType {
 		FIRST, NEXT;
 	}
 

@@ -18,9 +18,9 @@ import com.vividsolutions.jts.geom.GeometryFactory;
  * @author craig
  */
 public class SimplePropertyEncoder extends AbstractGeometryEncoder {
-	private GeometryFactory geometryFactory;
+	protected GeometryFactory geometryFactory;
 
-	private GeometryFactory getGeometryFactory() {
+	protected GeometryFactory getGeometryFactory() {
 		if(geometryFactory==null) geometryFactory = new GeometryFactory();
 		return geometryFactory;
 	}
@@ -34,6 +34,7 @@ public class SimplePropertyEncoder extends AbstractGeometryEncoder {
 			data[i * 2 + 0] = (float) coords[i].x;
 			data[i * 2 + 1] = (float) coords[i].y;
 		}
+		
 		container.setProperty("data", data);
 	}
 

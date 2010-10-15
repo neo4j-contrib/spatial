@@ -62,14 +62,14 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 			layerNode.createRelationshipTo(geomNode, SpatialRelationshipTypes.GEOMETRIES);
 		}
 		previousGeomNode = geomNode;
-		getGeometryEncoder().encodeGeometry(geom, geomNode);
-
 		// other properties
 		if (fieldsName != null) {
 			for (int i = 0; i < fieldsName.length; i++) {
 				geomNode.setProperty(fieldsName[i], fields[i]);
 			}
 		}
+		getGeometryEncoder().encodeGeometry(geom, geomNode);
+
 		return geomNode;
 	}
 
