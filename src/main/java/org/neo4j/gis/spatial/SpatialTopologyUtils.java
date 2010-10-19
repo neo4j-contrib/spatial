@@ -112,10 +112,29 @@ public class SpatialTopologyUtils {
 		return results;
 	}
 
+	/**
+	 * Adjust the size and position of a ReferencedEnvelope using fractions of
+	 * the current size. For example:
+	 * 
+	 * <pre>
+	 * bounds = adjustBounds(bounds, 0.3, new double[] { -0.1, 0.1 });
+	 * </pre>
+	 * 
+	 * This will zoom in to show 30% of the height and width, and will also
+	 * move the visible window 10% to the left and 10% up.
+	 * 
+	 * @param bounds
+	 *            current envelope
+	 * @param zoomFactor
+	 *            fraction of size to zoom in by
+	 * @param offsetFactor
+	 *            fraction of size to offset visible window by
+	 * @return adjusted envelope
+	 */
 	public static ReferencedEnvelope adjustBounds(ReferencedEnvelope bounds,
-			double zoomFactor, double[] offset) {
-		if(offset==null || offset.length < bounds.getDimension()) {
-			offset = new double[bounds.getDimension()];
+			double zoomFactor, double[] offsetFactor) {
+		if(offsetFactor==null || offsetFactor.length < bounds.getDimension()) {
+			offsetFactor = new double[bounds.getDimension()];
 		}
 		ReferencedEnvelope scaled = new ReferencedEnvelope(bounds);
 		if (Math.abs(zoomFactor - 1.0) > 0.01) {
@@ -124,7 +143,7 @@ public class SpatialTopologyUtils {
 			for (int i = 0; i < scaled.getDimension(); i++) {
 				double span = scaled.getSpan(i);
 				double delta = (span - span * zoomFactor) / 2.0;
-				double shift = span * offset[i];
+				double shift = span * offsetFactor[i];
 				System.out.println("Have offset["+i+"]: "+shift);
 				min[i] += shift + delta;
 				max[i] += shift - delta;
