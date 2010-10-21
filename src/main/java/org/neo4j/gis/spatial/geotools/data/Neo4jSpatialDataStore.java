@@ -16,7 +16,14 @@
  */
 package org.neo4j.gis.spatial.geotools.data;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -48,6 +55,10 @@ import org.geotools.filter.LiteralExpression;
 import org.geotools.filter.spatial.IntersectsImpl;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.resources.Classes;
+import org.geotools.styling.SLDParser;
+import org.geotools.styling.Style;
+import org.geotools.styling.StyleFactory;
+import org.geotools.styling.StyleFactoryImpl;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.EditableLayer;
 import org.neo4j.gis.spatial.Layer;
@@ -67,6 +78,7 @@ import org.opengis.feature.type.GeometryType;
 import org.opengis.filter.Filter;
 import org.opengis.filter.spatial.BBOX;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.w3c.dom.Document;
 
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
@@ -313,6 +325,7 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
     	typeNames = null;
     	simpleFeatureTypeIndex.clear();
     	crsIndex.clear();
+    	styleIndex.clear();
     	boundsIndex.clear();
     	featureSourceIndex.clear();
     }	
@@ -470,6 +483,36 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
     	return result;
     }
 
+    public Style getStyle(String typeName) {
+    	Style result = styleIndex.get(typeName);
+        if (true || result == null) {
+            Layer layer = spatialDatabase.getLayer(typeName);
+            Object obj = layer.getStyle();
+            if(obj instanceof Style) {
+            	result = (Style)result;
+            } else if (obj instanceof File || obj instanceof String) {
+            	StyleFactory styleFactory = new StyleFactoryImpl();
+            	SLDParser parser = new SLDParser(styleFactory);
+            	try {
+            		if(obj instanceof File) {
+            			parser.setInput(new FileReader((File)obj));
+            		}else{
+            			parser.setInput(new StringReader(obj.toString()));
+            		}
+                	Style[] styles = parser.readXML();
+					result = styles[0];
+            	}
+            	catch (Exception e) {
+            	    System.err.println("Error loading style '"+obj+"': "+e.getMessage());
+            	    e.printStackTrace(System.err);
+            	}
+            }
+            styleIndex.put(typeName, result);
+        }
+    	
+    	return result;
+    }
+
     private Integer getGeometryType(String typeName) {
         Layer layer = spatialDatabase.getLayer(typeName);
         return layer.getGeometryType();
@@ -529,6 +572,7 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 	private String[] typeNames;
 	private Map<String,SimpleFeatureType> simpleFeatureTypeIndex = Collections.synchronizedMap(new HashMap<String,SimpleFeatureType>());
 	private Map<String,CoordinateReferenceSystem> crsIndex = Collections.synchronizedMap(new HashMap<String,CoordinateReferenceSystem>());
+	private Map<String, Style> styleIndex = Collections.synchronizedMap(new HashMap<String,Style>());
 	private Map<String,ReferencedEnvelope> boundsIndex = Collections.synchronizedMap(new HashMap<String,ReferencedEnvelope>());
 	private Map<String,SimpleFeatureSource> featureSourceIndex = Collections.synchronizedMap(new HashMap<String,SimpleFeatureSource>());
 	private GraphDatabaseService database;

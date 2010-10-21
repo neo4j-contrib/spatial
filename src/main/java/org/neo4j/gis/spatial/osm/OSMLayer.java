@@ -1,5 +1,6 @@
 package org.neo4j.gis.spatial.osm;
 
+import java.io.File;
 import java.util.HashMap;
 
 import org.geotools.referencing.crs.DefaultGeographicCRS;
@@ -193,6 +194,16 @@ public class OSMLayer extends DynamicLayer {
 	 */
 	public LayerConfig addSimpleDynamicLayer(int gtype) {
 		return addDynamicLayerOnWayTags(SpatialDatabaseService.convertGeometryTypeToName(gtype), gtype, null);
+	}
+
+	/**
+	 * The OSM dataset has a number of possible stylesOverride this method to provide a style if your layer wishes to control
+	 * its own rendering in the GIS.
+	 * 
+	 * @return Style or null
+	 */
+	public File getStyle() {
+		return new File("dev/neo4j/neo4j-spatial/src/main/resources/sld/osm/osm.sld");
 	}
 
 }

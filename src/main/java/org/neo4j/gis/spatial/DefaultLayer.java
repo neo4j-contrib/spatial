@@ -379,4 +379,16 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         return Arrays.asList(new Layer[]{this});
     }
 
+	/**
+	 * Override this method to provide a style if your layer wishes to control
+	 * its own rendering in the GIS. If a Style is returned, it is used. If a
+	 * File is returned, it is opened and assumed to contain SLD contents. If a
+	 * String is returned, it is assumed to contain SLD contents.
+	 * 
+	 * @return null
+	 */
+	public Object getStyle() {
+		return null;
+	}
+
 }

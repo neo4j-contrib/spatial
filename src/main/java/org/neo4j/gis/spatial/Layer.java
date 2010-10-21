@@ -137,4 +137,15 @@ public interface Layer {
      */
     SpatialDataset getDataset();
 
+	/**
+	 * Each layer can optionally provide a style to be used in rendering this
+	 * layer. Return null if you wish to leave this choice to the GIS. If a
+	 * Style is returned, it is used. If a File is returned, it is opened and
+	 * assumed to contain SLD contents. If a String is returned, it is assumed
+	 * to contain SLD contents.
+	 * 
+	 * @return Style, String, File or null
+	 */
+	Object getStyle();
+
 }

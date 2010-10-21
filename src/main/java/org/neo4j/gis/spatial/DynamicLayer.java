@@ -1,5 +1,6 @@
 package org.neo4j.gis.spatial;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -324,6 +325,18 @@ public class DynamicLayer extends EditableLayerImpl {
 
 		public void initialize(SpatialDatabaseService spatialDatabase, String name, Node layerNode) {
 			throw new SpatialDatabaseException("Cannot initialize the layer config, initialize only the dynamic layer node");
+		}
+
+		public Object getStyle() {
+			Object style = DynamicLayer.this.getStyle();
+			if (style != null && style instanceof File) {
+				File parent = ((File) style).getParentFile();
+				File newStyle = new File(parent, getName() + ".sld");
+				if (newStyle.canRead()) {
+					style = newStyle;
+				}
+			}
+			return style;
 		}
 	}
 
