@@ -10,6 +10,7 @@ import java.util.Map;
 import org.junit.Test;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.index.Index;
+import org.neo4j.graphdb.index.IndexManager;
 import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 
@@ -22,7 +23,8 @@ public class IndexProviderTest
         EmbeddedGraphDatabase db = new EmbeddedGraphDatabase( createTempDir() );
         Map<String, String> config = Collections.unmodifiableMap( MapUtil.stringMap(
                 "provider", "spatial" ) );
-        Index<Node> index = db.index().forNodes( "spatial", config );
+        IndexManager indexMan = db.index();
+        Index<Node> index = indexMan.forNodes( "layer1", config );
         assertNotNull(index);
         
     }

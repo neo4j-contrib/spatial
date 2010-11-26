@@ -13,7 +13,10 @@ import org.neo4j.kernel.KernelExtension;
 public class SpatialIndexProvider extends IndexProvider
 {
 
-    protected SpatialIndexProvider( )
+    private static final String DATASOURCE_NAME = "spatial-index";
+
+
+    public SpatialIndexProvider( )
     {
         super( "spatial" );
         
@@ -30,8 +33,7 @@ public class SpatialIndexProvider extends IndexProvider
     @Override
     public String getDataSourceName()
     {
-        // TODO Auto-generated method stub
-        return null;
+        return DATASOURCE_NAME;
     }
 
 
