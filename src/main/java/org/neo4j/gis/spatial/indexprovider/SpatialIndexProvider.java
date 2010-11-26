@@ -2,18 +2,22 @@ package org.neo4j.gis.spatial.indexprovider;
 
 import java.util.Map;
 
+import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexProvider;
 import org.neo4j.graphdb.index.RelationshipIndex;
 import org.neo4j.helpers.Service;
+import org.neo4j.kernel.Config;
+import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.KernelExtension;
 
 @Service.Implementation( KernelExtension.class )
 public class SpatialIndexProvider extends IndexProvider
 {
 
-    private static final String DATASOURCE_NAME = "spatial-index";
+    private static final String DATASOURCE_NAME = "nioneodb";
+    private EmbeddedGraphDatabase db;
 
 
     public SpatialIndexProvider( )
@@ -27,6 +31,9 @@ public class SpatialIndexProvider extends IndexProvider
     protected void load( KernelData kernel )
     {
         System.out.println( "loading spatial index" );
+        db = (EmbeddedGraphDatabase)kernel.graphDatabase();
+//        db.getConfig().getTxModule().registerDataSource( Config.DEFAULT_DATA_SOURCE_NAME,
+//                Config., resourceId, params );
     }
 
 
