@@ -32,8 +32,6 @@ public class SpatialIndexProvider extends IndexProvider
     {
         System.out.println( "loading spatial index" );
         db = (EmbeddedGraphDatabase)kernel.graphDatabase();
-//        db.getConfig().getTxModule().registerDataSource( Config.DEFAULT_DATA_SOURCE_NAME,
-//                Config., resourceId, params );
     }
 
 
@@ -47,8 +45,7 @@ public class SpatialIndexProvider extends IndexProvider
     @Override
     public Index<Node> nodeIndex( String indexName, Map<String, String> config )
     {
-        // TODO Auto-generated method stub
-        return null;
+        return new LayerNodeIndex(indexName, db, config);
     }
 
 
@@ -56,15 +53,13 @@ public class SpatialIndexProvider extends IndexProvider
     public RelationshipIndex relationshipIndex( String indexName,
             Map<String, String> config )
     {
-        // TODO Auto-generated method stub
-        return null;
+        throw new UnsupportedOperationException("Spatial relationship indexing is not supported at the moment. Please use the node index.");
     }
 
 
     @Override
     public Map<String, String> fillInDefaults( Map<String, String> config )
     {
-        // TODO Auto-generated method stub
         return null;
     }
 
