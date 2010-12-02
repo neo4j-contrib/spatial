@@ -3,11 +3,7 @@ package org.neo4j.gis.spatial.indexprovider;
 import java.util.List;
 import java.util.Map;
 
-import javax.naming.OperationNotSupportedException;
-
 import org.neo4j.gis.spatial.EditableLayer;
-import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.Search;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.query.SearchWithin;
@@ -25,7 +21,7 @@ public class LayerNodeIndex implements Index<Node>
     public static final String LON_PROPERTY_KEY = "lon";
     public static final String LAT_PROPERTY_KEY = "lat";
     public static final String WITHIN_QUERY = "within";
-    public static final Object ENVELOPE_PARAMETER = "envelope";
+    public static final String ENVELOPE_PARAMETER = "envelope";
     private final String layerName;
     private final GraphDatabaseService db;
     private SpatialDatabaseService spatialDB;
@@ -41,13 +37,11 @@ public class LayerNodeIndex implements Index<Node>
 
     }
 
-    @Override
     public String getName()
     {
         return layerName;
     }
 
-    @Override
     public Class<Node> getEntityType()
     {
         return Node.class;
@@ -56,7 +50,6 @@ public class LayerNodeIndex implements Index<Node>
     /**
      * right now we are assuming only Points with "lat" and "long" properties
      */
-    @Override
     public void add( Node geometry, String key, Object value )
     {
         double lon = (Double) geometry.getProperty( LON_PROPERTY_KEY );
@@ -66,35 +59,28 @@ public class LayerNodeIndex implements Index<Node>
 
     }
 
-    @Override
     public void remove( Node entity, String key, Object value )
     {
        layer.delete( entity.getId() );
-
     }
 
-    @Override
     public void delete()
     {
-        
-
     }
 
     /**
      * Not supported at the moment
      */
-    @Override
     public IndexHits<Node> get( String key, Object value )
     {
         return null;
     }
 
-    @Override
     public IndexHits<Node> query( String key, Object params )
     {
         if ( key.equals( WITHIN_QUERY ) )
         {
-            Map p = (Map) params;
+            Map<?, ?> p = (Map<?, ?>) params;
             Double[] bounds = (Double[]) p.get( ENVELOPE_PARAMETER );
             SearchWithin withinQuery = new SearchWithin(
                     layer.getGeometryFactory().toGeometry(
@@ -111,7 +97,6 @@ public class LayerNodeIndex implements Index<Node>
         }
     }
 
-    @Override
     public IndexHits<Node> query( Object queryOrQueryObject )
     {
         return query(layerName, queryOrQueryObject);

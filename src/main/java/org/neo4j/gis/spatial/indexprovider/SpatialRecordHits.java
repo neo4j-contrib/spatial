@@ -30,7 +30,6 @@ public class SpatialRecordHits extends AbstractIndexHits<Node>
         return this.size;
     }
 
-    @Override
     public float currentScore()
     {
         return 0;
