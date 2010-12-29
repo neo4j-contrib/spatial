@@ -18,7 +18,6 @@
   <inceptionYear>February 2010</inceptionYear>
 
   <packaging>bundle</packaging>
-
   <parent>
     <artifactId>parent-pom</artifactId>
     <groupId>org.neo4j</groupId>
@@ -108,6 +107,12 @@
       <groupId>org.neo4j</groupId>
       <artifactId>neo4j-index</artifactId>
       <version>1.2-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>org.neo4j.app</groupId>
+      <artifactId>neo4j-server</artifactId>
+      <version>0.5-SNAPSHOT</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.neo4j.spatial</groupId>
