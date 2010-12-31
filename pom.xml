@@ -110,11 +110,12 @@
       <artifactId>neo4j-lucene-index</artifactId>
       <version>${neo4j-lucene.version}</version>
     </dependency>
-	<dependency>
-	  <groupId>org.neo4j.app</groupId>
-	  <artifactId>neo4j-server</artifactId>
-	  <version>0.5-1.2</version>
-	</dependency>
+    <dependency>
+      <groupId>org.neo4j.app</groupId>
+      <artifactId>neo4j-server</artifactId>
+      <version>0.5-1.2</version>
+      <scope>provided</scope>
+    </dependency>
     <dependency>
       <groupId>org.neo4j.spatial</groupId>
       <artifactId>osm-test-data</artifactId>
