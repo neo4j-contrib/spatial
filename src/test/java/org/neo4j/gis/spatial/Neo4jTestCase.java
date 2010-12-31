@@ -27,6 +27,8 @@ import java.util.List;
 
 import junit.framework.TestCase;
 
+import org.junit.After;
+import org.junit.Before;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
@@ -47,7 +49,7 @@ public abstract class Neo4jTestCase extends TestCase {
     private Transaction tx;
     private BatchInserter batchInserter;
 
-    @Override
+    @Before
     protected void setUp() throws Exception {
         setUp(true, false, false);
     }
@@ -102,6 +104,7 @@ public abstract class Neo4jTestCase extends TestCase {
     }
 
     @Override
+    @After
     protected void tearDown() throws Exception {
         if (tx != null) {
             tx.success();
