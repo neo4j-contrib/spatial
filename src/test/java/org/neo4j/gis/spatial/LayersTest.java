@@ -5,6 +5,7 @@ import java.util.List;
 
 import org.junit.Test;
 import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;
+import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePropertyEncoder;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMLayer;
@@ -33,6 +34,31 @@ public class LayersTest extends Neo4jTestCase
         assertTrue( "Should be a default layer", layer instanceof DefaultLayer );
         spatialService.deleteLayer( layer.getName(), new NullListener() );
         assertNull( spatialService.getLayer( layer.getName() ) );
+    }
+
+    @Test
+    public void testPointLayer()
+    {
+        SpatialDatabaseService db = new SpatialDatabaseService( graphDb() );
+        EditableLayer layer = (EditableLayer) db.createLayer("test", SimplePointEncoder.class, EditableLayerImpl.class, "lon:lat");
+        assertNotNull( layer );
+        SpatialDatabaseRecord record = layer.add( layer.getGeometryFactory().createPoint(
+                new Coordinate( 15.3, 56.2 ) ) );
+        assertNotNull( record );
+        // finds geometries that contain the given geometry
+        SearchContain searchQuery = new SearchContain(
+                layer.getGeometryFactory().toGeometry(
+                        new Envelope( 15.0, 16.0, 56.0, 57.0 ) ) );
+        layer.getIndex().executeSearch( searchQuery );
+        List<SpatialDatabaseRecord> results = searchQuery.getResults();
+        // should not be contained
+        assertEquals( 0, results.size() );
+        SearchWithin withinQuery = new SearchWithin(
+                layer.getGeometryFactory().toGeometry(
+                        new Envelope( 15.0, 16.0, 56.0, 57.0 ) ) );
+        layer.getIndex().executeSearch( withinQuery );
+        results = withinQuery.getResults();
+        assertEquals( 1, results.size() );
     }
 
     @Test

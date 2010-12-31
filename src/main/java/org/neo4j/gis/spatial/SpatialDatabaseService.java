@@ -19,6 +19,8 @@ package org.neo4j.gis.spatial;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.neo4j.gis.spatial.encoders.Configurable;
+import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -127,6 +129,20 @@ public class SpatialDatabaseService implements Constants {
         return (EditableLayer)getOrCreateLayer(name, WKBGeometryEncoder.class, EditableLayerImpl.class);
     }
 
+	public EditableLayer getOrCreatePointLayer(String name, String xProperty, String yProperty) {
+		Layer layer = getLayer(name);
+		if (layer == null) {
+			String encoderConfig = null;
+			if (xProperty != null && yProperty != null)
+				encoderConfig = xProperty + ":" + yProperty;
+			return (EditableLayer) createLayer(name, SimplePointEncoder.class, EditableLayerImpl.class, encoderConfig);
+		} else if (layer instanceof EditableLayer) {
+			return (EditableLayer) layer;
+		} else {
+			throw new SpatialDatabaseException("Existing layer '" + layer + "' is not of the expected type: " + EditableLayer.class);
+		}
+	}
+
     public Layer getOrCreateLayer(String name, Class< ? extends GeometryEncoder> geometryEncoder, Class< ? extends Layer> layerClass) {
         Layer layer = getLayer(name);
         if (layer == null) {
@@ -191,6 +207,9 @@ public class SpatialDatabaseService implements Constants {
     }
 
     public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass, Class<? extends Layer> layerClass) {
+    	return createLayer(name, geometryEncoderClass, layerClass, null);
+    }
+    public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass, Class<? extends Layer> layerClass, String encoderConfig) {
         Transaction tx = database.beginTx();
         try {
             if (containsLayer(name))
@@ -198,6 +217,15 @@ public class SpatialDatabaseService implements Constants {
 
             Layer layer = DefaultLayer.makeLayerAndNode(this, name, geometryEncoderClass, layerClass);
             getSpatialRoot().createRelationshipTo(layer.getLayerNode(), SpatialRelationshipTypes.LAYER);
+			if (encoderConfig != null) {
+				GeometryEncoder encoder = layer.getGeometryEncoder();
+				if (encoder instanceof Configurable) {
+					((Configurable) encoder).setConfiguration(encoderConfig);
+				} else {
+					System.out.println("Warning: encoder configuration '" + encoderConfig
+							+ "' passed to non-configurable encoder: " + geometryEncoderClass);
+				}
+			}
             tx.success();
             return layer;
         } finally {

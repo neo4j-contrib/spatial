@@ -23,6 +23,7 @@ import java.util.Set;
 
 import org.geotools.factory.FactoryRegistryException;
 import org.geotools.referencing.ReferencingFactoryFinder;
+import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -249,6 +250,9 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
             } catch (Exception e) {
                 throw new SpatialDatabaseException(e);
             }
+			if (this.geometryEncoder instanceof Configurable && layerNode.hasProperty(PROP_GEOMENCODER_CONFIG)) {
+				((Configurable) this.geometryEncoder).setConfiguration((String) layerNode.getProperty(PROP_GEOMENCODER_CONFIG));
+			}
         } else {
             this.geometryEncoder = new WKBGeometryEncoder();
         }
