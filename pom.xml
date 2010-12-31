@@ -111,7 +111,7 @@
     <dependency>
       <groupId>org.neo4j.app</groupId>
       <artifactId>neo4j-server</artifactId>
-      <version>0.5-SNAPSHOT</version>
+      <version>0.5-1.2</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
