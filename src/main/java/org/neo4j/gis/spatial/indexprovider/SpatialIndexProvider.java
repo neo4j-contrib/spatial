@@ -30,7 +30,6 @@ public class SpatialIndexProvider extends IndexProvider
     @Override
     protected void load( KernelData kernel )
     {
-        System.out.println( "loading spatial index" );
         db = (EmbeddedGraphDatabase)kernel.graphDatabase();
     }
 

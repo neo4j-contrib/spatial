@@ -5,24 +5,37 @@ import java.util.ArrayList;
 import org.geotools.data.DataSourceException;
 import org.junit.Test;
 import org.neo4j.gis.spatial.geotools.data.StyledImageExporter;
+import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
+
+import com.vividsolutions.jts.geom.Envelope;
 
 public class TestDynamicLayers extends Neo4jTestCase {
 
 	@Test
-	public void testShapefileExport() throws Exception {
+	public void testShapefileExport_Map1() throws Exception {
+		runShapefileExport("map.osm");
+	}
+
+	@Test
+	public void testShapefileExport_Map2() throws Exception {
+		// runShapefileExport("map2.osm");
+	}
+
+	private void runShapefileExport(String osmFile) throws Exception {
 		// TODO: Consider merits of using dependency data in target/osm,
 		// downloaded by maven, as done in TestSpatial, versus the test data
 		// commited to source code as done here
 		printDatabaseStats();
-		loadTestOsmData("map2.osm", 1000);
+		loadTestOsmData(osmFile, 1000);
+		checkOSMLayer(osmFile);
 		printDatabaseStats();
 
 		// Define dynamic layers
 		ArrayList<Layer> layers = new ArrayList<Layer>();
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-		OSMLayer osmLayer = (OSMLayer) spatialService.getLayer("map2.osm");
+		OSMLayer osmLayer = (OSMLayer) spatialService.getLayer(osmFile);
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "primary"));
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "secondary"));
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "tertiary"));
@@ -54,24 +67,26 @@ public class TestDynamicLayers extends Neo4jTestCase {
 		imageExporter.setZoom(3.0);
 		imageExporter.setOffset(-0.05, -0.05);
 		imageExporter.setSize(1024, 768);
-		imageExporter.saveLayerImage(osmLayer.getName(), "neo.sld.xml");
+		imageExporter.saveLayerImage("highway", null);
+		// imageExporter.saveLayerImage(osmLayer.getName(), "neo.sld.xml");
 
 		// Now loop through all dynamic layers and export them to shapefiles,
 		// where possible. Layers will multiple geometries cannot be exported
 		// and we take note of how many times that happens
 		int countMultiGeometryLayers = 0;
 		int countMultiGeometryExceptions = 0;
-		for (Layer layer : layers) {
+		// for (Layer layer : layers) {
+		for (Layer layer : new Layer[] {}) {
 			if (layer.getGeometryType() == Constants.GTYPE_GEOMETRY) {
 				countMultiGeometryLayers++;
 			}
 			try {
-	        	imageExporter.saveLayerImage(layer.getName(), "neo.sld.xml");
+				imageExporter.saveLayerImage(layer.getName(), "neo.sld.xml");
 				shpExporter.exportLayer(layer.getName());
 			} catch (Exception e) {
 				if (e instanceof DataSourceException && e.getMessage().contains("geom.Geometry")) {
 					System.out.println("Got geometry exception on layer with geometry["
-					        + SpatialDatabaseService.convertGeometryTypeToName(layer.getGeometryType()) + "]: " + e.getMessage());
+							+ SpatialDatabaseService.convertGeometryTypeToName(layer.getGeometryType()) + "]: " + e.getMessage());
 					countMultiGeometryExceptions++;
 				} else {
 					throw e;
@@ -79,7 +94,7 @@ public class TestDynamicLayers extends Neo4jTestCase {
 			}
 		}
 		assertEquals("Mismatching number of data source exceptions and raw geometry layers", countMultiGeometryLayers,
-		        countMultiGeometryExceptions);
+				countMultiGeometryExceptions);
 	}
 
 	private void loadTestOsmData(String layerName, int commitInterval) throws Exception {
@@ -92,4 +107,13 @@ public class TestDynamicLayers extends Neo4jTestCase {
 		importer.reIndex(graphDb(), commitInterval);
 	}
 
+	private void checkOSMLayer(String layerName) {
+		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+		OSMLayer layer = (OSMLayer) spatialService.getOrCreateLayer(layerName, OSMGeometryEncoder.class, OSMLayer.class);
+		assertNotNull("OSM Layer index should not be null", layer.getIndex());
+		assertNotNull("OSM Layer index envelope should not be null", layer.getIndex().getLayerBoundingBox());
+		Envelope bbox = layer.getIndex().getLayerBoundingBox();
+		System.out.println("OSM Layer has bounding box: " + bbox);
+		((RTreeIndex)layer.getIndex()).debugIndexTree();
+	}
 }

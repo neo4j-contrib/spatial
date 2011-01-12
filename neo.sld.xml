@@ -81,10 +81,17 @@
 								<ogc:Literal>Polygon</ogc:Literal>
 							</ogc:PropertyIsEqualTo>
 							<ogc:Or>
-								<ogc:PropertyIsEqualTo>
-									<ogc:PropertyName>leisure</ogc:PropertyName>
-									<ogc:Literal>park</ogc:Literal>
-								</ogc:PropertyIsEqualTo>
+								<ogc:And>
+									<ogc:Not>
+										<ogc:PropertyIsNull>
+											<ogc:PropertyName>leisure</ogc:PropertyName>
+										</ogc:PropertyIsNull>
+									</ogc:Not>
+									<ogc:PropertyIsEqualTo>
+										<ogc:PropertyName>leisure</ogc:PropertyName>
+										<ogc:Literal>park</ogc:Literal>
+									</ogc:PropertyIsEqualTo>
+								</ogc:And>
 								<ogc:Not>
 									<ogc:PropertyIsNull>
 										<ogc:PropertyName>natural</ogc:PropertyName>

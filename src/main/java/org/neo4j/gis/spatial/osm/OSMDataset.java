@@ -11,13 +11,16 @@ import org.neo4j.gis.spatial.SpatialRelationshipTypes;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.ReturnableEvaluator;
+import org.neo4j.graphdb.StopEvaluator;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.TraversalPosition;
+import org.neo4j.graphdb.Traverser.Order;
 
 import com.vividsolutions.jts.geom.Geometry;
 
 public class OSMDataset implements SpatialDataset {
     private OSMLayer layer;
-    private SpatialDatabaseService spatialDatabase;
     private Node datasetNode;
 
     /**
@@ -30,7 +33,6 @@ public class OSMDataset implements SpatialDataset {
      * @param datasetId
      */
     public OSMDataset(SpatialDatabaseService spatialDatabase, OSMLayer osmLayer, Node layerNode, long datasetId) {
-        this.spatialDatabase = spatialDatabase;
         this.layer = osmLayer;
         this.datasetNode = spatialDatabase.getDatabase().getNodeById(datasetId);
         Relationship rel = layerNode.getSingleRelationship(SpatialRelationshipTypes.LAYERS, Direction.INCOMING);
@@ -59,7 +61,6 @@ public class OSMDataset implements SpatialDataset {
      * @param layerNode
      */
     public OSMDataset(SpatialDatabaseService spatialDatabase, OSMLayer osmLayer, Node layerNode) {
-        this.spatialDatabase = spatialDatabase;
         this.layer = osmLayer;
         Relationship rel = layerNode.getSingleRelationship(SpatialRelationshipTypes.LAYERS, Direction.INCOMING);
         if (rel == null) {
@@ -68,6 +69,21 @@ public class OSMDataset implements SpatialDataset {
             datasetNode = rel.getStartNode();
         }
     }
+    
+	public Iterable<Node> getAllWayNodes() {
+		return datasetNode.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH, ReturnableEvaluator.ALL_BUT_START_NODE,
+				OSMRelation.WAYS, Direction.OUTGOING, OSMRelation.NEXT, Direction.OUTGOING);
+	}
+
+	public Iterable<Node> getAllPointNodes() {
+		return datasetNode.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH, new ReturnableEvaluator() {
+
+			public boolean isReturnableNode(TraversalPosition current) {
+				return current.lastRelationshipTraversed().isType(OSMRelation.NODE);
+			}
+		}, OSMRelation.WAYS, Direction.OUTGOING, OSMRelation.NEXT, Direction.OUTGOING, OSMRelation.FIRST_NODE, Direction.OUTGOING,
+				OSMRelation.NODE, Direction.OUTGOING);
+	}
 
     public Iterable< ? extends Geometry> getAllGeometries() {
         //@TODO: support multiple layers

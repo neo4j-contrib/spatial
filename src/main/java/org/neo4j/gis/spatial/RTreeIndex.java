@@ -188,6 +188,7 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 		Node indexRoot = getIndexRoot();
 		if (!indexRoot.hasProperty(PROP_BBOX)) {
 			// layer is empty
+			System.err.println("Layer '" + layer.getName() + "' has no bounding box property '" + PROP_BBOX + "'");
 			return null;
 		}
 		
@@ -605,7 +606,6 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 			if (bbox == null) bbox = getEnvelope(childNode);
 			else bbox.expandToInclude(getEnvelope(childNode));
 		}
-
 		indexNode.setProperty(PROP_BBOX, new double[] { bbox.getMinX(), bbox.getMinY(), bbox.getMaxX(), bbox.getMaxY() });
 	}
 		
@@ -628,7 +628,9 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 		valueChanged = setMax(parentBBox, childBBox, 2) || valueChanged;
 		valueChanged = setMax(parentBBox, childBBox, 3) || valueChanged;
 		
-		if (valueChanged) parent.setProperty(PROP_BBOX, parentBBox);
+		if (valueChanged) {
+			parent.setProperty(PROP_BBOX, parentBBox);
+		}
 		
 		return valueChanged;
 	}
@@ -813,6 +815,23 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 		return new IndexNodeToGeometryNodeIterable(getAllIndexNodes());
 	}
 
+	private static String arrayString(double[] test) {
+		StringBuffer sb = new StringBuffer();
+		for (double d : test)
+			addToArrayString(sb, d);
+		sb.append("]");
+		return sb.toString();
+	}
+
+	private static void addToArrayString(StringBuffer sb, Object obj) {
+		if (sb.length() == 0) {
+			sb.append("[");
+		} else {
+			sb.append(",");
+		}
+		sb.append(obj);
+	}
+
 	public void debugIndexTree() {
 		printTree(getIndexRoot(), 0);
 	}
@@ -822,7 +841,12 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 		for (int i = 0; i < depth; i++) {
 			tab.append("  ");
 		}
-		System.out.println(tab.toString() + "INDEX: " + root);
+		if (root.hasProperty(PROP_BBOX)) {
+			System.out.println(tab.toString() + "INDEX: " + root + " BBOX[" + arrayString((double[]) root.getProperty(PROP_BBOX))
+					+ "]");
+		} else {
+			System.out.println(tab.toString() + "INDEX: " + root);
+		}
 		StringBuffer data = new StringBuffer();
 		for (Relationship rel : root.getRelationships(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)) {
 			if (data.length() > 0) {

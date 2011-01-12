@@ -141,6 +141,7 @@ public class OSMImporter implements Constants {
     public void reIndex(GraphDatabaseService database, int commitInterval) {
         if (commitInterval < 1)
             throw new IllegalArgumentException("commitInterval must be >= 1");
+		System.out.println("Importing with GraphDatabaseService: " + database + " (class: " + database.getClass() + ")");
 
         setLogContext("Index");
         SpatialDatabaseService spatialDatabase = new SpatialDatabaseService(database);
@@ -201,6 +202,9 @@ public class OSMImporter implements Constants {
     public void importFile(BatchInserter batchGraphDb, String dataset) throws IOException, XMLStreamException {
         batchIndexService = new LuceneIndexBatchInserterImpl(batchGraphDb);
         getOrCreateOSMDataset(batchGraphDb, layerName);
+		System.out.println("Importing with batch-inserter: " + batchGraphDb + " (class: " + batchGraphDb.getClass()
+				+ ") and GraphDatabaseService: " + batchGraphDb.getGraphDbService() + " (class: "
+				+ batchGraphDb.getGraphDbService().getClass() + ")");
 
         long startTime = System.currentTimeMillis();
         long[] times = new long[]{0L,0L,0L,0L};

@@ -127,14 +127,14 @@ public class OSMLayer extends DynamicLayer {
 	 * to the way node and then to the tags node to test if the way is a
 	 * residential street.
 	 */
-    public LayerConfig addDynamicLayerOnWayTags(String name, int type, HashMap<String,String> tags) {
+    public LayerConfig addDynamicLayerOnWayTags(String name, int type, HashMap<?,?> tags) {
 		JSONObject query = new JSONObject();
 		if (tags != null && !tags.isEmpty()) {
 			JSONObject step2tags = new JSONObject();
 			JSONObject step2way = new JSONObject();
 			JSONObject properties = new JSONObject();
-			for (String key : tags.keySet()) {
-				properties.put(key, tags.get(key));
+			for (Object key : tags.keySet()) {
+				properties.put(key.toString(), tags.get(key));
 			}
 
 			step2tags.put("properties", properties);
