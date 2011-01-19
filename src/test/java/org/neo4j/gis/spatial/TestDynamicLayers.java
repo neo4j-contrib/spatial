@@ -20,7 +20,7 @@ public class TestDynamicLayers extends Neo4jTestCase {
 
 	@Test
 	public void testShapefileExport_Map2() throws Exception {
-		// runShapefileExport("map2.osm");
+		runShapefileExport("map2.osm");
 	}
 
 	private void runShapefileExport(String osmFile) throws Exception {
@@ -56,18 +56,19 @@ public class TestDynamicLayers extends Neo4jTestCase {
 		layers.add(osmLayer.addSimpleDynamicLayer("natural", "coastline"));
 		layers.add(osmLayer.addSimpleDynamicLayer("natural", "beach"));
 		layers.add(osmLayer.addSimpleDynamicLayer(Constants.GTYPE_POLYGON));
+		layers.add(osmLayer.addSimpleDynamicLayer(Constants.GTYPE_POINT));
 		assertEquals(layers.size() + 1, osmLayer.getLayerNames().size());
 
 		// Now export the layers to files
 		// First prepare the SHP and PNG exporters
 		ShapefileExporter shpExporter = new ShapefileExporter(graphDb());
-		shpExporter.setExportDir("target/export");
+		shpExporter.setExportDir("target/export/"+osmFile);
 		StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
-		imageExporter.setExportDir("target/export");
+		imageExporter.setExportDir("target/export/"+osmFile);
 		imageExporter.setZoom(3.0);
 		imageExporter.setOffset(-0.05, -0.05);
 		imageExporter.setSize(1024, 768);
-		imageExporter.saveLayerImage("highway", null);
+		// imageExporter.saveLayerImage("highway", null);
 		// imageExporter.saveLayerImage(osmLayer.getName(), "neo.sld.xml");
 
 		// Now loop through all dynamic layers and export them to shapefiles,
@@ -75,8 +76,8 @@ public class TestDynamicLayers extends Neo4jTestCase {
 		// and we take note of how many times that happens
 		int countMultiGeometryLayers = 0;
 		int countMultiGeometryExceptions = 0;
-		// for (Layer layer : layers) {
-		for (Layer layer : new Layer[] {}) {
+		for (Layer layer : layers) {
+		//for (Layer layer : new Layer[] {}) {
 			if (layer.getGeometryType() == Constants.GTYPE_GEOMETRY) {
 				countMultiGeometryLayers++;
 			}
@@ -102,7 +103,7 @@ public class TestDynamicLayers extends Neo4jTestCase {
 		System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
 		reActivateDatabase(false, true, false);
 		OSMImporter importer = new OSMImporter(layerName);
-		importer.importFile(getBatchInserter(), osmPath);
+		importer.importFile(getBatchInserter(), osmPath, true);
 		reActivateDatabase(false, false, false);
 		importer.reIndex(graphDb(), commitInterval);
 	}
