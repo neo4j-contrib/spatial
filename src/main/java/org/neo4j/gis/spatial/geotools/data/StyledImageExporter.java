@@ -43,7 +43,9 @@ import org.opengis.filter.FilterFactory;
 
 import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.MultiLineString;
+import com.vividsolutions.jts.geom.MultiPoint;
 import com.vividsolutions.jts.geom.MultiPolygon;
+import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
 
 public class StyledImageExporter {
@@ -130,12 +132,13 @@ public class StyledImageExporter {
 	public void saveLayerImage(String[] layerNames, String sldFile, File imagefile, ReferencedEnvelope bounds) throws IOException {
 		imagefile = checkFile(imagefile);
 		DataStore store = new Neo4jSpatialDataStore(db);
-		debugStore(store, layerNames);
+		//debugStore(store, layerNames);
 
 		Style style = null;
 		if (sldFile != null) {
 			style = createStyleFromSLD(sldFile);
-			System.out.println("Created style from sldFile '" + sldFile + "': " + style);
+			if (style != null)
+				System.out.println("Created style from sldFile '" + sldFile + "': " + style);
 		}
 		StreamingRenderer renderer = new StreamingRenderer();
 		RenderingHints hints = new RenderingHints(KEY_ANTIALIASING, VALUE_ANTIALIAS_ON);
@@ -149,7 +152,7 @@ public class StyledImageExporter {
 			Style featureStyle = style;
 			if (featureStyle == null) {
 				featureStyle = createStyleFromGeometry(featureSource);
-				System.out.println("Created style from geometry: " + featureStyle);
+				System.out.println("Created style from geometry '" + featureSource.getSchema().getGeometryDescriptor().getType() + "': " + featureStyle);
 			}
 			context.addLayer(new org.geotools.map.FeatureLayer(featureSource, featureStyle));
 			if (bounds == null) {
@@ -209,8 +212,17 @@ public class StyledImageExporter {
                 || MultiLineString.class.isAssignableFrom(geomType)) {
             return createLineStyle();
 
-        } else {
+        } else if (Point.class.isAssignableFrom(geomType)
+                || MultiPoint.class.isAssignableFrom(geomType)) {
             return createPointStyle();
+
+        } else {
+        	Style style = styleFactory.createStyle();
+        	style.featureTypeStyles().addAll(createPolygonStyle().featureTypeStyles());
+        	style.featureTypeStyles().addAll(createLineStyle().featureTypeStyles());
+        	style.featureTypeStyles().addAll(createPointStyle().featureTypeStyles());
+            System.out.println("Created Geometry Style: "+style);
+            return style;
         }
     }
 
@@ -242,6 +254,7 @@ public class StyledImageExporter {
         FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(new Rule[]{rule});
         Style style = styleFactory.createStyle();
         style.featureTypeStyles().add(fts);
+        System.out.println("Created Polygon Style: "+style);
 
         return style;
     }
@@ -265,6 +278,7 @@ public class StyledImageExporter {
         FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(new Rule[]{rule});
         Style style = styleFactory.createStyle();
         style.featureTypeStyles().add(fts);
+        System.out.println("Created Line Style: "+style);
 
         return style;
     }
@@ -298,6 +312,7 @@ public class StyledImageExporter {
         FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(new Rule[]{rule});
         Style style = styleFactory.createStyle();
         style.featureTypeStyles().add(fts);
+        System.out.println("Created Point Style: "+style);
 
         return style;
     }
