@@ -170,6 +170,10 @@ public class DynamicLayer extends EditableLayerImpl {
 
 		private boolean queryNodeProperties(Node node, JSONObject properties) {
 			if (properties != null) {
+				if(properties.containsKey("geometry")){
+					System.out.println("Unexpected 'geometry' in query string");
+					properties.remove("geometry");
+				}
 				for (Object key : properties.keySet()) {
 					Object value = node.getProperty(key.toString(), null);
 					Object match = properties.get(key);
@@ -338,6 +342,14 @@ public class DynamicLayer extends EditableLayerImpl {
 			}
 			return style;
 		}
+		
+		public Layer getParent() {
+			return DynamicLayer.this;
+		}
+		
+		public String toString() {
+			return getName();
+		}
 	}
 
 	private synchronized Map<String, Layer> getLayerMap() {
@@ -352,6 +364,31 @@ public class DynamicLayer extends EditableLayerImpl {
 		return layers;
 	}
 	
+	protected boolean removeLayerConfig(String name) {
+		Layer layer = getLayerMap().get(name);
+		if (layer != null && layer instanceof LayerConfig) {
+			synchronized (this) {
+				LayerConfig config = (LayerConfig)layer;
+				layers = null; // force recalculation of layers cache
+				Transaction tx = config.configNode.getGraphDatabase().beginTx();
+				try {
+					config.configNode.getSingleRelationship(SpatialRelationshipTypes.LAYER_CONFIG, Direction.INCOMING).delete();
+					config.configNode.delete();
+					tx.success();
+				} finally {
+					tx.finish();
+				}
+				return true;
+			}
+		} else if (layer == null) {
+			System.out.println("Dynamic layer not found: " + name);
+			return false;
+		} else {
+			System.out.println("Layer is not dynamic and cannot be deleted: " + name);
+			return false;
+		}
+	}
+
 	protected LayerConfig addLayerConfig(String name, int type, String query) {
 		Layer layer = getLayerMap().get(name);
 		if (layer != null) {

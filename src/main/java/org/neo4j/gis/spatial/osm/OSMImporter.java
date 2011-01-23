@@ -171,7 +171,7 @@ public class OSMImporter implements Constants {
     public void reIndex(GraphDatabaseService database, int commitInterval, boolean includePoints, boolean includeRelations) {
         if (commitInterval < 1)
             throw new IllegalArgumentException("commitInterval must be >= 1");
-		System.out.println("Importing with GraphDatabaseService: " + database + " (class: " + database.getClass() + ")");
+		System.out.println("Re-indexing with GraphDatabaseService: " + database + " (class: " + database.getClass() + ")");
 
         setLogContext("Index");
         SpatialDatabaseService spatialDatabase = new SpatialDatabaseService(database);

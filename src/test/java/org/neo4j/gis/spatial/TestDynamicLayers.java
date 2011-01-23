@@ -1,9 +1,13 @@
 package org.neo4j.gis.spatial;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 import org.geotools.data.DataSourceException;
+import org.geotools.data.DataStore;
+import org.geotools.data.simple.SimpleFeatureCollection;
 import org.junit.Test;
+import org.neo4j.gis.spatial.geotools.data.Neo4jSpatialDataStore;
 import org.neo4j.gis.spatial.geotools.data.StyledImageExporter;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMImporter;
@@ -81,6 +85,7 @@ public class TestDynamicLayers extends Neo4jTestCase {
 			if (layer.getGeometryType() == Constants.GTYPE_GEOMETRY) {
 				countMultiGeometryLayers++;
 			}
+			checkIndexAndFeatureCount(layer);
 			try {
 				imageExporter.saveLayerImage(layer.getName(), "neo.sld.xml");
 				shpExporter.exportLayer(layer.getName());
@@ -98,12 +103,24 @@ public class TestDynamicLayers extends Neo4jTestCase {
 				countMultiGeometryExceptions);
 	}
 
+	private void checkIndexAndFeatureCount(Layer layer) throws IOException {
+		if(layer.getIndex().count()<1) {
+			System.out.println("Warning: index count zero: "+layer.getName());
+		}
+		System.out.println("Layer '" + layer.getName() + "' has " + layer.getIndex().count() + " entries in the index");
+		DataStore store = new Neo4jSpatialDataStore(graphDb());
+		SimpleFeatureCollection features = store.getFeatureSource(layer.getName()).getFeatures();
+		System.out.println("Layer '" + layer.getName() + "' has " + features.size() + " features");
+		assertEquals("FeatureCollection.size for layer '" + layer.getName() + "' not the same as index count", layer.getIndex()
+				.count(), features.size());
+	}
+
 	private void loadTestOsmData(String layerName, int commitInterval) throws Exception {
 		String osmPath = layerName;
 		System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
 		reActivateDatabase(false, true, false);
 		OSMImporter importer = new OSMImporter(layerName);
-		importer.importFile(getBatchInserter(), osmPath, true);
+		importer.importFile(getBatchInserter(), osmPath, false);
 		reActivateDatabase(false, false, false);
 		importer.reIndex(graphDb(), commitInterval);
 	}

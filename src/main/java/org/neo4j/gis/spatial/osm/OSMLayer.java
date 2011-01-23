@@ -112,6 +112,10 @@ public class OSMLayer extends DynamicLayer {
         return index.getAllGeometryNodes();
     }
 
+    public boolean removeDynamicLayer(String name) {
+    	return removeLayerConfig(name);
+    }
+
     @SuppressWarnings("unchecked")
 	/**
 	 * <pre>
@@ -134,7 +138,10 @@ public class OSMLayer extends DynamicLayer {
 			JSONObject step2way = new JSONObject();
 			JSONObject properties = new JSONObject();
 			for (Object key : tags.keySet()) {
-				properties.put(key.toString(), tags.get(key));
+				Object value = tags.get(key);
+				if (value != null && value.toString().length() < 1)
+					value = null;
+				properties.put(key.toString(), value);
 			}
 
 			step2tags.put("properties", properties);
@@ -152,6 +159,7 @@ public class OSMLayer extends DynamicLayer {
 			properties.put(PROP_TYPE, type);
 			query.put("properties", properties);
 		}
+		System.out.println("Created dynamic layer query: "+query.toJSONString());
 		return addLayerConfig(name, type, query.toJSONString());
     }
 
