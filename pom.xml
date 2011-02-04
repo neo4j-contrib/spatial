@@ -2,7 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <properties>
-    <neo4j.version>1.2-1.2</neo4j.version>
+    <neo4j.version>1.3-SNAPSHOT</neo4j.version>
     <neo4j-lucene.version>0.2-1.2</neo4j-lucene.version>
     <geotools.version>2.7-M3</geotools.version>
     <spatial.test.osm.version>20100819</spatial.test.osm.version>
@@ -23,7 +23,7 @@
   <parent>
     <artifactId>parent-pom</artifactId>
     <groupId>org.neo4j</groupId>
-    <version>8-SNAPSHOT</version>
+    <version>15</version>
   </parent>
 
   <scm>
@@ -102,18 +102,13 @@
     </dependency>
     <dependency>
       <groupId>org.neo4j</groupId>
-      <artifactId>neo4j-index</artifactId>
-      <version>${neo4j.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.neo4j</groupId>
       <artifactId>neo4j-lucene-index</artifactId>
       <version>${neo4j-lucene.version}</version>
     </dependency>
     <dependency>
       <groupId>org.neo4j.app</groupId>
       <artifactId>neo4j-server</artifactId>
-      <version>0.5-1.2</version>
+      <version>0.6-SNAPSHOT</version>
       <scope>provided</scope>
     </dependency>
     <dependency>

@@ -1,3 +1,22 @@
+/**
+ * Copyright (c) 2002-2011 "Neo Technology,"
+ * Network Engine for Objects in Lund AB [http://neotechnology.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 package org.neo4j.gis.spatial.osm;
 
 import static java.util.Arrays.asList;
@@ -30,18 +49,18 @@ import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.ReturnableEvaluator;
 import org.neo4j.graphdb.StopEvaluator;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.TraversalPosition;
 import org.neo4j.graphdb.Traverser;
 import org.neo4j.graphdb.Traverser.Order;
-import org.neo4j.index.IndexHits;
-import org.neo4j.index.lucene.LuceneIndexBatchInserterImpl;
-import org.neo4j.index.lucene.LuceneIndexService;
+import org.neo4j.graphdb.index.BatchInserterIndex;
+import org.neo4j.graphdb.index.BatchInserterIndexProvider;
+import org.neo4j.graphdb.index.Index;
+import org.neo4j.graphdb.index.IndexHits;
+import org.neo4j.index.impl.lucene.LuceneBatchInserterIndexProvider;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.impl.batchinsert.BatchInserter;
 import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
 import org.neo4j.kernel.impl.batchinsert.SimpleRelationship;
 
-import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 
 public class OSMImporter implements Constants {
@@ -343,16 +362,17 @@ public class OSMImporter implements Constants {
 
     }
 
+    public static final String INDEX_NODES = "nodes";
     private static class OSMGraphWriter extends OSMWriter<Node> {
-    	private GraphDatabaseService graphDb;
-		private LuceneIndexService indexService;
-	    private Node osm_root;
+        private GraphDatabaseService graphDb;
+		private Node osm_root;
 	    private Node osm_dataset;
+        private Index<Node> indexService;
 
 		private OSMGraphWriter(GraphDatabaseService graphDb, StatsManager statsManager) {
 			super(statsManager);
     		this.graphDb = graphDb;
-    		this.indexService = new LuceneIndexService(graphDb);
+    		this.indexService = graphDb.index().forNodes( INDEX_NODES );
     	}
 
 	    private Node findNode(String name, Node parent, RelationshipType relType) {
@@ -430,7 +450,7 @@ public class OSMImporter implements Constants {
 			Node node = graphDb.createNode();
 			addProperties(node, properties);
 			if (indexKey != null && properties.containsKey(indexKey)) {
-				indexService.index(node, indexKey, properties.get(indexKey));
+				indexService.add(node, indexKey, properties.get(indexKey));
 			}
 			return node;
 		}
@@ -439,13 +459,13 @@ public class OSMImporter implements Constants {
 			Node node = null;
 			Object indexValue = (indexKey==null) ? null : properties.get(indexKey);
 			if (indexValue != null && (createdNodes+foundNodes < 100 || foundNodes > 10)) {
-				node = indexService.getSingleNode(indexKey, properties.get(indexKey));
+				node = indexService.get(indexKey, properties.get(indexKey)).getSingle();
 			}
 			if (node == null) {
 				node = graphDb.createNode();
 				addProperties(node, properties);
 				if (indexValue != null) {
-					indexService.index(node, indexKey, properties.get(indexKey));
+					indexService.add(node, indexKey, properties.get(indexKey));
 				}
 				createdNodes++;
 			}else{
@@ -469,7 +489,7 @@ public class OSMImporter implements Constants {
 
 		@Override
 		protected Node getSingleNode(String string, Object value) {
-			return indexService.getSingleNode(string, value);
+			return indexService.get(string, value).getSingle();
 		}
 
 		@Override
@@ -483,7 +503,7 @@ public class OSMImporter implements Constants {
 
 		@Override
 		protected IndexHits<Node> getNodes(String string, long nd_ref) {
-			return indexService.getNodes(string, nd_ref);
+			return indexService.get(string, nd_ref);
 		}
 
 		@Override
@@ -497,7 +517,6 @@ public class OSMImporter implements Constants {
 
 		@Override
 		protected void shutdownIndex() {
-			indexService.shutdown();
 			indexService = null;
 		}
 
@@ -510,14 +529,18 @@ public class OSMImporter implements Constants {
 
     private static class OSMBatchWriter extends OSMWriter<Long> {
     	private BatchInserter batchInserter;
-		private LuceneIndexBatchInserterImpl batchIndexService;
+		private BatchInserterIndexProvider batchIndexService;
+        private BatchInserterIndex batchIndex;
 	    private long osm_root;
 	    private long osm_dataset;
 
 		private OSMBatchWriter(BatchInserter batchGraphDb, StatsManager statsManager) {
 			super(statsManager);
     		this.batchInserter = batchGraphDb;
-            this.batchIndexService = new LuceneIndexBatchInserterImpl(batchGraphDb);
+            Map<String, String> config = new HashMap<String, String>();
+            config.put( "type", "exact" );
+            this.batchIndexService = new LuceneBatchInserterIndexProvider(batchGraphDb);
+            this.batchIndex = batchIndexService.nodeIndex( INDEX_NODES, config  );
     	}
 		
 		@Override
@@ -573,7 +596,7 @@ public class OSMImporter implements Constants {
 			if (currentNode > 0 && tags.size() > 0) {
 				statsManager.addToTagStats(type, tags.keySet());
 				long id = batchInserter.createNode(tags);
-				batchInserter.createRelationship(currentNode, id, OSMRelation.TAGS, null);
+				batchInserter.createRelationship(currentNode, id, OSMRelation.TAGS, new HashMap());
 				tags.clear();
 			}
 		}
@@ -598,7 +621,10 @@ public class OSMImporter implements Constants {
 		protected Long addNode(String name, Map<String, Object> properties, String indexKey) {
 			long id = batchInserter.createNode(properties);
 			if (indexKey != null && properties.containsKey(indexKey)) {
-				batchIndexService.index(id, indexKey, properties.get(indexKey));
+			    
+				Map<String, Object> props = new HashMap<String, Object>();
+				props.put( indexKey, properties.get(indexKey));
+                batchIndex.add(id, props );
 			}
 			return id;
 		}
@@ -612,12 +638,14 @@ public class OSMImporter implements Constants {
 			long id = -1;
 			Object indexValue = (indexKey==null) ? null : properties.get(indexKey);
 			if (indexValue != null && (createdNodes+foundNodes < 100 || foundNodes > 10)) {
-				id = batchIndexService.getSingleNode(indexKey, properties.get(indexKey));
+				id = batchIndex.get(indexKey, properties.get(indexKey)).getSingle();
 			}
 			if (id < 0) {
 				id = batchInserter.createNode(properties);
 				if (indexValue != null) {
-					batchIndexService.index(id, indexKey, properties.get(indexKey));
+					Map<String, Object> props = new HashMap<String, Object>();
+					props.put( indexKey, properties.get(indexKey) );
+                    batchIndex.add(id, props );
 				}
 				createdNodes++;
 			}else{
@@ -632,7 +660,8 @@ public class OSMImporter implements Constants {
 		}
 		
 		protected void optimize() {
-			batchIndexService.optimize();
+			//TODO: optimize
+		    //batchIndexService.optimize();
 		}
 
 		@Override
@@ -642,7 +671,7 @@ public class OSMImporter implements Constants {
 
 		@Override
 		protected Long getSingleNode(String string, Object value) {
-			return batchIndexService.getSingleNode(string, value);
+			return batchIndex.get(string, value).getSingle();
 		}
 
 		@Override
@@ -652,7 +681,7 @@ public class OSMImporter implements Constants {
 
 		@Override
 		protected IndexHits<Long> getNodes(String string, long nd_ref) {
-			return batchIndexService.getNodes(string, nd_ref);
+			return batchIndex.get(string, nd_ref);
 		}
 
 		@Override
@@ -901,8 +930,8 @@ public class OSMImporter implements Constants {
                             String memberType = (String)memberProps.get("type");
                             long member_ref = Long.parseLong(memberProps.get("ref").toString());
                             if (memberType != null) {
-                                long member = osmWriter.getSingleNode(memberType + "_osm_id", member_ref);
-                                if (-1 == member || prevMember == member) {
+                                Long member = osmWriter.getSingleNode(memberType + "_osm_id", member_ref);
+                                if (null == member || prevMember == member) {
                                     /*
                                      * This can happen if we import not whole planet, so some
                                      * referenced nodes will be unavailable
@@ -1165,8 +1194,8 @@ public class OSMImporter implements Constants {
 
 		protected void shutdown() {
 			if (graphDb != null) {
-				graphDb.shutdown(); // shuts down batchInserter also, if this
-									// was made from that
+				graphDb.shutdown();
+				//batch
 				graphDb = null;
 				batchInserter = null;
 			}
