@@ -23,8 +23,10 @@ import java.util.List;
 import java.util.Map;
 
 import org.neo4j.gis.spatial.EditableLayer;
+import org.neo4j.gis.spatial.Search;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
+import org.neo4j.gis.spatial.query.SearchPointsWithinOrthodromicDistance;
 import org.neo4j.gis.spatial.query.SearchWithin;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -33,6 +35,7 @@ import org.neo4j.graphdb.index.IndexHits;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Point;
 
 public class LayerNodeIndex implements Index<Node>
 {
@@ -40,7 +43,10 @@ public class LayerNodeIndex implements Index<Node>
     public static final String LON_PROPERTY_KEY = "lon";
     public static final String LAT_PROPERTY_KEY = "lat";
     public static final String WITHIN_QUERY = "within";
+    public static final String WITHIN_DISTANCE_QUERY = "withinDistance";
     public static final String ENVELOPE_PARAMETER = "envelope";
+    public static final String POINT_PARAMETER = "point";
+    public static final String DISTANCE_IN_KM_PARAMETER = "distanceInKm";
     private final String layerName;
     private final GraphDatabaseService db;
     private SpatialDatabaseService spatialDB;
@@ -109,10 +115,25 @@ public class LayerNodeIndex implements Index<Node>
             IndexHits<Node> results = new SpatialRecordHits( res );
             return results;
         }
+        else if ( key.equals( WITHIN_DISTANCE_QUERY ) )
+        {
+			Map<?, ?> p = (Map<?, ?>) params;
+			Double[] point = (Double[]) p.get( POINT_PARAMETER );
+			Double distance = (Double) p.get( DISTANCE_IN_KM_PARAMETER );
+			Point refPoint = layer.getGeometryFactory().createPoint(
+					new Coordinate( point[1], point[0] ) );
+			Search withinDistanceQuery = 
+				new SearchPointsWithinOrthodromicDistance( refPoint, distance );
+			layer.getIndex().executeSearch( withinDistanceQuery );
+			List<SpatialDatabaseRecord> res = withinDistanceQuery.getResults();
+			IndexHits<Node> results = new SpatialRecordHits( res );
+			return results;
+		}
         else
         {
             throw new UnsupportedOperationException( String.format(
-                    "only %s is implemented.", WITHIN_QUERY ) );
+            		"only %s and %s are implemented.", 
+            		WITHIN_QUERY, WITHIN_DISTANCE_QUERY ) );
         }
     }
 
