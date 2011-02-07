@@ -80,7 +80,8 @@ public class LayerNodeIndex implements Index<Node>
         double lon = (Double) geometry.getProperty( LON_PROPERTY_KEY );
         double lat = (Double) geometry.getProperty( LAT_PROPERTY_KEY );
         layer.add( layer.getGeometryFactory().createPoint(
-                new Coordinate( lon, lat ) ) );
+        new Coordinate( lon, lat ) ), new String[] { "id" },
+        new Object[] { geometry.getId() } );
 
     }
 

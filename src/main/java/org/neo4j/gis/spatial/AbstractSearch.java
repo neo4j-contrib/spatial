@@ -61,6 +61,13 @@ public abstract class AbstractSearch implements Search {
 		results.add(new SpatialDatabaseRecord(layer, geomNode, geom));
 	}
 	
+    protected void add(Node geomNode, Geometry geom,double distanceInKm) {
+        SpatialDatabaseRecord result = new SpatialDatabaseRecord( layer,
+                geomNode, geom );
+        result.setProperty( "distanceInKm", distanceInKm );
+        results.add( result );
+    }
+	
 	protected Envelope getEnvelope(Node geomNode) {
 		return layer.getGeometryEncoder().decodeEnvelope(geomNode);	
 	}

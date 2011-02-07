@@ -65,7 +65,7 @@ public class SearchPointsWithinOrthodromicDistance extends AbstractSearch {
 				Math.cos(Math.toRadians(refPoint.getY())) * Math.cos(Math.toRadians(point.getY())) * Math.cos(Math.toRadians(point.getX()) - Math.toRadians(refPoint.getX()))) * earthRadiusInKm;
 		
 		if (distanceInKm < maxDistanceInKm) {
-			add(geomNode, geometry);
+			add(geomNode, geometry, distanceInKm);
 		}
 	}
 

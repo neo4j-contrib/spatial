@@ -81,17 +81,21 @@ public class IndexProviderTest
     public void testWithinDistanceIndex() {
         LayerNodeIndex index = new LayerNodeIndex( "layer1", db, new HashMap<String, String>() );
         Transaction tx = db.beginTx();
-        Node n1 = db.createNode();
-        n1.setProperty( "lat", (double)56.2 );
-        n1.setProperty( "lon", (double)15.3 );
-        index.add( n1, "dummy", "value" );
+        Node batman = db.createNode();
+        batman.setProperty( "lat", (double) 37.88 );
+        batman.setProperty( "lon", (double) 41.14 );
+        batman.setProperty( "name", "batman" );
+        index.add( batman, "dummy", "value" );
+        Map<String, Object> params = new HashMap<String, Object>();
+        params.put( LayerNodeIndex.POINT_PARAMETER,  new Double[] { 37.87, 41.13 } );
+        params.put( LayerNodeIndex.DISTANCE_IN_KM_PARAMETER, 2.0 );
+        IndexHits<Node> hits = index.query( LayerNodeIndex.WITHIN_DISTANCE_QUERY, params );
         tx.success();
         tx.finish();
-	   Map<String, Object> params = new HashMap<String, Object>();   
-	   params.put(LayerNodeIndex.POINT_PARAMETER, new Double[] { 56.21,15.31 });
-	   params.put(LayerNodeIndex.DISTANCE_IN_KM_PARAMETER, 2.0);
-	   IndexHits<Node> hits = index.query( LayerNodeIndex.WITHIN_DISTANCE_QUERY, params );
-        assertTrue(hits.hasNext());
+        Node spatialRecord = hits.getSingle();
+        assertTrue( spatialRecord.getProperty( "distanceInKm" ).equals( 1.416623647558699 ) );
+        Node node = db.getNodeById( (Long) spatialRecord.getProperty( "id" ) );
+        assertTrue( node.getProperty( "name" ).equals( "batman" ) );
         
         
     }
