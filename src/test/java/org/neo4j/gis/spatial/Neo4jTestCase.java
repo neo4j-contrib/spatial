@@ -22,8 +22,10 @@ package org.neo4j.gis.spatial;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import junit.framework.TestCase;
 
@@ -43,6 +45,24 @@ import org.neo4j.kernel.impl.nioneo.store.PropertyStore;
  * Base class for the meta model tests.
  */
 public abstract class Neo4jTestCase extends TestCase {
+    private static final Map<String, String> TX_CONFIG = new HashMap<String, String>();
+    static {
+        TX_CONFIG.put( "neostore.nodestore.db.mapped_memory", "50M" );
+        TX_CONFIG.put( "neostore.relationshipstore.db.mapped_memory", "150M" );
+        TX_CONFIG.put( "neostore.propertystore.db.mapped_memory", "400M" );
+        TX_CONFIG.put( "neostore.propertystore.db.strings.mapped_memory", "1.2G" );
+        TX_CONFIG.put( "neostore.propertystore.db.arrays.mapped_memory", "50M" );
+        TX_CONFIG.put( "dump_configuration", "true" );
+    }
+    private static final Map<String, String> BATCH_CONFIG = new HashMap<String, String>();
+    static {
+        BATCH_CONFIG.put( "neostore.nodestore.db.mapped_memory", "50M" );
+        BATCH_CONFIG.put( "neostore.relationshipstore.db.mapped_memory", "150M" );
+        BATCH_CONFIG.put( "neostore.propertystore.db.mapped_memory", "400M" );
+        BATCH_CONFIG.put( "neostore.propertystore.db.strings.mapped_memory", "1.2" );
+        BATCH_CONFIG.put( "neostore.propertystore.db.arrays.mapped_memory", "500M" );
+        BATCH_CONFIG.put( "dump_configuration", "true" );
+    }
     private static File basePath = new File("target/var");
     private static File dbPath = new File(basePath, "neo4j-db");
     private GraphDatabaseService graphDb;
@@ -92,10 +112,10 @@ public abstract class Neo4jTestCase extends TestCase {
             deleteDatabase();
         }
         if (useBatchInserter) {
-            batchInserter = new BatchInserterImpl(dbPath.getAbsolutePath());
+            batchInserter = new BatchInserterImpl(dbPath.getAbsolutePath(), BATCH_CONFIG);
             graphDb = batchInserter.getGraphDbService();
         } else {
-            graphDb = new EmbeddedGraphDatabase(dbPath.getAbsolutePath());
+            graphDb = new EmbeddedGraphDatabase(dbPath.getAbsolutePath(), TX_CONFIG );
         }
         if (autoTx) {
             // with the batch inserter the tx is a dummy that simply succeeds all the time

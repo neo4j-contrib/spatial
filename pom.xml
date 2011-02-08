@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <properties>
     <neo4j.version>1.3-1.3.M01</neo4j.version>
     <neo4j-lucene.version>0.5-1.3.M01</neo4j-lucene.version>
@@ -149,11 +148,11 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-    	<groupId>com.googlecode.json-simple</groupId>
-    	<artifactId>json-simple</artifactId>
-    	<version>1.1</version>
-    	<type>jar</type>
-    	<scope>provided</scope>
+      <groupId>com.googlecode.json-simple</groupId>
+      <artifactId>json-simple</artifactId>
+      <version>1.1</version>
+      <type>jar</type>
+      <scope>provided</scope>
     </dependency>
   </dependencies>
   <repositories>
@@ -227,15 +226,24 @@
     <plugins>
       <plugin>
         <artifactId>maven-javadoc-plugin</artifactId>
-            <configuration>
-            <groups>
-              <group>
-                <title>GIS and Spatial</title>
-                <packages>org.neo4j.gis:org.neo4j.gis.*</packages>
-              </group>
-            </groups>
-            </configuration>
+        <configuration>
+          <groups>
+            <group>
+              <title>GIS and Spatial</title>
+              <packages>org.neo4j.gis:org.neo4j.gis.*</packages>
+            </group>
+          </groups>
+        </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.5</version>
+        <configuration>
+          <argLine>-server -Xms512m -Xmx3048m -XX:+UseConcMarkSweepGC</argLine>
+        </configuration>
+      </plugin>
+
     </plugins>
   </reporting>
 
