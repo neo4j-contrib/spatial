@@ -37,7 +37,6 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.impl.batchinsert.BatchInserter;
-import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
 import org.neo4j.kernel.impl.nioneo.store.PropertyStore;
 
 
@@ -50,7 +49,7 @@ public abstract class Neo4jTestCase extends TestCase {
         TX_CONFIG.put( "neostore.nodestore.db.mapped_memory", "50M" );
         TX_CONFIG.put( "neostore.relationshipstore.db.mapped_memory", "150M" );
         TX_CONFIG.put( "neostore.propertystore.db.mapped_memory", "400M" );
-        TX_CONFIG.put( "neostore.propertystore.db.strings.mapped_memory", "1.2G" );
+        TX_CONFIG.put( "neostore.propertystore.db.strings.mapped_memory", "1000M" );
         TX_CONFIG.put( "neostore.propertystore.db.arrays.mapped_memory", "50M" );
         TX_CONFIG.put( "dump_configuration", "true" );
     }
@@ -59,7 +58,7 @@ public abstract class Neo4jTestCase extends TestCase {
         BATCH_CONFIG.put( "neostore.nodestore.db.mapped_memory", "50M" );
         BATCH_CONFIG.put( "neostore.relationshipstore.db.mapped_memory", "150M" );
         BATCH_CONFIG.put( "neostore.propertystore.db.mapped_memory", "400M" );
-        BATCH_CONFIG.put( "neostore.propertystore.db.strings.mapped_memory", "1.2" );
+        BATCH_CONFIG.put( "neostore.propertystore.db.strings.mapped_memory", "1000M" );
         BATCH_CONFIG.put( "neostore.propertystore.db.arrays.mapped_memory", "500M" );
         BATCH_CONFIG.put( "dump_configuration", "true" );
     }
@@ -71,7 +70,7 @@ public abstract class Neo4jTestCase extends TestCase {
 
     @Before
     protected void setUp() throws Exception {
-        setUp(true, false, false);
+        setUp(true);
     }
 
     /**
@@ -83,9 +82,9 @@ public abstract class Neo4jTestCase extends TestCase {
      * @param useBatchInserter
      * @throws Exception
      */
-    protected void setUp(boolean deleteDb, boolean useBatchInserter, boolean autoTx) throws Exception {
+    protected void setUp(boolean deleteDb) throws Exception {
         super.setUp();
-        reActivateDatabase(deleteDb, useBatchInserter, autoTx);
+        reActivateDatabase(deleteDb);
     }
 
     /**
@@ -97,29 +96,12 @@ public abstract class Neo4jTestCase extends TestCase {
      * @param useBatchInserter
      * @throws Exception
      */
-    protected void reActivateDatabase(boolean deleteDb, boolean useBatchInserter, boolean autoTx) throws Exception {
-        if (tx != null) {
-            tx.success();
-            tx.finish();
-            tx = null;
-        }
-        if (graphDb != null) {
-            graphDb.shutdown(); // shuts down batchInserter also, if this was made from that
-            graphDb = null;
-            batchInserter = null;
+    protected void reActivateDatabase(boolean deleteDb) throws Exception {
+        if (graphDb == null) {
+            graphDb = new EmbeddedGraphDatabase(dbPath.getAbsolutePath(), TX_CONFIG );
         }
         if (deleteDb) {
             deleteDatabase();
-        }
-        if (useBatchInserter) {
-            batchInserter = new BatchInserterImpl(dbPath.getAbsolutePath(), BATCH_CONFIG);
-            graphDb = batchInserter.getGraphDbService();
-        } else {
-            graphDb = new EmbeddedGraphDatabase(dbPath.getAbsolutePath(), TX_CONFIG );
-        }
-        if (autoTx) {
-            // with the batch inserter the tx is a dummy that simply succeeds all the time
-            tx = graphDb.beginTx();
         }
     }
 

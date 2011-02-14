@@ -147,6 +147,7 @@ public class TestSpatial extends Neo4jTestCase {
         // Envelope bbox = new Envelope(13, 14, 55, 58); // cover admin area 'Söderåsen'
         // Envelope bbox = new Envelope(7, 10, 37, 40);
 
+        addTestLayer("croatia.osm", DataFormat.OSM, bbox);
         addTestLayer("sweden.osm", DataFormat.OSM, bbox);
         addTestLayer("sweden.osm.administrative", DataFormat.OSM, bbox);
 
@@ -216,7 +217,9 @@ public class TestSpatial extends Neo4jTestCase {
             //layersToTest = new String[] {"sweden_administrative"};
         } else {
             // Tests to run by default for regression (not too long running, and should always pass)
-            layersToTest = new String[] {"billesholm.osm", "sweden.osm.administrative", "sweden_administrative", "sweden_natural", "sweden_water"};
+//            layersToTest = new String[] {"billesholm.osm", "sweden.osm.administrative", "sweden_administrative", "sweden_natural", "sweden_water"};
+//            layersToTest = new String[] {"croatia.osm"};
+            layersToTest = new String[] {"billesholm.osm"};
         }
         for (final String layerName : layersToTest) {
             suite.addTest(new TestSpatial("Test Import of "+layerName) {
@@ -252,7 +255,7 @@ public class TestSpatial extends Neo4jTestCase {
     }
 
     protected void setUp() throws Exception {
-        super.setUp(false, false, false);
+        super.setUp(false);
     }
 
     protected void testImport(String layerName) throws Exception {
@@ -286,10 +289,10 @@ public class TestSpatial extends Neo4jTestCase {
     private void loadTestOsmData(String layerName, int commitInterval) throws Exception {
         String osmPath = OSM_DIR + File.separator + layerName;
         System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
-        reActivateDatabase(false, true, false);
+        reActivateDatabase(false);
         OSMImporter importer = new OSMImporter(layerName);
-        importer.importFile(getBatchInserter(), osmPath);
-        reActivateDatabase(false, false, false);
+        importer.importFile(graphDb(), osmPath);
+        reActivateDatabase(false);
         importer.reIndex(graphDb(), commitInterval);
     }
 

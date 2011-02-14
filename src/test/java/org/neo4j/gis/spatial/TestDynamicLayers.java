@@ -137,10 +137,10 @@ public class TestDynamicLayers extends Neo4jTestCase {
 	private void loadTestOsmData(String layerName, int commitInterval) throws Exception {
 		String osmPath = layerName;
 		System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
-		reActivateDatabase(false, true, false);
+		reActivateDatabase(false);
 		OSMImporter importer = new OSMImporter(layerName);
-		importer.importFile(getBatchInserter(), osmPath, false);
-		reActivateDatabase(false, false, false);
+		importer.importFile(graphDb(), osmPath, false);
+		reActivateDatabase(false);
 		importer.reIndex(graphDb(), commitInterval);
 	}
 

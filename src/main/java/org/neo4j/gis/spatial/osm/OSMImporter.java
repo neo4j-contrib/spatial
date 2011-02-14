@@ -51,15 +51,12 @@ import org.neo4j.graphdb.StopEvaluator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.Traverser;
 import org.neo4j.graphdb.Traverser.Order;
-import org.neo4j.graphdb.index.BatchInserterIndex;
-import org.neo4j.graphdb.index.BatchInserterIndexProvider;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
-import org.neo4j.index.impl.lucene.LuceneBatchInserterIndexProvider;
+import org.neo4j.index.bdbje.BerkeleyDbIndexProvider;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.impl.batchinsert.BatchInserter;
 import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
-import org.neo4j.kernel.impl.batchinsert.SimpleRelationship;
 
 import com.vividsolutions.jts.geom.Envelope;
 
@@ -74,7 +71,7 @@ public class OSMImporter implements Constants {
     protected boolean nodesProcessingFinished = false;
     private String layerName;
     private StatsManager stats = new StatsManager();
-    private long osm_dataset = -1;
+    private Node osm_dataset = null;
     
 	private static class TagStats {
 		private String name;
@@ -198,11 +195,11 @@ public class OSMImporter implements Constants {
 		// TODO: The next line creates the relationship between the dataset and
 		// layer, but this seems more like a side-effect and should be done
 		// explicitly
-		layer.getDataset(osm_dataset);
+		layer.getDataset(osm_dataset.getId());
         layer.clear();  // clear the index without destroying underlying data
 
         long startTime = System.currentTimeMillis();
-        Traverser traverser = database.getNodeById(osm_dataset).traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH,
+        Traverser traverser = osm_dataset.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH,
                 ReturnableEvaluator.ALL_BUT_START_NODE, OSMRelation.WAYS, Direction.OUTGOING, OSMRelation.NEXT,
                 Direction.OUTGOING);
         Transaction tx = database.beginTx();
@@ -276,103 +273,72 @@ public class OSMImporter implements Constants {
 		}
     }
 
-    private static abstract class OSMWriter<T> {
-		protected StatsManager statsManager;
-
-		private OSMWriter(StatsManager statsManager) {
-    		this.statsManager = statsManager;
-		}
-
-		public static OSMWriter<Long> fromBatchInserter(BatchInserter batchInserter, StatsManager stats) {
-			return new OSMBatchWriter(batchInserter, stats);
-		}
-
-    	public static OSMWriter<Node> fromGraphDatabase(GraphDatabaseService graphDb, StatsManager stats) {
-			return new OSMGraphWriter(graphDb, stats);
-		}
-
-	    protected abstract T getOrCreateNode(String name, String type, T parent, RelationshipType relType);
-
-	    protected abstract T getOrCreateOSMDataset(String name);
-
-		protected abstract void setDatasetProperties(Map<String, Object> extractProperties);
-
-		protected abstract void addNodeTags(T currentNode, LinkedHashMap<String, Object> tags, String type);
-
-	    protected abstract void addNodeGeometry(T currentNode, int gtype, Envelope bbox, int vertices);
-
-	    protected abstract T addNode(String name, Map<String, Object> properties, String indexKey);
-
-		protected abstract void createRelationship(T from, T to, RelationshipType relType, LinkedHashMap<String, Object> relProps);
-
-		protected void createRelationship(T from, T to, RelationshipType relType) {
-			createRelationship(from, to, relType, null);
-		}
-
-		protected HashMap<String, Integer> stats = new HashMap<String, Integer>();
-		protected long logTime = 0;
-	    protected static int foundNodes=0;
-	    protected static int createdNodes=0;
-
-		protected void logNodeAddition(LinkedHashMap<String, Object> tags, String type) {
-			Integer count = stats.get(type);
-			if (count == null) {
-				count = 1;
-			} else {
-				count++;
-			}
-			stats.put(type, count);
-			long currentTime = System.currentTimeMillis();
-			if (currentTime - logTime > 1432) {
-				System.out.println(new Date(currentTime) + ": Saving " + type + " " + count + " (created " + createdNodes + ", found "
-				        + foundNodes + ")");
-				logTime = currentTime;
-				//batchIndexService.optimize();
-			}
-		}
-
-		void describeLoaded() {
-			for (String type : new String[] { "node", "way", "relation" }) {
-				Integer count = stats.get(type);
-				if (count != null) {
-					System.out.println("Loaded " + count + " " + type + "s");
-				}
-			}
-		}
-
-		protected abstract long getDatasetId();
-
-		/**
-		 * This method should be overridden by implementation that are able to perform database or index optimizations when requested, like the batch inserter.
-		 */
-		protected void optimize() {
-		}
-
-		protected abstract T getSingleNode(String string, Object value);
-
-		protected abstract Map<String, Object> getNodeProperties(T member);
-
-		protected abstract IndexHits<T> getNodes(String string, long nd_ref);
-
-		protected abstract void updateGeometryMetaDataFromMember(T member, GeometryMetaData metaGeom, Map<String, Object> nodeProps);
-
-		protected abstract void shutdownIndex();
-
-		protected abstract T createProxyNode();
-
-    }
-
     public static final String INDEX_NODES = "nodes";
-    private static class OSMGraphWriter extends OSMWriter<Node> {
+    private static class OSMGraphWriter {
         private GraphDatabaseService graphDb;
 		private Node osm_root;
 	    private Node osm_dataset;
         private Index<Node> indexService;
+        private int count = 0;
+        private final int commitInterval;
+        protected StatsManager statsManager;
 
-		private OSMGraphWriter(GraphDatabaseService graphDb, StatsManager statsManager) {
-			super(statsManager);
+
+        protected void createRelationship(Node from, Node to, RelationshipType relType) {
+            createRelationship(from, to, relType, null);
+        }
+
+        protected HashMap<String, Integer> stats = new HashMap<String, Integer>();
+        protected long logTime = 0;
+        protected static int foundNodes=0;
+        protected static int createdNodes=0;
+        protected Transaction currentTx;
+
+        protected void logNodeAddition(LinkedHashMap<String, Object> tags, String type) {
+            Integer count = stats.get(type);
+            if (count == null) {
+                count = 1;
+            } else {
+                count++;
+            }
+
+            stats.put(type, count);
+            long currentTime = System.currentTimeMillis();
+            if (currentTime - logTime > 1432) {
+                System.out.println(new Date(currentTime) + ": Saving " + type + " " + count + " (created " + createdNodes + ", found "
+                        + foundNodes + ")");
+                logTime = currentTime;
+                //batchIndexService.optimize();
+            }
+        }
+
+        void describeLoaded() {
+            for (String type : new String[] { "node", "way", "relation" }) {
+                Integer count = stats.get(type);
+                if (count != null) {
+                    System.out.println("Loaded " + count + " " + type + "s");
+                }
+            }
+        }
+
+
+        /**
+         * This method should be overridden by implementation that are able to perform database or index optimizations when requested, like the batch inserter.
+         */
+        protected void optimize() {
+        }
+
+
+
+
+
+
+		private OSMGraphWriter(GraphDatabaseService graphDb, StatsManager statsManager, int commitInterval) {
     		this.graphDb = graphDb;
-    		this.indexService = graphDb.index().forNodes( INDEX_NODES );
+            this.statsManager = statsManager;
+            this.commitInterval = commitInterval;
+            this.currentTx = graphDb.beginTx();
+    		this.indexService = graphDb.index().forNodes( INDEX_NODES, BerkeleyDbIndexProvider.DEFAULT_CONFIG);
     	}
 
 	    private Node findNode(String name, Node parent, RelationshipType relType) {
@@ -385,7 +351,6 @@ public class OSMImporter implements Constants {
 	        return null;
 	    }
 
-	    @Override
 	    protected Node getOrCreateNode(String name, String type, Node parent, RelationshipType relType) {
 	        Node node = findNode(name, parent, relType);
 	        if (node == null) {
@@ -397,7 +362,6 @@ public class OSMImporter implements Constants {
 	        return node;
 	    }
 
-		@Override
 		protected Node getOrCreateOSMDataset(String name) {
 	        if (osm_dataset == null) {
 	            osm_root = getOrCreateNode("osm_root", "osm", graphDb.getReferenceNode(), OSMRelation.OSM);
@@ -406,7 +370,6 @@ public class OSMImporter implements Constants {
 	        return osm_dataset;
 		}
 
-		@Override
 		protected void setDatasetProperties(Map<String, Object> extractProperties) {
 			for (String key : extractProperties.keySet()) {
 				osm_dataset.setProperty(key, extractProperties.get(key));
@@ -419,7 +382,6 @@ public class OSMImporter implements Constants {
 			}
 		}
 
-		@Override
 		protected void addNodeTags(Node currentNode, LinkedHashMap<String, Object> tags, String type) {
 			logNodeAddition(tags, type);
 			if (currentNode != null && tags.size() > 0) {
@@ -429,10 +391,27 @@ public class OSMImporter implements Constants {
 				currentNode.createRelationshipTo(node, OSMRelation.TAGS);
 				tags.clear();
 			}
+			checkTx();
 		}
 
-		@Override
-	    protected void addNodeGeometry(Node currentNode, int gtype, Envelope bbox, int vertices) {
+		public void checkTx()
+        {
+            if(count  % commitInterval == 0) {
+                System.out.println("committing");
+                restartTx();
+            } 
+            count++;
+        }
+
+	    private void restartTx()
+        {
+	        currentTx.success();
+            currentTx.finish();
+            currentTx = graphDb.beginTx();
+            
+        }
+
+        protected void addNodeGeometry(Node currentNode, int gtype, Envelope bbox, int vertices) {
 	        if (currentNode != null && !bbox.isNull() && vertices > 0) {
 	            if (gtype == GTYPE_GEOMETRY)
 	                gtype = vertices > 1 ? GTYPE_MULTIPOINT : GTYPE_POINT;
@@ -445,7 +424,6 @@ public class OSMImporter implements Constants {
 	        }
 	    }
 
-		@Override
 		protected Node addNode(String name, Map<String, Object> properties, String indexKey) {
 			Node node = graphDb.createNode();
 			addProperties(node, properties);
@@ -474,7 +452,6 @@ public class OSMImporter implements Constants {
 			return node;
 		}
 
-		@Override
 		protected void createRelationship(Node from, Node to, RelationshipType relType, LinkedHashMap<String, Object> relProps) {
 			Relationship rel = from.createRelationshipTo(to, relType);
 			if(relProps!=null && relProps.size()>0){
@@ -482,17 +459,14 @@ public class OSMImporter implements Constants {
 			}
 		}
 		
-		@Override
 		protected long getDatasetId() {
 			return osm_dataset.getId();
 		}
 
-		@Override
 		protected Node getSingleNode(String string, Object value) {
 			return indexService.get(string, value).getSingle();
 		}
 
-		@Override
 		protected Map<String, Object> getNodeProperties(Node node) {
 			LinkedHashMap<String,Object> properties = new LinkedHashMap<String,Object>();
 			for(String property:node.getPropertyKeys()){
@@ -501,12 +475,10 @@ public class OSMImporter implements Constants {
 			return properties;
 		}
 
-		@Override
 		protected IndexHits<Node> getNodes(String string, long nd_ref) {
 			return indexService.get(string, nd_ref);
 		}
 
-		@Override
 		protected void updateGeometryMetaDataFromMember(Node member, GeometryMetaData metaGeom, Map<String, Object> nodeProps) {
 			for (Relationship rel : member.getRelationships(OSMRelation.GEOM)) {
 				nodeProps = getNodeProperties(rel.getEndNode());
@@ -515,207 +487,206 @@ public class OSMImporter implements Constants {
 			}
 		}
 
-		@Override
 		protected void shutdownIndex() {
-			indexService = null;
+			currentTx.success();
+			currentTx.finish();
 		}
 
-		@Override
 		protected Node createProxyNode() {
 			return graphDb.createNode();
 		}
 
     }
 
-    private static class OSMBatchWriter extends OSMWriter<Long> {
-    	private BatchInserter batchInserter;
-		private BatchInserterIndexProvider batchIndexService;
-        private BatchInserterIndex batchIndex;
-	    private long osm_root;
-	    private long osm_dataset;
+//    private static class OSMBatchWriter extends OSMWriter<Long> {
+//    	private BatchInserter batchInserter;
+//		private BatchInserterIndexProvider batchIndexService;
+//        private BatchInserterIndex batchIndex;
+//	    private long osm_root;
+//	    private long osm_dataset;
+//
+//		private OSMBatchWriter(BatchInserter batchGraphDb, StatsManager statsManager) {
+//			super(statsManager);
+//    		this.batchInserter = batchGraphDb;
+//            Map<String, String> config = new HashMap<String, String>();
+//            config.put( "type", "exact" );
+//            this.batchIndexService = new LuceneBatchInserterIndexProvider(batchGraphDb);
+//            this.batchIndex = batchIndexService.nodeIndex( INDEX_NODES, config  );
+//    	}
+//		
+//		@Override
+//	    public Long getOrCreateOSMDataset(String name) {
+//	        if (osm_dataset <= 0) {
+//	            osm_root = getOrCreateNode("osm_root", "osm", batchInserter.getReferenceNode(), OSMRelation.OSM);
+//	            osm_dataset = getOrCreateNode(name, "osm", osm_root, OSMRelation.OSM);
+//	        }
+//	        return osm_dataset;
+//	    }
+//
+//	    private long findNode(BatchInserter batchInserter, String name, long parent, RelationshipType relType) {
+//	        for (SimpleRelationship relationship : batchInserter.getRelationships(parent)) {
+//	            if (relationship.getType().name().equals(relType.name())) {
+//	                long node = relationship.getEndNode();
+//	                Object nodeName = batchInserter.getNodeProperties(node).get("name");
+//	                if (nodeName != null && name.equals(nodeName.toString())) {
+//	                    return node;
+//	                }
+//	            }
+//	        }
+//	        return -1;
+//	    }
+//
+//	    @Override
+//	    protected Long getOrCreateNode(String name, String type, Long parent, RelationshipType relType) {
+//	        long node = findNode(batchInserter, name, parent, relType);
+//	        if (node < 0) {
+//	            HashMap<String, Object> properties = new HashMap<String, Object>();
+//	            properties.put("name", name);
+//	            properties.put("type", type);
+//	            node = batchInserter.createNode(properties);
+//	            batchInserter.createRelationship(parent, node, relType, null);
+//	        }
+//	        return node;
+//	    }
+//
+//		public String toString() {
+//			return "BatchInserter["+batchInserter.toString()+"]:IndexService["+batchIndexService.toString()+"]";
+//		}
+//
+//		@Override
+//		protected void setDatasetProperties(Map<String, Object> extraProperties) {
+//            LinkedHashMap<String, Object> properties = new LinkedHashMap<String, Object>();
+//            properties.putAll(batchInserter.getNodeProperties(osm_dataset));
+//            properties.putAll(extraProperties);
+//            batchInserter.setNodeProperties(osm_dataset, properties);
+//		}
+//
+//		@Override
+//		protected void addNodeTags(Long currentNode, LinkedHashMap<String, Object> tags, String type) {
+//			logNodeAddition(tags, type);
+//			if (currentNode > 0 && tags.size() > 0) {
+//				statsManager.addToTagStats(type, tags.keySet());
+//				long id = batchInserter.createNode(tags);
+//				batchInserter.createRelationship(currentNode, id, OSMRelation.TAGS, new HashMap());
+//				tags.clear();
+//			}
+//		}
+//
+//		@Override
+//	    protected void addNodeGeometry(Long currentNode, int gtype, Envelope bbox, int vertices) {
+//	        if (currentNode > 0 && !bbox.isNull() && vertices > 0) {
+//	            LinkedHashMap<String, Object> properties = new LinkedHashMap<String, Object>();
+//	            if (gtype == GTYPE_GEOMETRY)
+//	                gtype = vertices > 1 ? GTYPE_MULTIPOINT : GTYPE_POINT;
+//	            properties.put("gtype", gtype);
+//	            properties.put("vertices", vertices);
+//	            properties.put("bbox", new double[] {bbox.getMinX(), bbox.getMaxX(), bbox.getMinY(), bbox.getMaxY()});
+//	            long id = batchInserter.createNode(properties);
+//	            batchInserter.createRelationship(currentNode, id, OSMRelation.GEOM, null);
+//	            properties.clear();
+//	            statsManager.addGeomStats(gtype);
+//	        }
+//	    }
+//
+//		@Override
+//		protected Long addNode(String name, Map<String, Object> properties, String indexKey) {
+//			long id = batchInserter.createNode(properties);
+//			if (indexKey != null && properties.containsKey(indexKey)) {
+//			    
+//				Map<String, Object> props = new HashMap<String, Object>();
+//				props.put( indexKey, properties.get(indexKey));
+//                batchIndex.add(id, props );
+//			}
+//			return id;
+//		}
+//
+//		protected Long addNodeWithCheck(String name, Map<String, Object> properties, String indexKey) {
+//			// TODO: This code allows for importing into existing data, but
+//			// slows the import down by almost three times. The problem is that
+//			// the batchIndexService cannot switch efficiently between read and
+//			// write mode. Rather we should use pure GraphDatabaseService API
+//			// for update mode.
+//			long id = -1;
+//			Object indexValue = (indexKey==null) ? null : properties.get(indexKey);
+//			if (indexValue != null && (createdNodes+foundNodes < 100 || foundNodes > 10)) {
+//				id = batchIndex.get(indexKey, properties.get(indexKey)).getSingle();
+//			}
+//			if (id < 0) {
+//				id = batchInserter.createNode(properties);
+//				if (indexValue != null) {
+//					Map<String, Object> props = new HashMap<String, Object>();
+//					props.put( indexKey, properties.get(indexKey) );
+//                    batchIndex.add(id, props );
+//				}
+//				createdNodes++;
+//			}else{
+//				foundNodes++;
+//			}
+//			return id;
+//		}
+//
+//		@Override
+//		protected void createRelationship(Long from, Long to, RelationshipType relType, LinkedHashMap<String, Object> relProps) {
+//			batchInserter.createRelationship(from, to, relType, relProps);
+//		}
+//		
+//		protected void optimize() {
+//			//TODO: optimize
+//		    //batchIndexService.optimize();
+//		}
+//
+//		@Override
+//		protected long getDatasetId() {
+//			return osm_dataset;
+//		}
+//
+//		@Override
+//		protected Long getSingleNode(String string, Object value) {
+//			return batchIndex.get(string, value).getSingle();
+//		}
+//
+//		@Override
+//		protected Map<String, Object> getNodeProperties(Long member) {
+//			return batchInserter.getNodeProperties(member);
+//		}
+//
+//		@Override
+//		protected IndexHits<Long> getNodes(String string, long nd_ref) {
+//			return batchIndex.get(string, nd_ref);
+//		}
+//
+//		@Override
+//		protected void updateGeometryMetaDataFromMember(Long member, GeometryMetaData metaGeom, Map<String, Object> nodeProps) {
+//			for (SimpleRelationship rel : batchInserter.getRelationships(member)) {
+//				if (rel.getType().equals(OSMRelation.GEOM)) {
+//					nodeProps = getNodeProperties(rel.getEndNode());
+//					metaGeom.checkSupportedGeometry((Integer) nodeProps.get("gtype"));
+//					metaGeom.expandToIncludeBBox(nodeProps);
+//				}
+//			}
+//		}
+//
+//		@Override
+//		protected void shutdownIndex() {
+//			batchIndexService.shutdown();
+//			batchIndexService = null;
+//		}
+//
+//		@Override
+//		protected Long createProxyNode() {
+//			return batchInserter.createNode(null);
+//		}
+//
+//    }
 
-		private OSMBatchWriter(BatchInserter batchGraphDb, StatsManager statsManager) {
-			super(statsManager);
-    		this.batchInserter = batchGraphDb;
-            Map<String, String> config = new HashMap<String, String>();
-            config.put( "type", "exact" );
-            this.batchIndexService = new LuceneBatchInserterIndexProvider(batchGraphDb);
-            this.batchIndex = batchIndexService.nodeIndex( INDEX_NODES, config  );
-    	}
-		
-		@Override
-	    public Long getOrCreateOSMDataset(String name) {
-	        if (osm_dataset <= 0) {
-	            osm_root = getOrCreateNode("osm_root", "osm", batchInserter.getReferenceNode(), OSMRelation.OSM);
-	            osm_dataset = getOrCreateNode(name, "osm", osm_root, OSMRelation.OSM);
-	        }
-	        return osm_dataset;
-	    }
-
-	    private long findNode(BatchInserter batchInserter, String name, long parent, RelationshipType relType) {
-	        for (SimpleRelationship relationship : batchInserter.getRelationships(parent)) {
-	            if (relationship.getType().name().equals(relType.name())) {
-	                long node = relationship.getEndNode();
-	                Object nodeName = batchInserter.getNodeProperties(node).get("name");
-	                if (nodeName != null && name.equals(nodeName.toString())) {
-	                    return node;
-	                }
-	            }
-	        }
-	        return -1;
-	    }
-
-	    @Override
-	    protected Long getOrCreateNode(String name, String type, Long parent, RelationshipType relType) {
-	        long node = findNode(batchInserter, name, parent, relType);
-	        if (node < 0) {
-	            HashMap<String, Object> properties = new HashMap<String, Object>();
-	            properties.put("name", name);
-	            properties.put("type", type);
-	            node = batchInserter.createNode(properties);
-	            batchInserter.createRelationship(parent, node, relType, null);
-	        }
-	        return node;
-	    }
-
-		public String toString() {
-			return "BatchInserter["+batchInserter.toString()+"]:IndexService["+batchIndexService.toString()+"]";
-		}
-
-		@Override
-		protected void setDatasetProperties(Map<String, Object> extraProperties) {
-            LinkedHashMap<String, Object> properties = new LinkedHashMap<String, Object>();
-            properties.putAll(batchInserter.getNodeProperties(osm_dataset));
-            properties.putAll(extraProperties);
-            batchInserter.setNodeProperties(osm_dataset, properties);
-		}
-
-		@Override
-		protected void addNodeTags(Long currentNode, LinkedHashMap<String, Object> tags, String type) {
-			logNodeAddition(tags, type);
-			if (currentNode > 0 && tags.size() > 0) {
-				statsManager.addToTagStats(type, tags.keySet());
-				long id = batchInserter.createNode(tags);
-				batchInserter.createRelationship(currentNode, id, OSMRelation.TAGS, new HashMap());
-				tags.clear();
-			}
-		}
-
-		@Override
-	    protected void addNodeGeometry(Long currentNode, int gtype, Envelope bbox, int vertices) {
-	        if (currentNode > 0 && !bbox.isNull() && vertices > 0) {
-	            LinkedHashMap<String, Object> properties = new LinkedHashMap<String, Object>();
-	            if (gtype == GTYPE_GEOMETRY)
-	                gtype = vertices > 1 ? GTYPE_MULTIPOINT : GTYPE_POINT;
-	            properties.put("gtype", gtype);
-	            properties.put("vertices", vertices);
-	            properties.put("bbox", new double[] {bbox.getMinX(), bbox.getMaxX(), bbox.getMinY(), bbox.getMaxY()});
-	            long id = batchInserter.createNode(properties);
-	            batchInserter.createRelationship(currentNode, id, OSMRelation.GEOM, null);
-	            properties.clear();
-	            statsManager.addGeomStats(gtype);
-	        }
-	    }
-
-		@Override
-		protected Long addNode(String name, Map<String, Object> properties, String indexKey) {
-			long id = batchInserter.createNode(properties);
-			if (indexKey != null && properties.containsKey(indexKey)) {
-			    
-				Map<String, Object> props = new HashMap<String, Object>();
-				props.put( indexKey, properties.get(indexKey));
-                batchIndex.add(id, props );
-			}
-			return id;
-		}
-
-		protected Long addNodeWithCheck(String name, Map<String, Object> properties, String indexKey) {
-			// TODO: This code allows for importing into existing data, but
-			// slows the import down by almost three times. The problem is that
-			// the batchIndexService cannot switch efficiently between read and
-			// write mode. Rather we should use pure GraphDatabaseService API
-			// for update mode.
-			long id = -1;
-			Object indexValue = (indexKey==null) ? null : properties.get(indexKey);
-			if (indexValue != null && (createdNodes+foundNodes < 100 || foundNodes > 10)) {
-				id = batchIndex.get(indexKey, properties.get(indexKey)).getSingle();
-			}
-			if (id < 0) {
-				id = batchInserter.createNode(properties);
-				if (indexValue != null) {
-					Map<String, Object> props = new HashMap<String, Object>();
-					props.put( indexKey, properties.get(indexKey) );
-                    batchIndex.add(id, props );
-				}
-				createdNodes++;
-			}else{
-				foundNodes++;
-			}
-			return id;
-		}
-
-		@Override
-		protected void createRelationship(Long from, Long to, RelationshipType relType, LinkedHashMap<String, Object> relProps) {
-			batchInserter.createRelationship(from, to, relType, relProps);
-		}
-		
-		protected void optimize() {
-			//TODO: optimize
-		    //batchIndexService.optimize();
-		}
-
-		@Override
-		protected long getDatasetId() {
-			return osm_dataset;
-		}
-
-		@Override
-		protected Long getSingleNode(String string, Object value) {
-			return batchIndex.get(string, value).getSingle();
-		}
-
-		@Override
-		protected Map<String, Object> getNodeProperties(Long member) {
-			return batchInserter.getNodeProperties(member);
-		}
-
-		@Override
-		protected IndexHits<Long> getNodes(String string, long nd_ref) {
-			return batchIndex.get(string, nd_ref);
-		}
-
-		@Override
-		protected void updateGeometryMetaDataFromMember(Long member, GeometryMetaData metaGeom, Map<String, Object> nodeProps) {
-			for (SimpleRelationship rel : batchInserter.getRelationships(member)) {
-				if (rel.getType().equals(OSMRelation.GEOM)) {
-					nodeProps = getNodeProperties(rel.getEndNode());
-					metaGeom.checkSupportedGeometry((Integer) nodeProps.get("gtype"));
-					metaGeom.expandToIncludeBBox(nodeProps);
-				}
-			}
-		}
-
-		@Override
-		protected void shutdownIndex() {
-			batchIndexService.shutdown();
-			batchIndexService = null;
-		}
-
-		@Override
-		protected Long createProxyNode() {
-			return batchInserter.createNode(null);
-		}
-
+    @SuppressWarnings("restriction")
+	public void importFile(GraphDatabaseService graphDb,  String dataset) throws IOException, XMLStreamException {
+    	importFile(graphDb, dataset, false);
     }
 
     @SuppressWarnings("restriction")
-	public void importFile(BatchInserter batchInserter, String dataset) throws IOException, XMLStreamException {
-    	importFile(batchInserter, dataset, false);
-    }
-
-    @SuppressWarnings("restriction")
-    public void importFile(BatchInserter batchInserter, String dataset, boolean allPoints) throws IOException, XMLStreamException {
-    	OSMWriter<Long> osmWriter = OSMWriter.fromBatchInserter(batchInserter,stats);
+    public void importFile(GraphDatabaseService graphDb, String dataset, boolean allPoints) throws IOException, XMLStreamException {
+    	OSMGraphWriter osmWriter = new OSMGraphWriter( graphDb, stats, 30000 );
 		System.out.println("Importing with osm-writer: " + osmWriter);
         osm_dataset = osmWriter.getOrCreateOSMDataset(layerName);
 
@@ -730,9 +701,9 @@ public class OSMImporter implements Constants {
         try {
             ArrayList<String> currentXMLTags = new ArrayList<String>();
             int depth = 0;
-            long currentNode = -1;
-            long prev_way = -1;
-            long prev_relation = -1;
+            Node currentNode = null;
+            Node prev_way = null;
+            Node prev_relation = null;
             Map<String, Object> wayProperties = null;
             ArrayList<Long> wayNodes = new ArrayList<Long>();
             Map<String, Object> relationProperties = null;
@@ -751,10 +722,10 @@ public class OSMImporter implements Constants {
                     if (tagPath.equals("[osm]")) {
                     	osmWriter.setDatasetProperties(extractProperties(parser));
                     } else if (tagPath.equals("[osm, bounds]")) {
-                        long bbox = (Long)osmWriter.addNode("bbox", extractProperties("bbox", parser), null);
+                        Node bbox = (Node)osmWriter.addNode("bbox", extractProperties("bbox", parser), null);
                         osmWriter.createRelationship(osm_dataset, bbox, OSMRelation.BBOX);
                     } else if (tagPath.equals("[osm, node]")) {
-                        currentNode = (Long)osmWriter.addNode("node", extractProperties("node", parser), "node_osm_id");
+                        currentNode = osmWriter.addNode("node", extractProperties("node", parser), "node_osm_id");
                         Map<String, Object> nodeProperties = osmWriter.getNodeProperties(currentNode);
                         String node_osm_id = (String)nodeProperties.get("node_osm_id");
                         if(node_osm_id.equals("8090260") || node_osm_id.equals("273534207")) {
@@ -762,6 +733,7 @@ public class OSMImporter implements Constants {
                         }
                     } else if (tagPath.equals("[osm, way]")) {
                         if (!startedWays) {
+                           osmWriter.restartTx();
                             startedWays = true;
                             times[0] = System.currentTimeMillis();
                             osmWriter.optimize();
@@ -778,6 +750,7 @@ public class OSMImporter implements Constants {
                     } else if (tagPath.equals("[osm, relation]")) {
                         if (!startedRelations) {
                             startedRelations = true;
+                            osmWriter.restartTx();
                             times[2] = System.currentTimeMillis();
                             osmWriter.optimize();
                             times[3] = System.currentTimeMillis();
@@ -830,8 +803,8 @@ public class OSMImporter implements Constants {
                         if(way_osm_id.equals("28338132")) {
                         	System.out.println("Debug way: "+way_osm_id);
                         }
-                        long way = (Long)osmWriter.addNode("way", wayProperties, "way_osm_id");
-                        if (prev_way < 0) {
+                        Node way = osmWriter.addNode("way", wayProperties, "way_osm_id");
+                        if (prev_way == null) {
                             osmWriter.createRelationship(osm_dataset, way, OSMRelation.WAYS);
                         } else {
                             osmWriter.createRelationship(prev_way, way, OSMRelation.NEXT);
@@ -839,16 +812,16 @@ public class OSMImporter implements Constants {
                         prev_way = way;
                         osmWriter.addNodeTags(way, currentNodeTags, "way") ;
                         Envelope bbox = new Envelope();
-                        long firstNode = -1;
-                        long prevNode = -1;
-                        long prevProxy = -1;
+                        Node firstNode = null;
+                        Node prevNode = null;
+                        Node prevProxy = null;
                         Map<String, Object> prevProps = null;
                         LinkedHashMap<String, Object> relProps = new LinkedHashMap<String, Object>();
                         HashMap<String, Object> directionProps = new HashMap<String, Object>();
                         directionProps.put("oneway", true);
                         for (long nd_ref : wayNodes) {
                             //long pointNode = batchIndexService.getSingleNode("node_osm_id", nd_ref);
-							IndexHits<Long> hits = osmWriter.getNodes("node_osm_id", nd_ref);
+							IndexHits<Node> hits = osmWriter.getNodes("node_osm_id", nd_ref);
 							if (hits.size() == 0) {
                                 /*
                                  * This can happen if we import not whole planet, so some referenced
@@ -858,14 +831,14 @@ public class OSMImporter implements Constants {
 								continue;
 							} else if (hits.size() > 1) {
 								System.err.println("More than one way node with node_osm_id: " + nd_ref);
-								for (long hit : hits) {
+								for (Node hit : hits) {
 									Map<String, Object> hitProps = osmWriter.getNodeProperties(hit);
 									System.err.println("\tid = " + hit + ", name = " + hitProps.get("name"));
 								}
 							}
-							long pointNode = hits.next();
-                            long proxyNode = osmWriter.createProxyNode();
-							if (firstNode == -1) {
+							Node pointNode = hits.next();
+							Node proxyNode = osmWriter.createProxyNode();
+							if (firstNode == null) {
 								firstNode = pointNode;
 							}
                             if (prevNode == pointNode) {
@@ -875,7 +848,7 @@ public class OSMImporter implements Constants {
                             Map<String, Object> nodeProps = osmWriter.getNodeProperties(pointNode);
                             double[] location = new double[] {(Double)nodeProps.get("lon"), (Double)nodeProps.get("lat")};
                             bbox.expandToInclude(location[0], location[1]);
-                            if (prevProxy < 0) {
+                            if (prevProxy ==null) {
                                 osmWriter.createRelationship(way, proxyNode, OSMRelation.FIRST_NODE);
                             } else {
                                 relProps.clear();
@@ -900,7 +873,7 @@ public class OSMImporter implements Constants {
 //                        if (prevNode > 0) {
 //                            batchGraphDb.createRelationship(way, prevNode, OSMRelation.LAST_NODE, null);
 //                        }
-						if (firstNode > 0 && prevNode == firstNode) {
+						if (firstNode !=null && prevNode == firstNode) {
 							geometry = GTYPE_POLYGON;
 						}
 						if (wayNodes.size() < 2) {
@@ -914,8 +887,8 @@ public class OSMImporter implements Constants {
                             // such a property
                             relationProperties.put("name", name);
                         }
-                        long relation = osmWriter.addNode("relation", relationProperties, "relation_osm_id");
-                        if (prev_relation < 0) {
+                        Node relation = osmWriter.addNode("relation", relationProperties, "relation_osm_id");
+                        if (prev_relation ==null) {
                             osmWriter.createRelationship(osm_dataset, relation, OSMRelation.RELATIONS);
                         } else {
                             osmWriter.createRelationship(prev_relation, relation, OSMRelation.NEXT);
@@ -924,13 +897,13 @@ public class OSMImporter implements Constants {
                         osmWriter.addNodeTags(relation, currentNodeTags, "relation");
                         // We will test for cases that invalidate multilinestring further down
                         GeometryMetaData metaGeom = new GeometryMetaData(GTYPE_MULTILINESTRING);
-                        long prevMember = -1;
+                        Node prevMember = null;
                         LinkedHashMap<String, Object> relProps = new LinkedHashMap<String, Object>();
                         for (Map<String, Object> memberProps : relationMembers) {
                             String memberType = (String)memberProps.get("type");
                             long member_ref = Long.parseLong(memberProps.get("ref").toString());
                             if (memberType != null) {
-                                Long member = osmWriter.getSingleNode(memberType + "_osm_id", member_ref);
+                                Node member = osmWriter.getSingleNode(memberType + "_osm_id", member_ref);
                                 if (null == member || prevMember == member) {
                                     /*
                                      * This can happen if we import not whole planet, so some
@@ -986,7 +959,7 @@ public class OSMImporter implements Constants {
         } finally {
             parser.close();
             osmWriter.shutdownIndex();
-            this.osm_dataset = osmWriter.getDatasetId();
+            //this.osm_dataset = osmWriter.getDatasetId();
         }
         describeTimes(startTime,times);
         describeMissing();
@@ -1174,7 +1147,7 @@ public class OSMImporter implements Constants {
 			long start = System.currentTimeMillis();
 			switchToBatchInserter();
 			OSMImporter importer = new OSMImporter(layerName);
-			importer.importFile(batchInserter, osmPath);
+			importer.importFile(graphDb, osmPath);
 			switchToEmbeddedGraphDatabase();
 			importer.reIndex(graphDb, commitInterval);
 			shutdown();
