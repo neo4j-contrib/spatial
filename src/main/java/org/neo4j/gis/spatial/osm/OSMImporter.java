@@ -6,6 +6,9 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -341,6 +344,10 @@ public class OSMImporter implements Constants {
 
 		protected abstract T createProxyNode();
 
+		protected abstract T getChangesetNode(Map<String, Object> nodeProps);
+
+		protected abstract T getUserNode(Map<String, Object> nodeProps);
+
     }
 
     private static class OSMGraphWriter extends OSMWriter<Node> {
@@ -348,6 +355,10 @@ public class OSMImporter implements Constants {
 		private LuceneIndexService indexService;
 	    private Node osm_root;
 	    private Node osm_dataset;
+	    private long currentChangesetId = -1;
+	    private Node currentChangesetNode;
+	    private long currentUserId = -1;
+	    private Node currentUserNode;
 
 		private OSMGraphWriter(GraphDatabaseService graphDb, StatsManager statsManager) {
 			super(statsManager);
@@ -506,6 +517,45 @@ public class OSMImporter implements Constants {
 			return graphDb.createNode();
 		}
 
+		@Override
+		protected Node getChangesetNode(Map<String, Object> nodeProps) {
+			long changeset = Long.parseLong(nodeProps.remove("changeset").toString());
+			if (changeset != currentChangesetId) {
+				currentChangesetId = changeset;
+				currentChangesetNode = indexService.getSingleNode("changeset", currentChangesetId);
+				if(currentChangesetNode == null) {
+					LinkedHashMap<String, Object> changesetProps = new LinkedHashMap<String, Object>();
+					changesetProps.put("changeset", currentChangesetId);
+					currentChangesetNode = (Node) addNode("changeset", changesetProps, "changeset");
+				}
+			}
+			return currentChangesetNode;
+		}
+
+		@Override
+		protected Node getUserNode(Map<String, Object> nodeProps) {
+			try {
+				long uid = Long.parseLong(nodeProps.remove("uid").toString());
+				String name = nodeProps.remove("user").toString();
+				if (uid != currentUserId) {
+					currentUserId = uid;
+					currentUserNode = indexService.getSingleNode("uid", currentUserId);
+					if (currentUserNode == null) {
+						LinkedHashMap<String, Object> userProps = new LinkedHashMap<String, Object>();
+						userProps.put("uid", currentUserId);
+						userProps.put("name", name);
+						currentUserNode = (Node) addNode("user", userProps, "uid");
+						if (currentChangesetNode != null) {
+							currentChangesetNode.createRelationshipTo(currentUserNode, OSMRelation.USER);
+						}
+					}
+				}
+			} catch (Exception e) {
+				System.err.println("Missing user or uid: " + e);
+			}
+			return currentUserNode;
+		}
+
     }
 
     private static class OSMBatchWriter extends OSMWriter<Long> {
@@ -513,6 +563,10 @@ public class OSMImporter implements Constants {
 		private LuceneIndexBatchInserterImpl batchIndexService;
 	    private long osm_root;
 	    private long osm_dataset;
+	    private long currentChangesetId = -1;
+	    private long currentChangesetNode = -1;
+	    private long currentUserId = -1;
+	    private long currentUserNode = -1;
 
 		private OSMBatchWriter(BatchInserter batchGraphDb, StatsManager statsManager) {
 			super(statsManager);
@@ -677,6 +731,45 @@ public class OSMImporter implements Constants {
 			return batchInserter.createNode(null);
 		}
 
+		@Override
+		protected Long getChangesetNode(Map<String, Object> nodeProps) {
+			long changeset = Long.parseLong(nodeProps.remove("changeset").toString());
+			if (changeset != currentChangesetId) {
+				currentChangesetId = changeset;
+				currentChangesetNode = batchIndexService.getSingleNode("changeset", currentChangesetId);
+				if(currentChangesetNode == -1) {
+					LinkedHashMap<String, Object> changesetProps = new LinkedHashMap<String, Object>();
+					changesetProps.put("changeset", currentChangesetId);
+					currentChangesetNode = (Long) addNode("changeset", changesetProps, "changeset");
+				}
+			}
+			return currentChangesetNode;
+		}
+
+		@Override
+		protected Long getUserNode(Map<String, Object> nodeProps) {
+			try {
+				long uid = Long.parseLong(nodeProps.remove("uid").toString());
+				String name = nodeProps.remove("user").toString();
+				if (uid != currentUserId) {
+					currentUserId = uid;
+					currentUserNode = batchIndexService.getSingleNode("user_osm_id", currentUserId);
+					if (currentUserNode == -1) {
+						LinkedHashMap<String, Object> userProps = new LinkedHashMap<String, Object>();
+						userProps.put("uid", currentUserId);
+						userProps.put("name", name);
+						currentUserNode = (Long) addNode("user", userProps, "user_osm_id");
+						if (currentChangesetNode > 0) {
+							createRelationship(currentChangesetNode, currentUserNode, OSMRelation.USER);
+						}
+					}
+				}
+			} catch (Exception e) {
+				System.err.println("Missing user or uid: " + e);
+			}
+			return currentUserNode;
+		}
+
     }
 
     @SuppressWarnings("restriction")
@@ -725,13 +818,15 @@ public class OSMImporter implements Constants {
                         long bbox = (Long)osmWriter.addNode("bbox", extractProperties("bbox", parser), null);
                         osmWriter.createRelationship(osm_dataset, bbox, OSMRelation.BBOX);
                     } else if (tagPath.equals("[osm, node]")) {
-                        currentNode = (Long)osmWriter.addNode("node", extractProperties("node", parser), "node_osm_id");
-                        Map<String, Object> nodeProperties = osmWriter.getNodeProperties(currentNode);
-                        String node_osm_id = (String)nodeProperties.get("node_osm_id");
-                        if(node_osm_id.equals("8090260") || node_osm_id.equals("273534207")) {
-                        	System.out.println("Debug node: "+node_osm_id);
-                        }
+                    	// <node id="269682538" lat="56.0420950" lon="12.9693483" user="sanna" uid="31450" visible="true" version="1" changeset="133823" timestamp="2008-06-11T12:36:28Z"/>
+                        Map<String, Object> nodeProps = extractProperties("node", parser);
+                        long changesetNode = osmWriter.getChangesetNode(nodeProps);
+						osmWriter.getUserNode(nodeProps);
+                        currentNode = (Long)osmWriter.addNode("node", nodeProps, "node_osm_id");
+                        osmWriter.createRelationship(currentNode, changesetNode, OSMRelation.CHANGESET);
+                        debugNodeWithId(osmWriter, currentNode, "node_osm_id", new long[] { 8090260, 273534207 });
                     } else if (tagPath.equals("[osm, way]")) {
+                    	// <way id="27359054" user="spull" uid="61533" visible="true" version="8" changeset="4707351" timestamp="2010-05-15T15:39:57Z">
                         if (!startedWays) {
                             startedWays = true;
                             times[0] = System.currentTimeMillis();
@@ -747,6 +842,7 @@ public class OSMImporter implements Constants {
                         Map<String, Object> properties = extractProperties(parser);
                         currentNodeTags.put(properties.get("k").toString(), properties.get("v").toString());
                     } else if (tagPath.equals("[osm, relation]")) {
+                    	// <relation id="77965" user="Grillo" uid="13957" visible="true" version="24" changeset="5465617" timestamp="2010-08-11T19:25:46Z">
                         if (!startedRelations) {
                             startedRelations = true;
                             times[2] = System.currentTimeMillis();
@@ -802,6 +898,9 @@ public class OSMImporter implements Constants {
                         	System.out.println("Debug way: "+way_osm_id);
                         }
                         long way = (Long)osmWriter.addNode("way", wayProperties, "way_osm_id");
+                        long changesetNode = osmWriter.getChangesetNode(wayProperties);
+						osmWriter.getUserNode(wayProperties);
+						osmWriter.createRelationship(way, changesetNode, OSMRelation.CHANGESET);
                         if (prev_way < 0) {
                             osmWriter.createRelationship(osm_dataset, way, OSMRelation.WAYS);
                         } else {
@@ -969,6 +1068,16 @@ public class OSMImporter implements Constants {
         stats.printTagStats();
     }
 
+	private void debugNodeWithId(OSMWriter<Long> osmWriter, long currentNode, String idName, long[] idValues) {
+		Map<String, Object> nodeProperties = osmWriter.getNodeProperties(currentNode);
+		String node_osm_id = (String) nodeProperties.get(idName);
+		for (long idValue : idValues) {
+			if (node_osm_id.equals(Long.toString(idValue))) {
+				System.out.println("Debug node: " + node_osm_id);
+			}
+		}
+	}
+
 	private void describeTimes(long startTime, long[] times) {
 		long endTime = System.currentTimeMillis();
 		log("Completed load in " + (1.0 * (endTime - startTime) / 1000.0) + "s");
@@ -1011,17 +1120,34 @@ public class OSMImporter implements Constants {
 
     @SuppressWarnings("restriction")
 	private Map<String, Object> extractProperties(String name, XMLStreamReader parser) {
+    	// <node id="269682538" lat="56.0420950" lon="12.9693483" user="sanna" uid="31450" visible="true" version="1" changeset="133823" timestamp="2008-06-11T12:36:28Z"/>
+    	// <way id="27359054" user="spull" uid="61533" visible="true" version="8" changeset="4707351" timestamp="2010-05-15T15:39:57Z">
+    	// <relation id="77965" user="Grillo" uid="13957" visible="true" version="24" changeset="5465617" timestamp="2010-08-11T19:25:46Z">
         LinkedHashMap<String, Object> properties = new LinkedHashMap<String, Object>();
         for (int i = 0; i < parser.getAttributeCount(); i++) {
             String prop = parser.getAttributeLocalName(i);
+            String value = parser.getAttributeValue(i);
             if (name != null && prop.equals("id")) {
                 prop = name + "_osm_id";
                 name = null;
             }
             if (prop.equals("lat") || prop.equals("lon")) {
-                properties.put(prop, Double.parseDouble(parser.getAttributeValue(i)));
+                properties.put(prop, Double.parseDouble(value));
+            } else if (name != null && prop.equals("version")) {
+                properties.put(prop, Integer.parseInt(value));
+            } else if (prop.equals("visible")) {
+            	if(!value.equals("true") && !value.equals("1")) {
+            		properties.put(prop, false);
+            	}
+            } else if (prop.equals("timestamp")) {
+				try {
+					Date timestamp = timestampFormat.parse(value);
+            		properties.put(prop, timestamp.getTime());
+				} catch (ParseException e) {
+					error("Error parsing timestamp", e);
+				}
             } else {
-                properties.put(prop, parser.getAttributeValue(i));
+                properties.put(prop, value);
             }
         }
         if (name != null) {
@@ -1084,6 +1210,9 @@ public class OSMImporter implements Constants {
 
     private String logContext = null;
     private int contextLine = 0;
+
+    //"2008-06-11T12:36:28Z"
+	private DateFormat timestampFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
     private void setLogContext(String context) {
         logContext = context;
