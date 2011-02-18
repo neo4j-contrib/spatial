@@ -1,3 +1,22 @@
+/**
+ * Copyright (c) 2002-2011 "Neo Technology,"
+ * Network Engine for Objects in Lund AB [http://neotechnology.com]
+ *
+ * This file is part of Neo4j.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as
+ * published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 package org.neo4j.gis.spatial;
 
 import static org.junit.Assert.*;
@@ -54,6 +73,29 @@ public class IndexProviderTest
         params.put(LayerNodeIndex.ENVELOPE_PARAMETER, new Double[]{ 15.0, 16.0, 56.0, 57.0} );
         IndexHits<Node> hits = index.query( LayerNodeIndex.WITHIN_QUERY, params );
         assertTrue(hits.hasNext());
+        
+        
+    }
+    
+    @Test
+    public void testWithinDistanceIndex() {
+        LayerNodeIndex index = new LayerNodeIndex( "layer1", db, new HashMap<String, String>() );
+        Transaction tx = db.beginTx();
+        Node batman = db.createNode();
+        batman.setProperty( "lat", (double) 37.88 );
+        batman.setProperty( "lon", (double) 41.14 );
+        batman.setProperty( "name", "batman" );
+        index.add( batman, "dummy", "value" );
+        Map<String, Object> params = new HashMap<String, Object>();
+        params.put( LayerNodeIndex.POINT_PARAMETER,  new Double[] { 37.87, 41.13 } );
+        params.put( LayerNodeIndex.DISTANCE_IN_KM_PARAMETER, 2.0 );
+        IndexHits<Node> hits = index.query( LayerNodeIndex.WITHIN_DISTANCE_QUERY, params );
+        tx.success();
+        tx.finish();
+        Node spatialRecord = hits.getSingle();
+        assertTrue( spatialRecord.getProperty( "distanceInKm" ).equals( 1.416623647558699 ) );
+        Node node = db.getNodeById( (Long) spatialRecord.getProperty( "id" ) );
+        assertTrue( node.getProperty( "name" ).equals( "batman" ) );
         
         
     }
