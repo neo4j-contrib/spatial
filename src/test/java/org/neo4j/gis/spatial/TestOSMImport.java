@@ -20,14 +20,11 @@
 package org.neo4j.gis.spatial;
 
 import java.io.IOException;
-import java.util.ArrayList;
 
-import org.geotools.data.DataSourceException;
 import org.geotools.data.DataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.junit.Test;
 import org.neo4j.gis.spatial.geotools.data.Neo4jSpatialDataStore;
-import org.neo4j.gis.spatial.geotools.data.StyledImageExporter;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;

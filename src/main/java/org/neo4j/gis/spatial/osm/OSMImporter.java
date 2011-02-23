@@ -58,6 +58,7 @@ import org.neo4j.graphdb.index.BatchInserterIndex;
 import org.neo4j.graphdb.index.BatchInserterIndexProvider;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
+import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.index.impl.lucene.LuceneBatchInserterIndexProvider;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.impl.batchinsert.BatchInserter;
@@ -69,10 +70,10 @@ import com.vividsolutions.jts.geom.Envelope;
 public class OSMImporter implements Constants {
     public static DefaultEllipsoid WGS84 = DefaultEllipsoid.WGS84;
 
-    protected static final List<String> NODE_INDEXING_KEYS = new ArrayList<String>();
-    static {
-        NODE_INDEXING_KEYS.add("node_osm_id");
-    }
+//    protected static final List<String> NODE_INDEXING_KEYS = new ArrayList<String>();
+//    static {
+//        NODE_INDEXING_KEYS.add("node_osm_id");
+//    }
 
     protected boolean nodesProcessingFinished = false;
     private String layerName;
@@ -351,11 +352,11 @@ public class OSMImporter implements Constants {
 		protected void optimize() {
 		}
 
-		protected abstract T getSingleNode(String string, Object value);
+		protected abstract T getSingleNode(String name, String string, Object value);
 
 		protected abstract Map<String, Object> getNodeProperties(T member);
 
-		protected abstract IndexHits<T> getNodes(String string, long nd_ref);
+		protected abstract IndexHits<T> getNodes(String name, String string, long nd_ref);
 
 		protected abstract void updateGeometryMetaDataFromMember(T member, GeometryMetaData metaGeom, Map<String, Object> nodeProps);
 
@@ -369,7 +370,6 @@ public class OSMImporter implements Constants {
 
     }
 
-    public static final String INDEX_NODES = "nodes";
     private static class OSMGraphWriter extends OSMWriter<Node> {
         private GraphDatabaseService graphDb;
 		private Node osm_root;
@@ -378,15 +378,17 @@ public class OSMImporter implements Constants {
 	    private Node currentChangesetNode;
 	    private long currentUserId = -1;
 	    private Node currentUserNode;
-        private Index<Node> indexService;
 
 		private OSMGraphWriter(GraphDatabaseService graphDb, StatsManager statsManager) {
 			super(statsManager);
     		this.graphDb = graphDb;
-    		this.indexService = graphDb.index().forNodes( INDEX_NODES );
     	}
 
-	    private Node findNode(String name, Node parent, RelationshipType relType) {
+		private Index<Node> indexFor(String indexName) {
+    		return graphDb.index().forNodes( indexName );
+		}
+
+		private Node findNode(String name, Node parent, RelationshipType relType) {
 	        for (Relationship relationship : parent.getRelationships(relType, Direction.OUTGOING)) {
 	            Node node = relationship.getEndNode();
 	            if (name.equals(node.getProperty("name"))) {
@@ -461,7 +463,7 @@ public class OSMImporter implements Constants {
 			Node node = graphDb.createNode();
 			addProperties(node, properties);
 			if (indexKey != null && properties.containsKey(indexKey)) {
-				indexService.add(node, indexKey, properties.get(indexKey));
+				indexFor(name).add(node, indexKey, properties.get(indexKey));
 			}
 			return node;
 		}
@@ -470,13 +472,13 @@ public class OSMImporter implements Constants {
 			Node node = null;
 			Object indexValue = (indexKey==null) ? null : properties.get(indexKey);
 			if (indexValue != null && (createdNodes+foundNodes < 100 || foundNodes > 10)) {
-				node = indexService.get(indexKey, properties.get(indexKey)).getSingle();
+				node = indexFor(name).get(indexKey, properties.get(indexKey)).getSingle();
 			}
 			if (node == null) {
 				node = graphDb.createNode();
 				addProperties(node, properties);
 				if (indexValue != null) {
-					indexService.add(node, indexKey, properties.get(indexKey));
+					indexFor(name).add(node, indexKey, properties.get(indexKey));
 				}
 				createdNodes++;
 			}else{
@@ -499,8 +501,8 @@ public class OSMImporter implements Constants {
 		}
 
 		@Override
-		protected Node getSingleNode(String string, Object value) {
-			return indexService.get(string, value).getSingle();
+		protected Node getSingleNode(String name, String string, Object value) {
+			return indexFor(name).get(string, value).getSingle();
 		}
 
 		@Override
@@ -513,8 +515,8 @@ public class OSMImporter implements Constants {
 		}
 
 		@Override
-		protected IndexHits<Node> getNodes(String string, long nd_ref) {
-			return indexService.get(string, nd_ref);
+		protected IndexHits<Node> getNodes(String name, String string, long nd_ref) {
+			return indexFor(name).get(string, nd_ref);
 		}
 
 		@Override
@@ -528,7 +530,6 @@ public class OSMImporter implements Constants {
 
 		@Override
 		protected void shutdownIndex() {
-			indexService = null;
 		}
 
 		@Override
@@ -541,7 +542,7 @@ public class OSMImporter implements Constants {
 			long changeset = Long.parseLong(nodeProps.remove("changeset").toString());
 			if (changeset != currentChangesetId) {
 				currentChangesetId = changeset;
-				currentChangesetNode = indexService.get("changeset", currentChangesetId).getSingle();
+				currentChangesetNode = indexFor("changeset").get("changeset", currentChangesetId).getSingle();
 				if(currentChangesetNode == null) {
 					LinkedHashMap<String, Object> changesetProps = new LinkedHashMap<String, Object>();
 					changesetProps.put("changeset", currentChangesetId);
@@ -558,7 +559,7 @@ public class OSMImporter implements Constants {
 				String name = nodeProps.remove("user").toString();
 				if (uid != currentUserId) {
 					currentUserId = uid;
-					currentUserNode = indexService.get("uid", currentUserId).getSingle();
+					currentUserNode = indexFor("user").get("uid", currentUserId).getSingle();
 					if (currentUserNode == null) {
 						LinkedHashMap<String, Object> userProps = new LinkedHashMap<String, Object>();
 						userProps.put("uid", currentUserId);
@@ -580,7 +581,7 @@ public class OSMImporter implements Constants {
     private static class OSMBatchWriter extends OSMWriter<Long> {
     	private BatchInserter batchInserter;
 		private BatchInserterIndexProvider batchIndexService;
-        private BatchInserterIndex batchIndex;
+        private HashMap<String,BatchInserterIndex> batchIndices = new HashMap<String,BatchInserterIndex>();
 	    private long osm_root;
 	    private long osm_dataset;
 	    private long currentChangesetId = -1;
@@ -591,12 +592,18 @@ public class OSMImporter implements Constants {
 		private OSMBatchWriter(BatchInserter batchGraphDb, StatsManager statsManager) {
 			super(statsManager);
     		this.batchInserter = batchGraphDb;
-            Map<String, String> config = new HashMap<String, String>();
-            config.put( "type", "exact" );
             this.batchIndexService = new LuceneBatchInserterIndexProvider(batchGraphDb);
-            this.batchIndex = batchIndexService.nodeIndex( INDEX_NODES, config  );
     	}
 		
+		private BatchInserterIndex indexFor(String indexName) {
+			BatchInserterIndex index = batchIndices.get(indexName);
+			if(index == null) {
+				index = batchIndexService.nodeIndex( indexName, MapUtil.stringMap("type", "exact") );
+				batchIndices.put(indexName, index);
+			}
+    		return index;
+		}
+
 		@Override
 	    public Long getOrCreateOSMDataset(String name) {
 	        if (osm_dataset <= 0) {
@@ -675,10 +682,9 @@ public class OSMImporter implements Constants {
 		protected Long addNode(String name, Map<String, Object> properties, String indexKey) {
 			long id = batchInserter.createNode(properties);
 			if (indexKey != null && properties.containsKey(indexKey)) {
-			    
 				Map<String, Object> props = new HashMap<String, Object>();
 				props.put( indexKey, properties.get(indexKey));
-                batchIndex.add(id, props );
+                indexFor(name).add(id, props );
 			}
 			return id;
 		}
@@ -692,14 +698,14 @@ public class OSMImporter implements Constants {
 			long id = -1;
 			Object indexValue = (indexKey==null) ? null : properties.get(indexKey);
 			if (indexValue != null && (createdNodes+foundNodes < 100 || foundNodes > 10)) {
-				id = batchIndex.get(indexKey, properties.get(indexKey)).getSingle();
+				id = indexFor(name).get(indexKey, properties.get(indexKey)).getSingle();
 			}
 			if (id < 0) {
 				id = batchInserter.createNode(properties);
 				if (indexValue != null) {
 					Map<String, Object> props = new HashMap<String, Object>();
 					props.put( indexKey, properties.get(indexKey) );
-                    batchIndex.add(id, props );
+                    indexFor(name).add(id, props );
 				}
 				createdNodes++;
 			}else{
@@ -724,8 +730,8 @@ public class OSMImporter implements Constants {
 		}
 
 		@Override
-		protected Long getSingleNode(String string, Object value) {
-			return batchIndex.get(string, value).getSingle();
+		protected Long getSingleNode(String name, String string, Object value) {
+			return indexFor(name).get(string, value).getSingle();
 		}
 
 		@Override
@@ -734,8 +740,8 @@ public class OSMImporter implements Constants {
 		}
 
 		@Override
-		protected IndexHits<Long> getNodes(String string, long nd_ref) {
-			return batchIndex.get(string, nd_ref);
+		protected IndexHits<Long> getNodes(String name, String string, long nd_ref) {
+			return indexFor(name).get(string, nd_ref);
 		}
 
 		@Override
@@ -765,8 +771,10 @@ public class OSMImporter implements Constants {
 			long changeset = Long.parseLong(nodeProps.remove("changeset").toString());
 			if (changeset != currentChangesetId) {
 				currentChangesetId = changeset;
-				currentChangesetNode = batchIndex.get("changeset", currentChangesetId).getSingle();
-				if(currentChangesetNode == -1) {
+				IndexHits<Long> results = indexFor("changeset").get("changeset", currentChangesetId);
+				if(results != null && results.size() > 0) {
+					currentChangesetNode = results.getSingle();
+				} else {
 					LinkedHashMap<String, Object> changesetProps = new LinkedHashMap<String, Object>();
 					changesetProps.put("changeset", currentChangesetId);
 					currentChangesetNode = (Long) addNode("changeset", changesetProps, "changeset");
@@ -782,8 +790,10 @@ public class OSMImporter implements Constants {
 				String name = nodeProps.remove("user").toString();
 				if (uid != currentUserId) {
 					currentUserId = uid;
-					currentUserNode = batchIndex.get("user_osm_id", currentUserId).getSingle();
-					if (currentUserNode == -1) {
+					IndexHits<Long> results = indexFor("user").get("user_osm_id", currentUserId);
+					if(results != null && results.size() > 0) {
+						currentUserNode = results.getSingle();
+					} else {
 						LinkedHashMap<String, Object> userProps = new LinkedHashMap<String, Object>();
 						userProps.put("uid", currentUserId);
 						userProps.put("name", name);
@@ -947,7 +957,7 @@ public class OSMImporter implements Constants {
                         directionProps.put("oneway", true);
                         for (long nd_ref : wayNodes) {
                             //long pointNode = batchIndexService.getSingleNode("node_osm_id", nd_ref);
-							IndexHits<Long> hits = osmWriter.getNodes("node_osm_id", nd_ref);
+							IndexHits<Long> hits = osmWriter.getNodes("node", "node_osm_id", nd_ref);
 							if (hits.size() == 0) {
                                 /*
                                  * This can happen if we import not whole planet, so some referenced
@@ -1029,7 +1039,7 @@ public class OSMImporter implements Constants {
                             String memberType = (String)memberProps.get("type");
                             long member_ref = Long.parseLong(memberProps.get("ref").toString());
                             if (memberType != null) {
-                                Long member = osmWriter.getSingleNode(memberType + "_osm_id", member_ref);
+                                Long member = osmWriter.getSingleNode(memberType, memberType + "_osm_id", member_ref);
                                 if (null == member || prevMember == member) {
                                     /*
                                      * This can happen if we import not whole planet, so some
@@ -1047,6 +1057,8 @@ public class OSMImporter implements Constants {
                                 if (memberType.equals("node")) {
                                     double[] location = new double[] {(Double)nodeProps.get("lon"), (Double)nodeProps.get("lat")};
                                     metaGeom.expandToIncludePoint(location);
+                                } else if (memberType.equals("nodes")){
+                                	System.err.println("Unexpected 'nodes' member type");
                                 } else {
 									osmWriter.updateGeometryMetaDataFromMember(member, metaGeom, nodeProps);
                                 }
