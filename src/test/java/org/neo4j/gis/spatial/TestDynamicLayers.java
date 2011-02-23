@@ -26,6 +26,7 @@ import org.geotools.data.DataSourceException;
 import org.geotools.data.DataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.junit.Test;
+import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.geotools.data.Neo4jSpatialDataStore;
 import org.neo4j.gis.spatial.geotools.data.StyledImageExporter;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
@@ -34,7 +35,7 @@ import org.neo4j.gis.spatial.osm.OSMLayer;
 
 import com.vividsolutions.jts.geom.Envelope;
 
-public class TestDynamicLayers extends Neo4jTestCase {
+public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 
 	@Test
 	public void testShapefileExport_Map1() throws Exception {
@@ -59,27 +60,35 @@ public class TestDynamicLayers extends Neo4jTestCase {
 		ArrayList<Layer> layers = new ArrayList<Layer>();
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
 		OSMLayer osmLayer = (OSMLayer) spatialService.getLayer(osmFile);
+		layers.add(osmLayer.addLayerConfig("CQL1-highway", GTYPE_LINESTRING, "highway is not null and geometryType(the_geom) = 'LineString'"));
+		layers.add(osmLayer.addLayerConfig("CQL2-residential", GTYPE_LINESTRING, "highway = 'residential' and geometryType(the_geom) = 'LineString'"));
+		layers.add(osmLayer.addLayerConfig("CQL3-natural", GTYPE_POLYGON, "natural is not null and geometryType(the_geom) = 'Polygon'"));
+		layers.add(osmLayer.addLayerConfig("CQL4-water", GTYPE_POLYGON, "natural = 'water' and geometryType(the_geom) = 'Polygon'"));
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "primary"));
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "secondary"));
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "tertiary"));
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "residential"));
+		layers.add(osmLayer.addCQLDynamicLayerOnAttribute("highway", "residential", GTYPE_LINESTRING));
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "footway"));
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "cycleway"));
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "track"));
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "path"));
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "unclassified"));
-		layers.add(osmLayer.addSimpleDynamicLayer("amenity", "parking", Constants.GTYPE_POLYGON));
+		layers.add(osmLayer.addSimpleDynamicLayer("amenity", "parking", GTYPE_POLYGON));
 		layers.add(osmLayer.addSimpleDynamicLayer("railway", null));
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", null));
 		layers.add(osmLayer.addSimpleDynamicLayer("waterway", null));
-		layers.add(osmLayer.addSimpleDynamicLayer("building", null, Constants.GTYPE_POLYGON));
-		layers.add(osmLayer.addSimpleDynamicLayer("natural", null, Constants.GTYPE_GEOMETRY));
-		layers.add(osmLayer.addSimpleDynamicLayer("natural", "water", Constants.GTYPE_POLYGON));
-		layers.add(osmLayer.addSimpleDynamicLayer("natural", "wood", Constants.GTYPE_POLYGON));
+		layers.add(osmLayer.addSimpleDynamicLayer("building", null, GTYPE_POLYGON));
+		layers.add(osmLayer.addCQLDynamicLayerOnAttribute("building", null, GTYPE_POLYGON));
+		layers.add(osmLayer.addSimpleDynamicLayer("natural", null, GTYPE_GEOMETRY));
+		layers.add(osmLayer.addSimpleDynamicLayer("natural", "water", GTYPE_POLYGON));
+		layers.add(osmLayer.addSimpleDynamicLayer("natural", "wood", GTYPE_POLYGON));
 		layers.add(osmLayer.addSimpleDynamicLayer("natural", "coastline"));
 		layers.add(osmLayer.addSimpleDynamicLayer("natural", "beach"));
-		layers.add(osmLayer.addSimpleDynamicLayer(Constants.GTYPE_POLYGON));
-		layers.add(osmLayer.addSimpleDynamicLayer(Constants.GTYPE_POINT));
+		layers.add(osmLayer.addSimpleDynamicLayer(GTYPE_POLYGON));
+		layers.add(osmLayer.addSimpleDynamicLayer(GTYPE_POINT));
+		layers.add(osmLayer.addCQLDynamicLayerOnGeometryType(GTYPE_POLYGON));
+		layers.add(osmLayer.addCQLDynamicLayerOnGeometryType(GTYPE_POINT));
 		assertEquals(layers.size() + 1, osmLayer.getLayerNames().size());
 
 		// Now export the layers to files
@@ -101,12 +110,12 @@ public class TestDynamicLayers extends Neo4jTestCase {
 		int countMultiGeometryExceptions = 0;
 		for (Layer layer : layers) {
 		//for (Layer layer : new Layer[] {}) {
-			if (layer.getGeometryType() == Constants.GTYPE_GEOMETRY) {
+			if (layer.getGeometryType() == GTYPE_GEOMETRY) {
 				countMultiGeometryLayers++;
 			}
 			checkIndexAndFeatureCount(layer);
 			try {
-				imageExporter.saveLayerImage(layer.getName(), "neo.sld.xml");
+				imageExporter.saveLayerImage(layer.getName(), null);
 				shpExporter.exportLayer(layer.getName());
 			} catch (Exception e) {
 				if (e instanceof DataSourceException && e.getMessage().contains("geom.Geometry")) {
@@ -121,7 +130,7 @@ public class TestDynamicLayers extends Neo4jTestCase {
 		assertEquals("Mismatching number of data source exceptions and raw geometry layers", countMultiGeometryLayers,
 				countMultiGeometryExceptions);
 	}
-
+	
 	private void checkIndexAndFeatureCount(Layer layer) throws IOException {
 		if(layer.getIndex().count()<1) {
 			System.out.println("Warning: index count zero: "+layer.getName());
