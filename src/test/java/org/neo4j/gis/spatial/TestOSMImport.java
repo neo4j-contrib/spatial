@@ -56,7 +56,7 @@ public class TestOSMImport extends Neo4jTestCase {
 		// downloaded by maven, as done in TestSpatial, versus the test data
 		// commited to source code as done here
 		printDatabaseStats();
-		loadTestOsmData(osmFile, 100);
+		loadTestOsmData(osmFile, 10);
 		checkOSMLayer(osmFile);
 		printDatabaseStats();
 	}
@@ -66,7 +66,7 @@ public class TestOSMImport extends Neo4jTestCase {
 		System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
 		reActivateDatabase(false);
 		OSMImporter importer = new OSMImporter(layerName);
-		importer.importFile(graphDb(), osmPath, false);
+		importer.importFile(graphDb(), osmPath, false, commitInterval);
 		reActivateDatabase(false);
 		importer.reIndex(graphDb(), commitInterval);
 	}

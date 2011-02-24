@@ -40,7 +40,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
 	public void testSnapping() throws Exception {
 		printDatabaseStats();
 		String osm = "map.osm";
-		loadTestOsmData(osm, 1000);
+		loadTestOsmData(osm, 10);
 		printDatabaseStats();
 
 		// Define dynamic layers
@@ -83,7 +83,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
 		System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
 		reActivateDatabase(false);
 		OSMImporter importer = new OSMImporter(layerName);
-		importer.importFile(graphDb(), osmPath);
+		importer.importFile(graphDb(), osmPath, commitInterval);
 		reActivateDatabase(false);
 		importer.reIndex(graphDb(), commitInterval);
 	}

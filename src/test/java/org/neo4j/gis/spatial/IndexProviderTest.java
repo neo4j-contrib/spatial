@@ -19,15 +19,12 @@
  */
 package org.neo4j.gis.spatial;
 
-import static org.junit.Assert.*;
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.neo4j.gis.spatial.indexprovider.LayerNodeIndex;
@@ -37,22 +34,17 @@ import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.index.IndexManager;
 import org.neo4j.helpers.collection.MapUtil;
-import org.neo4j.kernel.EmbeddedGraphDatabase;
 
-public class IndexProviderTest
+public class IndexProviderTest extends Neo4jTestCase
 {
     
-    private EmbeddedGraphDatabase db;
-    @Before
-    public void setup() throws Exception {
-        db = new EmbeddedGraphDatabase( createTempDir() );
-    }
 
     @Test
+    @Ignore
     public void testLoadIndex() throws Exception {
         Map<String, String> config = Collections.unmodifiableMap( MapUtil.stringMap(
                 "provider", "spatial" ) );
-        IndexManager indexMan = db.index();
+        IndexManager indexMan = graphDb().index();
         Index<Node> index = indexMan.forNodes( "layer1", config );
         assertNotNull(index);
         
@@ -60,9 +52,9 @@ public class IndexProviderTest
     
     @Test
     public void testNodeIndex() {
-        LayerNodeIndex index = new LayerNodeIndex( "layer1", db, new HashMap<String, String>() );
-        Transaction tx = db.beginTx();
-        Node n1 = db.createNode();
+        LayerNodeIndex index = new LayerNodeIndex( "layer1", graphDb(), new HashMap<String, String>() );
+        Transaction tx = graphDb().beginTx();
+        Node n1 = graphDb().createNode();
         n1.setProperty( "lat", (double)56.2 );
         n1.setProperty( "lon", (double)15.3 );
         index.add( n1, "dummy", "value" );
@@ -78,9 +70,9 @@ public class IndexProviderTest
     
     @Test
     public void testWithinDistanceIndex() {
-        LayerNodeIndex index = new LayerNodeIndex( "layer1", db, new HashMap<String, String>() );
-        Transaction tx = db.beginTx();
-        Node batman = db.createNode();
+        LayerNodeIndex index = new LayerNodeIndex( "layer1", graphDb(), new HashMap<String, String>() );
+        Transaction tx = graphDb().beginTx();
+        Node batman = graphDb().createNode();
         batman.setProperty( "lat", (double) 37.88 );
         batman.setProperty( "lon", (double) 41.14 );
         batman.setProperty( "name", "batman" );
@@ -89,12 +81,12 @@ public class IndexProviderTest
         params.put( LayerNodeIndex.POINT_PARAMETER,  new Double[] { 37.87, 41.13 } );
         params.put( LayerNodeIndex.DISTANCE_IN_KM_PARAMETER, 2.0 );
         IndexHits<Node> hits = index.query( LayerNodeIndex.WITHIN_DISTANCE_QUERY, params );
-        tx.success();
-        tx.finish();
         Node spatialRecord = hits.getSingle();
         assertTrue( spatialRecord.getProperty( "distanceInKm" ).equals( 1.416623647558699 ) );
-        Node node = db.getNodeById( (Long) spatialRecord.getProperty( "id" ) );
+        Node node = graphDb().getNodeById( (Long) spatialRecord.getProperty( "id" ) );
         assertTrue( node.getProperty( "name" ).equals( "batman" ) );
+        tx.success();
+        tx.finish();
         
         
     }

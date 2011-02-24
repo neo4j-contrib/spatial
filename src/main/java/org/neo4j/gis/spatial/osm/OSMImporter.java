@@ -532,13 +532,13 @@ public class OSMImporter implements Constants {
     }
 
     @SuppressWarnings("restriction")
-	public void importFile(GraphDatabaseService graphDb,  String dataset) throws IOException, XMLStreamException {
-    	importFile(graphDb, dataset, false);
+	public void importFile(GraphDatabaseService graphDb,  String dataset, int commitInterval) throws IOException, XMLStreamException {
+    	importFile(graphDb, dataset, false, commitInterval);
     }
 
     @SuppressWarnings("restriction")
-    public void importFile(GraphDatabaseService graphDb, String dataset, boolean allPoints) throws IOException, XMLStreamException {
-    	OSMGraphWriter osmWriter = new OSMGraphWriter( graphDb, stats, 3000 );
+    public void importFile(GraphDatabaseService graphDb, String dataset, boolean allPoints, int commitInterval) throws IOException, XMLStreamException {
+    	OSMGraphWriter osmWriter = new OSMGraphWriter( graphDb, stats, commitInterval );
 		System.out.println("Importing with osm-writer: " + osmWriter);
         osm_dataset = osmWriter.getOrCreateOSMDataset(layerName);
 
@@ -1034,7 +1034,7 @@ public class OSMImporter implements Constants {
 			long start = System.currentTimeMillis();
 			switchToBatchInserter();
 			OSMImporter importer = new OSMImporter(layerName);
-			importer.importFile(graphDb, osmPath);
+			importer.importFile(graphDb, osmPath, commitInterval);
 			switchToEmbeddedGraphDatabase();
 			importer.reIndex(graphDb, commitInterval);
 			shutdown();
