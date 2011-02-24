@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -48,6 +49,13 @@ public class TestOSMImport extends Neo4jTestCase {
 	@Test
 	public void testImport_Map2() throws Exception {
 		runImport("map2.osm");
+	}
+
+	@Test
+	public void testImport_Croatia() throws Exception {
+		if(new File("croatia.osm").exists()) {
+			//runImport("croatia.osm");
+		}
 	}
 
 	private void runImport(String osmFile) throws Exception {
@@ -139,9 +147,9 @@ public class TestOSMImport extends Neo4jTestCase {
 								userIds.put(userid, (Long) user.getProperty("uid", null));
 							}
 						} else {
-							usersMissing ++;
-							//assertNotNull("Changeset should have user", user);
-							System.out.println("Changeset should have user: "+nodeChangeset);
+							if (usersMissing++ < 10) {
+								System.out.println("Changeset " + nodeCS + " should have user: " + nodeChangeset);
+							}
 						}
 					}
 					node_count ++;
