@@ -113,7 +113,7 @@ public class LayerNodeIndex implements Index<Node>
                             new Envelope( bounds[0], bounds[1], bounds[2], bounds[3] ) ) );
             layer.getIndex().executeSearch( withinQuery );
             List<SpatialDatabaseRecord> res = withinQuery.getResults();
-            IndexHits<Node> results = new SpatialRecordHits( res );
+            IndexHits<Node> results = new IndexHitsImpl( res, 0 );
             return results;
         }
         else if ( key.equals( WITHIN_DISTANCE_QUERY ) )
@@ -127,7 +127,7 @@ public class LayerNodeIndex implements Index<Node>
 				new SearchPointsWithinOrthodromicDistance( refPoint, distance );
 			layer.getIndex().executeSearch( withinDistanceQuery );
 			List<SpatialDatabaseRecord> res = withinDistanceQuery.getResults();
-			IndexHits<Node> results = new SpatialRecordHits( res );
+			IndexHits<Node> results = new IndexHitsImpl( res, 0 );
 			return results;
 		}
         else
@@ -141,6 +141,20 @@ public class LayerNodeIndex implements Index<Node>
     public IndexHits<Node> query( Object queryOrQueryObject )
     {
         return query(layerName, queryOrQueryObject);
+    }
+
+    @Override
+    public void remove( Node arg0 )
+    {
+        // TODO Auto-generated method stub
+        
+    }
+
+    @Override
+    public void remove( Node arg0, String arg1 )
+    {
+        // TODO Auto-generated method stub
+        
     }
 
 }

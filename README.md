@@ -1,16 +1,21 @@
 Neo4j Spatial
 =============
  
-This is a first prototype of a library to store spatial data in the [Neo4j open source graph database](http://neo4j.org/).
-You can import geometries from a shapefile and perform spatial searches.
+Neo4j Spatial is a library facilitating the import, storage and querying of spatial data in the [Neo4j open source graph database](http://neo4j.org/).
+Some key features include:
 
-The most common 2D geometries are supported:
+* Utilities for importing from ESRI Shapefile as well as Open Street Map files
+* Support for all the common geometry types
+* An RTree index for fast searches on geometries
+* Support for topology operations during the search (contains, within, intersects, covers, disjoint, etc.) 
+* The possibility to enable spatial operations on any graph of data, regardless of the way the spatial data is stored, as long as an adapter is provided to map from the graph to the geometries.
+* Ability to split a single layer or dataset into multiple sub-layers or views with pre-configured filters
 
-* (multi) point
-* (multi) linestring
-* (multi) polygon
+Index and Querying
+------------------
 
-Spatial queries implemented:
+The current index is an RTree index, but it has been developed in an extensible way allowing for other indices to be added if necessary.
+The spatial queries implemented are:
 
 * Contain
 * Cover
@@ -24,24 +29,28 @@ Spatial queries implemented:
 * Within
 * Within Distance
  
- 
 Building
 --------
- 
-You need a Java 6 environment, [Neo4J](http://neo4j.org/), [JTS](http://tsusiatsoftware.net/jts/main.html) and [GeoTools](http://www.geotools.org/):
 
-* jta-1.1.jar
-* neo4j-kernel-1.0.jar
-* neo4j-commons-1.0.jar
-* jts-1.10.jar
-* geoapi-2.3-M1.jar
-* gt-api-2.6.3.jar
-* gt-shapefile-2.6.3.jar
-* gt-main-2.6.3.jar
-* gt-metadata-2.6.3.jar
-* gt-data-2.6.3.jar
+The simplest way to build Neo4j Spatial is by using maven. Just clone the git repository and run 'mvn install'. This will download all dependencies, compiled the library, run the tests and install the artifact in your local repository.
+The main dependencies are:
 
- 
+* Neo4j 1.3M02 (at the time of writing, with trunk build of 0.4-SNAPSHOT)
+* JTS 1.10
+* Geotools 2.7 (not all of geotools, but at least api, main, shapefile, metadata, render)
+
+Layers and GeometryEncoders
+---------------------------
+
+The primary type that defines a collection of geometries is the Layer. A layer contains an index for querying. In addition a Layer can be an EditableLayer if it is possible to add and modify geometries in the layer. The next most important interface is the GeometryEncoder.
+
+The DefaultLayer is the standard layer, making use of the WKBGeometryEncoder for storing all geometry types as byte[] properties of one node per geometry instance.
+
+The OSMLayer is a special layer supporting Open Street Map and storing the OSM model as a single fully connected graph. The set of Geometries provided by this layer includes Points, LineStrings and Polygons, and as such cannot be exported to Shapefile format, since that format only allows a single Geometry per layer. However, OMSLayer extends DynamicLayer, which allow it to provide any number of sub-layers, each with a specific geometry type and in addition based on a OSM tag filter. For example you can have a layer providing all cycle paths as LineStrings, or a layer providing all lakes as Polygons. Underneath these are all still backed by the same fully connected graph, but exposed dynamically as apparently separate geometry layers.
+
+Examples
+========
+
 Importing a shapefile
 ---------------------
 
@@ -55,26 +64,36 @@ Spatial data is divided in Layers and indexed by a RTree.
 		database.shutdown();
 	}
 
+Importing an Open Street Map file
+---------------------------------
+
+This is more complex because the current OSMImporter class runs in two phases, the first requiring a batch-inserter on the database. The is ongoing work to allow for a non-batch-inserter on the entire process, and possibly when you have read this that will already be available. Refer to the unit tests in classes TestDynamicLayers and TestOSMImport for the latest code for importing OSM data. At the time of writing the following worked:
+
+	OSMImporter importer = new OSMImporter("sweden");
+
+	BatchInserter batchInserter = new BatchInserterImpl(dir, config);
+	importer.importFile(batchInserter, "sweden.osm", false);
+	batchInserter.shutdown();
+
+    GraphDatabaseService db = new EmbeddedGraphDatabase(dir);
+	importer.reIndex(db, 10000);
+	db.shutdown();
+
 
 Executing a spatial query
 -------------------------
 
 	GraphDatabaseService database = new EmbeddedGraphDatabase(storeDir);
 	try {
-		Transaction tx = database.beginTx();
-	    try {
-	    	SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
-	        Layer layer = spatialService.getLayer("layer_roads");
-	        SpatialIndexReader spatialIndex = layer.getIndex();
-	        	
-	        Search searchQuery = new SearchIntersectWindow(new Envelope(xmin, xmax, ymin, ymax));
-	        spatialIndex.executeSearch(searchQuery);
-    	    List<SpatialDatabaseRecord> results = searchQuery.getResults();
-    	       	
-			tx.success();
-		} finally {
-	    	tx.finish();
-	    }	        	        	
+    	SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
+        Layer layer = spatialService.getLayer("layer_roads");
+        SpatialIndexReader spatialIndex = layer.getIndex();
+        	
+        Search searchQuery = new SearchIntersectWindow(new Envelope(xmin, xmax, ymin, ymax));
+        spatialIndex.executeSearch(searchQuery);
+   	    List<SpatialDatabaseRecord> results = searchQuery.getResults();
 	} finally {
 		database.shutdown();
 	}
+
+Refer to the test code in the LayerTest and the SpatialTest classes for more examples of query code. Also review the classes in the org.neo4j.gis.spatial.query package for the full range or search queries currently implemented.

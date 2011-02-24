@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import org.junit.Test;
@@ -53,6 +54,21 @@ public class LayersTest extends Neo4jTestCase
         assertTrue( "Should be a default layer", layer instanceof DefaultLayer );
         spatialService.deleteLayer( layer.getName(), new NullListener() );
         assertNull( spatialService.getLayer( layer.getName() ) );
+    }
+
+	@Test
+    public void testNeoTextLayer()
+    {
+        SpatialDatabaseService db = new SpatialDatabaseService( graphDb() );
+        EditableLayer layer = (EditableLayer) db.createLayer("neo-text", SimplePointEncoder.class, EditableLayerImpl.class, "lon:lat");
+        assertNotNull( layer );
+		for (Coordinate coordinate : makeCoordinateDataFromString("NEO")) {
+			if(coordinate != null) {
+				SpatialDatabaseRecord record = layer.add(layer.getGeometryFactory().createPoint(coordinate));
+				assertNotNull(record);
+			}
+		}
+        //TODO: Write a distance search that selects out some letters
     }
 
     @Test
@@ -262,4 +278,37 @@ public class LayersTest extends Neo4jTestCase
                 "Missing expected shapefile export exception from multi-geometry OSM layer",
                 osmExportException );
     }
+
+    private static HashMap<Character,ArrayList<Coordinate>> textCoordinateMap = new HashMap<Character,ArrayList<Coordinate>>();
+    static {
+    	addText('N', new double[] { 0.0, 0.0, 0.0, 1.0, 0.6, 0.0, 0.6, 1.0 });
+    	addText('E', new double[] { 0.6, 0.0, 0.0, 0.0, 0.0, 1.0, 0.6, 1.0, -1.0, -1.0, 0.0, 0.5, 0.5, 0.5 });
+    	addText('O', new double[] { 0.2, 0.0, 0.0, 0.2, 0.0, 0.8, 0.2, 1.0, 0.4, 1.0, 0.6, 0.8, 0.6, 0.2, 0.4, 0.0, 0.2, 0.0});
+    }
+	private static void addText(char c, double[] fs) {
+		ArrayList<Coordinate> points = new ArrayList<Coordinate>();
+		for (int i = 0; i < fs.length; i += 2) {
+			double x = fs[i];
+			double y = fs[i + 1];
+			if (x < 0 || y < 0)
+				points.add(null);
+			else
+				points.add(new Coordinate(x, y));
+		}
+		textCoordinateMap.put(c,points);
+	}
+
+	private static Coordinate[] makeCoordinateDataFromString(String text) {
+		CoordinateList data = new CoordinateList();
+		for (char c : new String("NEO").toCharArray()) {
+			Coordinate previous = null;
+			for (Coordinate coordinate : textCoordinateMap.get(c)) {
+				//TODO: Interpolate more points
+				data.add(coordinate);
+				previous = coordinate;
+			}
+		}
+		return data.toCoordinateArray();
+	}
+
 }

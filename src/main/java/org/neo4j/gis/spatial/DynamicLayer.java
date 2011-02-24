@@ -35,7 +35,12 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.gis.spatial.geotools.data.Neo4jFeatureBuilder;
+import org.opengis.filter.Filter;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.opengis.feature.simple.SimpleFeature;
+import org.geotools.filter.text.cql2.CQLException;
+import org.geotools.filter.text.ecql.ECQL;
 
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.GeometryFactory;
@@ -113,6 +118,121 @@ public class DynamicLayer extends EditableLayerImpl {
 
 	}
 
+	/**
+	 * This class enables support for CQL based dynamic layers. This means the
+	 * filtering on the result set is based on matches to a CQL query. Some key
+	 * differences between CQL queries and JSON queries are:
+	 * <ul>
+	 * <li>CQL will operate on the geometry itself, performing spatial
+	 * operations, but also requiring the geometry to be created from the graph.
+	 * This makes it slower than the JSON approach, but richer from a GIS
+	 * perspective</li>
+	 * <li>JSON will operate on the graph itself, and so it is more specific to
+	 * the data model, and not at all specific to the GIS meaning of the data.
+	 * This makes it faster, but more complex to develop to. You really need to
+	 * know your graph structure well to write a complex JSON query. For simple
+	 * single-node property matches, this is the easiest solution.</li>
+	 * </ul>
+	 * 
+	 * @author dwins
+	 */
+    public class CQLIndexReader extends SpatialIndexReaderWrapper {
+        private final Filter filter;
+        private final Neo4jFeatureBuilder builder;
+
+        public CQLIndexReader(SpatialTreeIndex index, String query) throws CQLException {
+            super(index);
+            this.filter = ECQL.toFilter(query);
+            this.builder = new Neo4jFeatureBuilder(DynamicLayer.this);
+        }
+
+        private class Counter extends RecordCounter {
+            public boolean needsToVisit(Node indexNode) {
+                return queryIndexNode(indexNode);
+            }
+
+            public void onIndexReference(Node geomNode) {
+                if (queryLeafNode(geomNode)) {
+                    super.onIndexReference(geomNode);
+                }
+            }
+        }
+
+        private class FilteredSearch implements Search {
+            private Search delegate;
+            public FilteredSearch(Search delegate) {
+                this.delegate = delegate;
+            }
+
+            public List<SpatialDatabaseRecord> getResults() {
+                return delegate.getResults();
+            }
+
+            public void setLayer(Layer layer) {
+                delegate.setLayer(layer);
+            }
+
+            public boolean needsToVisit(Node indexNode) {
+                return delegate.needsToVisit(indexNode);
+            }
+
+            public void onIndexReference(Node geomNode) {
+                if (queryLeafNode(geomNode)) {
+                    delegate.onIndexReference(geomNode);
+                }
+            }
+        }
+
+        private boolean queryIndexNode(Node indexNode) {
+            return true;
+        }
+
+        private boolean queryLeafNode(Node indexNode) {
+            SpatialDatabaseRecord dbRecord = 
+                new SpatialDatabaseRecord(DynamicLayer.this, indexNode); 
+            SimpleFeature feature = builder.buildFeature(dbRecord);
+            return filter.evaluate(feature);
+        }
+
+   		public int count() {
+			Counter counter = new Counter();
+			index.visit(counter, index.getIndexRoot());
+			return counter.getResult();
+		}
+
+		public void executeSearch(final Search search) {
+			index.executeSearch(new FilteredSearch(search));
+		}
+    }
+
+	/**
+	 * The standard DynamicIndexReader allows for graph traversal and property
+	 * match queries written in JSON. The JSON code is expected to be a match
+	 * for a sub-graph and it's properties. It only supports tree structures,
+	 * since JSON is a tree format. The root of the JSON is the geometry node,
+	 * which means that queries for properties on nodes further away require
+	 * traversals in the JSON. The following example demonstrates a query for
+	 * an OSM geometry layer, with a test of the geometry type on the geometry
+	 * node itself, followed by a two step traversal to the ways tag node, and
+	 * then a query on the tags.
+	 * 
+	 * <pre>
+	 * { "properties": {"type": "geometry"},
+	 *   "step": {"type": "GEOM", "direction": "INCOMING"
+	 *     "step": {"type": "TAGS", "direction": "OUTGOING"
+	 *       "properties": {"highway": "residential"}
+	 *     }
+	 *   }
+	 * }
+	 * </pre>
+	 * 
+	 * This will work with OSM datasets, traversing from the geometry node to
+	 * the way node and then to the tags node to test if the way is a
+	 * residential street.
+	 * 
+	 * @author craig
+	 * 
+	 */
 	public class DynamicIndexReader extends SpatialIndexReaderWrapper {
 		private JSONObject query;
 
@@ -139,25 +259,12 @@ public class DynamicLayer extends EditableLayerImpl {
 		}
 
 		/**
-		 * Supports querying the geometry node for certain characteristics
-		 * defined by the original JSON query string. Initially this is only the
-		 * existence of certain properties and values, as well as the ability to
-		 * step through single relationships, testing nodes properties along the
-		 * way. For example:
-		 * 
-		 * <pre>
-		 * { "properties": {"type": "geometry"},
-		 *   "step": {"type": "GEOM", "direction": "INCOMING"
-		 *     "step": {"type": "TAGS", "direction": "OUTGOING"
-		 *       "properties": {"highway": "residential"}
-		 *     }
-		 *   }
-		 * }
-		 * </pre>
-		 * 
-		 * This will work with OSM datasets, traversing from the geometry node
-		 * to the way node and then to the tags node to test if the way is a
-		 * residential street.
+		 * This method is there the real querying is done. It first tests for
+		 * properties on the geometry node, and then steps though the tree
+		 * structure of the JSON, and a matching structure in the graph,
+		 * querying recursively each nodes properties on the way, as along as
+		 * the JSON contains to have properties to test, and traversal steps to
+		 * take.
 		 * 
 		 * @param geomNode
 		 * @return true if the node matches the query string, or the query
@@ -329,7 +436,18 @@ public class DynamicLayer extends EditableLayerImpl {
 
 		public SpatialIndexReader getIndex() {
 			if (index instanceof SpatialTreeIndex) {
-				return new DynamicIndexReader((SpatialTreeIndex) index, getQuery());
+				String query = getQuery();
+				if (query.startsWith("{")) {
+					// Make a standard JSON based dynamic layer
+					return new DynamicIndexReader((SpatialTreeIndex) index, getQuery());
+				} else {
+					// Make a CQL based dynamic layer
+					try {
+						return new CQLIndexReader((SpatialTreeIndex) index, getQuery());
+					} catch (CQLException e) {
+						throw new SpatialDatabaseException("Error while creating CQL based DynamicLayer", e);
+					}
+				}
 			} else {
 				throw new SpatialDatabaseException("Cannot make a DynamicLayer from a non-SpatialTreeIndex Layer");
 			}
@@ -408,7 +526,67 @@ public class DynamicLayer extends EditableLayerImpl {
 		}
 	}
 
-	protected LayerConfig addLayerConfig(String name, int type, String query) {
+	private static String makeGeometryName(int gtype) {
+		return SpatialDatabaseService.convertGeometryTypeToName(gtype);
+	}
+
+	private static String makeGeometryCQL(int gtype) {
+		return "geometryType(the_geom) = '" + makeGeometryName(gtype) + "'";
+	}
+
+	public LayerConfig addCQLDynamicLayerOnGeometryType(int gtype) {
+		return addLayerConfig("CQL:" + makeGeometryName(gtype), gtype, makeGeometryCQL(gtype));
+	}
+
+	public LayerConfig addCQLDynamicLayerOnAttribute(String key, String value, int gtype) {
+		if (value == null) {
+			return addLayerConfig("CQL:" + key, gtype, key + " IS NOT NULL AND " + makeGeometryCQL(gtype));
+		} else {
+			// TODO: Better escaping here
+			//return addLayerConfig("CQL:" + key + "-" + value, gtype, key + " = '" + value + "' AND " + makeGeometryCQL(gtype));
+			return addCQLDynamicLayerOnAttributes(new String[] { key, value }, gtype);
+		}
+	}
+
+	public LayerConfig addCQLDynamicLayerOnAttributes(String[] attributes, int gtype) {
+		if (attributes == null) {
+			return addCQLDynamicLayerOnGeometryType(gtype);
+		} else {
+			StringBuffer name = new StringBuffer();
+			StringBuffer query = new StringBuffer();
+			if (gtype != GTYPE_GEOMETRY) {
+				query.append(makeGeometryCQL(gtype));
+			}
+			for (int i = 0; i < attributes.length; i += 2) {
+				String key = attributes[i];
+				if (name.length() > 0) {
+					name.append("-");
+				}
+				if (query.length() > 0) {
+					query.append(" AND ");
+				}
+				if (attributes.length > i) {
+					String value = attributes[i + 1];
+					name.append("-").append(value);
+					query.append(key).append(" = '").append(value).append("'");
+				} else {
+					query.append(key).append(" IS NOT NULL");
+				}
+			}
+			return addLayerConfig("CQL:" + name.toString(), gtype, query.toString());
+		}
+	}
+	
+	public LayerConfig addLayerConfig(String name, int type, String query) {
+		if(!query.startsWith("{")) {
+			// Not a JSON query, must be CQL, so check the syntax
+	        try {
+	            ECQL.toFilter(query);
+	        } catch (CQLException e) {
+	            throw new SpatialDatabaseException("DynamicLayer query is not JSON and not valid CQL: " + query, e);
+	        }
+		}
+
 		Layer layer = getLayerMap().get(name);
 		if (layer != null) {
 			if (layer instanceof LayerConfig) {

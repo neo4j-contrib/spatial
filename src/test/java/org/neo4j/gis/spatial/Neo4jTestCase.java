@@ -44,23 +44,23 @@ import org.neo4j.kernel.impl.nioneo.store.PropertyStore;
  * Base class for the meta model tests.
  */
 public abstract class Neo4jTestCase extends TestCase {
-    private static final Map<String, String> TX_CONFIG = new HashMap<String, String>();
+    private static final Map<String, String> NORMAL_CONFIG = new HashMap<String, String>();
     static {
-        TX_CONFIG.put( "neostore.nodestore.db.mapped_memory", "50M" );
-        TX_CONFIG.put( "neostore.relationshipstore.db.mapped_memory", "150M" );
-        TX_CONFIG.put( "neostore.propertystore.db.mapped_memory", "400M" );
-        TX_CONFIG.put( "neostore.propertystore.db.strings.mapped_memory", "1000M" );
-        TX_CONFIG.put( "neostore.propertystore.db.arrays.mapped_memory", "50M" );
-        TX_CONFIG.put( "dump_configuration", "true" );
+        NORMAL_CONFIG.put( "neostore.nodestore.db.mapped_memory", "50M" );
+        NORMAL_CONFIG.put( "neostore.relationshipstore.db.mapped_memory", "150M" );
+        NORMAL_CONFIG.put( "neostore.propertystore.db.mapped_memory", "200M" );
+        NORMAL_CONFIG.put( "neostore.propertystore.db.strings.mapped_memory", "300M" );
+        NORMAL_CONFIG.put( "neostore.propertystore.db.arrays.mapped_memory", "10M" );
+        NORMAL_CONFIG.put( "dump_configuration", "false" );
     }
-    private static final Map<String, String> BATCH_CONFIG = new HashMap<String, String>();
+    private static final Map<String, String> LARGE_CONFIG = new HashMap<String, String>();
     static {
-        BATCH_CONFIG.put( "neostore.nodestore.db.mapped_memory", "50M" );
-        BATCH_CONFIG.put( "neostore.relationshipstore.db.mapped_memory", "150M" );
-        BATCH_CONFIG.put( "neostore.propertystore.db.mapped_memory", "400M" );
-        BATCH_CONFIG.put( "neostore.propertystore.db.strings.mapped_memory", "1000M" );
-        BATCH_CONFIG.put( "neostore.propertystore.db.arrays.mapped_memory", "500M" );
-        BATCH_CONFIG.put( "dump_configuration", "true" );
+        LARGE_CONFIG.put( "neostore.nodestore.db.mapped_memory", "100M" );
+        LARGE_CONFIG.put( "neostore.relationshipstore.db.mapped_memory", "300M" );
+        LARGE_CONFIG.put( "neostore.propertystore.db.mapped_memory", "400M" );
+        LARGE_CONFIG.put( "neostore.propertystore.db.strings.mapped_memory", "800M" );
+        LARGE_CONFIG.put( "neostore.propertystore.db.arrays.mapped_memory", "10M" );
+        LARGE_CONFIG.put( "dump_configuration", "true" );
     }
     private static File basePath = new File("target/var");
     private static File dbPath = new File(basePath, "neo4j-db");
@@ -98,11 +98,26 @@ public abstract class Neo4jTestCase extends TestCase {
      */
     protected void reActivateDatabase(boolean deleteDb) throws Exception {
         if (graphDb == null) {
-            graphDb = new EmbeddedGraphDatabase(dbPath.getAbsolutePath(), TX_CONFIG );
+            graphDb = new EmbeddedGraphDatabase(dbPath.getAbsolutePath(), NORMAL_CONFIG );
         }
         if (deleteDb) {
             deleteDatabase();
         }
+        Map<String, String> config = NORMAL_CONFIG;
+        String largeMode = System.getProperty("spatial.test.large");
+		if (largeMode != null && largeMode.equalsIgnoreCase("true")) {
+			config = LARGE_CONFIG;
+		}
+//        if (useBatchInserter) {
+//            batchInserter = new BatchInserterImpl(dbPath.getAbsolutePath(), config);
+//            graphDb = batchInserter.getGraphDbService();
+//        } else {
+//            graphDb = new EmbeddedGraphDatabase(dbPath.getAbsolutePath(), config );
+//        }
+//        if (autoTx) {
+//            // with the batch inserter the tx is a dummy that simply succeeds all the time
+//            tx = graphDb.beginTx();
+//        }
     }
 
     @Override
