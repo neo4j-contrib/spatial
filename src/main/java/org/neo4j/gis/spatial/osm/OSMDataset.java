@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial.osm;
 
 import java.util.Arrays;
+import java.util.Iterator;
 
 import org.neo4j.gis.spatial.GeometryEncoder;
 import org.neo4j.gis.spatial.Layer;
@@ -102,6 +103,38 @@ public class OSMDataset implements SpatialDataset {
 			}
 		}, OSMRelation.WAYS, Direction.OUTGOING, OSMRelation.NEXT, Direction.OUTGOING, OSMRelation.FIRST_NODE, Direction.OUTGOING,
 				OSMRelation.NODE, Direction.OUTGOING);
+	}
+
+	public Iterable<Node> getWayNodes(Node way) {
+		return way.getSingleRelationship(OSMRelation.FIRST_NODE, Direction.OUTGOING).getEndNode()
+				.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH, new ReturnableEvaluator() {
+
+					public boolean isReturnableNode(TraversalPosition current) {
+						Relationship lastRelationship = current.lastRelationshipTraversed();
+						return lastRelationship != null && lastRelationship.isType(OSMRelation.NODE);
+					}
+				}, OSMRelation.NEXT, Direction.OUTGOING, OSMRelation.NODE, Direction.OUTGOING);
+	}
+
+	public Node getChangeset(Node way) {
+		try {
+			return way.getSingleRelationship(OSMRelation.CHANGESET, Direction.OUTGOING).getEndNode();
+		} catch (Exception e) {
+			System.out.println("Node has no changeset: " + e.getMessage());
+			return null;
+		}
+	}
+
+	public Node getUser(Node nodeWayOrChangeset) {
+		Iterator<Node> results = nodeWayOrChangeset.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH,
+				new ReturnableEvaluator() {
+
+					public boolean isReturnableNode(TraversalPosition current) {
+						Relationship lastRelationship = current.lastRelationshipTraversed();
+						return lastRelationship != null && lastRelationship.isType(OSMRelation.USER);
+					}
+				}, OSMRelation.CHANGESET, Direction.OUTGOING, OSMRelation.USER, Direction.OUTGOING).iterator();
+		return results.hasNext() ? results.next() : null;
 	}
 
     public Iterable< ? extends Geometry> getAllGeometries() {

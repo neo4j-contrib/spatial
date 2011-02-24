@@ -542,12 +542,15 @@ public class OSMImporter implements Constants {
 			long changeset = Long.parseLong(nodeProps.remove("changeset").toString());
 			if (changeset != currentChangesetId) {
 				currentChangesetId = changeset;
-				currentChangesetNode = indexFor("changeset").get("changeset", currentChangesetId).getSingle();
-				if(currentChangesetNode == null) {
+				IndexHits<Node> result = indexFor("changeset").get("changeset", currentChangesetId);
+				if (result.size() > 0) {
+					currentChangesetNode = result.getSingle();
+				} else {
 					LinkedHashMap<String, Object> changesetProps = new LinkedHashMap<String, Object>();
 					changesetProps.put("changeset", currentChangesetId);
 					currentChangesetNode = (Node) addNode("changeset", changesetProps, "changeset");
 				}
+				result.close();
 			}
 			return currentChangesetNode;
 		}
@@ -559,8 +562,10 @@ public class OSMImporter implements Constants {
 				String name = nodeProps.remove("user").toString();
 				if (uid != currentUserId) {
 					currentUserId = uid;
-					currentUserNode = indexFor("user").get("uid", currentUserId).getSingle();
-					if (currentUserNode == null) {
+					IndexHits<Node> result = indexFor("user").get("uid", currentUserId);
+					if (result.size() > 0) {
+						currentUserNode = indexFor("user").get("uid", currentUserId).getSingle();
+					} else {
 						LinkedHashMap<String, Object> userProps = new LinkedHashMap<String, Object>();
 						userProps.put("uid", currentUserId);
 						userProps.put("name", name);
@@ -569,6 +574,7 @@ public class OSMImporter implements Constants {
 							currentChangesetNode.createRelationshipTo(currentUserNode, OSMRelation.USER);
 						}
 					}
+					result.close();
 				}
 			} catch (Exception e) {
 				System.err.println("Missing user or uid: " + e);
@@ -683,8 +689,8 @@ public class OSMImporter implements Constants {
 			long id = batchInserter.createNode(properties);
 			if (indexKey != null && properties.containsKey(indexKey)) {
 				Map<String, Object> props = new HashMap<String, Object>();
-				props.put( indexKey, properties.get(indexKey));
-                indexFor(name).add(id, props );
+				props.put(indexKey, properties.get(indexKey).toString());
+				indexFor(name).add(id, props);
 			}
 			return id;
 		}
@@ -721,7 +727,10 @@ public class OSMImporter implements Constants {
 		
 		protected void optimize() {
 			//TODO: optimize
-		    //batchIndexService.optimize();
+			//batchIndexService.optimize();
+			for (String index : new String[] { "node", "way", "changeset", "user" }) {
+				indexFor(index).flush();
+			}
 		}
 
 		@Override
@@ -769,16 +778,22 @@ public class OSMImporter implements Constants {
 		@Override
 		protected Long getChangesetNode(Map<String, Object> nodeProps) {
 			long changeset = Long.parseLong(nodeProps.remove("changeset").toString());
+			getUserNode(nodeProps);
 			if (changeset != currentChangesetId) {
 				currentChangesetId = changeset;
 				IndexHits<Long> results = indexFor("changeset").get("changeset", currentChangesetId);
-				if(results != null && results.size() > 0) {
+				if(results.size() > 0) {
 					currentChangesetNode = results.getSingle();
 				} else {
 					LinkedHashMap<String, Object> changesetProps = new LinkedHashMap<String, Object>();
 					changesetProps.put("changeset", currentChangesetId);
 					currentChangesetNode = (Long) addNode("changeset", changesetProps, "changeset");
+					indexFor("changeset").flush();
+					if (currentUserNode > 0) {
+						createRelationship(currentChangesetNode, currentUserNode, OSMRelation.USER);
+					}
 				}
+				results.close();
 			}
 			return currentChangesetNode;
 		}
@@ -790,21 +805,21 @@ public class OSMImporter implements Constants {
 				String name = nodeProps.remove("user").toString();
 				if (uid != currentUserId) {
 					currentUserId = uid;
-					IndexHits<Long> results = indexFor("user").get("user_osm_id", currentUserId);
-					if(results != null && results.size() > 0) {
+					IndexHits<Long> results = indexFor("user").get("uid", currentUserId);
+					if(results.size() > 0) {
 						currentUserNode = results.getSingle();
 					} else {
 						LinkedHashMap<String, Object> userProps = new LinkedHashMap<String, Object>();
 						userProps.put("uid", currentUserId);
 						userProps.put("name", name);
-						currentUserNode = (Long) addNode("user", userProps, "user_osm_id");
-						if (currentChangesetNode > 0) {
-							createRelationship(currentChangesetNode, currentUserNode, OSMRelation.USER);
-						}
+						currentUserNode = (Long) addNode("user", userProps, "uid");
+						indexFor("user").flush();
 					}
+					results.close();
 				}
 			} catch (Exception e) {
-				System.err.println("Missing user or uid: " + e);
+				currentUserNode = -1;
+				System.err.println("Missing user or uid: " + nodeProps.toString());
 			}
 			return currentUserNode;
 		}
@@ -860,7 +875,6 @@ public class OSMImporter implements Constants {
                     	// <node id="269682538" lat="56.0420950" lon="12.9693483" user="sanna" uid="31450" visible="true" version="1" changeset="133823" timestamp="2008-06-11T12:36:28Z"/>
                         Map<String, Object> nodeProps = extractProperties("node", parser);
                         long changesetNode = osmWriter.getChangesetNode(nodeProps);
-						osmWriter.getUserNode(nodeProps);
                         currentNode = (Long)osmWriter.addNode("node", nodeProps, "node_osm_id");
                         osmWriter.createRelationship(currentNode, changesetNode, OSMRelation.CHANGESET);
                         debugNodeWithId(osmWriter, currentNode, "node_osm_id", new long[] { 8090260, 273534207 });
@@ -936,9 +950,8 @@ public class OSMImporter implements Constants {
                         if(way_osm_id.equals("28338132")) {
                         	System.out.println("Debug way: "+way_osm_id);
                         }
-                        long way = (Long)osmWriter.addNode("way", wayProperties, "way_osm_id");
                         long changesetNode = osmWriter.getChangesetNode(wayProperties);
-						osmWriter.getUserNode(wayProperties);
+                        long way = (Long)osmWriter.addNode("way", wayProperties, "way_osm_id");
 						osmWriter.createRelationship(way, changesetNode, OSMRelation.CHANGESET);
                         if (prev_way < 0) {
                             osmWriter.createRelationship(osm_dataset, way, OSMRelation.WAYS);
