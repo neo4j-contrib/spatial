@@ -600,12 +600,10 @@ public class OSMImporter implements Constants {
                         Map<String, Object> properties = extractProperties(parser);
                         currentNodeTags.put(properties.get("k").toString(), properties.get("v").toString());
                     } else if (tagPath.equals("[osm, relation]")) {
-                    	// <relation id="77965" user="Grillo" uid="13957" visible="true" version="24" changeset="5465617" timestamp="2010-08-11T19:25:46Z">
                         if (!startedRelations) {
                             startedRelations = true;
                             osmWriter.restartTx();
                             times[2] = System.currentTimeMillis();
-//                            osmWriter.optimize();
                             times[3] = System.currentTimeMillis();
                         }
                         relationProperties = extractProperties("relation", parser);
@@ -652,10 +650,10 @@ public class OSMImporter implements Constants {
                             // such a property
                             wayProperties.put("name", name);
                         }
-                        String way_osm_id = (String)wayProperties.get("way_osm_id");
-                        if(way_osm_id.equals("28338132")) {
-                        	System.out.println("Debug way: "+way_osm_id);
-                        }
+//                        String way_osm_id = (String)wayProperties.get("way_osm_id");
+//                        if(way_osm_id.equals("28338132")) {
+//                        	System.out.println("Debug way: "+way_osm_id);
+//                        }
                         Node changesetNode = osmWriter.getChangesetNode(wayProperties);
                         Node way = osmWriter.addNode("way", wayProperties, "way_osm_id");
 						osmWriter.getUserNode(wayProperties);

@@ -65,7 +65,6 @@ public abstract class Neo4jTestCase extends TestCase {
     private static File basePath = new File("target/var");
     private static File dbPath = new File(basePath, "neo4j-db");
     private GraphDatabaseService graphDb;
-    private Transaction tx;
     private BatchInserter batchInserter;
 
     @Before
@@ -83,7 +82,6 @@ public abstract class Neo4jTestCase extends TestCase {
      * @throws Exception
      */
     protected void setUp(boolean deleteDb) throws Exception {
-        super.setUp();
         reActivateDatabase(deleteDb);
     }
 
@@ -97,11 +95,11 @@ public abstract class Neo4jTestCase extends TestCase {
      * @throws Exception
      */
     protected void reActivateDatabase(boolean deleteDb) throws Exception {
-        if (graphDb == null) {
-            graphDb = new EmbeddedGraphDatabase(dbPath.getAbsolutePath(), NORMAL_CONFIG );
-        }
         if (deleteDb) {
             deleteDatabase();
+        }
+        if (graphDb == null) {
+            graphDb = new EmbeddedGraphDatabase(dbPath.getAbsolutePath(), NORMAL_CONFIG );
         }
         Map<String, String> config = NORMAL_CONFIG;
         String largeMode = System.getProperty("spatial.test.large");
@@ -123,16 +121,7 @@ public abstract class Neo4jTestCase extends TestCase {
     @Override
     @After
     protected void tearDown() throws Exception {
-        if (tx != null) {
-            tx.success();
-            tx.finish();
-        }
-        beforeShutdown();
         graphDb.shutdown();
-        super.tearDown();
-    }
-
-    protected void beforeShutdown() {
     }
 
     protected File getBasePath() {
@@ -187,21 +176,6 @@ public abstract class Neo4jTestCase extends TestCase {
     	System.out.println("\tTotal # nodes:    "+countNodes(Node.class));
     	System.out.println("\tTotal # rels:     "+countNodes(Relationship.class));
     	System.out.println("\tTotal # props:    "+countNodes(PropertyStore.class));
-    }
-    protected void restartTx() {
-        restartTx(true);
-    }
-
-    protected void restartTx(boolean success) {
-        if (tx != null) {
-            if (success) {
-                tx.success();
-            } else {
-                tx.failure();
-            }
-            tx.finish();
-            tx = graphDb.beginTx();
-        }
     }
 
     protected GraphDatabaseService graphDb() {

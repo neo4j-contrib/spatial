@@ -48,7 +48,6 @@ public class IndexProviderTest
         db = new EmbeddedGraphDatabase( createTempDir() );
     }
 
-    @Ignore
     @Test
     public void testLoadIndex() throws Exception {
         Map<String, String> config = Collections.unmodifiableMap( MapUtil.stringMap(

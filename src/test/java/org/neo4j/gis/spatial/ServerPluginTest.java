@@ -43,7 +43,7 @@ public class ServerPluginTest extends Neo4jTestCase
     public void setUp() throws Exception
     {
         super.setUp();
-        restartTx();
+//        restartTx();
         plugin = new SpatialPlugin();
 
     }

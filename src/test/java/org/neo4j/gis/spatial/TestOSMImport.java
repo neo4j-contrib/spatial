@@ -42,7 +42,6 @@ import com.vividsolutions.jts.geom.Envelope;
 public class TestOSMImport extends Neo4jTestCase {
 
 	@Test
-	@Ignore
 	public void testImport_Map1() throws Exception {
 		runImport("map.osm");
 	}
