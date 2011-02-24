@@ -58,6 +58,7 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.impl.batchinsert.BatchInserter;
 import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
 
+import com.sleepycat.collections.CurrentTransaction;
 import com.vividsolutions.jts.geom.Envelope;
 
 public class OSMImporter implements Constants {
@@ -727,10 +728,10 @@ public class OSMImporter implements Constants {
                     } else if (tagPath.equals("[osm, node]")) {
                         currentNode = osmWriter.addNode("node", extractProperties("node", parser), "node_osm_id");
                         Map<String, Object> nodeProperties = osmWriter.getNodeProperties(currentNode);
-                        String node_osm_id = (String)nodeProperties.get("node_osm_id");
-                        if(node_osm_id.equals("8090260") || node_osm_id.equals("273534207")) {
-                        	System.out.println("Debug node: "+node_osm_id);
-                        }
+                        //String node_osm_id = (String)nodeProperties.get("node_osm_id");
+//                        if(node_osm_id.equals("8090260") || node_osm_id.equals("273534207")) {
+//                        	System.out.println("Debug node: "+node_osm_id);
+//                        }
                     } else if (tagPath.equals("[osm, way]")) {
                         if (!startedWays) {
                            osmWriter.restartTx();
@@ -969,6 +970,7 @@ public class OSMImporter implements Constants {
         log("info | Elapsed time in seconds: " + (1.0 * (stopTime - startTime) / 1000.0));
         stats.dumpGeomStats();
         stats.printTagStats();
+        
     }
 
 	private void describeTimes(long startTime, long[] times) {

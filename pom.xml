@@ -109,6 +109,12 @@
       <artifactId>neo4j-server</artifactId>
       <version>0.6-1.3.M01</version>
       <scope>provided</scope>
+      <exclusions>
+      	<exclusion>
+      		<artifactId>neo4j-lucene-index</artifactId>
+      		<groupId>org.neo4j</groupId>
+      	</exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.neo4j.spatial</groupId>
@@ -248,7 +254,7 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.5</version>
         <configuration>
-          <argLine>-server -Xms512m -Xmx2548m -XX:+UseConcMarkSweepGC</argLine>
+          <argLine>-agentpath:"/Applications/YourKit.app/bin/mac/libyjpagent.jnilib" -server -Xms512m -Xmx2548m -XX:+UseConcMarkSweepGC</argLine>
         </configuration>
       </plugin>
 

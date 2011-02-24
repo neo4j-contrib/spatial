@@ -218,8 +218,8 @@ public class TestSpatial extends Neo4jTestCase {
         } else {
             // Tests to run by default for regression (not too long running, and should always pass)
 //            layersToTest = new String[] {"billesholm.osm", "sweden.osm.administrative", "sweden_administrative", "sweden_natural", "sweden_water"};
-//            layersToTest = new String[] {"croatia.osm"};
-            layersToTest = new String[] {"billesholm.osm"};
+            layersToTest = new String[] {"croatia.osm"};
+//            layersToTest = new String[] {"billesholm.osm"};
         }
         for (final String layerName : layersToTest) {
             suite.addTest(new TestSpatial("Test Import of "+layerName) {
