@@ -24,6 +24,8 @@ import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import static org.junit.Assert.*;
+
 import org.neo4j.gis.spatial.query.SearchWithin;
 import org.neo4j.gis.spatial.server.plugin.SpatialPlugin;
 import org.neo4j.graphdb.Node;

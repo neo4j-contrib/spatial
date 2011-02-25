@@ -27,14 +27,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import junit.framework.TestCase;
+import static org.junit.Assert.*;
 
 import org.junit.After;
 import org.junit.Before;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.impl.batchinsert.BatchInserter;
 import org.neo4j.kernel.impl.nioneo.store.PropertyStore;
@@ -43,7 +42,7 @@ import org.neo4j.kernel.impl.nioneo.store.PropertyStore;
 /**
  * Base class for the meta model tests.
  */
-public abstract class Neo4jTestCase extends TestCase {
+public abstract class Neo4jTestCase {
     private static final Map<String, String> NORMAL_CONFIG = new HashMap<String, String>();
     static {
         NORMAL_CONFIG.put( "neostore.nodestore.db.mapped_memory", "50M" );
@@ -68,7 +67,7 @@ public abstract class Neo4jTestCase extends TestCase {
     private BatchInserter batchInserter;
 
     @Before
-    protected void setUp() throws Exception {
+    public void setUp() throws Exception {
         setUp(true);
     }
 
@@ -81,7 +80,7 @@ public abstract class Neo4jTestCase extends TestCase {
      * @param useBatchInserter
      * @throws Exception
      */
-    protected void setUp(boolean deleteDb) throws Exception {
+    public void setUp(boolean deleteDb) throws Exception {
         reActivateDatabase(deleteDb);
     }
 
@@ -101,26 +100,10 @@ public abstract class Neo4jTestCase extends TestCase {
         if (graphDb == null) {
             graphDb = new EmbeddedGraphDatabase(dbPath.getAbsolutePath(), NORMAL_CONFIG );
         }
-        Map<String, String> config = NORMAL_CONFIG;
-        String largeMode = System.getProperty("spatial.test.large");
-		if (largeMode != null && largeMode.equalsIgnoreCase("true")) {
-			config = LARGE_CONFIG;
-		}
-//        if (useBatchInserter) {
-//            batchInserter = new BatchInserterImpl(dbPath.getAbsolutePath(), config);
-//            graphDb = batchInserter.getGraphDbService();
-//        } else {
-//            graphDb = new EmbeddedGraphDatabase(dbPath.getAbsolutePath(), config );
-//        }
-//        if (autoTx) {
-//            // with the batch inserter the tx is a dummy that simply succeeds all the time
-//            tx = graphDb.beginTx();
-//        }
     }
 
-    @Override
     @After
-    protected void tearDown() throws Exception {
+    public void tearDown() throws Exception {
         graphDb.shutdown();
     }
 
@@ -145,6 +128,7 @@ public abstract class Neo4jTestCase extends TestCase {
             for (File child : file.listFiles()) {
                 deleteFileOrDirectory(child);
             }
+            file.delete();
         } else {
             file.delete();
         }

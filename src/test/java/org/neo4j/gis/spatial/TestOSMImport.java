@@ -27,6 +27,8 @@ import org.geotools.data.DataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.junit.Ignore;
 import org.junit.Test;
+import static org.junit.Assert.*;
+
 import org.neo4j.gis.spatial.geotools.data.Neo4jSpatialDataStore;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
@@ -47,6 +49,7 @@ public class TestOSMImport extends Neo4jTestCase {
 	}
 
 	@Test
+	@Ignore
 	public void testImport_Map2() throws Exception {
 		runImport("map2.osm");
 	}
@@ -56,7 +59,7 @@ public class TestOSMImport extends Neo4jTestCase {
 		// downloaded by maven, as done in TestSpatial, versus the test data
 		// commited to source code as done here
 		printDatabaseStats();
-		loadTestOsmData(osmFile, 10);
+		loadTestOsmData(osmFile, 20000);
 		checkOSMLayer(osmFile);
 		printDatabaseStats();
 	}

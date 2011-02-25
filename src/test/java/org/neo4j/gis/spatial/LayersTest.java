@@ -24,6 +24,8 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.junit.Test;
+import static org.junit.Assert.*;
+
 import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePropertyEncoder;

@@ -26,6 +26,8 @@ import org.geotools.data.DataSourceException;
 import org.geotools.data.DataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.junit.Test;
+import static org.junit.Assert.*;
+
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.geotools.data.Neo4jSpatialDataStore;
 import org.neo4j.gis.spatial.geotools.data.StyledImageExporter;

@@ -20,17 +20,15 @@
 package org.neo4j.gis.spatial;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import org.junit.Test;
+import static org.junit.Assert.*;
+
 import org.neo4j.gis.spatial.SpatialTopologyUtils.PointResult;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
-import org.neo4j.gis.spatial.query.SearchContain;
-import org.neo4j.gis.spatial.query.SearchWithin;
 
 import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.Point;
 

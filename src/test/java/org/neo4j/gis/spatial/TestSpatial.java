@@ -27,9 +27,13 @@ import java.util.HashMap;
 import java.util.List;
 
 import junit.framework.Test;
+import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
 import org.geotools.data.shapefile.shp.ShapefileException;
+import org.junit.Before;
+import org.junit.runner.RunWith;
+import org.junit.runners.Suite;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.query.SearchIntersect;
 import org.neo4j.graphdb.Node;
@@ -74,7 +78,11 @@ import com.vividsolutions.jts.geom.Envelope;
  * @author Davide Savazzi
  * @author Craig Taverner
  */
-public class TestSpatial extends Neo4jTestCase {
+@RunWith(Suite.class)
+@Suite.SuiteClasses({
+  TestSpatial.class
+})
+public class TestSpatial extends TestCase {
     private final String SHP_DIR = "target/shp";
     private final String OSM_DIR = "target/osm";
     private enum DataFormat {
@@ -188,15 +196,26 @@ public class TestSpatial extends Neo4jTestCase {
         geoms.add(new TestGeometry(id, name, comments, bounds));
     }
 
-	private HashMap<Integer,Integer> geomStats = new HashMap<Integer,Integer>();;
+	private HashMap<Integer,Integer> geomStats = new HashMap<Integer,Integer>();
+    private Neo4jTestCase neo4jTestCase;
+    private String name;;
 
     public TestSpatial(String name) {
         setName(name);
+        neo4jTestCase = new Neo4jTestCase()
+        {
+        };
     }
+    
+//    private void setName( String name )
+//    {
+//        this.name = name;
+//        
+//    }
 
     public static Test suite() {
         spatialTestMode = System.getProperty("spatial.test.mode");
-        deleteDatabase();
+        Neo4jTestCase.deleteDatabase();
         TestSuite suite = new TestSuite();
         // suite.addTest(new TestSpatial("testSpatialIndex"));
         // TODO: Split different layers to different test cases here for nicer control and
@@ -250,18 +269,15 @@ public class TestSpatial extends Neo4jTestCase {
         return suite;
     }
 
-    public void testBlank() {
-
-    }
-
+    @Before
     protected void setUp() throws Exception {
-        super.setUp(false);
+        neo4jTestCase.setUp(false);
     }
 
     protected void testImport(String layerName) throws Exception {
         long start = System.currentTimeMillis();
         System.out.println("\n===========\n=========== Import Test: " + layerName + "\n===========");
-        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+        SpatialDatabaseService spatialService = new SpatialDatabaseService(neo4jTestCase.graphDb());
         Layer layer = spatialService.getLayer(layerName);
         if (layer == null || layer.getIndex() == null || layer.getIndex().count() < 1) {
             switch (TestSpatial.layerTestFormats.get(layerName)) {
@@ -282,18 +298,18 @@ public class TestSpatial extends Neo4jTestCase {
             IOException {
         String shpPath = SHP_DIR + File.separator + layerName;
         System.out.println("\n=== Loading layer " + layerName + " from " + shpPath + " ===");
-        ShapefileImporter importer = new ShapefileImporter(graphDb(), new NullListener(), commitInterval);
+        ShapefileImporter importer = new ShapefileImporter(neo4jTestCase.graphDb(), new NullListener(), commitInterval);
         importer.importFile(shpPath, layerName);
     }
 
     private void loadTestOsmData(String layerName, int commitInterval) throws Exception {
         String osmPath = OSM_DIR + File.separator + layerName;
         System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
-        reActivateDatabase(false);
+        neo4jTestCase.reActivateDatabase(false);
         OSMImporter importer = new OSMImporter(layerName);
-        importer.importFile(graphDb(), osmPath, commitInterval);
-        reActivateDatabase(false);
-        importer.reIndex(graphDb(), commitInterval);
+        importer.importFile(neo4jTestCase.graphDb(), osmPath, commitInterval);
+        neo4jTestCase.reActivateDatabase(false);
+        importer.reIndex(neo4jTestCase.graphDb(), commitInterval);
     }
 
     public void testSpatialIndex(String layerName) {
@@ -304,7 +320,7 @@ public class TestSpatial extends Neo4jTestCase {
     }
 
     private void doTestSpatialIndex(String layerName) {
-        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+        SpatialDatabaseService spatialService = new SpatialDatabaseService(neo4jTestCase.graphDb());
         Layer layer = spatialService.getLayer(layerName);
         if (layer == null || layer.getIndex() == null || layer.getIndex().count() < 1) {
             System.out.println("Layer not loaded: " + layerName);

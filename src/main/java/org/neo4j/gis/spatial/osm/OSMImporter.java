@@ -406,7 +406,7 @@ public class OSMImporter implements Constants {
 		public void checkTx()
         {
             if(count  % commitInterval == 0) {
-                System.out.println("committing");
+                System.out.println("interval commit");
                 restartTx();
             } 
             count++;
@@ -414,9 +414,11 @@ public class OSMImporter implements Constants {
 
 	    private void restartTx()
         {
+//	        System.out.println("committing");
 	        currentTx.success();
             currentTx.finish();
             currentTx = graphDb.beginTx();
+            count = 1;
             
         }
 
@@ -524,7 +526,7 @@ public class OSMImporter implements Constants {
 				}
 			} catch (Exception e) {
 //			    e.printStackTrace();
-				System.err.println("Missing user or uid: " + e);
+				//System.err.println("Missing user or uid: " + e);
 			}
 			return currentUserNode;
 		}
