@@ -262,7 +262,11 @@
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.5</version>
         <configuration>
+          <forkMode>pertest</forkMode>
           <argLine>-agentpath:"/Applications/YourKit.app/bin/mac/libyjpagent.jnilib" -server -Xms512m -Xmx2548m -XX:+UseConcMarkSweepGC</argLine>
+          <!--
+          <argLine>-server -Xms512m -Xmx2548m -XX:+UseConcMarkSweepGC</argLine>
+          -->
         </configuration>
       </plugin>
 
