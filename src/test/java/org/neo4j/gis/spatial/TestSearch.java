@@ -21,6 +21,7 @@ package org.neo4j.gis.spatial;
 
 import java.util.List;
 
+import org.junit.Test;
 import org.neo4j.gis.spatial.query.SearchIntersectWindow;
 import org.neo4j.graphdb.Transaction;
 
@@ -32,6 +33,7 @@ import com.vividsolutions.jts.geom.Envelope;
 public class TestSearch extends Neo4jTestCase {
 	private boolean enabled = false;
 
+	@Test
 	public void testOne() {
 		// TODO: This old test from Davide is no longer valid. Either remove or
 		// update
@@ -115,6 +117,7 @@ public class TestSearch extends Neo4jTestCase {
 		}
 	}
 
+	@Test
 	public void testTwo() {
 		// TODO: This old test from Davide is no longer valid. Either remove or
 		// update. Currently it appears to rely on some exiting geometries in

@@ -78,10 +78,7 @@ import com.vividsolutions.jts.geom.Envelope;
  * @author Davide Savazzi
  * @author Craig Taverner
  */
-@RunWith(Suite.class)
-@Suite.SuiteClasses({
-  TestSpatial.class
-})
+
 public class TestSpatial extends TestCase {
     private final String SHP_DIR = "target/shp";
     private final String OSM_DIR = "target/osm";
@@ -271,7 +268,7 @@ public class TestSpatial extends TestCase {
 
     @Before
     protected void setUp() throws Exception {
-        neo4jTestCase.setUp(false);
+        neo4jTestCase.setUp();
     }
 
     protected void testImport(String layerName) throws Exception {
@@ -418,5 +415,14 @@ public class TestSpatial extends TestCase {
 		}
 		geomStats.clear();
 	}
+	
 
+}
+
+@RunWith(Suite.class)
+@Suite.SuiteClasses({
+  TestSpatial.class
+})
+class TestSpatialSuite {
+    
 }
