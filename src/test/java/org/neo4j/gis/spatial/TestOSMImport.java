@@ -42,6 +42,16 @@ import com.vividsolutions.jts.geom.Envelope;
 public class TestOSMImport extends Neo4jTestCase {
 
 	@Test
+	public void testImport_One() throws Exception {
+		runImport("one-street.osm");
+	}
+
+	@Test
+	public void testImport_Two() throws Exception {
+		runImport("two-street.osm");
+	}
+
+	@Test
 	public void testImport_Map1() throws Exception {
 		runImport("map.osm");
 	}
@@ -52,16 +62,22 @@ public class TestOSMImport extends Neo4jTestCase {
 	}
 
 	@Test
+	public void testImport_Cyprus() throws Exception {
+		runImport("cyprus.osm");
+	}
+
+	@Test
 	public void testImport_Croatia() throws Exception {
-		if(new File("croatia.osm").exists()) {
-			//runImport("croatia.osm");
-		}
+		runImport("croatia.osm");
 	}
 
 	private void runImport(String osmFile) throws Exception {
 		// TODO: Consider merits of using dependency data in target/osm,
 		// downloaded by maven, as done in TestSpatial, versus the test data
 		// commited to source code as done here
+		if (!(new File(osmFile).exists())) {
+			return;
+		}
 		printDatabaseStats();
 		loadTestOsmData(osmFile, 1000);
 		checkOSMLayer(osmFile);

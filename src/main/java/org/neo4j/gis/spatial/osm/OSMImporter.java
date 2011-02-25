@@ -308,10 +308,11 @@ public class OSMImporter implements Constants {
 		}
 
 		protected HashMap<String, Integer> stats = new HashMap<String, Integer>();
-		protected HashMap<String, Long> nodeFindStats = new HashMap<String, Long>();
+		protected HashMap<String, LogCounter> nodeFindStats = new HashMap<String, LogCounter>();
 		protected long logTime = 0;
 		protected long findTime = 0;
 		protected long firstFindTime = 0;
+		protected long lastFindTime = 0;
 		protected long firstLogTime = 0;
 	    protected static int foundNodes=0;
 	    protected static int createdNodes=0;
@@ -323,31 +324,48 @@ public class OSMImporter implements Constants {
 				System.err.println("Missing user or uid: " + nodeProps.toString());
 			}
 		}
-
-		protected void logNodeFoundFrom(String key) {
-			Long count = nodeFindStats.get(key);
-			if (count == null) {
-				count = 1L;
-			} else {
-				count++;
-			}
-			foundOSMNodes++;
-			nodeFindStats.put(key, count);
-			logNodesFound();
+		
+		private class LogCounter {
+			private long count = 0;
+			private long totalTime = 0;
 		}
 
-		protected void logNodesFound() {
+		protected void logNodeFoundFrom(String key) {
+			LogCounter counter = nodeFindStats.get(key);
+			if (counter == null) {
+				counter = new LogCounter();
+				nodeFindStats.put(key, counter);
+			}
+			counter.count++;
+			foundOSMNodes++;
 			long currentTime = System.currentTimeMillis();
+			if (lastFindTime > 0) {
+				counter.totalTime += currentTime - lastFindTime;
+			}
+			lastFindTime = currentTime;
+			logNodesFound(currentTime);
+		}
+
+		protected void logNodesFound(long currentTime) {
 			if (firstFindTime == 0) {
 				firstFindTime = currentTime;
 				findTime = currentTime;
 			}
-			if (currentTime - findTime > 1432) {
-				System.out.println(new Date(currentTime) + ": Found " + foundOSMNodes + " nodes during way creation: ");
+			if (currentTime == 0 || currentTime - findTime > 1432) {
+				int duration = 0;
+				if(currentTime > 0) {
+					duration = (int)((currentTime - firstFindTime) / 1000);
+				}
+				System.out.println(new Date(currentTime) + ": Found " + foundOSMNodes + " nodes during " + duration
+						+ "s way creation: ");
 				for (String type : nodeFindStats.keySet()) {
-					long found = nodeFindStats.get(type);
-					System.out.println("\t" + type + ": \t" + nodeFindStats.get(type) + " \t("
-							+ (1000.0 * (float) found / (float) (currentTime - firstFindTime)) + " nodes/second)");
+					LogCounter found = nodeFindStats.get(type);
+					double rate = 0.0f;
+					if (found.totalTime > 0) {
+						rate = (1000.0 * (float) found.count / (float) found.totalTime);
+					}
+					System.out.println("\t" + type + ": \t" + found.count + "/" + (found.totalTime / 1000) + "s" + " \t(" + rate
+							+ " nodes/second)");
 				}
 				findTime = currentTime;
 			}
@@ -374,7 +392,7 @@ public class OSMImporter implements Constants {
 		}
 
 		void describeLoaded() {
-			logNodesFound();
+			logNodesFound(0);
 			for (String type : new String[] { "node", "way", "relation" }) {
 				Integer count = stats.get(type);
 				if (count != null) {
@@ -868,6 +886,7 @@ public class OSMImporter implements Constants {
 			getUserNode(nodeProps);
 			if (changeset != currentChangesetId) {
 				currentChangesetId = changeset;
+				changesetNodes.clear();
 				IndexHits<Long> results = indexFor("changeset").get("changeset", currentChangesetId);
 				if(results.size() > 0) {
 					currentChangesetNode = results.getSingle();
