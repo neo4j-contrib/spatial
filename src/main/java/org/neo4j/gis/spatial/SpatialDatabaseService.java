@@ -204,14 +204,19 @@ public class SpatialDatabaseService implements Constants {
 	public boolean containsLayer(String name) {
 		return getLayer(name) != null;
 	}
-	
-    public Layer createLayer(String name) {
+
+    public Layer createWKBLayer(String name) {
         return createLayer(name, WKBGeometryEncoder.class, DefaultLayer.class);
+    }
+
+    public Layer createSimplePointLayer(String name, String xProperty, String yProperty) {
+		return createLayer(name, SimplePointEncoder.class, EditableLayerImpl.class, xProperty + ":" + yProperty);
     }
 
     public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass, Class<? extends Layer> layerClass) {
     	return createLayer(name, geometryEncoderClass, layerClass, null);
     }
+
     public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass, Class<? extends Layer> layerClass, String encoderConfig) {
         Transaction tx = database.beginTx();
         try {

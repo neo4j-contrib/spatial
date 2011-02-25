@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -44,6 +45,16 @@ import com.vividsolutions.jts.geom.Envelope;
 public class TestOSMImport extends Neo4jTestCase {
 
 	@Test
+	public void testImport_One() throws Exception {
+		runImport("one-street.osm");
+	}
+
+	@Test
+	public void testImport_Two() throws Exception {
+		runImport("two-street.osm");
+	}
+
+	@Test
 	public void testImport_Map1() throws Exception {
 		runImport("map.osm");
 	}
@@ -54,10 +65,23 @@ public class TestOSMImport extends Neo4jTestCase {
 		runImport("map2.osm");
 	}
 
+	@Test
+	public void testImport_Cyprus() throws Exception {
+		runImport("cyprus.osm");
+	}
+
+	@Test
+	public void testImport_Croatia() throws Exception {
+		runImport("croatia.osm");
+	}
+
 	private void runImport(String osmFile) throws Exception {
 		// TODO: Consider merits of using dependency data in target/osm,
 		// downloaded by maven, as done in TestSpatial, versus the test data
 		// commited to source code as done here
+		if (!(new File(osmFile).exists())) {
+			return;
+		}
 		printDatabaseStats();
 		loadTestOsmData(osmFile, 20000);
 		checkOSMLayer(osmFile);
@@ -143,9 +167,9 @@ public class TestOSMImport extends Neo4jTestCase {
 								userIds.put(userid, (Long) user.getProperty("uid", null));
 							}
 						} else {
-							usersMissing ++;
-							//assertNotNull("Changeset should have user", user);
-							System.out.println("Changeset should have user: "+nodeChangeset);
+							if (usersMissing++ < 10) {
+								System.out.println("Changeset " + nodeCS + " should have user: " + nodeChangeset);
+							}
 						}
 					}
 					node_count ++;

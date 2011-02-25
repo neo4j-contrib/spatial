@@ -21,14 +21,12 @@ package org.neo4j.gis.spatial.osm;
 
 import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
 import java.util.Iterator;
 
 import org.neo4j.gis.spatial.AbstractGeometryEncoder;
 import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
-import org.neo4j.gis.spatial.SpatialRelationshipTypes;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -39,13 +37,11 @@ import org.neo4j.kernel.impl.traversal.TraversalDescriptionImpl;
 
 import com.vividsolutions.jts.algorithm.ConvexHull;
 import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.CoordinateSequence;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.LinearRing;
-import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Polygon;
 
 public class OSMGeometryEncoder extends AbstractGeometryEncoder {
@@ -56,6 +52,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
     private static int relationId = 0;
 	private DateFormat dateTimeFormatter;
 	private int vertices;
+	private int vertexMistmaches = 0;
 
 	/**
 	 * This class allows for OSM to avoid having empty tags nodes when there are no properties on a geometry.
@@ -188,7 +185,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	    case GTYPE_POLYGON:
 	    	LinearRing outer = null;
 	    	ArrayList<LinearRing> inner = new ArrayList<LinearRing>();
-	    	ArrayList<LinearRing> rings = new ArrayList<LinearRing>();
+	    	//ArrayList<LinearRing> rings = new ArrayList<LinearRing>();
 	    	for(Relationship rel: osmNode.getRelationships(OSMRelation.MEMBER, Direction.OUTGOING)){
 	    		Node wayNode = rel.getEndNode();
 	    		String role = (String)rel.getProperty("role", null);
@@ -310,9 +307,14 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	    if (overrun) {
 	        System.out.println("Overran expected number of way nodes: " + wayNode + " (" + overrunCount + "/" + decodedCount + ")");
 	    }
-	    if (coordinates.size() != vertices) {
-	        System.err.println("Mismatching vertices size: " + coordinates.size() + " != " + vertices);
-	    }
+		if (coordinates.size() != vertices) {
+			if (vertexMistmaches++ < 10) {
+				System.err.println("Mismatching vertices size for " + SpatialDatabaseService.convertGeometryTypeToName(gtype) + ":"
+						+ wayNode + ": " + coordinates.size() + " != " + vertices);
+			} else if (vertexMistmaches % 100 == 0) {
+				System.err.println("Mismatching vertices found " + vertexMistmaches + " times");
+			}
+		}
 	    switch (coordinates.size()) {
 	    case 0:
 	        return null;
@@ -423,6 +425,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 
 	private Node lastGeom = null;
 	private PropertyContainer lastProp = null;
+	private long missingTags = 0;
 
 	private PropertyContainer getProperties(Node geomNode) {
 		if (geomNode != lastGeom) {
@@ -431,7 +434,11 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 				lastProp = geomNode.getSingleRelationship(OSMRelation.GEOM, Direction.INCOMING).getStartNode().getSingleRelationship(
 				        OSMRelation.TAGS, Direction.OUTGOING).getEndNode();
 			} catch (NullPointerException e) {
-				System.err.println("Geometry has no related tags node: " + e.getMessage());
+				if (missingTags++ < 10) {
+					System.err.println("Geometry has no related tags node: " + geomNode);
+				} else if (missingTags % 100 == 0) {
+					System.err.println("Geometries without tags found " + missingTags + " times");
+				}
 				lastProp = new NullProperties();
 			}
 		}

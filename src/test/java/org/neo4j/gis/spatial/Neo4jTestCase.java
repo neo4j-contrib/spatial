@@ -19,6 +19,9 @@
  */
 package org.neo4j.gis.spatial;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -26,8 +29,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
-import static org.junit.Assert.*;
 
 import org.junit.After;
 import org.junit.Before;

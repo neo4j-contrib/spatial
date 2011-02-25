@@ -51,7 +51,7 @@ public class LayersTest extends Neo4jTestCase
                 graphDb() );
         Layer layer = spatialService.getLayer( "test" );
         assertNull( layer );
-        layer = spatialService.createLayer( "test" );
+        layer = spatialService.createWKBLayer( "test" );
         assertNotNull( layer );
         assertTrue( "Should be a default layer", layer instanceof DefaultLayer );
         spatialService.deleteLayer( layer.getName(), new NullListener() );
@@ -62,7 +62,7 @@ public class LayersTest extends Neo4jTestCase
     public void testNeoTextLayer()
     {
         SpatialDatabaseService db = new SpatialDatabaseService( graphDb() );
-        EditableLayer layer = (EditableLayer) db.createLayer("neo-text", SimplePointEncoder.class, EditableLayerImpl.class, "lon:lat");
+        EditableLayer layer = (EditableLayer) db.createSimplePointLayer("neo-text", "lon", "lat");
         assertNotNull( layer );
 		for (Coordinate coordinate : makeCoordinateDataFromString("NEO")) {
 			if(coordinate != null) {
