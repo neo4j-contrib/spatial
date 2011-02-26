@@ -883,7 +883,6 @@ public class OSMImporter implements Constants
                     {
                         if ( !startedWays )
                         {
-                            osmWriter.restartTx();
                             startedWays = true;
                             times[0] = System.currentTimeMillis();
                             osmWriter.optimize();
@@ -908,7 +907,6 @@ public class OSMImporter implements Constants
                         if ( !startedRelations )
                         {
                             startedRelations = true;
-                            osmWriter.restartTx();
                             times[2] = System.currentTimeMillis();
                             times[3] = System.currentTimeMillis();
                         }
