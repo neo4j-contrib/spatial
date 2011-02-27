@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<osm version="0.6" generator="CGImap 0.0.2">
+ <bounds minlat="56.0437000" minlon="12.9388000" maxlat="56.0761000" maxlon="13.0109000"/>
+ <node id="371662020" lat="56.0709040" lon="12.9639158" user="Grillo" uid="13957" visible="true" version="2" changeset="5465617" timestamp="2010-08-11T19:50:23Z"/>
+ <node id="763211105" lat="56.0583531" lon="12.9762034" user="spull" uid="61533" visible="true" version="1" changeset="4892788" timestamp="2010-06-03T13:57:43Z"/>
+ <node id="763211115" lat="56.0538436" lon="12.9710302" user="Craig Taverner" uid="48197" visible="true" version="2" changeset="5238034" timestamp="2010-07-16T20:57:39Z"/>
+ <node id="821229404" lat="56.0546985" lon="12.9726158" user="Craig Taverner" uid="48197" visible="true" version="1" changeset="5238034" timestamp="2010-07-16T20:57:37Z"/>
+ <node id="821229407" lat="56.0575008" lon="12.9763358" user="Craig Taverner" uid="48197" visible="true" version="1" changeset="5238034" timestamp="2010-07-16T20:57:37Z"/>
+ <node id="821229408" lat="56.0559176" lon="12.9747403" user="Craig Taverner" uid="48197" visible="true" version="1" changeset="5238034" timestamp="2010-07-16T20:57:37Z"/>
+ <node id="821229414" lat="56.0577353" lon="12.9763764" user="Craig Taverner" uid="48197" visible="true" version="1" changeset="5238034" timestamp="2010-07-16T20:57:37Z"/>
+ <node id="821229423" lat="56.0563130" lon="12.9757125" user="Craig Taverner" uid="48197" visible="true" version="1" changeset="5238034" timestamp="2010-07-16T20:57:37Z"/>
+ <node id="821229425" lat="56.0581325" lon="12.9762985" user="Craig Taverner" uid="48197" visible="true" version="1" changeset="5238034" timestamp="2010-07-16T20:57:37Z"/>
+ <node id="821229427" lat="56.0564416" lon="12.9759293" user="Craig Taverner" uid="48197" visible="true" version="1" changeset="5238034" timestamp="2010-07-16T20:57:37Z"/>
+ <node id="821229430" lat="56.0567821" lon="12.9760919" user="Craig Taverner" uid="48197" visible="true" version="1" changeset="5238034" timestamp="2010-07-16T20:57:37Z"/>
+ <node id="821229432" lat="56.0547317" lon="12.9726773" user="Craig Taverner" uid="48197" visible="true" version="1" changeset="5238034" timestamp="2010-07-16T20:57:37Z"/>
+ <node id="821229437" lat="56.0571830" lon="12.9763358" user="Craig Taverner" uid="48197" visible="true" version="1" changeset="5238034" timestamp="2010-07-16T20:57:37Z"/>
+ <node id="821229439" lat="56.0553521" lon="12.9738426" user="Craig Taverner" uid="48197" visible="true" version="1" changeset="5238034" timestamp="2010-07-16T20:57:37Z"/>
+ <node id="840259179" lat="56.0568715" lon="12.9761463" user="Craig Taverner" uid="48197" visible="true" version="1" changeset="5363113" timestamp="2010-07-31T14:39:24Z"/>
+ <node id="840259423" lat="56.0552154" lon="12.9735859" user="Craig Taverner" uid="48197" visible="true" version="1" changeset="5363113" timestamp="2010-07-31T14:39:29Z"/>
+ <node id="842021834" lat="56.0582620" lon="12.9762427" user="Craig Taverner" uid="48197" visible="true" version="1" changeset="5371429" timestamp="2010-08-01T14:36:03Z"/>
+ <node id="857081476" lat="56.0710206" lon="12.9639658" user="Craig Taverner" uid="48197" visible="true" version="1" changeset="5474347" timestamp="2010-08-12T16:14:59Z"/>
+ <node id="857081523" lat="56.0704885" lon="12.9680173" user="Craig Taverner" uid="48197" visible="true" version="1" changeset="5474347" timestamp="2010-08-12T16:14:59Z"/>
+ <node id="857081617" lat="56.0705812" lon="12.9678958" user="Craig Taverner" uid="48197" visible="true" version="1" changeset="5474347" timestamp="2010-08-12T16:15:01Z"/>
+ <node id="857081692" lat="56.0706645" lon="12.9677867" user="Craig Taverner" uid="48197" visible="true" version="1" changeset="5474347" timestamp="2010-08-12T16:15:02Z"/>
+ <node id="857081796" lat="56.0708619" lon="12.9674023" user="Craig Taverner" uid="48197" visible="true" version="1" changeset="5474347" timestamp="2010-08-12T16:15:03Z"/>
+ <node id="857081819" lat="56.0710678" lon="12.9666335" user="Craig Taverner" uid="48197" visible="true" version="1" changeset="5474347" timestamp="2010-08-12T16:15:03Z"/>
+ <node id="857081950" lat="56.0711966" lon="12.9654342" user="Craig Taverner" uid="48197" visible="true" version="1" changeset="5474347" timestamp="2010-08-12T16:15:05Z"/>
+ <way id="68143404" user="Craig Taverner" uid="48197" visible="true" version="3" changeset="5371429" timestamp="2010-08-01T14:36:05Z">
+  <nd ref="763211115"/>
+  <nd ref="821229404"/>
+  <nd ref="821229432"/>
+  <nd ref="840259423"/>
+  <nd ref="821229439"/>
+  <nd ref="821229408"/>
+  <nd ref="821229423"/>
+  <nd ref="821229427"/>
+  <nd ref="821229430"/>
+  <nd ref="840259179"/>
+  <nd ref="821229437"/>
+  <nd ref="821229407"/>
+  <nd ref="821229414"/>
+  <nd ref="821229425"/>
+  <nd ref="842021834"/>
+  <nd ref="763211105"/>
+  <tag k="highway" v="residential"/>
+  <tag k="name" v="Storgatan"/>
+ </way>
+ <way id="72090582" user="Craig Taverner" uid="48197" visible="true" version="1" changeset="5474347" timestamp="2010-08-12T16:15:06Z">
+  <nd ref="371662020"/>
+  <nd ref="857081476"/>
+  <nd ref="857081950"/>
+  <nd ref="857081819"/>
+  <nd ref="857081796"/>
+  <nd ref="857081692"/>
+  <nd ref="857081617"/>
+  <nd ref="857081523"/>
+  <tag k="highway" v="residential"/>
+  <tag k="name" v="Nybrodalsvägen"/>
+ </way>
+</osm>
