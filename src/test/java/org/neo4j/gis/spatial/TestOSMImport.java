@@ -47,8 +47,18 @@ public class TestOSMImport extends Neo4jTestCase {
 	}
 
 	@Test
+	public void testImport_One_X() throws Exception {
+		runImport("one-street.osm", false);
+	}
+
+	@Test
 	public void testImport_Two() throws Exception {
 		runImport("two-street.osm");
+	}
+
+	@Test
+	public void testImport_Two_X() throws Exception {
+		runImport("two-street.osm", false);
 	}
 
 	@Test
@@ -57,8 +67,18 @@ public class TestOSMImport extends Neo4jTestCase {
 	}
 
 	@Test
+	public void testImport_Map1_X() throws Exception {
+		runImport("map.osm", false);
+	}
+
+	@Test
 	public void testImport_Map2() throws Exception {
 		runImport("map2.osm");
+	}
+
+	@Test
+	public void testImport_Map2_X() throws Exception {
+		runImport("map2.osm", false);
 	}
 
 	@Test
@@ -67,11 +87,30 @@ public class TestOSMImport extends Neo4jTestCase {
 	}
 
 	@Test
+	public void testImport_Cyprus_X() throws Exception {
+		runImport("cyprus.osm", false);
+	}
+
+	@Test
 	public void testImport_Croatia() throws Exception {
 		runImport("croatia.osm");
 	}
 
+	@Test
+	public void testImport_Croatia_X() throws Exception {
+		runImport("croatia.osm", false);
+	}
+
+	@Test
+	public void testImport_Denmark() throws Exception {
+		runImport("denmark.osm");
+	}
+
 	private void runImport(String osmFile) throws Exception {
+		runImport(osmFile, true);
+	}
+
+	private void runImport(String osmFile, boolean includePoints) throws Exception {
 		// TODO: Consider merits of using dependency data in target/osm,
 		// downloaded by maven, as done in TestSpatial, versus the test data
 		// commited to source code as done here
@@ -79,19 +118,19 @@ public class TestOSMImport extends Neo4jTestCase {
 			return;
 		}
 		printDatabaseStats();
-		loadTestOsmData(osmFile, 1000);
+		loadTestOsmData(osmFile, includePoints, 1000);
 		checkOSMLayer(osmFile);
 		printDatabaseStats();
 	}
 
-	private void loadTestOsmData(String layerName, int commitInterval) throws Exception {
+	private void loadTestOsmData(String layerName, boolean includePoints, int commitInterval) throws Exception {
 		String osmPath = layerName;
 		System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
 		reActivateDatabase(false, true, false);
 		OSMImporter importer = new OSMImporter(layerName);
 		importer.importFile(getBatchInserter(), osmPath, false);
 		reActivateDatabase(false, false, false);
-		importer.reIndex(graphDb(), commitInterval);
+		importer.reIndex(graphDb(), commitInterval, includePoints, false);
 	}
 
 	private void checkOSMLayer(String layerName) throws IOException {
