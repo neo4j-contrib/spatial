@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <properties>
-    <neo4j.version>1.3-1.3.M01</neo4j.version>
-    <neo4j-lucene.version>0.5-1.3.M01</neo4j-lucene.version>
+    <neo4j.version>1.3.M03</neo4j.version>
     <geotools.version>2.7-M3</geotools.version>
     <spatial.test.osm.version>20100819</spatial.test.osm.version>
     <spatial.test.shp.version>20100819</spatial.test.shp.version>
@@ -102,22 +101,79 @@
     <dependency>
       <groupId>org.neo4j</groupId>
       <artifactId>neo4j-lucene-index</artifactId>
-      <version>${neo4j-lucene.version}</version>
+      <version>${neo4j.version}</version>
     </dependency>
-    <dependency>
-      <groupId>org.neo4j.app</groupId>
-      <artifactId>neo4j-server</artifactId>
-      <version>0.6-SNAPSHOT</version>
-      <scope>provided</scope>
-    </dependency>
-	<!--
+      <dependency>
+          <groupId>org.neo4j.app</groupId>
+          <artifactId>neo4j-server</artifactId>
+          <version>${neo4j.version}</version>
+          <scope>provided</scope>
+          <exclusions>
+              <exclusion>
+                  <groupId>com.tinkerpop</groupId>
+                  <artifactId>gremlin</artifactId>
+              </exclusion>
+              <exclusion>
+                  <groupId>org.neo4j</groupId>
+                  <artifactId>neo4j</artifactId>
+              </exclusion>
+              <exclusion>
+                  <groupId>org.mortbay.jetty</groupId>
+                  <artifactId>jetty</artifactId>
+              </exclusion>
+              <exclusion>
+                  <groupId>com.sun.jersey</groupId>
+                  <artifactId>jersey-server</artifactId>
+              </exclusion>
+              <exclusion>
+                  <groupId>commons-configuration</groupId>
+                  <artifactId>commons-configuration</artifactId>
+              </exclusion>
+              <exclusion>
+                  <groupId>commons-io</groupId>
+                  <artifactId>commons-io</artifactId>
+              </exclusion>
+              <exclusion>
+                  <groupId>org.codehaus.jackson</groupId>
+                  <artifactId>jackson-jaxrs</artifactId>
+              </exclusion>
+              <exclusion>
+                  <groupId>org.codehaus.jackson</groupId>
+                  <artifactId>jackson-mapper-asl</artifactId>
+              </exclusion>
+              <exclusion>
+                  <groupId>de.huxhorn.lilith</groupId>
+                  <artifactId>de.huxhorn.lilith.3rdparty.rrd4j</artifactId>
+              </exclusion>
+              <exclusion>
+                  <groupId>com.sun.jersey.contribs</groupId>
+                  <artifactId>jersey-multipart</artifactId>
+              </exclusion>
+              <exclusion>
+                  <groupId>org.apache.felix</groupId>
+                  <artifactId>org.apache.felix.main</artifactId>
+              </exclusion>
+              <exclusion>
+                  <groupId>org.apache.felix</groupId>
+                  <artifactId>org.apache.felix.fileinstall</artifactId>
+              </exclusion>
+              <exclusion>
+                  <groupId>org.neo4j</groupId>
+                  <artifactId>neo4j-shell</artifactId>
+              </exclusion>
+          </exclusions>
+      </dependency>
+      <!--dependency>
+        <groupId>org.apache.lucene</groupId>
+        <artifactId>lucene-core</artifactId>
+        <version>3.0.3</version>
+      </dependency-->
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
       <version>4.8.1</version>
-      <scope>provided</scope>
+      <scope>test</scope>
     </dependency>
-	-->
     <dependency>
       <groupId>org.neo4j.spatial</groupId>
       <artifactId>osm-test-data</artifactId>
@@ -135,18 +191,38 @@
       <artifactId>gt-main</artifactId>
       <version>${geotools.version}</version>
       <scope>provided</scope>
+      <exclusions>
+
+      	<!--exclusion>
+	      <groupId>com.vividsolutions</groupId>
+	      <artifactId>jts</artifactId>
+      	</exclusion-->
+	  </exclusions>	
     </dependency>
     <dependency>
       <groupId>org.geotools</groupId>
       <artifactId>gt-shapefile</artifactId>
       <version>${geotools.version}</version>
       <scope>provided</scope>
+        <exclusions>
+        </exclusions>
     </dependency>
     <dependency>
       <groupId>org.geotools</groupId>
       <artifactId>gt-render</artifactId>
       <version>${geotools.version}</version>
       <scope>provided</scope>
+      <exclusions>
+
+      	<!--exclusion>
+	      <groupId>org.geotools</groupId>
+	      <artifactId>gt-coverage</artifactId>
+      	</exclusion-->
+          <exclusion>
+              <groupId>it.geosolutions.imageio-ext</groupId>
+              <artifactId>imageio-ext-tiff</artifactId>
+          </exclusion>
+	  </exclusions>	
     </dependency>
     <dependency>
       <groupId>log4j</groupId>
