@@ -197,6 +197,7 @@ public class StyledImageExporter {
 		}
 		System.out.println("Exporting layers '" + names + "' to styled image " + imagefile.getPath());
 		ImageIO.write(image, "png", imagefile);
+		context.dispose();
 	}
 
 	/**
