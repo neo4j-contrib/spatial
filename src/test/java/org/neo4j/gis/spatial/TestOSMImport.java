@@ -127,9 +127,17 @@ public class TestOSMImport extends Neo4jTestCase {
 		String osmPath = layerName;
 		System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
 		reActivateDatabase(false, true, false);
+		long start = System.currentTimeMillis();
 		OSMImporter importer = new OSMImporter(layerName);
 		importer.importFile(getBatchInserter(), osmPath, false);
 		reActivateDatabase(false, false, false);
+		// Weird hack to force GC on large loads
+		if (System.currentTimeMillis() - start > 300000) {
+			for (int i = 0; i < 3; i++) {
+				System.gc();
+				Thread.sleep(1000);
+			}
+		}
 		importer.reIndex(graphDb(), commitInterval, includePoints, false);
 	}
 
