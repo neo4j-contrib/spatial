@@ -22,57 +22,78 @@ package org.neo4j.gis.spatial.query;
 import org.neo4j.gis.spatial.AbstractSearch;
 import org.neo4j.graphdb.Node;
 
+import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.Point;
-
 
 /**
- * This search assume Layer contains Points with Latitude / Longitude coordinates in degrees.
- * Algorithm reference: http://www.movable-type.co.uk/scripts/latlong-db.html
+ * This search assume Layer contains Points with Latitude / Longitude
+ * coordinates in degrees. Algorithm reference:
+ * http://www.movable-type.co.uk/scripts/latlong-db.html
  * 
  * @author Davide Savazzi
  */
 public class SearchPointsWithinOrthodromicDistance extends AbstractSearch {
 
-	public SearchPointsWithinOrthodromicDistance(Point refPoint, double maxDistanceInKm) {
-		this.refPoint = refPoint;
+	public SearchPointsWithinOrthodromicDistance(Coordinate reference, double maxDistanceInKm, boolean saveDistanceOnGeometry) {
+		this.reference = reference;
 		this.maxDistanceInKm = maxDistanceInKm;
-		
-		double lat = refPoint.getY();
-		double lon = refPoint.getX();
-		
+		this.saveDistanceOnGeometry = saveDistanceOnGeometry;
+
+		double lat = reference.y;
+		double lon = reference.x;
+
 		// first-cut bounding box (in degrees)
 		double maxLat = lat + Math.toDegrees(maxDistanceInKm / earthRadiusInKm);
 		double minLat = lat - Math.toDegrees(maxDistanceInKm / earthRadiusInKm);
-		// compensate for degrees longitude getting smaller with increasing latitude
+		// compensate for degrees longitude getting smaller with increasing
+		// latitude
 		double maxLon = lon + Math.toDegrees(maxDistanceInKm / earthRadiusInKm / Math.cos(Math.toRadians(lat)));
-		double minLon = lon - Math.toDegrees(maxDistanceInKm / earthRadiusInKm / Math.cos(Math.toRadians(lat)));		
-		bbox = new Envelope(minLon, maxLon, minLat, maxLat);
+		double minLon = lon - Math.toDegrees(maxDistanceInKm / earthRadiusInKm / Math.cos(Math.toRadians(lat)));
+		this.bbox = new Envelope(minLon, maxLon, minLat, maxLat);
+	}
+
+	public SearchPointsWithinOrthodromicDistance(Coordinate reference, Envelope bbox, boolean saveDistanceOnGeometry) {
+		this.reference = reference;
+		this.bbox = bbox;
+		this.maxDistanceInKm = calculateDistance(bbox.centre(), new Coordinate(bbox.getMinX(),
+				(bbox.getMinY() + bbox.getMaxY()) / 2));
+		this.saveDistanceOnGeometry = saveDistanceOnGeometry;
 	}
 
 	public boolean needsToVisit(Node indexNode) {
 		return getEnvelope(indexNode).intersects(bbox);
 	}
-	
+
 	public void onIndexReference(Node geomNode) {
 		Geometry geometry = decode(geomNode);
-		Point point = geometry.getInteriorPoint();
-		
-		// d = acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon2 - lon1)) * R
-		double distanceInKm = Math.acos(
-				Math.sin(Math.toRadians(refPoint.getY())) * Math.sin(Math.toRadians(point.getY())) + 
-				Math.cos(Math.toRadians(refPoint.getY())) * Math.cos(Math.toRadians(point.getY())) * Math.cos(Math.toRadians(point.getX()) - Math.toRadians(refPoint.getX()))) * earthRadiusInKm;
-		
+		Coordinate point = geometry.getCoordinate();
+
+		// d = acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon2 -
+		// lon1)) * R
+		double distanceInKm = calculateDistance(reference, point);
+
 		if (distanceInKm < maxDistanceInKm) {
-			add(geomNode, geometry, distanceInKm);
+			if (saveDistanceOnGeometry) {
+				add(geomNode, geometry, "distanceInKm", distanceInKm);
+			} else {
+				add(geomNode, geometry);
+			}
 		}
 	}
 
-	
-	private Point refPoint;
+	public static double calculateDistance(Coordinate reference, Coordinate point) {
+		double distanceInKm = Math.acos(Math.sin(Math.toRadians(reference.y)) * Math.sin(Math.toRadians(point.y))
+				+ Math.cos(Math.toRadians(reference.y)) * Math.cos(Math.toRadians(point.y))
+				* Math.cos(Math.toRadians(point.x) - Math.toRadians(reference.x)))
+				* earthRadiusInKm;
+		return distanceInKm;
+	}
+
+	private Coordinate reference;
 	private double maxDistanceInKm;
 	private Envelope bbox;
-	
+	private boolean saveDistanceOnGeometry;
+
 	private static final double earthRadiusInKm = 6371;
 }

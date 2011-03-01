@@ -27,8 +27,9 @@ import com.vividsolutions.jts.geom.Geometry;
 
 /**
  * @author Davide Savazzi
+ * @author Craig Taverner
  */
-public class SpatialDatabaseRecord implements Constants {
+public class SpatialDatabaseRecord implements Constants, Comparable<SpatialDatabaseRecord> {
 
 	public SpatialDatabaseRecord(Layer layer, Node geomNode) {
 		this(layer, geomNode, null);
@@ -150,12 +151,29 @@ public class SpatialDatabaseRecord implements Constants {
 	    }
 	    return text.toString();
 	}
-	
+
+	@SuppressWarnings("rawtypes")
+	public Comparable getUserData() {
+		return userData;
+	}
+
+	@SuppressWarnings("rawtypes")
+	public void setUserData(Comparable object) {
+		userData = object;
+	}
+
+	@SuppressWarnings("unchecked")
+	public int compareTo(SpatialDatabaseRecord other) {
+		getUserData().compareTo(other.getUserData());
+		return 0;
+	}
 
 	// Attributes
 	
 	private Node geomNode;
 	private Geometry geometry;
 	private Layer layer;
+	@SuppressWarnings("rawtypes")
+	private Comparable userData;
 
 }
