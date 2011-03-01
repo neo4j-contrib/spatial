@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
@@ -61,12 +62,18 @@ public abstract class AbstractSearch implements Search {
 		results.add(new SpatialDatabaseRecord(layer, geomNode, geom));
 	}
 	
-    protected void add(Node geomNode, Geometry geom,double distanceInKm) {
-        SpatialDatabaseRecord result = new SpatialDatabaseRecord( layer,
-                geomNode, geom );
-        result.setProperty( "distanceInKm", distanceInKm );
-        results.add( result );
-    }
+	protected void add(Node geomNode, Geometry geom, String property, Comparable<?> value) {
+		SpatialDatabaseRecord result = new SpatialDatabaseRecord(layer, geomNode, geom);
+		Transaction tx = geomNode.getGraphDatabase().beginTx();
+		try {
+			result.setProperty(property, value);
+			tx.success();
+		} finally {
+			tx.finish();
+		}
+		result.setUserData(value);
+		results.add(result);
+	}
 	
 	protected Envelope getEnvelope(Node geomNode) {
 		return layer.getGeometryEncoder().decodeEnvelope(geomNode);	

@@ -253,8 +253,10 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
             } catch (Exception e) {
                 throw new SpatialDatabaseException(e);
             }
-			if (this.geometryEncoder instanceof Configurable && layerNode.hasProperty(PROP_GEOMENCODER_CONFIG)) {
-				((Configurable) this.geometryEncoder).setConfiguration((String) layerNode.getProperty(PROP_GEOMENCODER_CONFIG));
+			if (this.geometryEncoder instanceof Configurable) {
+				if (layerNode.hasProperty(PROP_GEOMENCODER_CONFIG)) {
+					((Configurable) this.geometryEncoder).setConfiguration((String) layerNode.getProperty(PROP_GEOMENCODER_CONFIG));
+				}
 			}
         } else {
             this.geometryEncoder = new WKBGeometryEncoder();
