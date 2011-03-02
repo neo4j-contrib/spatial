@@ -28,6 +28,8 @@ import org.geotools.data.DataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+
 import static org.junit.Assert.*;
 
 import org.neo4j.gis.spatial.geotools.data.Neo4jSpatialDataStore;
@@ -50,11 +52,23 @@ public class TestOSMImport extends Neo4jTestCase {
 	}
 
 	@Test
+	public void testImport_One_X() throws Exception {
+		runImport("one-street.osm", false);
+	}
+
+	@Test
+	@Ignore
 	public void testImport_Two() throws Exception {
 		runImport("two-street.osm");
 	}
 
 	@Test
+	public void testImport_Two_X() throws Exception {
+		runImport("two-street.osm", false);
+	}
+
+	@Test
+    @Ignore
 	public void testImport_Map1() throws Exception {
 		runImport("map.osm");
 	}
@@ -66,8 +80,19 @@ public class TestOSMImport extends Neo4jTestCase {
 	}
 
 	@Test
+    @Ignore
+	public void testImport_Map2_X() throws Exception {
+		runImport("map2.osm", false);
+	}
+
+	@Test
 	public void testImport_Cyprus() throws Exception {
 		runImport("cyprus.osm");
+	}
+
+	@Test
+	public void testImport_Cyprus_X() throws Exception {
+		runImport("cyprus.osm", false);
 	}
 
 	@Test
@@ -75,7 +100,21 @@ public class TestOSMImport extends Neo4jTestCase {
 		runImport("croatia.osm");
 	}
 
+	@Test
+	public void testImport_Croatia_X() throws Exception {
+		runImport("croatia.osm", false);
+	}
+
+	@Test
+	public void testImport_Denmark() throws Exception {
+		runImport("denmark.osm");
+	}
+
 	private void runImport(String osmFile) throws Exception {
+		runImport(osmFile, true);
+	}
+
+	private void runImport(String osmFile, boolean includePoints) throws Exception {
 		// TODO: Consider merits of using dependency data in target/osm,
 		// downloaded by maven, as done in TestSpatial, versus the test data
 		// commited to source code as done here
@@ -83,12 +122,12 @@ public class TestOSMImport extends Neo4jTestCase {
 			return;
 		}
 		printDatabaseStats();
-		loadTestOsmData(osmFile, 20000);
+		loadTestOsmData(osmFile, includePoints, 20000);
 		checkOSMLayer(osmFile);
 		printDatabaseStats();
 	}
 
-	private void loadTestOsmData(String layerName, int commitInterval) throws Exception {
+	private void loadTestOsmData(String layerName, boolean includePoints, int commitInterval) throws Exception {
 		String osmPath = layerName;
 		System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
 		reActivateDatabase(false);

@@ -120,12 +120,20 @@ public class StyledImageExporter {
 		return file;
 	}
 
-	@SuppressWarnings("unchecked")
+	@SuppressWarnings({ "unchecked", "unused" })
 	private void debugStore(DataStore store, String[] layerNames) throws IOException {
 		for (int i = 0; i < layerNames.length; i++) {
 			System.out.println(asList(store.getTypeNames()));
 			System.out.println(asList(store.getSchema(layerNames[i]).getAttributeDescriptors()));
 		}
+	}
+
+	public void saveLayerImage(String[] layerNames) throws IOException {
+		saveLayerImage(layerNames, null, new File(layerNames[0] + ".png"), null);
+	}
+
+	public void saveLayerImage(String layerName) throws IOException {
+		saveLayerImage(layerName, null, new File(layerName + ".png"), null);
 	}
 
 	public void saveLayerImage(String layerName, String sldFile) throws IOException {
@@ -152,20 +160,17 @@ public class StyledImageExporter {
 		imagefile = checkFile(imagefile);
 		DataStore store = new Neo4jSpatialDataStore(db);
 		//debugStore(store, layerNames);
-
-		Style style = null;
-		if (sldFile != null) {
-			style = createStyleFromSLD(sldFile);
-			if (style != null)
-				System.out.println("Created style from sldFile '" + sldFile + "': " + style);
+		StringBuffer names = new StringBuffer();
+		for (String name : layerNames) {
+			if (names.length() > 0)
+				names.append(", ");
+			names.append(name);
 		}
-		StreamingRenderer renderer = new StreamingRenderer();
-		RenderingHints hints = new RenderingHints(KEY_ANTIALIASING, VALUE_ANTIALIAS_ON);
-		hints.put(KEY_TEXT_ANTIALIASING, VALUE_TEXT_ANTIALIAS_ON);
-		renderer.setJava2DHints(hints);
+		System.out.println("Exporting layers '" + names + "' to styled image " + imagefile.getPath());
+
+		Style style = getStyleFromSLDFile(sldFile);
 
 		DefaultMapContext context = new DefaultMapContext();
-		renderer.setContext(context);
 		for (int i = 0; i < layerNames.length; i++) {
 			SimpleFeatureSource featureSource = store.getFeatureSource(layerNames[i]);
 			Style featureStyle = style;
@@ -180,23 +185,38 @@ public class StyledImageExporter {
 				bounds.expandToInclude(featureSource.getBounds());
 			}
 		}
+		saveContextToImageFile(context, imagefile, bounds);
+	}
+
+	private Style getStyleFromSLDFile(String sldFile) {
+		Style style = null;
+		if (sldFile != null) {
+			style = createStyleFromSLD(sldFile);
+			if (style != null)
+				System.out.println("Created style from sldFile '" + sldFile + "': " + style);
+		}
+		return style;
+	}
+
+	private void saveContextToImageFile(DefaultMapContext context, File imagefile, ReferencedEnvelope bounds) throws IOException {
 		bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
 		if (displaySize == null)
 			displaySize = new Rectangle(0, 0, 800, 600);
 
 		BufferedImage image = new BufferedImage(displaySize.width, displaySize.height, BufferedImage.TYPE_INT_ARGB);
 
+		StreamingRenderer renderer = new StreamingRenderer();
+		RenderingHints hints = new RenderingHints(KEY_ANTIALIASING, VALUE_ANTIALIAS_ON);
+		hints.put(KEY_TEXT_ANTIALIASING, VALUE_TEXT_ANTIALIAS_ON);
+		renderer.setJava2DHints(hints);
+		renderer.setContext(context);
+
 		Graphics2D graphics = image.createGraphics();
 		renderer.paint(graphics, displaySize, bounds);
 		graphics.dispose();
 
-		StringBuffer names = new StringBuffer();
-		for (String name : layerNames) {
-			names.append(name);
-			names.append(",");
-		}
-		System.out.println("Exporting layers '" + names + "' to styled image " + imagefile.getPath());
 		ImageIO.write(image, "png", imagefile);
+		context.dispose();
 	}
 
 	/**

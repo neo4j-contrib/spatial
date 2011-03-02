@@ -42,9 +42,9 @@ import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
 
-
 /**
  * @author Davide Savazzi
+ * @author Craig Taverner
  */
 public class SpatialDatabaseService implements Constants {
 
@@ -101,12 +101,19 @@ public class SpatialDatabaseService implements Constants {
 	}
 	
 	public Layer getLayer(String name) {
-		ArrayList<DynamicLayer> dynamicLayers = new ArrayList<DynamicLayer>();
 		for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
 			Node node = relationship.getEndNode();
 			if (name.equals(node.getProperty(PROP_LAYER))) {
 				return DefaultLayer.makeLayerFromNode(this, node);
 			}
+		}
+		return getDynamicLayer(name);
+	}
+
+	public Layer getDynamicLayer(String name) {
+		ArrayList<DynamicLayer> dynamicLayers = new ArrayList<DynamicLayer>();
+		for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
+			Node node = relationship.getEndNode();
 			if (!node.getProperty(PROP_LAYER_CLASS, "").toString().startsWith("DefaultLayer")) {
 				Layer layer = DefaultLayer.makeLayerFromNode(this, node);
 				if (layer instanceof DynamicLayer) {
@@ -209,8 +216,12 @@ public class SpatialDatabaseService implements Constants {
         return createLayer(name, WKBGeometryEncoder.class, DefaultLayer.class);
     }
 
-    public Layer createSimplePointLayer(String name, String xProperty, String yProperty) {
-		return createLayer(name, SimplePointEncoder.class, EditableLayerImpl.class, xProperty + ":" + yProperty);
+    public SimplePointLayer createSimplePointLayer(String name) {
+		return (SimplePointLayer)createLayer(name, SimplePointEncoder.class, SimplePointLayer.class);
+    }
+
+    public SimplePointLayer createSimplePointLayer(String name, String xProperty, String yProperty) {
+		return (SimplePointLayer)createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, xProperty + ":" + yProperty);
     }
 
     public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass, Class<? extends Layer> layerClass) {
@@ -229,6 +240,7 @@ public class SpatialDatabaseService implements Constants {
 				GeometryEncoder encoder = layer.getGeometryEncoder();
 				if (encoder instanceof Configurable) {
 					((Configurable) encoder).setConfiguration(encoderConfig);
+					layer.getLayerNode().setProperty(PROP_GEOMENCODER_CONFIG, encoderConfig);
 				} else {
 					System.out.println("Warning: encoder configuration '" + encoderConfig
 							+ "' passed to non-configurable encoder: " + geometryEncoderClass);

@@ -727,6 +727,7 @@ public class OSMImporter implements Constants
         {
             currentTx.success();
             currentTx.finish();
+            indexFor( "changeset" ).delete();
         }
 
         protected Node createProxyNode()

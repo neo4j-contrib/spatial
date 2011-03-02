@@ -47,10 +47,10 @@ public abstract class Neo4jTestCase {
     private static final Map<String, String> NORMAL_CONFIG = new HashMap<String, String>();
     static {
         NORMAL_CONFIG.put( "neostore.nodestore.db.mapped_memory", "50M" );
-        NORMAL_CONFIG.put( "neostore.relationshipstore.db.mapped_memory", "150M" );
-        NORMAL_CONFIG.put( "neostore.propertystore.db.mapped_memory", "200M" );
-        NORMAL_CONFIG.put( "neostore.propertystore.db.strings.mapped_memory", "300M" );
-        NORMAL_CONFIG.put( "neostore.propertystore.db.arrays.mapped_memory", "10M" );
+        NORMAL_CONFIG.put( "neostore.relationshipstore.db.mapped_memory", "120M" );
+        NORMAL_CONFIG.put( "neostore.propertystore.db.mapped_memory", "150M" );
+        NORMAL_CONFIG.put( "neostore.propertystore.db.strings.mapped_memory", "200M" );
+        NORMAL_CONFIG.put( "neostore.propertystore.db.arrays.mapped_memory", "0M" );
         NORMAL_CONFIG.put( "dump_configuration", "false" );
     }
     private static final Map<String, String> LARGE_CONFIG = new HashMap<String, String>();

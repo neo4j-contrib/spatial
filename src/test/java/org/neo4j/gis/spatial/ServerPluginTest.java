@@ -84,8 +84,8 @@ public class ServerPluginTest extends Neo4jTestCase
 
         Transaction tx2 = graphDb().beginTx();
         Node point = graphDb().createNode();
-        point.setProperty( "latitude", 60.1 );
-        point.setProperty( "longitude", 15.2 );
+        point.setProperty( LAT, 60.1 );
+        point.setProperty( LON, 15.2 );
         point.setProperty( "bbox", new double[] { 15.2, 60.1, 15.2, 60.1 } );
         plugin.addPointToLayer( graphDb(), point, LAYER );
         tx2.success();

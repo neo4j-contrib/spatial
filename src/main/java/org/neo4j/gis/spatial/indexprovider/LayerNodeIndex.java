@@ -35,7 +35,6 @@ import org.neo4j.graphdb.index.IndexHits;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Point;
 
 public class LayerNodeIndex implements Index<Node>
 {
@@ -73,7 +72,7 @@ public class LayerNodeIndex implements Index<Node>
     }
 
     /**
-     * right now we are assuming only Points with "lat" and "long" properties
+     * right now we are assuming only Points with "lat" and "lon" properties
      */
     public void add( Node geometry, String key, Object value )
     {
@@ -121,10 +120,8 @@ public class LayerNodeIndex implements Index<Node>
 			Map<?, ?> p = (Map<?, ?>) params;
 			Double[] point = (Double[]) p.get( POINT_PARAMETER );
 			Double distance = (Double) p.get( DISTANCE_IN_KM_PARAMETER );
-			Point refPoint = layer.getGeometryFactory().createPoint(
-					new Coordinate( point[1], point[0] ) );
 			Search withinDistanceQuery = 
-				new SearchPointsWithinOrthodromicDistance( refPoint, distance );
+				new SearchPointsWithinOrthodromicDistance( new Coordinate( point[1], point[0] ), distance, true );
 			layer.getIndex().executeSearch( withinDistanceQuery );
 			List<SpatialDatabaseRecord> res = withinDistanceQuery.getResults();
 			IndexHits<Node> results = new IndexHitsImpl( res, 0 );
