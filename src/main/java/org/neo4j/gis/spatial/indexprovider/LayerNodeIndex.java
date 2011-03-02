@@ -143,12 +143,10 @@ public class LayerNodeIndex implements Index<Node>
         return query(layerName, queryOrQueryObject);
     }
 
-    @Override
     public void remove(Node node, String s) {
         layer.delete(node.getId());
     }
 
-    @Override
     public void remove(Node node) {
         layer.delete(node.getId());
     }
