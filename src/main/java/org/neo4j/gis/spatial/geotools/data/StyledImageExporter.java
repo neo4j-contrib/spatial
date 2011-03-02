@@ -238,6 +238,8 @@ public class StyledImageExporter {
      * get a Style. This methods works out what sort of feature geometry
      * we have in the shapefile and then delegates to an appropriate style
      * creating method.
+     * TODO: Consider adding support for attribute based color schemes like in
+     * http://docs.geotools.org/stable/userguide/examples/stylefunctionlab.html
      */
     private Style createStyleFromGeometry(FeatureSource<?,?> featureSource) {
         SimpleFeatureType schema = (SimpleFeatureType)featureSource.getSchema();
