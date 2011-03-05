@@ -66,12 +66,6 @@ public class OSMImporter implements Constants
 {
     public static DefaultEllipsoid WGS84 = DefaultEllipsoid.WGS84;
 
-    // protected static final List<String> NODE_INDEXING_KEYS = new
-    // ArrayList<String>();
-    // static {
-    // NODE_INDEXING_KEYS.add("node_osm_id");
-    // }
-
     protected boolean nodesProcessingFinished = false;
     private String layerName;
     private StatsManager stats = new StatsManager();
