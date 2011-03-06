@@ -33,6 +33,7 @@ import org.neo4j.graphdb.ReturnableEvaluator;
 import org.neo4j.graphdb.StopEvaluator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.Traverser.Order;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.LineString;
@@ -216,19 +217,26 @@ public class SpatialDatabaseService implements Constants {
         return createLayer(name, WKBGeometryEncoder.class, DefaultLayer.class);
     }
 
-    public SimplePointLayer createSimplePointLayer(String name) {
-		return (SimplePointLayer)createLayer(name, SimplePointEncoder.class, SimplePointLayer.class);
-    }
+	public SimplePointLayer createSimplePointLayer(String name) {
+		return (SimplePointLayer) createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, null,
+				org.geotools.referencing.crs.DefaultGeographicCRS.WGS84);
+	}
 
-    public SimplePointLayer createSimplePointLayer(String name, String xProperty, String yProperty) {
-		return (SimplePointLayer)createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, xProperty + ":" + yProperty);
-    }
+	public SimplePointLayer createSimplePointLayer(String name, String xProperty, String yProperty) {
+		return (SimplePointLayer) createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, xProperty + ":" + yProperty,
+				org.geotools.referencing.crs.DefaultGeographicCRS.WGS84);
+	}
 
     public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass, Class<? extends Layer> layerClass) {
     	return createLayer(name, geometryEncoderClass, layerClass, null);
     }
 
     public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass, Class<? extends Layer> layerClass, String encoderConfig) {
+    	return createLayer(name, geometryEncoderClass, layerClass, encoderConfig, null);
+    }
+
+	public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass, Class<? extends Layer> layerClass,
+			String encoderConfig, CoordinateReferenceSystem crs) {
         Transaction tx = database.beginTx();
         try {
             if (containsLayer(name))
