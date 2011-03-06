@@ -61,4 +61,11 @@ public class SimplePointLayer extends EditableLayerImpl {
 		return results;
 	}
 
+	public SpatialDatabaseRecord add(Coordinate coordinate) {
+		return add(getGeometryFactory().createPoint(coordinate));
+	}
+
+	public SpatialDatabaseRecord add(double x, double y) {
+		return add(getGeometryFactory().createPoint(new Coordinate(x, y)));
+	}
 }

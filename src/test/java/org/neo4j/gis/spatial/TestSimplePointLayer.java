@@ -64,8 +64,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		SimplePointLayer layer = db.createSimplePointLayer("neo-text");
 		assertNotNull(layer);
 		for (Coordinate coordinate : makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt")) {
-			Point point = layer.getGeometryFactory().createPoint(coordinate);
-			SpatialDatabaseRecord record = layer.add(point);
+			SpatialDatabaseRecord record = layer.add(coordinate);
 			assertNotNull(record);
 		}
 		saveLayerAsImage(layer, 700, 70);
@@ -112,18 +111,23 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 	}
 
 	private void saveLayerAsImage(Layer layer, int width, int height) {
+		ShapefileExporter shpExporter = new ShapefileExporter(graphDb());
+		shpExporter.setExportDir("target/export/SimplePointTests");
 		StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
 		imageExporter.setExportDir("target/export/SimplePointTests");
 		imageExporter.setZoom(0.9);
 		imageExporter.setSize(width, height);
 		try {
 			imageExporter.saveLayerImage(layer.getName());
-		} catch (IOException e) {
+			shpExporter.exportLayer(layer.getName());
+		} catch (Exception e) {
 			throw new AssertionFailedError("Failed to save layer '" + layer.getName() + "' as image: " + e.getMessage());
 		}
 	}
 
 	private void saveResultsAsImage(List<SpatialDatabaseRecord> results, Layer layer, int width, int height) {
+		ShapefileExporter shpExporter = new ShapefileExporter(graphDb());
+		shpExporter.setExportDir("target/export/SimplePointTests");
 		StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
 		imageExporter.setExportDir("target/export/SimplePointTests");
 		imageExporter.setZoom(0.9);
@@ -136,7 +140,8 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		}
 		try {
 			imageExporter.saveLayerImage(layerName);
-		} catch (IOException e) {
+			shpExporter.exportLayer(layerName);
+		} catch (Exception e) {
 			throw new AssertionFailedError("Failed to save results image: " + e.getMessage());
 		}
 	}
