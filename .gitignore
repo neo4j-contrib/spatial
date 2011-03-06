@@ -1,1 +1,6 @@
 .settings
+osm
+logs
+benchmark
+/stackTrace*
+/*.log
