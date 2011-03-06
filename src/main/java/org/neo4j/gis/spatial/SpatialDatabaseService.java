@@ -254,6 +254,9 @@ public class SpatialDatabaseService implements Constants {
 							+ "' passed to non-configurable encoder: " + geometryEncoderClass);
 				}
 			}
+			if (crs != null && layer instanceof EditableLayer) {
+				((EditableLayer) layer).setCoordinateReferenceSystem(crs);
+			}
             tx.success();
             return layer;
         } finally {
