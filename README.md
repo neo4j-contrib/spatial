@@ -2,6 +2,10 @@ Neo4j Spatial
 =============
  
 Neo4j Spatial is a library facilitating the import, storage and querying of spatial data in the [Neo4j open source graph database](http://neo4j.org/).
+
+![OpenStreetMap](src/site/pics/one-street.png)
+
+
 Some key features include:
 
 * Utilities for importing from ESRI Shapefile as well as Open Street Map files
@@ -32,7 +36,11 @@ The spatial queries implemented are:
 Building
 --------
 
-The simplest way to build Neo4j Spatial is by using maven. Just clone the git repository and run 'mvn install'. This will download all dependencies, compiled the library, run the tests and install the artifact in your local repository.
+The simplest way to build Neo4j Spatial is by using maven. Just clone the git repository and run 
+  
+  mvn install
+  
+This will download all dependencies, compiled the library, run the tests and install the artifact in your local repository.
 The main dependencies are:
 
 * Neo4j 1.3M02 (at the time of writing, with trunk build of 0.4-SNAPSHOT)
@@ -97,3 +105,14 @@ Executing a spatial query
 	}
 
 Refer to the test code in the LayerTest and the SpatialTest classes for more examples of query code. Also review the classes in the org.neo4j.gis.spatial.query package for the full range or search queries currently implemented.
+
+Using Neo4j Spatial with GeoServer
+----------------------------------
+For more info head over to [Neo4j Wiki on Geoserver](http://wiki.neo4j.org/content/Neo4j_Spatial_in_GeoServer)
+
+
+Using Neo4j Spatial with uDig
+----------------------------------
+For more info head over to [Neo4j Wiki on uDig](http://wiki.neo4j.org/content/Neo4j_Spatial_in_uDig)
+
+- 
