@@ -114,5 +114,3 @@ For more info head over to [Neo4j Wiki on Geoserver](http://wiki.neo4j.org/conte
 Using Neo4j Spatial with uDig
 ----------------------------------
 For more info head over to [Neo4j Wiki on uDig](http://wiki.neo4j.org/content/Neo4j_Spatial_in_uDig)
-
-- 
