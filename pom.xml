@@ -15,7 +15,7 @@
   <name>Neo4j - Spatial Components</name>
   <description>Spatial utilities and components for neo4j</description>
   <url>http://components.neo4j.org/${project.artifactId}/${project.version}</url>
-  <inceptionYear>February 2010</inceptionYear>
+  <inceptionYear>2010</inceptionYear>
 
   <packaging>jar</packaging>
   <parent>
@@ -261,5 +261,12 @@
     </plugins>
   </reporting>
 
+  <distributionManagement>
+    <site>
+      <id>neo4j-site</id>
+      <url>scpexe://components.neo4j.org/home/neo/components/${project.artifactId}/${project.version}</url>
+    </site>
+  </distributionManagement>
 
 </project>
+

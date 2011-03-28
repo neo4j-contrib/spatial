@@ -19,15 +19,8 @@
  */
 package org.neo4j.gis.spatial;
 
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-
-import junit.framework.AssertionFailedError;
 
 import org.junit.Test;
 import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;

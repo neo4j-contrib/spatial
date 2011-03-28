@@ -4,3 +4,16 @@ logs
 benchmark
 /stackTrace*
 /*.log
+*~
+\#*
+.gradle
+target
+build
+*.swp
+.project
+.classpath
+*.iws
+*.ipr
+*.iml
+.idea
+.DS_Store
