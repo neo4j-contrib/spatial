@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <properties>
-    <neo4j.version>1.3.M03</neo4j.version>
-    <geotools.version>2.7-M3</geotools.version>
+    <neo4j.version>1.3.M05</neo4j.version>
+    <geotools.version>2.7-RC1</geotools.version>
     <spatial.test.osm.version>20100819</spatial.test.osm.version>
     <spatial.test.shp.version>20100819</spatial.test.shp.version>
     <bundle.namespace>org.neo4j.gis</bundle.namespace>
@@ -12,31 +12,26 @@
   <artifactId>neo4j-spatial</artifactId>
   <groupId>org.neo4j</groupId>
   <version>0.5-SNAPSHOT</version>
-  <name>Neo4j Spatial Components</name>
+  <name>Neo4j - Spatial Components</name>
   <description>Spatial utilities and components for neo4j</description>
-  <url>http://github.com/neo4j/neo4j-spatial/</url>
-  <inceptionYear>February 2010</inceptionYear>
+  <url>http://components.neo4j.org/${project.artifactId}/${project.version}</url>
+  <inceptionYear>2010</inceptionYear>
 
-  <packaging>bundle</packaging>
+  <packaging>jar</packaging>
   <parent>
     <artifactId>parent-pom</artifactId>
     <groupId>org.neo4j</groupId>
-    <version>15</version>
+    <version>18</version>
   </parent>
 
   <scm>
-    <url>git@github.com:neo4j/neo4j-spatial.git</url>
+    <url>http://github.com/neo4j/neo4j-spatial/</url>
+    <connection>scm:git:git://github.com/neo4j/neo4j-spatial.git</connection>
+    <developerConnection>scm:git:git@github.com:neo4j/neo4j-spatial.git</developerConnection>
   </scm>
 
   <build>
     <plugins>
-      <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <configuration>
-          <source>1.6</source>
-          <target>1.6</target>
-        </configuration>
-      </plugin>
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
@@ -104,70 +99,13 @@
       <version>${neo4j.version}</version>
     </dependency>
       <dependency>
-          <groupId>org.neo4j.app</groupId>
-          <artifactId>neo4j-server</artifactId>
+          <groupId>org.neo4j</groupId>
+          <artifactId>server-api</artifactId>
           <version>${neo4j.version}</version>
-          <scope>provided</scope>
-          <exclusions>
-              <exclusion>
-                  <groupId>com.tinkerpop</groupId>
-                  <artifactId>gremlin</artifactId>
-              </exclusion>
-              <exclusion>
-                  <groupId>org.neo4j</groupId>
-                  <artifactId>neo4j</artifactId>
-              </exclusion>
-              <exclusion>
-                  <groupId>org.mortbay.jetty</groupId>
-                  <artifactId>jetty</artifactId>
-              </exclusion>
-              <exclusion>
-                  <groupId>com.sun.jersey</groupId>
-                  <artifactId>jersey-server</artifactId>
-              </exclusion>
-              <exclusion>
-                  <groupId>commons-configuration</groupId>
-                  <artifactId>commons-configuration</artifactId>
-              </exclusion>
-              <exclusion>
-                  <groupId>commons-io</groupId>
-                  <artifactId>commons-io</artifactId>
-              </exclusion>
-              <exclusion>
-                  <groupId>org.codehaus.jackson</groupId>
-                  <artifactId>jackson-jaxrs</artifactId>
-              </exclusion>
-              <exclusion>
-                  <groupId>org.codehaus.jackson</groupId>
-                  <artifactId>jackson-mapper-asl</artifactId>
-              </exclusion>
-              <exclusion>
-                  <groupId>de.huxhorn.lilith</groupId>
-                  <artifactId>de.huxhorn.lilith.3rdparty.rrd4j</artifactId>
-              </exclusion>
-              <exclusion>
-                  <groupId>com.sun.jersey.contribs</groupId>
-                  <artifactId>jersey-multipart</artifactId>
-              </exclusion>
-              <exclusion>
-                  <groupId>org.apache.felix</groupId>
-                  <artifactId>org.apache.felix.main</artifactId>
-              </exclusion>
-              <exclusion>
-                  <groupId>org.apache.felix</groupId>
-                  <artifactId>org.apache.felix.fileinstall</artifactId>
-              </exclusion>
-              <exclusion>
-                  <groupId>org.neo4j</groupId>
-                  <artifactId>neo4j-shell</artifactId>
-              </exclusion>
-          </exclusions>
       </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.8.1</version>
-      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.neo4j.spatial</groupId>
@@ -315,16 +253,20 @@
         </configuration>
       </plugin>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.5</version>
         <configuration>
           <argLine>-server -Xms512m -Xmx1600m -XX:+UseConcMarkSweepGC</argLine>
         </configuration>
       </plugin>
-
     </plugins>
   </reporting>
 
+  <distributionManagement>
+    <site>
+      <id>neo4j-site</id>
+      <url>scpexe://components.neo4j.org/home/neo/components/${project.artifactId}/${project.version}</url>
+    </site>
+  </distributionManagement>
 
 </project>
+
