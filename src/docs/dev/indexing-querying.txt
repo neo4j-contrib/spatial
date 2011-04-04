@@ -1,0 +1,19 @@
+[[spatial-indexing]]
+Index and Querying
+==================
+
+The current index is an RTree index, but it has been developed in an extensible way allowing for other indices to be added if necessary.
+The spatial queries implemented are:
+
+* Contain
+* Cover
+* Covered By
+* Cross
+* Disjoint
+* Intersect
+* Intersect Window
+* Overlap
+* Touch
+* Within
+* Within Distance
+

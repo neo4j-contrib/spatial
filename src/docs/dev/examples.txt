@@ -1,0 +1,80 @@
+[[spatial-examples]]
+Examples
+========
+
+[[spatial-import-shapefile]]
+== Importing a shapefile ==
+
+Spatial data is divided in Layers and indexed by a RTree.
+
+    GraphDatabaseService database = new EmbeddedGraphDatabase(storeDir);
+	try {
+		ShapefileImporter importer = new ShapefileImporter(database);
+	    importer.importShapefile("roads.shp", "layer_roads");
+	} finally {
+		database.shutdown();
+	}
+
+[[spatial-import-osm]]
+== Importing an Open Street Map file ==
+
+
+This is more complex because the current OSMImporter class runs in two phases, the first requiring a batch-inserter on the database.
+The is ongoing work to allow for a non-batch-inserter on the entire process, and possibly when you have read this that will already be available.
+Refer to the unit tests in classes +TestDynamicLayers+ and +TestOSMImport+ for the latest code for importing OSM data.
+At the time of writing the following worked:
+
+[source,java]
+----
+	OSMImporter importer = new OSMImporter("sweden");
+
+	BatchInserter batchInserter = new BatchInserterImpl(dir, config);
+	importer.importFile(batchInserter, "sweden.osm", false);
+	batchInserter.shutdown();
+
+    GraphDatabaseService db = new EmbeddedGraphDatabase(dir);
+	importer.reIndex(db, 10000);
+	db.shutdown();
+----
+
+// rather do like this:
+
+[snippet,java]
+----
+component=neo4j-spatial
+source=org/neo4j/gis/spatial/TestOSMImport.java
+tag=importOsm
+----
+
+[[spatial-spatial-query]]
+== Executing a spatial query ==
+
+[source,java]
+----
+	GraphDatabaseService database = new EmbeddedGraphDatabase(storeDir);
+	try {
+    	SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
+        Layer layer = spatialService.getLayer("layer_roads");
+        SpatialIndexReader spatialIndex = layer.getIndex();
+        	
+        Search searchQuery = new SearchIntersectWindow(new Envelope(xmin, xmax, ymin, ymax));
+        spatialIndex.executeSearch(searchQuery);
+   	    List<SpatialDatabaseRecord> results = searchQuery.getResults();
+	} finally {
+		database.shutdown();
+	}
+----
+
+Refer to the test code in the +LayerTest+ and the +SpatialTest+ classes for more examples of query code.
+Also review the classes in the +org.neo4j.gis.spatial.query package+ for the full range or search queries currently implemented.
+
+[[spatial-geoserver]]
+== Using Neo4j Spatial with GeoServer ==
+
+For more info head over to http://wiki.neo4j.org/content/Neo4j_Spatial_in_GeoServer[Neo4j Wiki on Geoserver]
+
+[[spatial-udig]]
+== Using Neo4j Spatial with uDig ==
+
+For more info head over to http://wiki.neo4j.org/content/Neo4j_Spatial_in_uDig[Neo4j Wiki on uDig]
+
