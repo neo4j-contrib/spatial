@@ -21,13 +21,15 @@ package org.neo4j.gis.spatial;
 
 import org.neo4j.graphdb.Node;
 
+import com.vividsolutions.jts.geom.Envelope;
+
 
 /**
  * @author Davide Savazzi
  */
 public interface SpatialIndexVisitor {
 
-	boolean needsToVisit(Node indexNode);
+	boolean needsToVisit(Envelope indexNodeEnvelope);
 
 	void onIndexReference(Node geomNode);
 	

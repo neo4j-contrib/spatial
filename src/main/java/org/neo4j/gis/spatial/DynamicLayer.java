@@ -147,8 +147,8 @@ public class DynamicLayer extends EditableLayerImpl {
         }
 
         private class Counter extends RecordCounter {
-            public boolean needsToVisit(Node indexNode) {
-                return queryIndexNode(indexNode);
+            public boolean needsToVisit(Envelope indexNodeEnvelope) {
+                return queryIndexNode(indexNodeEnvelope);
             }
 
             public void onIndexReference(Node geomNode) {
@@ -172,8 +172,8 @@ public class DynamicLayer extends EditableLayerImpl {
                 delegate.setLayer(layer);
             }
 
-            public boolean needsToVisit(Node indexNode) {
-                return delegate.needsToVisit(indexNode);
+            public boolean needsToVisit(Envelope indexNodeEnvelope) {
+                return delegate.needsToVisit(indexNodeEnvelope);
             }
 
             public void onIndexReference(Node geomNode) {
@@ -183,7 +183,7 @@ public class DynamicLayer extends EditableLayerImpl {
             }
         }
 
-        private boolean queryIndexNode(Node indexNode) {
+        private boolean queryIndexNode(Envelope indexNodeEnvelope) {
             return true;
         }
 
@@ -237,8 +237,8 @@ public class DynamicLayer extends EditableLayerImpl {
 		private JSONObject query;
 
 		private class DynamicRecordCounter extends RecordCounter {
-			public boolean needsToVisit(Node indexNode) {
-				return queryIndexNode(indexNode);
+			public boolean needsToVisit(Envelope indexNodeEnvelope) {
+				return queryIndexNode(indexNodeEnvelope);
 			}
 
 			public void onIndexReference(Node geomNode) {
@@ -253,7 +253,7 @@ public class DynamicLayer extends EditableLayerImpl {
 			this.query = (JSONObject)JSONValue.parse(query);
 		}
 
-		private boolean queryIndexNode(Node indexNode) {
+		private boolean queryIndexNode(Envelope indexNodeEnvelope) {
 			// TODO: Support making the query on each index node for performance
 			return true;
 		}
@@ -329,8 +329,8 @@ public class DynamicLayer extends EditableLayerImpl {
 					search.setLayer(layer);
 				}
 
-				public boolean needsToVisit(Node indexNode) {
-					return search.needsToVisit(indexNode);
+				public boolean needsToVisit(Envelope indexNodeEnvelope) {
+					return search.needsToVisit(indexNodeEnvelope);
 				}
 
 				public void onIndexReference(Node geomNode) {

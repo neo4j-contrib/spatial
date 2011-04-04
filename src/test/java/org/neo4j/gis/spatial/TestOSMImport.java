@@ -23,23 +23,36 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 
 import org.geotools.data.DataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.junit.Test;
 import org.neo4j.gis.spatial.geotools.data.Neo4jSpatialDataStore;
 import org.neo4j.gis.spatial.osm.OSMDataset;
+import org.neo4j.gis.spatial.osm.OSMDataset.Way;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.osm.OSMRelation;
+import org.neo4j.gis.spatial.query.SearchWithin;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 
 import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
 
 public class TestOSMImport extends Neo4jTestCase {
+	public static final String spatialTestMode = System.getProperty("spatial.test.mode");
+	public static boolean runLongTests = false;
+	static {
+        if (spatialTestMode != null && spatialTestMode.equals("long")) {
+        	runLongTests = true;
+        } else {
+        	runLongTests = false;
+        }
+	}
 
 	@Test
 	public void testImport_One() throws Exception {
@@ -114,13 +127,23 @@ public class TestOSMImport extends Neo4jTestCase {
 		// TODO: Consider merits of using dependency data in target/osm,
 		// downloaded by maven, as done in TestSpatial, versus the test data
 		// commited to source code as done here
-		if (!(new File(osmFile).exists())) {
+		if (!checkOSMFile(new File(osmFile))) {
 			return;
 		}
 		printDatabaseStats();
 		loadTestOsmData(osmFile, includePoints, 1000);
 		checkOSMLayer(osmFile);
 		printDatabaseStats();
+	}
+
+	private boolean checkOSMFile(File osmFile) {
+		if (!osmFile.exists()) {
+			return false;
+		}
+		if (!runLongTests && osmFile.length() > 100000000) {
+			return false;
+		}
+		return true;
 	}
 
 	private void loadTestOsmData(String layerName, boolean includePoints, int commitInterval) throws Exception {
@@ -147,10 +170,35 @@ public class TestOSMImport extends Neo4jTestCase {
 		assertNotNull("OSM Layer index should not be null", layer.getIndex());
 		assertNotNull("OSM Layer index envelope should not be null", layer.getIndex().getLayerBoundingBox());
 		Envelope bbox = layer.getIndex().getLayerBoundingBox();
-		System.out.println("OSM Layer has bounding box: " + bbox);
+		debugEnvelope(bbox, layerName, "bbox");
 		//((RTreeIndex)layer.getIndex()).debugIndexTree();
 		checkIndexAndFeatureCount(layer);
 		checkChangesetsAndUsers(layer);
+		checkOSMSearch(layer);
+	}
+
+	private void checkOSMSearch(OSMLayer layer) throws IOException {
+		OSMDataset osm = (OSMDataset) layer.getDataset();
+		Way way = null;
+		int count = 0;
+		for (Way wayNode : osm.getWays()) {
+			way = wayNode;
+			if (count++ > 100)
+				break;
+		}
+		assertNotNull("Should be at least one way", way);
+		Envelope bbox = way.getEnvelope();
+		Geometry searchArea = layer.getGeometryFactory().toGeometry(bbox);
+		SearchWithin search = new SearchWithin(searchArea);
+		layer.getIndex().executeSearch(search);
+		List<SpatialDatabaseRecord> results = search.getResults();
+		assertTrue("Should be at least one result, but got zero", results.size() > 0);
+	}
+
+	private void debugEnvelope(Envelope bbox, String layer, String name) {
+		System.out.println("Layer '" + layer + "' has envelope '" + name + "': " + bbox);
+		System.out.println("\tX: [" + bbox.getMinX() + ":" + bbox.getMaxX() + "]");
+		System.out.println("\tY: [" + bbox.getMinY() + ":" + bbox.getMaxY() + "]");
 	}
 
 	private void checkIndexAndFeatureCount(Layer layer) throws IOException {

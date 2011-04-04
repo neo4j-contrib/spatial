@@ -40,8 +40,8 @@ public class SearchClosest extends AbstractSearch {
 		this.searchWindow = searchWindow;
 	}
 
-	public boolean needsToVisit(Node indexNode) {
-		return searchWindow == null || getEnvelope(indexNode).intersects(searchWindow);
+	public boolean needsToVisit(Envelope indexNodeEnvelope) {
+		return searchWindow == null || indexNodeEnvelope.intersects(searchWindow);
 	}
 	
 	public final void onIndexReference(Node geomNode) {	

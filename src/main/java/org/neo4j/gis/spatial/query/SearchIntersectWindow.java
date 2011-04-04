@@ -43,8 +43,8 @@ public class SearchIntersectWindow extends AbstractSearch {
 		this.windowGeom = layer.getGeometryFactory().toGeometry(window);		
 	}
 	
-	public boolean needsToVisit(Node indexNode) {
-		return getEnvelope(indexNode).intersects(window);
+	public boolean needsToVisit(Envelope indexNodeEnvelope) {
+		return indexNodeEnvelope.intersects(window);
 	}
 	
 	public final void onIndexReference(Node geomNode) {	

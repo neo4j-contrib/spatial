@@ -37,7 +37,7 @@ public class SearchDisjoint extends AbstractSearch {
 		this.other = other;
 	}	
 	
-	public boolean needsToVisit(Node indexNode) {
+	public boolean needsToVisit(Envelope indexNodeEnvelope) {
 		return true;
 	}
 

@@ -61,8 +61,8 @@ public class SearchPointsWithinOrthodromicDistance extends AbstractSearch {
 		this.saveDistanceOnGeometry = saveDistanceOnGeometry;
 	}
 
-	public boolean needsToVisit(Node indexNode) {
-		return getEnvelope(indexNode).intersects(bbox);
+	public boolean needsToVisit(Envelope indexNodeEnvelope) {
+		return indexNodeEnvelope.intersects(bbox);
 	}
 
 	public void onIndexReference(Node geomNode) {

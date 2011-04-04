@@ -23,6 +23,7 @@ package org.neo4j.gis.spatial.query;
 import org.neo4j.gis.spatial.AbstractSearch;
 import org.neo4j.graphdb.Node;
 
+import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 
 
@@ -31,7 +32,7 @@ import com.vividsolutions.jts.geom.Geometry;
  */
 public class SearchInvalid extends AbstractSearch {
 	
-	public boolean needsToVisit(Node indexNode) {
+	public boolean needsToVisit(Envelope indexNodeEnvelope) {
 		return true;
 	}
 

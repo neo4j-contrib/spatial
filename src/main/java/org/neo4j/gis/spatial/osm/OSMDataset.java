@@ -37,11 +37,13 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.TraversalPosition;
 import org.neo4j.graphdb.Traverser.Order;
 
+import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 
-public class OSMDataset implements SpatialDataset {
+public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Iterator<OSMDataset.Way> {
     private OSMLayer layer;
     private Node datasetNode;
+    private Iterator<Node> wayNodeIterator;
 
     /**
      * This method is used to construct the dataset on an existing node when the node id is known,
@@ -137,7 +139,75 @@ public class OSMDataset implements SpatialDataset {
 		return results.hasNext() ? results.next() : null;
 	}
 
-    public Iterable< ? extends Geometry> getAllGeometries() {
+	public class OSMNode {
+		protected Node node;
+		protected Node geomNode;
+		protected Geometry geometry;
+
+		public OSMNode(Node node) {
+			this.node = node;
+			Relationship geomRel = this.node.getSingleRelationship(OSMRelation.GEOM, Direction.OUTGOING);
+			if(geomRel != null) geomNode = geomRel.getEndNode();
+		}
+		
+		public Node getGeometryNode() {
+			return geomNode;
+		}
+		
+		public Geometry getGeometry() {
+			if(geometry == null && geomNode != null) {
+				geometry = layer.getGeometryEncoder().decodeGeometry(geomNode);
+			}
+			return geometry;
+		}
+
+		public Envelope getEnvelope() {
+			return getGeometry().getEnvelopeInternal();
+		}
+	}
+
+	public class Way extends OSMNode implements Iterable<WayPoint>, Iterator<WayPoint> {
+		private Iterator<Node> wayPointNodeIterator;
+		public Way(Node node) {
+			super(node);
+		}
+		
+		public Iterable<Node> getWayNodes() {
+			return OSMDataset.this.getWayNodes(this.node);
+		}
+		
+		public Iterable<WayPoint> getWayPoints() {
+			return this;
+		}
+
+		public Iterator<WayPoint> iterator() {
+			if(wayPointNodeIterator==null || !wayPointNodeIterator.hasNext()) {
+				wayPointNodeIterator = getWayNodes().iterator();
+			}
+			return this;
+		}
+
+		public boolean hasNext() {
+			return wayPointNodeIterator.hasNext();
+		}
+
+		public WayPoint next() {
+			return new WayPoint(wayPointNodeIterator.next());
+		}
+
+		public void remove() {
+			throw new UnsupportedOperationException("Cannot modify way-point collection");
+		}
+
+	}
+
+	public class WayPoint extends OSMNode {
+		public WayPoint(Node node) {
+			super(node);
+		}
+	}
+
+	public Iterable< ? extends Geometry> getAllGeometries() {
         //@TODO: support multiple layers
         return layer.getAllGeometries();
     }
@@ -156,4 +226,26 @@ public class OSMDataset implements SpatialDataset {
         return Arrays.asList(new Layer[]{layer});
     }
 
+	public Iterable<Way> getWays() {
+		return this;
+	}
+
+	public Iterator<Way> iterator() {
+		if(wayNodeIterator==null || !wayNodeIterator.hasNext()) {
+			wayNodeIterator = getAllWayNodes().iterator();
+		}
+		return this;
+	}
+
+	public boolean hasNext() {
+		return wayNodeIterator.hasNext();
+	}
+
+	public Way next() {
+		return new Way(wayNodeIterator.next());
+	}
+
+	public void remove() {
+		throw new UnsupportedOperationException("Cannot modify way collection");
+	}
 }

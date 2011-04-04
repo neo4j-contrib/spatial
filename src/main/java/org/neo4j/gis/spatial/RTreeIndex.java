@@ -140,7 +140,7 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 		try {
 			// delete all geometry nodes
 			visitInTx(new SpatialIndexVisitor() {
-				public boolean needsToVisit(Node indexNode) {
+				public boolean needsToVisit(Envelope indexNodeEnvelope) {
 					return true;
 				}
 	
@@ -188,14 +188,7 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
     }
 	
 	public Envelope getLayerBoundingBox() {
-		Node indexRoot = getIndexRoot();
-		if (!indexRoot.hasProperty(PROP_BBOX)) {
-			// layer is empty
-			System.err.println("Layer '" + layer.getName() + "' has no bounding box property '" + PROP_BBOX + "'");
-			return null;
-		}
-		
-		return bboxToEnvelope((double[])indexRoot.getProperty(PROP_BBOX));
+		return getIndexNodeEnvelope(getIndexRoot());
 	}
 	
 	public int count() {
@@ -239,12 +232,30 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 	
 	// Private methods
 
-	private Envelope getEnvelope(Node geomNode) {
+	/**
+	 * The leaf nodes belong to the domain model, and as such need to use the
+	 * layers domain-specific GeometryEncoder for decoding the envelope.
+	 */
+	private Envelope getLeafNodeEnvelope(Node geomNode) {
 		return layer.getGeometryEncoder().decodeEnvelope(geomNode);
 	}
 	
+	/**
+	 * The index nodes do NOT belong to the domain model, and as such need to
+	 * use the indexes internal knowledge of the index tree and node structure
+	 * for decoding the envelope.
+	 */
+	private Envelope getIndexNodeEnvelope(Node indexNode) {
+		if(indexNode ==null) indexNode = getIndexRoot();
+		if (!indexNode.hasProperty(PROP_BBOX)) {
+			System.err.println("Layer '" + layer.getName() + "' node[" + indexNode + "] has no bounding box property '" + PROP_BBOX + "'");
+			return null;
+		}
+		return bboxToEnvelope((double[])indexNode.getProperty(PROP_BBOX));
+	}
+	
 	public void visit(SpatialIndexVisitor visitor, Node indexNode) {
-		if (!visitor.needsToVisit(indexNode)) return;
+		if (!visitor.needsToVisit(getIndexNodeEnvelope(indexNode))) return;
 		
 		if (indexNode.hasRelationship(SpatialRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
 			// Node is not a leaf
@@ -262,20 +273,10 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 	}
 	
 	private void visitInTx(SpatialIndexVisitor visitor, Long indexNodeId) {
-		boolean visitorNeedsToVisit = false;
-		boolean foundChildNodes = false;
-		boolean foundReferenceNodes = false;
-		
         Node indexNode = database.getNodeById(indexNodeId);
-        visitorNeedsToVisit = visitor.needsToVisit(indexNode);
-        if (visitorNeedsToVisit) {
-            foundChildNodes = indexNode.hasRelationship(SpatialRelationshipTypes.RTREE_CHILD, Direction.OUTGOING);
-            foundReferenceNodes = indexNode.hasRelationship(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING);
-        }
-
-		if (!visitorNeedsToVisit) return;
+        if(!visitor.needsToVisit(getIndexNodeEnvelope(indexNode))) return;
 		
-		if (foundChildNodes) {
+		if (indexNode.hasRelationship(SpatialRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
 			// Node is not a leaf
 			
 			// collect children
@@ -288,7 +289,7 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 			for (Long child : children) {
 				visitInTx(visitor, child);	
 			}
-		} else if (foundReferenceNodes) {
+		} else if (indexNode.hasRelationship(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)) {
 			// Node is a leaf
 			Transaction tx = database.beginTx();
 			try {
@@ -346,7 +347,7 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 		Iterable<Relationship> relationships = parentIndexNode.getRelationships(SpatialRelationshipTypes.RTREE_CHILD, Direction.OUTGOING);		
 		for (Relationship relation : relationships) {
 			Node indexNode = relation.getEndNode();
-			if (getEnvelope(indexNode).contains(getEnvelope(geomRootNode))) {
+			if (getIndexNodeEnvelope(indexNode).contains(getLeafNodeEnvelope(geomRootNode))) {
 				indexNodes.add(indexNode);
 			}
 		}
@@ -384,9 +385,9 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 	}
 
     private double getAreaEnlargement(Node indexNode, Node geomRootNode) {
-    	Envelope before = getEnvelope(indexNode);
+    	Envelope before = getIndexNodeEnvelope(indexNode);
     	
-    	Envelope after = getEnvelope(geomRootNode);
+    	Envelope after = getLeafNodeEnvelope(geomRootNode);
     	after.expandToInclude(before);
     	
     	return getArea(after) - getArea(before);
@@ -463,9 +464,9 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 		Node seed2 = null;
 		double worst = Double.NEGATIVE_INFINITY;
 		for (Node e : entries) {
-			Envelope eEnvelope = getEnvelope(e);
+			Envelope eEnvelope = getLeafNodeEnvelope(e);
 			for (Node e1 : entries) {
-				Envelope e1Envelope = getEnvelope(e1);
+				Envelope e1Envelope = getLeafNodeEnvelope(e1);
 				double deadSpace = getArea(createEnvelope(eEnvelope, e1Envelope)) - getArea(eEnvelope) - getArea(e1Envelope);
 				if (deadSpace > worst) {
 					worst = deadSpace;
@@ -477,11 +478,11 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 		
 		List<Node> group1 = new ArrayList<Node>();
 		group1.add(seed1);
-		Envelope group1envelope = getEnvelope(seed1);
+		Envelope group1envelope = getLeafNodeEnvelope(seed1);
 		
 		List<Node> group2 = new ArrayList<Node>();
 		group2.add(seed2);
-		Envelope group2envelope = getEnvelope(seed2);
+		Envelope group2envelope = getLeafNodeEnvelope(seed2);
 		
 		entries.remove(seed1);
 		entries.remove(seed2);
@@ -492,7 +493,7 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 			Node bestEntry = null;
 			double expansionMin = Double.POSITIVE_INFINITY;
 			for (Node e : entries) {
-				Envelope nodeEnvelope = getEnvelope(e);
+				Envelope nodeEnvelope = getLeafNodeEnvelope(e);
 				double expansion1 = getArea(createEnvelope(nodeEnvelope, group1envelope)) - getArea(group1envelope);
 				double expansion2 = getArea(createEnvelope(nodeEnvelope, group2envelope)) - getArea(group2envelope);
 						
@@ -522,7 +523,7 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 			
 			// insert the best candidate entry in the best group
 			bestGroup.add(bestEntry);
-			bestGroupEnvelope.expandToInclude(getEnvelope(bestEntry));
+			bestGroupEnvelope.expandToInclude(getLeafNodeEnvelope(bestEntry));
 
 			entries.remove(bestEntry);
 			
@@ -606,8 +607,8 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 		Iterator<Relationship> iterator = indexNode.getRelationships(relationshipType, Direction.OUTGOING).iterator();
 		while (iterator.hasNext()) {
 			Node childNode = iterator.next().getEndNode();
-			if (bbox == null) bbox = getEnvelope(childNode);
-			else bbox.expandToInclude(getEnvelope(childNode));
+			if (bbox == null) bbox = getLeafNodeEnvelope(childNode);
+			else bbox.expandToInclude(getLeafNodeEnvelope(childNode));
 		}
 		indexNode.setProperty(PROP_BBOX, new double[] { bbox.getMinX(), bbox.getMinY(), bbox.getMaxX(), bbox.getMaxY() });
 	}
@@ -663,7 +664,7 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 	}	
 	
 	private double getArea(Node node) {
-		return getArea(getEnvelope(node));
+		return getArea(getLeafNodeEnvelope(node));
 	}
 
 	private double getArea(Envelope e) {
@@ -746,7 +747,7 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 
 	static class RecordCounter implements SpatialIndexVisitor {
 		
-		public boolean needsToVisit(Node indexNode) { return true; }	
+		public boolean needsToVisit(Envelope indexNodeEnvelope) { return true; }	
 		
 		public void onIndexReference(Node geomNode) { count++; }
 		
@@ -757,7 +758,7 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 
 	class WarmUpVisitor implements SpatialIndexVisitor {
 		
-		public boolean needsToVisit(Node indexNode) { getEnvelope(indexNode); return true; }	
+		public boolean needsToVisit(Envelope indexNodeEnvelope) { return true; }	
 		
 		public void onIndexReference(Node geomNode) { }	
 	}

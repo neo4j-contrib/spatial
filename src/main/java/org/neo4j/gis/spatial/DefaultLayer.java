@@ -37,6 +37,7 @@ import org.neo4j.graphdb.Traverser.Order;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
+import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 
@@ -130,7 +131,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 
         Integer firstFoundType;
             
-        public boolean needsToVisit(Node indexNode) {
+        public boolean needsToVisit(Envelope indexNodeEnvelope) {
             return firstFoundType == null;
         }
 

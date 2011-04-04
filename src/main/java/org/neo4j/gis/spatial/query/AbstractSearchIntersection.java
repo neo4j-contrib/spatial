@@ -35,8 +35,8 @@ public abstract class AbstractSearchIntersection extends AbstractSearch {
 		this.other = other;
 	}
 
-	public boolean needsToVisit(Node indexNode) {
-		return getEnvelope(indexNode).intersects(other.getEnvelopeInternal());
+	public boolean needsToVisit(Envelope indexNodeEnvelope) {
+		return indexNodeEnvelope.intersects(other.getEnvelopeInternal());
 	}
 	
 	public final void onIndexReference(Node geomNode) {	
