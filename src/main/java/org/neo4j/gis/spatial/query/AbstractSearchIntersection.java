@@ -49,4 +49,9 @@ public abstract class AbstractSearchIntersection extends AbstractSearch {
 	protected abstract void onEnvelopeIntersection(Node geomNode, Envelope geomEnvelope);
 	
 	protected Geometry other;
+
+	public String toString() {
+		return "SearchIntersection[" + other.getEnvelopeInternal() + "]";
+	}
+
 }

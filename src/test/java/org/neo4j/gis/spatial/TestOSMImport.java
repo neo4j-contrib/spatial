@@ -22,12 +22,15 @@ package org.neo4j.gis.spatial;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
+import junit.framework.Test;
+import junit.framework.TestSuite;
+
 import org.geotools.data.DataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
-import org.junit.Test;
 import org.neo4j.gis.spatial.geotools.data.Neo4jSpatialDataStore;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMDataset.Way;
@@ -40,114 +43,94 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 
+import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 
 public class TestOSMImport extends Neo4jTestCase {
 	public static final String spatialTestMode = System.getProperty("spatial.test.mode");
-	public static boolean runLongTests = false;
-	static {
+
+	public TestOSMImport(String layerName, boolean includePoints) {
+		setName("Test OSM-Import of " + layerName + " " + (includePoints ? "including" : "not including") + " point indexing");
+	}
+
+    public static Test suite() {
+        deleteDatabase();
+        TestSuite suite = new TestSuite();
+        String[] smallModels = new String[]{"one-street.osm","two-street.osm"};
+        String[] mediumModels = new String[]{"map.osm","map2.osm"};
+        String[] largeModels = new String[]{"cyprus.osm","croatia.osm","denmark.osm"};
+
+        // Setup default test cases (short or medium only, no long cases)
+        ArrayList<String> layersToTest = new ArrayList<String>();
+        layersToTest.addAll(Arrays.asList(smallModels));
+        layersToTest.addAll(Arrays.asList(mediumModels));
+
+        // Now modify the test cases based on the spatial.test.mode setting
         if (spatialTestMode != null && spatialTestMode.equals("long")) {
-        	runLongTests = true;
-        } else {
-        	runLongTests = false;
+            // Very long running tests
+            layersToTest.addAll(Arrays.asList(largeModels));
+        } else if (spatialTestMode != null && spatialTestMode.equals("short")) {
+            // Tests used for a quick check
+            layersToTest.clear();
+            layersToTest.addAll(Arrays.asList(smallModels));
+        } else if (spatialTestMode != null && spatialTestMode.equals("dev")) {
+            // Tests relevant to current development
+            layersToTest.clear();
+            layersToTest.add("map2.osm");
+            layersToTest.add("cyprus.osm");
+            layersToTest.add("croatia.osm");
         }
-	}
 
-	@Test
-	public void testImport_One() throws Exception {
-		runImport("one-street.osm");
-	}
+        // Finally build the set of complete test cases based on the collection above
+		for (final String layerName : layersToTest) {
+			for (final boolean includePoints : new boolean[] { true, false }) {
+				suite.addTest(new TestOSMImport(layerName, includePoints) {
+					public void runTest() {
+						try {
+							runImport(layerName, includePoints);
+						} catch (Exception e) {
+							// assertTrue("Failed to run import test due to exception: "
+							// + e, false);
+							throw new SpatialDatabaseException(e.getMessage(), e);
+						}
+					}
+				});
+			}
+		}
+        System.out.println("This suite has " + suite.testCount() + " tests");
+        for (int i = 0; i < suite.testCount(); i++) {
+            System.out.println("\t" + suite.testAt(i).toString());
+        }
+        return suite;
+    }
 
-	@Test
-	public void testImport_One_X() throws Exception {
-		runImport("one-street.osm", false);
-	}
-
-	@Test
-	public void testImport_Two() throws Exception {
-		runImport("two-street.osm");
-	}
-
-	@Test
-	public void testImport_Two_X() throws Exception {
-		runImport("two-street.osm", false);
-	}
-
-	@Test
-	public void testImport_Map1() throws Exception {
-		runImport("map.osm");
-	}
-
-	@Test
-	public void testImport_Map1_X() throws Exception {
-		runImport("map.osm", false);
-	}
-
-	@Test
-	public void testImport_Map2() throws Exception {
-		runImport("map2.osm");
-	}
-
-	@Test
-	public void testImport_Map2_X() throws Exception {
-		runImport("map2.osm", false);
-	}
-
-	@Test
-	public void testImport_Cyprus() throws Exception {
-		runImport("cyprus.osm");
-	}
-
-	@Test
-	public void testImport_Cyprus_X() throws Exception {
-		runImport("cyprus.osm", false);
-	}
-
-	@Test
-	public void testImport_Croatia() throws Exception {
-		runImport("croatia.osm");
-	}
-
-	@Test
-	public void testImport_Croatia_X() throws Exception {
-		runImport("croatia.osm", false);
-	}
-
-	@Test
-	public void testImport_Denmark() throws Exception {
-		runImport("denmark.osm");
-	}
-
-	private void runImport(String osmFile) throws Exception {
-		runImport(osmFile, true);
-	}
-
-	private void runImport(String osmFile, boolean includePoints) throws Exception {
+	protected void runImport(String osm, boolean includePoints) throws Exception {
 		// TODO: Consider merits of using dependency data in target/osm,
 		// downloaded by maven, as done in TestSpatial, versus the test data
 		// commited to source code as done here
-		if (!checkOSMFile(new File(osmFile))) {
+		String osmPath = checkOSMFile(osm);
+		if (osmPath == null) {
 			return;
 		}
 		printDatabaseStats();
-		loadTestOsmData(osmFile, includePoints, 1000);
-		checkOSMLayer(osmFile);
+		loadTestOsmData(osm, osmPath, includePoints, 1000);
+		checkOSMLayer(osm);
 		printDatabaseStats();
 	}
 
-	private boolean checkOSMFile(File osmFile) {
+	private String checkOSMFile(String osm) {
+		File osmFile = new File(osm);
 		if (!osmFile.exists()) {
-			return false;
+			osmFile = new File(new File("osm"), osm);
+			if (!osmFile.exists()) {
+				return null;
+			}
 		}
-		if (!runLongTests && osmFile.length() > 100000000) {
-			return false;
-		}
-		return true;
+		return osmFile.getPath();
 	}
 
-	private void loadTestOsmData(String layerName, boolean includePoints, int commitInterval) throws Exception {
-		String osmPath = layerName;
+	private void loadTestOsmData(String layerName, String osmPath, boolean includePoints, int commitInterval) throws Exception {
 		System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
 		reActivateDatabase(false, true, false);
 		long start = System.currentTimeMillis();
@@ -179,6 +162,46 @@ public class TestOSMImport extends Neo4jTestCase {
 		checkOSMSearch(layer);
 	}
 
+	/**
+	 * This class returns true for all index nodes, forcing the search to be
+	 * exhaustive. We use it for performance testing of the RTree.
+	 * @since 0.6
+	 * @author craig
+	 */
+	private class SearchWithinAll extends SearchWithin {
+
+		public SearchWithinAll(Geometry other) {
+			super(other);
+		}
+		
+		public boolean needsToVisit(Envelope indexNodeEnvelope) {
+			return true;
+		}
+		
+	}
+	
+	/**
+	 * This class returns true for a wider range of index nodes, by reproducing
+	 * a bug we had before 0.6, where the Envelope had the MinY and MaxX values
+	 * swapped, creating a much large envelope in most cases. We use it for
+	 * performance testing of the RTree.
+	 * @since 0.6
+	 * @author craig
+	 */
+	private class SearchWithinBroken extends SearchWithin {
+
+		public SearchWithinBroken(Geometry other) {
+			super(other);
+		}
+		
+		public boolean needsToVisit(Envelope indexNodeEnvelope) {
+			indexNodeEnvelope = new Envelope(indexNodeEnvelope.getMinX(), indexNodeEnvelope.getMinY(), indexNodeEnvelope.getMaxX(),
+					indexNodeEnvelope.getMaxY());
+			return indexNodeEnvelope.intersects(other.getEnvelopeInternal());
+		}
+		
+	}
+	
 	private void checkOSMSearch(OSMLayer layer) throws IOException {
 		OSMDataset osm = (OSMDataset) layer.getDataset();
 		Way way = null;
@@ -190,11 +213,34 @@ public class TestOSMImport extends Neo4jTestCase {
 		}
 		assertNotNull("Should be at least one way", way);
 		Envelope bbox = way.getEnvelope();
-		Geometry searchArea = layer.getGeometryFactory().toGeometry(bbox);
-		SearchWithin search = new SearchWithin(searchArea);
+		runSearches(layer, bbox, true);
+		Envelope layerBBox = layer.getIndex().getLayerBoundingBox();
+		Coordinate centre = layerBBox.centre();
+		double width = layerBBox.getWidth() / 100.0;
+		double height = layerBBox.getWidth() / 100.0;
+		bbox = new Envelope(centre.x - width, centre.x + width, centre.y - height, centre.y + height);
+		runSearches(layer, bbox, false);
+	}
+
+	private void runSearches(OSMLayer layer, Envelope bbox, boolean willHaveResult) {
+		for (int i = 0; i < 4; i++) {
+			Geometry searchArea = layer.getGeometryFactory().toGeometry(bbox);
+			runSearch(layer, new SearchWithinAll(searchArea), willHaveResult);
+			runSearch(layer, new SearchWithinBroken(searchArea), willHaveResult);
+			runSearch(layer, new SearchWithin(searchArea), willHaveResult);
+			bbox.expandBy(bbox.getWidth(), bbox.getHeight());
+		}
+	}
+
+	private void runSearch(OSMLayer layer, SearchWithin search, boolean willHaveResult) {
+		long start = System.currentTimeMillis();
 		layer.getIndex().executeSearch(search);
 		List<SpatialDatabaseRecord> results = search.getResults();
-		assertTrue("Should be at least one result, but got zero", results.size() > 0);
+		long time = System.currentTimeMillis() - start;
+		System.out.println("Took " + time + "ms to find " + results.size() + " search results in layer " + layer.getName()
+				+ " using search within " + search);
+		if (willHaveResult)
+			assertTrue("Should be at least one result, but got zero", results.size() > 0);
 	}
 
 	private void debugEnvelope(Envelope bbox, String layer, String name) {
