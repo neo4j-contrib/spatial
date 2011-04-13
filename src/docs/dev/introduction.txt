@@ -3,16 +3,16 @@
 Introduction
 ============
 
-Neo4j Spatial is a library of utilities for Neo4j that faciliates the enabling of spatial operations on data.
+Neo4j Spatial is a library of utilities for Neo4j that facilitate the enabling of spatial operations on data.
 In particular you can add spatial indexes to already located data, and perform spatial operations on the data like searching for data within specified regions or within a specified distance of a point of interest.
-In addition classes are provided to expose the data to geotools and thereby to geotools enabled applications like geoserver and uDig.
+In addition classes are provided to expose the data to GeoTools and thereby to GeoTools-enabled applications like GeoServer and uDig.
 
 image::one-street.png[scaledwidth="75%"]
 
 The key features include:
 
 * Utilities for importing from ESRI Shapefile as well as Open Street Map files
-* Support for all the common geometry types
+* Support for all the common geometry types: Point, LineString, Polygon, etc.
 * An RTree index for fast searches on geometries
 * Support for topology operations during the search (contains, within, intersects, covers, disjoint, etc.) 
 * The possibility to enable spatial operations on any graph of data, regardless of the way the spatial data is stored, as long as an adapter is provided to map from the graph to the geometries.

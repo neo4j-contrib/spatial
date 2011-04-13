@@ -181,6 +181,10 @@ public class OSMImporter implements Constants {
         this.layerName = layerName;
     }
 
+	public void reIndex(GraphDatabaseService database) {
+		reIndex(database, 10000, true, false);
+	}
+
 	public void reIndex(GraphDatabaseService database, int commitInterval) {
 		reIndex(database, commitInterval, true, false);
 	}

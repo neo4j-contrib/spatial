@@ -88,6 +88,29 @@ public abstract class Neo4jTestCase extends TestCase {
         reActivateDatabase(deleteDb, useBatchInserter, autoTx);
     }
 
+	/**
+	 * For test cases that want to control their own database access, we should
+	 * shutdown the current one.
+	 * 
+	 * @param deleteDb
+	 */
+    protected void shutdownDatabase(boolean deleteDb) {
+        if (tx != null) {
+            tx.success();
+            tx.finish();
+            tx = null;
+        }
+        beforeShutdown();
+        if (graphDb != null) {
+            graphDb.shutdown(); // shuts down batchInserter also, if this was made from that
+            graphDb = null;
+            batchInserter = null;
+        }
+        if (deleteDb) {
+            deleteDatabase();
+        }
+    }
+
     /**
      * Some tests require switching between normal EmbeddedGraphDatabase and BatchInserter, so we
      * allow that with this method. We also allow deleting the previous database, if that is desired
@@ -98,19 +121,7 @@ public abstract class Neo4jTestCase extends TestCase {
      * @throws Exception
      */
     protected void reActivateDatabase(boolean deleteDb, boolean useBatchInserter, boolean autoTx) throws Exception {
-        if (tx != null) {
-            tx.success();
-            tx.finish();
-            tx = null;
-        }
-        if (graphDb != null) {
-            graphDb.shutdown(); // shuts down batchInserter also, if this was made from that
-            graphDb = null;
-            batchInserter = null;
-        }
-        if (deleteDb) {
-            deleteDatabase();
-        }
+    	shutdownDatabase(deleteDb);
         Map<String, String> config = NORMAL_CONFIG;
         String largeMode = System.getProperty("spatial.test.large");
 		if (largeMode != null && largeMode.equalsIgnoreCase("true")) {
@@ -131,12 +142,7 @@ public abstract class Neo4jTestCase extends TestCase {
     @Override
     @After
     protected void tearDown() throws Exception {
-        if (tx != null) {
-            tx.success();
-            tx.finish();
-        }
-        beforeShutdown();
-        graphDb.shutdown();
+    	shutdownDatabase(false);
         super.tearDown();
     }
 
