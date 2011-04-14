@@ -20,9 +20,19 @@
 package org.neo4j.gis.spatial;
 
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.List;
 
+import javax.xml.stream.XMLStreamException;
+
+import org.geotools.data.DataStore;
+import org.geotools.data.shapefile.shp.ShapefileException;
+import org.geotools.data.simple.SimpleFeatureCollection;
+import org.neo4j.gis.spatial.DynamicLayer.LayerConfig;
+import org.neo4j.gis.spatial.geotools.data.Neo4jSpatialDataStore;
 import org.neo4j.gis.spatial.osm.OSMImporter;
+import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.query.SearchIntersectWindow;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
@@ -42,16 +52,26 @@ import com.vividsolutions.jts.geom.Envelope;
  */
 public class TestsForDocs extends Neo4jTestCase {
 
-	/**
-	 * Sample code for importing Open Street Map example.
-	 * 
-	 * @throws Exception
-	 */
-	public void testImportOSM() throws Exception {
-		super.shutdownDatabase(true);
-		deleteFileOrDirectory(new File("target/var/neo4j-db"));
+	private void checkIndexAndFeatureCount(String layerName) throws IOException {
+		GraphDatabaseService database = new EmbeddedGraphDatabase("target/var/neo4j-db");
+		try {
+			SpatialDatabaseService spatial = new SpatialDatabaseService(database);
+			Layer layer = spatial.getLayer(layerName);
+			if (layer.getIndex().count() < 1) {
+				System.out.println("Warning: index count zero: " + layer.getName());
+			}
+			System.out.println("Layer '" + layer.getName() + "' has " + layer.getIndex().count() + " entries in the index");
+			DataStore store = new Neo4jSpatialDataStore(database);
+			SimpleFeatureCollection features = store.getFeatureSource(layer.getName()).getFeatures();
+			System.out.println("Layer '" + layer.getName() + "' has " + features.size() + " features");
+			assertEquals("FeatureCollection.size for layer '" + layer.getName() + "' not the same as index count", layer.getIndex()
+					.count(), features.size());
+		} finally {
+			database.shutdown();
+		}
+	}
 
-		System.out.println("\n=== Simple test map.osm ===");
+	private void importMapOSM() throws Exception {
 		// START SNIPPET: importOsm
 		OSMImporter importer = new OSMImporter("map.osm");
 
@@ -63,6 +83,19 @@ public class TestsForDocs extends Neo4jTestCase {
 		importer.reIndex(db);
 		db.shutdown();
 		// END SNIPPET: importOsm
+	}
+
+	/**
+	 * Sample code for importing Open Street Map example.
+	 * 
+	 * @throws Exception
+	 */
+	public void testImportOSM() throws Exception {
+		super.shutdownDatabase(true);
+		deleteFileOrDirectory(new File("target/var/neo4j-db"));
+
+		System.out.println("\n=== Simple test map.osm ===");
+		importMapOSM();
 
 		// START SNIPPET: searchBBox
 		GraphDatabaseService database = new EmbeddedGraphDatabase("target/var/neo4j-db");
@@ -83,6 +116,79 @@ public class TestsForDocs extends Neo4jTestCase {
 		}
 		// END SNIPPET: searchBBox
 
+		checkIndexAndFeatureCount("map.osm");
+	}
+
+	public void testImportShapefile() throws Exception {
+		super.shutdownDatabase(true);
+		deleteFileOrDirectory(new File("target/var/neo4j-db"));
+
+		System.out.println("\n=== Test Import Shapefile ===");
+
+		// START SNIPPET: importShapefile
+		GraphDatabaseService database = new EmbeddedGraphDatabase("target/var/neo4j-db");
+		try {
+			ShapefileImporter importer = new ShapefileImporter(database);
+			importer.importFile("shp/highway.shp", "highway");
+		} finally {
+			database.shutdown();
+		}
+		// END SNIPPET: importShapefile
+
+		checkIndexAndFeatureCount("highway");
+	}
+
+	public void testExportShapefileFromOSM() throws Exception {
+		super.shutdownDatabase(true);
+		deleteFileOrDirectory(new File("target/var/neo4j-db"));
+
+		System.out.println("\n=== Test import map.osm, create DynamicLayer and export shapefile ===");
+		importMapOSM();
+
+		GraphDatabaseService database = new EmbeddedGraphDatabase("target/var/neo4j-db");
+		try {
+			// START SNIPPET: exportShapefileFromOSM
+			SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
+			OSMLayer layer = (OSMLayer)spatialService.getLayer("map.osm");
+			LayerConfig wayLayer = layer.addSimpleDynamicLayer(Constants.GTYPE_LINESTRING);
+			ShapefileExporter shpExporter = new ShapefileExporter(database);
+			shpExporter.exportLayer(wayLayer.getName());
+			// END SNIPPET: exportShapefileFromOSM
+		} finally {
+			database.shutdown();
+		}
+	}
+
+	public void testExportShapefileFromQuery() throws Exception {
+		super.shutdownDatabase(true);
+		deleteFileOrDirectory(new File("target/var/neo4j-db"));
+
+		System.out.println("\n=== Test import map.osm, create DynamicLayer and export shapefile ===");
+		importMapOSM();
+
+		GraphDatabaseService database = new EmbeddedGraphDatabase("target/var/neo4j-db");
+		try {
+			// START SNIPPET: exportShapefileFromQuery
+			SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
+			Layer layer = spatialService.getLayer("map.osm");
+			SpatialIndexReader spatialIndex = layer.getIndex();
+			System.out.println("Have " + spatialIndex.count() + " geometries in " + spatialIndex.getLayerBoundingBox());
+
+			Envelope bbox = new Envelope(12.94, 12.96, 56.04, 56.06);
+			Search searchQuery = new SearchIntersectWindow(bbox);
+			spatialIndex.executeSearch(searchQuery);
+			List<SpatialDatabaseRecord> results = searchQuery.getResults();
+			
+			Layer resultsLayer = spatialService.createResultsLayer("results", results);
+			ShapefileExporter shpExporter = new ShapefileExporter(database);
+			shpExporter.exportLayer("results");
+			// END SNIPPET: exportShapefileFromQuery
+			
+			System.out.println("Found " + results.size() + " geometries in " + bbox);
+			System.out.println("First geometry is " + results.get(0).getGeometry());
+		} finally {
+			database.shutdown();
+		}
 	}
 
 }

@@ -214,7 +214,7 @@ public class SpatialDatabaseService implements Constants {
 	}
 
     public Layer createWKBLayer(String name) {
-        return createLayer(name, WKBGeometryEncoder.class, DefaultLayer.class);
+        return createLayer(name, WKBGeometryEncoder.class, EditableLayerImpl.class);
     }
 
 	public SimplePointLayer createSimplePointLayer(String name) {
@@ -313,6 +313,30 @@ public class SpatialDatabaseService implements Constants {
 		} else {
 			return GTYPE_GEOMETRY;
 		}
+	}
+
+	/**
+	 * Create a new layer from the results of a previous query. This actually
+	 * copies the resulting geometries and their attributes into entirely new
+	 * geometries using WKBGeometryEncoder. This means it is independent of the
+	 * format of the original data. As a consequence it will have lost any
+	 * domain specific capabilities of the original graph, if any. Use it only
+	 * if you want a copy of the geometries themselves, and nothing more. One
+	 * common use case would be to create a temporary layer of the results of a
+	 * query than you wish to now export to a format that only supports
+	 * geometries, like Shapefile, or the PNG images produced by the
+	 * ImageExporter.
+	 * 
+	 * @param layerName
+	 * @param results
+	 * @return new Layer with copy of all geometries
+	 */
+	public Layer createResultsLayer(String layerName, List<SpatialDatabaseRecord> results) {
+		EditableLayer layer = (EditableLayer) createWKBLayer(layerName);
+		for (SpatialDatabaseRecord record : results) {
+			layer.add(record.getGeometry());
+		}
+		return layer;
 	}
 
 }
