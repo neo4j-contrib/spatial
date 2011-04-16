@@ -139,6 +139,18 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
 		return results.hasNext() ? results.next() : null;
 	}
 
+	public Way getWayFrom(Node osmNodeOrWayNode) {
+		Iterator<Node> results = osmNodeOrWayNode.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH,
+				new ReturnableEvaluator() {
+
+					public boolean isReturnableNode(TraversalPosition current) {
+						return current.currentNode().hasProperty("way_osm_id");
+					}
+				}, OSMRelation.NODE, Direction.INCOMING, OSMRelation.NEXT, Direction.INCOMING, OSMRelation.FIRST_NODE,
+				Direction.INCOMING).iterator();
+		return results.hasNext() ? new Way(results.next()) : null;
+	}
+
 	public class OSMNode {
 		protected Node node;
 		protected Node geomNode;
@@ -150,6 +162,10 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
 			if(geomRel != null) geomNode = geomRel.getEndNode();
 		}
 		
+		public Way getWay() {
+			return OSMDataset.this.getWayFrom(this.node);
+		}
+
 		public Node getGeometryNode() {
 			return geomNode;
 		}
