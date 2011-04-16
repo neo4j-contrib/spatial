@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 
 import javax.xml.stream.XMLStreamException;
@@ -31,10 +32,15 @@ import org.geotools.data.shapefile.shp.ShapefileException;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.neo4j.gis.spatial.DynamicLayer.LayerConfig;
 import org.neo4j.gis.spatial.geotools.data.Neo4jSpatialDataStore;
+import org.neo4j.gis.spatial.osm.OSMDataset;
+import org.neo4j.gis.spatial.osm.OSMDataset.OSMNode;
+import org.neo4j.gis.spatial.osm.OSMDataset.Way;
+import org.neo4j.gis.spatial.osm.OSMDataset.WayPoint;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.query.SearchIntersectWindow;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.impl.batchinsert.BatchInserter;
 import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
@@ -66,9 +72,33 @@ public class TestsForDocs extends Neo4jTestCase {
 			System.out.println("Layer '" + layer.getName() + "' has " + features.size() + " features");
 			assertEquals("FeatureCollection.size for layer '" + layer.getName() + "' not the same as index count", layer.getIndex()
 					.count(), features.size());
+			if (layer instanceof OSMLayer)
+				checkOSMAPI(layer);
 		} finally {
 			database.shutdown();
 		}
+	}
+
+	private void checkOSMAPI(Layer layer) {
+		HashMap<Long, Integer> waysFound = new HashMap<Long, Integer>();
+		long mostCommon = 0;
+		int mostCount = 0;
+		OSMDataset osm = (OSMDataset) layer.getDataset();
+		Node wayNode = osm.getAllWayNodes().iterator().next();
+		Way way = osm.getWayFrom(wayNode);
+		System.out.println("Got first way " + way);
+		for (WayPoint n : way.getWayPoints()) {
+			Way w = n.getWay();
+			Long wayId = w.getNode().getId();
+			if (!waysFound.containsKey(wayId)) {
+				waysFound.put(wayId, 0);
+			}
+			waysFound.put(wayId, waysFound.get(wayId) + 1);
+			if (waysFound.get(wayId) > mostCount) {
+				mostCommon = wayId;
+			}
+		}
+		assertTrue("Start way should be most found way", way.equals(osm.getWayFromId(mostCommon)));
 	}
 
 	private void importMapOSM() throws Exception {
@@ -149,7 +179,7 @@ public class TestsForDocs extends Neo4jTestCase {
 		try {
 			// START SNIPPET: exportShapefileFromOSM
 			SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
-			OSMLayer layer = (OSMLayer)spatialService.getLayer("map.osm");
+			OSMLayer layer = (OSMLayer) spatialService.getLayer("map.osm");
 			LayerConfig wayLayer = layer.addSimpleDynamicLayer(Constants.GTYPE_LINESTRING);
 			ShapefileExporter shpExporter = new ShapefileExporter(database);
 			shpExporter.exportLayer(wayLayer.getName());
@@ -178,12 +208,12 @@ public class TestsForDocs extends Neo4jTestCase {
 			Search searchQuery = new SearchIntersectWindow(bbox);
 			spatialIndex.executeSearch(searchQuery);
 			List<SpatialDatabaseRecord> results = searchQuery.getResults();
-			
+
 			Layer resultsLayer = spatialService.createResultsLayer("results", results);
 			ShapefileExporter shpExporter = new ShapefileExporter(database);
 			shpExporter.exportLayer("results");
 			// END SNIPPET: exportShapefileFromQuery
-			
+
 			System.out.println("Found " + results.size() + " geometries in " + bbox);
 			System.out.println("First geometry is " + results.get(0).getGeometry());
 		} finally {
