@@ -23,6 +23,7 @@ import java.util.ArrayList;
 
 import org.junit.Test;
 import org.neo4j.gis.spatial.SpatialTopologyUtils.PointResult;
+import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 
@@ -65,10 +66,19 @@ public class TestSpatialUtils extends Neo4jTestCase {
 			Layer layer = osmLayer.getLayer(layerName);
 			assertNotNull("Missing layer: " + layerName, layer);
 			System.out.println("Closest features in " + layerName + " to point " + point + ":");
-			for (PointResult result : SpatialTopologyUtils.findClosestEdges(point, layer)) {
+			ArrayList<PointResult> edgeResults = SpatialTopologyUtils.findClosestEdges(point, layer);
+			for (PointResult result : edgeResults) {
 				System.out.println("\t" + result);
 				results.add(result.getKey(), fieldsNames, new Object[] { result.getValue().getGeomNode().getId(),
 				        "Snapped point to layer " + layerName + ": " + result.getValue().getGeometry().toString(), (long)(1000000*result.getDistance()) });
+			}
+			if(edgeResults.size() > 0) {
+				PointResult closest = edgeResults.get(0);
+				Point closestPoint = closest.getKey();
+
+				SpatialDatabaseRecord wayRecord = closest.getValue();
+				OSMDataset.Way way = ((OSMDataset)osmLayer.getDataset()).getWayFrom(wayRecord.getGeomNode());
+				OSMDataset.WayPoint wayPoint = way.getPointAt(closestPoint.getCoordinate());
 			}
 		}
 

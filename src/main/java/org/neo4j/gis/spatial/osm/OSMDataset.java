@@ -37,6 +37,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.TraversalPosition;
 import org.neo4j.graphdb.Traverser.Order;
 
+import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 
@@ -143,15 +144,15 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
 		return getWayFrom(datasetNode.getGraphDatabase().getNodeById(id));
 	}
 
-	public Way getWayFrom(Node osmNodeOrWayNode) {
-		Iterator<Node> results = osmNodeOrWayNode.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH,
+	public Way getWayFrom(Node osmNodeOrWayNodeOrGeomNode) {
+		Iterator<Node> results = osmNodeOrWayNodeOrGeomNode.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH,
 				new ReturnableEvaluator() {
 
 					public boolean isReturnableNode(TraversalPosition current) {
 						return current.currentNode().hasProperty("way_osm_id");
 					}
 				}, OSMRelation.NODE, Direction.INCOMING, OSMRelation.NEXT, Direction.INCOMING, OSMRelation.FIRST_NODE,
-				Direction.INCOMING).iterator();
+				Direction.INCOMING, OSMRelation.GEOM, Direction.INCOMING).iterator();
 		return results.hasNext() ? new Way(results.next()) : null;
 	}
 
@@ -237,11 +238,35 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
 			throw new UnsupportedOperationException("Cannot modify way-point collection");
 		}
 
+		public WayPoint getPointAt(Coordinate coordinate) {
+			for (WayPoint wayPoint : getWayPoints()) {
+				if (wayPoint.isAt(coordinate))
+					return wayPoint;
+			}
+			return null;
+		}
+
 	}
 
 	public class WayPoint extends OSMNode {
 		public WayPoint(Node node) {
 			super(node);
+		}
+
+		public boolean isAt(Coordinate coord) {
+			return getCoordinate().equals(coord);
+		}
+
+		public Coordinate getCoordinate() {
+			return new Coordinate(getX(), getY());
+		}
+
+		private double getY() {
+			return (Double) node.getProperty("latitude", 0.0);
+		}
+
+		private double getX() {
+			return (Double) node.getProperty("longitude", 0.0);
 		}
 	}
 
