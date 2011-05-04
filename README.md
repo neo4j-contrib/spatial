@@ -166,3 +166,17 @@ And you should be able to see some of the Spatial endpoints:
       "all_relationships" : "http://localhost:7474/db/data/node/2/relationships/all",
       "incoming_typed_relationships" : "http://localhost:7474/db/data/node/2/relationships/in/{-list|&|types}"
     } ]
+    
+Building
+--------
+  
+  mvn clean package
+
+Testing
+-------
+
+    export DOWNLOAD_PLUGIN_LOCATION=file:/path/to/neo4j-spatial/target/neo4j-spatial-0.6-SNAPSHOT-server-plugin.zip
+    export NEO4J_VERSION=1.4.M01
+    export NEO4J_PRODUCT=community
+    
+    rake
