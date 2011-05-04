@@ -115,15 +115,10 @@ Using Neo4j Spatial with uDig
 ----------------------------------
 For more info head over to [Neo4j Wiki on uDig](http://wiki.neo4j.org/content/Neo4j_Spatial_in_uDig)
 
-Deploying the Neo4j Spatial Server plugin
------------------------------------------
+Using the Neo4j Spatial Server plugin
+-------------------------------------
 
-    mvn clean package
-    cp target/dependency/*.jar $NEO4J_HOME/plugins
-    cp target/neo4j4j-spatial-YOUR_VERSION.jar $NEO4J_HOME/plugins
-    $NEO4J_HOME/bin/neo4j restart
-  
-And you should be able to see some of the Spatial endpoints:
+Neo4j Spatial is also packaged as a ZIP file that can be unzipped into the Neo4j Server /plugin directory. After restarting the server, you should be able to do things liek the following REST calls (here illustrated using `curl`)
 
     curl http://localhost:7474/db/data/
   
@@ -167,13 +162,13 @@ And you should be able to see some of the Spatial endpoints:
       "incoming_typed_relationships" : "http://localhost:7474/db/data/node/2/relationships/in/{-list|&|types}"
     } ]
     
-Building
---------
+Building Neo4j spatial
+----------------------
   
-  mvn clean package
+    git clone https://github.com/neo4j/neo4j-spatial.git
+    mvn clean package
 
-Testing
--------
+Integration-Testing the Neo4j-Spatial Server Plugin
 
     export DOWNLOAD_PLUGIN_LOCATION=file:/path/to/neo4j-spatial/target/neo4j-spatial-0.6-SNAPSHOT-server-plugin.zip
     export NEO4J_VERSION=1.4.M01
