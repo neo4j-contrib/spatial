@@ -60,12 +60,8 @@ Then /^the working directory should contain a Neo4j archive$/ do
 end
 
 
-When /^I download dependencies \(if I haven't already\)$/ do
-  transfer_if_newer(neo4j.dependencies_location, "dependencies.zip");
-end
-
 When /^I download the plugin \(if I haven't already\)$/ do
-  transfer_if_newer(neo4j.plugin_location, "plugin.jar");
+  transfer_if_newer(neo4j.plugin_location, "plugin.zip");
 end
 
 When /^I unpack the archive into Neo4j Home$/ do

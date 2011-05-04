@@ -10,21 +10,17 @@ Feature: Download and unpack Neo4j Server
     And Neo4j version based on system property "NEO4J_VERSION"
     And Neo4j product based on system property "NEO4J_PRODUCT"
     And a web site at host "dist.neo4j.org" or system property "DOWNLOAD_LOCATION"
-    And dependencies-zip based on system property "DOWNLOAD_DEPENDENCIES_LOCATION"
     And plugin based on system property "DOWNLOAD_PLUGIN_LOCATION"
 
   Scenario: Download Neo4j
     When I download Neo4j (if I haven't already)
     Then the working directory should contain a Neo4j archive
-    And I download dependencies (if I haven't already)
-    Then the "dependencies.zip" should exists
     And I download the plugin (if I haven't already)
-    Then the "plugin.jar" should exists
+    Then the "plugin.zip" should exists
 
   Scenario: Unpack downloaded archive
     When I unpack the archive into Neo4j Home
     Then Neo4j Home should contain a Neo4j Server installation
     And the Neo4j version of the installation should be correct
     And in Windows I will patch the "neo4j_home/conf/neo4j-wrapper.conf" adding "wrapper.java.command" to "#{ENV['JAVA_HOME']}\\bin\\java.exe"
-    Then I unzip the "dependencies.zip" into "neo4j_home/plugins"
-    Then copy the "plugin.jar" to "neo4j_home/plugins/spatial-plugin.jar"
+    Then I unzip the "plugin.zip" into "neo4j_home/plugins"

@@ -14,6 +14,6 @@ module Neo4JHelpers
   end
 
   class Neo4jEnvironment
-    attr_accessor :version, :download_location, :dependencies_location, :plugin_location, :home, :product
+    attr_accessor :version, :download_location, :plugin_location, :home, :product
   end
 end
