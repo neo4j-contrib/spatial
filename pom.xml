@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <properties>
     <neo4j.version>1.4-SNAPSHOT</neo4j.version>
     <geotools.version>2.7-RC1</geotools.version>
@@ -9,7 +8,6 @@
     <bundle.namespace>org.neo4j.gis</bundle.namespace>
     <cuke4duke.version>0.4.3</cuke4duke.version>
   </properties>
-
   <modelVersion>4.0.0</modelVersion>
   <artifactId>neo4j-spatial</artifactId>
   <groupId>org.neo4j</groupId>
@@ -18,20 +16,17 @@
   <description>Spatial utilities and components for neo4j</description>
   <url>http://components.neo4j.org/${project.artifactId}/${project.version}</url>
   <inceptionYear>2010</inceptionYear>
-
   <packaging>jar</packaging>
   <parent>
     <artifactId>parent-pom</artifactId>
     <groupId>org.neo4j</groupId>
     <version>18</version>
   </parent>
-
   <scm>
     <url>http://github.com/neo4j/neo4j-spatial/</url>
     <connection>scm:git:git://github.com/neo4j/neo4j-spatial.git</connection>
     <developerConnection>scm:git:git@github.com:neo4j/neo4j-spatial.git</developerConnection>
   </scm>
-
   <build>
     <plugins>
       <plugin>
@@ -59,9 +54,27 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <configuration>
+          <descriptors>
+            <descriptor>src/main/assembly/server-plugin.xml</descriptor>
+          </descriptors>
+        </configuration>
+        <executions>
+          <execution>
+            <id>make-assembly</id>
+            <!-- this is used for inheritance merges -->
+            <phase>package</phase>
+            <!-- bind to the packaging phase -->
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
-
   <developers>
     <developer>
       <id>craigtaverner</id>
@@ -91,14 +104,12 @@
       </roles>
     </developer>
   </developers>
-
   <licenses>
     <license>
       <name>GNU Affero General Public License, Version 3</name>
       <url>http://www.gnu.org/licenses/agpl-3.0-standalone.html</url>
     </license>
   </licenses>
-
   <dependencies>
     <dependency>
       <groupId>org.neo4j</groupId>
@@ -185,7 +196,6 @@
       </snapshots>
     </repository>
   </repositories>
-
   <profiles>
     <profile>
       <id>test-default</id>
@@ -316,7 +326,6 @@
       </pluginRepositories>
     </profile>
   </profiles>
-
   <reporting>
     <plugins>
       <plugin>
@@ -339,13 +348,10 @@
       </plugin>
     </plugins>
   </reporting>
-
   <distributionManagement>
     <site>
       <id>neo4j-site</id>
       <url>scpexe://components.neo4j.org/home/neo/components/${project.artifactId}/${project.version}</url>
     </site>
   </distributionManagement>
-
 </project>
-
