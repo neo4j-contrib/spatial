@@ -180,3 +180,7 @@ Testing
     export NEO4J_PRODUCT=community
     
     rake
+
+or
+
+  mvn test -P integration-tests
