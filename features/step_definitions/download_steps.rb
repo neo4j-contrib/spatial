@@ -5,11 +5,28 @@ Given /^a platform supported by Neo4j$/ do
   fail "unsupported platform #{current_platform}" unless current_platform.supported?
 end
 
-Given /^Neo4j version based on system property "([^"]*)" and product based on system property "([^"]*)"$/ do |version_name, product_name|
+Given /^Neo4j version based on system property "([^"]*)"$/ do |version_name|
   neo4j.version = ENV[version_name]
-  neo4j.product = ENV[product_name]
   fail "missing property #{version_name}" if neo4j.version == nil
+end
+
+Given /^Neo4j product based on system property "([^"]*)"$/ do |product_name|
+  neo4j.product = ENV[product_name]
   fail "missing property #{product_name}" if neo4j.product == nil
+end
+
+When /^dependencies\-zip based on system property "([^\"]*)"$/ do |arg1|
+  neo4j.dependencies_location = URI.parse(ENV[arg1])
+  fail "missing property #{arg1}" if neo4j.dependencies_location == nil
+end
+
+When /^plugin based on system property "([^\"]*)"$/ do |arg1|
+  neo4j.plugin_location = URI.parse(ENV[arg1])
+  fail "missing property #{arg1}" if neo4j.plugin_location == nil
+end
+
+Then /^the "([^\"]*)" should exists$/ do |arg1|
+  fail "#{arg1} does not exists" unless File.exists?(arg1)
 end
 
 Given /^set Neo4j Home to "([^"]*)"$/ do |home|
@@ -35,60 +52,30 @@ Given /^a web site at host "([^"]*)" or system property "([^"]*)"$/ do |host, en
 end
 
 When /^I download Neo4j \(if I haven't already\)$/ do
-  if (neo4j.download_location.scheme == "http") then
-    server = Net::HTTP.new(neo4j.download_location.host, 80)
-    head = server.head(neo4j.download_location.path)
-    server_time = Time.httpdate(head['last-modified'])
-    if (!File.exists?(archive_name) || server_time != File.mtime(archive_name))
-      puts archive_name+" missing or newer version on server - downloading"
-      server.request_get(neo4j.download_location.path) do |res|
-        open(archive_name, "wb") do |file|
-          res.read_body do |segment|
-            file.write(segment)
-          end
-        end
-      end
-      File.utime(0, server_time, archive_name)
-    else
-      puts archive_name+" not modified - download skipped"
-    end
-  elsif (neo4j.download_location.scheme == "file") then
-    File.open(neo4j.download_location.path, "r") do |src|
-      open(archive_name, "wb") do |file|
-        while buf = src.read(2048)
-          file.write(buf)
-        end
-      end
-    end
-
-  else
-    fail 'unsupported schema-location '+ download_location
-  end
+  transfer_if_newer(neo4j.download_location, archive_name)
 end
 
 Then /^the working directory should contain a Neo4j archive$/ do
   fail "#{archive_name} does not exists" unless File.exists?(archive_name)
 end
 
-When /^I unpack the archive into Neo4j Home$/ do
-  full_archive_name= File.expand_path(archive_name)
-  pushd neo4j.home
 
+When /^I download dependencies \(if I haven't already\)$/ do
+  transfer_if_newer(neo4j.dependencies_location, "dependencies.zip");
+end
+
+When /^I download the plugin \(if I haven't already\)$/ do
+  transfer_if_newer(neo4j.plugin_location, "plugin.jar");
+end
+
+When /^I unpack the archive into Neo4j Home$/ do
   if (current_platform.unix?)
-    puts "unpacking with tar xzf #{full_archive_name} --strip-components 1"
-    `tar xzf #{full_archive_name} --strip-components 1`
-    fail "unpacking failed (#{$?})" unless $?.to_i == 0
+    untar(File.expand_path(archive_name), neo4j.home)
   elsif  current_platform.windows?
-    unzip = File.expand_path("../../support/unzip.vbs", __FILE__).tr('/', '\\')
-    full_archive_name = full_archive_name.tr('/', '\\')
-    cmd = "cmd /c #{unzip} #{full_archive_name} #{neo4j.home}"
-    puts cmd
-    puts `#{cmd}`
-    fail "unpacking failed (#{$?})" unless $?.to_i == 0
+    unzip(File.expand_path(archive_name), neo4j.home)
   else
     fail 'platform not supported'
   end
-  popd
 end
 
 Then /^Neo4j Home should contain a Neo4j Server installation$/ do
@@ -115,4 +102,12 @@ When /^in (Windows|Unix) I will patch the "([^\"]*)" adding "([^\"]*)" to ("[^\"
       config_file.puts "#{param}=" + eval(value)
     end
   end
+end
+
+Then /^I unzip the "([^\"]*)" into "([^\"]*)"$/ do |archive, target|
+  unzip(File.expand_path(archive), File.expand_path(target))
+end
+
+Then /^copy the "([^\"]*)" to "([^\"]*)"$/ do |source, target|
+  copy_file(File.expand_path(source), File.expand_path(target))
 end

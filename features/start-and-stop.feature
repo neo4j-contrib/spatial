@@ -11,6 +11,5 @@ Feature: Start and stop Neo4j Server
     When I start Neo4j Server
     And wait for Server started at "http://localhost:7474"
     Then "http://localhost:7474" should provide the Neo4j REST interface
-    When I stop Neo4j Server
-    And wait for Server stopped at "http://localhost:7474"
-    Then "http://localhost:7474" should not provide the Neo4j REST interface
+    Then requesting "http://localhost:7474/db/data/ext/" should contain "SpatialPlugin"
+    Then sending "layer=test" to "http://localhost:7474/db/data/ext/SpatialPlugin/graphdb/addLayer" should contain "EditableLayerImpl"

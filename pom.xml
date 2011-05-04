@@ -1,11 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <properties>
     <neo4j.version>1.4-SNAPSHOT</neo4j.version>
     <geotools.version>2.7-RC1</geotools.version>
     <spatial.test.osm.version>20100819</spatial.test.osm.version>
     <spatial.test.shp.version>20100819</spatial.test.shp.version>
     <bundle.namespace>org.neo4j.gis</bundle.namespace>
+    <cuke4duke.version>0.4.3</cuke4duke.version>
   </properties>
 
   <modelVersion>4.0.0</modelVersion>
@@ -36,6 +38,16 @@
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
           <execution>
+            <id>copy-dependencies</id>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>copy-dependencies</goal>
+            </goals>
+            <configuration>
+              <excludeScope>provided</excludeScope>
+            </configuration>
+          </execution>
+          <execution>
             <id>get-test-data</id>
             <goals>
               <goal>unpack-dependencies</goal>
@@ -47,23 +59,7 @@
           </execution>
         </executions>
       </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-dependency-plugin</artifactId>
-          <executions>
-            <execution>
-              <id>copy-dependencies</id>
-              <phase>process-resources</phase>
-              <goals>
-                <goal>copy-dependencies</goal>
-              </goals>
-              <configuration>
-                <excludeScope>provided</excludeScope>
-              </configuration>
-            </execution>
-          </executions>
-        </plugin>
-      </plugins>
+    </plugins>
   </build>
 
   <developers>
@@ -114,16 +110,18 @@
       <groupId>org.neo4j</groupId>
       <artifactId>neo4j-lucene-index</artifactId>
       <version>${neo4j.version}</version>
+      <scope>provided</scope>
     </dependency>
-      <dependency>
-          <groupId>org.neo4j</groupId>
-          <artifactId>server-api</artifactId>
-          <version>${neo4j.version}</version>
-          <scope>provided</scope>
-      </dependency>
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>server-api</artifactId>
+      <version>${neo4j.version}</version>
+      <scope>provided</scope>
+    </dependency>
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.neo4j.spatial</groupId>
@@ -141,36 +139,22 @@
       <groupId>org.geotools</groupId>
       <artifactId>gt-main</artifactId>
       <version>${geotools.version}</version>
-      <exclusions>
-
-      	<!--exclusion>
-	      <groupId>com.vividsolutions</groupId>
-	      <artifactId>jts</artifactId>
-      	</exclusion-->
-	  </exclusions>	
     </dependency>
     <dependency>
       <groupId>org.geotools</groupId>
       <artifactId>gt-shapefile</artifactId>
       <version>${geotools.version}</version>
-        <exclusions>
-        </exclusions>
     </dependency>
     <dependency>
       <groupId>org.geotools</groupId>
       <artifactId>gt-render</artifactId>
       <version>${geotools.version}</version>
       <exclusions>
-
-      	<!--exclusion>
-	      <groupId>org.geotools</groupId>
-	      <artifactId>gt-coverage</artifactId>
-      	</exclusion-->
-          <exclusion>
-              <groupId>it.geosolutions.imageio-ext</groupId>
-              <artifactId>imageio-ext-tiff</artifactId>
-          </exclusion>
-	  </exclusions>	
+        <exclusion>
+          <groupId>it.geosolutions.imageio-ext</groupId>
+          <artifactId>imageio-ext-tiff</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>log4j</groupId>
@@ -251,6 +235,86 @@
         <spatial.test.mode>long</spatial.test.mode>
       </properties>
     </profile>
+    <profile>
+      <id>qa-test</id>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <configuration>
+              <skipTests>true</skipTests>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>cuke4duke</groupId>
+            <artifactId>cuke4duke-maven-plugin</artifactId>
+            <version>${cuke4duke.version}</version>
+            <configuration>
+              <jvmArgs>
+                <jvmArg>-Dcuke4duke.objectFactory=cuke4duke.internal.jvmclass.PicoFactory</jvmArg>
+                <jvmArg>-Dneo4j.version=${neo4j.version}</jvmArg>
+                <jvmArg>-Dneo4j.home=${neo4j.home}</jvmArg>
+              </jvmArgs>
+              <!-- You may not need all of these arguments in your own project. We have a lot here for testing purposes... -->
+              <cucumberArgs>
+                <cucumberArg>--verbose</cucumberArg>
+                <cucumberArg>--format</cucumberArg>
+                <cucumberArg>pretty</cucumberArg>
+                <cucumberArg>--format</cucumberArg>
+                <cucumberArg>usage</cucumberArg>
+                <cucumberArg>--out</cucumberArg>
+                <cucumberArg>target/usage.txt</cucumberArg>
+                <cucumberArg>${basedir}/target/test-classes</cucumberArg>
+              </cucumberArgs>
+              <gems>
+                <gem>install cuke4duke --version ${cuke4duke.version}</gem>
+              </gems>
+            </configuration>
+            <executions>
+              <execution>
+                <id>run-features</id>
+                <phase>integration-test</phase>
+                <goals>
+                  <goal>cucumber</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+      <dependencies>
+        <dependency>
+          <groupId>cuke4duke</groupId>
+          <artifactId>cuke4duke</artifactId>
+          <version>${cuke4duke.version}</version>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.jruby</groupId>
+          <artifactId>jruby-complete</artifactId>
+          <version>1.5.6</version>
+          <scope>test</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.picocontainer</groupId>
+          <artifactId>picocontainer</artifactId>
+          <version>2.11.2</version>
+        </dependency>
+      </dependencies>
+      <repositories>
+        <repository>
+          <id>Cuke4DukeMavenRepository</id>
+          <name>Cuke4Duke Maven Repository</name>
+          <url>http://cukes.info/maven/</url>
+        </repository>
+      </repositories>
+      <pluginRepositories>
+        <pluginRepository>
+          <id>cukes</id>
+          <url>http://cukes.info/maven</url>
+        </pluginRepository>
+      </pluginRepositories>
+    </profile>
   </profiles>
 
   <reporting>
@@ -268,6 +332,7 @@
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.7.1</version>
         <configuration>
           <argLine>-server -Xms512m -Xmx1600m -XX:+UseConcMarkSweepGC</argLine>
         </configuration>

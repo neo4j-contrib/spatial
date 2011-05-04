@@ -21,16 +21,12 @@ When /^I (start|stop) Neo4j Server$/ do |action|
   elsif (current_platform.windows?)
     Dir.chdir("#{neo4j.home}\\bin")
     if (action == "start")
-      puts "---> install"
       IO.popen("Neo4j.bat install", close_fds=1)
       sleep 10
-      puts "---> start"
       IO.popen("Neo4j.bat start", close_fds=1)
     else
-      puts "---> stop"
       IO.popen("Neo4j.bat stop", close_fds=1)
       sleep 10
-      puts "---> remove"
       IO.popen("Neo4j.bat remove", close_fds=1)
     end
   else
@@ -68,3 +64,21 @@ Then /^"([^"]*)" should (not)? ?provide the Neo4j REST interface$/ do |uri, nega
   fail 'REST-interface is running' if negate == 'not' && response && response.code.to_i == 200
 end
 
+Then /^requesting "([^\"]*)" should contain "([^\"]*)"$/ do |uri, result|
+  response = Net::HTTP.get_response(URI.parse(uri))
+  fail "invalid response code #{response.code.to_i}" unless response && response.code.to_i == 200
+  response_body = response.body
+  puts response_body
+  fail "expected '#{result}' not found in '#{response_body}'" unless response_body =~ /#{result}/
+end
+
+Then /^sending "([^\"]*)" to "([^\"]*)" should contain "([^\"]*)"$/ do |content, uri, result|
+  location = URI.parse(uri)
+  puts location
+  server = Net::HTTP.new(location.host, location.port ? location.port : 80)
+  response = server.request_post(location.path, content)
+  fail "invalid response code #{response.code.to_i}" unless response && response.code.to_i == 200
+  response_body = response.body
+  puts response_body
+  fail "expected '#{result}' not found in '#{response_body}'" unless response_body =~ /#{result}/
+end
