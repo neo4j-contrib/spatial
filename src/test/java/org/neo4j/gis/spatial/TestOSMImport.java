@@ -55,7 +55,7 @@ public class TestOSMImport extends Neo4jTestCase {
 	}
 
 	public static Test suite() {
-		deleteDatabase();
+		deleteBaseDir();
 		TestSuite suite = new TestSuite();
 		String[] smallModels = new String[] { "one-street.osm", "two-street.osm" };
 		String[] mediumModels = new String[] { "map.osm", "map2.osm" };

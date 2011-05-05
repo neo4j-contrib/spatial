@@ -195,7 +195,7 @@ public class TestSpatial extends Neo4jTestCase {
 
     public static Test suite() {
         spatialTestMode = System.getProperty("spatial.test.mode");
-        deleteDatabase();
+        deleteBaseDir();
         TestSuite suite = new TestSuite();
         // suite.addTest(new TestSpatial("testSpatialIndex"));
         // TODO: Split different layers to different test cases here for nicer control and

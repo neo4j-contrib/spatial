@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -39,6 +40,7 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.impl.batchinsert.BatchInserter;
 import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
 import org.neo4j.kernel.impl.nioneo.store.PropertyStore;
+import org.neo4j.kernel.impl.util.FileUtils;
 
 
 /**
@@ -68,10 +70,13 @@ public abstract class Neo4jTestCase extends TestCase {
     private GraphDatabaseService graphDb;
     private Transaction tx;
     private BatchInserter batchInserter;
+    
+    private long storePrefix;
 
     @Before
     protected void setUp() throws Exception {
-        setUp(true, false, false);
+    	storePrefix = System.currentTimeMillis();
+        setUp(false, false, false);
     }
 
     /**
@@ -107,7 +112,7 @@ public abstract class Neo4jTestCase extends TestCase {
             batchInserter = null;
         }
         if (deleteDb) {
-            deleteDatabase();
+            deleteDatabase(true);
         }
     }
 
@@ -128,10 +133,10 @@ public abstract class Neo4jTestCase extends TestCase {
 			config = LARGE_CONFIG;
 		}
         if (useBatchInserter) {
-            batchInserter = new BatchInserterImpl(dbPath.getAbsolutePath(), config);
+            batchInserter = new BatchInserterImpl(getNeoPath().getAbsolutePath(), config);
             graphDb = batchInserter.getGraphDbService();
         } else {
-            graphDb = new EmbeddedGraphDatabase(dbPath.getAbsolutePath(), config );
+            graphDb = new EmbeddedGraphDatabase(getNeoPath().getAbsolutePath(), config );
         }
         if (autoTx) {
             // with the batch inserter the tx is a dummy that simply succeeds all the time
@@ -142,23 +147,45 @@ public abstract class Neo4jTestCase extends TestCase {
     @Override
     @After
     protected void tearDown() throws Exception {
-    	shutdownDatabase(false);
+    	shutdownDatabase(true);
         super.tearDown();
     }
 
     protected void beforeShutdown() {
     }
 
-    protected File getBasePath() {
-        return basePath;
-    }
-
     protected File getNeoPath() {
-        return dbPath;
+        return new File(dbPath.getAbsolutePath(), Long.toString(storePrefix));
     }
 
-    protected static void deleteDatabase() {
-        deleteFileOrDirectory(dbPath);
+    protected void deleteDatabase(boolean synchronous) {
+    	if (synchronous)
+    	{
+    		try {
+				FileUtils.deleteRecursively(getNeoPath());
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	}
+    	else
+    	{
+    		new Thread(new Runnable() {
+    			@Override
+    			public void run() {
+    				try {
+						FileUtils.deleteRecursively(getNeoPath());
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+    			}
+    		}).start();
+    	}
+    }
+    
+    protected static void deleteBaseDir()
+    {
+    	deleteFileOrDirectory(basePath);
     }
 
     protected static void deleteFileOrDirectory(File file) {
@@ -188,7 +215,7 @@ public abstract class Neo4jTestCase extends TestCase {
     }
 
     protected long databaseDiskUsage() {
-    	return calculateDiskUsage(dbPath);
+    	return calculateDiskUsage(getNeoPath());
     }
 
     protected long countNodes(Class<?> cls) {
