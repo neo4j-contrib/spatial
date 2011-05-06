@@ -85,6 +85,7 @@ public class TestSpatial extends Neo4jTestCase {
             this.description = description;
         }
 
+        @Override
         public String toString() {
             return description;
         }
@@ -100,9 +101,9 @@ public class TestSpatial extends Neo4jTestCase {
      * @since 1.0.0
      */
     private static class TestGeometry {
-        private Integer id;
-        private String name;
-        private String comments;
+        private final Integer id;
+        private final String name;
+        private final String comments;
         Envelope bounds;
 
         public TestGeometry(Integer id, String name, String comments, String bounds) {
@@ -117,6 +118,7 @@ public class TestSpatial extends Neo4jTestCase {
             this.bounds = new Envelope(bf[0], bf[2], bf[1], bf[3]);
         }
 
+        @Override
         public String toString() {
             return (name.length() > 0 ? name : "ID[" + id + "]") + (comments == null || comments.length() < 1 ? "" : " (" + comments + ")");
         }
@@ -136,7 +138,7 @@ public class TestSpatial extends Neo4jTestCase {
 
         Envelope bbox = new Envelope(12.97, 13.0, 56.05, 56.06); // covers half of Billesholm
 
-    	addTestLayer("billesholm.osm", DataFormat.OSM, bbox);
+        addTestLayer("billesholm.osm", DataFormat.OSM, bbox);
         addTestGeometry(70423036, "Ljungsgårdsvägen", "outside top left", "(12.9599540,56.0570692), (12.9624780,56.0716282)");
         addTestGeometry(67835020, "Villagatan", "in the middle", "(12.9776065,56.0561477), (12.9814421,56.0572131)");
         addTestGeometry(60966388, "Storgatan", "crossing left edge", "(12.9682980,56.0524546), (12.9710302,56.0538436)");
@@ -187,7 +189,7 @@ public class TestSpatial extends Neo4jTestCase {
         geoms.add(new TestGeometry(id, name, comments, bounds));
     }
 
-	private HashMap<Integer,Integer> geomStats = new HashMap<Integer,Integer>();;
+    private final HashMap<Integer,Integer> geomStats = new HashMap<Integer,Integer>();;
 
     public TestSpatial(String name) {
         setName(name);
@@ -205,7 +207,7 @@ public class TestSpatial extends Neo4jTestCase {
         if (spatialTestMode != null && spatialTestMode.equals("long")) {
             // Very long running tests
             layersToTest = new String[] {"sweden.osm", "sweden.osm.administrative", "sweden_administrative", "sweden_natural", "sweden_water",
-                    "sweden_highway"};
+            "sweden_highway"};
         } else if (spatialTestMode != null && spatialTestMode.equals("short")) {
             // Tests used for a quick check
             layersToTest = new String[] {"sweden_administrative"};
@@ -220,6 +222,7 @@ public class TestSpatial extends Neo4jTestCase {
         }
         for (final String layerName : layersToTest) {
             suite.addTest(new TestSpatial("Test Import of "+layerName) {
+                @Override
                 public void runTest() {
                     try {
                         testImport(layerName);
@@ -230,6 +233,7 @@ public class TestSpatial extends Neo4jTestCase {
                 }
             });
             suite.addTest(new TestSpatial("Test Spatial Index on "+layerName) {
+                @Override
                 public void runTest() {
                     try {
                         testSpatialIndex(layerName);
@@ -251,11 +255,14 @@ public class TestSpatial extends Neo4jTestCase {
 
     }
 
+    @Override
     protected void setUp() throws Exception {
-        super.setUp(false, false, false);
+        super.setUp( true, false, false );
     }
 
     protected void testImport(String layerName) throws Exception {
+        updateStorePrefix();
+        reActivateDatabase( true, false, false );
         long start = System.currentTimeMillis();
         System.out.println("\n===========\n=========== Import Test: " + layerName + "\n===========");
         SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
@@ -273,10 +280,11 @@ public class TestSpatial extends Neo4jTestCase {
             }
         }
         System.out.println("Total time for load: " + 1.0 * (System.currentTimeMillis() - start) / 1000.0 + "s");
+        deleteDatabase( false );
     }
 
     private void loadTestShpData(String layerName, int commitInterval) throws ShapefileException, FileNotFoundException,
-            IOException {
+    IOException {
         String shpPath = SHP_DIR + File.separator + layerName;
         System.out.println("\n=== Loading layer " + layerName + " from " + shpPath + " ===");
         ShapefileImporter importer = new ShapefileImporter(graphDb(), new NullListener(), commitInterval);
@@ -382,22 +390,22 @@ public class TestSpatial extends Neo4jTestCase {
 
     }
 
-	private void addGeomStats(Node geomNode) {
-		addGeomStats((Integer)geomNode.getProperty(Constants.PROP_TYPE, null));
-	}
-	
-	private void addGeomStats(Integer geom) {
-		Integer count = geomStats.get(geom);
-		geomStats.put(geom, count == null ? 1 : count + 1);
-	}
-	
-	private void dumpGeomStats() {
-		System.out.println("Geometry statistics for " + geomStats.size() + " geometry types:");
-		for (Object key : geomStats.keySet()) {
-			Integer count = geomStats.get(key);
-			System.out.println("\t" + SpatialDatabaseService.convertGeometryTypeToName((Integer)key) + ": " + count);
-		}
-		geomStats.clear();
-	}
+    private void addGeomStats(Node geomNode) {
+        addGeomStats((Integer)geomNode.getProperty(Constants.PROP_TYPE, null));
+    }
+
+    private void addGeomStats(Integer geom) {
+        Integer count = geomStats.get(geom);
+        geomStats.put(geom, count == null ? 1 : count + 1);
+    }
+
+    private void dumpGeomStats() {
+        System.out.println("Geometry statistics for " + geomStats.size() + " geometry types:");
+        for (Object key : geomStats.keySet()) {
+            Integer count = geomStats.get(key);
+            System.out.println("\t" + SpatialDatabaseService.convertGeometryTypeToName((Integer)key) + ": " + count);
+        }
+        geomStats.clear();
+    }
 
 }
