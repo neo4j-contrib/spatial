@@ -567,9 +567,10 @@ public class DynamicLayer extends EditableLayerImpl {
 				}
 				if (attributes.length > i) {
 					String value = attributes[i + 1];
-					name.append("-").append(value);
+					name.append(key).append("-").append(value);
 					query.append(key).append(" = '").append(value).append("'");
 				} else {
+					name.append(key);
 					query.append(key).append(" IS NOT NULL");
 				}
 			}

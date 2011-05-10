@@ -60,7 +60,7 @@ public class ServerPluginTest extends Neo4jTestCase
         SpatialDatabaseService spatialService = new SpatialDatabaseService(
                 graphDb() );
         assertNull( spatialService.getLayer( LAYER ) );
-        plugin.addLayer( graphDb(), LAYER, LAT, LON );
+        plugin.addSimplePointLayer( graphDb(), LAYER, LAT, LON );
 
         assertNotNull( spatialService.getLayer( LAYER ) );
     }
@@ -70,7 +70,7 @@ public class ServerPluginTest extends Neo4jTestCase
     {
         SpatialDatabaseService spatialService = new SpatialDatabaseService(
                 graphDb() );
-        plugin.addLayer( graphDb(), LAYER, LAT, LON );
+        plugin.addSimplePointLayer( graphDb(), LAYER, LAT, LON );
         assertNotNull( spatialService.getLayer( LAYER ) );
         Layer layer2 = spatialService.getLayer(LAYER);
         SearchWithin withinQuery = new SearchWithin(
@@ -85,7 +85,8 @@ public class ServerPluginTest extends Neo4jTestCase
         point.setProperty( LAT, 60.1 );
         point.setProperty( LON, 15.2 );
         point.setProperty( "bbox", new double[] { 15.2, 60.1, 15.2, 60.1 } );
-        plugin.addPointToLayer( graphDb(), point, LAYER );
+        plugin.addNodeToLayer( graphDb(), point, LAYER );
+        plugin.addGeometryWKTToLayer( graphDb(), "POINT(15.2 60.1)", LAYER );
         tx2.success();
         tx2.finish();
         layer2.getIndex().executeSearch( withinQuery );

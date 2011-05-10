@@ -132,6 +132,29 @@ public class SpatialDatabaseService implements Constants {
 		return null;
 	}
 
+	/**
+	 * Convert a layer into a DynamicLayer. This will expose the ability to add
+	 * views, or 'dynamic layers' to the layer.
+	 * 
+	 * @param layer
+	 * @return new DynamicLayer version of the original layer
+	 */
+	public DynamicLayer asDynamicLayer(Layer layer) {
+		if (layer instanceof DynamicLayer) {
+			return (DynamicLayer) layer;
+		} else {
+			Transaction tx = database.beginTx();
+			try {
+				Node node = layer.getLayerNode();
+				node.setProperty(PROP_LAYER_CLASS, DynamicLayer.class.getCanonicalName());
+				tx.success();
+				return (DynamicLayer) DefaultLayer.makeLayerFromNode(this, node);
+			} finally {
+				tx.finish();
+			}
+		}
+	}
+
     public DefaultLayer getOrCreateDefaultLayer(String name) {
         return (DefaultLayer)getOrCreateLayer(name, WKBGeometryEncoder.class, DefaultLayer.class);
     }
@@ -280,6 +303,18 @@ public class SpatialDatabaseService implements Constants {
 	// Attributes
 	
 	private GraphDatabaseService database;
+
+	@SuppressWarnings("unchecked")
+	public static int convertGeometryNameToType(String geometryName) {
+		if(geometryName == null) return GTYPE_GEOMETRY;
+		try {
+			return convertJtsClassToGeometryType((Class<? extends Geometry>) Class.forName("com.vividsolutions.jts.geom."
+					+ geometryName));
+		} catch (ClassNotFoundException e) {
+			System.err.println("Unrecognized geometry '" + geometryName + "': " + e);
+			return GTYPE_GEOMETRY;
+		}
+	}
 
 	public static String convertGeometryTypeToName(Integer geometryType) {
 		return convertGeometryTypeToJtsClass(geometryType).getName().replace("com.vividsolutions.jts.geom.", "");

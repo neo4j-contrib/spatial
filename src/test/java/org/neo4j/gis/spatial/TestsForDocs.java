@@ -46,6 +46,7 @@ import org.neo4j.kernel.impl.batchinsert.BatchInserter;
 import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
 
 import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
 
 /**
  * Some test code written specifically for the user manual. This normally means
@@ -139,8 +140,7 @@ public class TestsForDocs extends Neo4jTestCase {
 			Search searchQuery = new SearchIntersectWindow(bbox);
 			spatialIndex.executeSearch(searchQuery);
 			List<SpatialDatabaseRecord> results = searchQuery.getResults();
-			System.out.println("Found " + results.size() + " geometries in " + bbox);
-			System.out.println("First geometry is " + results.get(0).getGeometry());
+			doGeometryTestsOnResults(bbox, results);
 		} finally {
 			database.shutdown();
 		}
@@ -214,11 +214,17 @@ public class TestsForDocs extends Neo4jTestCase {
 			shpExporter.exportLayer("results");
 			// END SNIPPET: exportShapefileFromQuery
 
-			System.out.println("Found " + results.size() + " geometries in " + bbox);
-			System.out.println("First geometry is " + results.get(0).getGeometry());
+			doGeometryTestsOnResults(bbox, results);
 		} finally {
 			database.shutdown();
 		}
+	}
+
+	private void doGeometryTestsOnResults(Envelope bbox, List<SpatialDatabaseRecord> results) {
+		System.out.println("Found " + results.size() + " geometries in " + bbox);
+		Geometry geometry = results.get(0).getGeometry();
+		System.out.println("First geometry is " + geometry);
+		geometry.buffer(2);
 	}
 
 }

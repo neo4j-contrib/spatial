@@ -19,11 +19,14 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 
 import org.geotools.data.DataSourceException;
 import org.geotools.data.DataStore;
+import org.geotools.data.shapefile.shp.ShapefileException;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.junit.Test;
 import org.neo4j.gis.spatial.Constants;
@@ -39,13 +42,59 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 
 	@Test
 	public void testShapefileExport_Map1() throws Exception {
-		runShapefileExport("map.osm");
+//		runShapefileExport("map.osm");
 	}
 
 	@Test
 	public void testShapefileExport_Map2() throws Exception {
-		runShapefileExport("map2.osm");
+//		runShapefileExport("map2.osm");
 	}
+
+	@Test
+	public void testImageExport_HighwayShp() throws Exception {
+		runDynamicShapefile("highway.shp");
+	}
+	
+	private void runDynamicShapefile(String shpFile) throws Exception {
+		printDatabaseStats();
+		loadTestShpData(shpFile, 1000);
+		checkLayer(shpFile);
+		printDatabaseStats();
+
+		// Define dynamic layers
+		ArrayList<Layer> layers = new ArrayList<Layer>();
+		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+		DynamicLayer shpLayer = spatialService.asDynamicLayer(spatialService.getLayer(shpFile));
+		layers.add(shpLayer.addLayerConfig("CQL0-highway", GTYPE_GEOMETRY, "highway is not null"));
+		layers.add(shpLayer.addLayerConfig("CQL1-highway", GTYPE_POINT, "geometryType(the_geom) = 'MultiLineString'"));
+		layers.add(shpLayer.addLayerConfig("CQL2-highway", GTYPE_LINESTRING, "highway is not null and geometryType(the_geom) = 'MultiLineString'"));
+		layers.add(shpLayer.addLayerConfig("CQL3-residential", GTYPE_MULTILINESTRING, "highway = 'residential'"));
+		layers.add(shpLayer.addLayerConfig("CQL4-nameV", GTYPE_LINESTRING, "name is not null and name like 'V%'"));
+		layers.add(shpLayer.addLayerConfig("CQL5-nameS", GTYPE_LINESTRING, "name like 'S%'"));
+		layers.add(shpLayer.addLayerConfig("CQL6-nameABC", GTYPE_LINESTRING, "name like 'A%' or name like 'B%' or name like 'B%'"));
+		layers.add(shpLayer.addCQLDynamicLayerOnAttribute("highway", "residential", GTYPE_MULTILINESTRING));
+		layers.add(shpLayer.addCQLDynamicLayerOnAttribute("highway", "path", GTYPE_MULTILINESTRING));
+		layers.add(shpLayer.addCQLDynamicLayerOnAttribute("highway", "track", GTYPE_MULTILINESTRING));
+		assertEquals(layers.size() + 1, shpLayer.getLayerNames().size());
+
+		// Now export the layers to files
+		// First prepare the SHP and PNG exporters
+		StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
+		imageExporter.setExportDir("target/export/"+shpFile);
+		imageExporter.setZoom(3.0);
+		imageExporter.setOffset(-0.05, -0.05);
+		imageExporter.setSize(1024, 768);
+
+		// Now loop through all dynamic layers and export them to images,
+		// where possible. Layers will multiple geometries cannot be exported
+		// and we take note of how many times that happens
+		for (Layer layer : layers) {
+		//for (Layer layer : new Layer[] {}) {
+			checkIndexAndFeatureCount(layer);
+			imageExporter.saveLayerImage(layer.getName(), null);
+		}
+	}
+
 
 	private void runShapefileExport(String osmFile) throws Exception {
 		// TODO: Consider merits of using dependency data in target/osm,
@@ -53,7 +102,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		// commited to source code as done here
 		printDatabaseStats();
 		loadTestOsmData(osmFile, 1000);
-		checkOSMLayer(osmFile);
+		checkLayer(osmFile);
 		printDatabaseStats();
 
 		// Define dynamic layers
@@ -153,13 +202,22 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		importer.reIndex(graphDb(), commitInterval);
 	}
 
-	private void checkOSMLayer(String layerName) {
+	private void loadTestShpData(String layerName, int commitInterval) throws ShapefileException, FileNotFoundException,
+			IOException {
+		String shpPath = "shp" + File.separator + layerName;
+		System.out.println("\n=== Loading layer " + layerName + " from " + shpPath + " ===");
+		ShapefileImporter importer = new ShapefileImporter(graphDb(), new NullListener(), commitInterval);
+		importer.importFile(shpPath, layerName);
+	}
+
+	private void checkLayer(String layerName) {
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-		OSMLayer layer = (OSMLayer) spatialService.getOrCreateLayer(layerName, OSMGeometryEncoder.class, OSMLayer.class);
-		assertNotNull("OSM Layer index should not be null", layer.getIndex());
-		assertNotNull("OSM Layer index envelope should not be null", layer.getIndex().getLayerBoundingBox());
+		Layer layer = spatialService.getLayer(layerName);
+		assertNotNull("Layer index should not be null", layer.getIndex());
+		assertNotNull("Layer index envelope should not be null", layer.getIndex().getLayerBoundingBox());
 		Envelope bbox = layer.getIndex().getLayerBoundingBox();
-		System.out.println("OSM Layer has bounding box: " + bbox);
+		System.out.println("Layer has bounding box: " + bbox);
 		((RTreeIndex)layer.getIndex()).debugIndexTree();
 	}
+
 }
