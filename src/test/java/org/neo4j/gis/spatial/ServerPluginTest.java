@@ -31,67 +31,103 @@ import org.neo4j.graphdb.Transaction;
 
 import com.vividsolutions.jts.geom.Envelope;
 
-public class ServerPluginTest extends Neo4jTestCase
-{
+public class ServerPluginTest extends Neo4jTestCase {
 
-    private static final String LAYER = "layer";
-    private static final String LON = "lon";
-    private static final String LAT = "lat";
-    private SpatialPlugin plugin;
+	private static final String LAYER = "layer";
+	private static final String LON = "lon";
+	private static final String LAT = "lat";
+	private SpatialPlugin plugin;
 
-    @Before
-    public void setUp() throws Exception
-    {
-        super.setUp();
-        restartTx();
-        plugin = new SpatialPlugin();
+	@Before
+	public void setUp() throws Exception {
+		super.setUp();
+		restartTx();
+		plugin = new SpatialPlugin();
 
-    }
+	}
 
-    @After
-    public void tearDown() throws Exception
-    {
-        super.tearDown();
-    }
+	@After
+	public void tearDown() throws Exception {
+		super.tearDown();
+	}
 
-    @Test
-    public void testCreateLayer()
-    {
-        SpatialDatabaseService spatialService = new SpatialDatabaseService(
-                graphDb() );
-        assertNull( spatialService.getLayer( LAYER ) );
-        plugin.addSimplePointLayer( graphDb(), LAYER, LAT, LON );
+	@Test
+	public void testCreateLayer() {
+		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+		assertNull(spatialService.getLayer(LAYER));
+		plugin.addSimplePointLayer(graphDb(), LAYER, LAT, LON);
 
-        assertNotNull( spatialService.getLayer( LAYER ) );
-    }
+		assertNotNull(spatialService.getLayer(LAYER));
+	}
 
-    @Test
-    public void testAddPointToLayerWithDefaults()
-    {
-        SpatialDatabaseService spatialService = new SpatialDatabaseService(
-                graphDb() );
-        plugin.addSimplePointLayer( graphDb(), LAYER, LAT, LON );
-        assertNotNull( spatialService.getLayer( LAYER ) );
-        Layer layer2 = spatialService.getLayer(LAYER);
-        SearchWithin withinQuery = new SearchWithin(
-                layer2.getGeometryFactory().toGeometry(
-                        new Envelope( 15.0, 16.0, 60.0, 61.0 ) ) );
-        layer2.getIndex().executeSearch( withinQuery );
-        List<SpatialDatabaseRecord> results = withinQuery.getResults();
-        assertEquals( 0, results.size() );
+	@Test
+	public void testAddPointToLayerWithDefaults() {
+		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+		plugin.addSimplePointLayer(graphDb(), LAYER, LAT, LON);
+		assertNotNull(spatialService.getLayer(LAYER));
+		Layer layer2 = spatialService.getLayer(LAYER);
+		SearchWithin withinQuery = new SearchWithin(layer2.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 60.0, 61.0)));
+		layer2.getIndex().executeSearch(withinQuery);
+		List<SpatialDatabaseRecord> results = withinQuery.getResults();
+		assertEquals(0, results.size());
 
-        Transaction tx2 = graphDb().beginTx();
-        Node point = graphDb().createNode();
-        point.setProperty( LAT, 60.1 );
-        point.setProperty( LON, 15.2 );
-        point.setProperty( "bbox", new double[] { 15.2, 60.1, 15.2, 60.1 } );
-        plugin.addNodeToLayer( graphDb(), point, LAYER );
-        plugin.addGeometryWKTToLayer( graphDb(), "POINT(15.2 60.1)", LAYER );
-        tx2.success();
-        tx2.finish();
-        layer2.getIndex().executeSearch( withinQuery );
-        results = withinQuery.getResults();
-        assertEquals( 1, results.size() );
+		Transaction tx2 = graphDb().beginTx();
+		Node point = graphDb().createNode();
+		point.setProperty(LAT, 60.1);
+		point.setProperty(LON, 15.2);
+		point.setProperty("bbox", new double[] { 15.2, 60.1, 15.2, 60.1 });
+		plugin.addNodeToLayer(graphDb(), point, LAYER);
+		plugin.addGeometryWKTToLayer(graphDb(), "POINT(15.2 60.1)", LAYER);
+		tx2.success();
+		tx2.finish();
+		layer2.getIndex().executeSearch(withinQuery);
+		results = withinQuery.getResults();
+		assertEquals(2, results.size());
+	}
+	
+	@Test
+	public void testDynamicLayer() {
+		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+		plugin.addEditableLayer(graphDb(), LAYER);
+		Layer layer = spatialService.getLayer(LAYER);
+		assertNotNull("Could not find layer '" + LAYER + "'", layer);
+		checkResults(plugin.addGeometryWKTToLayer(graphDb(), "POINT(15.2 60.1)", LAYER), 1, layer);
+		checkResults(plugin.addGeometryWKTToLayer(graphDb(), "LINESTRING(15.1 60.2, 15.3 60.1)", LAYER), 1, layer);
+		checkResults(plugin.addGeometryWKTToLayer(graphDb(), "POLYGON((15.1 60.0, 15.1 60.2, 15.2 60.2, 15.2 60.0, 15.1 60.0))", LAYER), 1, layer);
+		checkResults(plugin.addGeometryWKTToLayer(graphDb(), "POINT(15.15 60.15)", LAYER), 1, layer);
+		checkResults(plugin.addCQLDynamicLayer(graphDb(), LAYER, "CQL1", "Geometry", "within(the_geom, POLYGON((15.1 60.0, 15.1 60.2, 15.2 60.2, 15.2 60.0, 15.1 60.0)))"), 1, layer);
+		checkResults(plugin.addCQLDynamicLayer(graphDb(), LAYER, "CQL2", "Geometry", "within(the_geom, POLYGON((15.14 60.14, 15.14 60.16, 15.16 60.16, 15.16 60.14, 15.14 60.14)))"), 1, layer);
+		assertNotNull(spatialService.getLayer("CQL1"));
+		assertNotNull(spatialService.getLayer("CQL2"));
+		checkResults(plugin.findGeometriesInLayer(graphDb(), 15.0, 15.3, 60.0, 60.2, LAYER), 4, layer);
+		checkResults(plugin.findGeometriesInLayer(graphDb(), 15.1, 15.2, 60.0, 60.2, LAYER), 2, layer);
+		checkResults(plugin.findGeometriesInLayer(graphDb(), 15.0, 15.3, 60.0, 60.2, "CQL1"), 2, layer);
+		checkResults(plugin.findGeometriesInLayer(graphDb(), 15.0, 15.3, 60.0, 60.2, "CQL2"), 1, layer);
+	}
+	
+	private int checkResults(Iterable<Node> results, int expected, Layer layer) {
+		int count = 0;
+		StringBuffer sb = new StringBuffer();
+		for (Node node : results) {
+			if (sb.length() > 0)
+				sb.append(", ");
+			if (node.hasProperty(Constants.PROP_TYPE)) {
+				sb.append(layer.getGeometryEncoder().decodeGeometry(node).toString());
+			} else {
+				sb.append(node.toString());
+			}
+			count++;
+		}
+		System.out.println("Found " + count + " results: " + sb);
+		assertEquals("Count of geometries not correct", expected, count);
+		return count;
+	}
 
-    }
+	private int count(Iterable<Node> results) {
+		int count = 0;
+		for(Node node:results) {
+			count ++;
+		}
+		return count;
+	}
 }

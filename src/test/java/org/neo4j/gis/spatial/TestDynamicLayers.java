@@ -36,25 +36,28 @@ import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 
+import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.LinearRing;
+import com.vividsolutions.jts.geom.Polygon;
 
 public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 
 	@Test
 	public void testShapefileExport_Map1() throws Exception {
-//		runShapefileExport("map.osm");
+		//runShapefileExport("map.osm");
 	}
 
 	@Test
 	public void testShapefileExport_Map2() throws Exception {
-//		runShapefileExport("map2.osm");
+		runShapefileExport("map2.osm");
 	}
 
 	@Test
 	public void testImageExport_HighwayShp() throws Exception {
-		runDynamicShapefile("highway.shp");
+		//runDynamicShapefile("highway.shp");
 	}
-	
+
 	private void runDynamicShapefile(String shpFile) throws Exception {
 		printDatabaseStats();
 		loadTestShpData(shpFile, 1000);
@@ -70,7 +73,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		layers.add(shpLayer.addLayerConfig("CQL2-highway", GTYPE_LINESTRING, "highway is not null and geometryType(the_geom) = 'MultiLineString'"));
 		layers.add(shpLayer.addLayerConfig("CQL3-residential", GTYPE_MULTILINESTRING, "highway = 'residential'"));
 		layers.add(shpLayer.addLayerConfig("CQL4-nameV", GTYPE_LINESTRING, "name is not null and name like 'V%'"));
-		layers.add(shpLayer.addLayerConfig("CQL5-nameS", GTYPE_LINESTRING, "name like 'S%'"));
+		layers.add(shpLayer.addLayerConfig("CQL5-nameS", GTYPE_LINESTRING, "name is not null and name like 'S%'"));
 		layers.add(shpLayer.addLayerConfig("CQL6-nameABC", GTYPE_LINESTRING, "name like 'A%' or name like 'B%' or name like 'B%'"));
 		layers.add(shpLayer.addCQLDynamicLayerOnAttribute("highway", "residential", GTYPE_MULTILINESTRING));
 		layers.add(shpLayer.addCQLDynamicLayerOnAttribute("highway", "path", GTYPE_MULTILINESTRING));
@@ -80,7 +83,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		// Now export the layers to files
 		// First prepare the SHP and PNG exporters
 		StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
-		imageExporter.setExportDir("target/export/"+shpFile);
+		imageExporter.setExportDir("target/export/" + shpFile);
 		imageExporter.setZoom(3.0);
 		imageExporter.setOffset(-0.05, -0.05);
 		imageExporter.setSize(1024, 768);
@@ -89,12 +92,11 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		// where possible. Layers will multiple geometries cannot be exported
 		// and we take note of how many times that happens
 		for (Layer layer : layers) {
-		//for (Layer layer : new Layer[] {}) {
+			// for (Layer layer : new Layer[] {}) {
 			checkIndexAndFeatureCount(layer);
 			imageExporter.saveLayerImage(layer.getName(), null);
 		}
 	}
-
 
 	private void runShapefileExport(String osmFile) throws Exception {
 		// TODO: Consider merits of using dependency data in target/osm,
@@ -102,17 +104,27 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		// commited to source code as done here
 		printDatabaseStats();
 		loadTestOsmData(osmFile, 1000);
-		checkLayer(osmFile);
+		Envelope bbox = checkLayer(osmFile);
 		printDatabaseStats();
+		//bbox.expandBy(-0.1);
+		bbox = scale(bbox, 0.2);
 
 		// Define dynamic layers
 		ArrayList<Layer> layers = new ArrayList<Layer>();
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
 		OSMLayer osmLayer = (OSMLayer) spatialService.getLayer(osmFile);
+		LinearRing ring = osmLayer.getGeometryFactory().createLinearRing(
+				new Coordinate[] { new Coordinate(bbox.getMinX(), bbox.getMinY()), new Coordinate(bbox.getMinX(), bbox.getMaxY()),
+						new Coordinate(bbox.getMaxX(), bbox.getMaxY()), new Coordinate(bbox.getMaxX(), bbox.getMinY()),
+						new Coordinate(bbox.getMinX(), bbox.getMinY()) });
+		Polygon polygon = osmLayer.getGeometryFactory().createPolygon(ring, null);
 		layers.add(osmLayer.addLayerConfig("CQL1-highway", GTYPE_LINESTRING, "highway is not null and geometryType(the_geom) = 'LineString'"));
 		layers.add(osmLayer.addLayerConfig("CQL2-residential", GTYPE_LINESTRING, "highway = 'residential' and geometryType(the_geom) = 'LineString'"));
 		layers.add(osmLayer.addLayerConfig("CQL3-natural", GTYPE_POLYGON, "natural is not null and geometryType(the_geom) = 'Polygon'"));
 		layers.add(osmLayer.addLayerConfig("CQL4-water", GTYPE_POLYGON, "natural = 'water' and geometryType(the_geom) = 'Polygon'"));
+		layers.add(osmLayer.addLayerConfig("CQL5-bbox", GTYPE_GEOMETRY, "BBOX(the_geom, " + toCoordinateText(bbox) + ")"));
+		layers.add(osmLayer.addLayerConfig("CQL6-bbox-polygon", GTYPE_GEOMETRY, "within(the_geom, POLYGON(("
+				+ toCoordinateText(polygon.getCoordinates()) + ")))"));
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "primary"));
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "secondary"));
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "tertiary"));
@@ -143,9 +155,9 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		// Now export the layers to files
 		// First prepare the SHP and PNG exporters
 		ShapefileExporter shpExporter = new ShapefileExporter(graphDb());
-		shpExporter.setExportDir("target/export/"+osmFile);
+		shpExporter.setExportDir("target/export/" + osmFile);
 		StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
-		imageExporter.setExportDir("target/export/"+osmFile);
+		imageExporter.setExportDir("target/export/" + osmFile);
 		imageExporter.setZoom(3.0);
 		imageExporter.setOffset(-0.05, -0.05);
 		imageExporter.setSize(1024, 768);
@@ -158,7 +170,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		int countMultiGeometryLayers = 0;
 		int countMultiGeometryExceptions = 0;
 		for (Layer layer : layers) {
-		//for (Layer layer : new Layer[] {}) {
+			// for (Layer layer : new Layer[] {}) {
 			if (layer.getGeometryType() == GTYPE_GEOMETRY) {
 				countMultiGeometryLayers++;
 			}
@@ -179,10 +191,30 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		assertEquals("Mismatching number of data source exceptions and raw geometry layers", countMultiGeometryLayers,
 				countMultiGeometryExceptions);
 	}
-	
+
+	private Envelope scale(Envelope bbox, double fraction) {
+		double xoff = bbox.getWidth() * (1.0 - fraction) / 2.0;
+		double yoff = bbox.getHeight() * (1.0 - fraction)/ 2.0;
+		return new Envelope(bbox.getMinX() + xoff, bbox.getMaxX() - xoff, bbox.getMinY() + yoff, bbox.getMaxY() - yoff);
+	}
+
+	private String toCoordinateText(Coordinate[] coordinates) {
+		StringBuffer sb = new StringBuffer();
+		for (Coordinate c : coordinates) {
+			if (sb.length() > 0)
+				sb.append(", ");
+			sb.append(c.x).append(" ").append(c.y);
+		}
+		return sb.toString();
+	}
+
+	private String toCoordinateText(Envelope bbox) {
+		return "" + bbox.getMinX() + ", " + bbox.getMinY() + ", " + bbox.getMaxX() + ", " + bbox.getMaxY();
+	}
+
 	private void checkIndexAndFeatureCount(Layer layer) throws IOException {
-		if(layer.getIndex().count()<1) {
-			System.out.println("Warning: index count zero: "+layer.getName());
+		if (layer.getIndex().count() < 1) {
+			System.out.println("Warning: index count zero: " + layer.getName());
 		}
 		System.out.println("Layer '" + layer.getName() + "' has " + layer.getIndex().count() + " entries in the index");
 		DataStore store = new Neo4jSpatialDataStore(graphDb());
@@ -210,14 +242,15 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		importer.importFile(shpPath, layerName);
 	}
 
-	private void checkLayer(String layerName) {
+	private Envelope checkLayer(String layerName) {
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
 		Layer layer = spatialService.getLayer(layerName);
 		assertNotNull("Layer index should not be null", layer.getIndex());
 		assertNotNull("Layer index envelope should not be null", layer.getIndex().getLayerBoundingBox());
 		Envelope bbox = layer.getIndex().getLayerBoundingBox();
 		System.out.println("Layer has bounding box: " + bbox);
-		((RTreeIndex)layer.getIndex()).debugIndexTree();
+		((RTreeIndex) layer.getIndex()).debugIndexTree();
+		return bbox;
 	}
 
 }

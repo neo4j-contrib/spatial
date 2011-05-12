@@ -108,7 +108,7 @@ public class SpatialPlugin extends ServerPlugin {
 	public Iterable<Node> addGeometryWKTToLayer(@Source GraphDatabaseService db,
 			@Description("The geometry in WKT to add to the layer") @Parameter(name = "node") String geometryWKT,
 			@Description("The layer to add the node to.") @Parameter(name = "layer") String layer) {
-		System.out.println("Finding layer '" + layer + "'");
+		System.out.println("Adding geometry to layer '" + layer + "': " + geometryWKT);
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
 
 		EditableLayer spatialLayer = (EditableLayer) spatialService.getLayer(layer);
@@ -132,7 +132,7 @@ public class SpatialPlugin extends ServerPlugin {
 			@Description("The minimum y value of the bounding box") @Parameter(name = "miny") double miny,
 			@Description("The maximum y value of the bounding box") @Parameter(name = "maxy") double maxy,
 			@Description("The layer to search. Can be a dynamic layer with pre-defined CQL filter.") @Parameter(name = "layer") String layerName) {
-		System.out.println("Finding layer '" + layerName + "'");
+//		System.out.println("Finding layer '" + layerName + "'");
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
 
 		Layer layer = spatialService.getDynamicLayer(layerName);

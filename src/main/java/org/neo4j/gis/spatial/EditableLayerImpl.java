@@ -19,8 +19,13 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.ReturnableEvaluator;
+import org.neo4j.graphdb.StopEvaluator;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.Traverser.Order;
 
 import com.vividsolutions.jts.geom.Geometry;
 
@@ -75,6 +80,13 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 
 	private Node addGeomNode(Geometry geom, String[] fieldsName, Object[] fields) {
 		Node geomNode = getDatabase().createNode();
+		if (previousGeomNode == null) {
+			for (Node node : layerNode.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH,
+					ReturnableEvaluator.ALL_BUT_START_NODE, SpatialRelationshipTypes.GEOMETRIES, Direction.OUTGOING,
+					SpatialRelationshipTypes.NEXT_GEOM, Direction.OUTGOING)) {
+				previousGeomNode = node;
+			}
+		}
 		if (previousGeomNode != null) {
 			previousGeomNode.createRelationshipTo(geomNode, SpatialRelationshipTypes.NEXT_GEOM);
 		} else {
