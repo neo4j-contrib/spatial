@@ -19,21 +19,15 @@
  */
 package org.neo4j.gis.spatial;
 
-import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 
-import javax.xml.stream.XMLStreamException;
-
 import org.geotools.data.DataStore;
-import org.geotools.data.shapefile.shp.ShapefileException;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.neo4j.gis.spatial.DynamicLayer.LayerConfig;
 import org.neo4j.gis.spatial.geotools.data.Neo4jSpatialDataStore;
 import org.neo4j.gis.spatial.osm.OSMDataset;
-import org.neo4j.gis.spatial.osm.OSMDataset.OSMNode;
 import org.neo4j.gis.spatial.osm.OSMDataset.Way;
 import org.neo4j.gis.spatial.osm.OSMDataset.WayPoint;
 import org.neo4j.gis.spatial.osm.OSMImporter;
@@ -58,9 +52,16 @@ import com.vividsolutions.jts.geom.Geometry;
  * @author craig
  */
 public class TestsForDocs extends Neo4jTestCase {
+	private String databasePath;
+	
+	@Override
+	public void setUp() throws Exception {
+		super.setUp();
+		this.databasePath = getNeoPath().getAbsolutePath();
+	}
 
 	private void checkIndexAndFeatureCount(String layerName) throws IOException {
-		GraphDatabaseService database = new EmbeddedGraphDatabase("target/var/neo4j-db");
+		GraphDatabaseService database = new EmbeddedGraphDatabase(databasePath);
 		try {
 			SpatialDatabaseService spatial = new SpatialDatabaseService(database);
 			Layer layer = spatial.getLayer(layerName);
@@ -106,11 +107,11 @@ public class TestsForDocs extends Neo4jTestCase {
 		// START SNIPPET: importOsm
 		OSMImporter importer = new OSMImporter("map.osm");
 
-		BatchInserter batchInserter = new BatchInserterImpl("target/var/neo4j-db");
+		BatchInserter batchInserter = new BatchInserterImpl(databasePath);
 		importer.importFile(batchInserter, "map.osm", false);
 		batchInserter.shutdown();
 
-		GraphDatabaseService db = new EmbeddedGraphDatabase("target/var/neo4j-db");
+		GraphDatabaseService db = new EmbeddedGraphDatabase(databasePath);
 		importer.reIndex(db);
 		db.shutdown();
 		// END SNIPPET: importOsm
@@ -123,13 +124,13 @@ public class TestsForDocs extends Neo4jTestCase {
 	 */
 	public void testImportOSM() throws Exception {
 		super.shutdownDatabase(true);
-		deleteFileOrDirectory(new File("target/var/neo4j-db"));
+		deleteDatabase(true);
 
 		System.out.println("\n=== Simple test map.osm ===");
 		importMapOSM();
 
 		// START SNIPPET: searchBBox
-		GraphDatabaseService database = new EmbeddedGraphDatabase("target/var/neo4j-db");
+		GraphDatabaseService database = new EmbeddedGraphDatabase(databasePath);
 		try {
 			SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
 			Layer layer = spatialService.getLayer("map.osm");
@@ -151,12 +152,12 @@ public class TestsForDocs extends Neo4jTestCase {
 
 	public void testImportShapefile() throws Exception {
 		super.shutdownDatabase(true);
-		deleteFileOrDirectory(new File("target/var/neo4j-db"));
+		deleteDatabase(true);
 
 		System.out.println("\n=== Test Import Shapefile ===");
 
 		// START SNIPPET: importShapefile
-		GraphDatabaseService database = new EmbeddedGraphDatabase("target/var/neo4j-db");
+		GraphDatabaseService database = new EmbeddedGraphDatabase(databasePath);
 		try {
 			ShapefileImporter importer = new ShapefileImporter(database);
 			importer.importFile("shp/highway.shp", "highway");
@@ -170,12 +171,12 @@ public class TestsForDocs extends Neo4jTestCase {
 
 	public void testExportShapefileFromOSM() throws Exception {
 		super.shutdownDatabase(true);
-		deleteFileOrDirectory(new File("target/var/neo4j-db"));
+		deleteDatabase(true);
 
 		System.out.println("\n=== Test import map.osm, create DynamicLayer and export shapefile ===");
 		importMapOSM();
 
-		GraphDatabaseService database = new EmbeddedGraphDatabase("target/var/neo4j-db");
+		GraphDatabaseService database = new EmbeddedGraphDatabase(databasePath);
 		try {
 			// START SNIPPET: exportShapefileFromOSM
 			SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
@@ -191,12 +192,12 @@ public class TestsForDocs extends Neo4jTestCase {
 
 	public void testExportShapefileFromQuery() throws Exception {
 		super.shutdownDatabase(true);
-		deleteFileOrDirectory(new File("target/var/neo4j-db"));
+		deleteDatabase(true);
 
 		System.out.println("\n=== Test import map.osm, create DynamicLayer and export shapefile ===");
 		importMapOSM();
 
-		GraphDatabaseService database = new EmbeddedGraphDatabase("target/var/neo4j-db");
+		GraphDatabaseService database = new EmbeddedGraphDatabase(databasePath);
 		try {
 			// START SNIPPET: exportShapefileFromQuery
 			SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
@@ -209,7 +210,7 @@ public class TestsForDocs extends Neo4jTestCase {
 			spatialIndex.executeSearch(searchQuery);
 			List<SpatialDatabaseRecord> results = searchQuery.getResults();
 
-			Layer resultsLayer = spatialService.createResultsLayer("results", results);
+			spatialService.createResultsLayer("results", results);
 			ShapefileExporter shpExporter = new ShapefileExporter(database);
 			shpExporter.exportLayer("results");
 			// END SNIPPET: exportShapefileFromQuery

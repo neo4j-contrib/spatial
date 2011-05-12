@@ -114,3 +114,68 @@ For more info head over to [Neo4j Wiki on Geoserver](http://wiki.neo4j.org/conte
 Using Neo4j Spatial with uDig
 ----------------------------------
 For more info head over to [Neo4j Wiki on uDig](http://wiki.neo4j.org/content/Neo4j_Spatial_in_uDig)
+
+Using the Neo4j Spatial Server plugin
+-------------------------------------
+
+Neo4j Spatial is also packaged as a ZIP file that can be unzipped into the Neo4j Server /plugin directory. After restarting the server, you should be able to do things liek the following REST calls (here illustrated using `curl`)
+
+    curl http://localhost:7474/db/data/
+  
+    {
+      "relationship_index" : "http://localhost:7474/db/data/index/relationship",
+      "node" : "http://localhost:7474/db/data/node",
+      "relationship_types" : "http://localhost:7474/db/data/relationship/types",
+      "extensions_info" : "http://localhost:7474/db/data/ext",
+      "node_index" : "http://localhost:7474/db/data/index/node",
+      "reference_node" : "http://localhost:7474/db/data/node/0",
+      "extensions" : {
+      "SpatialPlugin" : {
+          "addLayer" : "http://localhost:7474/db/data/ext/SpatialPlugin/graphdb/addLayer",
+          "addPointToLayer" : "http://localhost:7474/db/data/ext/SpatialPlugin/graphdb/addPointToLayer"
+        }
+      }
+    }
+  
+    curl -d "layer=test" http://localhost:7474/db/data/ext/SpatialPlugin/graphdb/addLayer
+  
+    Creating new layer 'test' unless it already exists
+    [ {
+      "outgoing_relationships" : "http://localhost:7474/db/data/node/2/relationships/out",
+      "data" : {
+        "layer_class" : "org.neo4j.gis.spatial.EditableLayerImpl",
+        "layer" : "test",
+        "geomencoder" : "org.neo4j.gis.spatial.encoders.SimplePointEncoder",
+        "ctime" : 1304444390349
+      },
+      "traverse" : "http://localhost:7474/db/data/node/2/traverse/{returnType}",
+      "all_typed_relationships" : "http://localhost:7474/db/data/node/2/relationships/all/{-list|&|types}",
+      "property" : "http://localhost:7474/db/data/node/2/properties/{key}",
+      "self" : "http://localhost:7474/db/data/node/2",
+      "properties" : "http://localhost:7474/db/data/node/2/properties",
+      "outgoing_typed_relationships" : "http://localhost:7474/db/data/node/2/relationships/out/{-list|&|types}",
+      "incoming_relationships" : "http://localhost:7474/db/data/node/2/relationships/in",
+      "extensions" : {
+      },
+      "create_relationship" : "http://localhost:7474/db/data/node/2/relationships",
+      "all_relationships" : "http://localhost:7474/db/data/node/2/relationships/all",
+      "incoming_typed_relationships" : "http://localhost:7474/db/data/node/2/relationships/in/{-list|&|types}"
+    } ]
+    
+Building Neo4j spatial
+----------------------
+  
+    git clone https://github.com/neo4j/neo4j-spatial.git
+    mvn clean package
+
+Integration-Testing the Neo4j-Spatial Server Plugin
+
+    export DOWNLOAD_PLUGIN_LOCATION=file:/path/to/neo4j-spatial/target/neo4j-spatial-0.6-SNAPSHOT-server-plugin.zip
+    export NEO4J_VERSION=1.4.M01
+    export NEO4J_PRODUCT=community
+    
+    rake
+
+or
+
+    mvn test -P integration-tests

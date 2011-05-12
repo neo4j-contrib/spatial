@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -39,6 +40,7 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.impl.batchinsert.BatchInserter;
 import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
 import org.neo4j.kernel.impl.nioneo.store.PropertyStore;
+import org.neo4j.kernel.impl.util.FileUtils;
 
 
 /**
@@ -69,9 +71,18 @@ public abstract class Neo4jTestCase extends TestCase {
     private Transaction tx;
     private BatchInserter batchInserter;
 
+    private long storePrefix;
+
+    @Override
     @Before
     protected void setUp() throws Exception {
-        setUp(true, false, false);
+        updateStorePrefix();
+        setUp(false, false, false);
+    }
+
+    protected void updateStorePrefix()
+    {
+        storePrefix = System.currentTimeMillis();
     }
 
     /**
@@ -88,12 +99,12 @@ public abstract class Neo4jTestCase extends TestCase {
         reActivateDatabase(deleteDb, useBatchInserter, autoTx);
     }
 
-	/**
-	 * For test cases that want to control their own database access, we should
-	 * shutdown the current one.
-	 * 
-	 * @param deleteDb
-	 */
+    /**
+     * For test cases that want to control their own database access, we should
+     * shutdown the current one.
+     * 
+     * @param deleteDb
+     */
     protected void shutdownDatabase(boolean deleteDb) {
         if (tx != null) {
             tx.success();
@@ -107,7 +118,7 @@ public abstract class Neo4jTestCase extends TestCase {
             batchInserter = null;
         }
         if (deleteDb) {
-            deleteDatabase();
+            deleteDatabase(true);
         }
     }
 
@@ -121,17 +132,17 @@ public abstract class Neo4jTestCase extends TestCase {
      * @throws Exception
      */
     protected void reActivateDatabase(boolean deleteDb, boolean useBatchInserter, boolean autoTx) throws Exception {
-    	shutdownDatabase(deleteDb);
+        shutdownDatabase(deleteDb);
         Map<String, String> config = NORMAL_CONFIG;
         String largeMode = System.getProperty("spatial.test.large");
-		if (largeMode != null && largeMode.equalsIgnoreCase("true")) {
-			config = LARGE_CONFIG;
-		}
+        if (largeMode != null && largeMode.equalsIgnoreCase("true")) {
+            config = LARGE_CONFIG;
+        }
         if (useBatchInserter) {
-            batchInserter = new BatchInserterImpl(dbPath.getAbsolutePath(), config);
+            batchInserter = new BatchInserterImpl(getNeoPath().getAbsolutePath(), config);
             graphDb = batchInserter.getGraphDbService();
         } else {
-            graphDb = new EmbeddedGraphDatabase(dbPath.getAbsolutePath(), config );
+            graphDb = new EmbeddedGraphDatabase(getNeoPath().getAbsolutePath(), config );
         }
         if (autoTx) {
             // with the batch inserter the tx is a dummy that simply succeeds all the time
@@ -142,23 +153,45 @@ public abstract class Neo4jTestCase extends TestCase {
     @Override
     @After
     protected void tearDown() throws Exception {
-    	shutdownDatabase(false);
+        shutdownDatabase(true);
         super.tearDown();
     }
 
     protected void beforeShutdown() {
     }
 
-    protected File getBasePath() {
-        return basePath;
-    }
-
     protected File getNeoPath() {
-        return dbPath;
+        return new File(dbPath.getAbsolutePath(), Long.toString(storePrefix));
     }
 
-    protected static void deleteDatabase() {
-        deleteFileOrDirectory(dbPath);
+    protected void deleteDatabase(boolean synchronous) {
+        if (synchronous)
+        {
+            try {
+                FileUtils.deleteRecursively(getNeoPath());
+            } catch (IOException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+        else
+        {
+            new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        FileUtils.deleteRecursively(getNeoPath());
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }).start();
+        }
+    }
+
+    protected static void deleteBaseDir()
+    {
+        deleteFileOrDirectory(basePath);
     }
 
     protected static void deleteFileOrDirectory(File file) {
@@ -174,33 +207,33 @@ public abstract class Neo4jTestCase extends TestCase {
             file.delete();
         }
     }
-    
+
     protected long calculateDiskUsage(File file) {
-    	if(file.isDirectory()) {
-    		long count = 0;
-    		for(File sub:file.listFiles()) {
-    			count += calculateDiskUsage(sub);
-    		}
-    		return count;
-    	} else {
-    		return file.length();
-    	}
+        if(file.isDirectory()) {
+            long count = 0;
+            for(File sub:file.listFiles()) {
+                count += calculateDiskUsage(sub);
+            }
+            return count;
+        } else {
+            return file.length();
+        }
     }
 
     protected long databaseDiskUsage() {
-    	return calculateDiskUsage(dbPath);
+        return calculateDiskUsage(getNeoPath());
     }
 
     protected long countNodes(Class<?> cls) {
-    	return ((EmbeddedGraphDatabase)graphDb).getConfig().getGraphDbModule().getNodeManager().getNumberOfIdsInUse(cls);
+        return ((EmbeddedGraphDatabase)graphDb).getConfig().getGraphDbModule().getNodeManager().getNumberOfIdsInUse(cls);
     }
 
     protected void printDatabaseStats() {
-    	System.out.println("Database stats:");
-    	System.out.println("\tTotal disk usage: "+((float)databaseDiskUsage())/(1024.0*1024.0)+"MB");
-    	System.out.println("\tTotal # nodes:    "+countNodes(Node.class));
-    	System.out.println("\tTotal # rels:     "+countNodes(Relationship.class));
-    	System.out.println("\tTotal # props:    "+countNodes(PropertyStore.class));
+        System.out.println("Database stats:");
+        System.out.println("\tTotal disk usage: "+(databaseDiskUsage())/(1024.0*1024.0)+"MB");
+        System.out.println("\tTotal # nodes:    "+countNodes(Node.class));
+        System.out.println("\tTotal # rels:     "+countNodes(Relationship.class));
+        System.out.println("\tTotal # props:    "+countNodes(PropertyStore.class));
     }
     protected void restartTx() {
         restartTx(true);
