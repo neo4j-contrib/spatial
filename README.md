@@ -131,13 +131,13 @@ Neo4j Spatial is also packaged as a ZIP file that can be unzipped into the Neo4j
       "reference_node" : "http://localhost:7474/db/data/node/0",
       "extensions" : {
       "SpatialPlugin" : {
-          "addLayer" : "http://localhost:7474/db/data/ext/SpatialPlugin/graphdb/addLayer",
-          "addPointToLayer" : "http://localhost:7474/db/data/ext/SpatialPlugin/graphdb/addPointToLayer"
+          "addSimplePointLayer" : "http://localhost:7474/db/data/ext/SpatialPlugin/graphdb/addSimplePointLayer",
+          "addNodeToLayer" : "http://localhost:7474/db/data/ext/SpatialPlugin/graphdb/addNodeToLayer"
         }
       }
     }
   
-    curl -d "layer=test" http://localhost:7474/db/data/ext/SpatialPlugin/graphdb/addLayer
+    curl -d "layer=test" http://localhost:7474/db/data/ext/SpatialPlugin/graphdb/addSimplePointLayer
   
     Creating new layer 'test' unless it already exists
     [ {
