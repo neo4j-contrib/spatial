@@ -82,3 +82,13 @@ Then /^sending "([^\"]*)" to "([^\"]*)" should contain "([^\"]*)"$/ do |content,
   puts response_body
   fail "expected '#{result}' not found in '#{response_body}'" unless response_body =~ /#{result}/
 end
+
+Then /^updating "(.*)" to "(.*)" should have a response of "(.*)"$/ do |content, uri, response_code|
+  location = URI.parse(uri)
+  puts location
+  server = Net::HTTP.new(location.host, location.port ? location.port : 80)
+  response = server.request_put(location.path, content)
+  fail "invalid response code #{response.code.to_i}" unless response && response.code.to_i == response_code
+  response_body = response.body
+  puts response_body
+end
