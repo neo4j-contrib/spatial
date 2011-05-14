@@ -147,7 +147,7 @@ public class TestOSMImport extends Neo4jTestCase {
 			importer.importFile(getBatchInserter(), osmPath, false);
 			reActivateDatabase(false, false, false);
 		} else {
-			importer.importFile(graphDb(), osmPath, false);
+			importer.importFile(graphDb(), osmPath, false, 5000);
 		}
 		// END SNIPPET: importOsm
 		// Weird hack to force GC on large loads
