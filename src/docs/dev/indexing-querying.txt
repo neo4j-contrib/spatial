@@ -57,4 +57,8 @@ The spatial queries implemented are:
 
 === CQL Queries ===
 
+TBD
+
 === JSON Queries ===
+
+TDB
