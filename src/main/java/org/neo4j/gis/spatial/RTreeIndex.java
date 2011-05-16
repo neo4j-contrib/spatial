@@ -602,7 +602,8 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 	 * @param indexNode
 	 */
 	private void adjustParentBoundingBox(Node indexNode, RelationshipType relationshipType) {
-		Envelope bbox = null;
+	    //make a default null bounding box
+		Envelope bbox = new Envelope();
 		
 		Iterator<Relationship> iterator = indexNode.getRelationships(relationshipType, Direction.OUTGOING).iterator();
 		while (iterator.hasNext()) {

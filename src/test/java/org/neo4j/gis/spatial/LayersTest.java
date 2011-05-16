@@ -81,6 +81,20 @@ public class LayersTest extends Neo4jTestCase
     }
 
     @Test
+    public void testDeleteGeometry()
+    {
+        SpatialDatabaseService db = new SpatialDatabaseService( graphDb() );
+        EditableLayer layer = (EditableLayer) db.createLayer("test", SimplePointEncoder.class, EditableLayerImpl.class, "lon:lat");
+        assertNotNull( layer );
+        SpatialDatabaseRecord record = layer.add( layer.getGeometryFactory().createPoint(
+                new Coordinate( 15.3, 56.2 ) ) );
+        assertNotNull( record );
+        // try to remove the geometry
+        layer.delete( record.getId() );
+    }
+
+    
+    @Test
     public void testEditableLayer()
     {
         SpatialDatabaseService db = new SpatialDatabaseService( graphDb() );
