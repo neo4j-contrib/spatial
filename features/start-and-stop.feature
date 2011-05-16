@@ -16,4 +16,5 @@ Feature: Start and stop Neo4j Server
     Then sending "layer=test&lon=lon&lat=lat" to "http://localhost:7474/db/data/ext/SpatialPlugin/graphdb/addSimplePointLayer" should contain "EditableLayerImpl"
     Then updating "{"lon": 15.2, "lat": 60.1, "bbox": [15.2, 60.1, 15.2, 60.1]}" to "http://localhost:7474/db/data/node/0/properties" should have a response of "204"
     Then sending "layer=test&node=http://localhost:7474/db/data/node/0" to "http://localhost:7474/db/data/ext/SpatialPlugin/graphdb/addNodeToLayer" should contain "node"
+    Then sending "layer=test&minx=15.0&maxx=15.3&miny=60.0&maxy=60.2" to "http://localhost:7474/db/data/ext/SpatialPlugin/graphdb/findGeometriesInLayer" should contain "node"
     
