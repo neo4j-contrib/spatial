@@ -41,7 +41,6 @@ public class ServerPluginTest extends Neo4jTestCase {
 	@Before
 	public void setUp() throws Exception {
 		super.setUp();
-		restartTx();
 		plugin = new SpatialPlugin();
 
 	}
@@ -76,10 +75,10 @@ public class ServerPluginTest extends Neo4jTestCase {
 		point.setProperty(LAT, 60.1);
 		point.setProperty(LON, 15.2);
 		point.setProperty("bbox", new double[] { 15.2, 60.1, 15.2, 60.1 });
-		plugin.addNodeToLayer(graphDb(), point, LAYER);
-		plugin.addGeometryWKTToLayer(graphDb(), "POINT(15.2 60.1)", LAYER);
 		tx2.success();
 		tx2.finish();
+		plugin.addNodeToLayer(graphDb(), point, LAYER);
+		plugin.addGeometryWKTToLayer(graphDb(), "POINT(15.2 60.1)", LAYER);
 		layer2.getIndex().executeSearch(withinQuery);
 		results = withinQuery.getResults();
 		assertEquals(2, results.size());
