@@ -30,6 +30,7 @@ import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.query.SearchWithin;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.server.plugins.Description;
 import org.neo4j.server.plugins.Parameter;
 import org.neo4j.server.plugins.PluginTarget;
@@ -98,8 +99,15 @@ public class SpatialPlugin extends ServerPlugin {
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
 
 		EditableLayer spatialLayer = (EditableLayer) spatialService.getLayer(layer);
-		spatialLayer.add(node);
-
+		Transaction tx = db.beginTx();
+		try {
+		    spatialLayer.add(node);
+		    tx.success();
+		} catch (Exception e) {
+		    tx.failure();
+		} finally {
+		    tx.finish();
+		}
 		return toArray(node);
 	}
 
