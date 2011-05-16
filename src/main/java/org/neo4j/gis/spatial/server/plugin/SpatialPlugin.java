@@ -95,15 +95,16 @@ public class SpatialPlugin extends ServerPlugin {
 	public Iterable<Node> addNodeToLayer(@Source GraphDatabaseService db,
 			@Description("The node representing a geometry to add to the layer") @Parameter(name = "node") Node node,
 			@Description("The layer to add the node to.") @Parameter(name = "layer") String layer) {
-		System.out.println("Finding layer '" + layer + "'");
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
-
+		System.out.println( "adding node " + node + " to layer '" + layer + "'");
+        
 		EditableLayer spatialLayer = (EditableLayer) spatialService.getLayer(layer);
 		Transaction tx = db.beginTx();
 		try {
 		    spatialLayer.add(node);
 		    tx.success();
 		} catch (Exception e) {
+		    e.printStackTrace();
 		    tx.failure();
 		} finally {
 		    tx.finish();
@@ -132,7 +133,7 @@ public class SpatialPlugin extends ServerPlugin {
 	}
 
 	@PluginTarget(GraphDatabaseService.class)
-	@Description("search a layer for geometries in a bonding box. To achieve more complex CQL searches, pre-define the dynamic layer with addCQLDynamicLayer.")
+	@Description("search a layer for geometries in a bounding box. To achieve more complex CQL searches, pre-define the dynamic layer with addCQLDynamicLayer.")
 	public Iterable<Node> findGeometriesInLayer(
 			@Source GraphDatabaseService db,
 			@Description("The minimum x value of the bounding box") @Parameter(name = "minx") double minx,
@@ -140,7 +141,7 @@ public class SpatialPlugin extends ServerPlugin {
 			@Description("The minimum y value of the bounding box") @Parameter(name = "miny") double miny,
 			@Description("The maximum y value of the bounding box") @Parameter(name = "maxy") double maxy,
 			@Description("The layer to search. Can be a dynamic layer with pre-defined CQL filter.") @Parameter(name = "layer") String layerName) {
-//		System.out.println("Finding layer '" + layerName + "'");
+		System.out.println("Finding Geometries in layer '" + layerName + "'");
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
 
 		Layer layer = spatialService.getDynamicLayer(layerName);

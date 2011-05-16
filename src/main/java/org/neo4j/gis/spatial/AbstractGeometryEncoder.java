@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.apache.commons.lang.ArrayUtils;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.PropertyContainer;
 
@@ -49,8 +50,13 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 	}
 
 	public Envelope decodeEnvelope(PropertyContainer container) {
-		double[] bbox = (double[]) container.getProperty(PROP_BBOX);
-
+	    double[] bbox = new double[]{0,0,0,0,};
+	    Object bboxProp = container.getProperty(PROP_BBOX);
+		if (bboxProp instanceof Double[]) {
+		    bbox = ArrayUtils.toPrimitive( (Double[])bboxProp);
+		} else if (bboxProp instanceof double[]) {
+	        bbox = (double[])bboxProp;
+	    }
 		// Envelope parameters: xmin, xmax, ymin, ymax
 		return new Envelope(bbox[0], bbox[2], bbox[1], bbox[3]);
 	}

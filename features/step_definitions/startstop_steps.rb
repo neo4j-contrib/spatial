@@ -75,6 +75,7 @@ end
 Then /^sending "([^\"]*)" to "([^\"]*)" should contain "([^\"]*)"$/ do |content, uri, result|
   location = URI.parse(uri)
   puts location
+  puts "parameters: #{content}"
   server = Net::HTTP.new(location.host, location.port ? location.port : 80)
   response = server.request_post(location.path, content)
   fail "invalid response code #{response.code.to_i}" unless response || response.code.to_i == 200
