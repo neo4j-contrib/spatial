@@ -60,9 +60,30 @@ public class ServerPluginTest extends Neo4jTestCase {
 	}
 
 	@Test
+	public void testSearchPoints() {
+	    Transaction tx2 = graphDb().beginTx();
+        Node point = graphDb().createNode();
+        point.setProperty(LAT, 60.1);
+        point.setProperty(LON, 15.2);
+        point.setProperty("bbox", new double[] { 15.2, 60.1, 15.2, 60.1 });
+        tx2.success();
+        tx2.finish();
+        plugin.addSimplePointLayer( graphDb(), LAYER, LAT, LON );
+        plugin.addNodeToLayer(graphDb(), point, LAYER);
+        Iterable<Node> geometries = plugin.findGeometriesInLayer( graphDb(), 15.0, 15.3, 60.0, 60.2, LAYER );
+        assertTrue( geometries.iterator().hasNext() );
+//        plugin.addEditableLayer(graphDb(), LAYER);
+//        plugin.addGeometryWKTToLayer(graphDb(), "POINT(15.2 60.1)", LAYER);
+//        plugin.addCQLDynamicLayer(graphDb(), LAYER, "CQL1", "Geometry", "within(the_geom, POLYGON((15.1 60.0, 15.1 60.2, 15.2 60.2, 15.2 60.0, 15.1 60.0)))");
+//        geometries = plugin.findGeometriesInLayer( graphDb(), 15.0, 15.3, 60.0, 60.2, "CQL1" );
+//        assertTrue( geometries.iterator().hasNext() );
+
+	}
+	
+	@Test
 	public void testAddPointToLayerWithDefaults() {
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-		plugin.addSimplePointLayer(graphDb(), LAYER, LAT, LON);
+        plugin.addSimplePointLayer( graphDb(), LAYER, LAT, LON );
 		assertNotNull(spatialService.getLayer(LAYER));
 		Layer layer2 = spatialService.getLayer(LAYER);
 		SearchWithin withinQuery = new SearchWithin(layer2.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 60.0, 61.0)));
