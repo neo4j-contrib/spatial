@@ -66,7 +66,7 @@ end
 
 Then /^requesting "([^\"]*)" should contain "([^\"]*)"$/ do |uri, result|
   response = Net::HTTP.get_response(URI.parse(uri))
-  fail "invalid response code #{response.code.to_i}" unless response && response.code.to_i == 200
+  fail "invalid response code #{response.code.to_i}" unless response || response.code.to_i == 200
   response_body = response.body
   puts response_body
   fail "expected '#{result}' not found in '#{response_body}'" unless response_body =~ /#{result}/
@@ -77,7 +77,7 @@ Then /^sending "([^\"]*)" to "([^\"]*)" should contain "([^\"]*)"$/ do |content,
   puts location
   server = Net::HTTP.new(location.host, location.port ? location.port : 80)
   response = server.request_post(location.path, content)
-  fail "invalid response code #{response.code.to_i}" unless response && response.code.to_i == 200
+  fail "invalid response code #{response.code.to_i}" unless response || response.code.to_i == 200
   response_body = response.body
   puts response_body
   fail "expected '#{result}' not found in '#{response_body}'" unless response_body =~ /#{result}/
@@ -88,7 +88,7 @@ Then /^updating "(.*)" to "(.*)" should have a response of "(.*)"$/ do |content,
   puts location
   server = Net::HTTP.new(location.host, location.port ? location.port : 80)
   response = server.request_put(location.path, content, {'Content-Type' => 'application/json'})
-  fail "invalid response code #{response.code.to_i}" unless response && response.code.to_i != response_code
+  fail "invalid response code #{response.code.to_i}" unless response || response.code.to_i == response_code
   response_body = response.body
   puts response_body
 end
