@@ -70,13 +70,13 @@ public class SpatialPlugin extends ServerPlugin {
 	@Description("add a new dynamic layer exposing a filtered view of an existing layer")
 	public Iterable<Node> addCQLDynamicLayer(
 			@Source GraphDatabaseService db,
-			@Description("The master layer to find") @Parameter(name = "layer") String layer,
+			@Description("The master layer to find") @Parameter(name = "master_layer") String master_layer,
 			@Description("The name for the new dynamic layer") @Parameter(name = "name") String name,
 			@Description("The type of geometry to use for streaming data from the new view") @Parameter(name = "geometry", optional = true) String geometry,
 			@Description("The CQL query to use for defining this dynamic layer") @Parameter(name = "layer") String query) {
-		System.out.println("Creating new dynamic layer '" + name + "' from existing layer '" + layer + "'");
+		System.out.println("Creating new dynamic layer '" + name + "' from existing layer '" + master_layer + "'");
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
-		DynamicLayer dynamicLayer = spatialService.asDynamicLayer(spatialService.getLayer(layer));
+		DynamicLayer dynamicLayer = spatialService.asDynamicLayer(spatialService.getLayer(master_layer));
 		int gtype = SpatialDatabaseService.convertGeometryNameToType(geometry);
 		return toArray(dynamicLayer.addLayerConfig(name, gtype, query).getLayerNode());
 	}
@@ -144,6 +144,9 @@ public class SpatialPlugin extends ServerPlugin {
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
 
 		Layer layer = spatialService.getDynamicLayer(layerName);
+		if(layer == null ) {
+		    layer = spatialService.getLayer(layerName);
+		}
 		SearchWithin withinQuery = new SearchWithin(layer.getGeometryFactory().toGeometry(new Envelope(minx, maxx, miny, maxy)));
 		layer.getIndex().executeSearch(withinQuery);
 		List<SpatialDatabaseRecord> results = withinQuery.getResults();
