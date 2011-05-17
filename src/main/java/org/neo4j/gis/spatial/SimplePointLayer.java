@@ -44,8 +44,8 @@ public class SimplePointLayer extends EditableLayerImpl {
 		return findClosestPoints(distanceQuery);
 	}
 
-	public List<SpatialDatabaseRecord> findClosestPointsTo(Coordinate point, double distance) {
-		SearchPointsWithinOrthodromicDistance distanceQuery = new SearchPointsWithinOrthodromicDistance(point, 10.0, true);
+	public List<SpatialDatabaseRecord> findClosestPointsTo(Coordinate point, double distanceInKm) {
+		SearchPointsWithinOrthodromicDistance distanceQuery = new SearchPointsWithinOrthodromicDistance(point, distanceInKm, true);
 		return findClosestPoints(distanceQuery);
 	}
 
