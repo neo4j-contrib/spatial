@@ -73,8 +73,14 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		Coordinate centre = new Coordinate(bbox.centre().x + 0.1, bbox.centre().y);
 		List<SpatialDatabaseRecord> results = layer.findClosestPointsTo(centre, 10.0);
 
-		saveResultsAsImage(results, layer, 130, 70);
+		saveResultsAsImage(results, "temporary-results-layer-" + layer.getName(), 130, 70);
 		assertEquals(71, results.size());
+		checkPointOrder(results);
+
+		results = layer.findClosestPointsTo(centre, 5.0);
+
+		saveResultsAsImage(results, "temporary-results-layer2-" + layer.getName(), 130, 70);
+		assertEquals(30, results.size());
 		checkPointOrder(results);
 	}
 
@@ -106,7 +112,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		layer.getIndex().executeSearch(distanceQuery);
 		List<SpatialDatabaseRecord> results = distanceQuery.getResults();
 
-		saveResultsAsImage(results, layer, 150, 150);
+		saveResultsAsImage(results, "temporary-results-layer-" + layer.getName(), 150, 150);
 		assertEquals(456, results.size());
 	}
 
@@ -125,7 +131,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		}
 	}
 
-	private void saveResultsAsImage(List<SpatialDatabaseRecord> results, Layer layer, int width, int height) {
+	private void saveResultsAsImage(List<SpatialDatabaseRecord> results, String layerName, int width, int height) {
 		ShapefileExporter shpExporter = new ShapefileExporter(graphDb());
 		shpExporter.setExportDir("target/export/SimplePointTests");
 		StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
@@ -133,7 +139,6 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		imageExporter.setZoom(0.9);
 		imageExporter.setSize(width, height);
 		SpatialDatabaseService db = new SpatialDatabaseService(graphDb());
-		String layerName = "temporary-results-layer-" + layer.getName();
 		EditableLayer tmpLayer = (EditableLayer) db.createSimplePointLayer(layerName, "lon", "lat");
 		for (SpatialDatabaseRecord record : results) {
 			tmpLayer.add(record.getGeometry());
