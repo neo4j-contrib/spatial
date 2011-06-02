@@ -32,6 +32,7 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.linearref.LengthIndexedLine;
 import com.vividsolutions.jts.linearref.LinearLocation;
 import com.vividsolutions.jts.linearref.LocationIndexedLine;
 
@@ -129,6 +130,46 @@ public class SpatialTopologyUtils {
 		}
 		Collections.sort(results);
 		return results;
+	}
+	
+	/**
+	 * Equivalent to SDO_LRS.LOCATE_PT
+	 * @see http://download.oracle.com/docs/cd/B13789_01/appdev.101/b10826/sdo_lrs_ref.htm#i85478
+	 * @see http://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/linearref/LengthIndexedLine.html
+	 * @return Point
+	 */
+	public static Point locatePoint(Layer layer, Geometry geometry, double measure) {
+		return layer.getGeometryFactory().createPoint(locatePoint(geometry, measure));
+	}
+
+	/**
+	 * Equivalent to SDO_LRS.LOCATE_PT
+	 * @see http://download.oracle.com/docs/cd/B13789_01/appdev.101/b10826/sdo_lrs_ref.htm#i85478
+	 * @see http://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/linearref/LengthIndexedLine.html
+	 * @return Coordinate
+	 */
+	public static Coordinate locatePoint(Geometry geometry, double measure) {
+		return new LengthIndexedLine(geometry).extractPoint(measure);
+	}
+
+	/**
+	 * Equivalent to SDO_LRS.LOCATE_PT
+	 * @see http://download.oracle.com/docs/cd/B13789_01/appdev.101/b10826/sdo_lrs_ref.htm#i85478
+	 * @see http://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/linearref/LengthIndexedLine.html
+	 * @return Point
+	 */
+	public static Point locatePoint(Layer layer, Geometry geometry, double measure, double offset) {
+		return layer.getGeometryFactory().createPoint(locatePoint(geometry, measure, offset));
+	}
+
+	/**
+	 * Equivalent to SDO_LRS.LOCATE_PT
+	 * @see http://download.oracle.com/docs/cd/B13789_01/appdev.101/b10826/sdo_lrs_ref.htm#i85478
+	 * @see http://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/linearref/LengthIndexedLine.html
+	 * @return Coordinate
+	 */
+	public static Coordinate locatePoint(Geometry geometry, double measure, double offset) {
+		return new LengthIndexedLine(geometry).extractPoint(measure, offset);
 	}
 
 	/**

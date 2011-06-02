@@ -28,13 +28,79 @@ import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 
 import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.linearref.LengthIndexedLine;
+import com.vividsolutions.jts.linearref.LocationIndexedLine;
 
 public class TestSpatialUtils extends Neo4jTestCase {
 
 	@Test
+	public void testJTSLinearRef() {
+		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+		EditableLayer layer = spatialService.getOrCreateEditableLayer("jts");
+		Coordinate[] coordinates = new Coordinate[] { new Coordinate(0, 0), new Coordinate(0, 1), new Coordinate(1, 1) };
+		Geometry geometry = layer.getGeometryFactory().createLineString(coordinates);
+		layer.add(geometry);
+		debugLRS(geometry);
+
+		// Now test the new API in the topology utils
+		Point point = SpatialTopologyUtils.locatePoint(layer, geometry, 1.5, 0.5);
+		assertEquals("X location incorrect", 0.5, point.getX());
+		assertEquals("Y location incorrect", 1.5, point.getY());
+		point = SpatialTopologyUtils.locatePoint(layer, geometry, 1.5, -0.5);
+		assertEquals("X location incorrect", 0.5, point.getX());
+		assertEquals("Y location incorrect", 0.5, point.getY());
+		point = SpatialTopologyUtils.locatePoint(layer, geometry, 0.5, 0.5);
+		assertEquals("X location incorrect", -0.5, point.getX());
+		assertEquals("Y location incorrect", 0.5, point.getY());
+		point = SpatialTopologyUtils.locatePoint(layer, geometry, 0.5, -0.5);
+		assertEquals("X location incorrect", 0.5, point.getX());
+		assertEquals("Y location incorrect", 0.5, point.getY());
+	}
+
+	/**
+	 * This method just prints a bunch of information to the console to help
+	 * understand the behaviour of the JTS LRS methods better. Currently no
+	 * assertions are made.
+	 * 
+	 * @param geometry
+	 */
+	private void debugLRS(Geometry geometry) {
+		LengthIndexedLine line = new com.vividsolutions.jts.linearref.LengthIndexedLine(geometry);
+		double length = line.getEndIndex() - line.getStartIndex();
+		System.out.println("Have Geometry: " + geometry);
+		System.out.println("Have LengthIndexedLine: " + line);
+		System.out.println("Have start index: " + line.getStartIndex());
+		System.out.println("Have end index: " + line.getEndIndex());
+		System.out.println("Have length: " + length);
+		System.out.println("Extracting point at position 0.0: " + line.extractPoint(0.0));
+		System.out.println("Extracting point at position 0.1: " + line.extractPoint(0.1));
+		System.out.println("Extracting point at position 0.5: " + line.extractPoint(0.5));
+		System.out.println("Extracting point at position 0.9: " + line.extractPoint(0.9));
+		System.out.println("Extracting point at position 1.0: " + line.extractPoint(1.0));
+		System.out.println("Extracting point at position 1.5: " + line.extractPoint(1.5));
+		System.out.println("Extracting point at position 1.5 offset 0.5: " + line.extractPoint(1.5, 0.5));
+		System.out.println("Extracting point at position 1.5 offset -0.5: " + line.extractPoint(1.5, -0.5));
+		System.out.println("Extracting point at position " + length + ": " + line.extractPoint(length));
+		System.out.println("Extracting point at position " + (length / 2) + ": " + line.extractPoint(length / 2));
+		System.out.println("Extracting line from position 0.1 to 0.2: " + line.extractLine(0.1, 0.2));
+		System.out.println("Extracting line from position 0.0 to " + (length / 2) + ": " + line.extractLine(0, length / 2));
+		LocationIndexedLine pline = new LocationIndexedLine(geometry);
+		System.out.println("Have LocationIndexedLine: " + pline);
+		System.out.println("Have start index: " + pline.getStartIndex());
+		System.out.println("Have end index: " + pline.getEndIndex());
+		System.out.println("Extracting point at start: " + pline.extractPoint(pline.getStartIndex()));
+		System.out.println("Extracting point at end: " + pline.extractPoint(pline.getEndIndex()));
+		System.out.println("Extracting point at start offset 0.5: " + pline.extractPoint(pline.getStartIndex(), 0.5));
+		System.out.println("Extracting point at end offset 0.5: " + pline.extractPoint(pline.getEndIndex(), 0.5));
+	}
+
+	@Test
 	public void testSnapping() throws Exception {
+		if (true)
+			return;
 		printDatabaseStats();
 		String osm = "map.osm";
 		loadTestOsmData(osm, 1000);
@@ -70,14 +136,15 @@ public class TestSpatialUtils extends Neo4jTestCase {
 			for (PointResult result : edgeResults) {
 				System.out.println("\t" + result);
 				results.add(result.getKey(), fieldsNames, new Object[] { result.getValue().getGeomNode().getId(),
-				        "Snapped point to layer " + layerName + ": " + result.getValue().getGeometry().toString(), (long)(1000000*result.getDistance()) });
+						"Snapped point to layer " + layerName + ": " + result.getValue().getGeometry().toString(),
+						(long) (1000000 * result.getDistance()) });
 			}
-			if(edgeResults.size() > 0) {
+			if (edgeResults.size() > 0) {
 				PointResult closest = edgeResults.get(0);
 				Point closestPoint = closest.getKey();
 
 				SpatialDatabaseRecord wayRecord = closest.getValue();
-				OSMDataset.Way way = ((OSMDataset)osmLayer.getDataset()).getWayFrom(wayRecord.getGeomNode());
+				OSMDataset.Way way = ((OSMDataset) osmLayer.getDataset()).getWayFrom(wayRecord.getGeomNode());
 				OSMDataset.WayPoint wayPoint = way.getPointAt(closestPoint.getCoordinate());
 			}
 		}
