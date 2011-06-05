@@ -12,7 +12,6 @@ Feature: Start and stop Neo4j Server
     And wait for Server started at "http://localhost:7474"
     Then "http://localhost:7474" should provide the Neo4j REST interface
     Then requesting "http://localhost:7474/db/data/ext/" should contain "SpatialPlugin"
-#    Then sending "layer=test" to "http://localhost:7474/db/data/ext/SpatialPlugin/graphdb/addEditableLayer" should contain "EditableLayerImpl"
     Then sending "layer=test&lon=lon&lat=lat" to "http://localhost:7474/db/data/ext/SpatialPlugin/graphdb/addSimplePointLayer" should contain "EditableLayerImpl"
     Then updating "{"lon": 15.2, "lat": 60.1, "bbox": [15.2, 60.1, 15.2, 60.1]}" to "http://localhost:7474/db/data/node/0/properties" should have a response of "204"
     Then sending "layer=test&node=http://localhost:7474/db/data/node/0" to "http://localhost:7474/db/data/ext/SpatialPlugin/graphdb/addNodeToLayer" should contain "bbox"
