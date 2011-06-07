@@ -133,40 +133,91 @@ public class SpatialTopologyUtils {
 	}
 	
 	/**
-	 * Equivalent to SDO_LRS.LOCATE_PT
+	 * Create a Point located at the specified 'measure' distance along a
+	 * Geometry. This is achieved through using the JTS
+	 * LengthIndexedLine.extractPoint(measure) method for finding the
+	 * coordinates at the specified measure along the geometry. It is equivalent
+	 * to Oracle's SDO_LRS.LOCATE_PT.
+	 * 
 	 * @see http://download.oracle.com/docs/cd/B13789_01/appdev.101/b10826/sdo_lrs_ref.htm#i85478
 	 * @see http://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/linearref/LengthIndexedLine.html
-	 * @return Point
+	 * @param layer
+	 *            Layer the geometry is contained by, and is used to access the
+	 *            GeometryFactory for creating the Point
+	 * @param geometry
+	 *            Geometry to measure
+	 * @param measure
+	 *            the distance along the geometry
+	 * @return Point at 'measure' distance along the geometry
 	 */
 	public static Point locatePoint(Layer layer, Geometry geometry, double measure) {
 		return layer.getGeometryFactory().createPoint(locatePoint(geometry, measure));
 	}
 
 	/**
-	 * Equivalent to SDO_LRS.LOCATE_PT
+	 * Find the coordinate at the specified 'measure' distance along a
+	 * Geometry. This is achieved through using the JTS
+	 * LengthIndexedLine.extractPoint(measure) method for finding the
+	 * coordinates at the specified measure along the geometry. It is equivalent
+	 * to Oracle's SDO_LRS.LOCATE_PT.
+	 * 
 	 * @see http://download.oracle.com/docs/cd/B13789_01/appdev.101/b10826/sdo_lrs_ref.htm#i85478
 	 * @see http://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/linearref/LengthIndexedLine.html
-	 * @return Coordinate
+	 * @param geometry
+	 *            Geometry to measure
+	 * @param measure
+	 *            the distance along the geometry
+	 * @return Coordinate at 'measure' distance along the geometry
 	 */
 	public static Coordinate locatePoint(Geometry geometry, double measure) {
 		return new LengthIndexedLine(geometry).extractPoint(measure);
 	}
 
 	/**
-	 * Equivalent to SDO_LRS.LOCATE_PT
+	 * Create a Point located at the specified 'measure' distance along a
+	 * Geometry, and offset to the left of the Geometry by the specified offset
+	 * distance. This is achieved through using the JTS
+	 * LengthIndexedLine.extractPoint(measure) method for finding the
+	 * coordinates at the specified measure along the geometry. It is equivalent
+	 * to Oracle's SDO_LRS.LOCATE_PT.
+	 * 
 	 * @see http://download.oracle.com/docs/cd/B13789_01/appdev.101/b10826/sdo_lrs_ref.htm#i85478
 	 * @see http://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/linearref/LengthIndexedLine.html
-	 * @return Point
+	 * @param layer
+	 *            Layer the geometry is contained by, and is used to access the
+	 *            GeometryFactory for creating the Point
+	 * @param geometry
+	 *            Geometry to measure
+	 * @param measure
+	 *            the distance along the geometry
+	 * @param offset
+	 *            the distance offset to the left (or right for negative numbers)
+	 * @return Point at 'measure' distance along the geometry, and offset
 	 */
 	public static Point locatePoint(Layer layer, Geometry geometry, double measure, double offset) {
 		return layer.getGeometryFactory().createPoint(locatePoint(geometry, measure, offset));
 	}
 
 	/**
-	 * Equivalent to SDO_LRS.LOCATE_PT
+	 * Find the coordinate located at the specified 'measure' distance along a
+	 * Geometry, and offset to the left of the Geometry by the specified offset
+	 * distance. This is achieved through using the JTS
+	 * LengthIndexedLine.extractPoint(measure) method for finding the
+	 * coordinates at the specified measure along the geometry. It is equivalent
+	 * to Oracle's SDO_LRS.LOCATE_PT.
+	 * 
 	 * @see http://download.oracle.com/docs/cd/B13789_01/appdev.101/b10826/sdo_lrs_ref.htm#i85478
 	 * @see http://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/linearref/LengthIndexedLine.html
-	 * @return Coordinate
+	 * @param layer
+	 *            Layer the geometry is contained by, and is used to access the
+	 *            GeometryFactory for creating the Point
+	 * @param geometry
+	 *            Geometry to measure
+	 * @param measure
+	 *            the distance along the geometry
+	 * @param offset
+	 *            the distance offset to the left (or right for negative numbers)
+	 * @return Point at 'measure' distance along the geometry, and offset
 	 */
 	public static Coordinate locatePoint(Geometry geometry, double measure, double offset) {
 		return new LengthIndexedLine(geometry).extractPoint(measure, offset);
