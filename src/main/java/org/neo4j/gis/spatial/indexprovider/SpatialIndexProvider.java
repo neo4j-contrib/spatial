@@ -36,7 +36,6 @@ import java.util.Map;
 public class SpatialIndexProvider extends IndexProvider
 {
 
-    private static final String DATASOURCE_NAME = "nioneodb";
     private EmbeddedGraphDatabase db;
 
 
@@ -61,7 +60,7 @@ public class SpatialIndexProvider extends IndexProvider
 
         @Override
         public String getDataSourceName() {
-            return DATASOURCE_NAME;
+            return null;
         }
 
         @Override
@@ -75,8 +74,8 @@ public class SpatialIndexProvider extends IndexProvider
         }
 
         @Override
-        public Map<String, String> fillInDefaults(Map<String, String> stringStringMap) {
-            return null;
+        public Map<String, String> fillInDefaults(Map<String, String> config) {
+            return config;
         }
 
         @Override

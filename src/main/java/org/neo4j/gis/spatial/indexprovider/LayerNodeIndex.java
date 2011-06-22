@@ -42,6 +42,7 @@ public class LayerNodeIndex implements Index<Node>
     public static final String LON_PROPERTY_KEY = "lon";
     public static final String LAT_PROPERTY_KEY = "lat";
     public static final String WITHIN_QUERY = "within";
+    public static final String CQL_QUERY = "CQL";
     public static final String WITHIN_DISTANCE_QUERY = "withinDistance";
     public static final String ENVELOPE_PARAMETER = "envelope";
     public static final String POINT_PARAMETER = "point";
@@ -127,6 +128,16 @@ public class LayerNodeIndex implements Index<Node>
 			IndexHits<Node> results = new SpatialRecordHits( res );
 			return results;
 		}
+//        else if ( key.equals( CQL_QUERY ) )
+//        {
+//            Map<?, ?> p = (Map<?, ?>) params;
+//            Search withinDistanceQuery = 
+//                new SearchPointsWithinOrthodromicDistance( new Coordinate( point[1], point[0] ), distance, true );
+//            layer.getIndex().executeSearch( withinDistanceQuery );
+//            List<SpatialDatabaseRecord> res = withinDistanceQuery.getResults();
+//            IndexHits<Node> results = new SpatialRecordHits( res );
+//            return results;
+//        }
         else
         {
             throw new UnsupportedOperationException( String.format(

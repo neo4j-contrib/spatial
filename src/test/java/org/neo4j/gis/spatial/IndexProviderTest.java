@@ -48,8 +48,8 @@ public class IndexProviderTest
         db = new EmbeddedGraphDatabase( createTempDir() );
     }
 
-    @Ignore
     @Test
+    @Ignore
     public void testLoadIndex() throws Exception {
         Map<String, String> config = Collections.unmodifiableMap( MapUtil.stringMap(
                 "provider", "spatial" ) );
@@ -73,6 +73,10 @@ public class IndexProviderTest
         params.put(LayerNodeIndex.ENVELOPE_PARAMETER, new Double[]{ 15.0, 16.0, 56.0, 57.0} );
         IndexHits<Node> hits = index.query( LayerNodeIndex.WITHIN_QUERY, params );
         assertTrue(hits.hasNext());
+        //test CQL
+//        hits = index.query( LayerNodeIndex.CQL_QUERY, "dummy" );
+//        assertTrue(hits.hasNext());
+        
         
         
     }
