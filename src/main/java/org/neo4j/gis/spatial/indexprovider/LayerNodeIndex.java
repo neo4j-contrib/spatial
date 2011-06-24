@@ -24,7 +24,6 @@ import java.util.Map;
 
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-import org.junit.internal.matchers.SubstringMatcher;
 import org.neo4j.gis.spatial.EditableLayer;
 import org.neo4j.gis.spatial.Search;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
