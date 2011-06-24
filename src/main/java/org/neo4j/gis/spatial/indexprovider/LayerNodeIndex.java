@@ -22,6 +22,9 @@ package org.neo4j.gis.spatial.indexprovider;
 import java.util.List;
 import java.util.Map;
 
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+import org.junit.internal.matchers.SubstringMatcher;
 import org.neo4j.gis.spatial.EditableLayer;
 import org.neo4j.gis.spatial.Search;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
@@ -44,6 +47,7 @@ public class LayerNodeIndex implements Index<Node>
     public static final String WITHIN_QUERY = "within";
     public static final String CQL_QUERY = "CQL";
     public static final String WITHIN_DISTANCE_QUERY = "withinDistance";
+    public static final String BBOX_QUERY = "bbox";
     public static final String ENVELOPE_PARAMETER = "envelope";
     public static final String POINT_PARAMETER = "point";
     public static final String DISTANCE_IN_KM_PARAMETER = "distanceInKm";
@@ -79,15 +83,16 @@ public class LayerNodeIndex implements Index<Node>
     {
         double lon = (Double) geometry.getProperty( LON_PROPERTY_KEY );
         double lat = (Double) geometry.getProperty( LAT_PROPERTY_KEY );
-        layer.add( layer.getGeometryFactory().createPoint(
-        new Coordinate( lon, lat ) ), new String[] { "id" },
-        new Object[] { geometry.getId() } );
+        layer.add(
+                layer.getGeometryFactory().createPoint(
+                        new Coordinate( lon, lat ) ), new String[] { "id" },
+                new Object[] { geometry.getId() } );
 
     }
 
     public void remove( Node entity, String key, Object value )
     {
-       layer.delete( entity.getId() );
+        layer.delete( entity.getId() );
     }
 
     public void delete()
@@ -104,13 +109,15 @@ public class LayerNodeIndex implements Index<Node>
 
     public IndexHits<Node> query( String key, Object params )
     {
+//        System.out.println( key + "," + params );
         if ( key.equals( WITHIN_QUERY ) )
         {
             Map<?, ?> p = (Map<?, ?>) params;
             Double[] bounds = (Double[]) p.get( ENVELOPE_PARAMETER );
             SearchWithin withinQuery = new SearchWithin(
                     layer.getGeometryFactory().toGeometry(
-                            new Envelope( bounds[0], bounds[1], bounds[2], bounds[3] ) ) );
+                            new Envelope( bounds[0], bounds[1], bounds[2],
+                                    bounds[3] ) ) );
             layer.getIndex().executeSearch( withinQuery );
             List<SpatialDatabaseRecord> res = withinQuery.getResults();
             IndexHits<Node> results = new SpatialRecordHits( res );
@@ -118,44 +125,61 @@ public class LayerNodeIndex implements Index<Node>
         }
         else if ( key.equals( WITHIN_DISTANCE_QUERY ) )
         {
-			Map<?, ?> p = (Map<?, ?>) params;
-			Double[] point = (Double[]) p.get( POINT_PARAMETER );
-			Double distance = (Double) p.get( DISTANCE_IN_KM_PARAMETER );
-			Search withinDistanceQuery = 
-				new SearchPointsWithinOrthodromicDistance( new Coordinate( point[1], point[0] ), distance, true );
-			layer.getIndex().executeSearch( withinDistanceQuery );
-			List<SpatialDatabaseRecord> res = withinDistanceQuery.getResults();
-			IndexHits<Node> results = new SpatialRecordHits( res );
-			return results;
-		}
-//        else if ( key.equals( CQL_QUERY ) )
-//        {
-//            Map<?, ?> p = (Map<?, ?>) params;
-//            Search withinDistanceQuery = 
-//                new SearchPointsWithinOrthodromicDistance( new Coordinate( point[1], point[0] ), distance, true );
-//            layer.getIndex().executeSearch( withinDistanceQuery );
-//            List<SpatialDatabaseRecord> res = withinDistanceQuery.getResults();
-//            IndexHits<Node> results = new SpatialRecordHits( res );
-//            return results;
-//        }
+            Map<?, ?> p = (Map<?, ?>) params;
+            Double[] point = (Double[]) p.get( POINT_PARAMETER );
+            Double distance = (Double) p.get( DISTANCE_IN_KM_PARAMETER );
+            Search withinDistanceQuery = new SearchPointsWithinOrthodromicDistance(
+                    new Coordinate( point[1], point[0] ), distance, true );
+            layer.getIndex().executeSearch( withinDistanceQuery );
+            List<SpatialDatabaseRecord> res = withinDistanceQuery.getResults();
+            IndexHits<Node> results = new SpatialRecordHits( res );
+            return results;
+        }
+        else if ( key.equals( BBOX_QUERY ) )
+        {
+            List<Double> coords;
+            try
+            {
+                coords = (List<Double>) new JSONParser().parse( (String) params );
+                SearchWithin withinQuery = new SearchWithin(
+                        layer.getGeometryFactory().toGeometry(
+                                new Envelope( coords.get( 0 ), coords.get( 1 ),
+                                        coords.get( 2 ), coords.get( 3 ) ) ) );
+                layer.getIndex().executeSearch( withinQuery );
+                List<SpatialDatabaseRecord> res = withinQuery.getResults();
+                IndexHits<Node> results = new SpatialRecordHits( res );
+                return results;
+            }
+            catch ( ParseException e )
+            {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
         else
         {
             throw new UnsupportedOperationException( String.format(
-            		"only %s and %s are implemented.", 
-            		WITHIN_QUERY, WITHIN_DISTANCE_QUERY ) );
+                    "only %s, %S and %s are implemented.", WITHIN_QUERY,
+                    WITHIN_DISTANCE_QUERY, BBOX_QUERY ) );
         }
+        return null;
     }
 
     public IndexHits<Node> query( Object queryOrQueryObject )
     {
-        return query(layerName, queryOrQueryObject);
+
+        String queryString = (String) queryOrQueryObject;
+        return query( queryString.substring( 0, queryString.indexOf( ":" ) ),
+                queryString.substring( queryString.indexOf( ":" ) + 1 ) );
     }
 
-    public void remove(Node node, String s) {
-        layer.delete(node.getId());
+    public void remove( Node node, String s )
+    {
+        layer.delete( node.getId() );
     }
 
-    public void remove(Node node) {
-        layer.delete(node.getId());
+    public void remove( Node node )
+    {
+        layer.delete( node.getId() );
     }
 }

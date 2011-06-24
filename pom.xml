@@ -113,13 +113,7 @@
   <dependencies>
     <dependency>
       <groupId>org.neo4j</groupId>
-      <artifactId>neo4j-kernel</artifactId>
-      <version>${neo4j.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.neo4j</groupId>
-      <artifactId>neo4j-lucene-index</artifactId>
+      <artifactId>neo4j</artifactId>
       <version>${neo4j.version}</version>
       <scope>provided</scope>
     </dependency>

@@ -19,7 +19,8 @@
  */
 package org.neo4j.gis.spatial;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.io.IOException;
@@ -30,6 +31,11 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
+import org.neo4j.cypher.commands.Query;
+import org.neo4j.cypher.javacompat.CypherParser;
+import org.neo4j.cypher.javacompat.ExecutionEngine;
+import org.neo4j.cypher.javacompat.ExecutionResult;
+import org.neo4j.cypher.SyntaxError;
 import org.neo4j.gis.spatial.indexprovider.LayerNodeIndex;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -49,7 +55,6 @@ public class IndexProviderTest
     }
 
     @Test
-    @Ignore
     public void testLoadIndex() throws Exception {
         Map<String, String> config = Collections.unmodifiableMap( MapUtil.stringMap(
                 "provider", "spatial" ) );
@@ -60,8 +65,12 @@ public class IndexProviderTest
     }
     
     @Test
-    public void testNodeIndex() {
-        LayerNodeIndex index = new LayerNodeIndex( "layer1", db, new HashMap<String, String>() );
+    public void testNodeIndex() throws SyntaxError {
+        Map<String, String> config = Collections.unmodifiableMap( MapUtil.stringMap(
+                "provider", "spatial" ) );
+        IndexManager indexMan = db.index();
+        Index<Node> index = indexMan.forNodes( "layer1", config );
+        assertNotNull(index);
         Transaction tx = db.beginTx();
         Node n1 = db.createNode();
         n1.setProperty( "lat", (double)56.2 );
@@ -73,10 +82,15 @@ public class IndexProviderTest
         params.put(LayerNodeIndex.ENVELOPE_PARAMETER, new Double[]{ 15.0, 16.0, 56.0, 57.0} );
         IndexHits<Node> hits = index.query( LayerNodeIndex.WITHIN_QUERY, params );
         assertTrue(hits.hasNext());
-        //test CQL
-//        hits = index.query( LayerNodeIndex.CQL_QUERY, "dummy" );
-//        assertTrue(hits.hasNext());
-        
+        //test String search
+        hits = index.query( LayerNodeIndex.BBOX_QUERY, "[15.0, 16.0, 56.0, 57.0]" );
+        assertTrue(hits.hasNext());
+        //test Cypher query
+        CypherParser parser = new CypherParser();
+        ExecutionEngine engine = new ExecutionEngine(db);
+        Query query = parser.parse( "start n=(layer1,'bbox:[15.0, 16.0, 56.0, 57.0]') match (n) -[r] - (x) return n.bbox, r:TYPE, x.layer?, x.bbox?" );
+        ExecutionResult result = engine.execute( query );
+        System.out.println(result.toString());
         
         
     }
@@ -100,6 +114,7 @@ public class IndexProviderTest
         assertTrue( spatialRecord.getProperty( "distanceInKm" ).equals( 1.416623647558699 ) );
         Node node = db.getNodeById( (Long) spatialRecord.getProperty( "id" ) );
         assertTrue( node.getProperty( "name" ).equals( "batman" ) );
+        
         
         
     }
