@@ -696,23 +696,15 @@ public class OSMImporter implements Constants {
 		private int checkCount = 0;
         private int txInterval;
 
-		private OSMGraphWriter(GraphDatabaseService graphDb, StatsManager statsManager, OSMImporter osmImporter, int tInterval) {
+		private OSMGraphWriter(GraphDatabaseService graphDb, StatsManager statsManager, OSMImporter osmImporter, int txInterval) {
 			super(statsManager, osmImporter);
 			this.graphDb = graphDb;
-			createExactIndexIfNeeded(INDEX_NAME_CHANGESET);
-            createExactIndexIfNeeded(INDEX_NAME_NODE);
-            createExactIndexIfNeeded(INDEX_NAME_USER);
-            createExactIndexIfNeeded(INDEX_NAME_WAY);
-			checkTx();	// Opens transaction for future writes
+			this.txInterval = txInterval;
+			if (this.txInterval < 100) {
+				System.err.println("Warning: Unusually short txInterval, expect bad insert performance");
+			}
+			checkTx(); // Opens transaction for future writes
 		}
-
-		private void createExactIndexIfNeeded(String indexName)
-        {
-            if(graphDb.index().existsForNodes( indexName )) {
-                return;
-            }
-            graphDb.index().forNodes( indexName, MapUtil.stringMap("type", "exact") );
-        }
 
         private void successTx(){
 			if(tx!=null) {
@@ -731,6 +723,7 @@ public class OSMImporter implements Constants {
 		}
 
 		private Index<Node> indexFor(String indexName) {
+    		//return graphDb.index().forNodes( indexName, MapUtil.stringMap("type", "exact") );
     		return graphDb.index().forNodes( indexName );
 		}
 

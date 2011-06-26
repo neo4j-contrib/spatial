@@ -49,6 +49,7 @@ import com.vividsolutions.jts.geom.Geometry;
 
 public class TestOSMImport extends Neo4jTestCase {
 	public static final String spatialTestMode = System.getProperty("spatial.test.mode");
+	public static final String spatialTestModeX = System.getProperty("spatial.test.mode.extra");
 
 	public TestOSMImport(String layerName, boolean includePoints, boolean useBatchInserter) {
 		setName("OSM-Import[points:" + includePoints + ", batch:" + useBatchInserter + "]: " + layerName);
@@ -78,15 +79,24 @@ public class TestOSMImport extends Neo4jTestCase {
 			// Tests relevant to current development
 			layersToTest.clear();
 			layersToTest.add("map2.osm");
-			layersToTest.add("cyprus.osm");
-			layersToTest.add("croatia.osm");
+//			layersToTest.add("cyprus.osm");
+//			layersToTest.add("croatia.osm");
+		}
+		boolean[] pointsTestModes = new boolean[] { true, false };
+		boolean[] batchTestModes = new boolean[] { true, false };
+		if (spatialTestModeX != null) {
+			if (spatialTestModeX.equals("suppressBatch")) {
+				batchTestModes = new boolean[] { false };
+			} else if (spatialTestModeX.equals("suppressGraph")) {
+				batchTestModes = new boolean[] { true };
+			}
 		}
 
 		// Finally build the set of complete test cases based on the collection
 		// above
 		for (final String layerName : layersToTest) {
-			for (final boolean includePoints : new boolean[] { true, false }) {
-				for (final boolean useBatchInserter : new boolean[] { true, false }) {
+			for (final boolean includePoints : pointsTestModes) {
+				for (final boolean useBatchInserter : batchTestModes) {
 					suite.addTest(new TestOSMImport(layerName, includePoints, useBatchInserter) {
 						public void runTest() {
 							try {
