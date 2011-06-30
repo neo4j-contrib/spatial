@@ -152,7 +152,7 @@ public class TestOSMImport extends Neo4jTestCase {
 		}
 		long start = System.currentTimeMillis();
 		// START SNIPPET: importOsm
-		OSMImporter importer = new OSMImporter(layerName);
+		OSMImporter importer = new OSMImporter(layerName, new ConsoleListener());
 		if (useBatchInserter) {
 			importer.importFile(getBatchInserter(), osmPath, false);
 			reActivateDatabase(false, false, false);

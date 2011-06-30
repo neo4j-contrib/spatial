@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial.osm;
 import static java.util.Arrays.asList;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintStream;
@@ -41,6 +42,8 @@ import javax.xml.stream.XMLStreamReader;
 
 import org.geotools.referencing.datum.DefaultEllipsoid;
 import org.neo4j.gis.spatial.Constants;
+import org.neo4j.gis.spatial.Listener;
+import org.neo4j.gis.spatial.NullListener;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -72,15 +75,12 @@ public class OSMImporter implements Constants {
     public static String INDEX_NAME_USER = "user";
     public static String INDEX_NAME_NODE = "node";
     public static String INDEX_NAME_WAY = "node";
-    
-
-    
-    
 
     protected boolean nodesProcessingFinished = false;
     private String layerName;
     private StatsManager stats = new StatsManager();
     private long osm_dataset = -1;
+	private Listener monitor;
     
 	private static class TagStats {
 		private String name;
@@ -186,7 +186,13 @@ public class OSMImporter implements Constants {
 	}
 
 	public OSMImporter(String layerName) {
+        this(layerName, null);
+    }
+
+	public OSMImporter(String layerName, Listener monitor) {
         this.layerName = layerName;
+		if (monitor == null) monitor = new NullListener();
+		this.monitor = monitor;
     }
 
 	public void reIndex(GraphDatabaseService database) {
@@ -208,7 +214,7 @@ public class OSMImporter implements Constants {
 		// TODO: The next line creates the relationship between the dataset and
 		// layer, but this seems more like a side-effect and should be done
 		// explicitly
-		layer.getDataset(osm_dataset);
+		OSMDataset dataset = layer.getDataset(osm_dataset);
         layer.clear();  // clear the index without destroying underlying data
 
         long startTime = System.currentTimeMillis();
@@ -218,8 +224,10 @@ public class OSMImporter implements Constants {
         Transaction tx = database.beginTx();
         int count = 0;
         try {
+            beginProgressMonitor(dataset.getWayCount());
             layer.setExtraPropertyNames(stats.getTagStats("all").getTags());
             for (Node way : traverser) {
+            	updateProgressMonitor(count);
                 incrLogContext();
 				stats.addGeomStats(layer.addWay(way, true));
 				if(includePoints) {
@@ -238,6 +246,7 @@ public class OSMImporter implements Constants {
             } // TODO ask charset to user?
             tx.success();
         } finally {
+        	endProgressMonitor();
             tx.finish();
         }
 
@@ -446,6 +455,7 @@ public class OSMImporter implements Constants {
 	    protected T currentNode = null;
 	    protected T prev_way = null;
 	    protected T prev_relation = null;
+		protected int wayCount = 0;
 
 	    /**
 	     * Add the BBox metadata to the dataset
@@ -586,6 +596,7 @@ public class OSMImporter implements Constants {
 				geometry = GTYPE_POINT;
 			}
 			addNodeGeometry(way, geometry, bbox, wayNodes.size());
+			this.wayCount  ++;
 		}
 
 		private void createOSMRelation(Map<String, Object> relationProperties,
@@ -891,6 +902,7 @@ public class OSMImporter implements Constants {
 
 		@Override
 		protected void finish() {
+			osm_dataset.setProperty("wayCount", (Integer) osm_dataset.getProperty("wayCount", 0) + wayCount);
 			successTx();
 		}
 
@@ -1155,6 +1167,12 @@ public class OSMImporter implements Constants {
 
 		@Override
 		protected void finish() {
+			HashMap<String, Object> dsProps = new HashMap<String, Object>(batchInserter.getNodeProperties(osm_dataset));
+			Integer ways = (Integer) dsProps.get("wayCount");
+			if (ways == null)
+				ways = 0;
+			dsProps.put("wayCount", ways + wayCount);
+			setDatasetProperties(dsProps);
 			batchIndexService.shutdown();
 			batchIndexService = null;
 		}
@@ -1236,8 +1254,72 @@ public class OSMImporter implements Constants {
 	public void importFile(BatchInserter batchInserter, String dataset, boolean allPoints) throws IOException, XMLStreamException {
 		importFile(OSMWriter.fromBatchInserter(batchInserter, stats, this), dataset, allPoints);
 	}
+	
+	public static class CountedFileReader extends FileReader {
+		private long length = 0;
+		private long charsRead = 0;
 
-    public void importFile(OSMWriter<?> osmWriter, String dataset, boolean allPoints) throws IOException, XMLStreamException {
+		public CountedFileReader(String path) throws FileNotFoundException {
+			super(path);
+			this.length = (new File(path)).length();
+		}
+
+		public CountedFileReader(File file) throws FileNotFoundException {
+			super(file);
+			this.length = file.length();
+		}
+
+		public long getCharsRead() {
+			return charsRead;
+		}
+
+		public long getlength() {
+			return length;
+		}
+
+		public double getProgress() {
+			return length > 0 ? (double)charsRead / (double)length : 0;
+		}
+
+		public int getPercentRead() {
+			return (int)(100.0 * getProgress());
+		}
+
+		public int read(char[] cbuf, int offset, int length) throws IOException {
+			int read = super.read(cbuf, offset, length);
+			if (read > 0)
+				charsRead += read;
+			return read;
+		}
+	}
+
+	private int progress = 0;
+	private long progressTime = 0;
+
+	private void beginProgressMonitor(int length) {
+		monitor.begin(length);
+		progress = 0;
+		progressTime = System.currentTimeMillis();
+	}
+	
+	private void updateProgressMonitor(int currentProgress) {
+		if(currentProgress > this.progress) {
+			long time = System.currentTimeMillis();
+			if(time - progressTime > 1000) {
+				monitor.worked(currentProgress - progress);
+				progress = currentProgress;
+				progressTime = time;
+			}
+		}
+	}
+
+	private void endProgressMonitor() {
+		monitor.done();
+		progress = 0;
+		progressTime = 0;
+	}
+
+	public void importFile(OSMWriter<?> osmWriter, String dataset, boolean allPoints) throws IOException, XMLStreamException {
 		System.out.println("Importing with osm-writer: " + osmWriter);
 		osmWriter.getOrCreateOSMDataset(layerName);
         osm_dataset = osmWriter.getDatasetId();
@@ -1245,8 +1327,10 @@ public class OSMImporter implements Constants {
         long startTime = System.currentTimeMillis();
         long[] times = new long[]{0L,0L,0L,0L};
         javax.xml.stream.XMLInputFactory factory = javax.xml.stream.XMLInputFactory.newInstance();
-        javax.xml.stream.XMLStreamReader parser = factory.createXMLStreamReader(new FileReader(dataset));
+        CountedFileReader reader = new CountedFileReader(dataset);
+        javax.xml.stream.XMLStreamReader parser = factory.createXMLStreamReader(reader);
         int countXMLTags = 0;
+        beginProgressMonitor(100);
         setLogContext(dataset);
         boolean startedWays = false;
         boolean startedRelations = false;
@@ -1259,6 +1343,7 @@ public class OSMImporter implements Constants {
             ArrayList<Map<String, Object>> relationMembers = new ArrayList<Map<String, Object>>();
             LinkedHashMap<String, Object> currentNodeTags = new LinkedHashMap<String, Object>();
             while (true) {
+            	updateProgressMonitor(reader.getPercentRead());
                 incrLogContext();
                 int event = parser.next();
                 if (event == javax.xml.stream.XMLStreamConstants.END_DOCUMENT) {
@@ -1334,6 +1419,7 @@ public class OSMImporter implements Constants {
                 }
             }
         } finally {
+        	endProgressMonitor();
             parser.close();
             osmWriter.finish();
             this.osm_dataset = osmWriter.getDatasetId();

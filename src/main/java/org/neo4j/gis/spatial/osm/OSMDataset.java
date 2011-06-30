@@ -311,4 +311,8 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
 	public void remove() {
 		throw new UnsupportedOperationException("Cannot modify way collection");
 	}
+
+	public int getWayCount() {
+		return (Integer) this.datasetNode.getProperty("wayCount", 0);
+	}
 }
