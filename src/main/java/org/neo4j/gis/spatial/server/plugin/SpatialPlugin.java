@@ -60,7 +60,8 @@ public class SpatialPlugin extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	@Description("add a new layer specialized at storing generic geometry data in WKB")
 	public Iterable<Node> addEditableLayer(@Source GraphDatabaseService db,
-			@Description("The layer to find or create.") @Parameter(name = "layer") String layer) {
+			@Description("The layer to find or create.") @Parameter(name = "layer") String layer,
+			@Description("The format for internal representation, either WKB or WKT") @Parameter(name = "format", optional = true) String format) {
 		System.out.println("Creating new layer '" + layer + "' unless it already exists");
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
 		return toArray(spatialService.getOrCreateEditableLayer(layer).getLayerNode());

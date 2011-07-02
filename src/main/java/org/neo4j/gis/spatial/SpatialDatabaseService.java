@@ -159,8 +159,16 @@ public class SpatialDatabaseService implements Constants {
         return (DefaultLayer)getOrCreateLayer(name, WKBGeometryEncoder.class, DefaultLayer.class);
     }
 
+	public EditableLayer getOrCreateEditableLayer(String name, String format) {
+		Class<? extends GeometryEncoder> geClass = WKBGeometryEncoder.class;
+		if (format != null && format.toUpperCase().startsWith("WKT")) {
+			geClass = WKTGeometryEncoder.class;
+		}
+		return (EditableLayer) getOrCreateLayer(name, geClass, EditableLayerImpl.class);
+	}
+
     public EditableLayer getOrCreateEditableLayer(String name) {
-        return (EditableLayer)getOrCreateLayer(name, WKBGeometryEncoder.class, EditableLayerImpl.class);
+        return getOrCreateEditableLayer(name, "WKB");
     }
 
 	public EditableLayer getOrCreatePointLayer(String name, String xProperty, String yProperty) {

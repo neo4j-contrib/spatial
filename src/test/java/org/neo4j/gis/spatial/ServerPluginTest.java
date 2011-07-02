@@ -108,7 +108,7 @@ public class ServerPluginTest extends Neo4jTestCase {
 	@Test
 	public void testDynamicLayer() {
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-		plugin.addEditableLayer(graphDb(), LAYER);
+		plugin.addEditableLayer(graphDb(), LAYER, "WKT");
 		Layer layer = spatialService.getLayer(LAYER);
 		assertNotNull("Could not find layer '" + LAYER + "'", layer);
 		checkResults(plugin.addGeometryWKTToLayer(graphDb(), "POINT(15.2 60.1)", LAYER), 1, layer);
