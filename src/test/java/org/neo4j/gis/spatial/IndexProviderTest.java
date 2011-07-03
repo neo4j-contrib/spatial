@@ -88,7 +88,7 @@ public class IndexProviderTest
         //test Cypher query
         CypherParser parser = new CypherParser();
         ExecutionEngine engine = new ExecutionEngine(db);
-        Query query = parser.parse( "start n=(layer1,'bbox:[15.0, 16.0, 56.0, 57.0]') match (n) -[r] - (x) return n.bbox, r:TYPE, x.layer?, x.bbox?" );
+        Query query = parser.parse( "start n=(layer1,'bbox:[15.0, 16.0, 56.0, 57.0]') match (n) -[r] - (x) return n.bbox, r~TYPE, x.layer?, x.bbox?" );
         ExecutionResult result = engine.execute( query );
         System.out.println(result.toString());
         
