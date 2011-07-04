@@ -286,4 +286,63 @@ public class SpatialTopologyUtils {
 		return scaled;
 	}
 
+	/**
+	 * Create an Envelope that should approximately include the specified number
+	 * of geometries, based on a simple linear calculation of the geometry
+	 * density. If the layer has fewer geometries, then the layer bounds will be
+	 * returned. If the limit is set to zero (or negative), a point Envelope
+	 * will be returned.
+	 * 
+	 * @param layer
+	 *            the layer whose geometry density is to be used to estimate the
+	 *            size of the envelope
+	 * @param point
+	 *            the coordinate around which to build the envelope
+	 * @param limit
+	 *            the number of geometries to be included in the envelope
+	 * @return an envelope designed to include the estimated number of
+	 *         geometries
+	 */
+	public static Envelope createEnvelopeForGeometryDensityEstimate(Layer layer, Coordinate point, int limit) {
+		if(limit < 1) {
+			return new Envelope(point);
+		}
+		int count = layer.getIndex().count();
+		if (count > limit) {
+			return createEnvelopeForGeometryDensityEstimate(layer, point,(double) limit / (double) count);
+		} else {
+			return layer.getIndex().getLayerBoundingBox();
+		}
+	}
+
+	/**
+	 * Create an Envelope that should approximately include the specified number
+	 * of geometries, based on a simple linear calculation of the geometry
+	 * density. If the layer has fewer geometries, then the layer bounds will be
+	 * returned. If the limit is set to zero (or negative), a point Envelope
+	 * will be returned.
+	 * 
+	 * @param layer
+	 *            the layer whose geometry density is to be used to estimate the
+	 *            size of the envelope
+	 * @param point
+	 *            the coordinate around which to build the envelope
+	 * @param fraction
+	 *            the fractional number of geometries to be included in the envelope
+	 * @return an envelope designed to include the estimated number of
+	 *         geometries
+	 */
+	public static Envelope createEnvelopeForGeometryDensityEstimate(Layer layer, Coordinate point, double fraction) {
+		if(fraction < 0.0) {
+			return new Envelope(point);
+		}
+		Envelope bbox = layer.getIndex().getLayerBoundingBox();
+		double width = bbox.getWidth() * fraction;
+		double height = bbox.getWidth() * fraction;
+		Envelope extent = new Envelope(point);
+		extent.expandToInclude(point.x - width / 2.0, point.y - height / 2.0);
+		extent.expandToInclude(point.x + width / 2.0, point.y + height / 2.0);
+		return extent;
+	}
+
 }

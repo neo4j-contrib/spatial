@@ -60,8 +60,8 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 		this.maxNodeReferences = maxNodeReferences;
 		this.minNodeReferences = minNodeReferences;
 		
-		initIndexMetadata();
 		initIndexRoot();
+		initIndexMetadata();
 	}
 	
 	
@@ -85,6 +85,8 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 				adjustPathBoundingBox(parent);							
 			}
 		}
+		countSaved = false;
+		totalGeometryCount ++;
 	}
 	
 	public void remove(long geomNodeId, boolean deleteGeomNode) {
@@ -131,6 +133,8 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 			adjustParentBoundingBox(indexNode, SpatialRelationshipTypes.RTREE_REFERENCE);
 			adjustPathBoundingBox(indexNode);
 		}
+		countSaved = false;
+		totalGeometryCount --;
 	}
 	
 	public void removeAll(final boolean deleteGeomNodes, final Listener monitor) {
@@ -173,14 +177,16 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 		} finally {
 			tx.finish();
 		}		
+		countSaved = false;
+		totalGeometryCount = 0;
 	}
 	
     public void clear(final Listener monitor) {
         removeAll(false, new NullListener());
         Transaction tx = database.beginTx();
         try {
-            initIndexMetadata();
             initIndexRoot();
+            initIndexMetadata();
             tx.success();
         } finally {
             tx.finish();
@@ -192,9 +198,8 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 	}
 	
 	public int count() {
-		RecordCounter counter = new RecordCounter();
-		visit(counter, getIndexRoot());
-		return counter.getResult();
+		saveCount();
+		return totalGeometryCount;
 	}
 
 	public boolean isEmpty() {
@@ -220,6 +225,7 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 
 	public void executeSearch(Search search) {
 		if (isEmpty()) return;
+		saveCount();
 		
 		search.setLayer(layer);
 		visit(search, getIndexRoot());
@@ -304,22 +310,62 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 		}
 	}
 	
+	private Node getMetadataNode() {
+		if (metadataNode == null) {
+			metadataNode = layer.getLayerNode().getSingleRelationship(SpatialRelationshipTypes.RTREE_METADATA, Direction.OUTGOING)
+					.getEndNode();
+		}
+		return metadataNode;
+	}
+
+	public void finalize() {
+		saveCount();
+	}
+
+	/**
+	 * Save the geometry count to the database if it has not been saved yet.
+	 * However, if the count is zero, first do an exhaustive search of the tree
+	 * and count everything before saving it.
+	 */
+	private void saveCount() {
+		if (totalGeometryCount == 0) {
+			RecordCounter counter = new RecordCounter();
+			visit(counter, getIndexRoot());
+			totalGeometryCount = counter.getResult();
+			countSaved = false;
+		}
+		if (!countSaved) {
+			Transaction tx = database.beginTx();
+			try {
+				getMetadataNode().setProperty("totalGeometryCount", totalGeometryCount);
+				countSaved = true;
+				tx.success();
+			} finally {
+				tx.finish();
+			}
+		}
+	}
+	
 	private void initIndexMetadata() {
 		Node layerNode = layer.getLayerNode();
 		if (layerNode.hasRelationship(SpatialRelationshipTypes.RTREE_METADATA, Direction.OUTGOING)) {
 			// metadata already present
-			Node metadataNode = layerNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_METADATA, Direction.OUTGOING).getEndNode();
+			metadataNode = layerNode.getSingleRelationship(SpatialRelationshipTypes.RTREE_METADATA, Direction.OUTGOING).getEndNode();
 			
 			maxNodeReferences = (Integer) metadataNode.getProperty("maxNodeReferences");
 			minNodeReferences = (Integer) metadataNode.getProperty("minNodeReferences");
+			if (countSaved) {
+				totalGeometryCount = (Integer) metadataNode.getProperty("totalGeometryCount", 0);
+			}
 		} else {
 			// metadata initialization
-			Node metadataNode = database.createNode();
+			metadataNode = database.createNode();
 			layerNode.createRelationshipTo(metadataNode, SpatialRelationshipTypes.RTREE_METADATA);
 			
 			metadataNode.setProperty("maxNodeReferences", maxNodeReferences);
 			metadataNode.setProperty("minNodeReferences", minNodeReferences);
 		}
+		saveCount();
 	}
 
 	private void initIndexRoot() {
@@ -742,6 +788,9 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 	private Layer layer;
 	private int maxNodeReferences;
 	private int minNodeReferences;
+	private Node metadataNode;
+	private int totalGeometryCount;
+	private boolean countSaved = false;
 
 	
 	// Private classes

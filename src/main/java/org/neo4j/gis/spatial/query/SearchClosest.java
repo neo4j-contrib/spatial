@@ -20,16 +20,35 @@
 package org.neo4j.gis.spatial.query;
 
 import org.neo4j.gis.spatial.AbstractSearch;
+import org.neo4j.gis.spatial.Layer;
+import org.neo4j.gis.spatial.SpatialTopologyUtils;
 import org.neo4j.graphdb.Node;
 
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 
 /**
+ * This Search will return the closest objects as found by the
+ * Geometry.distance(Geometry) method from JTS. It speeds up the search by using
+ * the RTree index to filter out objects outside a search window. However, you
+ * need to specify a sensible window large enough to include all objects likely
+ * to be of interest. Since this depends on your CRS and domain data, we cannot
+ * make reliable automatic determinations of the best window size. However, we
+ * do provide some alternative constructors to help with this. For example the
+ * constructor that takes a buffer and creates a search window by appliying the
+ * buffer to the input geometry.
+ * 
  * @author Davide Savazzi
+ * @author Craig Taverner
  */
 public class SearchClosest extends AbstractSearch {
 
+	/**
+	 * Search for geometries closest to the specified geometry. Since no search
+	 * window is provided, this route will not benefit from the RTree, and does
+	 * an exhaustive search. Please use one of the alternative constructors to
+	 * improve performance of this search.
+	 */
 	public SearchClosest(Geometry other) {
 		this(other, null);
 	}
@@ -49,6 +68,20 @@ public class SearchClosest extends AbstractSearch {
 
 	private static Envelope makeBufferEnvelope(Geometry other, double buffer) {
 		return other.buffer(buffer).getEnvelopeInternal();
+	}
+
+	/**
+	 * Search for the closest objects within the Envelope window containing the
+	 * specified number of features.
+	 * 
+	 * @param other
+	 *            Geometry to use
+	 * @param limit
+	 *            calculate the search window based on an estimated linear
+	 *            density to match the specified number of features.
+	 */
+	public SearchClosest(Geometry other, Layer layer, int limit) {
+		this(other, SpatialTopologyUtils.createEnvelopeForGeometryDensityEstimate(layer, other.getCoordinate(), limit));
 	}
 
 	/**

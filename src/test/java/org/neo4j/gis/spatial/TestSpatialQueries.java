@@ -20,6 +20,8 @@
 package org.neo4j.gis.spatial;
 
 import org.junit.Test;
+import static org.hamcrest.CoreMatchers.*;
+import static org.junit.Assert.*;
 import org.neo4j.gis.spatial.query.SearchClosest;
 
 import com.vividsolutions.jts.geom.Envelope;
@@ -86,7 +88,7 @@ public class TestSpatialQueries extends Neo4jTestCase {
 			assertEquals("Did not find the closest", closestGeom.toString(), result.getGeometry().toString());
 		}
 
-		// Repeat with a buffer - TODO: This test fails with 0.00001, so we need a fix for that
+		// Repeat with a buffer big enough to work
 		double buffer = 0.0001;
 		closest = new SearchClosest(point, buffer);
 		System.out.println("Searching for geometries close to " + point + " within buffer " + buffer);
@@ -94,6 +96,28 @@ public class TestSpatialQueries extends Neo4jTestCase {
 		for (SpatialDatabaseRecord result : closest.getResults()) {
 			System.out.println("\tGot search result: " + result);
 			assertEquals("Did not find the closest", closestGeom.toString(), result.getGeometry().toString());
+		}
+
+		// Repeat with a buffer too small to work correctly
+		buffer = 0.00001;
+		closest = new SearchClosest(point, buffer);
+		System.out.println("Searching for geometries close to " + point + " within buffer " + buffer);
+		layer.getIndex().executeSearch(closest);
+		for (SpatialDatabaseRecord result : closest.getResults()) {
+			System.out.println("\tGot search result: " + result);
+			// NOTE the test below is negative, because the buffer was badly chosen
+			assertThat("Unexpectedly found the closest", result.getGeometry().toString(), is(not(closestGeom.toString())));
+		}
+
+		// Repeat with the new limit API
+		int limit = 10;
+		closest = new SearchClosest(point, layer, limit);
+		System.out.println("Searching for geometries close to " + point + " within automatic window designed to get about " + limit
+				+ " geometries");
+		layer.getIndex().executeSearch(closest);
+		for (SpatialDatabaseRecord result : closest.getResults()) {
+			System.out.println("\tGot search result: " + result);
+			assertThat("Did not find the closest", result.getGeometry().toString(), is(closestGeom.toString()));
 		}
 
 	}

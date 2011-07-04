@@ -32,14 +32,7 @@ public class SimplePointLayer extends EditableLayerImpl {
 	public static final int LIMIT_RESULTS = 100;
 
 	public List<SpatialDatabaseRecord> findClosestPointsTo(Coordinate point) {
-		int count = getIndex().count();
-		double scale = (double) LIMIT_RESULTS / (double) count;
-		Envelope bbox = getIndex().getLayerBoundingBox();
-		double width = bbox.getWidth() * scale;
-		double height = bbox.getWidth() * scale;
-		Envelope extent = new Envelope(point);
-		extent.expandToInclude(point.x - width / 2.0, point.y - height / 2.0);
-		extent.expandToInclude(point.x + width / 2.0, point.y + height / 2.0);
+		Envelope extent = SpatialTopologyUtils.createEnvelopeForGeometryDensityEstimate(this, point, LIMIT_RESULTS);
 		SearchPointsWithinOrthodromicDistance distanceQuery = new SearchPointsWithinOrthodromicDistance(point, extent, true);
 		return findClosestPoints(distanceQuery);
 	}
