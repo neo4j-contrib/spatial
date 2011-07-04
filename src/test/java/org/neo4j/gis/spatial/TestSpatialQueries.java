@@ -86,5 +86,15 @@ public class TestSpatialQueries extends Neo4jTestCase {
 			assertEquals("Did not find the closest", closestGeom.toString(), result.getGeometry().toString());
 		}
 
+		// Repeat with a buffer - TODO: This test fails with 0.00001, so we need a fix for that
+		double buffer = 0.0001;
+		closest = new SearchClosest(point, buffer);
+		System.out.println("Searching for geometries close to " + point + " within buffer " + buffer);
+		layer.getIndex().executeSearch(closest);
+		for (SpatialDatabaseRecord result : closest.getResults()) {
+			System.out.println("\tGot search result: " + result);
+			assertEquals("Did not find the closest", closestGeom.toString(), result.getGeometry().toString());
+		}
+
 	}
 }
