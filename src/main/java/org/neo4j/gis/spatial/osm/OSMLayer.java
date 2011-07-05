@@ -158,7 +158,7 @@ public class OSMLayer extends DynamicLayer {
 			JSONObject properties = new JSONObject();
 			for (Object key : tags.keySet()) {
 				Object value = tags.get(key);
-				if (value != null && value.toString().length() < 1)
+				if (value != null && (value.toString().length() < 1 || value.equals("*")))
 					value = null;
 				properties.put(key.toString(), value);
 			}
@@ -212,6 +212,52 @@ public class OSMLayer extends DynamicLayer {
 		HashMap<String, String> tags = new HashMap<String, String>();
 		tags.put(key, value);
 		return addDynamicLayerOnWayTags(value==null ? key : key + "-" + value, gtype, tags);
+	}
+
+	/**
+	 * Add a rule for a pure way based search, with multiple property key/value
+	 * match on the way tags. All ways with the specified tag properties will be
+	 * returned. This convenience method will automatically name the layer based
+	 * on the key/value pairs passed, namely 'key-value-key-value-...'. If you
+	 * want more control over the naming, revert to the addDynamicLayerOnWayTags
+	 * method.
+	 * 
+	 * @param geometry
+	 *            type as defined in Constants.
+	 * @param query
+	 *            String of ',' separated key=value tags to match
+	 */
+	public LayerConfig addSimpleDynamicLayer(int gtype, String tagsQuery) {
+		HashMap<String, String> tags = new HashMap<String, String>();
+		StringBuffer name = new StringBuffer();
+		for (String query : tagsQuery.split("\\s*\\,\\s*")) {
+			String[] fields = query.split("\\s*\\=+\\s*");
+			String key = fields[0];
+			String value = fields.length > 1 ? fields[1] : "*";
+			tags.put(key, value);
+			if (name.length() > 0)
+				name.append("-");
+			name.append(key);
+			name.append("-");
+			if (!value.equals("*"))
+				name.append(value);
+		}
+		return addDynamicLayerOnWayTags(name.toString(), gtype, tags);
+	}
+
+	/**
+	 * Add a rule for a pure way based search, with multiple property key/value
+	 * match on the way tags. All ways with the specified tag properties will be
+	 * returned. This convenience method will automatically name the layer based
+	 * on the key/value pairs passed, namely 'key-value-key-value-...'. If you
+	 * want more control over the naming, revert to the addDynamicLayerOnWayTags
+	 * method. The geometry type will be assumed to be LineString.
+	 * 
+	 * @param query
+	 *            String of ',' separated key=value tags to match
+	 */
+	public LayerConfig addSimpleDynamicLayer(String tagsQuery) {
+		return addSimpleDynamicLayer(GTYPE_LINESTRING, tagsQuery);
 	}
 
 	/**

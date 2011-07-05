@@ -32,7 +32,6 @@ import org.junit.Test;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.geotools.data.Neo4jSpatialDataStore;
 import org.neo4j.gis.spatial.geotools.data.StyledImageExporter;
-import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 
@@ -45,7 +44,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 
 	@Test
 	public void testShapefileExport_Map1() throws Exception {
-		//runShapefileExport("map.osm");
+		runShapefileExport("map.osm");
 	}
 
 	@Test
@@ -55,7 +54,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 
 	@Test
 	public void testImageExport_HighwayShp() throws Exception {
-		//runDynamicShapefile("highway.shp");
+		runDynamicShapefile("highway.shp");
 	}
 
 	private void runDynamicShapefile(String shpFile) throws Exception {
@@ -128,6 +127,9 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "primary"));
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "secondary"));
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "tertiary"));
+		layers.add(osmLayer.addSimpleDynamicLayer(GTYPE_LINESTRING, "highway=*"));
+		layers.add(osmLayer.addSimpleDynamicLayer(GTYPE_LINESTRING, "highway=footway, bicycle=yes"));
+		layers.add(osmLayer.addSimpleDynamicLayer("highway=*, bicycle=yes"));
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "residential"));
 		layers.add(osmLayer.addCQLDynamicLayerOnAttribute("highway", "residential", GTYPE_LINESTRING));
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "footway"));
