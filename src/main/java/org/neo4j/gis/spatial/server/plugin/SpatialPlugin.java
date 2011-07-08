@@ -116,7 +116,7 @@ public class SpatialPlugin extends ServerPlugin {
 	@PluginTarget(GraphDatabaseService.class)
 	@Description("add a geometry specified in WKT format to a layer, encoding in the specified layers encoding schemea.")
 	public Iterable<Node> addGeometryWKTToLayer(@Source GraphDatabaseService db,
-			@Description("The geometry in WKT to add to the layer") @Parameter(name = "geometryWKT") String geometryWKT,
+			@Description("The geometry in WKT to add to the layer") @Parameter(name = "geometry") String geometryWKT,
 			@Description("The layer to add the node to.") @Parameter(name = "layer") String layer) {
 		System.out.println("Adding geometry to layer '" + layer + "': " + geometryWKT);
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
@@ -135,8 +135,8 @@ public class SpatialPlugin extends ServerPlugin {
 
 	@PluginTarget(GraphDatabaseService.class)
 	@Description("update an existing geometry specified in WKT format. The layer must already contain the record.")
-	public Iterable<Node> udpateGeometryFromWKT(@Source GraphDatabaseService db,
-			@Description("The geometry in WKT to add to the layer") @Parameter(name = "geometryWKT") String geometryWKT,
+	public Iterable<Node> updateGeometryFromWKT(@Source GraphDatabaseService db,
+			@Description("The geometry in WKT to add to the layer") @Parameter(name = "geometry") String geometryWKT,
 			@Description("The geometry node id") @Parameter(name = "node") long nodeId,
 			@Description("The layer to add the node to.") @Parameter(name = "layer") String layer) {
 		System.out.println("Adding geometry to layer '" + layer + "': " + geometryWKT);
