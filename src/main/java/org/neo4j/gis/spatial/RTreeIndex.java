@@ -118,11 +118,14 @@ public class RTreeIndex implements SpatialTreeIndex, SpatialIndexWriter, Constan
 				orphan.getGeomNode().getSingleRelationship(SpatialRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING).delete();
 			}
 			
+                        //save the parent
+			Node lastParentNodeToDelParent = getIndexNodeParent(lastParentNodeToDelete);
+			
 			deleteRecursivelyEmptySubtree(lastParentNodeToDelete);
 
 			// adjust tree
-			adjustParentBoundingBox(getIndexNodeParent(lastParentNodeToDelete), SpatialRelationshipTypes.RTREE_CHILD);
-			adjustPathBoundingBox(getIndexNodeParent(lastParentNodeToDelete));
+			adjustParentBoundingBox(lastParentNodeToDelParent, SpatialRelationshipTypes.RTREE_CHILD);
+			adjustPathBoundingBox(lastParentNodeToDelParent);
 			
 			// add orphaned geomNodes
 			for (SpatialDatabaseRecord orphan : orphanedGeometryNodes) {
