@@ -103,7 +103,7 @@ public class LayerNodeIndex implements Index<Node>
      */
     public IndexHits<Node> get( String key, Object value )
     {
-        return null;
+        return query(key, value);
     }
 
     public IndexHits<Node> query( String key, Object params )
