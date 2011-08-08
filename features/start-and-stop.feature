@@ -19,4 +19,5 @@ Feature: Start and stop Neo4j Server
     Then sending "layer=test&minx=15.0&maxx=15.3&miny=60.0&maxy=60.2" to "http://localhost:7474/db/data/ext/SpatialPlugin/graphdb/findGeometriesInLayer" should contain "node"
     Then sending JSON "{"query":"start n=(test,'bbox:[15.0, 16.0, 56.0, 61.0]') return n"}" to "http://localhost:7474/db/data/ext/CypherPlugin/graphdb/execute_query" should contain "node"
     Then sending JSON "{"script":"g.getIndex('test',Vertex.class).get('bbox','[15.0, 16.0, 56.0, 61.0]')"}" to "http://localhost:7474/db/data/ext/GremlinPlugin/graphdb/execute_script" should contain "node"
+    Then requesting "http://localhost:7474/db/data/index/node/test/bbox/%5B15.0%2C%2016.0%2C%2056.0%2C%2061.0%5D" should contain "node"
     
