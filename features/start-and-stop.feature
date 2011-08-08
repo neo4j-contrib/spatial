@@ -9,7 +9,7 @@ Feature: Start and stop Neo4j Server
 
   Scenario: Start Neo4j Server and query Spatial layers
     When I start Neo4j Server
-    And wait for Server started at "http://localhost:7474"
+    And wait for Server started at "http://localhost:7474/db/data/"
     Then "http://localhost:7474" should provide the Neo4j REST interface
     Then requesting "http://localhost:7474/db/data/ext/" should contain "SpatialPlugin"
     Then sending "layer=test&lon=lon&lat=lat" to "http://localhost:7474/db/data/ext/SpatialPlugin/graphdb/addSimplePointLayer" should contain "EditableLayerImpl"

@@ -42,13 +42,14 @@ When /^wait for Server (started|stopped) at "([^\"]*)"$/ do |state, uri|
     puts i
     begin
       response = Net::HTTP.get_response(URI.parse(uri))
-      puts response.to_s
+      puts "Got: " + response.to_s
       break if (response.code.to_i == 200) && state == "started"
     rescue Exception=>e
       puts e.to_s
       break if (state == "stopped")
     end
-    sleep 5
+    puts "waiting"
+    sleep 1
     i += 1
   end
 end
