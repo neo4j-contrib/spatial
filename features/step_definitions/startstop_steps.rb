@@ -72,12 +72,19 @@ Then /^requesting "([^\"]*)" should contain "([^\"]*)"$/ do |uri, result|
   fail "expected '#{result}' not found in '#{response_body}'" unless response_body =~ /#{result}/
 end
 
-Then /^sending "([^\"]*)" to "([^\"]*)" should contain "([^\"]*)"$/ do |content, uri, result|
+Then /^sending (JSON )?"(.*)" to "([^\"]*)" should contain "([^\"]*)"$/ do |json, content, uri, result|
   location = URI.parse(uri)
   puts location
   puts "parameters: #{content}"
-  server = Net::HTTP.new(location.host, location.port ? location.port : 80)
-  response = server.request_post(location.path, content)
+  if json != "JSON "
+    server = Net::HTTP.new(location.host, location.port ? location.port : 80)
+    response = server.request_post(location.path, content)
+  else
+    req = Net::HTTP::Post.new(location.path, initheader = {'Content-Type' =>'application/json', 'Accept' =>'application/json'})
+    req.body = content
+    response = Net::HTTP.new(location.host, location.port ? location.port : 80).start {|http| http.request(req) }
+    puts "Response #{response.code} #{response.message}:  #{response.body}"
+  end
   fail "invalid response code #{response.code.to_i}" unless response || response.code.to_i == 200
   response_body = response.body
   puts response_body
