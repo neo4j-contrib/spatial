@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <properties>
-    <neo4j.version>1.4</neo4j.version>
+    <neo4j.version>1.4.1</neo4j.version>
     <geotools.version>2.7-RC1</geotools.version>
     <spatial.test.osm.version>20100819</spatial.test.osm.version>
     <spatial.test.shp.version>20100819</spatial.test.shp.version>
     <bundle.namespace>org.neo4j.gis</bundle.namespace>
-    <cuke4duke.version>0.4.3</cuke4duke.version>
   </properties>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>neo4j-spatial</artifactId>
@@ -20,7 +19,7 @@
   <parent>
     <artifactId>parent-pom</artifactId>
     <groupId>org.neo4j</groupId>
-    <version>18</version>
+    <version>23</version>
   </parent>
   <scm>
     <url>http://github.com/neo4j/neo4j-spatial/</url>
@@ -74,6 +73,35 @@
         </executions>
       </plugin>
     </plugins>
+    <pluginManagement>
+      <plugins>
+        <!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
+        <plugin>
+          <groupId>org.eclipse.m2e</groupId>
+          <artifactId>lifecycle-mapping</artifactId>
+          <version>1.0.0</version>
+          <configuration>
+            <lifecycleMappingMetadata>
+              <pluginExecutions>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <versionRange>[2.1,)</versionRange>
+                    <goals>
+                      <goal>copy-dependencies</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore />
+                  </action>
+                </pluginExecution>
+              </pluginExecutions>
+            </lifecycleMappingMetadata>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
   </build>
   <developers>
     <developer>
@@ -178,7 +206,6 @@ terms of the relevant Commercial Agreement.
     <dependency>
       <groupId>log4j</groupId>
       <artifactId>log4j</artifactId>
-      <version>1.2.14</version>
       <type>jar</type>
       <scope>provided</scope>
     </dependency>
@@ -196,12 +223,26 @@ terms of the relevant Commercial Agreement.
       <url>http://download.osgeo.org/webdav/geotools/</url>
     </repository>
     <repository>
-      <id>neo4j-public-repository</id>
-      <name>Publically available Maven 2 repository for Neo4j</name>
-      <url>http://m2.neo4j.org</url>
+      <id>neo4j-snapshot-repository</id>
+      <name>Maven 2 snapshot repository for Neo4j</name>
+      <url>http://m2.neo4j.org/snapshots</url>
       <snapshots>
         <enabled>true</enabled>
       </snapshots>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+    </repository>
+    <repository>
+      <id>neo4j-release-repository</id>
+      <name>Maven 2 release repository for Neo4j</name>
+      <url>http://m2.neo4j.org/releases</url>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
     </repository>
   </repositories>
   <profiles>
@@ -266,7 +307,6 @@ terms of the relevant Commercial Agreement.
           <plugin>
             <groupId>cuke4duke</groupId>
             <artifactId>cuke4duke-maven-plugin</artifactId>
-            <version>${cuke4duke.version}</version>
             <configuration>
               <jvmArgs>
                 <jvmArg>-Dcuke4duke.objectFactory=cuke4duke.internal.jvmclass.PicoFactory</jvmArg>
@@ -304,7 +344,6 @@ terms of the relevant Commercial Agreement.
         <dependency>
           <groupId>cuke4duke</groupId>
           <artifactId>cuke4duke</artifactId>
-          <version>${cuke4duke.version}</version>
           <scope>test</scope>
         </dependency>
         <dependency>
@@ -316,7 +355,6 @@ terms of the relevant Commercial Agreement.
         <dependency>
           <groupId>org.picocontainer</groupId>
           <artifactId>picocontainer</artifactId>
-          <version>2.11.2</version>
         </dependency>
       </dependencies>
       <repositories>
