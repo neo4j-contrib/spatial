@@ -82,14 +82,14 @@ public abstract class Neo4jTestCase extends TestCase {
 
     protected void updateStorePrefix()
     {
-        storePrefix = System.currentTimeMillis();
+        storePrefix++;
     }
 
     /**
      * Configurable options for text cases, with or without deleting the previous database, and with
      * or without using the BatchInserter for higher creation speeds. Note that tests that need to
      * delete nodes or use transactions should not use the BatchInserter.
-     * 
+     *
      * @param deleteDb
      * @param useBatchInserter
      * @throws Exception
@@ -102,7 +102,7 @@ public abstract class Neo4jTestCase extends TestCase {
     /**
      * For test cases that want to control their own database access, we should
      * shutdown the current one.
-     * 
+     *
      * @param deleteDb
      */
     protected void shutdownDatabase(boolean deleteDb) {
@@ -126,13 +126,13 @@ public abstract class Neo4jTestCase extends TestCase {
      * Some tests require switching between normal EmbeddedGraphDatabase and BatchInserter, so we
      * allow that with this method. We also allow deleting the previous database, if that is desired
      * (probably only the first time this is called).
-     * 
+     *
      * @param deleteDb
      * @param useBatchInserter
      * @throws Exception
      */
     protected void reActivateDatabase(boolean deleteDb, boolean useBatchInserter, boolean autoTx) throws Exception {
-        shutdownDatabase(deleteDb);
+        shutdownDatabase( deleteDb );
         Map<String, String> config = NORMAL_CONFIG;
         String largeMode = System.getProperty("spatial.test.large");
         if (largeMode != null && largeMode.equalsIgnoreCase("true")) {
@@ -153,7 +153,7 @@ public abstract class Neo4jTestCase extends TestCase {
     @Override
     @After
     protected void tearDown() throws Exception {
-        shutdownDatabase(true);
+        shutdownDatabase( true );
         super.tearDown();
     }
 

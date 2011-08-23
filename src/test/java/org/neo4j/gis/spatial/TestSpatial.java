@@ -70,7 +70,7 @@ import com.vividsolutions.jts.geom.Envelope;
  * out neo4j-spatial</dd>
  * </dl>
  * </p>
- * 
+ *
  * @author Davide Savazzi
  * @author Craig Taverner
  */
@@ -96,7 +96,7 @@ public class TestSpatial extends Neo4jTestCase {
      * testing against real geometries. We have a few hard-coded test geometries we expect to find
      * stored in predictable ways in the test database. Currently we only test for bounding box so
      * this class only contains that information.
-     * 
+     *
      * @author craig
      * @since 1.0.0
      */
@@ -280,7 +280,6 @@ public class TestSpatial extends Neo4jTestCase {
             }
         }
         System.out.println("Total time for load: " + 1.0 * (System.currentTimeMillis() - start) / 1000.0 + "s");
-        deleteDatabase( false );
     }
 
     private void loadTestShpData(String layerName, int commitInterval) throws ShapefileException, FileNotFoundException,
