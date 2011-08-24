@@ -55,6 +55,13 @@ public class LayerNodeIndex implements Index<Node>
     private SpatialDatabaseService spatialDB;
     private EditableLayer layer;
 
+    /**
+     * This implementation is going to create a new layer if there
+     * is no existing one.
+     * @param indexName
+     * @param db
+     * @param config
+     */
     public LayerNodeIndex( String indexName, GraphDatabaseService db,
             Map<String, String> config )
     {

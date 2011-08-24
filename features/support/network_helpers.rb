@@ -54,7 +54,9 @@ module NetworkHelpers
     elsif (location.scheme == "file") then
       copy_file(location.path, target)
     else
-      raise 'unsupported schema ' + location
+      puts "trying to copy #{location.to_s}"
+      copy_file(location.to_s, target)
+#      raise 'unsupported schema ' + location
     end
   end
 

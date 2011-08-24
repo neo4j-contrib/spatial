@@ -6,22 +6,22 @@ Given /^a platform supported by Neo4j$/ do
 end
 
 Given /^Neo4j version based on system property "([^"]*)"$/ do |version_name|
-  neo4j.version = ENV[version_name]
+  neo4j.version = getenv(version_name)
   fail "missing property #{version_name}" if neo4j.version == nil
 end
 
 Given /^Neo4j product based on system property "([^"]*)"$/ do |product_name|
-  neo4j.product = ENV[product_name]
+  neo4j.product = getenv(product_name)
   fail "missing property #{product_name}" if neo4j.product == nil
 end
 
 When /^dependencies\-zip based on system property "([^\"]*)"$/ do |arg1|
-  neo4j.dependencies_location = URI.parse(ENV[arg1])
+  neo4j.dependencies_location = URI.parse(getenv(arg1))
   fail "missing property #{arg1}" if neo4j.dependencies_location == nil
 end
 
 When /^plugin based on system property "([^\"]*)"$/ do |arg1|
-  neo4j.plugin_location = URI.parse(ENV[arg1])
+  neo4j.plugin_location = URI.parse(getenv(arg1))
   fail "missing property #{arg1}" if neo4j.plugin_location == nil
 end
 
@@ -39,10 +39,9 @@ end
 
 Given /^a web site at host "([^"]*)" or system property "([^"]*)"$/ do |host, env_location|
   puts "host = #{host}"
-  puts "env_location = #{env_location}"
-  puts "env = #{ENV[env_location]}"
-  if ENV[env_location]
-    neo4j.download_location = URI.parse(ENV[env_location])
+  env = getenv(env_location)
+  if env
+    neo4j.download_location = URI.parse(env)
     puts "downloading from " + neo4j.download_location.to_s
   else
     Net::HTTP.get(URI.parse("http://#{host}"))
