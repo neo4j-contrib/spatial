@@ -23,9 +23,9 @@
     <version>23</version>
   </parent>
   <scm>
-    <url>http://github.com/neo4j/neo4j-spatial/</url>
-    <connection>scm:git:git://github.com/neo4j/neo4j-spatial.git</connection>
-    <developerConnection>scm:git:git@github.com:neo4j/neo4j-spatial.git</developerConnection>
+    <url>http://github.com/neo4j/spatial/</url>
+    <connection>scm:git:git://github.com/neo4j/spatial.git</connection>
+    <developerConnection>scm:git:git@github.com:neo4j/spatial.git</developerConnection>
   </scm>
   <build>
     <plugins>
