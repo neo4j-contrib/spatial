@@ -23,14 +23,14 @@ module NetworkHelpers
 
   def copy_file(source, target)
     puts "copy '#{source}' -> '#{target}'"
-#    File.open(source, "r") do |src|
-#      open(target, "wb") do |file|
-#        while buf = src.read(2048)
-#          file.write(buf)
-#        end
-#      end
-#    end
-    File.cp(source, target) 
+    File.open(source, "r") do |src|
+      open(target, "wb") do |file|
+        while buf = src.read(2048)
+          file.write(buf)
+        end
+      end
+    end
+#    File.cp(source, target) 
   end
 
   def transfer_if_newer(location, target)
