@@ -20,15 +20,18 @@
 package org.neo4j.gis.spatial;
 
 import java.util.List;
+import java.util.Set;
+
+import org.neo4j.collections.rtree.SpatialIndexReader;
 
 
 /**
  * @author Davide Savazzi
  */
-public interface Search extends SpatialIndexVisitor {
+public interface LayerIndexReader extends SpatialIndexReader {
 
-	void setLayer(Layer layer);
+	SpatialDatabaseRecord get(Long geomNodeId);
 	
-	List<SpatialDatabaseRecord> getResults();
+	List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds);
 	
 }

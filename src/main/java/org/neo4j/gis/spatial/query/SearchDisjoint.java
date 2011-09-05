@@ -19,10 +19,11 @@
  */
 package org.neo4j.gis.spatial.query;
 
-import org.neo4j.gis.spatial.AbstractSearch;
+import org.neo4j.gis.spatial.EnvelopeUtils;
+import org.neo4j.gis.spatial.LayerSearch;
 import org.neo4j.graphdb.Node;
 
-import com.vividsolutions.jts.geom.Envelope;
+import org.neo4j.collections.rtree.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 
 
@@ -31,10 +32,11 @@ import com.vividsolutions.jts.geom.Geometry;
  * 
  * @author Davide Savazzi
  */
-public class SearchDisjoint extends AbstractSearch {
+public class SearchDisjoint extends LayerSearch {
 
 	public SearchDisjoint(Geometry other) {
 		this.other = other;
+		this.otherEnvelope = EnvelopeUtils.fromJtsToNeo4j(other.getEnvelopeInternal());
 	}	
 	
 	public boolean needsToVisit(Envelope indexNodeEnvelope) {
@@ -43,7 +45,7 @@ public class SearchDisjoint extends AbstractSearch {
 
 	public void onIndexReference(Node geomNode) {
 		Envelope geomEnvelope = getEnvelope(geomNode);
-		if (!geomEnvelope.intersects(other.getEnvelopeInternal())) {
+		if (!geomEnvelope.intersects(otherEnvelope)) {
 			add(geomNode);
 		} else {
 			Geometry geometry = decode(geomNode);
@@ -52,4 +54,5 @@ public class SearchDisjoint extends AbstractSearch {
 	}
 
 	private Geometry other;
+	private Envelope otherEnvelope;
 }

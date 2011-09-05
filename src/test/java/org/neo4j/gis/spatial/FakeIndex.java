@@ -23,15 +23,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
+import org.neo4j.collections.rtree.Envelope;
+import org.neo4j.collections.rtree.EnvelopeDecoder;
+import org.neo4j.collections.rtree.Search;
 import org.neo4j.graphdb.Node;
-
-import com.vividsolutions.jts.geom.Envelope;
 
 
 /**
  * @author Davide Savazzi
  */
-public class FakeIndex implements SpatialIndexReader, Constants {
+public class FakeIndex implements LayerIndexReader, Constants {
 
 	// Constructor
 	
@@ -44,11 +45,13 @@ public class FakeIndex implements SpatialIndexReader, Constants {
 	
 	public int count() {
 		int count = 0;
+		
         // @TODO: Consider adding a count method to Layer or SpatialDataset to allow for
         // optimization of this if this kind of code gets used elsewhere
 		for (@SuppressWarnings("unused") Node node: layer.getDataset().getAllGeometryNodes()) {
 		    count++;
 		}
+		
 		return count;
 	}
 
@@ -56,7 +59,7 @@ public class FakeIndex implements SpatialIndexReader, Constants {
 		return count() == 0;
 	}
 	
-	public Envelope getLayerBoundingBox() {
+	public Envelope getBoundingBox() {
 		Envelope bbox = null;
 		for (Node node: layer.getDataset().getAllGeometryNodes()) {
 			if (bbox == null) {
@@ -83,16 +86,29 @@ public class FakeIndex implements SpatialIndexReader, Constants {
     }	
 	
 	public void executeSearch(Search search) {
-        search.setLayer(layer);
-		for (Node node: layer.getDataset().getAllGeometryNodes()) {
+        for (Node node: layer.getDataset().getAllGeometryNodes()) {
 			search.onIndexReference(node);
 		}
 	}
 	
-	// Attributes
-	private Layer layer;
+	public Iterable<Node> getAllIndexedNodes() {
+		return layer.getIndex().getAllIndexedNodes();
+	}
 
-	public Iterable<Node> getAllGeometryNodes() {
-	    return layer.getIndex().getAllGeometryNodes();
-    }
+	@Override
+	public EnvelopeDecoder getEnvelopeDecoder() {
+		return layer.getGeometryEncoder();
+	}
+
+
+	@Override
+	public boolean isNodeIndexed(Long nodeId) {
+		// TODO
+		return true;
+	}
+	
+	
+	// Attributes
+	
+	private Layer layer;
 }

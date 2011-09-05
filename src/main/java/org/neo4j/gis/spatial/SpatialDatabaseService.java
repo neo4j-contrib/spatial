@@ -22,6 +22,8 @@ package org.neo4j.gis.spatial;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.neo4j.collections.rtree.Listener;
+import org.neo4j.collections.rtree.RTreeRelationshipTypes;
 import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.graphdb.Direction;
@@ -211,21 +213,26 @@ public class SpatialDatabaseService implements Constants {
     public Layer findLayerContainingGeometryNode(Node geometryNode) {
         Node root = null;
         for (Node node : geometryNode.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH,
-                ReturnableEvaluator.ALL_BUT_START_NODE, SpatialRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING,
-                SpatialRelationshipTypes.RTREE_CHILD, Direction.INCOMING)) {
+                ReturnableEvaluator.ALL_BUT_START_NODE, RTreeRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING,
+                RTreeRelationshipTypes.RTREE_CHILD, Direction.INCOMING)) {
             root = node;
         }
+        
         if (root != null) {
-            return getLayerFromChild(root, SpatialRelationshipTypes.RTREE_ROOT);
+            return getLayerFromChild(root, RTreeRelationshipTypes.RTREE_ROOT);
         }
+        
         System.out.println("Failed to find layer by following RTree index, will search back geometry list");
+        
         for (Node node : geometryNode.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH,
                 ReturnableEvaluator.ALL_BUT_START_NODE, SpatialRelationshipTypes.NEXT_GEOM, Direction.INCOMING)) {
             root = node;
         }
+        
         if (root != null) {
             return getLayerFromChild(root, SpatialRelationshipTypes.NEXT_GEOM);
         }
+        
         return null;
     }
 

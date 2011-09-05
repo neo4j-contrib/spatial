@@ -24,6 +24,7 @@ import java.util.List;
 
 import org.neo4j.gis.spatial.DynamicLayer;
 import org.neo4j.gis.spatial.EditableLayer;
+import org.neo4j.gis.spatial.EnvelopeUtils;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
@@ -37,7 +38,7 @@ import org.neo4j.server.plugins.PluginTarget;
 import org.neo4j.server.plugins.ServerPlugin;
 import org.neo4j.server.plugins.Source;
 
-import com.vividsolutions.jts.geom.Envelope;
+import org.neo4j.collections.rtree.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
@@ -171,9 +172,10 @@ public class SpatialPlugin extends ServerPlugin {
 		if(layer == null ) {
 		    layer = spatialService.getLayer(layerName);
 		}
-		SearchWithin withinQuery = new SearchWithin(layer.getGeometryFactory().toGeometry(new Envelope(minx, maxx, miny, maxy)));
+		SearchWithin withinQuery = new SearchWithin(layer.getGeometryFactory().toGeometry(
+				EnvelopeUtils.fromNeo4jToJts(new Envelope(minx, maxx, miny, maxy))));
 		layer.getIndex().executeSearch(withinQuery);
-		List<SpatialDatabaseRecord> results = withinQuery.getResults();
+		List<SpatialDatabaseRecord> results = withinQuery.getExtendedResults();
 		return toIterable(results);
 	}
 

@@ -19,10 +19,12 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.neo4j.collections.rtree.Listener;
 import org.neo4j.graphdb.Node;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.GeometryFactory;
+
 
 /**
  * Instances of Layer provide the ability for developers to add/remove and edit geometries
@@ -55,7 +57,7 @@ public interface Layer {
      * 
      * @return the SpatialIndexReader used to perform searches on the data in the layer
      */
-    SpatialIndexReader getIndex();
+    LayerIndexReader getIndex();
 
     /**
      * This method adds existing geometries to the layer for indexing. After this method is called the geometry should be searchable.

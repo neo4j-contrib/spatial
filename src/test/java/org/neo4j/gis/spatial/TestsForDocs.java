@@ -39,7 +39,7 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.impl.batchinsert.BatchInserter;
 import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
 
-import com.vividsolutions.jts.geom.Envelope;
+import org.neo4j.collections.rtree.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 
 /**
@@ -134,13 +134,13 @@ public class TestsForDocs extends Neo4jTestCase {
 		try {
 			SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
 			Layer layer = spatialService.getLayer("map.osm");
-			SpatialIndexReader spatialIndex = layer.getIndex();
-			System.out.println("Have " + spatialIndex.count() + " geometries in " + spatialIndex.getLayerBoundingBox());
+			LayerIndexReader spatialIndex = layer.getIndex();
+			System.out.println("Have " + spatialIndex.count() + " geometries in " + spatialIndex.getBoundingBox());
 
 			Envelope bbox = new Envelope(12.94, 12.96, 56.04, 56.06);
-			Search searchQuery = new SearchIntersectWindow(bbox);
+			LayerSearch searchQuery = new SearchIntersectWindow(bbox);
 			spatialIndex.executeSearch(searchQuery);
-			List<SpatialDatabaseRecord> results = searchQuery.getResults();
+			List<SpatialDatabaseRecord> results = searchQuery.getExtendedResults();
 			doGeometryTestsOnResults(bbox, results);
 		} finally {
 			database.shutdown();
@@ -202,13 +202,13 @@ public class TestsForDocs extends Neo4jTestCase {
 			// START SNIPPET: exportShapefileFromQuery
 			SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
 			Layer layer = spatialService.getLayer("map.osm");
-			SpatialIndexReader spatialIndex = layer.getIndex();
-			System.out.println("Have " + spatialIndex.count() + " geometries in " + spatialIndex.getLayerBoundingBox());
+			LayerIndexReader spatialIndex = layer.getIndex();
+			System.out.println("Have " + spatialIndex.count() + " geometries in " + spatialIndex.getBoundingBox());
 
 			Envelope bbox = new Envelope(12.94, 12.96, 56.04, 56.06);
-			Search searchQuery = new SearchIntersectWindow(bbox);
+			LayerSearch searchQuery = new SearchIntersectWindow(bbox);
 			spatialIndex.executeSearch(searchQuery);
-			List<SpatialDatabaseRecord> results = searchQuery.getResults();
+			List<SpatialDatabaseRecord> results = searchQuery.getExtendedResults();
 
 			spatialService.createResultsLayer("results", results);
 			ShapefileExporter shpExporter = new ShapefileExporter(database);

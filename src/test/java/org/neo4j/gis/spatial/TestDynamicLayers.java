@@ -29,14 +29,15 @@ import org.geotools.data.DataStore;
 import org.geotools.data.shapefile.shp.ShapefileException;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.junit.Test;
-import org.neo4j.gis.spatial.Constants;
+import org.neo4j.collections.rtree.Envelope;
+import org.neo4j.collections.rtree.NullListener;
+import org.neo4j.collections.rtree.RTreeIndex;
 import org.neo4j.gis.spatial.geotools.data.Neo4jSpatialDataStore;
 import org.neo4j.gis.spatial.geotools.data.StyledImageExporter;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 
 import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.LinearRing;
 import com.vividsolutions.jts.geom.Polygon;
 
@@ -248,10 +249,10 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
 		Layer layer = spatialService.getLayer(layerName);
 		assertNotNull("Layer index should not be null", layer.getIndex());
-		assertNotNull("Layer index envelope should not be null", layer.getIndex().getLayerBoundingBox());
-		Envelope bbox = layer.getIndex().getLayerBoundingBox();
+		assertNotNull("Layer index envelope should not be null", layer.getIndex().getBoundingBox());
+		Envelope bbox = layer.getIndex().getBoundingBox();
 		System.out.println("Layer has bounding box: " + bbox);
-		((RTreeIndex) layer.getIndex()).debugIndexTree();
+		debugIndexTree((RTreeIndex) layer.getIndex());
 		return bbox;
 	}
 

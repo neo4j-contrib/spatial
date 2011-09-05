@@ -35,6 +35,7 @@ public class SpatialDatabaseRecord implements Constants, Comparable<SpatialDatab
 		this(layer, geomNode, null);
 	}
 	
+	
 	// Public methods
 	
 	public long getId() {
@@ -133,6 +134,7 @@ public class SpatialDatabaseRecord implements Constants, Comparable<SpatialDatab
 		this.geometry = geometry;
 	}
 
+	
 	// Private methods
 	
 	private void checkIsNotReservedProperty(String name) {
@@ -168,6 +170,7 @@ public class SpatialDatabaseRecord implements Constants, Comparable<SpatialDatab
 		return 0;
 	}
 
+	
 	// Attributes
 	
 	private Node geomNode;
@@ -175,5 +178,4 @@ public class SpatialDatabaseRecord implements Constants, Comparable<SpatialDatab
 	private Layer layer;
 	@SuppressWarnings("rawtypes")
 	private Comparable userData;
-
 }

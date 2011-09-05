@@ -97,9 +97,9 @@ public class LineStringNetworkGenerator {
 	protected void addEdgePoint(Node edge, Geometry edgePoint) {
 		if (buffer != null) edgePoint = edgePoint.buffer(buffer.doubleValue());
 		
-		Search search = new SearchIntersect(edgePoint);
+		LayerSearch search = new SearchIntersect(edgePoint);
 		pointsLayer.getIndex().executeSearch(search);
-		List<SpatialDatabaseRecord> results = search.getResults();
+		List<SpatialDatabaseRecord> results = search.getExtendedResults();
 		if (results.size() == 0) {
 			SpatialDatabaseRecord point = pointsLayer.add(edgePoint);
 			edge.createRelationshipTo(point.getGeomNode(), SpatialRelationshipTypes.NETWORK);

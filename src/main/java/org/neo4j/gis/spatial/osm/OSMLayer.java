@@ -24,9 +24,9 @@ import java.util.HashMap;
 
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.json.simple.JSONObject;
+import org.neo4j.collections.rtree.NullListener;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.DynamicLayer;
-import org.neo4j.gis.spatial.NullListener;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.SpatialDataset;
 import org.neo4j.graphdb.Direction;
@@ -128,7 +128,7 @@ public class OSMLayer extends DynamicLayer {
      * @return iterable over geometry nodes in the dataset
      */
     public Iterable<Node> getAllGeometryNodes() {
-        return index.getAllGeometryNodes();
+        return index.getAllIndexedNodes();
     }
 
     public boolean removeDynamicLayer(String name) {

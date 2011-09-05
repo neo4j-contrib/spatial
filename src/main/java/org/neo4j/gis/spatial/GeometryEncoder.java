@@ -19,11 +19,12 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.neo4j.collections.rtree.EnvelopeDecoder;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.PropertyContainer;
 
-import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
+
 
 /**
  * Implementations of this interface define custom approaches to storing geometries in the database
@@ -47,7 +48,7 @@ import com.vividsolutions.jts.geom.Geometry;
  * 
  * @author Davide Savazzi
  */
-public interface GeometryEncoder {
+public interface GeometryEncoder extends EnvelopeDecoder {
 
     /**
      * When accessing an existing layer, the Layer is constructed from a single node in the graph
@@ -76,16 +77,6 @@ public interface GeometryEncoder {
      * @return
      */
     Geometry decodeGeometry(PropertyContainer container);
-
-    /**
-     * This method is called on an individual container when we need to extract the bounding box,
-     * but do not need the entire geometry. For example, this is useful for the RTree index, which
-     * works on bounding boxes only.
-     * 
-     * @param container
-     * @return
-     */
-    Envelope decodeEnvelope(PropertyContainer container);
 
 	/**
 	 * Each geometry might have a set of associated attributes, or properties.

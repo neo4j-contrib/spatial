@@ -30,11 +30,12 @@ import junit.framework.Test;
 import junit.framework.TestSuite;
 
 import org.geotools.data.shapefile.shp.ShapefileException;
+import org.neo4j.collections.rtree.NullListener;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.query.SearchIntersect;
 import org.neo4j.graphdb.Node;
 
-import com.vividsolutions.jts.geom.Envelope;
+import org.neo4j.collections.rtree.Envelope;
 
 /**
  * <p>
@@ -315,14 +316,14 @@ public class TestSpatial extends Neo4jTestCase {
             return;
         }
 
-        ((RTreeIndex)layer.getIndex()).warmUp();
+        ((LayerRTreeIndex)layer.getIndex()).warmUp();
         //((RTreeIndex)layer.getIndex()).debugIndexTree();
 
-        SpatialIndexReader fakeIndex = new SpatialIndexPerformanceProxy(new FakeIndex(layer));
-        SpatialIndexReader rtreeIndex = new SpatialIndexPerformanceProxy(layer.getIndex());
+        LayerIndexReader fakeIndex = new SpatialIndexPerformanceProxy(new FakeIndex(layer));
+        LayerIndexReader rtreeIndex = new SpatialIndexPerformanceProxy(layer.getIndex());
 
-        System.out.println("FakeIndex bounds:  " + fakeIndex.getLayerBoundingBox());
-        System.out.println("RTreeIndex bounds: " + rtreeIndex.getLayerBoundingBox());
+        System.out.println("FakeIndex bounds:  " + fakeIndex.getBoundingBox());
+        System.out.println("RTreeIndex bounds: " + rtreeIndex.getBoundingBox());
 
         System.out.println("FakeIndex count:  " + fakeIndex.count());
         System.out.println("RTreeIndex count: " + rtreeIndex.count());
@@ -335,11 +336,11 @@ public class TestSpatial extends Neo4jTestCase {
                     + " inside search region");
         }
 
-        Search searchQuery = new SearchIntersect(layer.getGeometryFactory().toGeometry(bbox));
-        for (SpatialIndexReader index : new SpatialIndexReader[] {fakeIndex, rtreeIndex}) {
+        LayerSearch searchQuery = new SearchIntersect(layer.getGeometryFactory().toGeometry(EnvelopeUtils.fromNeo4jToJts(bbox)));
+        for (LayerIndexReader index : new LayerIndexReader[] {fakeIndex, rtreeIndex}) {
             ArrayList<TestGeometry> foundData = new ArrayList<TestGeometry>();
             index.executeSearch(searchQuery);
-            List<SpatialDatabaseRecord> results = searchQuery.getResults();
+            List<SpatialDatabaseRecord> results = searchQuery.getExtendedResults();
             System.out.println("\tIndex[" + index.getClass() + "] found results: " + results.size());
             int ri = 0;
             for (SpatialDatabaseRecord r : results) {

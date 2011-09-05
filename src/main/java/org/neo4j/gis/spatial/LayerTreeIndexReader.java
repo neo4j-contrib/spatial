@@ -19,27 +19,18 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.neo4j.collections.rtree.SpatialIndexVisitor;
+import org.neo4j.graphdb.Node;
+
 /**
- * This listener ignores all notifications of progress. It is useful when progress is not necessary.
+ * Spatial Indexes based on tree structures can implement the following methods common to maintaining and searching tree structures.
  * 
- * @author Davide Savazzi
+ * @author craig
  */
-public class NullListener implements Listener {
-
-    // Constructor
-
-    public NullListener() {
-    }
-
-    // Public methods
-
-    public void begin(int unitsOfWork) {
-    }
-
-    public void worked(int workedSinceLastNotification) {
-    }
-
-    public void done() {
-    }
-
+public interface LayerTreeIndexReader extends LayerIndexReader {
+	
+	Node getIndexRoot();
+	
+	void visit(SpatialIndexVisitor visitor, Node indexNode);
+	
 }

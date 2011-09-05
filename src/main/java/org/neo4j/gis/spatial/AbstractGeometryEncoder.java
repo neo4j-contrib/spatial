@@ -23,8 +23,9 @@ import org.apache.commons.lang.ArrayUtils;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.PropertyContainer;
 
-import com.vividsolutions.jts.geom.Envelope;
+import org.neo4j.collections.rtree.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
+
 
 /**
  * @author Davide Savazzi
@@ -44,7 +45,7 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 	public void encodeGeometry(Geometry geometry, PropertyContainer container) {
 		container.setProperty(PROP_TYPE, encodeGeometryType(geometry.getGeometryType()));
 
-		encodeEnvelope(geometry.getEnvelopeInternal(), container);
+		encodeEnvelope(EnvelopeUtils.fromJtsToNeo4j(geometry.getEnvelopeInternal()), container);
 
 		encodeGeometryShape(geometry, container);
 	}

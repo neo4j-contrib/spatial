@@ -32,6 +32,9 @@ import junit.framework.TestCase;
 
 import org.junit.After;
 import org.junit.Before;
+import org.neo4j.collections.rtree.RTreeIndex;
+import org.neo4j.collections.rtree.RTreeRelationshipTypes;
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
@@ -299,4 +302,61 @@ public abstract class Neo4jTestCase extends TestCase {
         }
         return counter;
     }
+    
+	protected void debugIndexTree(RTreeIndex index) {
+		printTree(getIndexRoot(index.getIndexRoot()), 0);
+	}
+
+	private Node getIndexRoot(Node rootNode) {
+		return rootNode.getSingleRelationship(RTreeRelationshipTypes.RTREE_ROOT, Direction.OUTGOING).getEndNode();
+	}	
+	
+	private static String arrayString(double[] test) {
+		StringBuffer sb = new StringBuffer();
+		for (double d : test) {
+			addToArrayString(sb, d);
+		}
+		sb.append("]");
+		return sb.toString();
+	}	
+	
+	private static void addToArrayString(StringBuffer sb, Object obj) {
+		if (sb.length() == 0) {
+			sb.append("[");
+		} else {
+			sb.append(",");
+		}
+		sb.append(obj);
+	}
+	
+	private void printTree(Node root, int depth) {
+		StringBuffer tab = new StringBuffer();
+		for (int i = 0; i < depth; i++) {
+			tab.append("  ");
+		}
+		
+		if (root.hasProperty("bbox")) {
+			System.out.println(tab.toString() + "INDEX: " + root + " BBOX[" + arrayString((double[]) root.getProperty("bbox")) + "]");
+		} else {
+			System.out.println(tab.toString() + "INDEX: " + root);
+		}
+		
+		StringBuffer data = new StringBuffer();
+		for (Relationship rel : root.getRelationships(RTreeRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)) {
+			if (data.length() > 0) {
+				data.append(", ");
+			} else {
+				data.append("DATA: ");
+			}
+			data.append(rel.getEndNode().toString());
+		}
+		
+		if (data.length() > 0) {
+			System.out.println("  " + tab + data);
+		}
+		
+		for (Relationship rel : root.getRelationships(RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
+			printTree(rel.getEndNode(), depth + 1);
+		}
+	}    
 }

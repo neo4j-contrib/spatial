@@ -43,9 +43,9 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 
-import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
+
 
 public class TestOSMImport extends Neo4jTestCase {
 	public static final String spatialTestMode = System.getProperty("spatial.test.mode");
@@ -174,8 +174,8 @@ public class TestOSMImport extends Neo4jTestCase {
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
 		OSMLayer layer = (OSMLayer) spatialService.getOrCreateLayer(layerName, OSMGeometryEncoder.class, OSMLayer.class);
 		assertNotNull("OSM Layer index should not be null", layer.getIndex());
-		assertNotNull("OSM Layer index envelope should not be null", layer.getIndex().getLayerBoundingBox());
-		Envelope bbox = layer.getIndex().getLayerBoundingBox();
+		assertNotNull("OSM Layer index envelope should not be null", layer.getIndex().getBoundingBox());
+		Envelope bbox = EnvelopeUtils.fromNeo4jToJts(layer.getIndex().getBoundingBox());
 		debugEnvelope(bbox, layerName, "bbox");
 		// ((RTreeIndex)layer.getIndex()).debugIndexTree();
 		checkIndexAndFeatureCount(layer);
@@ -196,7 +196,8 @@ public class TestOSMImport extends Neo4jTestCase {
 			super(other);
 		}
 
-		public boolean needsToVisit(Envelope indexNodeEnvelope) {
+		@Override
+		public boolean needsToVisit(org.neo4j.collections.rtree.Envelope indexNodeEnvelope) {
 			return true;
 		}
 
@@ -217,10 +218,11 @@ public class TestOSMImport extends Neo4jTestCase {
 			super(other);
 		}
 
-		public boolean needsToVisit(Envelope indexNodeEnvelope) {
-			indexNodeEnvelope = new Envelope(indexNodeEnvelope.getMinX(), indexNodeEnvelope.getMinY(), indexNodeEnvelope.getMaxX(),
+		@Override
+		public boolean needsToVisit(org.neo4j.collections.rtree.Envelope indexNodeEnvelope) {
+			indexNodeEnvelope = new org.neo4j.collections.rtree.Envelope(indexNodeEnvelope.getMinX(), indexNodeEnvelope.getMinY(), indexNodeEnvelope.getMaxX(),
 					indexNodeEnvelope.getMaxY());
-			return indexNodeEnvelope.intersects(other.getEnvelopeInternal());
+			return indexNodeEnvelope.intersects(EnvelopeUtils.fromJtsToNeo4j(other.getEnvelopeInternal()));
 		}
 
 	}
@@ -237,11 +239,11 @@ public class TestOSMImport extends Neo4jTestCase {
 		assertNotNull("Should be at least one way", way);
 		Envelope bbox = way.getEnvelope();
 		runSearches(layer, bbox, true);
-		Envelope layerBBox = layer.getIndex().getLayerBoundingBox();
-		Coordinate centre = layerBBox.centre();
+		org.neo4j.collections.rtree.Envelope layerBBox = layer.getIndex().getBoundingBox();
+		double[] centre = layerBBox.centre();
 		double width = layerBBox.getWidth() / 100.0;
 		double height = layerBBox.getWidth() / 100.0;
-		bbox = new Envelope(centre.x - width, centre.x + width, centre.y - height, centre.y + height);
+		bbox = new Envelope(centre[0] - width, centre[0] + width, centre[1] - height, centre[1] + height);
 		runSearches(layer, bbox, false);
 	}
 
@@ -258,7 +260,7 @@ public class TestOSMImport extends Neo4jTestCase {
 	private void runSearch(OSMLayer layer, SearchWithin search, boolean willHaveResult) {
 		long start = System.currentTimeMillis();
 		layer.getIndex().executeSearch(search);
-		List<SpatialDatabaseRecord> results = search.getResults();
+		List<SpatialDatabaseRecord> results = search.getExtendedResults();
 		long time = System.currentTimeMillis() - start;
 		System.out.println("Took " + time + "ms to find " + results.size() + " search results in layer " + layer.getName()
 				+ " using search within " + search);

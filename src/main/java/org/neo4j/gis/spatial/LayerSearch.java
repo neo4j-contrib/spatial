@@ -22,21 +22,22 @@ package org.neo4j.gis.spatial;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.neo4j.collections.rtree.Envelope;
+import org.neo4j.collections.rtree.Search;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
-import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 
 
 /**
  * @author Davide Savazzi
  */
-public abstract class AbstractSearch implements Search {
+public abstract class LayerSearch implements Search {
 	
 	// Constructor
 	
-	public AbstractSearch() {
+	public LayerSearch() {
 		this.results = new ArrayList<SpatialDatabaseRecord>();
 	}
 	
@@ -47,7 +48,15 @@ public abstract class AbstractSearch implements Search {
 		this.layer = layer;
 	}	
 	
-	public List<SpatialDatabaseRecord> getResults() {
+	public List<Node> getResults() {
+		List<Node> r = new ArrayList<Node>(results.size());
+		for (SpatialDatabaseRecord rec : results) {
+			r.add(rec.getGeomNode());
+		}
+		return r;
+	}
+	
+	public List<SpatialDatabaseRecord> getExtendedResults() {
 		return results;
 	}
 	
@@ -87,9 +96,9 @@ public abstract class AbstractSearch implements Search {
 		this.results.clear();
 	}
 	
+	
 	// Attributes
 
 	private Layer layer;
-	
 	private List<SpatialDatabaseRecord> results;
 }

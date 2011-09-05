@@ -21,6 +21,9 @@ package org.neo4j.gis.spatial;
 
 import java.io.PrintStream;
 
+import org.neo4j.collections.rtree.Listener;
+
+
 /**
  * This listener simply logs progress to System.out.
  * 

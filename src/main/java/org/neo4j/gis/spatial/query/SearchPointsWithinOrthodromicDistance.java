@@ -19,11 +19,11 @@
  */
 package org.neo4j.gis.spatial.query;
 
-import org.neo4j.gis.spatial.AbstractSearch;
+import org.neo4j.gis.spatial.LayerSearch;
 import org.neo4j.graphdb.Node;
 
 import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Envelope;
+import org.neo4j.collections.rtree.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 
 /**
@@ -33,7 +33,7 @@ import com.vividsolutions.jts.geom.Geometry;
  * 
  * @author Davide Savazzi
  */
-public class SearchPointsWithinOrthodromicDistance extends AbstractSearch {
+public class SearchPointsWithinOrthodromicDistance extends LayerSearch {
 
 	public SearchPointsWithinOrthodromicDistance(Coordinate reference, double maxDistanceInKm, boolean saveDistanceOnGeometry) {
 		this.reference = reference;
@@ -56,8 +56,12 @@ public class SearchPointsWithinOrthodromicDistance extends AbstractSearch {
 	public SearchPointsWithinOrthodromicDistance(Coordinate reference, Envelope bbox, boolean saveDistanceOnGeometry) {
 		this.reference = reference;
 		this.bbox = bbox;
-		this.maxDistanceInKm = calculateDistance(bbox.centre(), new Coordinate(bbox.getMinX(),
+		
+		double[] centre = bbox.centre();
+		
+		this.maxDistanceInKm = calculateDistance(new Coordinate(centre[0], centre[1]), new Coordinate(bbox.getMinX(),
 				(bbox.getMinY() + bbox.getMaxY()) / 2));
+		
 		this.saveDistanceOnGeometry = saveDistanceOnGeometry;
 	}
 

@@ -31,6 +31,7 @@ import org.neo4j.graphdb.Transaction;
 
 import com.vividsolutions.jts.geom.Envelope;
 
+
 public class ServerPluginTest extends Neo4jTestCase {
 
 	private static final String LAYER = "layer";
@@ -88,7 +89,7 @@ public class ServerPluginTest extends Neo4jTestCase {
 		Layer layer2 = spatialService.getLayer(LAYER);
 		SearchWithin withinQuery = new SearchWithin(layer2.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 60.0, 61.0)));
 		layer2.getIndex().executeSearch(withinQuery);
-		List<SpatialDatabaseRecord> results = withinQuery.getResults();
+		List<SpatialDatabaseRecord> results = withinQuery.getExtendedResults();
 		assertEquals(0, results.size());
 
 		Transaction tx2 = graphDb().beginTx();
@@ -101,7 +102,7 @@ public class ServerPluginTest extends Neo4jTestCase {
 		plugin.addNodeToLayer(graphDb(), point, LAYER);
 		plugin.addGeometryWKTToLayer(graphDb(), "POINT(15.2 60.1)", LAYER);
 		layer2.getIndex().executeSearch(withinQuery);
-		results = withinQuery.getResults();
+		results = withinQuery.getExtendedResults();
 		assertEquals(2, results.size());
 	}
 	
@@ -143,11 +144,4 @@ public class ServerPluginTest extends Neo4jTestCase {
 		return count;
 	}
 
-	private int count(Iterable<Node> results) {
-		int count = 0;
-		for(Node node:results) {
-			count ++;
-		}
-		return count;
-	}
 }

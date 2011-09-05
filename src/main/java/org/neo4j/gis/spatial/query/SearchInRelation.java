@@ -19,10 +19,10 @@
  */
 package org.neo4j.gis.spatial.query;
 
-import org.neo4j.gis.spatial.AbstractSearch;
+import org.neo4j.gis.spatial.LayerSearch;
 import org.neo4j.graphdb.Node;
 
-import com.vividsolutions.jts.geom.Envelope;
+import org.neo4j.collections.rtree.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 
 
@@ -31,7 +31,7 @@ import com.vividsolutions.jts.geom.Geometry;
  * 
  * @author Davide Savazzi
  */
-public class SearchInRelation extends AbstractSearch {
+public class SearchInRelation extends LayerSearch {
 
 	/**
 	 * 

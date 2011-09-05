@@ -19,39 +19,42 @@
  */
 package org.neo4j.gis.spatial.query;
 
-import org.neo4j.gis.spatial.AbstractSearch;
+import org.neo4j.gis.spatial.LayerSearch;
+import org.neo4j.gis.spatial.EnvelopeUtils;
 import org.neo4j.graphdb.Node;
 
-import com.vividsolutions.jts.geom.Envelope;
+import org.neo4j.collections.rtree.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 
 
 /**
  * @author Davide Savazzi
  */
-public abstract class AbstractSearchIntersection extends AbstractSearch {
+public abstract class AbstractSearchIntersection extends LayerSearch {
 
 	public AbstractSearchIntersection(Geometry other) {
 		this.other = other;
+		this.otherEnvelope = EnvelopeUtils.fromJtsToNeo4j(other.getEnvelopeInternal());
 	}
 
 	public boolean needsToVisit(Envelope indexNodeEnvelope) {
-		return indexNodeEnvelope.intersects(other.getEnvelopeInternal());
+		return indexNodeEnvelope.intersects(otherEnvelope);
 	}
 	
 	public final void onIndexReference(Node geomNode) {	
 		Envelope geomEnvelope = getEnvelope(geomNode);
-		if (geomEnvelope.intersects(other.getEnvelopeInternal())) {
+		if (geomEnvelope.intersects(otherEnvelope)) {
 			onEnvelopeIntersection(geomNode, geomEnvelope);
 		}
 	}
+
+	public String toString() {
+		return "SearchIntersection[" + other.getEnvelopeInternal() + "]";
+	}	
+	
 	
 	protected abstract void onEnvelopeIntersection(Node geomNode, Envelope geomEnvelope);
 	
 	protected Geometry other;
-
-	public String toString() {
-		return "SearchIntersection[" + other.getEnvelopeInternal() + "]";
-	}
-
+	protected Envelope otherEnvelope;
 }

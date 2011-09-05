@@ -24,7 +24,7 @@ import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.*;
 import org.neo4j.gis.spatial.query.SearchClosest;
 
-import com.vividsolutions.jts.geom.Envelope;
+import org.neo4j.collections.rtree.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
@@ -71,19 +71,19 @@ public class TestSpatialQueries extends Neo4jTestCase {
 		SearchClosest closest = new SearchClosest(point);
 		System.out.println("Searching for geometries close to " + point);
 		layer.getIndex().executeSearch(closest);
-		for (SpatialDatabaseRecord result : closest.getResults()) {
+		for (SpatialDatabaseRecord result : closest.getExtendedResults()) {
 			System.out.println("\tGot search result: " + result);
 			assertEquals("Did not find the closest", closestGeom.toString(), result.getGeometry().toString());
 		}
 
 		// Repeat with an envelope
-		Envelope env = new Envelope(point.getCoordinate());
-		env.expandToInclude(shortLineString.getEnvelopeInternal());
-		env.expandToInclude(longLineString.getEnvelopeInternal());
+		Envelope env = new Envelope(point.getCoordinate().x, point.getCoordinate().x, point.getCoordinate().y, point.getCoordinate().y);
+		env.expandToInclude(EnvelopeUtils.fromJtsToNeo4j(shortLineString.getEnvelopeInternal()));
+		env.expandToInclude(EnvelopeUtils.fromJtsToNeo4j(longLineString.getEnvelopeInternal()));
 		closest = new SearchClosest(point, env);
 		System.out.println("Searching for geometries close to " + point + " within " + env);
 		layer.getIndex().executeSearch(closest);
-		for (SpatialDatabaseRecord result : closest.getResults()) {
+		for (SpatialDatabaseRecord result : closest.getExtendedResults()) {
 			System.out.println("\tGot search result: " + result);
 			assertEquals("Did not find the closest", closestGeom.toString(), result.getGeometry().toString());
 		}
@@ -93,7 +93,7 @@ public class TestSpatialQueries extends Neo4jTestCase {
 		closest = new SearchClosest(point, buffer);
 		System.out.println("Searching for geometries close to " + point + " within buffer " + buffer);
 		layer.getIndex().executeSearch(closest);
-		for (SpatialDatabaseRecord result : closest.getResults()) {
+		for (SpatialDatabaseRecord result : closest.getExtendedResults()) {
 			System.out.println("\tGot search result: " + result);
 			assertEquals("Did not find the closest", closestGeom.toString(), result.getGeometry().toString());
 		}
@@ -103,7 +103,7 @@ public class TestSpatialQueries extends Neo4jTestCase {
 		closest = new SearchClosest(point, buffer);
 		System.out.println("Searching for geometries close to " + point + " within buffer " + buffer);
 		layer.getIndex().executeSearch(closest);
-		for (SpatialDatabaseRecord result : closest.getResults()) {
+		for (SpatialDatabaseRecord result : closest.getExtendedResults()) {
 			System.out.println("\tGot search result: " + result);
 			// NOTE the test below is negative, because the buffer was badly chosen
 			assertThat("Unexpectedly found the closest", result.getGeometry().toString(), is(not(closestGeom.toString())));
@@ -115,7 +115,7 @@ public class TestSpatialQueries extends Neo4jTestCase {
 		System.out.println("Searching for geometries close to " + point + " within automatic window designed to get about " + limit
 				+ " geometries");
 		layer.getIndex().executeSearch(closest);
-		for (SpatialDatabaseRecord result : closest.getResults()) {
+		for (SpatialDatabaseRecord result : closest.getExtendedResults()) {
 			System.out.println("\tGot search result: " + result);
 			assertThat("Did not find the closest", result.getGeometry().toString(), is(closestGeom.toString()));
 		}

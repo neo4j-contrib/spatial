@@ -21,10 +21,9 @@ package org.neo4j.gis.spatial;
 
 import java.util.List;
 
+import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.gis.spatial.query.SearchIntersectWindow;
 import org.neo4j.graphdb.Transaction;
-
-import com.vividsolutions.jts.geom.Envelope;
 
 /**
  * @author Davide Savazzi
@@ -37,7 +36,7 @@ public class TestSearch extends Neo4jTestCase {
 		// update
 		if (enabled) {
 			Layer layer;
-			SpatialIndexReader rtreeIndex;
+			LayerIndexReader rtreeIndex;
 			Envelope bbox;
 
 			Transaction tx = graphDb().beginTx();
@@ -45,7 +44,7 @@ public class TestSearch extends Neo4jTestCase {
 				SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
 				layer = spatialService.getLayer("roads");
 				rtreeIndex = layer.getIndex();
-				bbox = rtreeIndex.getLayerBoundingBox();
+				bbox = rtreeIndex.getBoundingBox();
 
 				tx.success();
 			} finally {
@@ -74,11 +73,11 @@ public class TestSearch extends Neo4jTestCase {
 				for (double y = miny; y < maxy; y = y + interval) {
 					tx = graphDb().beginTx();
 					try {
-						Search searchQuery = new SearchIntersectWindow(new Envelope(x, x + interval, y, y + interval));
+						LayerSearch searchQuery = new SearchIntersectWindow(new Envelope(x, x + interval, y, y + interval));
 
 						long qStart = System.currentTimeMillis();
 						rtreeIndex.executeSearch(searchQuery);
-						List<SpatialDatabaseRecord> rtreeResults = searchQuery.getResults();
+						List<SpatialDatabaseRecord> rtreeResults = searchQuery.getExtendedResults();
 						long qStop = System.currentTimeMillis();
 						long qElapsedTime = qStop - qStart;
 
@@ -128,11 +127,11 @@ public class TestSearch extends Neo4jTestCase {
 			try {
 				SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
 				Layer layer = spatialService.getLayer("roads");
-				SpatialIndexReader spatialIndex = layer.getIndex();
+				LayerIndexReader spatialIndex = layer.getIndex();
 
-				Search searchQuery = new SearchIntersectWindow(new Envelope(xmin, xmax, ymin, ymax));
+				LayerSearch searchQuery = new SearchIntersectWindow(new Envelope(xmin, xmax, ymin, ymax));
 				spatialIndex.executeSearch(searchQuery);
-				List<SpatialDatabaseRecord> results = searchQuery.getResults();
+				List<SpatialDatabaseRecord> results = searchQuery.getExtendedResults();
 				System.out.println("Search returned: " + results);
 				tx.success();
 			} finally {

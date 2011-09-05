@@ -21,7 +21,7 @@ package org.neo4j.gis.spatial.query;
 
 import org.neo4j.graphdb.Node;
 
-import com.vividsolutions.jts.geom.Envelope;
+import org.neo4j.collections.rtree.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 
 
@@ -38,7 +38,7 @@ public class SearchCoveredBy extends AbstractSearchIntersection {
 
 	protected void onEnvelopeIntersection(Node geomNode, Envelope geomEnvelope) {
 		// check if every point of this geometry is a point of the other geometry
-	    if (other.getEnvelopeInternal().covers(geomEnvelope)) {
+	    if (otherEnvelope.covers(geomEnvelope)) {
 	    	Geometry geometry = decode(geomNode);
 			if (geometry.coveredBy(other)) add(geomNode, geometry);
 	    }		

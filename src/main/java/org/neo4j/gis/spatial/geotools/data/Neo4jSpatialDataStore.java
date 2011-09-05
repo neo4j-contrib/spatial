@@ -44,6 +44,7 @@ import org.geotools.data.InProcessLockingManager;
 import org.geotools.data.Query;
 import org.geotools.data.ResourceInfo;
 import org.geotools.data.TransactionStateDiff;
+import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.feature.AttributeTypeBuilder;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.geotools.feature.type.BasicFeatureTypes;
@@ -60,8 +61,9 @@ import org.geotools.styling.StyleFactory;
 import org.geotools.styling.StyleFactoryImpl;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.EditableLayer;
+import org.neo4j.gis.spatial.EnvelopeUtils;
 import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.Search;
+import org.neo4j.gis.spatial.LayerSearch;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.query.SearchAll;
@@ -86,7 +88,6 @@ import com.vividsolutions.jts.geom.MultiPoint;
 import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
-import org.geotools.data.simple.SimpleFeatureSource;
 
 
 /**
@@ -304,7 +305,8 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 	public ReferencedEnvelope getBounds(String typeName) {
     	ReferencedEnvelope result = boundsIndex.get(typeName);
     	if (result == null) {
-			Envelope bbox = spatialDatabase.getLayer(typeName).getIndex().getLayerBoundingBox();
+			Envelope bbox = EnvelopeUtils.fromNeo4jToJts(
+					spatialDatabase.getLayer(typeName).getIndex().getBoundingBox());
 			result = convertEnvelopeToRefEnvelope(typeName, bbox);
 			boundsIndex.put(typeName, result);		
     	}
@@ -365,7 +367,8 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
     	} else if (filter instanceof BBOX) {
 			// query used in uDig Zoom and Pan
 			BBOX bbox = (BBOX) filter;
-			return getFeatureReader(typeName, new SearchIntersectWindow(convertBBoxToEnvelope(bbox)));
+			return getFeatureReader(typeName, new SearchIntersectWindow(
+					EnvelopeUtils.fromJtsToNeo4j(convertBBoxToEnvelope(bbox))));
 		} else if (filter instanceof IntersectsImpl) {
 			// query used in uDig Point Info
 			IntersectsImpl intersectFilter = (IntersectsImpl) filter;
@@ -379,7 +382,8 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 				if (childFilter instanceof IntersectsImpl) {
 					return getFeatureReader(typeName, (IntersectsImpl) childFilter);
 				} else if (childFilter instanceof BBOX) {
-					return getFeatureReader(typeName, new SearchIntersectWindow(convertBBoxToEnvelope((BBOX) childFilter)));
+					return getFeatureReader(typeName, new SearchIntersectWindow(
+							EnvelopeUtils.fromJtsToNeo4j(convertBBoxToEnvelope((BBOX) childFilter))));
 				}
 			}
 		} else if (filter instanceof FidFilterImpl) {
@@ -455,10 +459,10 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 		return getFeatureReader(typeName, new SearchAll());
 	}
 	
-    protected FeatureReader<SimpleFeatureType, SimpleFeature> getFeatureReader(String typeName, Search search) throws IOException {
+    protected FeatureReader<SimpleFeatureType, SimpleFeature> getFeatureReader(String typeName, LayerSearch search) throws IOException {
     	Layer layer = spatialDatabase.getLayer(typeName);		
     	layer.getIndex().executeSearch(search);
-    	Iterator<SpatialDatabaseRecord> results = search.getResults().iterator();
+    	Iterator<SpatialDatabaseRecord> results = search.getExtendedResults().iterator();
     	return new Neo4jSpatialFeatureReader(layer, getSchema(typeName), results);
     }
 		

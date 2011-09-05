@@ -26,24 +26,28 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.geotools.filter.text.cql2.CQLException;
+import org.geotools.filter.text.ecql.ECQL;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
-import org.neo4j.gis.spatial.RTreeIndex.RecordCounter;
+import org.neo4j.collections.rtree.Envelope;
+import org.neo4j.collections.rtree.EnvelopeDecoder;
+import org.neo4j.collections.rtree.Listener;
+import org.neo4j.collections.rtree.Search;
+import org.neo4j.collections.rtree.SpatialIndexRecordCounter;
+import org.neo4j.gis.spatial.geotools.data.Neo4jFeatureBuilder;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.DynamicRelationshipType;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.gis.spatial.geotools.data.Neo4jFeatureBuilder;
+import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.filter.Filter;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
-import org.opengis.feature.simple.SimpleFeature;
-import org.geotools.filter.text.cql2.CQLException;
-import org.geotools.filter.text.ecql.ECQL;
 
-import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.GeometryFactory;
+
 
 /**
  * <p>
@@ -81,11 +85,16 @@ public class DynamicLayer extends EditableLayerImpl {
 	 * 
 	 * @author craig
 	 */
-	public static class SpatialIndexReaderWrapper implements SpatialIndexReader {
-		protected SpatialTreeIndex index;
+	public static class SpatialIndexReaderWrapper implements LayerIndexReader {
+		
+		protected LayerTreeIndexReader index;
 
-		public SpatialIndexReaderWrapper(SpatialTreeIndex index) {
+		public SpatialIndexReaderWrapper(LayerTreeIndexReader index) {
 			this.index = index;
+		}
+		
+		public EnvelopeDecoder getEnvelopeDecoder() {
+			return index.getEnvelopeDecoder();
 		}
 
 		public int count() {
@@ -96,6 +105,10 @@ public class DynamicLayer extends EditableLayerImpl {
 			index.executeSearch(search);
 		}
 
+		public boolean isNodeIndexed(Long nodeId) {
+			return index.isNodeIndexed(nodeId);
+		}
+		
 		public SpatialDatabaseRecord get(Long geomNodeId) {
 			return index.get(geomNodeId);
 		}
@@ -103,19 +116,18 @@ public class DynamicLayer extends EditableLayerImpl {
 		public List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds) {
 			return index.get(geomNodeIds);
 		}
-
-		public Envelope getLayerBoundingBox() {
-			return index.getLayerBoundingBox();
+		
+		public Envelope getBoundingBox() {
+			return index.getBoundingBox();
 		}
 
 		public boolean isEmpty() {
 			return index.isEmpty();
 		}
 
-		public Iterable<Node> getAllGeometryNodes() {
-	        return index.getAllGeometryNodes();
-        }
-
+		public Iterable<Node> getAllIndexedNodes() {
+			return index.getAllIndexedNodes();
+		}
 	}
 
 	/**
@@ -140,13 +152,13 @@ public class DynamicLayer extends EditableLayerImpl {
         private final Filter filter;
         private final Neo4jFeatureBuilder builder;
 
-        public CQLIndexReader(SpatialTreeIndex index, String query) throws CQLException {
+        public CQLIndexReader(LayerTreeIndexReader index, String query) throws CQLException {
             super(index);
             this.filter = ECQL.toFilter(query);
             this.builder = new Neo4jFeatureBuilder(DynamicLayer.this);
         }
 
-        private class Counter extends RecordCounter {
+        private class Counter extends SpatialIndexRecordCounter {
             public boolean needsToVisit(Envelope indexNodeEnvelope) {
                 return queryIndexNode(indexNodeEnvelope);
             }
@@ -164,12 +176,8 @@ public class DynamicLayer extends EditableLayerImpl {
                 this.delegate = delegate;
             }
 
-            public List<SpatialDatabaseRecord> getResults() {
+            public List<Node> getResults() {
                 return delegate.getResults();
-            }
-
-            public void setLayer(Layer layer) {
-                delegate.setLayer(layer);
             }
 
             public boolean needsToVisit(Envelope indexNodeEnvelope) {
@@ -236,7 +244,7 @@ public class DynamicLayer extends EditableLayerImpl {
 	public class DynamicIndexReader extends SpatialIndexReaderWrapper {
 		private JSONObject query;
 
-		private class DynamicRecordCounter extends RecordCounter {
+		private class DynamicRecordCounter extends SpatialIndexRecordCounter {
 			public boolean needsToVisit(Envelope indexNodeEnvelope) {
 				return queryIndexNode(indexNodeEnvelope);
 			}
@@ -248,7 +256,7 @@ public class DynamicLayer extends EditableLayerImpl {
 			}
 		}
 
-		public DynamicIndexReader(SpatialTreeIndex index, String query) {
+		public DynamicIndexReader(LayerTreeIndexReader index, String query) {
 			super(index);
 			this.query = (JSONObject)JSONValue.parse(query);
 		}
@@ -321,12 +329,8 @@ public class DynamicLayer extends EditableLayerImpl {
 		public void executeSearch(final Search search) {
 			index.executeSearch(new Search() {
 
-				public List<SpatialDatabaseRecord> getResults() {
+				public List<Node> getResults() {
 					return search.getResults();
-				}
-
-				public void setLayer(Layer layer) {
-					search.setLayer(layer);
 				}
 
 				public boolean needsToVisit(Envelope indexNodeEnvelope) {
@@ -434,16 +438,16 @@ public class DynamicLayer extends EditableLayerImpl {
 			return (Integer) configNode.getProperty(PROP_TYPE);
 		}
 
-		public SpatialIndexReader getIndex() {
-			if (index instanceof SpatialTreeIndex) {
+		public LayerIndexReader getIndex() {
+			if (index instanceof LayerTreeIndexReader) {
 				String query = getQuery();
 				if (query.startsWith("{")) {
 					// Make a standard JSON based dynamic layer
-					return new DynamicIndexReader((SpatialTreeIndex) index, getQuery());
+					return new DynamicIndexReader((LayerTreeIndexReader) index, getQuery());
 				} else {
 					// Make a CQL based dynamic layer
 					try {
-						return new CQLIndexReader((SpatialTreeIndex) index, getQuery());
+						return new CQLIndexReader((LayerTreeIndexReader) index, getQuery());
 					} catch (CQLException e) {
 						throw new SpatialDatabaseException("Error while creating CQL based DynamicLayer", e);
 					}
