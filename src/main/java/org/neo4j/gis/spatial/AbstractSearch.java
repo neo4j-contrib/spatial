@@ -89,7 +89,7 @@ public abstract class AbstractSearch implements Search {
 	
 	// Attributes
 
-	private Layer layer;
+	protected Layer layer;
 	
 	private List<SpatialDatabaseRecord> results;
 }
