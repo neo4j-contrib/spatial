@@ -30,11 +30,11 @@ import java.util.Map;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.neo4j.cypher.SyntaxException;
 import org.neo4j.cypher.commands.Query;
 import org.neo4j.cypher.javacompat.CypherParser;
 import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.cypher.javacompat.ExecutionResult;
-import org.neo4j.cypher.SyntaxException;
 import org.neo4j.gis.spatial.indexprovider.LayerNodeIndex;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -87,9 +87,15 @@ public class IndexProviderTest
         //test Cypher query
         CypherParser parser = new CypherParser();
         ExecutionEngine engine = new ExecutionEngine(db);
-        Query query = parser.parse( "start n=(layer1,'bbox:[15.0, 16.0, 56.0, 57.0]') match (n) -[r] - (x) return n.bbox, r~TYPE, x.layer?, x.bbox?" );
+        Query query = parser.parse( "start n=(layer1,'bbox:[15.0, 16.0, 56.0, 57.0]') match (n) -[r] - (x) return n, r~TYPE, x.layer?, x.bbox?" );
         ExecutionResult result = engine.execute( query );
         System.out.println(result.toString());
+        
+        //test Gremlin
+//        ScriptEngine gremlinEngine = new ScriptEngineManager().getEngineByName( "gremlin" );
+//        final Bindings bindings = new SimpleBindings();
+//        final Neo4jGraph graph = new Neo4jGraph( db );
+//        bindings.put( g, graph );
         
         
     }

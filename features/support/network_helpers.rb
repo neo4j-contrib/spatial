@@ -2,6 +2,7 @@ module NetworkHelpers
 
   require 'socket'
   require 'timeout'
+  require 'fileutils'
 
   def is_port_open?(ip, port)
     begin
@@ -29,6 +30,7 @@ module NetworkHelpers
         end
       end
     end
+#    File.cp(source, target) 
   end
 
   def transfer_if_newer(location, target)
@@ -54,7 +56,9 @@ module NetworkHelpers
     elsif (location.scheme == "file") then
       copy_file(location.path, target)
     else
-      raise 'unsupported schema ' + location
+      puts "trying to copy #{location.to_s}"
+      copy_file(location.to_s, target)
+#      raise 'unsupported schema ' + location
     end
   end
 

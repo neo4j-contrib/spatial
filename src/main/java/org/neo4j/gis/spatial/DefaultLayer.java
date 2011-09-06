@@ -27,6 +27,8 @@ import java.util.Set;
 import org.geotools.factory.FactoryRegistryException;
 import org.geotools.referencing.ReferencingFactoryFinder;
 import org.neo4j.gis.spatial.encoders.Configurable;
+import org.neo4j.gis.spatial.pipes.GeoFilteringPipeline;
+import org.neo4j.gis.spatial.pipes.GeoProcessingPipeline;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -400,5 +402,17 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 	public Object getStyle() {
 		return null;
 	}
+
+    @Override
+    public GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> filter()
+    {
+        return new GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>(this);
+    }
+
+    @Override
+    public GeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> process()
+    {
+        return new GeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>(this);
+    }
 
 }

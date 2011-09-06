@@ -32,9 +32,12 @@ module ShellHelpers
   end
 
   def getenv(varname)
-    bash("echo $#{varname}")
-    
-    return @stdout
+    variable = ENV[varname]
+    if variable ==nil
+        variable = java.lang.System.getProperty(varname)
+    end
+    puts "got #{variable}"
+    return variable
   end
 
   def test_executable(executable_path)

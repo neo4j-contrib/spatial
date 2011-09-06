@@ -3,7 +3,7 @@ Neo4j Spatial
  
 Neo4j Spatial is a library facilitating the import, storage and querying of spatial data in the [Neo4j open source graph database](http://neo4j.org/).
 
-![OpenStreetMap](https://github.com/neo4j/neo4j-spatial/raw/master/src/site/pics/one-street.png)
+![OpenStreetMap](https://github.com/neo4j/spatial/raw/master/src/site/pics/one-street.png)
 
 
 Some key features include:
@@ -165,17 +165,15 @@ Neo4j Spatial is also packaged as a ZIP file that can be unzipped into the Neo4j
 Building Neo4j spatial
 ----------------------
   
-    git clone https://github.com/neo4j/neo4j-spatial.git
+    git clone https://github.com/neo4j/spatial.git
+    cd spatial
     mvn clean package
 
 Integration-Testing the Neo4j-Spatial Server Plugin
 
-    export DOWNLOAD_PLUGIN_LOCATION=file:/path/to/neo4j-spatial/target/neo4j-spatial-0.6-SNAPSHOT-server-plugin.zip
-    export NEO4J_VERSION=1.4.M01
-    export NEO4J_PRODUCT=community
-    
+    source ./setenv.sh
     rake
 
 or
 
-    mvn test -P integration-tests
+    mvn integration-test -Dcucumber.installGems=true -Pqa-test

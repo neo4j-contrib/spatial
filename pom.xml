@@ -1,31 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <properties>
-    <neo4j.version>1.4-SNAPSHOT</neo4j.version>
+    <neo4j.version>1.4.1</neo4j.version>
     <geotools.version>2.7-RC1</geotools.version>
     <spatial.test.osm.version>20100819</spatial.test.osm.version>
     <spatial.test.shp.version>20100819</spatial.test.shp.version>
     <bundle.namespace>org.neo4j.gis</bundle.namespace>
-    <cuke4duke.version>0.4.3</cuke4duke.version>
   </properties>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>neo4j-spatial</artifactId>
   <groupId>org.neo4j</groupId>
-  <version>0.6-SNAPSHOT</version>
+  <version>0.7-SNAPSHOT</version>
   <name>Neo4j - Spatial Components</name>
-  <description>Spatial utilities and components for neo4j</description>
+  <description>Spatial utilities and components for Neo4j</description>
   <url>http://components.neo4j.org/${project.artifactId}/${project.version}</url>
   <inceptionYear>2010</inceptionYear>
   <packaging>jar</packaging>
   <parent>
     <artifactId>parent-pom</artifactId>
     <groupId>org.neo4j</groupId>
-    <version>18</version>
+    <version>23</version>
   </parent>
   <scm>
-    <url>http://github.com/neo4j/neo4j-spatial/</url>
-    <connection>scm:git:git://github.com/neo4j/neo4j-spatial.git</connection>
-    <developerConnection>scm:git:git@github.com:neo4j/neo4j-spatial.git</developerConnection>
+    <url>http://github.com/neo4j/spatial/</url>
+    <connection>scm:git:git://github.com/neo4j/spatial.git</connection>
+    <developerConnection>scm:git:git@github.com:neo4j/spatial.git</developerConnection>
   </scm>
   <build>
     <plugins>
@@ -74,6 +73,35 @@
         </executions>
       </plugin>
     </plugins>
+    <pluginManagement>
+      <plugins>
+        <!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself. -->
+        <plugin>
+          <groupId>org.eclipse.m2e</groupId>
+          <artifactId>lifecycle-mapping</artifactId>
+          <version>1.0.0</version>
+          <configuration>
+            <lifecycleMappingMetadata>
+              <pluginExecutions>
+                <pluginExecution>
+                  <pluginExecutionFilter>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <versionRange>[2.1,)</versionRange>
+                    <goals>
+                      <goal>copy-dependencies</goal>
+                    </goals>
+                  </pluginExecutionFilter>
+                  <action>
+                    <ignore />
+                  </action>
+                </pluginExecution>
+              </pluginExecutions>
+            </lifecycleMappingMetadata>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
   </build>
   <developers>
     <developer>
@@ -108,6 +136,19 @@
     <license>
       <name>GNU Affero General Public License, Version 3</name>
       <url>http://www.gnu.org/licenses/agpl-3.0-standalone.html</url>
+      <comments>The software ("Software") developed and owned by Network Engine for
+Objects in Lund AB (referred to in this notice as "Neo Technology") is
+licensed under the GNU AFFERO GENERAL PUBLIC LICENSE Version 3 to all
+third parties and that license is included below.
+
+However, if you have executed an End User Software License and Services
+Agreement or an OEM Software License and Support Services Agreement, or
+another commercial license agreement with Neo Technology or one of its
+affiliates (each, a "Commercial Agreement"), the terms of the license in
+such Commercial Agreement will supersede the GNU AFFERO GENERAL PUBLIC
+LICENSE Version 3 and you may use the Software solely pursuant to the
+terms of the relevant Commercial Agreement.
+      </comments>
     </license>
   </licenses>
   <dependencies>
@@ -123,6 +164,7 @@
       <version>${neo4j.version}</version>
       <scope>provided</scope>
     </dependency>
+
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
@@ -164,7 +206,6 @@
     <dependency>
       <groupId>log4j</groupId>
       <artifactId>log4j</artifactId>
-      <version>1.2.14</version>
       <type>jar</type>
       <scope>provided</scope>
     </dependency>
@@ -172,6 +213,12 @@
       <groupId>com.googlecode.json-simple</groupId>
       <artifactId>json-simple</artifactId>
       <version>1.1</version>
+      <type>jar</type>
+    </dependency>
+    <dependency>
+      <groupId>com.tinkerpop</groupId>
+      <artifactId>pipes</artifactId>
+      <version>0.8-SNAPSHOT</version>
       <type>jar</type>
     </dependency>
   </dependencies>
@@ -182,12 +229,37 @@
       <url>http://download.osgeo.org/webdav/geotools/</url>
     </repository>
     <repository>
-      <id>neo4j-public-repository</id>
-      <name>Publically available Maven 2 repository for Neo4j</name>
-      <url>http://m2.neo4j.org</url>
+      <id>neo4j-snapshot-repository</id>
+      <name>Maven 2 snapshot repository for Neo4j</name>
+      <url>http://m2.neo4j.org/snapshots</url>
       <snapshots>
         <enabled>true</enabled>
       </snapshots>
+      <releases>
+        <enabled>false</enabled>
+      </releases>
+    </repository>
+    <repository>
+      <id>neo4j-release-repository</id>
+      <name>Maven 2 release repository for Neo4j</name>
+      <url>http://m2.neo4j.org/releases</url>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
+    </repository>
+    <repository>
+      <id>tinkerpop-snapshot-repository</id>
+      <name>Tinkerpop snapshot repo</name>
+      <url>http://tinkerpop.com/maven2</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+      <releases>
+        <enabled>true</enabled>
+      </releases>
     </repository>
   </repositories>
   <profiles>
@@ -252,12 +324,14 @@
           <plugin>
             <groupId>cuke4duke</groupId>
             <artifactId>cuke4duke-maven-plugin</artifactId>
-            <version>${cuke4duke.version}</version>
             <configuration>
               <jvmArgs>
                 <jvmArg>-Dcuke4duke.objectFactory=cuke4duke.internal.jvmclass.PicoFactory</jvmArg>
-                <jvmArg>-Dneo4j.version=${neo4j.version}</jvmArg>
-                <jvmArg>-Dneo4j.home=${neo4j.home}</jvmArg>
+                <jvmArg>-DNEO4J_VERSION=1.5-SNAPSHOT</jvmArg>
+                <jvmArg>-DNEO4J_HOME=neo4j_home</jvmArg>
+                <jvmArg>-DNEO4J_PRODUCT=community</jvmArg>
+                <jvmArg>-DDOWNLOAD_LOCATION=http://builder.neo4j.org/guestAuth/repository/download/bt65/.lastSuccessful/standalone/neo4j-community-1.5-SNAPSHOT-unix.tar.gz</jvmArg>
+                <jvmArg>-DDOWNLOAD_PLUGIN_LOCATION=file:${project.dir}/target/neo4j-spatial-0.6-SNAPSHOT-server-plugin.zip</jvmArg>
               </jvmArgs>
               <!-- You may not need all of these arguments in your own project. We have a lot here for testing purposes... -->
               <cucumberArgs>
@@ -272,6 +346,7 @@
               </cucumberArgs>
               <gems>
                 <gem>install cuke4duke --version ${cuke4duke.version}</gem>
+                <gem>install fileutils</gem>
               </gems>
             </configuration>
             <executions>
@@ -290,7 +365,6 @@
         <dependency>
           <groupId>cuke4duke</groupId>
           <artifactId>cuke4duke</artifactId>
-          <version>${cuke4duke.version}</version>
           <scope>test</scope>
         </dependency>
         <dependency>
@@ -302,7 +376,6 @@
         <dependency>
           <groupId>org.picocontainer</groupId>
           <artifactId>picocontainer</artifactId>
-          <version>2.11.2</version>
         </dependency>
       </dependencies>
       <repositories>
@@ -349,3 +422,4 @@
     </site>
   </distributionManagement>
 </project>
+
