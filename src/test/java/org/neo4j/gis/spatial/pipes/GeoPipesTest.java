@@ -21,14 +21,11 @@ package org.neo4j.gis.spatial.pipes;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.List;
-
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.Search;
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.query.SearchAll;
@@ -43,18 +40,12 @@ public class GeoPipesTest implements GraphHolder
     private static Layer layer = null;
     public final static String LAYER_NAME = "two-street.osm";
     public final static int COMMIT_INTERVAL = 100;
-    Search select = new SearchAll();
-    List<SpatialDatabaseRecord> results = select.getResults();
 
     @Test
     public void testFluent()
     {
-        assertEquals( 2, results.size() );
-        FluentGeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> pipeline = new FluentGeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>(layer);
-        assertEquals( 2, pipeline.start( results ).count() );
-        //start again
-        pipeline.setStarts( select.getResults() );
-        assertEquals( 2, pipeline.all().count() );
+        assertEquals( 2, layer.filter().all().count() );
+        assertEquals( 24, layer.filter().all().process().countPoints() );
     }
 
     @Before
@@ -71,7 +62,6 @@ public class GeoPipesTest implements GraphHolder
         {
             e.printStackTrace();
         }
-        layer.getIndex().executeSearch( select );
     }
 
     public static void loadTestOsmData( String layerName, int commitInterval )

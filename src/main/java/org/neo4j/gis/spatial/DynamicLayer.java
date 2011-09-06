@@ -36,6 +36,8 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.gis.spatial.geotools.data.Neo4jFeatureBuilder;
+import org.neo4j.gis.spatial.pipes.GeoFilteringPipeline;
+import org.neo4j.gis.spatial.pipes.GeoProcessingPipeline;
 import org.opengis.filter.Filter;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.feature.simple.SimpleFeature;
@@ -487,6 +489,18 @@ public class DynamicLayer extends EditableLayerImpl {
 		public String toString() {
 			return getName();
 		}
+
+        @Override
+        public GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> filter()
+        {
+            return new GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>(this);
+        }
+
+        @Override
+        public GeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> process()
+        {
+            return new GeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>(this);
+        }
 	}
 
 	private synchronized Map<String, Layer> getLayerMap() {

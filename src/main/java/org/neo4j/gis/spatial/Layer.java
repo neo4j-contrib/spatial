@@ -19,6 +19,8 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.neo4j.gis.spatial.pipes.GeoFilteringPipeline;
+import org.neo4j.gis.spatial.pipes.GeoProcessing;
 import org.neo4j.graphdb.Node;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
@@ -35,7 +37,7 @@ import com.vividsolutions.jts.geom.GeometryFactory;
  * @author Davide Savazzi
  * @author Craig Taverner
  */
-public interface Layer {
+public interface Layer extends GeoProcessing {
 
     /**
      * The layer is constructed from metadata in the layer node, which requires that the layer have
@@ -150,5 +152,7 @@ public interface Layer {
 	 * @return Style, String, File or null
 	 */
 	Object getStyle();
+
+    GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> filter();
 
 }

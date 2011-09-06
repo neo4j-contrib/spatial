@@ -19,24 +19,32 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
+import java.util.Iterator;
+
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 
 import com.tinkerpop.pipes.util.FluentPipeline;
+import com.tinkerpop.pipes.util.PipeHelper;
 
-public class FluentGeoProcessingPipeline<S, E> extends FluentPipeline<S, E>
+public class GeoProcessingPipeline<S, E> extends FluentPipeline<S, E>
 {
 
     private final Layer layer;
 
-    public FluentGeoProcessingPipeline( Layer layer )
+    public GeoProcessingPipeline( Layer layer )
     {
         this.layer = layer;
     }
 
-    public FluentPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> all()
+    public FluentPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> toPoints()
     {
-        return this.add(new SearchAllPipe(layer));
+        return this.add(new ToPointsPipe(layer));
+    }
+    
+    public long countPoints()
+    {
+        return GeoPipeHelper.counter( (Iterator<SpatialDatabaseRecord>) this );
     }
 
 }
