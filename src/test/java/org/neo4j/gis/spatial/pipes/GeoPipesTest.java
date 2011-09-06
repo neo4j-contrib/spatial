@@ -21,14 +21,11 @@ package org.neo4j.gis.spatial.pipes;
 
 import static org.junit.Assert.assertEquals;
 
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.Search;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.osm.OSMImporter;
-import org.neo4j.gis.spatial.query.SearchAll;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.test.GraphHolder;
 import org.neo4j.test.ImpermanentGraphDatabase;
@@ -42,14 +39,17 @@ public class GeoPipesTest implements GraphHolder
     public final static int COMMIT_INTERVAL = 100;
 
     @Test
-    public void testFluent()
+    public void count_all_geometries_in_a_layer()
     {
         assertEquals( 2, layer.filter().all().count() );
+    }
+    @Test
+    public void count_number_of_points_in_all_geometries_in_a_layer()
+    {
         assertEquals( 24, layer.filter().all().process().countPoints() );
     }
 
-    @Before
-    public void load( ) throws Exception
+    public static void load( ) throws Exception
     {
         try
         {
@@ -80,6 +80,7 @@ public class GeoPipesTest implements GraphHolder
     public static void setUp() throws Exception
     {
         graphdb = new ImpermanentGraphDatabase();
+        load();
     }
     @Override
     public GraphDatabaseService graphdb()
