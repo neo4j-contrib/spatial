@@ -21,6 +21,8 @@ package org.neo4j.gis.spatial.pipes;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.HashMap;
+
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.neo4j.gis.spatial.Layer;
@@ -29,6 +31,8 @@ import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.test.GraphHolder;
 import org.neo4j.test.ImpermanentGraphDatabase;
+
+import com.tinkerpop.pipes.filter.FilterPipe.Filter;
 
 public class GeoPipesTest implements GraphHolder
 {
@@ -48,6 +52,19 @@ public class GeoPipesTest implements GraphHolder
     {
         assertEquals( 24, layer.filter().all().process().countPoints() );
     }
+    
+    @Test
+    public void break_up_all_geometries_into_points_and_count_them()
+    {
+        assertEquals( 24, layer.filter().all().process().toPoints().count() );
+    }
+    
+    @Test
+    public void count_all_ways_with_a_specific_name()
+    {
+		assertEquals( 1, layer.filter().all().attributes("name", "Storgatan", Filter.EQUAL).count() );
+    }
+
 
     public static void load( ) throws Exception
     {

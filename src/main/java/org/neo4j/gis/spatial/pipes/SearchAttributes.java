@@ -19,36 +19,34 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
-import java.util.Iterator;
+import java.util.HashMap;
 
-import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import org.neo4j.gis.spatial.AbstractSearch;
+import org.neo4j.graphdb.Node;
 
-import com.tinkerpop.pipes.util.FluentPipeline;
+import com.vividsolutions.jts.geom.Envelope;
 
-public class GeoProcessingPipeline<S, E> extends FluentPipeline<S, E>
-{
+public class SearchAttributes extends AbstractSearch {
+	
+	private HashMap<String, String> attributes;
+	
+	public SearchAttributes(HashMap<String, String> attributes) {
+		this.attributes = attributes;
+	}
 
-    private final Layer layer;
+	public boolean needsToVisit(Envelope indexNodeEnvelope) {
+		return true;
+	}
 
-    public GeoProcessingPipeline( Layer layer )
-    {
-        this.layer = layer;
-    }
-
-    public FluentPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> toPoints()
-    {
-        return this.add(new ToPointsPipe());
-    }
-    
-    public long countPoints()
-    {
-        return GeoPipeHelper.counter( (Iterator<SpatialDatabaseRecord>) this );
-    }
-    
-    public Layer getLayer() 
-    {
-    	return this.layer;
-    }
+	public void onIndexReference(Node geomNode) {
+		
+		for (String key : attributes.keySet()) {
+			if (geomNode.hasProperty(key)
+					&& geomNode.getProperty(key).equals(attributes.get(key))) {
+				add(geomNode);
+			}
+		}
+		
+	}
 
 }

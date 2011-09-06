@@ -19,36 +19,34 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
+import java.util.HashMap;
 import java.util.Iterator;
 
 import org.neo4j.gis.spatial.Layer;
+import org.neo4j.gis.spatial.Search;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 
-import com.tinkerpop.pipes.util.FluentPipeline;
+import com.tinkerpop.pipes.AbstractPipe;
 
-public class GeoProcessingPipeline<S, E> extends FluentPipeline<S, E>
-{
+public class FilterAttributes<S, E> extends
+		AbstractPipe<SpatialDatabaseRecord, SpatialDatabaseRecord> {
 
-    private final Layer layer;
+	private final Layer layer;
+	private Search search;
+	private Iterator<SpatialDatabaseRecord> results;
 
-    public GeoProcessingPipeline( Layer layer )
-    {
-        this.layer = layer;
-    }
+	public FilterAttributes(final Layer layer,
+			final HashMap<String, String> attributes) {
+		this.layer = layer;
+		this.search = new SearchAttributes(attributes);
+	}
 
-    public FluentPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> toPoints()
-    {
-        return this.add(new ToPointsPipe());
-    }
-    
-    public long countPoints()
-    {
-        return GeoPipeHelper.counter( (Iterator<SpatialDatabaseRecord>) this );
-    }
-    
-    public Layer getLayer() 
-    {
-    	return this.layer;
-    }
+	public SpatialDatabaseRecord processNextStart() {
+		if (this.results == null) {
+			layer.getIndex().executeSearch(search);
+			this.results = search.getResults().iterator();
+		}
+		return this.results.next();
+	}
 
 }

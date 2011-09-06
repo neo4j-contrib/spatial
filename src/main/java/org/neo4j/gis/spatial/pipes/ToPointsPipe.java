@@ -19,43 +19,31 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
-import java.util.Iterator;
-
-import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.Search;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
-import org.neo4j.gis.spatial.query.SearchAll;
 
 import com.tinkerpop.pipes.AbstractPipe;
-import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.Point;
 
 public class ToPointsPipe<S, E> extends
-        AbstractPipe<SpatialDatabaseRecord, SpatialDatabaseRecord>
-{
+		AbstractPipe<SpatialDatabaseRecord, Point> {
 
-    private final Layer layer;
-    private Search search;
-    private Iterator<SpatialDatabaseRecord> results;
+	private Geometry curGeometry;
+	private int curPos;
 
-    public ToPointsPipe( final Layer layer )
-    {
-        this.layer = layer;
-        this.search = new SearchAll();
-    }
+	public Point processNextStart() {
+		while (true) {
 
-    public SpatialDatabaseRecord processNextStart()
-    {
-        while (true) {
-            final SpatialDatabaseRecord record = this.starts.next();
-            Geometry geometry = record.getGeometry();
-            for(Coordinate coord : geometry.getCoordinates())
-            {
-                
-            }
-            
-            
-        }
-    }
+			if (curGeometry == null || curPos >= curGeometry.getNumPoints()) {
+				final SpatialDatabaseRecord record = this.starts.next();
+				curGeometry = record.getGeometry();
+				curPos = 0;
+			}
 
+			GeometryFactory geometryFactory = new GeometryFactory();
+			return geometryFactory.createPoint(curGeometry.getCoordinates()[curPos++]);
+		}
+
+	}
 }

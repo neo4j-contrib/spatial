@@ -19,15 +19,18 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
+import java.util.HashMap;
+
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 
+import com.tinkerpop.pipes.filter.FilterPipe;
 import com.tinkerpop.pipes.util.FluentPipeline;
 
 public class GeoFilteringPipeline<S, E> extends FluentPipeline<S, E>
 {
 
-    private final Layer layer;
+    protected final Layer layer;
 
     public GeoFilteringPipeline( Layer layer )
     {
@@ -37,6 +40,11 @@ public class GeoFilteringPipeline<S, E> extends FluentPipeline<S, E>
     public GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> all()
     {
         return (GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>) this.add(new SearchAllPipe(layer));
+    }
+    
+    public GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> attributes(String key, String value, FilterPipe.Filter Filter)
+    {
+        return (GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>) this.add(new FilterAttributes(null, null));
     }
     
     public GeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> process() {
