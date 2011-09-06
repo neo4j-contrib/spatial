@@ -19,24 +19,37 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
+import java.util.Iterator;
+
 import org.neo4j.gis.spatial.Layer;
+import org.neo4j.gis.spatial.Search;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import org.neo4j.gis.spatial.query.SearchAll;
 
-import com.tinkerpop.pipes.util.FluentPipeline;
+import com.tinkerpop.pipes.AbstractPipe;
 
-public class FluentGeoProcessingPipeline<S, E> extends FluentPipeline<S, E>
+public class SearchAllPipe<S, E> extends
+        AbstractPipe<SpatialDatabaseRecord, SpatialDatabaseRecord>
 {
 
     private final Layer layer;
+    private Search search;
+    private Iterator<SpatialDatabaseRecord> results;
 
-    public FluentGeoProcessingPipeline( Layer layer )
+    public SearchAllPipe( final Layer layer )
     {
         this.layer = layer;
+        this.search = new SearchAll();
     }
 
-    public FluentPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> all()
+    public SpatialDatabaseRecord processNextStart()
     {
-        return this.add(new SearchAllPipe(layer));
+        if ( this.results == null )
+        {
+            layer.getIndex().executeSearch( search );
+            this.results = search.getResults().iterator();
+        }
+        return results.next();
     }
 
 }

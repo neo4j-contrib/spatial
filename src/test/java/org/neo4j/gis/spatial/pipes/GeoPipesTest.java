@@ -50,11 +50,11 @@ public class GeoPipesTest implements GraphHolder
     public void testFluent()
     {
         assertEquals( 2, results.size() );
-        FluentGeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> pipeline = new FluentGeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>();
+        FluentGeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> pipeline = new FluentGeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>(layer);
         assertEquals( 2, pipeline.start( results ).count() );
         //start again
         pipeline.setStarts( select.getResults() );
-        assertEquals( 2, pipeline.count() );
+        assertEquals( 2, pipeline.all().count() );
     }
 
     @Before
