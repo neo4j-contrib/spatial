@@ -19,86 +19,15 @@
  */
 package org.neo4j.gis.spatial;
 
-import java.util.ArrayList;
 import java.util.List;
 
-import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.collections.rtree.Search;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Transaction;
-
-import com.vividsolutions.jts.geom.Geometry;
 
 
-/**
- * @author Davide Savazzi
- */
-public abstract class LayerSearch implements Search {
+public interface LayerSearch extends Search {
 	
-	// Constructor
+	void setLayer(Layer layer);
 	
-	public LayerSearch() {
-		this.results = new ArrayList<SpatialDatabaseRecord>();
-	}
+	List<SpatialDatabaseRecord> getExtendedResults();
 	
-	
-	// Public methods
-
-	public void setLayer(Layer layer) {
-		this.layer = layer;
-	}	
-	
-	public List<Node> getResults() {
-		List<Node> r = new ArrayList<Node>(results.size());
-		for (SpatialDatabaseRecord rec : results) {
-			r.add(rec.getGeomNode());
-		}
-		return r;
-	}
-	
-	public List<SpatialDatabaseRecord> getExtendedResults() {
-		return results;
-	}
-	
-	
-	// Private methods
-	
-	protected void add(Node geomNode) {
-		results.add(new SpatialDatabaseRecord(layer, geomNode));
-	}
-
-	protected void add(Node geomNode, Geometry geom) {
-		results.add(new SpatialDatabaseRecord(layer, geomNode, geom));
-	}
-	
-	protected void add(Node geomNode, Geometry geom, String property, Comparable<?> value) {
-		SpatialDatabaseRecord result = new SpatialDatabaseRecord(layer, geomNode, geom);
-		Transaction tx = geomNode.getGraphDatabase().beginTx();
-		try {
-			result.setProperty(property, value);
-			tx.success();
-		} finally {
-			tx.finish();
-		}
-		result.setUserData(value);
-		results.add(result);
-	}
-	
-	protected Envelope getEnvelope(Node geomNode) {
-		return layer.getGeometryEncoder().decodeEnvelope(geomNode);	
-	}
-
-	protected Geometry decode(Node geomNode) {
-		return layer.getGeometryEncoder().decodeGeometry(geomNode);
-	}
-	
-	protected void clearResults() {
-		this.results.clear();
-	}
-	
-	
-	// Attributes
-
-	private Layer layer;
-	private List<SpatialDatabaseRecord> results;
 }

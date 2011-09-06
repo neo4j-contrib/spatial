@@ -93,38 +93,52 @@ public class DynamicLayer extends EditableLayerImpl {
 			this.index = index;
 		}
 		
+		@Override
+		public Layer getLayer() {
+			return index.getLayer();
+		}
+		
+		@Override		
 		public EnvelopeDecoder getEnvelopeDecoder() {
 			return index.getEnvelopeDecoder();
 		}
 
+		@Override		
 		public int count() {
 			return index.count();
 		}
 
+		@Override		
 		public void executeSearch(Search search) {
 			index.executeSearch(search);
 		}
 
+		@Override		
 		public boolean isNodeIndexed(Long nodeId) {
 			return index.isNodeIndexed(nodeId);
 		}
 		
+		@Override		
 		public SpatialDatabaseRecord get(Long geomNodeId) {
 			return index.get(geomNodeId);
 		}
 
+		@Override		
 		public List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds) {
 			return index.get(geomNodeIds);
 		}
 		
+		@Override		
 		public Envelope getBoundingBox() {
 			return index.getBoundingBox();
 		}
 
+		@Override		
 		public boolean isEmpty() {
 			return index.isEmpty();
 		}
 
+		@Override		
 		public Iterable<Node> getAllIndexedNodes() {
 			return index.getAllIndexedNodes();
 		}
@@ -171,24 +185,65 @@ public class DynamicLayer extends EditableLayerImpl {
         }
 
         private class FilteredSearch implements Search {
+        	
             private Search delegate;
+            
             public FilteredSearch(Search delegate) {
                 this.delegate = delegate;
             }
 
+			@Override            
             public List<Node> getResults() {
                 return delegate.getResults();
             }
 
+			@Override            
             public boolean needsToVisit(Envelope indexNodeEnvelope) {
                 return delegate.needsToVisit(indexNodeEnvelope);
             }
 
+			@Override            
             public void onIndexReference(Node geomNode) {
                 if (queryLeafNode(geomNode)) {
                     delegate.onIndexReference(geomNode);
                 }
             }
+        }        
+        
+        private class FilteredLayerSearch implements LayerSearch {
+        	
+            private LayerSearch delegate;
+            
+            public FilteredLayerSearch(LayerSearch delegate) {
+                this.delegate = delegate;
+            }
+
+			@Override            
+            public List<Node> getResults() {
+                return delegate.getResults();
+            }
+
+			@Override            
+            public boolean needsToVisit(Envelope indexNodeEnvelope) {
+                return delegate.needsToVisit(indexNodeEnvelope);
+            }
+
+			@Override            
+            public void onIndexReference(Node geomNode) {
+                if (queryLeafNode(geomNode)) {
+                    delegate.onIndexReference(geomNode);
+                }
+            }
+
+			@Override
+			public void setLayer(Layer layer) {
+				delegate.setLayer(layer);
+			}
+
+			@Override
+			public List<SpatialDatabaseRecord> getExtendedResults() {
+				return delegate.getExtendedResults();
+			}
         }
 
         private boolean queryIndexNode(Envelope indexNodeEnvelope) {
@@ -209,7 +264,11 @@ public class DynamicLayer extends EditableLayerImpl {
 		}
 
 		public void executeSearch(final Search search) {
-			index.executeSearch(new FilteredSearch(search));
+			if (LayerSearch.class.isAssignableFrom(search.getClass())) {
+				index.executeSearch(new FilteredLayerSearch((LayerSearch) search));
+			} else {
+				index.executeSearch(new FilteredSearch(search));
+			}
 		}
     }
 
@@ -327,6 +386,10 @@ public class DynamicLayer extends EditableLayerImpl {
 		}
 
 		public void executeSearch(final Search search) {
+			if (LayerSearch.class.isAssignableFrom(LayerSearch.class)) {
+				((LayerSearch) search).setLayer(DynamicLayer.this);
+			}
+			
 			index.executeSearch(new Search() {
 
 				public List<Node> getResults() {

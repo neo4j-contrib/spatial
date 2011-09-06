@@ -19,12 +19,13 @@
  */
 package org.neo4j.gis.spatial.query;
 
-import org.neo4j.gis.spatial.LayerSearch;
+import org.neo4j.collections.rtree.Envelope;
+import org.neo4j.gis.spatial.AbstractLayerSearch;
 import org.neo4j.graphdb.Node;
 
 import com.vividsolutions.jts.geom.Coordinate;
-import org.neo4j.collections.rtree.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
+
 
 /**
  * This search assume Layer contains Points with Latitude / Longitude
@@ -33,7 +34,7 @@ import com.vividsolutions.jts.geom.Geometry;
  * 
  * @author Davide Savazzi
  */
-public class SearchPointsWithinOrthodromicDistance extends LayerSearch {
+public class SearchPointsWithinOrthodromicDistance extends AbstractLayerSearch {
 
 	public SearchPointsWithinOrthodromicDistance(Coordinate reference, double maxDistanceInKm, boolean saveDistanceOnGeometry) {
 		this.reference = reference;

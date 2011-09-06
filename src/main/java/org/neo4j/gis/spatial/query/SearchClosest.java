@@ -20,9 +20,9 @@
 package org.neo4j.gis.spatial.query;
 
 import org.neo4j.collections.rtree.Envelope;
+import org.neo4j.gis.spatial.AbstractLayerSearch;
 import org.neo4j.gis.spatial.EnvelopeUtils;
 import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.LayerSearch;
 import org.neo4j.gis.spatial.SpatialTopologyUtils;
 import org.neo4j.graphdb.Node;
 
@@ -43,7 +43,7 @@ import com.vividsolutions.jts.geom.Geometry;
  * @author Davide Savazzi
  * @author Craig Taverner
  */
-public class SearchClosest extends LayerSearch {
+public class SearchClosest extends AbstractLayerSearch {
 
 	/**
 	 * Search for geometries closest to the specified geometry. Since no search

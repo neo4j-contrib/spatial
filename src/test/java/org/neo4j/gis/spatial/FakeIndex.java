@@ -43,6 +43,10 @@ public class FakeIndex implements LayerIndexReader, Constants {
 	
 	// Public methods
 	
+	public Layer getLayer() {
+		return layer;
+	}
+	
 	public int count() {
 		int count = 0;
 		

@@ -128,7 +128,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         }
     }
 
-    private static class GuessGeometryTypeSearch extends LayerSearch {
+    private static class GuessGeometryTypeSearch extends AbstractLayerSearch {
 
         Integer firstFoundType;
             
@@ -243,7 +243,6 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         this.spatialDatabase = spatialDatabase;
         this.name = name;
         this.layerNode = layerNode;
-        this.index = new LayerRTreeIndex(spatialDatabase.getDatabase(), this);
         
         // TODO read Precision Model and SRID from layer properties and use them to construct GeometryFactory
         this.geometryFactory = new GeometryFactory();
@@ -264,6 +263,9 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
             this.geometryEncoder = new WKBGeometryEncoder();
         }
         this.geometryEncoder.init(this);
+        
+        // index must be created *after* geometryEncoder
+        this.index = new LayerRTreeIndex(spatialDatabase.getDatabase(), this);
     }
     
     /**

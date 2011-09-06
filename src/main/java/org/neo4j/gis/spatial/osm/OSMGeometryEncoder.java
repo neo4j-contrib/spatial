@@ -45,6 +45,7 @@ import com.vividsolutions.jts.geom.LinearRing;
 import com.vividsolutions.jts.geom.Polygon;
 
 public class OSMGeometryEncoder extends AbstractGeometryEncoder {
+	
     private static int decodedCount = 0;
     private static int overrunCount = 0;
     private static int nodeId = 0;

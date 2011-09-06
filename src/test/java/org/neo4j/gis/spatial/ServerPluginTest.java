@@ -24,6 +24,7 @@ import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.neo4j.collections.rtree.RTreeIndex;
 import org.neo4j.gis.spatial.query.SearchWithin;
 import org.neo4j.gis.spatial.server.plugin.SpatialPlugin;
 import org.neo4j.graphdb.Node;
@@ -70,6 +71,11 @@ public class ServerPluginTest extends Neo4jTestCase {
         tx2.success();
         tx2.finish();
         plugin.addSimplePointLayer( graphDb(), LAYER, LAT, LON );
+        
+		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+		Layer layer = spatialService.getLayer(LAYER);
+        debugIndexTree((RTreeIndex) layer.getIndex());
+        
         plugin.addNodeToLayer(graphDb(), point, LAYER);
         Iterable<Node> geometries = plugin.findGeometriesInLayer( graphDb(), 15.0, 15.3, 60.0, 60.2, LAYER );
         assertTrue( geometries.iterator().hasNext() );

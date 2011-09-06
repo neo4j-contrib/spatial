@@ -19,6 +19,8 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.neo4j.collections.rtree.RTreeIndex;
+
 
 /**
  * @author Davide Savazzi
@@ -37,17 +39,16 @@ public interface Constants {
 	
 	String PROP_TYPE = "gtype";
 	String PROP_QUERY = "query";
-	String PROP_BBOX = "bbox";
 	String PROP_WKB = "wkb";
 	String PROP_WKT = "wkt";
 	
 	String[] RESERVED_PROPS = new String[] { 
+			RTreeIndex.PROP_BBOX,
 			PROP_LAYER, 
 			PROP_LAYERNODEEXTRAPROPS, 
 			PROP_CRS, 
 			PROP_CREATIONTIME, 
 			PROP_TYPE, 
-			PROP_BBOX, 
 			PROP_WKB, 
 			PROP_WKT 
 	};

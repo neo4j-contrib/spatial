@@ -30,6 +30,8 @@ import org.neo4j.collections.rtree.SpatialIndexReader;
  */
 public interface LayerIndexReader extends SpatialIndexReader {
 
+	Layer getLayer();
+	
 	SpatialDatabaseRecord get(Long geomNodeId);
 	
 	List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds);

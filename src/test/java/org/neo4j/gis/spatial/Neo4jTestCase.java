@@ -304,12 +304,8 @@ public abstract class Neo4jTestCase extends TestCase {
     }
     
 	protected void debugIndexTree(RTreeIndex index) {
-		printTree(getIndexRoot(index.getIndexRoot()), 0);
+		printTree(index.getIndexRoot(), 0);
 	}
-
-	private Node getIndexRoot(Node rootNode) {
-		return rootNode.getSingleRelationship(RTreeRelationshipTypes.RTREE_ROOT, Direction.OUTGOING).getEndNode();
-	}	
 	
 	private static String arrayString(double[] test) {
 		StringBuffer sb = new StringBuffer();

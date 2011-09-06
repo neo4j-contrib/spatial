@@ -20,14 +20,14 @@
 package org.neo4j.gis.spatial.query;
 
 import org.neo4j.collections.rtree.Envelope;
-import org.neo4j.gis.spatial.LayerSearch;
+import org.neo4j.gis.spatial.AbstractLayerSearch;
 import org.neo4j.graphdb.Node;
 
 
 /**
  * @author Davide Savazzi
  */
-public class SearchAll extends LayerSearch {
+public class SearchAll extends AbstractLayerSearch {
 
 	public boolean needsToVisit(Envelope indexNodeEnvelope) {
 		return true;

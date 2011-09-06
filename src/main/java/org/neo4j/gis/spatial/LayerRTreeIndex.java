@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Set;
 
 import org.neo4j.collections.rtree.RTreeIndex;
+import org.neo4j.collections.rtree.Search;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 
@@ -42,7 +43,7 @@ public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader,
 	// Constructor
 	
 	public LayerRTreeIndex(GraphDatabaseService database, Layer layer) {
-		super(database, layer.getLayerNode(), layer.getGeometryEncoder());
+		this(database, layer, 100, 51);		
 	}
 	
 	public LayerRTreeIndex(GraphDatabaseService database, Layer layer, int maxNodeReferences, int minNodeReferences) {
@@ -54,6 +55,12 @@ public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader,
 	
 	// Public methods
 	
+	@Override
+	public Layer getLayer() {
+		return layer;
+	}
+	
+	@Override
 	public SpatialDatabaseRecord get(Long geomNodeId) {
 		Node geomNode = database.getNodeById(geomNodeId);			
 		// be sure geomNode is inside this RTree
@@ -62,6 +69,7 @@ public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader,
 		return new SpatialDatabaseRecord(layer,geomNode);
 	}
 	
+	@Override
 	public List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds) {
 		List<SpatialDatabaseRecord> results = new ArrayList<SpatialDatabaseRecord>();
 		for (Long geomNodeId : geomNodeIds) {
@@ -69,6 +77,15 @@ public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader,
 		}
 		return results;
 	}
+	
+	@Override
+	public void executeSearch(Search search) {
+		if (LayerSearch.class.isAssignableFrom(search.getClass())) {
+			((LayerSearch) search).setLayer(getLayer());
+		}
+		
+		super.executeSearch(search);
+	}	
 	
 	
 	// Attributes

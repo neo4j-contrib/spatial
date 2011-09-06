@@ -19,8 +19,8 @@
  */
 package org.neo4j.gis.spatial.query;
 
+import org.neo4j.gis.spatial.AbstractLayerSearch;
 import org.neo4j.gis.spatial.EnvelopeUtils;
-import org.neo4j.gis.spatial.LayerSearch;
 import org.neo4j.graphdb.Node;
 
 import com.vividsolutions.jts.geom.Geometry;
@@ -31,7 +31,7 @@ import com.vividsolutions.jts.operation.distance.DistanceOp;
 /**
  * @author Davide Savazzi
  */
-public class SearchWithinDistance extends LayerSearch {
+public class SearchWithinDistance extends AbstractLayerSearch {
 
 	public SearchWithinDistance(Point point, double distance) {
 		this.point = point;

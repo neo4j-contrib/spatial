@@ -42,12 +42,8 @@ public class SpatialIndexPerformanceProxy implements LayerIndexReader {
 
     // Public methods
 
-    public Envelope getLayerBoundingBox() {
-        long start = System.currentTimeMillis();
-        Envelope result = spatialIndex.getBoundingBox();
-        long stop = System.currentTimeMillis();
-        System.out.println("# exec time(getLayerBoundingBox): " + (stop - start) + "ms");
-        return result;
+    public Layer getLayer() {
+    	return spatialIndex.getLayer();
     }
 
     public boolean isEmpty() {

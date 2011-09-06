@@ -20,17 +20,17 @@
 package org.neo4j.gis.spatial.query;
 
 
-import org.neo4j.gis.spatial.LayerSearch;
+import org.neo4j.collections.rtree.Envelope;
+import org.neo4j.gis.spatial.AbstractLayerSearch;
 import org.neo4j.graphdb.Node;
 
-import org.neo4j.collections.rtree.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 
 
 /**
  * @author Davide Savazzi
  */
-public class SearchInvalid extends LayerSearch {
+public class SearchInvalid extends AbstractLayerSearch {
 	
 	public boolean needsToVisit(Envelope indexNodeEnvelope) {
 		return true;
