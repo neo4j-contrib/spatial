@@ -93,6 +93,26 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
         }
     }
     
+	public Iterable<Node> getAllUserNodes() {
+		return datasetNode.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH, new ReturnableEvaluator(){
+
+			public boolean isReturnableNode(TraversalPosition current) {
+				Relationship rel = current.lastRelationshipTraversed();
+				return rel != null && rel.isType(OSMRelation.OSM_USER);
+			}},
+				OSMRelation.USERS, Direction.OUTGOING, OSMRelation.OSM_USER, Direction.OUTGOING);
+	}
+
+	public Iterable<Node> getAllChangesetNodes() {
+		return datasetNode.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH, new ReturnableEvaluator(){
+
+			public boolean isReturnableNode(TraversalPosition current) {
+				Relationship rel = current.lastRelationshipTraversed();
+				return rel != null && rel.isType(OSMRelation.USER);
+			}},
+				OSMRelation.USERS, Direction.OUTGOING, OSMRelation.OSM_USER, Direction.OUTGOING, OSMRelation.USER, Direction.INCOMING);
+	}
+
 	public Iterable<Node> getAllWayNodes() {
 		return datasetNode.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH, ReturnableEvaluator.ALL_BUT_START_NODE,
 				OSMRelation.WAYS, Direction.OUTGOING, OSMRelation.NEXT, Direction.OUTGOING);
@@ -312,7 +332,27 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
 		throw new UnsupportedOperationException("Cannot modify way collection");
 	}
 
+	public int getPoiCount() {
+		return (Integer) this.datasetNode.getProperty("poiCount", 0);
+	}
+
+	public int getNodeCount() {
+		return (Integer) this.datasetNode.getProperty("nodeCount", 0);
+	}
+
 	public int getWayCount() {
 		return (Integer) this.datasetNode.getProperty("wayCount", 0);
+	}
+
+	public int getRelationCount() {
+		return (Integer) this.datasetNode.getProperty("relationCount", 0);
+	}
+
+	public int getChangesetCount() {
+		return (Integer) this.datasetNode.getProperty("changesetCount", 0);
+	}
+
+	public int getUserCount() {
+		return (Integer) this.datasetNode.getProperty("userCount", 0);
 	}
 }

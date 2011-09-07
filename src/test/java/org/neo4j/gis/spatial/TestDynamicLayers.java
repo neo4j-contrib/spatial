@@ -172,6 +172,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		int countMultiGeometryLayers = 0;
 		int countMultiGeometryExceptions = 0;
 		for (Layer layer : layers) {
+			osmLayer.restrictLayerProperties(layer.getName());
 			// for (Layer layer : new Layer[] {}) {
 			if (layer.getGeometryType() == GTYPE_GEOMETRY) {
 				countMultiGeometryLayers++;

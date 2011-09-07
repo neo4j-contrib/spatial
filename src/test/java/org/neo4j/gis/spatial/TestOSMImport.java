@@ -78,7 +78,7 @@ public class TestOSMImport extends Neo4jTestCase {
 		} else if (spatialTestMode != null && spatialTestMode.equals("dev")) {
 			// Tests relevant to current development
 			layersToTest.clear();
-			layersToTest.add("map2.osm");
+			layersToTest.add("/home/craig/Desktop/AWE/Data/MapData/baden-wurttemberg.osm/baden-wurttemberg.osm");
 //			layersToTest.add("cyprus.osm");
 //			layersToTest.add("croatia.osm");
 		}

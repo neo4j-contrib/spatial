@@ -40,11 +40,13 @@ import java.util.Map;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
+import org.apache.commons.collections.MapUtils;
 import org.geotools.referencing.datum.DefaultEllipsoid;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.Listener;
 import org.neo4j.gis.spatial.NullListener;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
+import org.neo4j.gis.spatial.osm.OSMDataset.OSMNode;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -222,33 +224,50 @@ public class OSMImporter implements Constants {
                 ReturnableEvaluator.ALL_BUT_START_NODE, OSMRelation.WAYS, Direction.OUTGOING, OSMRelation.NEXT,
                 Direction.OUTGOING);
         Transaction tx = database.beginTx();
+        boolean useWays = false;
         int count = 0;
-        try {
-            beginProgressMonitor(dataset.getWayCount());
-            layer.setExtraPropertyNames(stats.getTagStats("all").getTags());
-            for (Node way : traverser) {
-            	updateProgressMonitor(count);
-                incrLogContext();
-				stats.addGeomStats(layer.addWay(way, true));
-				if(includePoints) {
-					Node first = way.getSingleRelationship(OSMRelation.FIRST_NODE, Direction.OUTGOING).getEndNode();
-					for (Node proxy : first.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH, ReturnableEvaluator.ALL,
-							OSMRelation.NEXT, Direction.OUTGOING)) {
-						Node node = proxy.getSingleRelationship(OSMRelation.NODE, Direction.OUTGOING).getEndNode();
-						stats.addGeomStats(layer.addWay(node, true));
+		try {
+			layer.setExtraPropertyNames(stats.getTagStats("all").getTags());
+			if (useWays) {
+				beginProgressMonitor(dataset.getWayCount());
+				for (Node way : traverser) {
+					updateProgressMonitor(count);
+					incrLogContext();
+					stats.addGeomStats(layer.addWay(way, true));
+					if (includePoints) {
+						Node first = way.getSingleRelationship(OSMRelation.FIRST_NODE, Direction.OUTGOING).getEndNode();
+						for (Node proxy : first.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH, ReturnableEvaluator.ALL,
+								OSMRelation.NEXT, Direction.OUTGOING)) {
+							Node node = proxy.getSingleRelationship(OSMRelation.NODE, Direction.OUTGOING).getEndNode();
+							stats.addGeomStats(layer.addWay(node, true));
+						}
 					}
-				}
-                if (++count % commitInterval == 0) {
-                    tx.success();
-                    tx.finish();
-                    tx = database.beginTx();
-                }
-            } // TODO ask charset to user?
-            tx.success();
-        } finally {
-        	endProgressMonitor();
-            tx.finish();
-        }
+					if (++count % commitInterval == 0) {
+						tx.success();
+						tx.finish();
+						tx = database.beginTx();
+					}
+				} // TODO ask charset to user?
+			} else {
+				beginProgressMonitor(dataset.getChangesetCount());
+				for (Node changeset : dataset.getAllChangesetNodes()) {
+					updateProgressMonitor(count);
+					incrLogContext();
+					for (Relationship rel : changeset.getRelationships(OSMRelation.CHANGESET, Direction.INCOMING)) {
+						stats.addGeomStats(layer.addWay(rel.getStartNode(), true));
+					}
+					if (++count % commitInterval == 0) {
+						tx.success();
+						tx.finish();
+						tx = database.beginTx();
+					}
+				} // TODO ask charset to user?
+			}
+			tx.success();
+		} finally {
+			endProgressMonitor();
+			tx.finish();
+		}
 
         long stopTime = System.currentTimeMillis();
         log("info | Re-indexing elapsed time in seconds: " + (1.0 * (stopTime - startTime) / 1000.0));
@@ -455,7 +474,12 @@ public class OSMImporter implements Constants {
 	    protected T currentNode = null;
 	    protected T prev_way = null;
 	    protected T prev_relation = null;
+		protected int nodeCount = 0;
+		protected int poiCount = 0;
 		protected int wayCount = 0;
+		protected int relationCount = 0;
+		protected int userCount = 0;
+		protected int changesetCount = 0;
 
 	    /**
 	     * Add the BBox metadata to the dataset
@@ -479,6 +503,7 @@ public class OSMImporter implements Constants {
 			T changesetNode = getChangesetNode(nodeProps);
 			currentNode = addNode("node", nodeProps, "node_osm_id");
 			createRelationship(currentNode, changesetNode, OSMRelation.CHANGESET);
+			nodeCount++;
 			debugNodeWithId(currentNode, "node_osm_id", new long[] { 8090260, 273534207 });
 		}
 
@@ -491,6 +516,7 @@ public class OSMImporter implements Constants {
 			    double[] location = new double[] {(Double)nodeProps.get("lon"), (Double)nodeProps.get("lat")};
 			    bbox.expandToInclude(location[0], location[1]);
 				addNodeGeometry(currentNode, GTYPE_POINT, bbox, 1);
+				poiCount++;
 			}
 			addNodeTags(currentNode, currentNodeTags, "node");
 		}
@@ -596,7 +622,7 @@ public class OSMImporter implements Constants {
 				geometry = GTYPE_POINT;
 			}
 			addNodeGeometry(way, geometry, bbox, wayNodes.size());
-			this.wayCount  ++;
+			this.wayCount ++;
 		}
 
 		private void createOSMRelation(Map<String, Object> relationProperties,
@@ -669,6 +695,7 @@ public class OSMImporter implements Constants {
 			if (metaGeom.isValid()) {
 				addNodeGeometry(relation, metaGeom.getGeometryType(), metaGeom.getBBox(), metaGeom.getVertices());
 			}
+			this.relationCount ++;
 		}
 
 		/**
@@ -702,6 +729,7 @@ public class OSMImporter implements Constants {
 	    private Node currentChangesetNode;
 	    private long currentUserId = -1;
 	    private Node currentUserNode;
+		private Node usersNode;
 	    private HashMap<Long,Node> changesetNodes = new HashMap<Long,Node>();
 		private Transaction tx;
 		private int checkCount = 0;
@@ -902,7 +930,12 @@ public class OSMImporter implements Constants {
 
 		@Override
 		protected void finish() {
+			osm_dataset.setProperty("relationCount", (Integer) osm_dataset.getProperty("relationCount", 0) + relationCount);
 			osm_dataset.setProperty("wayCount", (Integer) osm_dataset.getProperty("wayCount", 0) + wayCount);
+			osm_dataset.setProperty("nodeCount", (Integer) osm_dataset.getProperty("nodeCount", 0) + nodeCount);
+			osm_dataset.setProperty("poiCount", (Integer) osm_dataset.getProperty("poiCount", 0) + poiCount);
+			osm_dataset.setProperty("changesetCount", (Integer) osm_dataset.getProperty("changesetCount", 0) + changesetCount);
+			osm_dataset.setProperty("userCount", (Integer) osm_dataset.getProperty("userCount", 0) + userCount);
 			successTx();
 		}
 
@@ -914,6 +947,7 @@ public class OSMImporter implements Constants {
 		@Override
 		protected Node getChangesetNode(Map<String, Object> nodeProps) {
 			long changeset = Long.parseLong(nodeProps.remove(INDEX_NAME_CHANGESET).toString());
+			getUserNode(nodeProps);
 			if (changeset != currentChangesetId) {
 				currentChangesetId = changeset;
 				IndexHits<Node> result = indexFor(INDEX_NAME_CHANGESET).get(INDEX_NAME_CHANGESET, currentChangesetId);
@@ -923,6 +957,10 @@ public class OSMImporter implements Constants {
 					LinkedHashMap<String, Object> changesetProps = new LinkedHashMap<String, Object>();
 					changesetProps.put(INDEX_NAME_CHANGESET, currentChangesetId);
 					currentChangesetNode = (Node) addNode(INDEX_NAME_CHANGESET, changesetProps, INDEX_NAME_CHANGESET);
+					changesetCount ++;
+					if (currentUserNode != null) {
+						createRelationship(currentChangesetNode, currentUserNode, OSMRelation.USER);
+					}
 				}
 				result.close();
 			}
@@ -944,9 +982,15 @@ public class OSMImporter implements Constants {
 						userProps.put("uid", currentUserId);
 						userProps.put("name", name);
 						currentUserNode = (Node) addNode(INDEX_NAME_USER, userProps, "uid");
+						userCount ++;
 						if (currentChangesetNode != null) {
 							currentChangesetNode.createRelationshipTo(currentUserNode, OSMRelation.USER);
 						}
+						if (usersNode == null) {
+							usersNode = graphDb.createNode();
+							osm_dataset.createRelationshipTo(usersNode, OSMRelation.USERS);
+						}
+						usersNode.createRelationshipTo(currentUserNode, OSMRelation.OSM_USER);
 					}
 					result.close();
 				}
@@ -956,6 +1000,10 @@ public class OSMImporter implements Constants {
 				logMissingUser(nodeProps);
 			}
 			return currentUserNode;
+		}
+
+		public String toString() {
+			return "OSMGraphWriter: DatabaseService["+graphDb+"]:txInterval["+this.txInterval+"]";
 		}
 
     }
@@ -969,6 +1017,7 @@ public class OSMImporter implements Constants {
 	    private long currentChangesetNode = -1;
 	    private long currentUserId = -1;
 	    private long currentUserNode = -1;
+		private long usersNode = -1;
 	    private HashMap<Long,Long> changesetNodes = new HashMap<Long,Long>();
 
 		private OSMBatchWriter(BatchInserter batchGraphDb, StatsManager statsManager, OSMImporter osmImporter) {
@@ -1022,7 +1071,7 @@ public class OSMImporter implements Constants {
 	    }
 
 		public String toString() {
-			return "BatchInserter["+batchInserter.toString()+"]:IndexService["+batchIndexService.toString()+"]";
+			return "OSMBatchWriter: BatchInserter["+batchInserter.toString()+"]:IndexService["+batchIndexService.toString()+"]";
 		}
 
 		@Override
@@ -1168,13 +1217,20 @@ public class OSMImporter implements Constants {
 		@Override
 		protected void finish() {
 			HashMap<String, Object> dsProps = new HashMap<String, Object>(batchInserter.getNodeProperties(osm_dataset));
-			Integer ways = (Integer) dsProps.get("wayCount");
-			if (ways == null)
-				ways = 0;
-			dsProps.put("wayCount", ways + wayCount);
+			updateDSCounts(dsProps, "relationCount", relationCount);
+			updateDSCounts(dsProps, "wayCount", wayCount);
+			updateDSCounts(dsProps, "nodeCount", nodeCount);
+			updateDSCounts(dsProps, "poiCount", poiCount);
+			updateDSCounts(dsProps, "changesetCount", changesetCount);
+			updateDSCounts(dsProps, "userCount", userCount);
 			setDatasetProperties(dsProps);
 			batchIndexService.shutdown();
 			batchIndexService = null;
+		}
+
+		private void updateDSCounts(HashMap<String, Object> dsProps, String name, int count) {
+			Integer current = (Integer) dsProps.get(name);
+			dsProps.put(name, (current == null ? 0 : current) + count);
 		}
 
 		@Override
@@ -1222,6 +1278,11 @@ public class OSMImporter implements Constants {
 						userProps.put("name", name);
 						currentUserNode = (Long) addNode("user", userProps, "uid");
 						indexFor(INDEX_NAME_USER).flush();
+						if (usersNode < 0) {
+							usersNode = batchInserter.createNode(MapUtils.EMPTY_MAP);
+							createRelationship(osm_dataset, usersNode, OSMRelation.USERS);
+						}
+						createRelationship(usersNode, currentUserNode, OSMRelation.OSM_USER);
 					}
 					results.close();
 				}
@@ -1566,7 +1627,7 @@ public class OSMImporter implements Constants {
 			OSMImportManager importer = new OSMImportManager(args[0]);
 			for (int i = 1; i < args.length; i++) {
 				try {
-					importer.loadTestOsmData(args[i], 1000);
+					importer.loadTestOsmData(args[i], 5000);
 				} catch (Exception e) {
 					System.err.println("Error importing OSM file '" + args[i] + "': " + e);
 					e.printStackTrace();
@@ -1581,6 +1642,7 @@ public class OSMImporter implements Constants {
 		private GraphDatabaseService graphDb;
 		private BatchInserter batchInserter;
 		private File dbPath;
+		private boolean useBatchInserter = false;
 
 		public OSMImportManager(String path) {
 			setDbPath(path);
@@ -1601,11 +1663,18 @@ public class OSMImporter implements Constants {
 			String osmPath = layerName;
 			System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
 			long start = System.currentTimeMillis();
-			switchToBatchInserter();
-			OSMImporter importer = new OSMImporter(layerName);
-			importer.importFile(batchInserter, osmPath);
-			switchToEmbeddedGraphDatabase();
-			importer.reIndex(graphDb, commitInterval);
+			if (useBatchInserter) {
+				switchToBatchInserter();
+				OSMImporter importer = new OSMImporter(layerName);
+				importer.importFile(batchInserter, osmPath);
+				switchToEmbeddedGraphDatabase();
+				importer.reIndex(graphDb, commitInterval);
+			} else {
+				switchToEmbeddedGraphDatabase();
+				OSMImporter importer = new OSMImporter(layerName);
+				importer.importFile(graphDb, osmPath, false, commitInterval);
+				importer.reIndex(graphDb, commitInterval);
+			}
 			shutdown();
 			System.out.println("=== Completed loading " + layerName + " in " + (System.currentTimeMillis() - start) / 1000.0 + " seconds ===");
 		}

@@ -31,8 +31,8 @@ import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.SpatialDataset;
 import org.neo4j.gis.spatial.pipes.GeoFilteringPipeline;
-import org.neo4j.gis.spatial.pipes.osm.OSMGeoFilteringPipeline;
-import org.neo4j.gis.spatial.pipes.osm.OSMGeoProcessingPipeline;
+//import org.neo4j.gis.spatial.pipes.osm.OSMGeoFilteringPipeline;
+//import org.neo4j.gis.spatial.pipes.osm.OSMGeoProcessingPipeline;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
@@ -282,17 +282,18 @@ public class OSMLayer extends DynamicLayer {
 	public File getStyle() {
 		return new File("dev/neo4j/neo4j-spatial/src/main/resources/sld/osm/osm.sld");
 	}
-	
-    @Override
-    public GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> filter()
-    {
-        return new OSMGeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>(this);
-    }
 
-    @Override
-    public OSMGeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> process()
-    {
-        return new OSMGeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>(this);
-    }
+//	@TODO: Uncomment these when missing imports are fixed
+//    @Override
+//    public GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> filter()
+//    {
+//        return new OSMGeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>(this);
+//    }
+//
+//    @Override
+//    public OSMGeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> process()
+//    {
+//        return new OSMGeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>(this);
+//    }
 
 }
