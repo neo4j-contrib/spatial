@@ -19,7 +19,6 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
-import java.util.HashMap;
 import java.util.Iterator;
 
 import org.neo4j.gis.spatial.Layer;
@@ -27,6 +26,7 @@ import org.neo4j.gis.spatial.Search;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 
 import com.tinkerpop.pipes.AbstractPipe;
+import com.tinkerpop.pipes.filter.FilterPipe.Filter;
 
 public class FilterAttributes<S, E> extends
 		AbstractPipe<SpatialDatabaseRecord, SpatialDatabaseRecord> {
@@ -35,10 +35,11 @@ public class FilterAttributes<S, E> extends
 	private Search search;
 	private Iterator<SpatialDatabaseRecord> results;
 
-	public FilterAttributes(final Layer layer,
-			final HashMap<String, String> attributes) {
+
+	public FilterAttributes(final Layer layer, String key, String value,
+			Filter filter) {
 		this.layer = layer;
-		this.search = new SearchAttributes(attributes);
+		this.search = new SearchAttributes(key, value, filter);
 	}
 
 	public SpatialDatabaseRecord processNextStart() {

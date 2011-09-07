@@ -19,19 +19,23 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
-import java.util.HashMap;
-
 import org.neo4j.gis.spatial.AbstractSearch;
 import org.neo4j.graphdb.Node;
 
+import com.tinkerpop.pipes.filter.FilterPipe;
+import com.tinkerpop.pipes.util.PipeHelper;
 import com.vividsolutions.jts.geom.Envelope;
 
 public class SearchAttributes extends AbstractSearch {
 	
-	private HashMap<String, String> attributes;
-	
-	public SearchAttributes(HashMap<String, String> attributes) {
-		this.attributes = attributes;
+	private String key;
+	private String value;
+	private FilterPipe.Filter filter;
+
+	public SearchAttributes(String key, String value, FilterPipe.Filter filter) {
+		this.key = key;
+		this.value = value;
+		this.filter = filter;
 	}
 
 	public boolean needsToVisit(Envelope indexNodeEnvelope) {
@@ -39,12 +43,11 @@ public class SearchAttributes extends AbstractSearch {
 	}
 
 	public void onIndexReference(Node geomNode) {
+
 		
-		for (String key : attributes.keySet()) {
-			if (geomNode.hasProperty(key)
-					&& geomNode.getProperty(key).equals(attributes.get(key))) {
-				add(geomNode);
-			}
+		if (geomNode.hasProperty(key)
+				&& PipeHelper.compareObjects(filter, geomNode.getProperty(key), value)) {
+			add(geomNode);
 		}
 		
 	}

@@ -19,8 +19,6 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
-import java.util.HashMap;
-
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 
@@ -42,9 +40,9 @@ public class GeoFilteringPipeline<S, E> extends FluentPipeline<S, E>
         return (GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>) this.add(new SearchAllPipe(layer));
     }
     
-    public GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> attributes(String key, String value, FilterPipe.Filter Filter)
+    public GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> attributes(String key, String value, FilterPipe.Filter filter)
     {
-        return (GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>) this.add(new FilterAttributes(null, null));
+        return (GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>) this.add(new FilterAttributes(layer, key, value, filter));
     }
     
     public GeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> process() {
