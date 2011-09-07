@@ -101,6 +101,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
 	public void testSnapping() throws Exception {
 		if (true)
 			return;
+		
 		printDatabaseStats();
 		String osm = "map.osm";
 		loadTestOsmData(osm, 1000);

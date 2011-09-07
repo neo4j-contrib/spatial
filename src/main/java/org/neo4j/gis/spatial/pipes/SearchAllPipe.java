@@ -22,7 +22,7 @@ package org.neo4j.gis.spatial.pipes;
 import java.util.Iterator;
 
 import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.Search;
+import org.neo4j.gis.spatial.LayerSearch;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.query.SearchAll;
 
@@ -33,7 +33,7 @@ public class SearchAllPipe<S, E> extends
 {
 
     private final Layer layer;
-    private Search search;
+    private LayerSearch search;
     private Iterator<SpatialDatabaseRecord> results;
 
     public SearchAllPipe( final Layer layer )
@@ -47,7 +47,7 @@ public class SearchAllPipe<S, E> extends
         if ( this.results == null )
         {
             layer.getIndex().executeSearch( search );
-            this.results = search.getResults().iterator();
+            this.results = search.getExtendedResults().iterator();
         }
         return results.next();
     }

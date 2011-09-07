@@ -26,13 +26,14 @@ import java.util.List;
 import org.neo4j.gis.spatial.query.SearchPointsWithinOrthodromicDistance;
 
 import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Envelope;
+import org.neo4j.collections.rtree.Envelope;
 
 public class SimplePointLayer extends EditableLayerImpl {
 	public static final int LIMIT_RESULTS = 100;
 
 	public List<SpatialDatabaseRecord> findClosestPointsTo(Coordinate point) {
-		Envelope extent = SpatialTopologyUtils.createEnvelopeForGeometryDensityEstimate(this, point, LIMIT_RESULTS);
+		Envelope extent = EnvelopeUtils.fromJtsToNeo4j(
+				SpatialTopologyUtils.createEnvelopeForGeometryDensityEstimate(this, point, LIMIT_RESULTS));
 		SearchPointsWithinOrthodromicDistance distanceQuery = new SearchPointsWithinOrthodromicDistance(point, extent, true);
 		return findClosestPoints(distanceQuery);
 	}
@@ -44,9 +45,8 @@ public class SimplePointLayer extends EditableLayerImpl {
 
 	private List<SpatialDatabaseRecord> findClosestPoints(SearchPointsWithinOrthodromicDistance distanceQuery) {
 		getIndex().executeSearch(distanceQuery);
-		List<SpatialDatabaseRecord> results = distanceQuery.getResults();
-		Collections.sort(results, new Comparator<SpatialDatabaseRecord>(){
-
+		List<SpatialDatabaseRecord> results = distanceQuery.getExtendedResults();
+		Collections.sort(results, new Comparator<SpatialDatabaseRecord>() {
 			public int compare(SpatialDatabaseRecord arg0, SpatialDatabaseRecord arg1) {
 				return ((Double) arg0.getUserData()).compareTo((Double) arg1.getUserData());
 			}

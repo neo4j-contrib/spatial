@@ -22,7 +22,7 @@ package org.neo4j.gis.spatial.pipes;
 import java.util.Iterator;
 
 import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.Search;
+import org.neo4j.gis.spatial.LayerSearch;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 
 import com.tinkerpop.pipes.AbstractPipe;
@@ -32,7 +32,7 @@ public class FilterAttributes<S, E> extends
 		AbstractPipe<SpatialDatabaseRecord, SpatialDatabaseRecord> {
 
 	private final Layer layer;
-	private Search search;
+	private LayerSearch search;
 	private Iterator<SpatialDatabaseRecord> results;
 
 
@@ -45,7 +45,7 @@ public class FilterAttributes<S, E> extends
 	public SpatialDatabaseRecord processNextStart() {
 		if (this.results == null) {
 			layer.getIndex().executeSearch(search);
-			this.results = search.getResults().iterator();
+			this.results = search.getExtendedResults().iterator();
 		}
 		return this.results.next();
 	}

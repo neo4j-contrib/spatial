@@ -57,6 +57,7 @@ public class SimplePointEncoder extends AbstractGeometryEncoder implements
         container.setProperty( yProperty, coords[0].y );
     }
 
+    @Override
     public Geometry decodeGeometry( PropertyContainer container )
     {
         double x = ( (Number) container.getProperty( xProperty ) ).doubleValue();
@@ -64,12 +65,14 @@ public class SimplePointEncoder extends AbstractGeometryEncoder implements
         Coordinate coordinate = new Coordinate( x, y );
         return getGeometryFactory().createPoint( coordinate );
     }
-
+    
+    @Override
     public String getConfiguration()
     {
         return xProperty + ":" + yProperty;
     }
 
+    @Override    
     public void setConfiguration( String configuration )
     {
         if ( configuration != null )

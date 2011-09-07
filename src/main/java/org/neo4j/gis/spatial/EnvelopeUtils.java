@@ -19,27 +19,25 @@
  */
 package org.neo4j.gis.spatial;
 
-/**
- * This listener ignores all notifications of progress. It is useful when progress is not necessary.
- * 
- * @author Davide Savazzi
- */
-public class NullListener implements Listener {
 
-    // Constructor
+public class EnvelopeUtils {
 
-    public NullListener() {
-    }
+	public static org.neo4j.collections.rtree.Envelope fromJtsToNeo4j(com.vividsolutions.jts.geom.Envelope envelope) {
+		return new org.neo4j.collections.rtree.Envelope(
+					envelope.getMinX(),
+					envelope.getMaxX(),
+					envelope.getMinY(),
+					envelope.getMaxY()
+				);
+	}
 
-    // Public methods
-
-    public void begin(int unitsOfWork) {
-    }
-
-    public void worked(int workedSinceLastNotification) {
-    }
-
-    public void done() {
-    }
+	public static com.vividsolutions.jts.geom.Envelope fromNeo4jToJts(org.neo4j.collections.rtree.Envelope envelope) {
+		return new com.vividsolutions.jts.geom.Envelope(
+					envelope.getMinX(),
+					envelope.getMaxX(),
+					envelope.getMinY(),
+					envelope.getMaxY()
+				);
+	}
 
 }

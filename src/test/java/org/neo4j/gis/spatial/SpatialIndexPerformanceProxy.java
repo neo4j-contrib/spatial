@@ -24,27 +24,26 @@ import java.util.Set;
 
 import org.neo4j.graphdb.Node;
 
-import com.vividsolutions.jts.geom.Envelope;
+import org.neo4j.collections.rtree.Envelope;
+import org.neo4j.collections.rtree.EnvelopeDecoder;
+import org.neo4j.collections.rtree.Search;
+
 
 /**
  * @author Davide Savazzi
  */
-public class SpatialIndexPerformanceProxy implements SpatialIndexReader {
+public class SpatialIndexPerformanceProxy implements LayerIndexReader {
 
     // Constructor
 
-    public SpatialIndexPerformanceProxy(SpatialIndexReader spatialIndex) {
+    public SpatialIndexPerformanceProxy(LayerIndexReader spatialIndex) {
         this.spatialIndex = spatialIndex;
     }
 
     // Public methods
 
-    public Envelope getLayerBoundingBox() {
-        long start = System.currentTimeMillis();
-        Envelope result = spatialIndex.getLayerBoundingBox();
-        long stop = System.currentTimeMillis();
-        System.out.println("# exec time(getLayerBoundingBox): " + (stop - start) + "ms");
-        return result;
+    public Layer getLayer() {
+    	return spatialIndex.getLayer();
     }
 
     public boolean isEmpty() {
@@ -87,11 +86,43 @@ public class SpatialIndexPerformanceProxy implements SpatialIndexReader {
     }
 
     public Iterable<Node> getAllGeometryNodes() {
-	    return spatialIndex.getAllGeometryNodes();
+	    return spatialIndex.getAllIndexedNodes();
     }
 
+	@Override
+	public EnvelopeDecoder getEnvelopeDecoder() {
+		return spatialIndex.getEnvelopeDecoder();
+	}
+
+	@Override
+	public Envelope getBoundingBox() {
+		long start = System.currentTimeMillis();
+		Envelope result = spatialIndex.getBoundingBox();
+        long stop = System.currentTimeMillis();
+        System.out.println("# exec time(getBoundingBox()): " + (stop - start) + "ms");		
+        return result;
+	}
+
+	@Override
+	public boolean isNodeIndexed(Long nodeId) {
+		long start = System.currentTimeMillis();
+		boolean result = spatialIndex.isNodeIndexed(nodeId);
+        long stop = System.currentTimeMillis();
+        System.out.println("# exec time(isNodeIndexed(" + nodeId + ")): " + (stop - start) + "ms");		
+        return result;		
+	}
+
+	@Override
+	public Iterable<Node> getAllIndexedNodes() {
+		long start = System.currentTimeMillis();
+		Iterable<Node> result = getAllIndexedNodes();
+        long stop = System.currentTimeMillis();
+        System.out.println("# exec time(getAllIndexedNodes()): " + (stop - start) + "ms");		
+        return result;
+	}
+    
+	
     // Attributes
 
-    private SpatialIndexReader spatialIndex;
-
+    private LayerIndexReader spatialIndex;
 }

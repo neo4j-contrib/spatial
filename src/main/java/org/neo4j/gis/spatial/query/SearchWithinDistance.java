@@ -19,10 +19,10 @@
  */
 package org.neo4j.gis.spatial.query;
 
-import org.neo4j.gis.spatial.AbstractSearch;
+import org.neo4j.gis.spatial.AbstractLayerSearch;
+import org.neo4j.gis.spatial.EnvelopeUtils;
 import org.neo4j.graphdb.Node;
 
-import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.operation.distance.DistanceOp;
@@ -31,17 +31,18 @@ import com.vividsolutions.jts.operation.distance.DistanceOp;
 /**
  * @author Davide Savazzi
  */
-public class SearchWithinDistance extends AbstractSearch {
+public class SearchWithinDistance extends AbstractLayerSearch {
 
 	public SearchWithinDistance(Point point, double distance) {
 		this.point = point;
 		this.distance = distance;
 		
-		bbox = point.getEnvelopeInternal();
-		bbox.expandBy(distance);
+		jtsBbox = point.getEnvelopeInternal();
+		jtsBbox.expandBy(distance);
+		bbox = EnvelopeUtils.fromJtsToNeo4j(jtsBbox);
 	}
 
-	public boolean needsToVisit(Envelope indexNodeEnvelope) {
+	public boolean needsToVisit(org.neo4j.collections.rtree.Envelope indexNodeEnvelope) {
 		return indexNodeEnvelope.intersects(bbox);
 	}
 	
@@ -56,5 +57,6 @@ public class SearchWithinDistance extends AbstractSearch {
 
 	private Point point;
 	private double distance;
-	private Envelope bbox;
+	private org.neo4j.collections.rtree.Envelope bbox;
+	private com.vividsolutions.jts.geom.Envelope jtsBbox;
 }

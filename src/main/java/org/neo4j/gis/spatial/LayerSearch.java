@@ -21,14 +21,13 @@ package org.neo4j.gis.spatial;
 
 import java.util.List;
 
+import org.neo4j.collections.rtree.Search;
 
-/**
- * @author Davide Savazzi
- */
-public interface Search extends SpatialIndexVisitor {
 
+public interface LayerSearch extends Search {
+	
 	void setLayer(Layer layer);
 	
-	List<SpatialDatabaseRecord> getResults();
+	List<SpatialDatabaseRecord> getExtendedResults();
 	
 }

@@ -25,7 +25,7 @@ import java.util.Map;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.neo4j.gis.spatial.EditableLayer;
-import org.neo4j.gis.spatial.Search;
+import org.neo4j.gis.spatial.LayerSearch;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.query.SearchPointsWithinOrthodromicDistance;
@@ -37,6 +37,7 @@ import org.neo4j.graphdb.index.IndexHits;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
+
 
 public class LayerNodeIndex implements Index<Node>
 {
@@ -125,7 +126,7 @@ public class LayerNodeIndex implements Index<Node>
                             new Envelope( bounds[0], bounds[1], bounds[2],
                                     bounds[3] ) ) );
             layer.getIndex().executeSearch( withinQuery );
-            List<SpatialDatabaseRecord> res = withinQuery.getResults();
+            List<SpatialDatabaseRecord> res = withinQuery.getExtendedResults();
             IndexHits<Node> results = new SpatialRecordHits( res );
             return results;
         }
@@ -134,10 +135,10 @@ public class LayerNodeIndex implements Index<Node>
             Map<?, ?> p = (Map<?, ?>) params;
             Double[] point = (Double[]) p.get( POINT_PARAMETER );
             Double distance = (Double) p.get( DISTANCE_IN_KM_PARAMETER );
-            Search withinDistanceQuery = new SearchPointsWithinOrthodromicDistance(
+            LayerSearch withinDistanceQuery = new SearchPointsWithinOrthodromicDistance(
                     new Coordinate( point[1], point[0] ), distance, true );
             layer.getIndex().executeSearch( withinDistanceQuery );
-            List<SpatialDatabaseRecord> res = withinDistanceQuery.getResults();
+            List<SpatialDatabaseRecord> res = withinDistanceQuery.getExtendedResults();
             IndexHits<Node> results = new SpatialRecordHits( res );
             return results;
         }
@@ -152,7 +153,7 @@ public class LayerNodeIndex implements Index<Node>
                                 new Envelope( coords.get( 0 ), coords.get( 1 ),
                                         coords.get( 2 ), coords.get( 3 ) ) ) );
                 layer.getIndex().executeSearch( withinQuery );
-                List<SpatialDatabaseRecord> res = withinQuery.getResults();
+                List<SpatialDatabaseRecord> res = withinQuery.getExtendedResults();
                 IndexHits<Node> results = new SpatialRecordHits( res );
                 return results;
             }
@@ -187,5 +188,11 @@ public class LayerNodeIndex implements Index<Node>
     public void remove( Node node )
     {
         layer.delete( node.getId() );
+    }
+
+    @Override
+    public boolean isWriteable()
+    {
+        return true;
     }
 }

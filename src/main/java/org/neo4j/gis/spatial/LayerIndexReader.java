@@ -22,26 +22,18 @@ package org.neo4j.gis.spatial;
 import java.util.List;
 import java.util.Set;
 
-import org.neo4j.graphdb.Node;
-import com.vividsolutions.jts.geom.Envelope;
+import org.neo4j.collections.rtree.SpatialIndexReader;
+
 
 /**
  * @author Davide Savazzi
  */
-public interface SpatialIndexReader {
+public interface LayerIndexReader extends SpatialIndexReader {
 
-	boolean isEmpty();	
+	Layer getLayer();
 	
-	Envelope getLayerBoundingBox();
-
-	int count();
-
 	SpatialDatabaseRecord get(Long geomNodeId);
 	
 	List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds);
 	
-	void executeSearch(Search search);
-
-    Iterable<Node> getAllGeometryNodes();
-
 }

@@ -23,8 +23,11 @@ import org.apache.commons.lang.ArrayUtils;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.PropertyContainer;
 
-import com.vividsolutions.jts.geom.Envelope;
+import org.neo4j.collections.rtree.Envelope;
+import org.neo4j.collections.rtree.RTreeIndex;
+
 import com.vividsolutions.jts.geom.Geometry;
+
 
 /**
  * @author Davide Savazzi
@@ -33,34 +36,39 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 
 	// Public methods
 
+	@Override	
 	public void init(Layer layer) {
 		this.layer = layer;
 	}
 
 	public void encodeEnvelope(Envelope mbb, PropertyContainer container) {
-		container.setProperty(PROP_BBOX, new double[] { mbb.getMinX(), mbb.getMinY(), mbb.getMaxX(), mbb.getMaxY() });
+		container.setProperty(RTreeIndex.PROP_BBOX, new double[] { mbb.getMinX(), mbb.getMinY(), mbb.getMaxX(), mbb.getMaxY() });
 	}
 
+	@Override	
 	public void encodeGeometry(Geometry geometry, PropertyContainer container) {
 		container.setProperty(PROP_TYPE, encodeGeometryType(geometry.getGeometryType()));
 
-		encodeEnvelope(geometry.getEnvelopeInternal(), container);
+		encodeEnvelope(EnvelopeUtils.fromJtsToNeo4j(geometry.getEnvelopeInternal()), container);
 
 		encodeGeometryShape(geometry, container);
 	}
 
+	@Override
 	public Envelope decodeEnvelope(PropertyContainer container) {
-	    double[] bbox = new double[]{0,0,0,0,};
-	    Object bboxProp = container.getProperty(PROP_BBOX);
+	    double[] bbox = new double[] { 0,0,0,0 };
+	    Object bboxProp = container.getProperty(RTreeIndex.PROP_BBOX);
 		if (bboxProp instanceof Double[]) {
-		    bbox = ArrayUtils.toPrimitive( (Double[])bboxProp);
+		    bbox = ArrayUtils.toPrimitive((Double[]) bboxProp);
 		} else if (bboxProp instanceof double[]) {
-	        bbox = (double[])bboxProp;
+	        bbox = (double[]) bboxProp;
 	    }
+		
 		// Envelope parameters: xmin, xmax, ymin, ymax
 		return new Envelope(bbox[0], bbox[2], bbox[1], bbox[3]);
 	}
 
+	
 	// Protected methods
 
 	protected abstract void encodeGeometryShape(Geometry geometry, PropertyContainer container);
@@ -117,6 +125,7 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 		return geomNode.getProperty(name, null);
 	}
 
+	
 	// Attributes
 
 	protected Layer layer;

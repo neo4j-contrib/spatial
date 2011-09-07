@@ -24,12 +24,14 @@ import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.neo4j.collections.rtree.RTreeIndex;
 import org.neo4j.gis.spatial.query.SearchWithin;
 import org.neo4j.gis.spatial.server.plugin.SpatialPlugin;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
 import com.vividsolutions.jts.geom.Envelope;
+
 
 public class ServerPluginTest extends Neo4jTestCase {
 
@@ -69,6 +71,11 @@ public class ServerPluginTest extends Neo4jTestCase {
         tx2.success();
         tx2.finish();
         plugin.addSimplePointLayer( graphDb(), LAYER, LAT, LON );
+        
+		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+		Layer layer = spatialService.getLayer(LAYER);
+        debugIndexTree((RTreeIndex) layer.getIndex());
+        
         plugin.addNodeToLayer(graphDb(), point, LAYER);
         Iterable<Node> geometries = plugin.findGeometriesInLayer( graphDb(), 15.0, 15.3, 60.0, 60.2, LAYER );
         assertTrue( geometries.iterator().hasNext() );
@@ -88,7 +95,7 @@ public class ServerPluginTest extends Neo4jTestCase {
 		Layer layer2 = spatialService.getLayer(LAYER);
 		SearchWithin withinQuery = new SearchWithin(layer2.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 60.0, 61.0)));
 		layer2.getIndex().executeSearch(withinQuery);
-		List<SpatialDatabaseRecord> results = withinQuery.getResults();
+		List<SpatialDatabaseRecord> results = withinQuery.getExtendedResults();
 		assertEquals(0, results.size());
 
 		Transaction tx2 = graphDb().beginTx();
@@ -101,7 +108,7 @@ public class ServerPluginTest extends Neo4jTestCase {
 		plugin.addNodeToLayer(graphDb(), point, LAYER);
 		plugin.addGeometryWKTToLayer(graphDb(), "POINT(15.2 60.1)", LAYER);
 		layer2.getIndex().executeSearch(withinQuery);
-		results = withinQuery.getResults();
+		results = withinQuery.getExtendedResults();
 		assertEquals(2, results.size());
 	}
 	
@@ -143,11 +150,4 @@ public class ServerPluginTest extends Neo4jTestCase {
 		return count;
 	}
 
-	private int count(Iterable<Node> results) {
-		int count = 0;
-		for(Node node:results) {
-			count ++;
-		}
-		return count;
-	}
 }

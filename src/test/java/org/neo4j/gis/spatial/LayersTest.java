@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.Test;
+import org.neo4j.collections.rtree.NullListener;
 import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePropertyEncoder;
@@ -36,7 +37,7 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateList;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.MultiLineString;
+
 
 public class LayersTest extends Neo4jTestCase
 {
@@ -69,14 +70,14 @@ public class LayersTest extends Neo4jTestCase
                 layer.getGeometryFactory().toGeometry(
                         new Envelope( 15.0, 16.0, 56.0, 57.0 ) ) );
         layer.getIndex().executeSearch( searchQuery );
-        List<SpatialDatabaseRecord> results = searchQuery.getResults();
+        List<SpatialDatabaseRecord> results = searchQuery.getExtendedResults();
         // should not be contained
         assertEquals( 0, results.size() );
         SearchWithin withinQuery = new SearchWithin(
                 layer.getGeometryFactory().toGeometry(
                         new Envelope( 15.0, 16.0, 56.0, 57.0 ) ) );
         layer.getIndex().executeSearch( withinQuery );
-        results = withinQuery.getResults();
+        results = withinQuery.getExtendedResults();
         assertEquals( 1, results.size() );
     }
 
@@ -108,14 +109,14 @@ public class LayersTest extends Neo4jTestCase
                 layer.getGeometryFactory().toGeometry(
                         new Envelope( 15.0, 16.0, 56.0, 57.0 ) ) );
         layer.getIndex().executeSearch( searchQuery );
-        List<SpatialDatabaseRecord> results = searchQuery.getResults();
+        List<SpatialDatabaseRecord> results = searchQuery.getExtendedResults();
         // should not be contained
         assertEquals( 0, results.size() );
         SearchWithin withinQuery = new SearchWithin(
                 layer.getGeometryFactory().toGeometry(
                         new Envelope( 15.0, 16.0, 56.0, 57.0 ) ) );
         layer.getIndex().executeSearch( withinQuery );
-        results = withinQuery.getResults();
+        results = withinQuery.getExtendedResults();
         assertEquals( 1, results.size() );
     }
 
@@ -138,9 +139,9 @@ public class LayersTest extends Neo4jTestCase
                 waypoints_byggmästaregatan );
         LineString[] test_way_segments = { byggmästaregatan_malmö,
                 östra_förstadsgatan_malmö };
-        MultiLineString test_way = layer.getGeometryFactory().createMultiLineString(
+        /* MultiLineString test_way = */ layer.getGeometryFactory().createMultiLineString(
                 test_way_segments );
-        Coordinate slussgatan14 = new Coordinate( 13.0181127, 55.608236 );
+        // Coordinate slussgatan14 = new Coordinate( 13.0181127, 55.608236 );
         //TODO now determine the nearest point on test_way to slussis
 
     }
@@ -218,11 +219,11 @@ public class LayersTest extends Neo4jTestCase
         return layer;
     }
 
-    private void doSearch( Layer layer, Search searchQuery )
+    private void doSearch( Layer layer, LayerSearch searchQuery )
     {
         System.out.println( "Testing search intersection:" );
         layer.getIndex().executeSearch( searchQuery );
-        List<SpatialDatabaseRecord> results = searchQuery.getResults();
+        List<SpatialDatabaseRecord> results = searchQuery.getExtendedResults();
         System.out.println( "\tTesting layer '" + layer.getName() + "' (class "
                             + layer.getClass() + "), found results: "
                             + results.size() );

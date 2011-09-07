@@ -19,14 +19,14 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
-import org.neo4j.gis.spatial.AbstractSearch;
+import org.neo4j.collections.rtree.Envelope;
+import org.neo4j.gis.spatial.AbstractLayerSearch;
 import org.neo4j.graphdb.Node;
 
 import com.tinkerpop.pipes.filter.FilterPipe;
 import com.tinkerpop.pipes.util.PipeHelper;
-import com.vividsolutions.jts.geom.Envelope;
 
-public class SearchAttributes extends AbstractSearch {
+public class SearchAttributes extends AbstractLayerSearch {
 	
 	private String key;
 	private String value;

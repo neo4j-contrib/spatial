@@ -42,9 +42,9 @@ import javax.xml.stream.XMLStreamReader;
 
 import org.apache.commons.collections.MapUtils;
 import org.geotools.referencing.datum.DefaultEllipsoid;
+import org.neo4j.collections.rtree.Listener;
+import org.neo4j.collections.rtree.NullListener;
 import org.neo4j.gis.spatial.Constants;
-import org.neo4j.gis.spatial.Listener;
-import org.neo4j.gis.spatial.NullListener;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.osm.OSMDataset.OSMNode;
 import org.neo4j.graphdb.Direction;
@@ -69,7 +69,7 @@ import org.neo4j.kernel.impl.batchinsert.BatchInserter;
 import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
 import org.neo4j.kernel.impl.batchinsert.SimpleRelationship;
 
-import com.vividsolutions.jts.geom.Envelope;
+import org.neo4j.collections.rtree.Envelope;
 
 public class OSMImporter implements Constants {
     public static DefaultEllipsoid WGS84 = DefaultEllipsoid.WGS84;
@@ -825,7 +825,7 @@ public class OSMImporter implements Constants {
 
 		@Override
 	    protected void addNodeGeometry(Node node, int gtype, Envelope bbox, int vertices) {
-	        if (node != null && !bbox.isNull() && vertices > 0) {
+	        if (node != null && bbox.isValid() && vertices > 0) {
 	            if (gtype == GTYPE_GEOMETRY)
 	                gtype = vertices > 1 ? GTYPE_MULTIPOINT : GTYPE_POINT;
 		        Node geomNode = graphDb.createNode();
@@ -1095,7 +1095,7 @@ public class OSMImporter implements Constants {
 
 		@Override
 	    protected void addNodeGeometry(Long node, int gtype, Envelope bbox, int vertices) {
-	        if (node > 0 && !bbox.isNull() && vertices > 0) {
+	        if (node > 0 && bbox.isValid() && vertices > 0) {
 	            LinkedHashMap<String, Object> properties = new LinkedHashMap<String, Object>();
 	            if (gtype == GTYPE_GEOMETRY)
 	                gtype = vertices > 1 ? GTYPE_MULTIPOINT : GTYPE_POINT;

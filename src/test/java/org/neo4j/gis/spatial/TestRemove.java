@@ -39,12 +39,12 @@ public class TestRemove extends Neo4jTestCase {
         	ids[i] = layer.add(geomFactory.createPoint(new Coordinate(i, i))).getId();
         }
 
-        ((RTreeIndex) layer.getIndex()).debugIndexTree();        
+        debugIndexTree((LayerRTreeIndex) layer.getIndex());        
         
         for (long id : ids) {
         	layer.delete(id);
         }
         
-        ((RTreeIndex) layer.getIndex()).debugIndexTree();  
+        debugIndexTree((LayerRTreeIndex) layer.getIndex());
     }		
 }

@@ -102,8 +102,9 @@ public class SpatialTopologyUtils {
 
 	public static ArrayList<PointResult> findClosestEdges(Point point,
 			Layer layer, double distance) {
-		ReferencedEnvelope env = new ReferencedEnvelope(layer.getIndex()
-				.getLayerBoundingBox(), layer.getCoordinateReferenceSystem());
+		ReferencedEnvelope env = new ReferencedEnvelope(
+				EnvelopeUtils.fromNeo4jToJts(layer.getIndex().getBoundingBox()), 
+				layer.getCoordinateReferenceSystem());
 		if (distance <= 0.0)
 			distance = env.getSpan(0) / 100.0;
 		Envelope search = new Envelope(point.getCoordinate());
@@ -115,9 +116,9 @@ public class SpatialTopologyUtils {
 	public static ArrayList<PointResult> findClosestEdges(Point point,
 			Layer layer, Geometry filter) {
 		ArrayList<PointResult> results = new ArrayList<PointResult>();
-		Search searchQuery = new SearchIntersect(filter);
+		LayerSearch searchQuery = new SearchIntersect(filter);
 		layer.getIndex().executeSearch(searchQuery);
-		for (SpatialDatabaseRecord record : searchQuery.getResults()) {
+		for (SpatialDatabaseRecord record : searchQuery.getExtendedResults()) {
 			Geometry geom = record.getGeometry();
 			if (geom instanceof LineString) {
 				LocationIndexedLine line = new LocationIndexedLine(geom);
@@ -311,7 +312,7 @@ public class SpatialTopologyUtils {
 		if (count > limit) {
 			return createEnvelopeForGeometryDensityEstimate(layer, point,(double) limit / (double) count);
 		} else {
-			return layer.getIndex().getLayerBoundingBox();
+			return EnvelopeUtils.fromNeo4jToJts(layer.getIndex().getBoundingBox());
 		}
 	}
 
@@ -336,7 +337,7 @@ public class SpatialTopologyUtils {
 		if(fraction < 0.0) {
 			return new Envelope(point);
 		}
-		Envelope bbox = layer.getIndex().getLayerBoundingBox();
+		Envelope bbox = EnvelopeUtils.fromNeo4jToJts(layer.getIndex().getBoundingBox());
 		double width = bbox.getWidth() * fraction;
 		double height = bbox.getWidth() * fraction;
 		Envelope extent = new Envelope(point);

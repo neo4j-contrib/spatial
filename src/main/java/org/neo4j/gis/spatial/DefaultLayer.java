@@ -26,6 +26,8 @@ import java.util.Set;
 
 import org.geotools.factory.FactoryRegistryException;
 import org.geotools.referencing.ReferencingFactoryFinder;
+import org.neo4j.collections.rtree.Envelope;
+import org.neo4j.collections.rtree.Listener;
 import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.gis.spatial.pipes.GeoFilteringPipeline;
 import org.neo4j.gis.spatial.pipes.GeoProcessingPipeline;
@@ -39,7 +41,6 @@ import org.neo4j.graphdb.Traverser.Order;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
-import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 
@@ -62,7 +63,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         return spatialDatabase;
     }
     
-    public SpatialIndexReader getIndex() {
+    public LayerIndexReader getIndex() {
         return index;
     }
 
@@ -129,7 +130,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         }
     }
 
-    private static class GuessGeometryTypeSearch extends AbstractSearch {
+    private static class GuessGeometryTypeSearch extends AbstractLayerSearch {
 
         Integer firstFoundType;
             
@@ -244,7 +245,6 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         this.spatialDatabase = spatialDatabase;
         this.name = name;
         this.layerNode = layerNode;
-        this.index = new RTreeIndex(spatialDatabase.getDatabase(), this);
         
         // TODO read Precision Model and SRID from layer properties and use them to construct GeometryFactory
         this.geometryFactory = new GeometryFactory();
@@ -265,6 +265,9 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
             this.geometryEncoder = new WKBGeometryEncoder();
         }
         this.geometryEncoder.init(this);
+        
+        // index must be created *after* geometryEncoder
+        this.index = new LayerRTreeIndex(spatialDatabase.getDatabase(), this);
     }
     
     /**
@@ -308,7 +311,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
     protected Node layerNode;
     protected GeometryEncoder geometryEncoder;
     protected GeometryFactory geometryFactory;
-    protected SpatialIndexWriter index;
+    protected LayerRTreeIndex index;
     
     public SpatialDataset getDataset() {
         return this;

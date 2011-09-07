@@ -19,13 +19,15 @@
  */
 package org.neo4j.gis.spatial.query;
 
-import org.neo4j.gis.spatial.AbstractSearch;
+import org.neo4j.collections.rtree.Envelope;
+import org.neo4j.gis.spatial.AbstractLayerSearch;
+import org.neo4j.gis.spatial.EnvelopeUtils;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialTopologyUtils;
 import org.neo4j.graphdb.Node;
 
-import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
+
 
 /**
  * This Search will return the closest objects as found by the
@@ -41,7 +43,7 @@ import com.vividsolutions.jts.geom.Geometry;
  * @author Davide Savazzi
  * @author Craig Taverner
  */
-public class SearchClosest extends AbstractSearch {
+public class SearchClosest extends AbstractLayerSearch {
 
 	/**
 	 * Search for geometries closest to the specified geometry. Since no search
@@ -67,7 +69,7 @@ public class SearchClosest extends AbstractSearch {
 	}
 
 	private static Envelope makeBufferEnvelope(Geometry other, double buffer) {
-		return other.buffer(buffer).getEnvelopeInternal();
+		return EnvelopeUtils.fromJtsToNeo4j(other.buffer(buffer).getEnvelopeInternal());
 	}
 
 	/**
@@ -81,7 +83,8 @@ public class SearchClosest extends AbstractSearch {
 	 *            density to match the specified number of features.
 	 */
 	public SearchClosest(Geometry other, Layer layer, int limit) {
-		this(other, SpatialTopologyUtils.createEnvelopeForGeometryDensityEstimate(layer, other.getCoordinate(), limit));
+		this(other, EnvelopeUtils.fromJtsToNeo4j(
+				SpatialTopologyUtils.createEnvelopeForGeometryDensityEstimate(layer, other.getCoordinate(), limit)));
 	}
 
 	/**
@@ -98,7 +101,7 @@ public class SearchClosest extends AbstractSearch {
 		this.searchWindow = searchWindow;
 	}
 
-	public boolean needsToVisit(Envelope indexNodeEnvelope) {
+	public boolean needsToVisit(org.neo4j.collections.rtree.Envelope indexNodeEnvelope) {
 		return searchWindow == null || indexNodeEnvelope.intersects(searchWindow);
 	}
 
