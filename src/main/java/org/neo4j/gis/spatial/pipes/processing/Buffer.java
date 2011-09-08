@@ -19,21 +19,23 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
-import com.tinkerpop.pipes.AbstractPipe;
+import org.neo4j.gis.spatial.Layer;
+import org.neo4j.gis.spatial.pipes.GeoProcessingPipeline;
+
 import com.vividsolutions.jts.geom.Geometry;
 
-public class Buffer<S, E> extends
-		AbstractPipe<Geometry, Geometry> {
+public class Buffer<S, E> extends GeoProcessingPipeline<Geometry, Geometry>{
 	
 	private double distance;
 	
-	public Buffer(double distance) {
+	public Buffer(Layer layer, double distance) {
+		super(layer);
 		this.distance = distance;
 	}
 
 	public Geometry processNextStart() {
 		while (true) {
-			final Geometry geom = this.starts.next();
+			final Geometry geom = (Geometry) this.starts.next();
 			return geom.buffer(this.distance);
 		}
 

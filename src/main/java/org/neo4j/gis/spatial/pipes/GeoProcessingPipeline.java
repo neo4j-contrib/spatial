@@ -42,24 +42,24 @@ public class GeoProcessingPipeline<S, E> extends FluentPipeline<S, E>
         this.layer = layer;
     }
 
-    public FluentPipeline<SpatialDatabaseRecord, Point> toPoints()
+    public GeoProcessingPipeline<SpatialDatabaseRecord, Point> toPoints()
     {
-        return this.add(new ToPointsPipe());
+        return (GeoProcessingPipeline<SpatialDatabaseRecord, Point>) this.add(new ToPointsPipe(layer));
     }
 
-    public FluentPipeline<Geometry, Geometry> toOutherLinearRing()
+    public GeoProcessingPipeline<Geometry, Geometry> toOutherLinearRing()
     {
-        return this.add(new ToOuterLinearRing());
+        return (GeoProcessingPipeline<Geometry, Geometry>) this.add(new ToOuterLinearRing(layer));
     }
     
-    public FluentPipeline<Geometry, Geometry> buffer(double distance)
+    public GeoProcessingPipeline<Geometry, Geometry> buffer(double distance)
     {
-        return this.add(new Buffer(distance));
+        return (GeoProcessingPipeline<Geometry, Geometry>) this.add(new Buffer(layer, distance));
     }
     
-    public FluentPipeline<Geometry, Geometry> toDensityIslands(double density)
+    public GeoProcessingPipeline<Point, Geometry> toDensityIslands(double density)
     {
-        return this.add(new ToDensityIslands<S, E>(density));
+        return (GeoProcessingPipeline<Point, Geometry>) this.add(new ToDensityIslands(layer, density));
     }
     
     public long countPoints()

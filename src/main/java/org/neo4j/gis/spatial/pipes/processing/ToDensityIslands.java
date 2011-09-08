@@ -23,15 +23,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import org.neo4j.gis.spatial.Layer;
+import org.neo4j.gis.spatial.pipes.GeoProcessingPipeline;
 
-import com.tinkerpop.pipes.AbstractPipe;
 import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.GeometryCollection;
 import com.vividsolutions.jts.geom.GeometryFactory;
 
-public class ToDensityIslands<S, E> extends
-		AbstractPipe<SpatialDatabaseRecord, Geometry> {
+public class ToDensityIslands extends GeoProcessingPipeline<Point, Geometry> {
 
 	private double density = 20;
 	private List<Geometry> islands = new ArrayList<Geometry>();
@@ -41,7 +41,8 @@ public class ToDensityIslands<S, E> extends
 	 * 
 	 * @param density
 	 */
-	public ToDensityIslands(double density) {
+	public ToDensityIslands(Layer layer, double density) {
+		super(layer);
 		this.density = density;
 	}
 
@@ -51,9 +52,8 @@ public class ToDensityIslands<S, E> extends
 
 			NEXT: while (this.starts.hasNext()) {
 
-				final SpatialDatabaseRecord record = this.starts.next();
-				Geometry geometry = record.getGeometry();
-
+				final Geometry geometry = (Geometry) this.starts.next();
+				
 				// TODO: Cleaner solution.
 				if (islands.size() == 0) {
 					islands.add(geometry);
@@ -61,10 +61,11 @@ public class ToDensityIslands<S, E> extends
 				}
 
 				for (int i = 0; i < islands.size(); i++) {
-					System.out.println("break it");
+				
+					// Determine if geometry is next to a islands else add geometry as a new islands.
 					if (!this.islands.isEmpty()
 							&& geometry.distance(this.islands.get(i)) <= density) {
-						System.out.println("add to island");
+						
 						Geometry islandsGeom = this.islands.get(i);
 						// TODO: test it with points
 						this.islands.set(i, islandsGeom.union(geometry));
@@ -76,12 +77,10 @@ public class ToDensityIslands<S, E> extends
 				}
 			}
 
-	
 			GeometryCollection collect = new GeometryCollection(
 					(Geometry[]) islands.toArray(new Geometry[0]),
 					new GeometryFactory());
 	
-			
 			//TODO: Do a cleaner break!
 			if(hasReturned) {
 				throw new NoSuchElementException();
