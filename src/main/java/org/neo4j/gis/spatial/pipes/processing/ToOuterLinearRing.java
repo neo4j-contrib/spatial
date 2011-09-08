@@ -19,16 +19,10 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
-import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.pipes.GeoProcessingPipeline;
-
+import com.tinkerpop.pipes.AbstractPipe;
 import com.vividsolutions.jts.geom.Geometry;
 
-public class ToOuterLinearRing<S, E> extends GeoProcessingPipeline<Geometry, Geometry> {
-
-	public ToOuterLinearRing(Layer layer) {
-		super(layer);
-	}
+public class ToOuterLinearRing<S, E> extends AbstractPipe<Geometry, Geometry> {
 
 	public Geometry processNextStart() {
 		while (true) {

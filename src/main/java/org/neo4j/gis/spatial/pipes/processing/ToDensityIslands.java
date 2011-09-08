@@ -20,29 +20,33 @@
 package org.neo4j.gis.spatial.pipes.processing;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
 import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.pipes.GeoProcessingPipeline;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Path;
 
+import com.tinkerpop.pipes.AbstractPipe;
+import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.GeometryCollection;
 import com.vividsolutions.jts.geom.GeometryFactory;
 
-public class ToDensityIslands extends GeoProcessingPipeline<Point, Geometry> {
+public class ToDensityIslands extends AbstractPipe {
 
 	private double density = 20;
 	private List<Geometry> islands = new ArrayList<Geometry>();
 	private boolean hasReturned;
+	private Iterator<Geometry> islandsIterator;
 
 	/**
 	 * 
 	 * @param density
 	 */
 	public ToDensityIslands(Layer layer, double density) {
-		super(layer);
+		super();
 		this.density = density;
 	}
 
@@ -53,7 +57,7 @@ public class ToDensityIslands extends GeoProcessingPipeline<Point, Geometry> {
 			NEXT: while (this.starts.hasNext()) {
 
 				final Geometry geometry = (Geometry) this.starts.next();
-				
+
 				// TODO: Cleaner solution.
 				if (islands.size() == 0) {
 					islands.add(geometry);
@@ -61,11 +65,12 @@ public class ToDensityIslands extends GeoProcessingPipeline<Point, Geometry> {
 				}
 
 				for (int i = 0; i < islands.size(); i++) {
-				
-					// Determine if geometry is next to a islands else add geometry as a new islands.
+
+					// Determine if geometry is next to a islands else add
+					// geometry as a new islands.
 					if (!this.islands.isEmpty()
 							&& geometry.distance(this.islands.get(i)) <= density) {
-						
+
 						Geometry islandsGeom = this.islands.get(i);
 						// TODO: test it with points
 						this.islands.set(i, islandsGeom.union(geometry));
@@ -77,19 +82,18 @@ public class ToDensityIslands extends GeoProcessingPipeline<Point, Geometry> {
 				}
 			}
 
-			GeometryCollection collect = new GeometryCollection(
-					(Geometry[]) islands.toArray(new Geometry[0]),
-					new GeometryFactory());
-	
-			//TODO: Do a cleaner break!
-			if(hasReturned) {
+			// TODO: Do a cleaner break!
+			if (hasReturned) {
 				throw new NoSuchElementException();
 			}
 			this.hasReturned = true;
-			return collect;
+
+			islandsIterator = islands.iterator();
+
+			return islandsIterator.next();
 
 		}
-		
+
 	}
 
 }

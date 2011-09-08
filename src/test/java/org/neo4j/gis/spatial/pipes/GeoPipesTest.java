@@ -22,7 +22,6 @@ package org.neo4j.gis.spatial.pipes;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
@@ -77,10 +76,10 @@ public class GeoPipesTest implements GraphHolder
     }
     
     @Test
-    @Ignore
-    public void break_up_all_geometries_into_points_and_make_density_islands_and_count_them()
+    public void break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them()
     {
-    	assertEquals( 1, layer.filter().all().process().toPoints().toDensityIslands(0.1).count());
+    	assertEquals( 1, layer.filter().all().process().toPoints().toDensityIslands(0.1).toOutherLinearRing().buffer(10).count());
+    	System.out.println(layer.filter().all().process().toPoints().toDensityIslands(0.1).toOutherLinearRing().buffer(10).next());
     }
     
     public static void load( ) throws Exception

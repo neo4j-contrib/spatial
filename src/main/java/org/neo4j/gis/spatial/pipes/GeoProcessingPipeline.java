@@ -35,7 +35,7 @@ import com.vividsolutions.jts.geom.Point;
 public class GeoProcessingPipeline<S, E> extends FluentPipeline<S, E>
 {
 
-    private final Layer layer;
+    protected final Layer layer;
 
     public GeoProcessingPipeline( Layer layer )
     {
@@ -44,17 +44,17 @@ public class GeoProcessingPipeline<S, E> extends FluentPipeline<S, E>
 
     public GeoProcessingPipeline<SpatialDatabaseRecord, Point> toPoints()
     {
-        return (GeoProcessingPipeline<SpatialDatabaseRecord, Point>) this.add(new ToPointsPipe(layer));
+        return (GeoProcessingPipeline<SpatialDatabaseRecord, Point>) this.add(new ToPointsPipe());
     }
 
     public GeoProcessingPipeline<Geometry, Geometry> toOutherLinearRing()
     {
-        return (GeoProcessingPipeline<Geometry, Geometry>) this.add(new ToOuterLinearRing(layer));
+        return (GeoProcessingPipeline<Geometry, Geometry>) this.add(new ToOuterLinearRing());
     }
     
     public GeoProcessingPipeline<Geometry, Geometry> buffer(double distance)
     {
-        return (GeoProcessingPipeline<Geometry, Geometry>) this.add(new Buffer(layer, distance));
+        return (GeoProcessingPipeline<Geometry, Geometry>) this.add(new Buffer(distance));
     }
     
     public GeoProcessingPipeline<Point, Geometry> toDensityIslands(double density)

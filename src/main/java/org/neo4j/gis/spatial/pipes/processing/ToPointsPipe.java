@@ -19,9 +19,7 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
-import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
-import org.neo4j.gis.spatial.pipes.GeoProcessingPipeline;
 
 import com.tinkerpop.pipes.AbstractPipe;
 import com.vividsolutions.jts.geom.Geometry;
@@ -29,11 +27,7 @@ import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.Point;
 
 public class ToPointsPipe<S, E> extends
-GeoProcessingPipeline<SpatialDatabaseRecord, Point> {
-
-	public ToPointsPipe(Layer layer) {
-		super(layer);
-	}
+AbstractPipe<SpatialDatabaseRecord, Point> {
 
 	private Geometry curGeometry;
 	private int curPos;
