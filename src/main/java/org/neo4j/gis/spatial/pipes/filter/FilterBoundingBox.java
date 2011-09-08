@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.pipes;
+package org.neo4j.gis.spatial.pipes.filter;
 
 import java.util.Iterator;
 
@@ -26,9 +26,8 @@ import org.neo4j.gis.spatial.LayerSearch;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 
 import com.tinkerpop.pipes.AbstractPipe;
-import com.tinkerpop.pipes.filter.FilterPipe.Filter;
 
-public class FilterAttributes<S, E> extends
+public class FilterBoundingBox<S, E> extends
 		AbstractPipe<SpatialDatabaseRecord, SpatialDatabaseRecord> {
 
 	private final Layer layer;
@@ -36,10 +35,9 @@ public class FilterAttributes<S, E> extends
 	private Iterator<SpatialDatabaseRecord> results;
 
 
-	public FilterAttributes(final Layer layer, String key, String value,
-			Filter filter) {
+	public FilterBoundingBox(final Layer layer, double minLon, double minLat, double maxLon, double maxLat) {
 		this.layer = layer;
-		this.search = new SearchAttributes(key, value, filter);
+		this.search = new SearchBoundingBox(minLon, minLat,maxLon, maxLat);
 	}
 
 	public SpatialDatabaseRecord processNextStart() {

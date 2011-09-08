@@ -17,25 +17,33 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.pipes.osm;
+package org.neo4j.gis.spatial.pipes.processing;
 
-import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
-import org.neo4j.gis.spatial.pipes.GeoFilteringPipeline;
-import org.neo4j.gis.spatial.pipes.osm.filter.FilterOSMAttributes;
 
-import com.tinkerpop.pipes.filter.FilterPipe;
+import com.tinkerpop.pipes.AbstractPipe;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.Point;
 
-public class OSMGeoFilteringPipeline<S, E> extends GeoFilteringPipeline<S, E>
-{
-	
-    public OSMGeoFilteringPipeline(Layer layer) {
-		super(layer);
+public class ToPointsPipe<S, E> extends
+		AbstractPipe<SpatialDatabaseRecord, Point> {
+
+	private Geometry curGeometry;
+	private int curPos;
+
+	public Point processNextStart() {
+		while (true) {
+
+			if (curGeometry == null || curPos >= curGeometry.getNumPoints()) {
+				final SpatialDatabaseRecord record = this.starts.next();
+				curGeometry = record.getGeometry();
+				curPos = 0;
+			}
+
+			GeometryFactory geometryFactory = new GeometryFactory();
+			return geometryFactory.createPoint(curGeometry.getCoordinates()[curPos++]);
+		}
+
 	}
-
-	public OSMGeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> attributes(String key, String value, FilterPipe.Filter filter)
-    {
-        return (OSMGeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>) this.add(new FilterOSMAttributes(key, value, filter));
-    }
-
 }

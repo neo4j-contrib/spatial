@@ -17,32 +17,18 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.pipes;
-
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+package org.neo4j.gis.spatial.pipes.processing;
 
 import com.tinkerpop.pipes.AbstractPipe;
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.Point;
 
-public class ToPointsPipe<S, E> extends
-		AbstractPipe<SpatialDatabaseRecord, Point> {
-
-	private Geometry curGeometry;
-	private int curPos;
-
-	public Point processNextStart() {
+public class ToOuterLinearRing<S, E> extends
+		AbstractPipe<Geometry, Geometry> {
+	
+	public Geometry processNextStart() {
 		while (true) {
-
-			if (curGeometry == null || curPos >= curGeometry.getNumPoints()) {
-				final SpatialDatabaseRecord record = this.starts.next();
-				curGeometry = record.getGeometry();
-				curPos = 0;
-			}
-
-			GeometryFactory geometryFactory = new GeometryFactory();
-			return geometryFactory.createPoint(curGeometry.getCoordinates()[curPos++]);
+			final Geometry geometry = this.starts.next();
+			return geometry.convexHull();
 		}
 
 	}

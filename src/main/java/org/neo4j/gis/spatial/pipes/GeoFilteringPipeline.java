@@ -21,6 +21,9 @@ package org.neo4j.gis.spatial.pipes;
 
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import org.neo4j.gis.spatial.pipes.filter.FilterAttributes;
+import org.neo4j.gis.spatial.pipes.filter.FilterBoundingBox;
+import org.neo4j.gis.spatial.pipes.filter.FilterCQL;
 
 import com.tinkerpop.pipes.filter.FilterPipe;
 import com.tinkerpop.pipes.util.FluentPipeline;
@@ -44,6 +47,17 @@ public class GeoFilteringPipeline<S, E> extends FluentPipeline<S, E>
     {
         return (GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>) this.add(new FilterAttributes(layer, key, value, filter));
     }
+    
+    public GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> bbox(double minLon, double minLat, double maxLon, double maxLat)
+    {
+        return (GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>) this.add(new FilterBoundingBox<S, E>(layer, minLon, minLat, maxLon, maxLat));
+    }
+
+    public GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> cql(String cql)
+    {
+        return (GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>) this.add(new FilterCQL<S, E>(layer, cql));
+    }
+
     
     public GeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> process() {
         return (GeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>) this.layer.process().start( this );
