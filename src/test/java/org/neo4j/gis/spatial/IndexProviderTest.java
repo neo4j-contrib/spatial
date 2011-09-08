@@ -137,7 +137,7 @@ public class IndexProviderTest
         gremlinEngine.setBindings( bindings, ScriptContext.ENGINE_SCOPE );
         try
         {
-            assertEquals(1L, gremlinEngine.eval( "g.idx('layer1').get('bbox','[15.0, 16.0, 56.0, 57.0]').count()"));
+            assertEquals(2L, gremlinEngine.eval( "g.idx('layer1').get('bbox','[15.0, 16.0, 56.0, 57.0]')._().in().count()"));
 //            System.out.print( gremlinEngine.eval( "g.idx('layer1').get('bbox','[15.0, 16.0, 56.0, 57.0]').in('GEOM').name"));
         }
         catch ( ScriptException e )
