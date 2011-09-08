@@ -21,8 +21,6 @@ package org.neo4j.gis.spatial.pipes;
 
 import static org.junit.Assert.assertEquals;
 
-import java.util.HashMap;
-
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.neo4j.gis.spatial.Layer;
@@ -65,7 +63,24 @@ public class GeoPipesTest implements GraphHolder
     	assertEquals( 1, layer.filter().all().attributes("name", "Storgatan", Filter.EQUAL).count() );
     }
 
-
+    @Test
+    public void count_all_geometries_with_in_a_specific_bbox()
+    {
+    	assertEquals( 1, layer.filter().all().bbox(10, 40, 20, 56.0583531).count());
+    }
+    
+    @Test
+    public void count_all_geometries_with_in_a_specific_bbox_with_cql()
+    {
+    	assertEquals( 2, layer.filter().all().cql("BBOX(the_geom, 10, 40, 20, 57)").count());
+    }
+    
+    @Test
+    public void count_islands()
+    {
+    	assertEquals( 1, layer.filter().all().process().toDensityIslands(0.1).count());
+    }
+    
     public static void load( ) throws Exception
     {
         try

@@ -22,8 +22,10 @@ package org.neo4j.gis.spatial.pipes.osm;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.pipes.GeoProcessingPipeline;
+import org.neo4j.gis.spatial.pipes.osm.processing.ToPointsOSMPipe;
 
 import com.tinkerpop.pipes.util.FluentPipeline;
+import com.vividsolutions.jts.geom.Point;
 
 public class OSMGeoProcessingPipeline<S, E> extends GeoProcessingPipeline<S, E>
 {
@@ -32,7 +34,7 @@ public class OSMGeoProcessingPipeline<S, E> extends GeoProcessingPipeline<S, E>
 		super(layer);
 	}
 
-    public FluentPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> toPoints()
+    public FluentPipeline<SpatialDatabaseRecord, Point> toPoints()
     {
         return this.add(new ToPointsOSMPipe());
     }

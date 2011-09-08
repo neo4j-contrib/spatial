@@ -23,8 +23,14 @@ import java.util.Iterator;
 
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import org.neo4j.gis.spatial.pipes.processing.Buffer;
+import org.neo4j.gis.spatial.pipes.processing.ToDensityIslands;
+import org.neo4j.gis.spatial.pipes.processing.ToOuterLinearRing;
+import org.neo4j.gis.spatial.pipes.processing.ToPointsPipe;
 
 import com.tinkerpop.pipes.util.FluentPipeline;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.Point;
 
 public class GeoProcessingPipeline<S, E> extends FluentPipeline<S, E>
 {
@@ -36,9 +42,24 @@ public class GeoProcessingPipeline<S, E> extends FluentPipeline<S, E>
         this.layer = layer;
     }
 
-    public FluentPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> toPoints()
+    public FluentPipeline<SpatialDatabaseRecord, Point> toPoints()
     {
         return this.add(new ToPointsPipe());
+    }
+
+    public FluentPipeline<Geometry, Geometry> toOutherLinearRing()
+    {
+        return this.add(new ToOuterLinearRing());
+    }
+    
+    public FluentPipeline<Geometry, Geometry> buffer(double distance)
+    {
+        return this.add(new Buffer(distance));
+    }
+    
+    public FluentPipeline<Geometry, Geometry> toDensityIslands(double density)
+    {
+        return this.add(new ToDensityIslands<S, E>(density));
     }
     
     public long countPoints()

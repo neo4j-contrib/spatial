@@ -17,25 +17,39 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.pipes.osm;
+package org.neo4j.gis.spatial.pipes.filter;
 
-import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
-import org.neo4j.gis.spatial.pipes.GeoFilteringPipeline;
-import org.neo4j.gis.spatial.pipes.osm.filter.FilterOSMAttributes;
+import org.neo4j.collections.rtree.Envelope;
+import org.neo4j.gis.spatial.AbstractLayerSearch;
+import org.neo4j.graphdb.Node;
 
 import com.tinkerpop.pipes.filter.FilterPipe;
+import com.tinkerpop.pipes.util.PipeHelper;
 
-public class OSMGeoFilteringPipeline<S, E> extends GeoFilteringPipeline<S, E>
-{
+public class SearchAttributes extends AbstractLayerSearch {
 	
-    public OSMGeoFilteringPipeline(Layer layer) {
-		super(layer);
+	private String key;
+	private String value;
+	private FilterPipe.Filter filter;
+
+	public SearchAttributes(String key, String value, FilterPipe.Filter filter) {
+		this.key = key;
+		this.value = value;
+		this.filter = filter;
 	}
 
-	public OSMGeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> attributes(String key, String value, FilterPipe.Filter filter)
-    {
-        return (OSMGeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>) this.add(new FilterOSMAttributes(key, value, filter));
-    }
+	public boolean needsToVisit(Envelope indexNodeEnvelope) {
+		return true;
+	}
+
+	public void onIndexReference(Node geomNode) {
+
+		
+		if (geomNode.hasProperty(key)
+				&& PipeHelper.compareObjects(filter, geomNode.getProperty(key), value)) {
+			add(geomNode);
+		}
+		
+	}
 
 }

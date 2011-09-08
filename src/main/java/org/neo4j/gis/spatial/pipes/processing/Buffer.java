@@ -17,39 +17,25 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.pipes;
+package org.neo4j.gis.spatial.pipes.processing;
 
-import org.neo4j.collections.rtree.Envelope;
-import org.neo4j.gis.spatial.AbstractLayerSearch;
-import org.neo4j.graphdb.Node;
+import com.tinkerpop.pipes.AbstractPipe;
+import com.vividsolutions.jts.geom.Geometry;
 
-import com.tinkerpop.pipes.filter.FilterPipe;
-import com.tinkerpop.pipes.util.PipeHelper;
-
-public class SearchAttributes extends AbstractLayerSearch {
+public class Buffer<S, E> extends
+		AbstractPipe<Geometry, Geometry> {
 	
-	private String key;
-	private String value;
-	private FilterPipe.Filter filter;
-
-	public SearchAttributes(String key, String value, FilterPipe.Filter filter) {
-		this.key = key;
-		this.value = value;
-		this.filter = filter;
+	private double distance;
+	
+	public Buffer(double distance) {
+		this.distance = distance;
 	}
 
-	public boolean needsToVisit(Envelope indexNodeEnvelope) {
-		return true;
-	}
-
-	public void onIndexReference(Node geomNode) {
-
-		
-		if (geomNode.hasProperty(key)
-				&& PipeHelper.compareObjects(filter, geomNode.getProperty(key), value)) {
-			add(geomNode);
+	public Geometry processNextStart() {
+		while (true) {
+			final Geometry geom = this.starts.next();
+			return geom.buffer(this.distance);
 		}
-		
-	}
 
+	}
 }
