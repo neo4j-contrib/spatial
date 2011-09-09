@@ -99,15 +99,16 @@ public class TestSpatialQueries extends Neo4jTestCase {
 		}
 
 		// Repeat with a buffer too small to work correctly
-		buffer = 0.00001;
-		closest = new SearchClosest(point, buffer);
-		System.out.println("Searching for geometries close to " + point + " within buffer " + buffer);
-		layer.getIndex().executeSearch(closest);
-		for (SpatialDatabaseRecord result : closest.getExtendedResults()) {
-			System.out.println("\tGot search result: " + result);
-			// NOTE the test below is negative, because the buffer was badly chosen
-			assertThat("Unexpectedly found the closest", result.getGeometry().toString(), is(not(closestGeom.toString())));
-		}
+		//TODO: Since the new Envelope class in graph-collections seems to not have the same bug as the old JTS Envelope, this test case no longer works. We should think of a new test case.
+//		buffer = 0.00001;
+//		closest = new SearchClosest(point, buffer);
+//		System.out.println("Searching for geometries close to " + point + " within buffer " + buffer);
+//		layer.getIndex().executeSearch(closest);
+//		for (SpatialDatabaseRecord result : closest.getExtendedResults()) {
+//			System.out.println("\tGot search result: " + result);
+//			// NOTE the test below is negative, because the buffer was badly chosen
+//			assertThat("Unexpectedly found the closest", result.getGeometry().toString(), is(not(closestGeom.toString())));
+//		}
 
 		// Repeat with the new limit API
 		int limit = 10;
