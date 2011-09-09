@@ -21,29 +21,65 @@ package org.neo4j.gis.spatial.pipes;
 
 import static org.junit.Assert.assertEquals;
 
+import java.util.Map;
+
+import org.junit.After;
+import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Rule;
 import org.junit.Test;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
+import org.neo4j.kernel.impl.annotations.Documented;
+import org.neo4j.test.GraphDescription;
 import org.neo4j.test.GraphHolder;
 import org.neo4j.test.ImpermanentGraphDatabase;
+import org.neo4j.test.JavaTestDocsGenerator;
+import org.neo4j.test.TestData;
+import org.neo4j.visualization.asciidoc.AsciidocHelper;
 
 import com.tinkerpop.pipes.filter.FilterPipe.Filter;
 
 public class GeoPipesTest implements GraphHolder
 {
+    public @Rule
+    TestData<JavaTestDocsGenerator> gen = TestData.producedThrough( JavaTestDocsGenerator.PRODUCER );
+    public @Rule
+    TestData<Map<String, Node>> data = TestData.producedThrough( GraphDescription.createGraphFor(
+            this, true ) );
 
     private static ImpermanentGraphDatabase graphdb;
     private static Layer layer = null;
     public final static String LAYER_NAME = "two-street.osm";
     public final static int COMMIT_INTERVAL = 100;
 
+    /**
+     * this is the documentation
+     * for this test.
+     * 
+     * @@graph
+     * 
+     * This is the pipe executed over the above graph.
+     * 
+     * @@pipe1
+     * 
+     * Returning all geometries in this layer.
+     * 
+     */
+    @Documented
     @Test
     public void count_all_geometries_in_a_layer()
     {
-        assertEquals( 2, layer.filter().all().count() );
+        data.get();
+        gen.get().addSnippet( "pipe1", gen.get().createSourceSnippet("pipe1", this.getClass()) );
+        gen.get().addSnippet( "graph", AsciidocHelper.createGraphViz("graph1", graphdb(), gen.get().getTitle()) );
+        // START SNIPPET: pipe1
+        long allGeometries = layer.filter().all().count();
+        assertEquals( 2, allGeometries );
+        // END SNIPPET: pipe1
     }
     @Test
     public void count_number_of_points_in_all_geometries_in_a_layer()
@@ -103,14 +139,13 @@ public class GeoPipesTest implements GraphHolder
         String osmPath = "./" + layerName;
         System.out.println( "\n=== Loading layer " + layerName + " from "
                             + osmPath + " ===" );
-        // reActivateDatabase(false, false, false);
         OSMImporter importer = new OSMImporter( layerName );
         importer.importFile( graphdb, osmPath );
         importer.reIndex( graphdb, commitInterval );
     }
 
     @BeforeClass
-    public static void setUp() throws Exception
+    public static void setUpCLass() throws Exception
     {
         graphdb = new ImpermanentGraphDatabase();
         load();
@@ -118,7 +153,18 @@ public class GeoPipesTest implements GraphHolder
     @Override
     public GraphDatabaseService graphdb()
     {
-        return graphdb();
+        return graphdb;
+    }
+    
+    @After
+    public void doc() {
+        gen.get().document("target/docs","examples");
+    }
+    
+    @Before
+    public void setUp() {
+        graphdb.cleanContent();
+        gen.get().setGraph( graphdb );
     }
 
 }

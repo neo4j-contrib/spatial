@@ -61,6 +61,7 @@
         <configuration>
           <descriptors>
             <descriptor>src/main/assembly/server-plugin.xml</descriptor>
+            <descriptor>src/main/assembly/docs-assembly.xml</descriptor>
           </descriptors>
         </configuration>
         <executions>
@@ -178,6 +179,12 @@ terms of the relevant Commercial Agreement.
       <artifactId>neo4j-kernel</artifactId>
       <version>${neo4j.version}</version>
       <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+     <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-graphviz</artifactId>
+      <version>${neo4j.version}</version>
       <scope>test</scope>
     </dependency>
 

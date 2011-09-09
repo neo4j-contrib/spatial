@@ -2,6 +2,12 @@
 Examples
 ========
 
+:leveloffset: 2
+
+include::examples/count-all-geometries-in-a-layer.txt[]
+
+:leveloffset: 1
+
 [[spatial-import-shapefile]]
 == Importing a shapefile ==
 
