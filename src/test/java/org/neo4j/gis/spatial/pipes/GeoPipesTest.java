@@ -24,6 +24,7 @@ import static org.junit.Assert.assertEquals;
 import java.util.Map;
 
 import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
@@ -152,6 +153,11 @@ public class GeoPipesTest implements GraphHolder
         graphdb = new ImpermanentGraphDatabase("target/db");
         load();
     }
+    @AfterClass
+    public static void afterCLass() throws Exception
+    {
+        graphdb.shutdown();
+    }
     @Override
     public GraphDatabaseService graphdb()
     {
@@ -165,8 +171,6 @@ public class GeoPipesTest implements GraphHolder
     
     @Before
     public void setUp() {
-        graphdb.cleanContent(true);
-//        System.out.print( "ref "+graphdb.getReferenceNode() );
         gen.get().setGraph( graphdb );
     }
 
