@@ -34,6 +34,7 @@ import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.kernel.impl.annotations.Documented;
+import org.neo4j.test.AsciiDocGenerator;
 import org.neo4j.test.GraphDescription;
 import org.neo4j.test.GraphHolder;
 import org.neo4j.test.ImpermanentGraphDatabase;
@@ -74,7 +75,8 @@ public class GeoPipesTest implements GraphHolder
     public void count_all_geometries_in_a_layer()
     {
         data.get();
-        gen.get().addSnippet( "pipe1", gen.get().createSourceSnippet("pipe1", this.getClass()) );
+        gen.get();
+        gen.get().addSnippet( "pipe1", AsciiDocGenerator.createSourceSnippet("pipe1", this.getClass()) );
         gen.get().addSnippet( "graph", AsciidocHelper.createGraphViz("graph1", graphdb(), gen.get().getTitle()) );
         // START SNIPPET: pipe1
         long allGeometries = layer.filter().all().count();
@@ -147,7 +149,7 @@ public class GeoPipesTest implements GraphHolder
     @BeforeClass
     public static void setUpCLass() throws Exception
     {
-        graphdb = new ImpermanentGraphDatabase();
+        graphdb = new ImpermanentGraphDatabase("target/db");
         load();
     }
     @Override
@@ -163,7 +165,8 @@ public class GeoPipesTest implements GraphHolder
     
     @Before
     public void setUp() {
-        graphdb.cleanContent();
+        graphdb.cleanContent(true);
+//        System.out.print( "ref "+graphdb.getReferenceNode() );
         gen.get().setGraph( graphdb );
     }
 
