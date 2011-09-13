@@ -78,9 +78,10 @@ public class TestOSMImport extends Neo4jTestCase {
 		} else if (spatialTestMode != null && spatialTestMode.equals("dev")) {
 			// Tests relevant to current development
 			layersToTest.clear();
-			layersToTest.add("/home/craig/Desktop/AWE/Data/MapData/baden-wurttemberg.osm/baden-wurttemberg.osm");
+//			layersToTest.add("/home/craig/Desktop/AWE/Data/MapData/baden-wurttemberg.osm/baden-wurttemberg.osm");
 //			layersToTest.add("cyprus.osm");
 //			layersToTest.add("croatia.osm");
+			layersToTest.add("map.osm");
 		}
 		boolean[] pointsTestModes = new boolean[] { true, false };
 		boolean[] batchTestModes = new boolean[] { true, false };
@@ -242,7 +243,7 @@ public class TestOSMImport extends Neo4jTestCase {
 		org.neo4j.collections.rtree.Envelope layerBBox = layer.getIndex().getBoundingBox();
 		double[] centre = layerBBox.centre();
 		double width = layerBBox.getWidth() / 100.0;
-		double height = layerBBox.getWidth() / 100.0;
+		double height = layerBBox.getHeight() / 100.0;
 		bbox = new Envelope(centre[0] - width, centre[0] + width, centre[1] - height, centre[1] + height);
 		runSearches(layer, bbox, false);
 	}
