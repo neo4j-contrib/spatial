@@ -17,28 +17,30 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial;
+package org.neo4j.gis.spatial.filter;
 
-import java.util.List;
-import java.util.Set;
+import org.neo4j.gis.spatial.Layer;
+import org.neo4j.graphdb.Node;
 
-import org.neo4j.collections.rtree.SpatialIndexReader;
-import org.neo4j.collections.rtree.filter.SearchFilter;
-import org.neo4j.collections.rtree.filter.SearchResults;
-import org.neo4j.gis.spatial.filter.SearchRecords;
+import org.neo4j.collections.rtree.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
 
 
 /**
+ * Find geometries that have at least one point in common with the given geometry
+ * 
  * @author Davide Savazzi
+ * @author Craig Taverner
  */
-public interface LayerIndexReader extends SpatialIndexReader {
+public class SearchIntersect extends AbstractSearchIntersection {
 
-	Layer getLayer();
-	
-	SpatialDatabaseRecord get(Long geomNodeId);
-	
-	List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds);
+	public SearchIntersect(Layer layer, Geometry other) {
+		super(layer, other);
+	}
 
-	SearchRecords search(SearchFilter filter);
+	protected boolean onEnvelopeIntersection(Node geomNode, Envelope geomEnvelope) {
+		Geometry geometry = decode(geomNode);
+		return geometry.intersects(referenceGeometry);
+	}
 
 }

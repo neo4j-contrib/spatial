@@ -21,7 +21,7 @@ package org.neo4j.gis.spatial;
 
 import java.util.List;
 
-import org.neo4j.collections.rtree.Search;
+import org.neo4j.collections.rtree.search.Search;
 
 
 public interface LayerSearch extends Search {

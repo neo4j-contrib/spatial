@@ -17,28 +17,30 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial;
+package org.neo4j.gis.spatial.filter;
 
-import java.util.List;
-import java.util.Set;
+import org.neo4j.collections.rtree.filter.AbstractSearchEnvelopeIntersection;
+import org.neo4j.gis.spatial.EnvelopeUtils;
+import org.neo4j.gis.spatial.Layer;
+import org.neo4j.graphdb.Node;
 
-import org.neo4j.collections.rtree.SpatialIndexReader;
-import org.neo4j.collections.rtree.filter.SearchFilter;
-import org.neo4j.collections.rtree.filter.SearchResults;
-import org.neo4j.gis.spatial.filter.SearchRecords;
-
+import com.vividsolutions.jts.geom.Geometry;
 
 /**
- * @author Davide Savazzi
+ * @author Craig Taverner
  */
-public interface LayerIndexReader extends SpatialIndexReader {
+public abstract class AbstractSearchIntersection extends AbstractSearchEnvelopeIntersection {
+	protected Geometry referenceGeometry;
+	protected Layer layer;
 
-	Layer getLayer();
-	
-	SpatialDatabaseRecord get(Long geomNodeId);
-	
-	List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds);
+	public AbstractSearchIntersection(Layer layer, Geometry referenceGeometry) {
+		super(layer.getGeometryEncoder(), EnvelopeUtils.fromJtsToNeo4j(referenceGeometry.getEnvelopeInternal()));
+		this.referenceGeometry = referenceGeometry;
+		this.layer = layer;
+	}
 
-	SearchRecords search(SearchFilter filter);
+	protected Geometry decode(Node geomNode) {
+		return layer.getGeometryEncoder().decodeGeometry(geomNode);
+	}
 
 }

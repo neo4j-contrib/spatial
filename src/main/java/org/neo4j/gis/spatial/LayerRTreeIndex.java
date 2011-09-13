@@ -24,7 +24,9 @@ import java.util.List;
 import java.util.Set;
 
 import org.neo4j.collections.rtree.RTreeIndex;
-import org.neo4j.collections.rtree.Search;
+import org.neo4j.collections.rtree.filter.SearchFilter;
+import org.neo4j.collections.rtree.search.Search;
+import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 
@@ -92,4 +94,9 @@ public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader,
 	
 	private GraphDatabaseService database;
 	private Layer layer;
+
+	@Override
+	public SearchRecords search(SearchFilter filter) {
+		return new SearchRecords(layer, searchIndex(filter));
+	}
 }

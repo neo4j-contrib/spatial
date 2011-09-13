@@ -32,10 +32,12 @@ import junit.framework.TestSuite;
 import org.geotools.data.shapefile.shp.ShapefileException;
 import org.neo4j.collections.rtree.NullListener;
 import org.neo4j.gis.spatial.osm.OSMImporter;
-import org.neo4j.gis.spatial.query.SearchIntersect;
+import org.neo4j.gis.spatial.filter.SearchIntersect;
+import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.graphdb.Node;
 
 import org.neo4j.collections.rtree.Envelope;
+import org.neo4j.collections.rtree.filter.SearchResults;
 
 /**
  * <p>
@@ -336,12 +338,11 @@ public class TestSpatial extends Neo4jTestCase {
                     + " inside search region");
         }
 
-        LayerSearch searchQuery = new SearchIntersect(layer.getGeometryFactory().toGeometry(EnvelopeUtils.fromNeo4jToJts(bbox)));
+        SearchIntersect searchQuery = new SearchIntersect(layer,layer.getGeometryFactory().toGeometry(EnvelopeUtils.fromNeo4jToJts(bbox)));
         for (LayerIndexReader index : new LayerIndexReader[] {fakeIndex, rtreeIndex}) {
             ArrayList<TestGeometry> foundData = new ArrayList<TestGeometry>();
-            index.executeSearch(searchQuery);
-            List<SpatialDatabaseRecord> results = searchQuery.getExtendedResults();
-            System.out.println("\tIndex[" + index.getClass() + "] found results: " + results.size());
+            SearchRecords results = index.search(searchQuery);
+            System.out.println("\tIndex[" + index.getClass() + "] found results: " + results.count());
             int ri = 0;
             for (SpatialDatabaseRecord r : results) {
                 if (ri++ < 10) {
@@ -352,7 +353,7 @@ public class TestSpatial extends Neo4jTestCase {
                     }
                     System.out.println("\tRTreeIndex result[" + ri + "]: " + r.getId() + ":" + r.getType() + " - " + r.toString() + ": PROPS["+props+"]");
                 } else if (ri == 10) {
-                    System.out.println("\t.. and " + (results.size() - ri) + " more ..");
+                    System.out.println("\t.. and " + (results.count() - ri) + " more ..");
                 }
                 addGeomStats(r.getGeomNode());
                 String name = (String)r.getProperty("NAME");

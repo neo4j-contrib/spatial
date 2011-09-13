@@ -30,8 +30,8 @@ import org.neo4j.gis.spatial.DynamicLayer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.SpatialDataset;
-import org.neo4j.gis.spatial.pipes.GeoFilteringPipeline;
-import org.neo4j.gis.spatial.pipes.osm.OSMGeoFilteringPipeline;
+import org.neo4j.gis.spatial.pipes.GeoFilter;
+import org.neo4j.gis.spatial.pipes.osm.OSMGeoFilter;
 import org.neo4j.gis.spatial.pipes.osm.OSMGeoProcessingPipeline;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
@@ -284,8 +284,8 @@ public class OSMLayer extends DynamicLayer {
 	}
 
 	@Override
-    public GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> filter() {
-        return new OSMGeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>(this);
+    public GeoFilter filter() {
+        return new OSMGeoFilter(this);
     }
 	
     @Override

@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.neo4j.gis.spatial.pipes.GeoFilter;
 import org.neo4j.gis.spatial.pipes.GeoFilteringPipeline;
 import org.neo4j.gis.spatial.pipes.GeoProcessing;
 import org.neo4j.collections.rtree.Listener;
@@ -155,6 +156,6 @@ public interface Layer extends GeoProcessing {
 	 */
 	Object getStyle();
 
-    GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> filter();
+    GeoFilter filter();
 
 }

@@ -36,8 +36,11 @@ import org.json.simple.JSONValue;
 import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.collections.rtree.EnvelopeDecoder;
 import org.neo4j.collections.rtree.Listener;
-import org.neo4j.collections.rtree.Search;
 import org.neo4j.collections.rtree.SpatialIndexRecordCounter;
+import org.neo4j.collections.rtree.filter.SearchFilter;
+import org.neo4j.collections.rtree.filter.SearchResults;
+import org.neo4j.collections.rtree.search.Search;
+import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.geotools.data.Neo4jFeatureBuilder;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.DynamicRelationshipType;
@@ -45,6 +48,7 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.gis.spatial.pipes.GeoFilter;
 import org.neo4j.gis.spatial.pipes.GeoFilteringPipeline;
 import org.neo4j.gis.spatial.pipes.GeoProcessingPipeline;
 import org.opengis.feature.simple.SimpleFeature;
@@ -146,6 +150,16 @@ public class DynamicLayer extends EditableLayerImpl {
 		@Override		
 		public Iterable<Node> getAllIndexedNodes() {
 			return index.getAllIndexedNodes();
+		}
+
+		@Override
+		public SearchResults searchIndex(SearchFilter filter) {
+			return index.searchIndex(filter);
+		}
+
+		@Override
+		public SearchRecords search(SearchFilter filter) {
+			return index.search(filter);
 		}
 	}
 
@@ -562,17 +576,15 @@ public class DynamicLayer extends EditableLayerImpl {
 			return getName();
 		}
 
-        @Override
-        public GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> filter()
-        {
-            return new GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>(this);
-        }
+		@Override
+		public GeoFilter filter() {
+			return new GeoFilter(this);
+		}
 
-        @Override
-        public GeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> process()
-        {
-            return new GeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>(this);
-        }
+		@Override
+		public GeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> process() {
+			return new GeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>(this);
+		}
 	}
 
 	private synchronized Map<String, Layer> getLayerMap() {

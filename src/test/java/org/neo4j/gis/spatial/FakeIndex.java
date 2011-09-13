@@ -20,12 +20,16 @@
 package org.neo4j.gis.spatial;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
 import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.collections.rtree.EnvelopeDecoder;
-import org.neo4j.collections.rtree.Search;
+import org.neo4j.collections.rtree.filter.SearchFilter;
+import org.neo4j.collections.rtree.filter.SearchResults;
+import org.neo4j.collections.rtree.search.Search;
+import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.graphdb.Node;
 
 
@@ -115,4 +119,59 @@ public class FakeIndex implements LayerIndexReader, Constants {
 	// Attributes
 	
 	private Layer layer;
+
+	private class NodeFilter implements Iterable<Node>, Iterator<Node> {
+		private SearchFilter filter;
+		private Node nextNode;
+		private Iterator<Node> nodes;
+
+		public NodeFilter(SearchFilter filter, Iterable<Node> nodes) {
+			this.filter = filter;
+			this.nodes = nodes.iterator();
+			nextNode = getNextNode();
+		}
+		
+		@Override
+		public Iterator<Node> iterator() {
+			return this;
+		}
+
+		@Override
+		public boolean hasNext() {
+			return nextNode != null;
+		}
+
+		@Override
+		public Node next() {
+			Node currentNode = nextNode;
+			nextNode = getNextNode();
+			return currentNode;
+		}
+
+		private Node getNextNode() {
+			Node nn = null;
+			while(nodes.hasNext()){
+				Node node = nodes.next();
+				if(filter.geometryMatches(node)){
+					nn = node;
+					break;
+				}
+			}
+			return nn;
+		}
+
+		@Override
+		public void remove() {
+		}
+	}
+		
+	@Override
+	public SearchResults searchIndex(SearchFilter filter) {
+		return new SearchResults(new NodeFilter(filter, layer.getDataset().getAllGeometryNodes()));
+	}
+
+	@Override
+	public SearchRecords search(SearchFilter filter) {
+		return new SearchRecords(layer, searchIndex(filter));
+	}
 }

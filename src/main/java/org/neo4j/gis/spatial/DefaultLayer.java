@@ -29,6 +29,7 @@ import org.geotools.referencing.ReferencingFactoryFinder;
 import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.collections.rtree.Listener;
 import org.neo4j.gis.spatial.encoders.Configurable;
+import org.neo4j.gis.spatial.pipes.GeoFilter;
 import org.neo4j.gis.spatial.pipes.GeoFilteringPipeline;
 import org.neo4j.gis.spatial.pipes.GeoProcessingPipeline;
 import org.neo4j.graphdb.Direction;
@@ -407,9 +408,8 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 	}
 
     @Override
-    public GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> filter()
-    {
-        return new GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>(this);
+    public GeoFilter filter() {
+        return new GeoFilter(this);
     }
 
     @Override
