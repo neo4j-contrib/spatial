@@ -45,11 +45,11 @@ public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader,
 	// Constructor
 	
 	public LayerRTreeIndex(GraphDatabaseService database, Layer layer) {
-		this(database, layer, 100, 51);		
+		this(database, layer, 100);		
 	}
 	
-	public LayerRTreeIndex(GraphDatabaseService database, Layer layer, int maxNodeReferences, int minNodeReferences) {
-		super(database, layer.getLayerNode(), layer.getGeometryEncoder(), maxNodeReferences, minNodeReferences);
+	public LayerRTreeIndex(GraphDatabaseService database, Layer layer, int maxNodeReferences) {
+		super(database, layer.getLayerNode(), layer.getGeometryEncoder(), maxNodeReferences);
 		
 		this.layer = layer;
 	}
