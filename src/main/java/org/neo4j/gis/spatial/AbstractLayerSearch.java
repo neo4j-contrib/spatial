@@ -60,6 +60,10 @@ public abstract class AbstractLayerSearch implements LayerSearch {
 	
 	// Private methods
 	
+	protected Layer getLayer() {
+		return layer;
+	}
+	
 	protected void add(Node geomNode) {
 		results.add(new SpatialDatabaseRecord(layer, geomNode));
 	}
