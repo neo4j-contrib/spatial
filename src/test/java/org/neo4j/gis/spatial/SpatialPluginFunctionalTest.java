@@ -30,7 +30,7 @@ import org.neo4j.server.rest.AbstractRestFunctionalTestBase;
 
 public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
 {
-    private static final String ENDPOINT = "http://localhost:7474/db/data/ext/SpatialPlugi";
+    private static final String ENDPOINT = "http://localhost:7474/db/data/ext/SpatialPlugin";
 
     @Test
     public void test_exists() throws UnsupportedEncodingException
