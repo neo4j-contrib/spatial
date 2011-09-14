@@ -30,7 +30,6 @@ import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.collections.rtree.Listener;
 import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.gis.spatial.pipes.GeoFilter;
-import org.neo4j.gis.spatial.pipes.GeoFilteringPipeline;
 import org.neo4j.gis.spatial.pipes.GeoProcessingPipeline;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;

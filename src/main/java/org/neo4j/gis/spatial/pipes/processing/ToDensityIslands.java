@@ -25,14 +25,9 @@ import java.util.List;
 import java.util.NoSuchElementException;
 
 import org.neo4j.gis.spatial.Layer;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Path;
 
 import com.tinkerpop.pipes.AbstractPipe;
-import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryCollection;
-import com.vividsolutions.jts.geom.GeometryFactory;
 
 public class ToDensityIslands extends AbstractPipe {
 

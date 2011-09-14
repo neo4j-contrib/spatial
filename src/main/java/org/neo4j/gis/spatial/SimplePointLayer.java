@@ -23,10 +23,10 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.gis.spatial.query.SearchPointsWithinOrthodromicDistance;
 
 import com.vividsolutions.jts.geom.Coordinate;
-import org.neo4j.collections.rtree.Envelope;
 
 public class SimplePointLayer extends EditableLayerImpl {
 	public static final int LIMIT_RESULTS = 100;

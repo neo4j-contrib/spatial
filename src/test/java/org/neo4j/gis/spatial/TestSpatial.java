@@ -24,20 +24,17 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
 import org.geotools.data.shapefile.shp.ShapefileException;
+import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.collections.rtree.NullListener;
-import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.filter.SearchIntersect;
 import org.neo4j.gis.spatial.filter.SearchRecords;
+import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.graphdb.Node;
-
-import org.neo4j.collections.rtree.Envelope;
-import org.neo4j.collections.rtree.filter.SearchResults;
 
 /**
  * <p>
