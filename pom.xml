@@ -419,7 +419,6 @@ terms of the relevant Commercial Agreement.
               </cucumberArgs>
               <gems>
                 <gem>install cuke4duke --version ${cuke4duke.version}</gem>
-                <gem>install fileutils</gem>
               </gems>
             </configuration>
             <executions>
