@@ -19,8 +19,8 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
 import org.neo4j.gis.spatial.pipes.GeoFilter;
-import org.neo4j.gis.spatial.pipes.GeoFilteringPipeline;
 import org.neo4j.gis.spatial.pipes.GeoProcessing;
 import org.neo4j.collections.rtree.Listener;
 import org.neo4j.graphdb.Node;
@@ -158,4 +158,5 @@ public interface Layer extends GeoProcessing {
 
     GeoFilter filter();
 
+    PropertyMappingManager getPropertyMappingManager();
 }

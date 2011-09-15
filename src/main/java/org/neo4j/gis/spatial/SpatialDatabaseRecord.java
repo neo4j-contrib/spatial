@@ -19,11 +19,11 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.neo4j.gis.spatial.attributes.PropertyMapper;
 import org.neo4j.graphdb.Node;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Geometry;
-
 
 /**
  * @author Davide Savazzi
@@ -84,6 +84,11 @@ public class SpatialDatabaseRecord implements Constants, Comparable<SpatialDatab
 	 * @return
 	 */
 	public boolean hasProperty(String name) {
+		PropertyMapper mapper = layer.getPropertyMappingManager().getPropertyMapper(name);
+		return mapper == null ? hasGeometryProperty(name) : hasGeometryProperty(mapper.from());
+	}
+
+	private boolean hasGeometryProperty(String name) {
 		return layer.getGeometryEncoder().hasAttribute(geomNode,name);
 	}
 
@@ -100,8 +105,13 @@ public class SpatialDatabaseRecord implements Constants, Comparable<SpatialDatab
 		}
 		return values;
 	}
-
+	
 	public Object getProperty(String name) {
+		PropertyMapper mapper = layer.getPropertyMappingManager().getPropertyMapper(name);
+		return mapper == null ? getGeometryProperty(name) : mapper.map(getGeometryProperty(mapper.from()));
+	}
+	
+	private Object getGeometryProperty(String name) {
 		return layer.getGeometryEncoder().getAttribute(geomNode,name);
 	}
 	

@@ -26,5 +26,5 @@ import org.neo4j.graphdb.RelationshipType;
  * @author Davide Savazzi
  */
 public enum SpatialRelationshipTypes implements RelationshipType {
-	LAYER, NETWORK, NEXT_GEOM, GEOMETRIES, SPATIAL, LAYERS, DATASETS, LAYER_CONFIG, DATASET
+	LAYER, NETWORK, NEXT_GEOM, GEOMETRIES, SPATIAL, LAYERS, DATASETS, LAYER_CONFIG, DATASET, PROPERTY_MAPPING
 }

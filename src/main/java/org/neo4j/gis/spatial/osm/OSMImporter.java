@@ -956,6 +956,7 @@ public class OSMImporter implements Constants {
 				} else {
 					LinkedHashMap<String, Object> changesetProps = new LinkedHashMap<String, Object>();
 					changesetProps.put(INDEX_NAME_CHANGESET, currentChangesetId);
+					changesetProps.put("timestamp", nodeProps.get("timestamp"));
 					currentChangesetNode = (Node) addNode(INDEX_NAME_CHANGESET, changesetProps, INDEX_NAME_CHANGESET);
 					changesetCount ++;
 					if (currentUserNode != null) {
@@ -981,11 +982,12 @@ public class OSMImporter implements Constants {
 						LinkedHashMap<String, Object> userProps = new LinkedHashMap<String, Object>();
 						userProps.put("uid", currentUserId);
 						userProps.put("name", name);
+						userProps.put("timestamp", nodeProps.get("timestamp"));
 						currentUserNode = (Node) addNode(INDEX_NAME_USER, userProps, "uid");
 						userCount ++;
-						if (currentChangesetNode != null) {
-							currentChangesetNode.createRelationshipTo(currentUserNode, OSMRelation.USER);
-						}
+//						if (currentChangesetNode != null) {
+//							currentChangesetNode.createRelationshipTo(currentUserNode, OSMRelation.USER);
+//						}
 						if (usersNode == null) {
 							usersNode = graphDb.createNode();
 							osm_dataset.createRelationshipTo(usersNode, OSMRelation.USERS);
@@ -1251,6 +1253,7 @@ public class OSMImporter implements Constants {
 				} else {
 					LinkedHashMap<String, Object> changesetProps = new LinkedHashMap<String, Object>();
 					changesetProps.put("changeset", currentChangesetId);
+					changesetProps.put("timestamp", nodeProps.get("timestamp"));
 					currentChangesetNode = (Long) addNode("changeset", changesetProps, "changeset");
 					indexFor("changeset").flush();
 					if (currentUserNode > 0) {
@@ -1276,6 +1279,7 @@ public class OSMImporter implements Constants {
 						LinkedHashMap<String, Object> userProps = new LinkedHashMap<String, Object>();
 						userProps.put("uid", currentUserId);
 						userProps.put("name", name);
+						userProps.put("timestamp", nodeProps.get("timestamp"));
 						currentUserNode = (Long) addNode("user", userProps, "uid");
 						indexFor(INDEX_NAME_USER).flush();
 						if (usersNode < 0) {

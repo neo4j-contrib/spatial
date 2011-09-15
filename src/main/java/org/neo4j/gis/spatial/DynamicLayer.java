@@ -22,9 +22,7 @@ package org.neo4j.gis.spatial;
 import java.io.File;
 import java.io.PrintStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,6 +38,8 @@ import org.neo4j.collections.rtree.SpatialIndexRecordCounter;
 import org.neo4j.collections.rtree.filter.SearchFilter;
 import org.neo4j.collections.rtree.filter.SearchResults;
 import org.neo4j.collections.rtree.search.Search;
+import org.neo4j.gis.spatial.attributes.PropertyMapper;
+import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.geotools.data.Neo4jFeatureBuilder;
 import org.neo4j.graphdb.Direction;
@@ -49,7 +49,6 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.gis.spatial.pipes.GeoFilter;
-import org.neo4j.gis.spatial.pipes.GeoFilteringPipeline;
 import org.neo4j.gis.spatial.pipes.GeoProcessingPipeline;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.filter.Filter;
@@ -184,11 +183,13 @@ public class DynamicLayer extends EditableLayerImpl {
     public class CQLIndexReader extends SpatialIndexReaderWrapper {
         private final Filter filter;
         private final Neo4jFeatureBuilder builder;
+        private final Layer layer;
 
-        public CQLIndexReader(LayerTreeIndexReader index, String query) throws CQLException {
+        public CQLIndexReader(LayerTreeIndexReader index, Layer layer, String query) throws CQLException {
             super(index);
             this.filter = ECQL.toFilter(query);
-            this.builder = new Neo4jFeatureBuilder(DynamicLayer.this);
+            this.builder = new Neo4jFeatureBuilder(layer);
+            this.layer = layer;
         }
 
         private class Counter extends SpatialIndexRecordCounter {
@@ -269,12 +270,11 @@ public class DynamicLayer extends EditableLayerImpl {
             return true;
         }
 
-        private boolean queryLeafNode(Node indexNode) {
-            SpatialDatabaseRecord dbRecord = 
-                new SpatialDatabaseRecord(DynamicLayer.this, indexNode); 
-            SimpleFeature feature = builder.buildFeature(dbRecord);
-            return filter.evaluate(feature);
-        }
+		private boolean queryLeafNode(Node indexNode) {
+			SpatialDatabaseRecord dbRecord = new SpatialDatabaseRecord(layer, indexNode);
+			SimpleFeature feature = builder.buildFeature(dbRecord);
+			return filter.evaluate(feature);
+		}
 
    		public int count() {
 			Counter counter = new Counter();
@@ -507,8 +507,82 @@ public class DynamicLayer extends EditableLayerImpl {
 		}
 
 		public String[] getExtraPropertyNames() {
-            return DynamicLayer.this.getExtraPropertyNames();
-        }
+			if (propertyNames != null && propertyNames.length > 0) {
+				return propertyNames;
+			} else {
+				return DynamicLayer.this.getExtraPropertyNames();
+			}
+		}
+
+		private class PropertyUsageSearch extends AbstractLayerSearch {
+			private LinkedHashMap<String, Integer> names = new LinkedHashMap<String, Integer>();
+			private int nodeCount = 0;
+			private int MAX_COUNT = 10000;
+
+			@Override
+			public boolean needsToVisit(Envelope indexNodeEnvelope) {
+				return nodeCount < MAX_COUNT;
+			}
+
+			@Override
+			public void onIndexReference(Node geomNode) {
+				if (nodeCount++ < MAX_COUNT) {
+					SpatialDatabaseRecord record = new SpatialDatabaseRecord(layer, geomNode);
+					for (String name : record.getPropertyNames()) {
+						Object value = record.getProperty(name);
+						if (value != null) {
+							Integer count = names.get(name);
+							if (count == null)
+								count = 0;
+							names.put(name, count + 1);
+						}
+					}
+				}
+			}
+			
+			public String[] getNames() {
+				return names.keySet().toArray(new String[] {});				
+			}
+			
+			public int getNodeCount() {
+				return nodeCount;
+			}
+			
+			public void describeUsage(PrintStream out) {
+				for (String name : names.keySet()) {
+					System.out.println(name + "\t" + names.get(name));
+				}
+			}
+		}
+
+		/**
+		 * This method will scan the layer for property names that are actually
+		 * used, and restrict the layer properties to those
+		 */
+		public void restrictLayerProperties() {
+			if (propertyNames != null && propertyNames.length > 0) {
+				System.out.println("Restricted property names already exists - will be overwritten");
+			}
+			System.out.println("Before property scan we have " + getExtraPropertyNames().length + " known attributes for layer "
+					+ getName());
+			PropertyUsageSearch search = new PropertyUsageSearch();
+			getIndex().executeSearch(search);
+			setExtraPropertyNames(search.getNames());
+			System.out.println("After property scan of " + search.getNodeCount() + " nodes, we have "
+					+ getExtraPropertyNames().length + " known attributes for layer " + getName());
+			//search.describeUsage(System.out);
+		}
+		
+		public void setExtraPropertyNames(String[] names) {
+			Transaction tx = configNode.getGraphDatabase().beginTx();
+			try {
+				configNode.setProperty("propertyNames", names);
+				propertyNames = names;
+				tx.success();
+			} finally {
+				tx.finish();
+			}
+		}
 
 		public GeometryEncoder getGeometryEncoder() {
 			return DynamicLayer.this.getGeometryEncoder();
@@ -531,7 +605,7 @@ public class DynamicLayer extends EditableLayerImpl {
 				} else {
 					// Make a CQL based dynamic layer
 					try {
-						return new CQLIndexReader((LayerTreeIndexReader) index, getQuery());
+						return new CQLIndexReader((LayerTreeIndexReader) index, this, getQuery());
 					} catch (CQLException e) {
 						throw new SpatialDatabaseException("Error while creating CQL based DynamicLayer", e);
 					}
@@ -585,6 +659,17 @@ public class DynamicLayer extends EditableLayerImpl {
 		public GeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> process() {
 			return new GeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>(this);
 		}
+
+		private PropertyMappingManager propertyMappingManager;
+
+		@Override
+		public PropertyMappingManager getPropertyMappingManager() {
+			if (propertyMappingManager == null) {
+				propertyMappingManager = new PropertyMappingManager(this);
+			}
+			return propertyMappingManager;
+		}
+
 	}
 
 	private synchronized Map<String, Layer> getLayerMap() {
@@ -707,6 +792,51 @@ public class DynamicLayer extends EditableLayerImpl {
 		}
 	}
 	
+	/**
+	 * Restrict specified layers attributes to the specified set. This will simply
+	 * save the quest to the LayerConfig node, so that future queries will only return
+	 * attributes that are within the named list. If you want to have it perform 
+	 * and automatic search, pass null for the names list, but be warned, this can
+	 * take a long time on large datasets.
+	 * 
+	 * @param name of layer to restrict
+	 * @param names to use for attributes
+	 * @return
+	 */
+	public LayerConfig restrictLayerProperties(String name, String[] names) {
+		Layer layer = getLayerMap().get(name);
+		if (layer != null) {
+			if (layer instanceof LayerConfig) {
+				LayerConfig config = (LayerConfig) layer;
+				if (names == null) {
+					config.restrictLayerProperties();
+				} else {
+					config.setExtraPropertyNames(names);
+				}
+				return config;
+			} else {
+				System.err.println("Existing Layer has same name as requested LayerConfig: " + layer.getName());
+				return null;
+			}
+		} else {
+			System.err.println("No such layer: " + name);
+			return null;
+		}
+	}
+
+	/**
+	 * Restrict specified layers attributes to only those that are actually
+	 * found to be used. This does an exhaustive search and can be time
+	 * consuming. For large layers, consider manually setting the properties
+	 * instead.
+	 * 
+	 * @param name
+	 * @return
+	 */
+	public LayerConfig restrictLayerProperties(String name) {
+		return restrictLayerProperties(name, null);
+	}
+
 	public List<String> getLayerNames() {
 		return new ArrayList<String>(getLayerMap().keySet());
 	}
