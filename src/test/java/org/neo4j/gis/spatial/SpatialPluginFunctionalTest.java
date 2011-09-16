@@ -17,32 +17,27 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.pipes.processing;
+package org.neo4j.gis.spatial;
 
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import static org.junit.Assert.assertTrue;
 
-import com.tinkerpop.pipes.AbstractPipe;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.Point;
+import java.io.UnsupportedEncodingException;
 
-public class ToPointsPipe extends AbstractPipe<SpatialDatabaseRecord, Point> {
+import javax.ws.rs.core.Response.Status;
 
-	private Geometry curGeometry;
-	private int curPos;
+import org.junit.Test;
+import org.neo4j.server.rest.AbstractRestFunctionalTestBase;
 
-	public Point processNextStart() {
-		while (true) {
+public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
+{
+    private static final String ENDPOINT = "http://localhost:7474/db/data/ext/SpatialPlugin";
 
-			if (curGeometry == null || curPos >= curGeometry.getNumPoints()) {
-				final SpatialDatabaseRecord record = this.starts.next();
-				curGeometry = record.getGeometry();
-				curPos = 0;
-			}
-
-			GeometryFactory geometryFactory = new GeometryFactory();
-			return geometryFactory.createPoint(curGeometry.getCoordinates()[curPos++]);
-		}
-
-	}
+    @Test
+    public void test_exists() throws UnsupportedEncodingException
+    {
+        gen.get().expectedStatus( Status.OK.getStatusCode() );
+        String response = gen.get().get( ENDPOINT ).entity();
+        assertTrue( response.contains( "graphdb" ) );
+    }
+    
 }

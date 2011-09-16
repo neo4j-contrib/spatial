@@ -19,29 +19,15 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
-
 import com.tinkerpop.pipes.AbstractPipe;
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.Point;
 
-public class ToPointsPipe extends AbstractPipe<SpatialDatabaseRecord, Point> {
+public class ToConvexHull extends AbstractPipe<Geometry, Geometry> {
 
-	private Geometry curGeometry;
-	private int curPos;
-
-	public Point processNextStart() {
+	public Geometry processNextStart() {
 		while (true) {
-
-			if (curGeometry == null || curPos >= curGeometry.getNumPoints()) {
-				final SpatialDatabaseRecord record = this.starts.next();
-				curGeometry = record.getGeometry();
-				curPos = 0;
-			}
-
-			GeometryFactory geometryFactory = new GeometryFactory();
-			return geometryFactory.createPoint(curGeometry.getCoordinates()[curPos++]);
+			final Geometry geometry = (Geometry) this.starts.next();
+			return geometry.convexHull();
 		}
 
 	}

@@ -48,9 +48,11 @@ import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.osm.OSMRelation;
 import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Coordinate;
@@ -91,11 +93,11 @@ public class DavideOsmAnalysisTest extends TestOSMImport {
 			// layersToTest.add("/home/craig/Desktop/AWE/Data/MapData/baden-wurttemberg.osm/baden-wurttemberg.osm");
 			// layersToTest.add("cyprus.osm");
 			// layersToTest.add("croatia.osm");
-			layersToTest.add("map2.osm");
+			layersToTest.add("cyprus.osm");
 		}
 
-		int years[] = new int[]{2};
-		int days[] = new int[]{7};
+		int years[] = new int[]{3};
+		int days[] = new int[]{1};
 
 		// Finally build the set of complete test cases based on the collection
 		// above
@@ -123,9 +125,35 @@ public class DavideOsmAnalysisTest extends TestOSMImport {
 		return suite;
 	}
 
+	private String dataset;
+	private GraphDatabaseService db;
+	
+	protected GraphDatabaseService graphDb() {
+		return db==null ? super.graphDb() : db;
+	}
+	
+	protected void shutdownDatabase() {
+		if(db!=null) {
+			db.shutdown();
+			db = null;
+		}
+	}
+	
+	protected SpatialDatabaseService setDataset(String dataset) {
+		this.dataset = dataset;
+		if (db != null) {
+			shutdownDatabase();
+		}
+		db = new EmbeddedGraphDatabase("var/" + dataset);
+		return new SpatialDatabaseService(db);
+	}
+	
 	protected void runAnalysis(String osm, int years, int days) throws Exception {
-		runImport(osm, usePoints, useBatchInserter);
+		if(setDataset(osm).getLayer(osm)==null){
+			runImport(osm, usePoints, useBatchInserter);
+		}
 		testAnalysis2(osm, years, days);
+		shutdownDatabase();
 	}
 
 	public void testAnalysis2(String osm, int years, int days) throws IOException {
@@ -160,38 +188,45 @@ public class DavideOsmAnalysisTest extends TestOSMImport {
 		int slidesPerYear = 360/days;
 		int slideCount = slidesPerYear * years;
 		long msPerSlide = days * 24 * 3600000;
+		int timeWindow = 15;
+		StringBuffer userQuery = new StringBuffer();
+		int user_rank = 1;
+		for (User user : topTen) {
+			if (userQuery.length() > 0)
+				userQuery.append(" or ");
+			userQuery.append("user = '" + user.name + "'");
+			user_rank++;
+		}
 		LinkedHashMap<LayerConfig,Long> slides = new LinkedHashMap<LayerConfig,Long>();
-		for (int i = 0; i < slideCount; i++) {
+		for (int i = -timeWindow; i < slideCount; i++) {
 			long timestamp = latestTimestamp - i * msPerSlide;
 			long minTime = timestamp;
-			long maxTime = timestamp + 5 * msPerSlide;
+			long maxTime = timestamp + 15 * msPerSlide;
 			time.setTimeInMillis(timestamp);
 			Date date = new Date(timestamp);
 			System.out.println("Preparing slides for " + date);
 			String name = osm + "-" + date;
-			StringBuffer query = new StringBuffer();
-			int user_rank = 1;
-			for (User user : topTen) {
-				if (query.length() > 0)
-					query.append(" or ");
-				query.append("user = '" + user.name + "'");
-				user_rank++;
-			}
-			slides.put(layer.addLayerConfig(name, Constants.GTYPE_GEOMETRY, "timestamp > " + minTime + " and timestamp < "
-					+ maxTime + " and (" + query + ")"), timestamp);
+			LayerConfig config = layer.addLayerConfig(name, Constants.GTYPE_GEOMETRY, "timestamp > " + minTime + " and timestamp < "
+					+ maxTime + " and (" + userQuery + ")");
+			System.out.println("Added dynamic layer '"+config.getName()+"' with CQL: "+config.getQuery());
+			slides.put(config, timestamp);
 		}
+		LayerConfig config = layer.addLayerConfig(osm + "-top-ten", Constants.GTYPE_GEOMETRY, userQuery.toString());
+		System.out.println("Added dynamic layer '"+config.getName()+"' with CQL: "+config.getQuery());
+		slides.clear();
+		slides.put(config, 0L);
 
 		StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
 		String exportDir = "target/export/" + osm + "/analysis";
 		imageExporter.setExportDir(exportDir);
 		imageExporter.setZoom(2.0);
-		imageExporter.setOffset(-0.05, -0.05);
+		imageExporter.setOffset(-0.2, 0.25);
 		imageExporter.setSize(1280, 800);
 		imageExporter.setStyleFiles(new String[] { "background.sld", "rank.sld" });
 
 		String[] layerPropertyNames = new String[]{"name", "timestamp", "user", "days", "user_rank"};
 		StringBuffer userParams = new StringBuffer();
-		int user_rank = 1;
+		user_rank = 1;
 		for (User user : topTen) {
 			if(userParams.length()>0) userParams.append(",");
 			userParams.append(user.name).append(":").append(user_rank);
@@ -218,6 +253,7 @@ public class DavideOsmAnalysisTest extends TestOSMImport {
 				}
 			}
 			imageExporter.saveLayerImage(new String[] { osm, layerToExport.getName() }, new File(layerToExport.getName() + ".png"));
+			//break;
 		}
 	}
 

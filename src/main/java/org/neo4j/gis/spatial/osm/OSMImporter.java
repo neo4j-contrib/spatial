@@ -42,11 +42,11 @@ import javax.xml.stream.XMLStreamReader;
 
 import org.apache.commons.collections.MapUtils;
 import org.geotools.referencing.datum.DefaultEllipsoid;
+import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.collections.rtree.Listener;
 import org.neo4j.collections.rtree.NullListener;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
-import org.neo4j.gis.spatial.osm.OSMDataset.OSMNode;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -68,8 +68,6 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.impl.batchinsert.BatchInserter;
 import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
 import org.neo4j.kernel.impl.batchinsert.SimpleRelationship;
-
-import org.neo4j.collections.rtree.Envelope;
 
 public class OSMImporter implements Constants {
     public static DefaultEllipsoid WGS84 = DefaultEllipsoid.WGS84;

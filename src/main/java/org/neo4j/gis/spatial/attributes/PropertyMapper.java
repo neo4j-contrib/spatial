@@ -153,7 +153,7 @@ public abstract class PropertyMapper {
 
 		@Override
 		public Object map(Object value) {
-			return map.get(value.toString());
+			return value == null ? null : map.get(value.toString());
 		}
 
 	}

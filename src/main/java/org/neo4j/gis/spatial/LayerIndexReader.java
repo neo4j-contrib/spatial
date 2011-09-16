@@ -24,7 +24,6 @@ import java.util.Set;
 
 import org.neo4j.collections.rtree.SpatialIndexReader;
 import org.neo4j.collections.rtree.filter.SearchFilter;
-import org.neo4j.collections.rtree.filter.SearchResults;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 
 

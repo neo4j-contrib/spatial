@@ -204,30 +204,6 @@ public class TestOSMImport extends Neo4jTestCase {
 
 	}
 
-	/**
-	 * This class returns true for a wider range of index nodes, by reproducing
-	 * a bug we had before 0.6, where the Envelope had the MinY and MaxX values
-	 * swapped, creating a much large envelope in most cases. We use it for
-	 * performance testing of the RTree.
-	 * 
-	 * @since 0.6
-	 * @author craig
-	 */
-	private class SearchWithinBroken extends SearchWithin {
-
-		public SearchWithinBroken(Geometry other) {
-			super(other);
-		}
-
-		@Override
-		public boolean needsToVisit(org.neo4j.collections.rtree.Envelope indexNodeEnvelope) {
-			indexNodeEnvelope = new org.neo4j.collections.rtree.Envelope(indexNodeEnvelope.getMinX(), indexNodeEnvelope.getMinY(), indexNodeEnvelope.getMaxX(),
-					indexNodeEnvelope.getMaxY());
-			return indexNodeEnvelope.intersects(EnvelopeUtils.fromJtsToNeo4j(other.getEnvelopeInternal()));
-		}
-
-	}
-
 	private void checkOSMSearch(OSMLayer layer) throws IOException {
 		OSMDataset osm = (OSMDataset) layer.getDataset();
 		Way way = null;
@@ -252,7 +228,6 @@ public class TestOSMImport extends Neo4jTestCase {
 		for (int i = 0; i < 4; i++) {
 			Geometry searchArea = layer.getGeometryFactory().toGeometry(bbox);
 			runSearch(layer, new SearchWithinAll(searchArea), willHaveResult);
-			runSearch(layer, new SearchWithinBroken(searchArea), willHaveResult);
 			runSearch(layer, new SearchWithin(searchArea), willHaveResult);
 			bbox.expandBy(bbox.getWidth(), bbox.getHeight());
 		}

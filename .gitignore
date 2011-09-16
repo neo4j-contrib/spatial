@@ -1,5 +1,6 @@
 .settings
 /osm
+/var
 logs
 benchmark
 /stackTrace*

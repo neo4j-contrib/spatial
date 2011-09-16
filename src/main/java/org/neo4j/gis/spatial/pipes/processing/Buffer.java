@@ -22,7 +22,7 @@ package org.neo4j.gis.spatial.pipes.processing;
 import com.tinkerpop.pipes.AbstractPipe;
 import com.vividsolutions.jts.geom.Geometry;
 
-public class Buffer<S, E> extends AbstractPipe<Geometry, Geometry>{
+public class Buffer extends AbstractPipe<Geometry, Geometry>{
 	
 	private double distance;
 	

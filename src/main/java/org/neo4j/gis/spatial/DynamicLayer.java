@@ -42,6 +42,8 @@ import org.neo4j.gis.spatial.attributes.PropertyMapper;
 import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.geotools.data.Neo4jFeatureBuilder;
+import org.neo4j.gis.spatial.pipes.GeoFilter;
+import org.neo4j.gis.spatial.pipes.GeoProcessingPipeline;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.DynamicRelationshipType;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -527,7 +529,7 @@ public class DynamicLayer extends EditableLayerImpl {
 			@Override
 			public void onIndexReference(Node geomNode) {
 				if (nodeCount++ < MAX_COUNT) {
-					SpatialDatabaseRecord record = new SpatialDatabaseRecord(layer, geomNode);
+					SpatialDatabaseRecord record = new SpatialDatabaseRecord(getLayer(), geomNode);
 					for (String name : record.getPropertyNames()) {
 						Object value = record.getProperty(name);
 						if (value != null) {
@@ -582,8 +584,8 @@ public class DynamicLayer extends EditableLayerImpl {
 			} finally {
 				tx.finish();
 			}
-		}
-
+		}		
+		
 		public GeometryEncoder getGeometryEncoder() {
 			return DynamicLayer.this.getGeometryEncoder();
 		}
@@ -836,7 +838,7 @@ public class DynamicLayer extends EditableLayerImpl {
 	public LayerConfig restrictLayerProperties(String name) {
 		return restrictLayerProperties(name, null);
 	}
-
+	
 	public List<String> getLayerNames() {
 		return new ArrayList<String>(getLayerMap().keySet());
 	}
