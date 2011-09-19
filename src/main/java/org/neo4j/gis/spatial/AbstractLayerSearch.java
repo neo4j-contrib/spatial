@@ -50,7 +50,7 @@ public abstract class AbstractLayerSearch implements LayerSearch {
 	@Override
 	public void setLayer(Layer layer) {
 		this.layer = layer;
-	}	
+	}
 		
 	@Override
 	public List<SpatialDatabaseRecord> getExtendedResults() {
@@ -100,6 +100,6 @@ public abstract class AbstractLayerSearch implements LayerSearch {
 	
 	// Attributes
 
-	private Layer layer;
+	protected Layer layer;
 	private List<SpatialDatabaseRecord> results;
 }

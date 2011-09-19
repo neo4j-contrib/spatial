@@ -19,16 +19,14 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
+import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+
 import com.tinkerpop.pipes.AbstractPipe;
 import com.vividsolutions.jts.geom.Geometry;
 
-public class ToOuterLinearRing<S, E> extends AbstractPipe<Geometry, Geometry> {
+public class ToGeometries extends AbstractPipe<SpatialDatabaseRecord, Geometry>{
 
 	public Geometry processNextStart() {
-		while (true) {
-			final Geometry geometry = (Geometry) this.starts.next();
-			return geometry.convexHull();
-		}
-
+		return this.starts.next().getGeometry();
 	}
 }

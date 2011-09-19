@@ -117,8 +117,28 @@ public class GeoPipesTest implements GraphHolder
     @Test
     public void break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them()
     {
-    	assertEquals( 1, layer.filter().all().process().toPoints().toDensityIslands(0.1).toOutherLinearRing().buffer(10).count());
-    	System.out.println(layer.filter().all().process().toPoints().toDensityIslands(0.1).toOutherLinearRing().buffer(10).next());
+//    	long result = layer.
+//			filter().
+//				bbox(12.1,43.2,12.5,43.7).
+//				cql("name like 'A%'").
+//			process().
+//				toPoints().
+//				toDensityIslands(0.1).
+//				toConvexHull().
+//				buffer(10).
+//			count();
+
+    	long result = layer.
+		filter().all().
+		process().
+				toPoints().
+				toDensityIslands(0.1).
+				toConvexHull().
+				buffer(10).
+			count();
+
+    	assertEquals( 1, result);
+    	System.out.println(layer.filter().all().process().toPoints().toDensityIslands(0.1).toConvexHull().buffer(10).next());
     }
     
     public static void load( ) throws Exception

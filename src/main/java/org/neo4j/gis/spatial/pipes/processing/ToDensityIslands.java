@@ -29,7 +29,7 @@ import org.neo4j.gis.spatial.Layer;
 import com.tinkerpop.pipes.AbstractPipe;
 import com.vividsolutions.jts.geom.Geometry;
 
-public class ToDensityIslands extends AbstractPipe {
+public class ToDensityIslands extends AbstractPipe<Geometry, Geometry> {
 
 	private double density = 20;
 	private List<Geometry> islands = new ArrayList<Geometry>();

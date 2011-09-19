@@ -38,6 +38,8 @@ import org.neo4j.collections.rtree.SpatialIndexRecordCounter;
 import org.neo4j.collections.rtree.filter.SearchFilter;
 import org.neo4j.collections.rtree.filter.SearchResults;
 import org.neo4j.collections.rtree.search.Search;
+import org.neo4j.gis.spatial.attributes.PropertyMapper;
+import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.geotools.data.Neo4jFeatureBuilder;
 import org.neo4j.gis.spatial.pipes.GeoFilter;
@@ -48,6 +50,8 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.gis.spatial.pipes.GeoFilter;
+import org.neo4j.gis.spatial.pipes.GeoProcessingPipeline;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.filter.Filter;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -181,11 +185,13 @@ public class DynamicLayer extends EditableLayerImpl {
     public class CQLIndexReader extends SpatialIndexReaderWrapper {
         private final Filter filter;
         private final Neo4jFeatureBuilder builder;
+        private final Layer layer;
 
-        public CQLIndexReader(LayerTreeIndexReader index, String query) throws CQLException {
+        public CQLIndexReader(LayerTreeIndexReader index, Layer layer, String query) throws CQLException {
             super(index);
             this.filter = ECQL.toFilter(query);
-            this.builder = new Neo4jFeatureBuilder(DynamicLayer.this);
+            this.builder = new Neo4jFeatureBuilder(layer);
+            this.layer = layer;
         }
 
         private class Counter extends SpatialIndexRecordCounter {
@@ -266,12 +272,11 @@ public class DynamicLayer extends EditableLayerImpl {
             return true;
         }
 
-        private boolean queryLeafNode(Node indexNode) {
-            SpatialDatabaseRecord dbRecord = 
-                new SpatialDatabaseRecord(DynamicLayer.this, indexNode); 
-            SimpleFeature feature = builder.buildFeature(dbRecord);
-            return filter.evaluate(feature);
-        }
+		private boolean queryLeafNode(Node indexNode) {
+			SpatialDatabaseRecord dbRecord = new SpatialDatabaseRecord(layer, indexNode);
+			SimpleFeature feature = builder.buildFeature(dbRecord);
+			return filter.evaluate(feature);
+		}
 
    		public int count() {
 			Counter counter = new Counter();
@@ -602,7 +607,7 @@ public class DynamicLayer extends EditableLayerImpl {
 				} else {
 					// Make a CQL based dynamic layer
 					try {
-						return new CQLIndexReader((LayerTreeIndexReader) index, getQuery());
+						return new CQLIndexReader((LayerTreeIndexReader) index, this, getQuery());
 					} catch (CQLException e) {
 						throw new SpatialDatabaseException("Error while creating CQL based DynamicLayer", e);
 					}
@@ -656,6 +661,17 @@ public class DynamicLayer extends EditableLayerImpl {
 		public GeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> process() {
 			return new GeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>(this);
 		}
+
+		private PropertyMappingManager propertyMappingManager;
+
+		@Override
+		public PropertyMappingManager getPropertyMappingManager() {
+			if (propertyMappingManager == null) {
+				propertyMappingManager = new PropertyMappingManager(this);
+			}
+			return propertyMappingManager;
+		}
+
 	}
 
 	private synchronized Map<String, Layer> getLayerMap() {
@@ -821,7 +837,7 @@ public class DynamicLayer extends EditableLayerImpl {
 	 */
 	public LayerConfig restrictLayerProperties(String name) {
 		return restrictLayerProperties(name, null);
-	}	
+	}
 	
 	public List<String> getLayerNames() {
 		return new ArrayList<String>(getLayerMap().keySet());

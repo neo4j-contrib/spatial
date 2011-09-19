@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial.osm;
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Iterator;
 
 import org.neo4j.gis.spatial.AbstractGeometryEncoder;
@@ -45,85 +46,87 @@ import com.vividsolutions.jts.geom.LinearRing;
 import com.vividsolutions.jts.geom.Polygon;
 
 public class OSMGeometryEncoder extends AbstractGeometryEncoder {
-	
-    private static int decodedCount = 0;
-    private static int overrunCount = 0;
-    private static int nodeId = 0;
-    private static int wayId = 0;
-    private static int relationId = 0;
+
+	private static int decodedCount = 0;
+	private static int overrunCount = 0;
+	private static int nodeId = 0;
+	private static int wayId = 0;
+	private static int relationId = 0;
 	private DateFormat dateTimeFormatter;
 	private int vertices;
 	private int vertexMistmaches = 0;
 
 	/**
-	 * This class allows for OSM to avoid having empty tags nodes when there are no properties on a geometry.
+	 * This class allows for OSM to avoid having empty tags nodes when there are
+	 * no properties on a geometry.
+	 * 
 	 * @author craig
 	 */
-    private final class NullProperties implements PropertyContainer {
-	    public GraphDatabaseService getGraphDatabase() {
-	        return null;
-	    }
+	private final class NullProperties implements PropertyContainer {
+		public GraphDatabaseService getGraphDatabase() {
+			return null;
+		}
 
-	    public Object getProperty(String key) {
-	        return null;
-	    }
+		public Object getProperty(String key) {
+			return null;
+		}
 
-	    public Object getProperty(String key, Object defaultValue) {
-	        return null;
-	    }
+		public Object getProperty(String key, Object defaultValue) {
+			return null;
+		}
 
-	    public Iterable<String> getPropertyKeys() {
-	        return null;
-	    }
+		public Iterable<String> getPropertyKeys() {
+			return null;
+		}
 
-	    public Iterable<Object> getPropertyValues() {
-	        return null;
-	    }
+		public Iterable<Object> getPropertyValues() {
+			return null;
+		}
 
-	    public boolean hasProperty(String key) {
-	        return false;
-	    }
+		public boolean hasProperty(String key) {
+			return false;
+		}
 
-	    public Object removeProperty(String key) {
-	        return null;
-	    }
+		public Object removeProperty(String key) {
+			return null;
+		}
 
-	    public void setProperty(String key, Object value) {
-	    }
-    }
+		public void setProperty(String key, Object value) {
+		}
+	}
 
 	public static class OSMGraphException extends SpatialDatabaseException {
-        private static final long serialVersionUID = -6892234738075001044L;
+		private static final long serialVersionUID = -6892234738075001044L;
 
-        public OSMGraphException(String message) {
-            super(message);
-        }
+		public OSMGraphException(String message) {
+			super(message);
+		}
 
-        public OSMGraphException(String message, Exception cause) {
-            super(message, cause);
-        }
-    }
+		public OSMGraphException(String message, Exception cause) {
+			super(message, cause);
+		}
+	}
 
-    private static Node testIsNode(PropertyContainer container) {
-        if (!(container instanceof Node)) {
-            throw new OSMGraphException("Cannot decode non-node geometry: " + container);
-        }
-        return (Node) container;
-    }
+	private static Node testIsNode(PropertyContainer container) {
+		if (!(container instanceof Node)) {
+			throw new OSMGraphException("Cannot decode non-node geometry: " + container);
+		}
+		return (Node) container;
+	}
 
-    public Envelope decodeEnvelope(PropertyContainer container) {
-        Node geomNode = testIsNode(container);
-        double[] bbox = (double[]) geomNode.getProperty("bbox");
-        return new Envelope(bbox[0], bbox[1], bbox[2], bbox[3]);
-    }
+	public Envelope decodeEnvelope(PropertyContainer container) {
+		Node geomNode = testIsNode(container);
+		double[] bbox = (double[]) geomNode.getProperty("bbox");
+		return new Envelope(bbox[0], bbox[1], bbox[2], bbox[3]);
+	}
 
-    public static Node getOSMNodeFromGeometryNode(Node geomNode) {
-        return geomNode.getSingleRelationship(OSMRelation.GEOM, Direction.INCOMING).getStartNode();
-    }
+	public static Node getOSMNodeFromGeometryNode(Node geomNode) {
+		return geomNode.getSingleRelationship(OSMRelation.GEOM, Direction.INCOMING).getStartNode();
+	}
 
-    public static Node getGeometryNodeFromOSMNode(Node osmNode) {
-        return osmNode.getSingleRelationship(OSMRelation.GEOM, Direction.OUTGOING).getEndNode();
-    }
+	public static Node getGeometryNodeFromOSMNode(Node osmNode) {
+		return osmNode.getSingleRelationship(OSMRelation.GEOM, Direction.OUTGOING).getEndNode();
+	}
 
 	/**
 	 * This wrapper class allows the traverser to run simply down the NEXT
@@ -132,79 +135,83 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	 * 
 	 * @author craig
 	 */
-    private class NodeProxyIterator implements Iterator<Node> {
-        Iterator<Path> traverser;
-        NodeProxyIterator(Node first) {
-        	traverser = new TraversalDescriptionImpl().relationships(OSMRelation.NEXT, Direction.OUTGOING).traverse(first).iterator();
-        }
+	private class NodeProxyIterator implements Iterator<Node> {
+		Iterator<Path> traverser;
+
+		NodeProxyIterator(Node first) {
+			traverser = new TraversalDescriptionImpl().relationships(OSMRelation.NEXT, Direction.OUTGOING).traverse(first)
+					.iterator();
+		}
 
 		public boolean hasNext() {
-	        return traverser.hasNext();
-        }
+			return traverser.hasNext();
+		}
 
 		public Node next() {
 			return traverser.next().endNode().getSingleRelationship(OSMRelation.NODE, Direction.OUTGOING).getEndNode();
-        }
+		}
 
 		public void remove() {
-        }
-    	
-    }
+		}
 
-    public Iterable<Node> getPointNodesFromWayNode(Node wayNode) {
-        final Node firstNode = wayNode.getSingleRelationship(OSMRelation.FIRST_NODE, Direction.OUTGOING).getEndNode();
-        final NodeProxyIterator iterator = new NodeProxyIterator(firstNode);
-        return new Iterable<Node>(){
+	}
+
+	public Iterable<Node> getPointNodesFromWayNode(Node wayNode) {
+		final Node firstNode = wayNode.getSingleRelationship(OSMRelation.FIRST_NODE, Direction.OUTGOING).getEndNode();
+		final NodeProxyIterator iterator = new NodeProxyIterator(firstNode);
+		return new Iterable<Node>() {
 
 			public Iterator<Node> iterator() {
-	            return iterator;
-            }};
-    }
+				return iterator;
+			}
+		};
+	}
 
-    public Geometry decodeGeometry(PropertyContainer container) {
-        Node geomNode = testIsNode(container);
-        try {
-            GeometryFactory geomFactory = layer.getGeometryFactory();
-            Node osmNode = getOSMNodeFromGeometryNode(geomNode);
-            if(osmNode.hasProperty("node_osm_id")){
-            	return geomFactory.createPoint(new Coordinate((Double)osmNode.getProperty("lon", 0.0),(Double)osmNode.getProperty("lat", 0.0)));
-            } else if(osmNode.hasProperty("way_osm_id")){
-        	    int vertices = (Integer) geomNode.getProperty("vertices");
-        	    int gtype = (Integer) geomNode.getProperty(PROP_TYPE);
-                return decodeGeometryFromWay(osmNode, gtype, vertices, geomFactory);
-            } else {
-        	    int gtype = (Integer) geomNode.getProperty(PROP_TYPE);
+	public Geometry decodeGeometry(PropertyContainer container) {
+		Node geomNode = testIsNode(container);
+		try {
+			GeometryFactory geomFactory = layer.getGeometryFactory();
+			Node osmNode = getOSMNodeFromGeometryNode(geomNode);
+			if (osmNode.hasProperty("node_osm_id")) {
+				return geomFactory.createPoint(new Coordinate((Double) osmNode.getProperty("lon", 0.0), (Double) osmNode
+						.getProperty("lat", 0.0)));
+			} else if (osmNode.hasProperty("way_osm_id")) {
+				int vertices = (Integer) geomNode.getProperty("vertices");
+				int gtype = (Integer) geomNode.getProperty(PROP_TYPE);
+				return decodeGeometryFromWay(osmNode, gtype, vertices, geomFactory);
+			} else {
+				int gtype = (Integer) geomNode.getProperty(PROP_TYPE);
 				return decodeGeometryFromRelation(osmNode, gtype, geomFactory);
-            }
-        } catch (Exception e) {
-            throw new OSMGraphException("Failed to decode OSM geometry: " + e.getMessage(), e);
-        }
-    }
+			}
+		} catch (Exception e) {
+			throw new OSMGraphException("Failed to decode OSM geometry: " + e.getMessage(), e);
+		}
+	}
 
 	private Geometry decodeGeometryFromRelation(Node osmNode, int gtype, GeometryFactory geomFactory) {
-	    switch (gtype) {
-	    case GTYPE_POLYGON:
-	    	LinearRing outer = null;
-	    	ArrayList<LinearRing> inner = new ArrayList<LinearRing>();
-	    	//ArrayList<LinearRing> rings = new ArrayList<LinearRing>();
-	    	for(Relationship rel: osmNode.getRelationships(OSMRelation.MEMBER, Direction.OUTGOING)){
-	    		Node wayNode = rel.getEndNode();
-	    		String role = (String)rel.getProperty("role", null);
-	    		if (role != null) {
-	    			LinearRing ring = getOuterLinearRingFromGeometry(decodeGeometryFromWay(wayNode, GTYPE_POLYGON, -1, geomFactory));
-	    			if (role.equals("outer")) {
-	    				outer = ring;
-	    			} else if (role.equals("inner")) {
-	    				inner.add(ring);
-	    			}
-	    		}
-	    	}
-	    	if (outer != null) {
-	    		return geomFactory.createPolygon(outer, inner.toArray(new LinearRing[inner.size()]));
-	    	} else {
-	    		return null;
-	    	}
-	    case GTYPE_MULTIPOLYGON:
+		switch (gtype) {
+		case GTYPE_POLYGON:
+			LinearRing outer = null;
+			ArrayList<LinearRing> inner = new ArrayList<LinearRing>();
+			// ArrayList<LinearRing> rings = new ArrayList<LinearRing>();
+			for (Relationship rel : osmNode.getRelationships(OSMRelation.MEMBER, Direction.OUTGOING)) {
+				Node wayNode = rel.getEndNode();
+				String role = (String) rel.getProperty("role", null);
+				if (role != null) {
+					LinearRing ring = getOuterLinearRingFromGeometry(decodeGeometryFromWay(wayNode, GTYPE_POLYGON, -1, geomFactory));
+					if (role.equals("outer")) {
+						outer = ring;
+					} else if (role.equals("inner")) {
+						inner.add(ring);
+					}
+				}
+			}
+			if (outer != null) {
+				return geomFactory.createPolygon(outer, inner.toArray(new LinearRing[inner.size()]));
+			} else {
+				return null;
+			}
+		case GTYPE_MULTIPOLYGON:
 			ArrayList<Polygon> polygons = new ArrayList<Polygon>();
 			for (Relationship rel : osmNode.getRelationships(OSMRelation.MEMBER, Direction.OUTGOING)) {
 				Node member = rel.getEndNode();
@@ -225,11 +232,11 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 			} else {
 				return null;
 			}
-	    default:
-	    	return null;
-	    }
-    }
-    
+		default:
+			return null;
+		}
+	}
+
 	/**
 	 * Since OSM users can construct any weird combinations of geometries, we
 	 * need general code to make the best guess. This method will find a
@@ -247,7 +254,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 				return null;
 			} else {
 				Coordinate[] coords = line.getCoordinates();
-				if(!line.isClosed()){
+				if (!line.isClosed()) {
 					coords = closeCoords(coords);
 				}
 				LinearRing ring = geometry.getFactory().createLinearRing(coords);
@@ -268,21 +275,24 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 
 	/**
 	 * Extend the array by copying the first point into the last position
+	 * 
 	 * @param coords
 	 * @return new array one point longer
 	 */
 	private Coordinate[] closeCoords(Coordinate[] coords) {
-	    Coordinate[] nc = new Coordinate[coords.length+1];
-	    for(int i=0;i<coords.length;i++){
-	    	nc[i] = coords[i];
-	    }
-	    nc[coords.length] = coords[0];
-	    coords = nc;
-	    return coords;
-    }
-	
+		Coordinate[] nc = new Coordinate[coords.length + 1];
+		for (int i = 0; i < coords.length; i++) {
+			nc[i] = coords[i];
+		}
+		nc[coords.length] = coords[0];
+		coords = nc;
+		return coords;
+	}
+
 	/**
-	 * The convex hull is like an elastic band surrounding all points in the geometry.
+	 * The convex hull is like an elastic band surrounding all points in the
+	 * geometry.
+	 * 
 	 * @param geometry
 	 * @return
 	 */
@@ -291,23 +301,23 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	}
 
 	private Geometry decodeGeometryFromWay(Node wayNode, int gtype, int vertices, GeometryFactory geomFactory) {
-	    ArrayList<Coordinate> coordinates = new ArrayList<Coordinate>();
-	    boolean overrun = false;
-	    for (Node node : getPointNodesFromWayNode(wayNode)) {
-	        if (coordinates.size() >= vertices) {
-	            // System.err.println("Exceeding expected number of way nodes: "
-	            // + (index + 1) +
-	            // " > " + vertices);
-	            overrun = true;
-	            overrunCount++;
-	            break;
-	        }
-	        coordinates.add(new Coordinate((Double) node.getProperty("lon"), (Double) node.getProperty("lat")));
-	    }
-	    decodedCount++;
-	    if (overrun) {
-	        System.out.println("Overran expected number of way nodes: " + wayNode + " (" + overrunCount + "/" + decodedCount + ")");
-	    }
+		ArrayList<Coordinate> coordinates = new ArrayList<Coordinate>();
+		boolean overrun = false;
+		for (Node node : getPointNodesFromWayNode(wayNode)) {
+			if (coordinates.size() >= vertices) {
+				// System.err.println("Exceeding expected number of way nodes: "
+				// + (index + 1) +
+				// " > " + vertices);
+				overrun = true;
+				overrunCount++;
+				break;
+			}
+			coordinates.add(new Coordinate((Double) node.getProperty("lon"), (Double) node.getProperty("lat")));
+		}
+		decodedCount++;
+		if (overrun) {
+			System.out.println("Overran expected number of way nodes: " + wayNode + " (" + overrunCount + "/" + decodedCount + ")");
+		}
 		if (coordinates.size() != vertices) {
 			if (vertexMistmaches++ < 10) {
 				System.err.println("Mismatching vertices size for " + SpatialDatabaseService.convertGeometryTypeToName(gtype) + ":"
@@ -316,22 +326,23 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 				System.err.println("Mismatching vertices found " + vertexMistmaches + " times");
 			}
 		}
-	    switch (coordinates.size()) {
-	    case 0:
-	        return null;
-	    case 1:
-	        return geomFactory.createPoint(coordinates.get(0));
-	    default:
-	    	switch (gtype) {
-	    	case GTYPE_LINESTRING:
-	            return geomFactory.createLineString(coordinates.toArray(new Coordinate[coordinates.size()]));
-	    	case GTYPE_POLYGON:
-	            return geomFactory.createPolygon(geomFactory.createLinearRing(coordinates.toArray(new Coordinate[coordinates.size()])),new LinearRing[0]);
-	    	default:
-	            return geomFactory.createMultiPoint(coordinates.toArray(new Coordinate[coordinates.size()]));
-	    	}
-	    }
-    }
+		switch (coordinates.size()) {
+		case 0:
+			return null;
+		case 1:
+			return geomFactory.createPoint(coordinates.get(0));
+		default:
+			switch (gtype) {
+			case GTYPE_LINESTRING:
+				return geomFactory.createLineString(coordinates.toArray(new Coordinate[coordinates.size()]));
+			case GTYPE_POLYGON:
+				return geomFactory.createPolygon(
+						geomFactory.createLinearRing(coordinates.toArray(new Coordinate[coordinates.size()])), new LinearRing[0]);
+			default:
+				return geomFactory.createMultiPoint(coordinates.toArray(new Coordinate[coordinates.size()]));
+			}
+		}
+	}
 
 	@Override
 	/**
@@ -355,7 +366,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 			int gsubtype = gtype == GTYPE_MULTIPOLYGON ? GTYPE_POLYGON : GTYPE_LINESTRING;
 			Node relationNode = makeOSMRelation(geometry, geomNode);
 			int num = geometry.getNumGeometries();
-			for(int i=0;i<num;i++) {
+			for (int i = 0; i < num; i++) {
 				Geometry geom = geometry.getGeometryN(i);
 				Node wayNode = makeOSMWay(geom, geomNode.getGraphDatabase().createNode(), gsubtype);
 				relationNode.createRelationshipTo(wayNode, OSMRelation.MEMBER);
@@ -368,26 +379,26 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	}
 
 	private Node makeOSMNode(Geometry geometry, Node geomNode) {
-		Node node = makeOSMNode(geometry.getCoordinate(),geomNode.getGraphDatabase());
+		Node node = makeOSMNode(geometry.getCoordinate(), geomNode.getGraphDatabase());
 		node.createRelationshipTo(geomNode, OSMRelation.GEOM);
 		return node;
 	}
 
 	private Node makeOSMNode(Coordinate coordinate, GraphDatabaseService db) {
-		vertices ++;
-		nodeId ++;
+		vertices++;
+		nodeId++;
 		Node node = db.createNode();
-		//TODO: Generate a valid osm id
+		// TODO: Generate a valid osm id
 		node.setProperty(OSMId.NODE.toString(), nodeId);
 		node.setProperty("lat", coordinate.y);
 		node.setProperty("lon", coordinate.x);
 		node.setProperty("timestamp", getTimestamp());
-		//TODO: Add other common properties, like changeset, uid, user, version
+		// TODO: Add other common properties, like changeset, uid, user, version
 		return node;
 	}
 
 	private Node makeOSMWay(Geometry geometry, Node geomNode, int gtype) {
-		wayId ++;
+		wayId++;
 		GraphDatabaseService db = geomNode.getGraphDatabase();
 		Node way = db.createNode();
 		// TODO: Generate a valid osm id
@@ -396,7 +407,8 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 		// TODO: Add other common properties, like changeset, uid, user,
 		// version, name
 		way.createRelationshipTo(geomNode, OSMRelation.GEOM);
-		//TODO: if this way is a part of a complex geometry, the sub-geometries are not indexed
+		// TODO: if this way is a part of a complex geometry, the sub-geometries
+		// are not indexed
 		geomNode.setProperty(PROP_TYPE, gtype);
 		Node prev = null;
 		for (Coordinate coord : geometry.getCoordinates()) {
@@ -414,9 +426,9 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	}
 
 	private Node makeOSMRelation(Geometry geometry, Node geomNode) {
-		relationId ++;
+		relationId++;
 		throw new SpatialDatabaseException("Unimplemented: makeOSMRelation()");
-    }
+	}
 
 	private String getTimestamp() {
 		if (dateTimeFormatter == null)
@@ -425,25 +437,54 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	}
 
 	private Node lastGeom = null;
-	private PropertyContainer lastProp = null;
+	private CombinedAttributes lastAttr = null;
 	private long missingTags = 0;
 
-	private PropertyContainer getProperties(Node geomNode) {
-		if (geomNode != lastGeom) {
-			lastGeom = geomNode;
+	private class CombinedAttributes {
+		private Node node;
+		private PropertyContainer properties;
+		private HashMap<String, Object> extra = new HashMap<String, Object>();
+
+		CombinedAttributes(Node geomNode) {
 			try {
-				lastProp = geomNode.getSingleRelationship(OSMRelation.GEOM, Direction.INCOMING).getStartNode().getSingleRelationship(
-				        OSMRelation.TAGS, Direction.OUTGOING).getEndNode();
+				node = geomNode.getSingleRelationship(OSMRelation.GEOM, Direction.INCOMING).getStartNode();
+				properties = node.getSingleRelationship(OSMRelation.TAGS, Direction.OUTGOING).getEndNode();
+				Node changeset = node.getSingleRelationship(OSMRelation.CHANGESET, Direction.OUTGOING).getEndNode();
+				if (changeset != null) {
+					extra.put("changeset", changeset.getProperty("changeset", null));
+					Node user = changeset.getSingleRelationship(OSMRelation.USER, Direction.OUTGOING).getEndNode();
+					if (user != null) {
+						extra.put("user", user.getProperty("name", null));
+						extra.put("user_id", user.getProperty("uid", null));
+					}
+				}
 			} catch (NullPointerException e) {
 				if (missingTags++ < 10) {
 					System.err.println("Geometry has no related tags node: " + geomNode);
 				} else if (missingTags % 100 == 0) {
 					System.err.println("Geometries without tags found " + missingTags + " times");
 				}
-				lastProp = new NullProperties();
+				properties = new NullProperties();
 			}
 		}
-		return lastProp;
+
+		public boolean hasProperty(String key) {
+			return extra.containsKey(key) || node.hasProperty(key) || properties.hasProperty(key);
+		}
+
+		public Object getProperty(String key) {
+			return extra.containsKey(key) ? extra.get(key) : node.hasProperty(key) ? node.getProperty(key, null) : properties
+					.getProperty(key, null);
+		}
+
+	}
+
+	private CombinedAttributes getProperties(Node geomNode) {
+		if (geomNode != lastGeom) {
+			lastGeom = geomNode;
+			lastAttr = new CombinedAttributes(geomNode);
+		}
+		return lastAttr;
 	}
 
 	/**
@@ -474,7 +515,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	 * @return attribute, or null
 	 */
 	public Object getAttribute(Node geomNode, String name) {
-		return getProperties(geomNode).getProperty(name, null);
+		return getProperties(geomNode).getProperty(name);
 	}
 
 	public enum OSMId {

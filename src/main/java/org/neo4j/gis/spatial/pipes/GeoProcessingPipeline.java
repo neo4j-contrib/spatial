@@ -25,7 +25,7 @@ import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.pipes.processing.Buffer;
 import org.neo4j.gis.spatial.pipes.processing.ToDensityIslands;
-import org.neo4j.gis.spatial.pipes.processing.ToOuterLinearRing;
+import org.neo4j.gis.spatial.pipes.processing.ToConvexHull;
 import org.neo4j.gis.spatial.pipes.processing.ToPointsPipe;
 
 import com.tinkerpop.pipes.util.FluentPipeline;
@@ -47,9 +47,9 @@ public class GeoProcessingPipeline<S, E> extends FluentPipeline<S, E>
         return (GeoProcessingPipeline<SpatialDatabaseRecord, Point>) this.add(new ToPointsPipe());
     }
 
-    public GeoProcessingPipeline<Geometry, Geometry> toOutherLinearRing()
+    public GeoProcessingPipeline<Geometry, Geometry> toConvexHull()
     {
-        return (GeoProcessingPipeline<Geometry, Geometry>) this.add(new ToOuterLinearRing());
+        return (GeoProcessingPipeline<Geometry, Geometry>) this.add(new ToConvexHull());
     }
     
     public GeoProcessingPipeline<Geometry, Geometry> buffer(double distance)
