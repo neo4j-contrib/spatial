@@ -6,8 +6,8 @@
     <spatial.test.osm.version>20100819</spatial.test.osm.version>
     <spatial.test.shp.version>20100819</spatial.test.shp.version>
     <bundle.namespace>org.neo4j.gis</bundle.namespace>
-    <blueprints.version>1.0-SNAPSHOT</blueprints.version>
-    <gremlin.version>1.3-SNAPSHOT</gremlin.version>
+    <blueprints.version>1.0</blueprints.version>
+    <gremlin.version>1.3</gremlin.version>
 
   </properties>
   <modelVersion>4.0.0</modelVersion>
