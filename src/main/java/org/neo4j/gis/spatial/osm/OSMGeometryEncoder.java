@@ -117,7 +117,8 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	public Envelope decodeEnvelope(PropertyContainer container) {
 		Node geomNode = testIsNode(container);
 		double[] bbox = (double[]) geomNode.getProperty("bbox");
-		return new Envelope(bbox[0], bbox[1], bbox[2], bbox[3]);
+		// double xmin, double xmax, double ymin, double ymax
+		return new Envelope(bbox[0], bbox[2], bbox[1], bbox[3]);
 	}
 
 	public static Node getOSMNodeFromGeometryNode(Node geomNode) {
