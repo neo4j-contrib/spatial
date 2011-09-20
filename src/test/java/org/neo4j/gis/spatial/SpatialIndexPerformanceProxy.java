@@ -83,7 +83,13 @@ public class SpatialIndexPerformanceProxy implements LayerIndexReader {
     
     public void executeSearch(Search search) {
         long start = System.currentTimeMillis();
+        
+        if (LayerSearch.class.isAssignableFrom(LayerSearch.class)) {
+			((LayerSearch) search).setLayer(getLayer());
+		}
+        
         spatialIndex.executeSearch(search);
+        
         long stop = System.currentTimeMillis();
         System.out.println("# exec time(executeSearch(" + search + ")): " + (stop - start) + "ms");
     }
