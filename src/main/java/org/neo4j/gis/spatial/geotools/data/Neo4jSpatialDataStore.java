@@ -277,7 +277,7 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 			} catch (UnsupportedOperationException e) {
 				// this is for backward compatibility
 				try {
-					writer = getFeatureWriter(typeName);
+					writer = getFeatureWriter(typeName, org.geotools.data.Transaction.AUTO_COMMIT);
 				} catch (UnsupportedOperationException eek) {
 					throw e; // throw original - our fallback did not work
 				}

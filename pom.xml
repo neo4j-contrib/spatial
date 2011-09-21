@@ -2,14 +2,14 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <properties>
     <neo4j.version>1.5-SNAPSHOT</neo4j.version>
-    <geotools.version>2.7-RC1</geotools.version>
+    <geotools.version>8-SNAPSHOT</geotools.version>
     <spatial.test.osm.version>20100819</spatial.test.osm.version>
     <spatial.test.shp.version>20100819</spatial.test.shp.version>
     <bundle.namespace>org.neo4j.gis</bundle.namespace>
     <blueprints.version>1.0-SNAPSHOT</blueprints.version>
     <gremlin.version>1.3-SNAPSHOT</gremlin.version>
-
   </properties>
+
   <modelVersion>4.0.0</modelVersion>
   <artifactId>neo4j-spatial</artifactId>
   <groupId>org.neo4j</groupId>
@@ -236,6 +236,11 @@ terms of the relevant Commercial Agreement.
     </dependency>
     <dependency>
       <groupId>org.geotools</groupId>
+      <artifactId>gt-process</artifactId>
+      <version>${geotools.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.geotools</groupId>
       <artifactId>gt-render</artifactId>
       <version>${geotools.version}</version>
       <exclusions>
@@ -299,7 +304,15 @@ terms of the relevant Commercial Agreement.
     <repository>
       <id>osgeo</id>
       <name>Open Source Geospatial Foundation Repository</name>
-      <url>https://repo.neo4j.org/content/repositories/osgeo.org/</url>
+      <url>http://download.osgeo.org/webdav/geotools/</url>
+    </repository>
+    <repository>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+      <id>opengeo</id>
+      <name>OpenGeo Maven Repository</name>
+      <url>http://repo.opengeo.org</url>
     </repository>
     <repository>
       <id>neo4j-snapshot-repository</id>
