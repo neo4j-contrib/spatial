@@ -123,4 +123,8 @@ public class GeoFilter implements SearchFilter {
 		return true;
 	}
 
+	public long count() {
+		return getResults().count();
+	}
+
 }
