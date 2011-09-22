@@ -30,6 +30,7 @@ import com.vividsolutions.jts.geom.Geometry;
  * @author Craig Taverner
  */
 public abstract class AbstractSearchIntersection extends AbstractSearchEnvelopeIntersection {
+	
 	protected Geometry referenceGeometry;
 	protected Layer layer;
 

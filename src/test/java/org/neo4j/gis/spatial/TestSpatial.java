@@ -24,7 +24,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 import org.geotools.data.shapefile.shp.ShapefileException;
 import org.neo4j.collections.rtree.Envelope;
@@ -170,11 +169,12 @@ public class TestSpatial extends Neo4jTestCase {
     		testLayer("sweden.osm");
     }     
     
+	// TODO missing file
+    /* 
     public void testShpSwedenHighway() throws Exception {
-    	// TODO missing file
-    	/* if ("long".equals(spatialTestMode))
-    		testLayer("sweden_highway"); */
-    }     
+    	if ("long".equals(spatialTestMode))
+    		testLayer("sweden_highway");
+    } */   
 
     private void testLayer(String layerName) throws Exception {
         testImport(layerName);
@@ -245,27 +245,23 @@ public class TestSpatial extends Neo4jTestCase {
 
         System.out.println("Displaying test geometries for layer '" + layerName + "' including expected search results");
         for (TestGeometry testData : layerTestGeometries.get(layerName)) {
-            System.out.println("\tGeometry: " + testData.toString() + " " + (testData.inOrIntersects(bbox) ? "is" : "is NOT")
+            System.out.println("\tGeometry: " + testData + " " + (testData.inOrIntersects(bbox) ? "is" : "is NOT")
                     + " inside search region");
         }
 
-        LayerSearch oldSearch = new org.neo4j.gis.spatial.query.SearchIntersect(layer.getGeometryFactory().toGeometry(EnvelopeUtils.fromNeo4jToJts(bbox)));
-        SearchIntersect searchQuery = new SearchIntersect(layer, layer.getGeometryFactory().toGeometry(EnvelopeUtils.fromNeo4jToJts(bbox)));
-        for (LayerIndexReader index : new LayerIndexReader[] { fakeIndex, rtreeIndex }) {
+        for (LayerIndexReader index : new LayerIndexReader[] { rtreeIndex, fakeIndex }) {
             ArrayList<TestGeometry> foundData = new ArrayList<TestGeometry>();
-            
+
+            SearchIntersect searchQuery = new SearchIntersect(layer, layer.getGeometryFactory().toGeometry(EnvelopeUtils.fromNeo4jToJts(bbox)));
             SearchRecords results = index.search(searchQuery);
-            int count = results.count();
             
+            LayerSearch oldSearch = new org.neo4j.gis.spatial.query.SearchIntersect(layer.getGeometryFactory().toGeometry(EnvelopeUtils.fromNeo4jToJts(bbox)));
             index.executeSearch(oldSearch);
-            assertEquals(oldSearch.getResults().size(), results.count());
             
-            // List<SpatialDatabaseRecord> results = oldSearch.getExtendedResults();
-            // int count = results.size();
-            	
-            System.out.println("\tIndex[" + index.getClass() + "] found results: " + count);
+            int count = 0;
             int ri = 0;
             for (SpatialDatabaseRecord r : results) {
+            	count++;
                 if (ri++ < 10) {
                     StringBuffer props = new StringBuffer();
                     for (String prop : r.getPropertyNames()) {
@@ -275,7 +271,7 @@ public class TestSpatial extends Neo4jTestCase {
                     
                     System.out.println("\tRTreeIndex result[" + ri + "]: " + r.getId() + ":" + r.getType() + " - " + r.toString() + ": PROPS["+props+"]");
                 } else if (ri == 10) {
-                    System.out.println("\t.. and " + (count - ri) + " more ..");
+                    // System.out.println("\t.. and " + (count - ri) + " more ..");
                 }
                 
                 addGeomStats(r.getGeomNode());
@@ -298,6 +294,8 @@ public class TestSpatial extends Neo4jTestCase {
                             + r.toString());
                 }
             }
+            
+            assertEquals(oldSearch.getResults().size(), count);
             
             dumpGeomStats();
             
