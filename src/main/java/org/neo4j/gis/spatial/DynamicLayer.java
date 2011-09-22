@@ -38,20 +38,15 @@ import org.neo4j.collections.rtree.SpatialIndexRecordCounter;
 import org.neo4j.collections.rtree.filter.SearchFilter;
 import org.neo4j.collections.rtree.filter.SearchResults;
 import org.neo4j.collections.rtree.search.Search;
-import org.neo4j.gis.spatial.attributes.PropertyMapper;
 import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.geotools.data.Neo4jFeatureBuilder;
-import org.neo4j.gis.spatial.pipes.GeoFilter;
-import org.neo4j.gis.spatial.pipes.GeoProcessingPipeline;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.DynamicRelationshipType;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.gis.spatial.pipes.GeoFilter;
-import org.neo4j.gis.spatial.pipes.GeoProcessingPipeline;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.filter.Filter;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -650,16 +645,6 @@ public class DynamicLayer extends EditableLayerImpl {
 		
 		public String toString() {
 			return getName();
-		}
-
-		@Override
-		public GeoFilter filter() {
-			return new GeoFilter(this);
-		}
-
-		@Override
-		public GeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> process() {
-			return new GeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>(this);
 		}
 
 		private PropertyMappingManager propertyMappingManager;

@@ -19,30 +19,22 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
+import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
-import com.tinkerpop.pipes.AbstractPipe;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.Point;
 
-public class ToPointsPipe extends AbstractPipe<SpatialDatabaseRecord, Point> {
+public class InteriorPoint extends AbstractGeoPipe {
+	
+	public InteriorPoint() {
+	}		
+	
+	public InteriorPoint(String resultPropertyName) {
+		super(resultPropertyName);
+	}	
 
-	private Geometry curGeometry;
-	private int curPos;
-
-	public Point processNextStart() {
-		while (true) {
-
-			if (curGeometry == null || curPos >= curGeometry.getNumPoints()) {
-				final SpatialDatabaseRecord record = this.starts.next();
-				curGeometry = record.getGeometry();
-				curPos = 0;
-			}
-
-			GeometryFactory geometryFactory = new GeometryFactory();
-			return geometryFactory.createPoint(curGeometry.getCoordinates()[curPos++]);
-		}
-
+	@Override	
+	protected GeoPipeFlow process(GeoPipeFlow flow) {
+		setGeometry(flow, flow.getGeometry().getInteriorPoint());
+		return flow;
 	}
 }

@@ -17,14 +17,23 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.pipes;
+package org.neo4j.gis.spatial.pipes.processing;
 
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
+import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
-public interface GeoProcessing {
+public class ConvexHull extends AbstractGeoPipe {
+	
+	public ConvexHull() {
+	}		
+	
+	public ConvexHull(String resultPropertyName) {
+		super(resultPropertyName);
+	}	
 
-	//public GeoFilteringPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> filter();
-	public GeoFilter filter();
-    public GeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> process();
-
+	@Override	
+	protected GeoPipeFlow process(GeoPipeFlow flow) {
+		setGeometry(flow, flow.getGeometry().convexHull());
+		return flow;
+	}
 }

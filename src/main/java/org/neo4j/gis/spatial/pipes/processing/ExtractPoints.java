@@ -19,14 +19,26 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import org.neo4j.gis.spatial.pipes.AbstractExtractGeoPipe;
+import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
-import com.tinkerpop.pipes.AbstractPipe;
-import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.GeometryFactory;
 
-public class ToGeometries extends AbstractPipe<SpatialDatabaseRecord, Geometry>{
+public class ExtractPoints extends AbstractExtractGeoPipe {
 
-	public Geometry processNextStart() {
-		return this.starts.next().getGeometry();
+	private GeometryFactory geomFactory;
+	
+	public ExtractPoints(GeometryFactory geomFactory) {
+		this.geomFactory = geomFactory;
+	}
+	
+	@Override
+	protected void extract(GeoPipeFlow pipeFlow) {
+		int numPoints = pipeFlow.getGeometry().getCoordinates().length;
+		for (int i = 0; i < numPoints; i++) {
+			GeoPipeFlow newPoint = pipeFlow.makeClone();
+			newPoint.setGeometry(geomFactory.createPoint(pipeFlow.getGeometry().getCoordinates()[i]));
+			extracts.add(newPoint);
+		}
 	}
 }

@@ -22,18 +22,14 @@ package org.neo4j.gis.spatial;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.Set;
 
 import org.geotools.factory.FactoryRegistryException;
 import org.geotools.referencing.ReferencingFactoryFinder;
 import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.collections.rtree.Listener;
-import org.neo4j.gis.spatial.attributes.PropertyMapper;
 import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
 import org.neo4j.gis.spatial.encoders.Configurable;
-import org.neo4j.gis.spatial.pipes.GeoFilter;
-import org.neo4j.gis.spatial.pipes.GeoProcessingPipeline;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -408,17 +404,6 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 	public Object getStyle() {
 		return null;
 	}
-
-    @Override
-    public GeoFilter filter() {
-        return new GeoFilter(this);
-    }
-
-    @Override
-    public GeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord> process()
-    {
-        return new GeoProcessingPipeline<SpatialDatabaseRecord, SpatialDatabaseRecord>(this);
-    }
 
 	private PropertyMappingManager propertyMappingManager;
 

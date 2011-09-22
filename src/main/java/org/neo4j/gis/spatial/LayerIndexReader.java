@@ -39,5 +39,5 @@ public interface LayerIndexReader extends SpatialIndexReader {
 	List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds);
 
 	SearchRecords search(SearchFilter filter);
-
+	
 }

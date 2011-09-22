@@ -19,25 +19,39 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
-import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
+import org.neo4j.gis.spatial.pipes.AbstractGroupGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
-public class Buffer extends AbstractGeoPipe {
-	
-	private double distance;
-	
-	public Buffer(double distance) {
-		this.distance = distance;
-	}	
-	
-	public Buffer(double distance, String resultPropertyName) {
-		super(resultPropertyName);
-		this.distance = distance;
-	}	
+
+public class DensityIslands extends AbstractGroupGeoPipe {
+
+	private double density;
+
+	/**
+	 * 
+	 * @param density
+	 */
+	public DensityIslands(double density) {
+		this.density = density;
+	}
 
 	@Override
-	protected GeoPipeFlow process(GeoPipeFlow flow) {
-		setGeometry(flow, flow.getGeometry().buffer(distance));
-		return flow;
+	protected void group(GeoPipeFlow pipeFlow) {
+		boolean islandFound = false;
+		for (int i = 0; i < groups.size() && !islandFound; i++) {
+			// determine if geometry is next to a islands else add
+			// geometry as a new islands.
+			if (pipeFlow.getGeometry().distance(groups.get(i).getGeometry()) <= density) {
+				// TODO test it with points
+				// TODO merge island properties?
+				groups.get(i).setGeometry(groups.get(i).getGeometry().union(pipeFlow.getGeometry()));
+				groups.get(i).mergeRecords(pipeFlow);
+				islandFound = true;
+			}
+		}
+			
+		if (!islandFound) {
+			groups.add(pipeFlow);
+		}
 	}
 }

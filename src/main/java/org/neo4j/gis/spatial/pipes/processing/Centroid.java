@@ -17,27 +17,25 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.pipes.osm;
+package org.neo4j.gis.spatial.pipes.processing;
 
-import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
-import org.neo4j.gis.spatial.pipes.GeoProcessingPipeline;
-import org.neo4j.gis.spatial.pipes.osm.processing.ToPointsOSMPipe;
-
-import com.vividsolutions.jts.geom.Point;
-
-public class OSMGeoProcessingPipeline<S, E> extends GeoProcessingPipeline<S, E>
-{
-
-    public OSMGeoProcessingPipeline(Layer layer) {
-		super(layer);
-	}
-
-    public GeoProcessingPipeline<SpatialDatabaseRecord, Point> toPoints()
-    {
-        return (GeoProcessingPipeline<SpatialDatabaseRecord, Point>) this.add(new ToPointsOSMPipe());
-    }
-    
+import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
+import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 
+public class Centroid extends AbstractGeoPipe {
+	
+	public Centroid() {
+	}		
+	
+	public Centroid(String resultPropertyName) {
+		super(resultPropertyName);
+	}	
+
+	@Override	
+	protected GeoPipeFlow process(GeoPipeFlow flow) {
+		setGeometry(flow, flow.getGeometry().getCentroid());
+		return flow;
+	}	
+	
 }

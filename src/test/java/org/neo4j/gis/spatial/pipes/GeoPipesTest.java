@@ -23,175 +23,103 @@ import static org.junit.Assert.assertEquals;
 
 import java.util.Map;
 
-import org.junit.After;
+import org.geotools.filter.text.cql2.CQLException;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.neo4j.collections.rtree.filter.SearchAll;
+import org.neo4j.collections.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.osm.OSMImporter;
+import org.neo4j.gis.spatial.pipes.osm.OSMGeoPipeline;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
-import org.neo4j.kernel.impl.annotations.Documented;
-import org.neo4j.test.AsciiDocGenerator;
 import org.neo4j.test.GraphDescription;
 import org.neo4j.test.GraphHolder;
 import org.neo4j.test.ImpermanentGraphDatabase;
-import org.neo4j.test.JavaTestDocsGenerator;
 import org.neo4j.test.TestData;
-import org.neo4j.visualization.asciidoc.AsciidocHelper;
 
-import com.tinkerpop.pipes.filter.FilterPipe.Filter;
 
-public class GeoPipesTest implements GraphHolder
-{
+public class GeoPipesTest implements GraphHolder {
+	
     public @Rule
-    TestData<JavaTestDocsGenerator> gen = TestData.producedThrough( JavaTestDocsGenerator.PRODUCER );
-    public @Rule
-    TestData<Map<String, Node>> data = TestData.producedThrough( GraphDescription.createGraphFor(
-            this, true ) );
+    TestData<Map<String, Node>> data = TestData.producedThrough(GraphDescription.createGraphFor(this, true));
 
     private static ImpermanentGraphDatabase graphdb;
     private static Layer layer = null;
     public final static String LAYER_NAME = "two-street.osm";
     public final static int COMMIT_INTERVAL = 100;
-
-    /**
-     * this is the documentation
-     * for this test.
-     * 
-     * @@graph
-     * 
-     * This is the pipe executed over the above graph.
-     * 
-     * @@pipe1
-     * 
-     * Returning all geometries in this layer.
-     * 
-     */
-    @Documented
-    @Test
-    public void count_all_geometries_in_a_layer()
-    {
-        data.get();
-        gen.get();
-        gen.get().addSnippet( "pipe1", AsciiDocGenerator.createSourceSnippet("pipe1", this.getClass()) );
-        gen.get().addSnippet( "graph", AsciidocHelper.createGraphViz("graph1", graphdb(), gen.get().getTitle()) );
-        // START SNIPPET: pipe1
-        long allGeometries = layer.filter().all().count();
-        assertEquals( 2, allGeometries );
-        // END SNIPPET: pipe1
+    
+    private OSMGeoPipeline startPipeline() {
+    	return startPipeline(new SearchAll());
     }
+    
+    private OSMGeoPipeline startPipeline(SearchFilter filter) {
+    	return OSMGeoPipeline.start(layer, layer.getIndex().search(filter));
+    }    
+    
     @Test
-    public void count_number_of_points_in_all_geometries_in_a_layer()
-    {
-        assertEquals( 24, layer.filter().all().process().countPoints() );
+    public void count_all_geometries_in_a_layer() {
+        assertEquals(2, startPipeline().count());
+    }    
+    
+    @Test
+    public void break_up_all_geometries_into_points_and_count_them() {
+        assertEquals(24, startPipeline().extractOsmPoints().count());
     }
     
     @Test
-    public void break_up_all_geometries_into_points_and_count_them()
-    {
-        assertEquals( 24, layer.filter().all().process().toPoints().count() );
-    }
-    
-    @Test
-    public void count_all_ways_with_a_specific_name()
-    {
-    	assertEquals( 1, layer.filter().all().attributes("name", "Storgatan", Filter.EQUAL).count() );
+    public void count_all_ways_with_a_specific_name() {
+    	assertEquals(1, startPipeline().filterByOsmAttribute("name", "Storgatan").count());
     }
 
     @Test
-    public void count_all_geometries_with_in_a_specific_bbox()
-    {
-    	assertEquals( 1, layer.filter().all().bbox(10, 40, 20, 56.0583531).count());
+    public void count_all_geometries_with_in_a_specific_bbox() {
+    	assertEquals(1, startPipeline().filterByWindowIntersection(10, 40, 20, 56.0583531).count());
     }
     
     @Test
-    public void count_all_geometries_with_in_a_specific_bbox_with_cql()
-    {
-    	assertEquals( 2, layer.filter().all().cql("BBOX(the_geom, 10, 40, 20, 57)").count());
+    public void count_all_geometries_with_in_a_specific_bbox_with_cql() throws CQLException {
+    	assertEquals(2, startPipeline().filterByCQL("BBOX(the_geom, 10, 40, 20, 57)").count());
     }
     
     @Test
-    public void break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them()
-    {
-//    	long result = layer.
-//			filter().
-//				bbox(12.1,43.2,12.5,43.7).
-//				cql("name like 'A%'").
-//			process().
-//				toPoints().
-//				toDensityIslands(0.1).
-//				toConvexHull().
-//				buffer(10).
-//			count();
-
-    	long result = layer.
-		filter().all().
-		process().
-				toPoints().
-				toDensityIslands(0.1).
-				toConvexHull().
-				buffer(10).
-			count();
-
-    	assertEquals( 1, result);
-    	System.out.println(layer.filter().all().process().toPoints().toDensityIslands(0.1).toConvexHull().buffer(10).next());
+    public void break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them() {
+    	assertEquals(1, startPipeline()
+    			.extractOsmPoints().groupByDensityIslands(0.1).toConvexHull().buffer(10).count());
+    	System.out.println(startPipeline()
+    			.extractOsmPoints().groupByDensityIslands(0.1).toConvexHull().buffer(10).count());
     }
     
-    public static void load( ) throws Exception
-    {
-        try
-        {
-            loadTestOsmData( LAYER_NAME, COMMIT_INTERVAL );
-            SpatialDatabaseService spatialService = new SpatialDatabaseService(
-                    graphdb );
-            layer = spatialService.getLayer( LAYER_NAME );
-        }
-        catch ( Exception e )
-        {
-            e.printStackTrace();
-        }
+    public static void load() throws Exception {
+        loadTestOsmData(LAYER_NAME, COMMIT_INTERVAL);
+        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphdb);
+        layer = spatialService.getLayer(LAYER_NAME);
     }
 
-    public static void loadTestOsmData( String layerName, int commitInterval )
-            throws Exception
-    {
+    public static void loadTestOsmData(String layerName, int commitInterval) throws Exception {
         String osmPath = "./" + layerName;
-        System.out.println( "\n=== Loading layer " + layerName + " from "
-                            + osmPath + " ===" );
-        OSMImporter importer = new OSMImporter( layerName );
-        importer.importFile( graphdb, osmPath );
-        importer.reIndex( graphdb, commitInterval );
+        System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===" );
+        OSMImporter importer = new OSMImporter(layerName);
+        importer.importFile(graphdb, osmPath);
+        importer.reIndex(graphdb, commitInterval);
     }
 
     @BeforeClass
-    public static void setUpCLass() throws Exception
-    {
+    public static void setUpCLass() throws Exception {
         graphdb = new ImpermanentGraphDatabase("target/db");
         load();
     }
+    
     @AfterClass
-    public static void afterCLass() throws Exception
-    {
+    public static void afterCLass() throws Exception {
         graphdb.shutdown();
     }
+    
     @Override
-    public GraphDatabaseService graphdb()
-    {
+    public GraphDatabaseService graphdb() {
         return graphdb;
     }
-    
-    @After
-    public void doc() {
-        gen.get().document("target/docs","examples");
-    }
-    
-    @Before
-    public void setUp() {
-        gen.get().setGraph( graphdb );
-    }
-
 }

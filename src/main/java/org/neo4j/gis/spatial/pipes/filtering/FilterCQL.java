@@ -17,27 +17,34 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.pipes.processing;
+package org.neo4j.gis.spatial.pipes.filtering;
 
+import org.geotools.filter.text.cql2.CQLException;
+import org.geotools.filter.text.ecql.ECQL;
+import org.neo4j.gis.spatial.Layer;
+import org.neo4j.gis.spatial.geotools.data.Neo4jFeatureBuilder;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
+import org.opengis.feature.simple.SimpleFeature;
 
-public class Buffer extends AbstractGeoPipe {
+
+public class FilterCQL extends AbstractGeoPipe {
+
+	private Neo4jFeatureBuilder featureBuilder;
+	private org.opengis.filter.Filter filter;
 	
-	private double distance;
-	
-	public Buffer(double distance) {
-		this.distance = distance;
-	}	
-	
-	public Buffer(double distance, String resultPropertyName) {
-		super(resultPropertyName);
-		this.distance = distance;
-	}	
+	public FilterCQL(Layer layer, String cqlPredicate) throws CQLException {
+		this.featureBuilder = new Neo4jFeatureBuilder(layer);
+		this.filter = ECQL.toFilter(cqlPredicate);
+	}
 
 	@Override
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
-		setGeometry(flow, flow.getGeometry().buffer(distance));
-		return flow;
+		SimpleFeature feature = featureBuilder.buildFeature(flow.getRecord());
+	    if (filter.evaluate(feature)) {
+	    	return flow;
+	    } else {
+	    	return null;
+	    }
 	}
 }

@@ -17,35 +17,24 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.pipes;
+package org.neo4j.gis.spatial.pipes.processing;
 
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
-
-import com.tinkerpop.pipes.AbstractPipe;
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
-
-public class CountPointsPipe<S, E> extends
-        AbstractPipe<SpatialDatabaseRecord, SpatialDatabaseRecord>
-{
+import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
+import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 
-    public CountPointsPipe( )
-    {
-    }
+public class NumPoints extends AbstractGeoPipe {
 
-    public SpatialDatabaseRecord processNextStart()
-    {
-        while (true) {
-            final SpatialDatabaseRecord record = this.starts.next();
-            Geometry geometry = record.getGeometry();
-            for(Coordinate coord : geometry.getCoordinates())
-            {
-                
-            }
-            
-            
-        }
-    }
+	public NumPoints() {
+	}
+	
+	public NumPoints(String resultPropertyName) {
+		super(resultPropertyName);
+	}	
 
+	@Override	
+	protected GeoPipeFlow process(GeoPipeFlow flow) {
+		setProperty(flow, flow.getGeometry().getNumPoints());
+		return flow;
+	}
 }

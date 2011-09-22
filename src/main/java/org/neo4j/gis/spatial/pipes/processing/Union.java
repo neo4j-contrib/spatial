@@ -19,16 +19,21 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
-import com.tinkerpop.pipes.AbstractPipe;
-import com.vividsolutions.jts.geom.Geometry;
+import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
+import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
-public class ToConvexHull extends AbstractPipe<Geometry, Geometry> {
+public class Union extends AbstractGeoPipe {
+	
+	public Union() {
+	}		
+	
+	public Union(String resultPropertyName) {
+		super(resultPropertyName);
+	}	
 
-	public Geometry processNextStart() {
-		while (true) {
-			final Geometry geometry = (Geometry) this.starts.next();
-			return geometry.convexHull();
-		}
-
+	@Override	
+	protected GeoPipeFlow process(GeoPipeFlow flow) {
+		setGeometry(flow, flow.getGeometry().union());
+		return flow;
 	}
 }

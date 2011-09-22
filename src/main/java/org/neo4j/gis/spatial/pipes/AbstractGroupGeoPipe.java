@@ -19,30 +19,35 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
+import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.NoSuchElementException;
+import java.util.List;
 
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
+import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
-public class GeoPipeHelper
-{
-    /**
-     * Count the number of objects in a geometry.
-     * This will exhaust the iterator.
-     * Note that the try/catch model is not "acceptable Java," but is more efficient given the architecture of AbstractPipe.
-     *
-     * @param iterator the iterator to count
-     * @return the number of objects in the iterator
-     */
-    public static long counter(final Iterator<SpatialDatabaseRecord> iterator) {
-        long counter = 0;
-        try {
-            while (true) {
-                SpatialDatabaseRecord next = iterator.next();
-                counter+=next.getGeometry().getNumPoints();
-            }
-        } catch (final NoSuchElementException e) {
-        }
-        return counter;
-    }
+public abstract class AbstractGroupGeoPipe extends AbstractGeoPipe {
+
+	protected List<GeoPipeFlow> groups = new ArrayList<GeoPipeFlow>();
+	protected Iterator<GeoPipeFlow> groupIterator = null;
+
+	@Override
+	public GeoPipeFlow processNextStart() {
+		if (groupIterator == null) {
+			while (starts.hasNext()) {
+				group((GeoPipeFlow) starts.next());
+			}
+			
+			groupIterator = groups.iterator();			
+		} 
+		
+		return groupIterator.next();
+	}
+	
+	/**
+	 * Subclasses should override this method
+	 */
+	protected void group(GeoPipeFlow flow) {
+		groups.add(flow);
+	}
 }

@@ -17,27 +17,28 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.pipes.processing;
+package org.neo4j.gis.spatial.pipes.filtering;
 
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
-public class Buffer extends AbstractGeoPipe {
-	
-	private double distance;
-	
-	public Buffer(double distance) {
-		this.distance = distance;
-	}	
-	
-	public Buffer(double distance, String resultPropertyName) {
-		super(resultPropertyName);
-		this.distance = distance;
-	}	
+import com.vividsolutions.jts.geom.Geometry;
 
+
+public class FilterIntersect extends AbstractGeoPipe {
+
+	private Geometry geometry;
+	
+	public FilterIntersect(Geometry geometry) {
+		this.geometry = geometry;
+	}	
+	
 	@Override
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
-		setGeometry(flow, flow.getGeometry().buffer(distance));
-		return flow;
+		if (geometry.intersects(flow.getGeometry())) {
+			return flow;
+		} else {
+			return null;
+		}
 	}
 }

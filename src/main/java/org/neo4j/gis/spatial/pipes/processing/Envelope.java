@@ -17,35 +17,23 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.pipes.filter;
+package org.neo4j.gis.spatial.pipes.processing;
 
-import java.util.Iterator;
+import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
+import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
-import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.LayerSearch;
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+public class Envelope extends AbstractGeoPipe {
+	
+	public Envelope() {
+	}		
+	
+	public Envelope(String resultPropertyName) {
+		super(resultPropertyName);
+	}	
 
-import com.tinkerpop.pipes.AbstractPipe;
-
-public class FilterCQL<S, E> extends
-		AbstractPipe<SpatialDatabaseRecord, SpatialDatabaseRecord> {
-
-	private final Layer layer;
-	private LayerSearch search;
-	private Iterator<SpatialDatabaseRecord> results;
-
-	public FilterCQL(Layer layer, String cqlPredicate) {
-		this.layer = layer;
-		this.search = new SearchCQL(layer, cqlPredicate);
+	@Override	
+	protected GeoPipeFlow process(GeoPipeFlow flow) {
+		setGeometry(flow, flow.getGeometry().getEnvelope());
+		return flow;
 	}
-
-	public SpatialDatabaseRecord processNextStart() {
-
-		if (this.results == null) {
-			layer.getIndex().executeSearch(search);
-			this.results = search.getExtendedResults().iterator();
-		}
-		return this.results.next();
-	}
-
 }
