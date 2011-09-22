@@ -28,14 +28,12 @@ import org.neo4j.graphdb.Node;
 
 public class SearchRecords implements Iterable<SpatialDatabaseRecord>, Iterator<SpatialDatabaseRecord> {
 	
-	private SearchResults results;
 	private Iterator<Node> nodeIterator;
 	private Layer layer;
 
 	public SearchRecords(Layer layer, SearchResults results) {
 		this.layer = layer;
-		this.results = results;
-		nodeIterator = results.iterator();
+		this.nodeIterator = results.iterator();
 	}
 
 	@Override
@@ -57,9 +55,4 @@ public class SearchRecords implements Iterable<SpatialDatabaseRecord>, Iterator<
 	public void remove() {
 		throw new UnsupportedOperationException("Cannot remove from results");
 	}
-
-	public int count() {
-		return results.count();
-	}
-
 }

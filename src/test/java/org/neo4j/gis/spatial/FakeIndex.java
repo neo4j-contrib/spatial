@@ -69,13 +69,16 @@ public class FakeIndex implements LayerIndexReader, Constants {
 	
 	public Envelope getBoundingBox() {
 		Envelope bbox = null;
+		
+		GeometryEncoder geomEncoder = layer.getGeometryEncoder();
 		for (Node node: layer.getDataset().getAllGeometryNodes()) {
 			if (bbox == null) {
-				bbox = layer.getGeometryEncoder().decodeEnvelope(node);
+				bbox = geomEncoder.decodeEnvelope(node);
 			} else {
-				bbox.expandToInclude(layer.getGeometryEncoder().decodeEnvelope(node));
+				bbox.expandToInclude(geomEncoder.decodeEnvelope(node));
 			}
 		}
+		
 		return bbox;
 	}
 
