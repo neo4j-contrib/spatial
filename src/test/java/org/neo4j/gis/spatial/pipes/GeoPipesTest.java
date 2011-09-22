@@ -80,7 +80,7 @@ public class GeoPipesTest implements GraphHolder
         gen.get().addSnippet( "pipe1", AsciiDocGenerator.createSourceSnippet("pipe1", this.getClass()) );
         gen.get().addSnippet( "graph", AsciidocHelper.createGraphViz("graph1", graphdb(), gen.get().getTitle()) );
         // START SNIPPET: pipe1
-        long allGeometries = layer.filter().all().count();
+        long allGeometries = layer.filter().all().process().count();
         assertEquals( 2, allGeometries );
         // END SNIPPET: pipe1
     }
@@ -99,19 +99,19 @@ public class GeoPipesTest implements GraphHolder
     @Test
     public void count_all_ways_with_a_specific_name()
     {
-    	assertEquals( 1, layer.filter().all().attributes("name", "Storgatan", Filter.EQUAL).count() );
+    	assertEquals( 1, layer.filter().all().attributes("name", "Storgatan", Filter.EQUAL).process().count() );
     }
 
     @Test
     public void count_all_geometries_with_in_a_specific_bbox()
     {
-    	assertEquals( 1, layer.filter().all().bbox(10, 40, 20, 56.0583531).count());
+    	assertEquals( 1, layer.filter().all().bbox(10, 40, 20, 56.0583531).process().count());
     }
     
     @Test
     public void count_all_geometries_with_in_a_specific_bbox_with_cql()
     {
-    	assertEquals( 2, layer.filter().all().cql("BBOX(the_geom, 10, 40, 20, 57)").count());
+    	assertEquals( 2, layer.filter().all().cql("BBOX(the_geom, 10, 40, 20, 57)").process().count());
     }
     
     @Test
