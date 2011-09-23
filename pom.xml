@@ -158,6 +158,11 @@ terms of the relevant Commercial Agreement.
   <dependencies>
     <dependency>
       <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-graph-collections</artifactId>
+      <version>${neo4j.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.neo4j</groupId>
       <artifactId>neo4j</artifactId>
       <version>${neo4j.version}</version>
       <scope>provided</scope>
@@ -165,12 +170,6 @@ terms of the relevant Commercial Agreement.
     <dependency>
       <groupId>org.neo4j</groupId>
       <artifactId>server-api</artifactId>
-      <version>${neo4j.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.neo4j</groupId>
-      <artifactId>neo4j-graph-collections</artifactId>
       <version>${neo4j.version}</version>
       <scope>provided</scope>
     </dependency>
@@ -260,7 +259,6 @@ terms of the relevant Commercial Agreement.
       <groupId>com.googlecode.json-simple</groupId>
       <artifactId>json-simple</artifactId>
       <version>1.1</version>
-      <scope>provided</scope>
       <type>jar</type>
     </dependency>
     <dependency>
