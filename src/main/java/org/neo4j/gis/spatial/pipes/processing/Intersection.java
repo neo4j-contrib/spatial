@@ -24,33 +24,22 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 import com.vividsolutions.jts.geom.Geometry;
 
-public class Union extends AbstractGeoPipe {
+public class Intersection extends AbstractGeoPipe {
 	
-	private Geometry other = null;
+	private Geometry other;
 	
-	public Union() {
-	}		
-	
-	public Union(String resultPropertyName) {
-		super(resultPropertyName);
-	}	
-
-	public Union(Geometry other) {
+	public Intersection(Geometry other) {
 		this.other = other;
 	}		
 	
-	public Union(Geometry other, String resultPropertyName) {
+	public Intersection(Geometry other, String resultPropertyName) {
 		super(resultPropertyName);
 		this.other = other;
 	}		
 	
 	@Override	
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
-		if (other == null) {
-			setGeometry(flow, flow.getGeometry().union());
-		} else {
-			setGeometry(flow, flow.getGeometry().union(other));			
-		}
+		setGeometry(flow, flow.getGeometry().intersection(other));			
 		return flow;
 	}
 }

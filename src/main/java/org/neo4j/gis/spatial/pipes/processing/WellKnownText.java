@@ -22,35 +22,23 @@ package org.neo4j.gis.spatial.pipes.processing;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
-import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.io.WKTWriter;
 
-public class Union extends AbstractGeoPipe {
-	
-	private Geometry other = null;
-	
-	public Union() {
+
+public class WellKnownText extends AbstractGeoPipe {
+
+	public WellKnownText() {
 	}		
 	
-	public Union(String resultPropertyName) {
+	public WellKnownText(String resultPropertyName) {
 		super(resultPropertyName);
 	}	
 
-	public Union(Geometry other) {
-		this.other = other;
-	}		
-	
-	public Union(Geometry other, String resultPropertyName) {
-		super(resultPropertyName);
-		this.other = other;
-	}		
-	
 	@Override	
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
-		if (other == null) {
-			setGeometry(flow, flow.getGeometry().union());
-		} else {
-			setGeometry(flow, flow.getGeometry().union(other));			
-		}
+		WKTWriter wktWriter = new WKTWriter();
+		setProperty(flow, wktWriter.write(flow.getGeometry()));
 		return flow;
-	}
+	}	
+	
 }

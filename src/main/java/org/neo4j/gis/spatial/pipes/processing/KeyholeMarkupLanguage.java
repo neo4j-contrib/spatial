@@ -19,38 +19,33 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
+import java.io.IOException;
+
+import org.geotools.kml.KML;
+import org.geotools.kml.KMLConfiguration;
+import org.geotools.xml.Encoder;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
-import com.vividsolutions.jts.geom.Geometry;
+public class KeyholeMarkupLanguage extends AbstractGeoPipe {
 
-public class Union extends AbstractGeoPipe {
-	
-	private Geometry other = null;
-	
-	public Union() {
+	public KeyholeMarkupLanguage() {
 	}		
 	
-	public Union(String resultPropertyName) {
+	public KeyholeMarkupLanguage(String resultPropertyName) {
 		super(resultPropertyName);
 	}	
 
-	public Union(Geometry other) {
-		this.other = other;
-	}		
-	
-	public Union(Geometry other, String resultPropertyName) {
-		super(resultPropertyName);
-		this.other = other;
-	}		
-	
 	@Override	
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
-		if (other == null) {
-			setGeometry(flow, flow.getGeometry().union());
-		} else {
-			setGeometry(flow, flow.getGeometry().union(other));			
-		}
+		Encoder encoder = new Encoder(new KMLConfiguration());
+		encoder.setIndenting(true);
+		try {
+			setProperty(flow, encoder.encodeAsString(flow.getGeometry(), KML.Geometry));
+		} catch (IOException e) {
+			setProperty(flow, e.getMessage());
+		}		
 		return flow;
-	}
+	}	
+	
 }

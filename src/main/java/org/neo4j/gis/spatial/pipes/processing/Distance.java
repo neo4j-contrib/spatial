@@ -24,33 +24,24 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 import com.vividsolutions.jts.geom.Geometry;
 
-public class Union extends AbstractGeoPipe {
+
+public class Distance extends AbstractGeoPipe {
+
+	private Geometry reference;
 	
-	private Geometry other = null;
-	
-	public Union() {
+	public Distance(Geometry reference) {
+		this.reference = reference;
 	}		
 	
-	public Union(String resultPropertyName) {
+	public Distance(Geometry reference, String resultPropertyName) {
 		super(resultPropertyName);
+		this.reference = reference;
 	}	
 
-	public Union(Geometry other) {
-		this.other = other;
-	}		
-	
-	public Union(Geometry other, String resultPropertyName) {
-		super(resultPropertyName);
-		this.other = other;
-	}		
-	
 	@Override	
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
-		if (other == null) {
-			setGeometry(flow, flow.getGeometry().union());
-		} else {
-			setGeometry(flow, flow.getGeometry().union(other));			
-		}
+		setProperty(flow, flow.getGeometry().distance(reference));
 		return flow;
-	}
+	}	
+	
 }

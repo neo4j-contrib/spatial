@@ -22,35 +22,28 @@ package org.neo4j.gis.spatial.pipes.processing;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
-import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.GeometryFactory;
 
-public class Union extends AbstractGeoPipe {
+
+public class EndPoint extends AbstractGeoPipe {
 	
-	private Geometry other = null;
+	private GeometryFactory geomFactory;
 	
-	public Union() {
+	public EndPoint(GeometryFactory geomFactory) {
+		this.geomFactory = geomFactory;
 	}		
 	
-	public Union(String resultPropertyName) {
+	public EndPoint(GeometryFactory geomFactory, String resultPropertyName) {
 		super(resultPropertyName);
+		this.geomFactory = geomFactory;
 	}	
 
-	public Union(Geometry other) {
-		this.other = other;
-	}		
-	
-	public Union(Geometry other, String resultPropertyName) {
-		super(resultPropertyName);
-		this.other = other;
-	}		
-	
 	@Override	
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
-		if (other == null) {
-			setGeometry(flow, flow.getGeometry().union());
-		} else {
-			setGeometry(flow, flow.getGeometry().union(other));			
-		}
+		Coordinate[] coords = flow.getGeometry().getCoordinates();
+		setGeometry(flow, geomFactory.createPoint(coords[coords.length - 1]));
 		return flow;
-	}
+	}	
+	
 }

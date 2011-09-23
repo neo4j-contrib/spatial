@@ -28,21 +28,43 @@ import org.neo4j.gis.spatial.pipes.filtering.FilterAttributes;
 import org.neo4j.gis.spatial.pipes.filtering.FilterCQL;
 import org.neo4j.gis.spatial.pipes.filtering.FilterIntersect;
 import org.neo4j.gis.spatial.pipes.filtering.FilterIntersectWindow;
+import org.neo4j.gis.spatial.pipes.processing.ApplyAffineTransformation;
+import org.neo4j.gis.spatial.pipes.processing.Area;
 import org.neo4j.gis.spatial.pipes.processing.Boundary;
 import org.neo4j.gis.spatial.pipes.processing.Buffer;
 import org.neo4j.gis.spatial.pipes.processing.Centroid;
 import org.neo4j.gis.spatial.pipes.processing.ConvexHull;
+import org.neo4j.gis.spatial.pipes.processing.Densify;
 import org.neo4j.gis.spatial.pipes.processing.DensityIslands;
+import org.neo4j.gis.spatial.pipes.processing.Difference;
+import org.neo4j.gis.spatial.pipes.processing.Dimension;
+import org.neo4j.gis.spatial.pipes.processing.Distance;
+import org.neo4j.gis.spatial.pipes.processing.EndPoint;
 import org.neo4j.gis.spatial.pipes.processing.Envelope;
 import org.neo4j.gis.spatial.pipes.processing.ExtractPoints;
+import org.neo4j.gis.spatial.pipes.processing.GML;
+import org.neo4j.gis.spatial.pipes.processing.GeoJSON;
+import org.neo4j.gis.spatial.pipes.processing.GeometryType;
 import org.neo4j.gis.spatial.pipes.processing.InteriorPoint;
+import org.neo4j.gis.spatial.pipes.processing.Intersection;
+import org.neo4j.gis.spatial.pipes.processing.KeyholeMarkupLanguage;
+import org.neo4j.gis.spatial.pipes.processing.Length;
+import org.neo4j.gis.spatial.pipes.processing.LengthInMeters;
+import org.neo4j.gis.spatial.pipes.processing.LengthInMiles;
+import org.neo4j.gis.spatial.pipes.processing.NumGeometries;
 import org.neo4j.gis.spatial.pipes.processing.NumPoints;
+import org.neo4j.gis.spatial.pipes.processing.SimplifyPreservingTopology;
+import org.neo4j.gis.spatial.pipes.processing.SimplifyWithDouglasPeucker;
+import org.neo4j.gis.spatial.pipes.processing.StartPoint;
+import org.neo4j.gis.spatial.pipes.processing.SymDifference;
 import org.neo4j.gis.spatial.pipes.processing.Union;
+import org.neo4j.gis.spatial.pipes.processing.WellKnownText;
 
 import com.tinkerpop.pipes.filter.FilterPipe;
 import com.tinkerpop.pipes.util.FluentPipeline;
 import com.tinkerpop.pipes.util.StartPipe;
 import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.util.AffineTransformation;
 
 
 public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
@@ -97,30 +119,110 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     	return addPipe(new ConvexHull());
     }
     
-    public GeoPipeline groupByDensityIslands(double density) {
-    	return addPipe(new DensityIslands(density));
-    }
-    
     public GeoPipeline toEnvelope() {
     	return addPipe(new Envelope());
     }
-    
-    public GeoPipeline extractPoints() {
-    	return addPipe(new ExtractPoints(layer.getGeometryFactory()));
-    }
-    
+        
     public GeoPipeline toInteriorPoint() {
     	return addPipe(new InteriorPoint());
+    }
+    
+    public GeoPipeline toStartPoint() {
+    	return addPipe(new StartPoint(layer.getGeometryFactory()));
+    }
+    
+    public GeoPipeline toEndPoint() {
+    	return addPipe(new EndPoint(layer.getGeometryFactory()));
     }
     
     public GeoPipeline countPoints() {
     	return addPipe(new NumPoints());
     }
     
-    public GeoPipeline toUnion() {
+    public GeoPipeline union() {
     	return addPipe(new Union());
     }
 
+    public GeoPipeline union(Geometry geometry) {
+    	return addPipe(new Union(geometry));
+    }
+    
+    public GeoPipeline intersect(Geometry geometry) {
+    	return addPipe(new Intersection(geometry));
+    }
+    
+    public GeoPipeline difference(Geometry geometry) {
+    	return addPipe(new Difference(geometry));
+    }
+    
+    public GeoPipeline symDifference(Geometry geometry) {
+    	return addPipe(new SymDifference(geometry));
+    }
+    
+    public GeoPipeline simplifyWithDouglasPeucker(double distanceTolerance) {
+    	return addPipe(new SimplifyWithDouglasPeucker(distanceTolerance));
+    }
+    
+    public GeoPipeline simplifyPreservingTopology(double distanceTolerance) {
+    	return addPipe(new SimplifyPreservingTopology(distanceTolerance));
+    }
+    
+    public GeoPipeline applyAffineTransform(AffineTransformation t) {
+    	return addPipe(new ApplyAffineTransformation(t));
+    }
+    
+    public GeoPipeline densify(double distanceTolerance) {
+    	return addPipe(new Densify(distanceTolerance));
+    }
+    
+    public GeoPipeline calculateArea() {
+    	return addPipe(new Area());
+    }
+    
+    public GeoPipeline calculateLength() {
+    	return addPipe(new Length());
+    }
+    
+    public GeoPipeline getDimension() {
+    	return addPipe(new Dimension());
+    }
+    
+    public GeoPipeline getGeometryType() {
+    	return addPipe(new GeometryType());
+    }
+    
+    public GeoPipeline getNumGeometries() {
+    	return addPipe(new NumGeometries());
+    }
+    
+    public GeoPipeline calculateLengthInMeters() {
+    	return addPipe(new LengthInMeters(layer.getCoordinateReferenceSystem()));
+    }
+    
+    public GeoPipeline calculateLengthInMiles() {
+    	return addPipe(new LengthInMiles(layer.getCoordinateReferenceSystem()));
+    }    
+    
+    public GeoPipeline calculateDistance(Geometry reference) {
+    	return addPipe(new Distance(reference));
+    }
+    
+    public GeoPipeline createJson() {
+    	return addPipe(new GeoJSON());
+    }
+    
+    public GeoPipeline createWellKnownText() {
+    	return addPipe(new WellKnownText());
+    }
+    
+    public GeoPipeline createKML() {
+    	return addPipe(new KeyholeMarkupLanguage());
+    }
+    
+    public GeoPipeline createGML() {
+    	return addPipe(new GML());
+    }
+    
     public GeoPipeline filterByAttribute(String key, Object value) {
     	return addPipe(new FilterAttributes(key, value));
     }    
@@ -140,6 +242,14 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     public GeoPipeline filterByWindowIntersection(double xmin, double ymin, double xmax, double ymax) {
     	return addPipe(new FilterIntersectWindow(layer.getGeometryFactory(), xmin, ymin, xmax, ymax));
     }
+    
+    public GeoPipeline groupByDensityIslands(double density) {
+    	return addPipe(new DensityIslands(density));
+    }
+        
+    public GeoPipeline extractPoints() {
+    	return addPipe(new ExtractPoints(layer.getGeometryFactory()));
+    }    
     
 	public int countResults() {
     	int count = 0;

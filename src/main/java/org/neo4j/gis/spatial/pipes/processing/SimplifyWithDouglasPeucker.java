@@ -22,35 +22,26 @@ package org.neo4j.gis.spatial.pipes.processing;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
-import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.simplify.DouglasPeuckerSimplifier;
 
-public class Union extends AbstractGeoPipe {
+
+public class SimplifyWithDouglasPeucker extends AbstractGeoPipe {
 	
-	private Geometry other = null;
+	private double distanceTolerance;
 	
-	public Union() {
+	public SimplifyWithDouglasPeucker(double distanceTolerance) {
+		this.distanceTolerance = distanceTolerance;
 	}		
 	
-	public Union(String resultPropertyName) {
+	public SimplifyWithDouglasPeucker(double distanceTolerance, String resultPropertyName) {
 		super(resultPropertyName);
+		this.distanceTolerance = distanceTolerance;
 	}	
 
-	public Union(Geometry other) {
-		this.other = other;
-	}		
-	
-	public Union(Geometry other, String resultPropertyName) {
-		super(resultPropertyName);
-		this.other = other;
-	}		
-	
 	@Override	
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
-		if (other == null) {
-			setGeometry(flow, flow.getGeometry().union());
-		} else {
-			setGeometry(flow, flow.getGeometry().union(other));			
-		}
+		setGeometry(flow, DouglasPeuckerSimplifier.simplify(flow.getGeometry(), distanceTolerance));
 		return flow;
 	}
+
 }

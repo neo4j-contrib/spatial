@@ -22,35 +22,25 @@ package org.neo4j.gis.spatial.pipes.processing;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
-import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.util.AffineTransformation;
 
-public class Union extends AbstractGeoPipe {
+public class ApplyAffineTransformation extends AbstractGeoPipe {
 	
-	private Geometry other = null;
+	private AffineTransformation t;
 	
-	public Union() {
+	public ApplyAffineTransformation(AffineTransformation t) {
+		this.t = t;
 	}		
 	
-	public Union(String resultPropertyName) {
+	public ApplyAffineTransformation(AffineTransformation t, String resultPropertyName) {
 		super(resultPropertyName);
+		this.t = t;
 	}	
 
-	public Union(Geometry other) {
-		this.other = other;
-	}		
-	
-	public Union(Geometry other, String resultPropertyName) {
-		super(resultPropertyName);
-		this.other = other;
-	}		
-	
 	@Override	
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
-		if (other == null) {
-			setGeometry(flow, flow.getGeometry().union());
-		} else {
-			setGeometry(flow, flow.getGeometry().union(other));			
-		}
+		setGeometry(flow, t.transform(flow.getGeometry()));
 		return flow;
-	}
+	}	
+	
 }
