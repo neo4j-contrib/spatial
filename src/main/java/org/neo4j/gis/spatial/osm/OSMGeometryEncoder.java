@@ -39,6 +39,8 @@ import org.neo4j.kernel.impl.traversal.TraversalDescriptionImpl;
 import com.vividsolutions.jts.algorithm.ConvexHull;
 import com.vividsolutions.jts.geom.Coordinate;
 import org.neo4j.collections.rtree.Envelope;
+import org.neo4j.collections.rtree.RTreeIndex;
+
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
@@ -114,13 +116,19 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 		return (Node) container;
 	}
 
+	@Override
 	public Envelope decodeEnvelope(PropertyContainer container) {
 		Node geomNode = testIsNode(container);
 		double[] bbox = (double[]) geomNode.getProperty("bbox");
 		// double xmin, double xmax, double ymin, double ymax
-		return new Envelope(bbox[0], bbox[2], bbox[1], bbox[3]);
+		return new Envelope(bbox[0], bbox[1], bbox[2], bbox[3]);
 	}
 
+	@Override
+	public void encodeEnvelope(Envelope mbb, PropertyContainer container) {
+		container.setProperty(RTreeIndex.PROP_BBOX, new double[] { mbb.getMinX(), mbb.getMaxX(), mbb.getMinY(), mbb.getMaxY() });
+	}
+	
 	public static Node getOSMNodeFromGeometryNode(Node geomNode) {
 		return geomNode.getSingleRelationship(OSMRelation.GEOM, Direction.INCOMING).getStartNode();
 	}
