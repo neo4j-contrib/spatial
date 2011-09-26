@@ -164,17 +164,23 @@ public class SpatialDatabaseRecord implements Constants, Comparable<SpatialDatab
 	    return text.toString();
 	}
 
-	@SuppressWarnings("rawtypes")
+	/**
+	 * @deprecated
+	 */
 	public Comparable getUserData() {
 		return userData;
 	}
 
-	@SuppressWarnings("rawtypes")
+	/**
+	 * @deprecated
+	 */
 	public void setUserData(Comparable object) {
 		userData = object;
 	}
 
-	@SuppressWarnings("unchecked")
+	/**
+	 * @deprecated
+	 */
 	public int compareTo(SpatialDatabaseRecord other) {
 		getUserData().compareTo(other.getUserData());
 		return 0;

@@ -19,13 +19,13 @@
  */
 package org.neo4j.gis.spatial.pipes.filtering;
 
-import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
+import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 import com.vividsolutions.jts.geom.Geometry;
 
 
-public class FilterIntersect extends AbstractGeoPipe {
+public class FilterIntersect extends AbstractFilterGeoPipe {
 
 	private Geometry geometry;
 	
@@ -34,11 +34,7 @@ public class FilterIntersect extends AbstractGeoPipe {
 	}	
 	
 	@Override
-	protected GeoPipeFlow process(GeoPipeFlow flow) {
-		if (geometry.intersects(flow.getGeometry())) {
-			return flow;
-		} else {
-			return null;
-		}
+	protected boolean validate(GeoPipeFlow flow) {
+		return geometry.intersects(flow.getGeometry());
 	}
 }

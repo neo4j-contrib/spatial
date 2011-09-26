@@ -26,6 +26,7 @@ import java.util.Map;
 
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 
+import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 
 
@@ -33,6 +34,7 @@ public class GeoPipeFlow {
 
 	private List<SpatialDatabaseRecord> records = new ArrayList<SpatialDatabaseRecord>();
 	private Geometry geometry;
+	private Envelope geometryEnvelope;
 	private Map<String,Object> properties = new HashMap<String,Object>();
 	
 	private GeoPipeFlow() {
@@ -59,16 +61,26 @@ public class GeoPipeFlow {
 		return geometry;
 	}
 	
+	public Envelope getEnvelope() {
+		if (geometryEnvelope == null) {
+			geometryEnvelope = geometry.getEnvelopeInternal();
+		}
+		
+		return geometryEnvelope;
+	}
+	
 	public void setGeometry(Geometry geometry) {
 		this.geometry = geometry;
+		this.geometryEnvelope = null;
 	}
 	
 	public Map<String,Object> getProperties() {
 		return properties;
 	}
 	
-	public void mergeRecords(GeoPipeFlow other) {
+	public void merge(GeoPipeFlow other) {
 		records.addAll(other.records);
+		// TODO properties?
 	}
 	
 	public GeoPipeFlow makeClone() {
@@ -76,7 +88,7 @@ public class GeoPipeFlow {
 		GeoPipeFlow clone = new GeoPipeFlow();
 		clone.records.addAll(records);
 		clone.geometry = geometry;
-		clone.properties.putAll(properties);
+		clone.getProperties().putAll(getProperties());
 		return clone;
 	}
 }

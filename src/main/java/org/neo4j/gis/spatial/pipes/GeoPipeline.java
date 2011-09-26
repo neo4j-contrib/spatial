@@ -19,21 +19,38 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
+import java.util.Comparator;
 import java.util.Iterator;
 
 import org.geotools.filter.text.cql2.CQLException;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.filter.SearchRecords;
-import org.neo4j.gis.spatial.pipes.filtering.FilterAttributes;
 import org.neo4j.gis.spatial.pipes.filtering.FilterCQL;
+import org.neo4j.gis.spatial.pipes.filtering.FilterContain;
+import org.neo4j.gis.spatial.pipes.filtering.FilterCover;
+import org.neo4j.gis.spatial.pipes.filtering.FilterCoveredBy;
+import org.neo4j.gis.spatial.pipes.filtering.FilterCross;
+import org.neo4j.gis.spatial.pipes.filtering.FilterDisjoint;
+import org.neo4j.gis.spatial.pipes.filtering.FilterEmpty;
+import org.neo4j.gis.spatial.pipes.filtering.FilterEqual;
+import org.neo4j.gis.spatial.pipes.filtering.FilterInRelation;
 import org.neo4j.gis.spatial.pipes.filtering.FilterIntersect;
 import org.neo4j.gis.spatial.pipes.filtering.FilterIntersectWindow;
+import org.neo4j.gis.spatial.pipes.filtering.FilterInvalid;
+import org.neo4j.gis.spatial.pipes.filtering.FilterOverlap;
+import org.neo4j.gis.spatial.pipes.filtering.FilterProperty;
+import org.neo4j.gis.spatial.pipes.filtering.FilterPropertyNotNull;
+import org.neo4j.gis.spatial.pipes.filtering.FilterPropertyNull;
+import org.neo4j.gis.spatial.pipes.filtering.FilterTouch;
+import org.neo4j.gis.spatial.pipes.filtering.FilterValid;
+import org.neo4j.gis.spatial.pipes.filtering.FilterWithin;
 import org.neo4j.gis.spatial.pipes.processing.ApplyAffineTransformation;
 import org.neo4j.gis.spatial.pipes.processing.Area;
 import org.neo4j.gis.spatial.pipes.processing.Boundary;
 import org.neo4j.gis.spatial.pipes.processing.Buffer;
 import org.neo4j.gis.spatial.pipes.processing.Centroid;
 import org.neo4j.gis.spatial.pipes.processing.ConvexHull;
+import org.neo4j.gis.spatial.pipes.processing.CopyDatabaseRecordProperties;
 import org.neo4j.gis.spatial.pipes.processing.Densify;
 import org.neo4j.gis.spatial.pipes.processing.DensityIslands;
 import org.neo4j.gis.spatial.pipes.processing.Difference;
@@ -46,23 +63,29 @@ import org.neo4j.gis.spatial.pipes.processing.GML;
 import org.neo4j.gis.spatial.pipes.processing.GeoJSON;
 import org.neo4j.gis.spatial.pipes.processing.GeometryType;
 import org.neo4j.gis.spatial.pipes.processing.InteriorPoint;
+import org.neo4j.gis.spatial.pipes.processing.IntersectAll;
 import org.neo4j.gis.spatial.pipes.processing.Intersection;
 import org.neo4j.gis.spatial.pipes.processing.KeyholeMarkupLanguage;
 import org.neo4j.gis.spatial.pipes.processing.Length;
-import org.neo4j.gis.spatial.pipes.processing.LengthInMeters;
-import org.neo4j.gis.spatial.pipes.processing.LengthInMiles;
+import org.neo4j.gis.spatial.pipes.processing.Max;
+import org.neo4j.gis.spatial.pipes.processing.Min;
 import org.neo4j.gis.spatial.pipes.processing.NumGeometries;
 import org.neo4j.gis.spatial.pipes.processing.NumPoints;
+import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
+import org.neo4j.gis.spatial.pipes.processing.OrthodromicLength;
 import org.neo4j.gis.spatial.pipes.processing.SimplifyPreservingTopology;
 import org.neo4j.gis.spatial.pipes.processing.SimplifyWithDouglasPeucker;
+import org.neo4j.gis.spatial.pipes.processing.Sort;
 import org.neo4j.gis.spatial.pipes.processing.StartPoint;
 import org.neo4j.gis.spatial.pipes.processing.SymDifference;
 import org.neo4j.gis.spatial.pipes.processing.Union;
+import org.neo4j.gis.spatial.pipes.processing.UnionAll;
 import org.neo4j.gis.spatial.pipes.processing.WellKnownText;
 
 import com.tinkerpop.pipes.filter.FilterPipe;
 import com.tinkerpop.pipes.util.FluentPipeline;
 import com.tinkerpop.pipes.util.StartPipe;
+import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.util.AffineTransformation;
 
@@ -103,6 +126,26 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     	return (GeoPipeline) add(geoPipe);
     }
 
+    public GeoPipeline copyDatabaseRecordProperties() {
+    	return addPipe(new CopyDatabaseRecordProperties());
+    }
+    
+    public GeoPipeline getMin(String property) {
+    	return addPipe(new Min(property));
+    }
+
+    public GeoPipeline getMax(String property) {
+    	return addPipe(new Max(property));
+    }
+    
+    public GeoPipeline sort(String property, boolean asc) {
+    	return addPipe(new Sort(property, asc));
+    }
+    
+    public GeoPipeline sort(String property, Comparator<Object> comparator) {
+    	return addPipe(new Sort(property, comparator));
+    }    
+    
     public GeoPipeline toBoundary() {
     	return addPipe(new Boundary());
     }
@@ -147,8 +190,16 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     	return addPipe(new Union(geometry));
     }
     
+    public GeoPipeline unionAll() {
+    	return addPipe(new UnionAll());
+    }
+    
     public GeoPipeline intersect(Geometry geometry) {
     	return addPipe(new Intersection(geometry));
+    }
+    
+    public GeoPipeline intersectAll() {
+    	return addPipe(new IntersectAll());
     }
     
     public GeoPipeline difference(Geometry geometry) {
@@ -183,6 +234,18 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     	return addPipe(new Length());
     }
     
+    public GeoPipeline calculateOrthodromicLength() {
+    	return addPipe(new OrthodromicLength(layer.getCoordinateReferenceSystem()));
+    }    
+    
+    public GeoPipeline calculateDistance(Geometry reference) {
+    	return addPipe(new Distance(reference));
+    }
+
+    public GeoPipeline calculateOrthodromicDistance(Coordinate reference) {
+    	return addPipe(new OrthodromicDistance(reference));
+    }
+    
     public GeoPipeline getDimension() {
     	return addPipe(new Dimension());
     }
@@ -194,19 +257,7 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     public GeoPipeline getNumGeometries() {
     	return addPipe(new NumGeometries());
     }
-    
-    public GeoPipeline calculateLengthInMeters() {
-    	return addPipe(new LengthInMeters(layer.getCoordinateReferenceSystem()));
-    }
-    
-    public GeoPipeline calculateLengthInMiles() {
-    	return addPipe(new LengthInMiles(layer.getCoordinateReferenceSystem()));
-    }    
-    
-    public GeoPipeline calculateDistance(Geometry reference) {
-    	return addPipe(new Distance(reference));
-    }
-    
+        
     public GeoPipeline createJson() {
     	return addPipe(new GeoJSON());
     }
@@ -223,25 +274,85 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     	return addPipe(new GML());
     }
     
-    public GeoPipeline filterByAttribute(String key, Object value) {
-    	return addPipe(new FilterAttributes(key, value));
+    public GeoPipeline propertyFilter(String key, Object value) {
+    	return addPipe(new FilterProperty(key, value));
     }    
     
-    public GeoPipeline filterByAttribute(String key, String value, FilterPipe.Filter comparison) {
-    	return addPipe(new FilterAttributes(key, value, comparison));    	
+    public GeoPipeline propertyFilter(String key, String value, FilterPipe.Filter comparison) {
+    	return addPipe(new FilterProperty(key, value, comparison));    	
     }
 
-    public GeoPipeline filterByCQL(String cql) throws CQLException {
+    public GeoPipeline propertyNotNullFilter(String key) {
+    	return addPipe(new FilterPropertyNotNull(key));    	
+    }
+    
+    public GeoPipeline propertyNullFilter(String key) {
+    	return addPipe(new FilterPropertyNull(key));    	
+    }    
+    
+    public GeoPipeline cqlFilter(String cql) throws CQLException {
     	return addPipe(new FilterCQL(layer, cql));
     }
     
-    public GeoPipeline filterByIntersection(Geometry geometry) {
+    public GeoPipeline intersectionFilter(Geometry geometry) {
     	return addPipe(new FilterIntersect(geometry));
     }
     
-    public GeoPipeline filterByWindowIntersection(double xmin, double ymin, double xmax, double ymax) {
+    public GeoPipeline windowIntersectionFilter(double xmin, double ymin, double xmax, double ymax) {
     	return addPipe(new FilterIntersectWindow(layer.getGeometryFactory(), xmin, ymin, xmax, ymax));
     }
+    
+    public GeoPipeline containFilter(Geometry geometry) {
+    	return addPipe(new FilterContain(geometry));
+    }
+    
+    public GeoPipeline coverFilter(Geometry geometry) {
+    	return addPipe(new FilterCover(geometry));
+    }
+    
+    public GeoPipeline coveredByFilter(Geometry geometry) {
+    	return addPipe(new FilterCoveredBy(geometry));
+    }    
+    
+    public GeoPipeline crossFilter(Geometry geometry) {
+    	return addPipe(new FilterCross(geometry));
+    }        
+
+    public GeoPipeline disjointFilter(Geometry geometry) {
+    	return addPipe(new FilterDisjoint(geometry));
+    }        
+    
+    public GeoPipeline emptyFilter() {
+    	return addPipe(new FilterEmpty());
+    }            
+
+    public GeoPipeline equalFilter(Geometry geometry) {
+    	return addPipe(new FilterEqual(geometry));
+    }        
+    
+    public GeoPipeline relationFilter(Geometry geometry, String intersectionPattern) {
+    	return addPipe(new FilterInRelation(geometry, intersectionPattern));
+    }        
+
+    public GeoPipeline validFilter() {
+    	return addPipe(new FilterValid());
+    }            
+
+    public GeoPipeline invalidFilter() {
+    	return addPipe(new FilterInvalid());
+    }            
+    
+    public GeoPipeline overlapFilter(Geometry geometry) {
+    	return addPipe(new FilterOverlap(geometry));
+    }
+
+    public GeoPipeline touchFilter(Geometry geometry) {
+    	return addPipe(new FilterTouch(geometry));
+    }
+    
+    public GeoPipeline withinFilter(Geometry geometry) {
+    	return addPipe(new FilterWithin(geometry));
+    }    
     
     public GeoPipeline groupByDensityIslands(double density) {
     	return addPipe(new DensityIslands(density));
@@ -251,6 +362,9 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     	return addPipe(new ExtractPoints(layer.getGeometryFactory()));
     }    
     
+    /**
+     * Warning: this method count items still in the pipeline and it will empty the pipeline.
+     */
 	public int countResults() {
     	int count = 0;
     	for (@SuppressWarnings("unused") GeoPipeFlow flow : this) {

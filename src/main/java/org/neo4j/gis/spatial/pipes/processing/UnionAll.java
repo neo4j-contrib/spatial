@@ -22,35 +22,17 @@ package org.neo4j.gis.spatial.pipes.processing;
 import org.neo4j.gis.spatial.pipes.AbstractGroupGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
+public class UnionAll extends AbstractGroupGeoPipe {
 
-public class DensityIslands extends AbstractGroupGeoPipe {
-
-	private double density;
-
-	/**
-	 * 
-	 * @param density
-	 */
-	public DensityIslands(double density) {
-		this.density = density;
-	}
-
-	@Override
-	protected void group(GeoPipeFlow pipeFlow) {
-		boolean islandFound = false;
-		for (int i = 0; i < groups.size() && !islandFound; i++) {
-			// determine if geometry is next to a islands else add
-			// geometry as a new islands.
-			if (pipeFlow.getGeometry().distance(groups.get(i).getGeometry()) <= density) {
-				// TODO test it with points
-				groups.get(i).setGeometry(groups.get(i).getGeometry().union(pipeFlow.getGeometry()));
-				groups.get(i).merge(pipeFlow);
-				islandFound = true;
-			}
-		}
-			
-		if (!islandFound) {
-			groups.add(pipeFlow);
+	@Override	
+	protected void group(GeoPipeFlow flow) {
+		if (groups.size() == 0) {
+			groups.add(flow);
+		} else {
+			GeoPipeFlow result = groups.get(0);
+			result.setGeometry(result.getGeometry().union(flow.getGeometry()));
+			result.merge(flow);
 		}
 	}
+
 }

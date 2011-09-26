@@ -17,38 +17,21 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.pipes.filtering;
+package org.neo4j.gis.spatial.pipes.processing;
 
-import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
+import org.neo4j.gis.spatial.pipes.AbstractGroupGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
-import com.tinkerpop.pipes.filter.FilterPipe;
-import com.tinkerpop.pipes.util.PipeHelper;
+public class IntersectAll extends AbstractGroupGeoPipe {
 
-
-public class FilterAttributes extends AbstractGeoPipe {
-
-	private String key;
-	private Object value;
-	private FilterPipe.Filter comparison;
-	
-	public FilterAttributes(String key, Object value) {
-		this(key, value, FilterPipe.Filter.EQUAL);
-	}	
-	
-	public FilterAttributes(String key, Object value, FilterPipe.Filter comparison) {
-		this.key = key;
-		this.value = value;
-		this.comparison = comparison;
-	}
-
-	@Override
-	protected GeoPipeFlow process(GeoPipeFlow flow) {
-		if (PipeHelper.compareObjects(comparison, flow.getProperties().get(key), value)) {
-			return flow;
+	@Override	
+	protected void group(GeoPipeFlow flow) {
+		if (groups.size() == 0) {
+			groups.add(flow);
 		} else {
-			return null;
+			GeoPipeFlow result = groups.get(0);
+			result.setGeometry(result.getGeometry().intersection(flow.getGeometry()));
+			result.merge(flow);
 		}
 	}
-
 }

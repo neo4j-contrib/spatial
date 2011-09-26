@@ -17,29 +17,34 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.pipes.filtering;
-
-import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
-import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
+package org.neo4j.gis.spatial.pipes;
 
 
-public class FilterIntersectWindow extends AbstractFilterGeoPipe {
+public abstract class AbstractFilterGeoPipe extends AbstractGeoPipe {
 
-	private Envelope envelope;
-	private Geometry envelopeGeom;
+	protected AbstractFilterGeoPipe() {
+	}
 	
-	public FilterIntersectWindow(GeometryFactory geomFactory, double xmin, double ymin, double xmax, double ymax) {
-		this.envelope = new Envelope(xmin, xmax, ymin, ymax);
-		this.envelopeGeom = geomFactory.toGeometry(envelope);
-	}	
-	
+	protected AbstractFilterGeoPipe(String resultPropertyName) {
+		super(resultPropertyName);
+	}
+		
+	/**
+	 * Subclasses should override this method
+	 */
 	@Override
+	protected GeoPipeFlow process(GeoPipeFlow flow) {
+		if (validate(flow)) {
+			return flow;
+		} else {
+			return null;
+		}
+	}
+
+	/**
+	 * Subclasses should override this method
+	 */
 	protected boolean validate(GeoPipeFlow flow) {
-		return envelope.intersects(flow.getEnvelope()) 
-				&& envelopeGeom.intersects(flow.getGeometry());
+		return true;
 	}
 }

@@ -17,25 +17,33 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.pipes.processing;
+package org.neo4j.gis.spatial.pipes.filtering;
 
+import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
+
+import com.tinkerpop.pipes.filter.FilterPipe;
+import com.tinkerpop.pipes.util.PipeHelper;
 
 
-public class LengthInMiles extends LengthInMeters {
+public class FilterProperty extends AbstractFilterGeoPipe {
+
+	private String key;
+	private Object value;
+	private FilterPipe.Filter comparison;
 	
-	public LengthInMiles(CoordinateReferenceSystem crs) {
-		super(crs);
-	}		
+	public FilterProperty(String key, Object value) {
+		this(key, value, FilterPipe.Filter.EQUAL);
+	}	
 	
-	public LengthInMiles(CoordinateReferenceSystem crs, String resultPropertyName) {
-		super(crs, resultPropertyName);
-	}	
+	public FilterProperty(String key, Object value, FilterPipe.Filter comparison) {
+		this.key = key;
+		this.value = value;
+		this.comparison = comparison;
+	}
 
-	@Override	
-	protected GeoPipeFlow process(GeoPipeFlow flow) {		
-		setProperty(flow, calculateLength(flow.getGeometry(), crs) * 0.000621371);
-		return flow;
-	}	
+	@Override
+	protected boolean validate(GeoPipeFlow flow) {
+		return PipeHelper.compareObjects(comparison, flow.getProperties().get(key), value);
+	}
 }

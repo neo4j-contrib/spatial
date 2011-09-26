@@ -23,12 +23,12 @@ import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.filter.text.ecql.ECQL;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.geotools.data.Neo4jFeatureBuilder;
-import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
+import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.opengis.feature.simple.SimpleFeature;
 
 
-public class FilterCQL extends AbstractGeoPipe {
+public class FilterCQL extends AbstractFilterGeoPipe {
 
 	private Neo4jFeatureBuilder featureBuilder;
 	private org.opengis.filter.Filter filter;
@@ -39,12 +39,8 @@ public class FilterCQL extends AbstractGeoPipe {
 	}
 
 	@Override
-	protected GeoPipeFlow process(GeoPipeFlow flow) {
+	protected boolean validate(GeoPipeFlow flow) {
 		SimpleFeature feature = featureBuilder.buildFeature(flow.getRecord());
-	    if (filter.evaluate(feature)) {
-	    	return flow;
-	    } else {
-	    	return null;
-	    }
+	    return filter.evaluate(feature);
 	}
 }

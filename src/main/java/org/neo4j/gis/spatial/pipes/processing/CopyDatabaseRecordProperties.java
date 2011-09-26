@@ -19,38 +19,18 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
-import org.neo4j.gis.spatial.pipes.AbstractGroupGeoPipe;
+import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 
-public class DensityIslands extends AbstractGroupGeoPipe {
+public class CopyDatabaseRecordProperties extends AbstractGeoPipe {
 
-	private double density;
-
-	/**
-	 * 
-	 * @param density
-	 */
-	public DensityIslands(double density) {
-		this.density = density;
-	}
-
-	@Override
-	protected void group(GeoPipeFlow pipeFlow) {
-		boolean islandFound = false;
-		for (int i = 0; i < groups.size() && !islandFound; i++) {
-			// determine if geometry is next to a islands else add
-			// geometry as a new islands.
-			if (pipeFlow.getGeometry().distance(groups.get(i).getGeometry()) <= density) {
-				// TODO test it with points
-				groups.get(i).setGeometry(groups.get(i).getGeometry().union(pipeFlow.getGeometry()));
-				groups.get(i).merge(pipeFlow);
-				islandFound = true;
-			}
+	@Override	
+	protected GeoPipeFlow process(GeoPipeFlow flow) {
+		for (String name : flow.getRecord().getPropertyNames()) {
+			flow.getProperties().put(name, flow.getRecord().getProperty(name));
 		}
-			
-		if (!islandFound) {
-			groups.add(pipeFlow);
-		}
-	}
+		return flow;
+	}	
+	
 }

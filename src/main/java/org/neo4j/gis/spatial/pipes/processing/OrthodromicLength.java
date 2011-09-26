@@ -28,15 +28,15 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 
 
-public class LengthInMeters extends AbstractGeoPipe {
+public class OrthodromicLength extends AbstractGeoPipe {
 
 	protected CoordinateReferenceSystem crs;
 	
-	public LengthInMeters(CoordinateReferenceSystem crs) {
+	public OrthodromicLength(CoordinateReferenceSystem crs) {
 		this.crs = crs;
 	}		
 	
-	public LengthInMeters(CoordinateReferenceSystem crs, String resultPropertyName) {
+	public OrthodromicLength(CoordinateReferenceSystem crs, String resultPropertyName) {
 		super(resultPropertyName);
 		this.crs = crs;
 	}	

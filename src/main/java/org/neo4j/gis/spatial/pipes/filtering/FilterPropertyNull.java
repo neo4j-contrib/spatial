@@ -17,40 +17,22 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.pipes.processing;
+package org.neo4j.gis.spatial.pipes.filtering;
 
-import org.neo4j.gis.spatial.pipes.AbstractGroupGeoPipe;
+import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 
-public class DensityIslands extends AbstractGroupGeoPipe {
+public class FilterPropertyNull extends AbstractFilterGeoPipe {
 
-	private double density;
-
-	/**
-	 * 
-	 * @param density
-	 */
-	public DensityIslands(double density) {
-		this.density = density;
+	private String property;
+	
+	public FilterPropertyNull(String property) {
+		this.property = property;
 	}
 
 	@Override
-	protected void group(GeoPipeFlow pipeFlow) {
-		boolean islandFound = false;
-		for (int i = 0; i < groups.size() && !islandFound; i++) {
-			// determine if geometry is next to a islands else add
-			// geometry as a new islands.
-			if (pipeFlow.getGeometry().distance(groups.get(i).getGeometry()) <= density) {
-				// TODO test it with points
-				groups.get(i).setGeometry(groups.get(i).getGeometry().union(pipeFlow.getGeometry()));
-				groups.get(i).merge(pipeFlow);
-				islandFound = true;
-			}
-		}
-			
-		if (!islandFound) {
-			groups.add(pipeFlow);
-		}
+	protected boolean validate(GeoPipeFlow flow) {
+		return flow.getProperties().get(property) == null;
 	}
 }
