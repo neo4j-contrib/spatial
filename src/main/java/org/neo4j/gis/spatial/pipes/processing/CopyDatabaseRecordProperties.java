@@ -23,6 +23,10 @@ import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 
+/**
+ * Since extracting properties from database Nodes can be expensive it
+ * must be done explicitly using this Pipe.
+ */
 public class CopyDatabaseRecordProperties extends AbstractGeoPipe {
 
 	@Override	

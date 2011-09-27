@@ -47,11 +47,11 @@ public class OSMGeoPipeline extends GeoPipeline {
     	return addOsmPipe(new ExtractOSMPoints(layer.getGeometryFactory()));
     }
     
-    public OSMGeoPipeline filterByOsmAttribute(String key, Object value) {
+    public OSMGeoPipeline osmAttributeFilter(String key, Object value) {
     	return addOsmPipe(new FilterOSMAttributes(key, value));
     }    
     
-    public OSMGeoPipeline filterByOsmAttribute(String key, String value, FilterPipe.Filter comparison) {
+    public OSMGeoPipeline osmAttributeFilter(String key, String value, FilterPipe.Filter comparison) {
     	return addOsmPipe(new FilterOSMAttributes(key, value, comparison));    	
     }
 }

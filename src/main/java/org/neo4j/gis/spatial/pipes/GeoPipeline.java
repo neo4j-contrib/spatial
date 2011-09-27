@@ -139,6 +139,10 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     	return addPipe(new Max(property));
     }
     
+    public GeoPipeline sort(String property) {
+    	return addPipe(new Sort(property, true));
+    }
+    
     public GeoPipeline sort(String property, boolean asc) {
     	return addPipe(new Sort(property, asc));
     }
@@ -151,7 +155,7 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     	return addPipe(new Boundary());
     }
     
-    public GeoPipeline buffer(double distance) {
+    public GeoPipeline toBuffer(double distance) {
     	return addPipe(new Buffer(distance));
     }
     
@@ -365,16 +369,5 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     
     public GeoPipeline extractGeometries() {
     	return addPipe(new ExtractGeometries());
-    }
-    
-    /**
-     * Warning: this method count items still in the pipeline and it will empty the pipeline.
-     */
-	public int countResults() {
-    	int count = 0;
-    	for (@SuppressWarnings("unused") GeoPipeFlow flow : this) {
-    		count++;
-    	}
-    	return count;
     }
 }
