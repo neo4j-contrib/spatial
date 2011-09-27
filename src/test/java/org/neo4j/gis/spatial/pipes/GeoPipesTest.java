@@ -77,12 +77,12 @@ public class GeoPipesTest implements GraphHolder {
 
     @Test
     public void count_all_geometries_with_in_a_specific_bbox() {
-    	assertEquals(1, startPipeline().filterByWindowIntersection(10, 40, 20, 56.0583531).count());
+    	assertEquals(1, startPipeline().windowIntersectionFilter(10, 40, 20, 56.0583531).count());
     }
     
     @Test
     public void count_all_geometries_with_in_a_specific_bbox_with_cql() throws CQLException {
-    	assertEquals(2, startPipeline().filterByCQL("BBOX(the_geom, 10, 40, 20, 57)").count());
+    	assertEquals(2, startPipeline().cqlFilter("BBOX(the_geom, 10, 40, 20, 57)").count());
     }
     
     @Test

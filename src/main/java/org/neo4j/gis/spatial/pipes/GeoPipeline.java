@@ -58,6 +58,7 @@ import org.neo4j.gis.spatial.pipes.processing.Dimension;
 import org.neo4j.gis.spatial.pipes.processing.Distance;
 import org.neo4j.gis.spatial.pipes.processing.EndPoint;
 import org.neo4j.gis.spatial.pipes.processing.Envelope;
+import org.neo4j.gis.spatial.pipes.processing.ExtractGeometries;
 import org.neo4j.gis.spatial.pipes.processing.ExtractPoints;
 import org.neo4j.gis.spatial.pipes.processing.GML;
 import org.neo4j.gis.spatial.pipes.processing.GeoJSON;
@@ -361,6 +362,10 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     public GeoPipeline extractPoints() {
     	return addPipe(new ExtractPoints(layer.getGeometryFactory()));
     }    
+    
+    public GeoPipeline extractGeometries() {
+    	return addPipe(new ExtractGeometries());
+    }
     
     /**
      * Warning: this method count items still in the pipeline and it will empty the pipeline.
