@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial.pipes.osm;
 
+import org.neo4j.collections.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
@@ -37,6 +38,10 @@ public class OSMGeoPipeline extends GeoPipeline {
     public static OSMGeoPipeline start(Layer layer, final SearchRecords records) {
     	OSMGeoPipeline pipeline = new OSMGeoPipeline(layer);
     	return (OSMGeoPipeline) pipeline.add(createStartPipe(records));    	
+    }
+    
+    public static OSMGeoPipeline start(Layer layer, SearchFilter searchFilter) {
+    	return start(layer, layer.getIndex().search(searchFilter));    	
     }
     
     public OSMGeoPipeline addOsmPipe(AbstractGeoPipe geoPipe) {

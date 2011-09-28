@@ -23,6 +23,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 
 import org.geotools.filter.text.cql2.CQLException;
+import org.neo4j.collections.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.pipes.filtering.FilterCQL;
@@ -121,6 +122,10 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     public static GeoPipeline start(Layer layer, SearchRecords records) {
     	GeoPipeline pipeline = new GeoPipeline(layer);
     	return (GeoPipeline) pipeline.add(createStartPipe(records));
+    }
+    
+    public static GeoPipeline start(Layer layer, SearchFilter searchFilter) {
+    	return start(layer, layer.getIndex().search(searchFilter));
     }
     
     public GeoPipeline addPipe(AbstractGeoPipe geoPipe) {
@@ -283,7 +288,7 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     	return addPipe(new FilterProperty(key, value));
     }    
     
-    public GeoPipeline propertyFilter(String key, String value, FilterPipe.Filter comparison) {
+    public GeoPipeline propertyFilter(String key, Object value, FilterPipe.Filter comparison) {
     	return addPipe(new FilterProperty(key, value, comparison));    	
     }
 
