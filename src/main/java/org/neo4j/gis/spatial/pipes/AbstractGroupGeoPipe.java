@@ -22,9 +22,7 @@ package org.neo4j.gis.spatial.pipes;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-
-import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
-import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
+import java.util.NoSuchElementException;
 
 public abstract class AbstractGroupGeoPipe extends AbstractGeoPipe {
 
@@ -34,9 +32,12 @@ public abstract class AbstractGroupGeoPipe extends AbstractGeoPipe {
 	@Override
 	public GeoPipeFlow processNextStart() {
 		if (groupIterator == null) {
-			while (starts.hasNext()) {
-				group((GeoPipeFlow) starts.next());
-			}
+			try {
+				while (true) {
+					group((GeoPipeFlow) starts.next());
+				}
+			} catch (NoSuchElementException e) {
+		    }
 			
 			groupIterator = groups.iterator();			
 		} 

@@ -40,14 +40,7 @@ public abstract class AbstractGeoPipe extends AbstractPipe<GeoPipeFlow, GeoPipeF
 		GeoPipeFlow flow = null;
 		do {
 			flow = process(starts.next());
-		} while (flow == null && starts.hasNext());
-
-		if (flow == null) {
-			// if the current incoming S is not to be emitted 
-			// and there are no other S objects to process and emit, 
-			// then throw a NoSuchElementException
-			throw new NoSuchElementException();
-		}
+		} while (flow == null);
 		
 		return flow;
 	}

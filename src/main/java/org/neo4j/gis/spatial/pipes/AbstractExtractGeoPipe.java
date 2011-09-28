@@ -22,7 +22,6 @@ package org.neo4j.gis.spatial.pipes;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.NoSuchElementException;
 
 public class AbstractExtractGeoPipe extends AbstractGeoPipe {
 
@@ -42,17 +41,10 @@ public class AbstractExtractGeoPipe extends AbstractGeoPipe {
 		
 		do {
 			extract(process(starts.next()));
-		} while (extracts.size() == 0 && starts.hasNext());
+		} while (extracts.size() == 0);
 
-		if (extracts.size() == 0) {
-			// if the current incoming S is not to be emitted 
-			// and there are no other S objects to process and emit, 
-			// then throw a NoSuchElementException
-			throw new NoSuchElementException();
-		} else {
-			extractIterator = extracts.iterator();
-			return extractIterator.next();
-		}
+		extractIterator = extracts.iterator();
+		return extractIterator.next();
 	}
 	
 	/**
