@@ -34,7 +34,7 @@ import com.vividsolutions.jts.geom.Envelope;
 public class OrthodromicDistance extends AbstractGeoPipe {
 
 	private Coordinate reference;
-	private static final double earthRadiusInKm = 6371;	
+	public static final double earthRadiusInKm = 6371;	
 	
 	public OrthodromicDistance(Coordinate reference) {
 		this.reference = reference;
