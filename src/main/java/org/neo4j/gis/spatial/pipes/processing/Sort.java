@@ -19,21 +19,25 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
-import java.util.SortedSet;
-import java.util.TreeSet;
+import java.util.List;
+import java.util.NoSuchElementException;
 
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 public class Sort extends AbstractGeoPipe {
 
-	private SortedSet<GeoPipeFlow> sortedFlow;
+	private List<GeoPipeFlow> sortedFlow;
+	private Comparator<GeoPipeFlow> comparator;
 	private Iterator<GeoPipeFlow> flowIterator;
 	
 	public Sort(final String property, final Comparator<Object> propertyComparator) {
-		this.sortedFlow = new TreeSet<GeoPipeFlow>(new Comparator<GeoPipeFlow>() {
+		this.sortedFlow = new ArrayList<GeoPipeFlow>();
+		this.comparator = new Comparator<GeoPipeFlow>() {
 			@Override
 			public int compare(GeoPipeFlow o1, GeoPipeFlow o2) {
 				Object p1 = o1.getProperties().get(property);
@@ -49,7 +53,7 @@ public class Sort extends AbstractGeoPipe {
 					return propertyComparator.compare(p1, p2);
 				}
 			}		
-		});
+		};
 	}
 	
 	public Sort(String property, final boolean asc) {
@@ -69,12 +73,16 @@ public class Sort extends AbstractGeoPipe {
 	@Override
 	public GeoPipeFlow processNextStart() {
 		if (flowIterator == null) {
-			while (starts.hasNext()) {
-				sortedFlow.add((GeoPipeFlow) starts.next());
-			}
+			try {
+				while (true) {
+					sortedFlow.add((GeoPipeFlow) starts.next());
+				}
+			} catch (NoSuchElementException e) {
+		    }
 			
+			Collections.sort(sortedFlow, comparator);
 			flowIterator = sortedFlow.iterator();
-		} 
+		}
 		
 		return flowIterator.next();
 	}
