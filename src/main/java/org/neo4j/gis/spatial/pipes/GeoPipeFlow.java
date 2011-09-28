@@ -78,6 +78,10 @@ public class GeoPipeFlow {
 		return properties;
 	}
 	
+	public Object getProperty(String name) {
+		return properties.get(name);
+	}
+	
 	public void merge(GeoPipeFlow other) {
 		records.addAll(other.records);
 		// TODO properties?
