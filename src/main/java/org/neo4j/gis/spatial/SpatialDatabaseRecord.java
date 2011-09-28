@@ -25,11 +25,8 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Geometry;
 
-/**
- * @author Davide Savazzi
- * @author Craig Taverner
- */
-public class SpatialDatabaseRecord implements Constants, Comparable<SpatialDatabaseRecord> {
+
+public class SpatialDatabaseRecord implements Constants {
 
 	public SpatialDatabaseRecord(Layer layer, Node geomNode) {
 		this(layer, geomNode, null);
@@ -164,34 +161,10 @@ public class SpatialDatabaseRecord implements Constants, Comparable<SpatialDatab
 	    return text.toString();
 	}
 
-	/**
-	 * @deprecated
-	 */
-	public Comparable getUserData() {
-		return userData;
-	}
-
-	/**
-	 * @deprecated
-	 */
-	public void setUserData(Comparable object) {
-		userData = object;
-	}
-
-	/**
-	 * @deprecated
-	 */
-	public int compareTo(SpatialDatabaseRecord other) {
-		getUserData().compareTo(other.getUserData());
-		return 0;
-	}
-
 	
 	// Attributes
 	
 	private Node geomNode;
 	private Geometry geometry;
 	private Layer layer;
-	@SuppressWarnings("rawtypes")
-	private Comparable userData;
 }

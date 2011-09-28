@@ -24,7 +24,6 @@ import java.util.List;
 
 import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Transaction;
 
 import com.vividsolutions.jts.geom.Geometry;
 
@@ -70,19 +69,6 @@ public abstract class AbstractLayerSearch implements LayerSearch {
 
 	protected void add(Node geomNode, Geometry geom) {
 		results.add(new SpatialDatabaseRecord(layer, geomNode, geom));
-	}
-	
-	protected void add(Node geomNode, Geometry geom, String property, Comparable<?> value) {
-		SpatialDatabaseRecord result = new SpatialDatabaseRecord(layer, geomNode, geom);
-		Transaction tx = geomNode.getGraphDatabase().beginTx();
-		try {
-			result.setProperty(property, value);
-			tx.success();
-		} finally {
-			tx.finish();
-		}
-		result.setUserData(value);
-		results.add(result);
 	}
 	
 	protected Envelope getEnvelope(Node geomNode) {

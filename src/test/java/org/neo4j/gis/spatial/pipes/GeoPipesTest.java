@@ -53,7 +53,7 @@ public class GeoPipesTest {
     }
     
     private OSMGeoPipeline startPipeline(Layer layer, SearchFilter filter) {
-    	return OSMGeoPipeline.start(layer, layer.getIndex().search(filter));
+    	return OSMGeoPipeline.start(layer, filter);
     }    
     
     @Test

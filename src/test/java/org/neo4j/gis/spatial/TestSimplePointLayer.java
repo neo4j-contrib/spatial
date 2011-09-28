@@ -22,19 +22,22 @@ package org.neo4j.gis.spatial;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import junit.framework.AssertionFailedError;
 
 import org.junit.Test;
+import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.gis.spatial.geotools.data.StyledImageExporter;
+import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.query.SearchContain;
 import org.neo4j.gis.spatial.query.SearchPointsWithinOrthodromicDistance;
 import org.neo4j.gis.spatial.query.SearchWithin;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateList;
-import org.neo4j.collections.rtree.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
 
 public class TestSimplePointLayer extends Neo4jTestCase {
@@ -73,25 +76,26 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 
 		Envelope bbox = layer.getIndex().getBoundingBox();
 		double[] centre = bbox.centre();
-		List<SpatialDatabaseRecord> results = layer.findClosestPointsTo(new Coordinate(centre[0] + 0.1, centre[1]), 10.0);
+		
+		List<GeoPipeFlow> results = layer.findClosestPointsTo(new Coordinate(centre[0] + 0.1, centre[1]), 10.0).toList();
 
-		saveResultsAsImage(results, "temporary-results-layer-" + layer.getName(), 130, 70);
+		saveFlowAsImage(results, "temporary-results-layer-" + layer.getName(), 130, 70);
 		assertEquals(71, results.size());
 		checkPointOrder(results);
 
-		results = layer.findClosestPointsTo(new Coordinate(centre[0] + 0.1, centre[1]), 5.0);
+		results = layer.findClosestPointsTo(new Coordinate(centre[0] + 0.1, centre[1]), 5.0).toList();
 
-		saveResultsAsImage(results, "temporary-results-layer2-" + layer.getName(), 130, 70);
+		saveFlowAsImage(results, "temporary-results-layer2-" + layer.getName(), 130, 70);
 		assertEquals(30, results.size());
 		checkPointOrder(results);
 	}
 
-	private void checkPointOrder(List<SpatialDatabaseRecord> results) {
+	private void checkPointOrder(List<GeoPipeFlow> results) {
 		for (int i = 0; i < results.size() - 1; i++) {
-			SpatialDatabaseRecord first = results.get(i);
-			SpatialDatabaseRecord second = results.get(i + 1);
-			double d1 = (Double) first.getUserData();
-			double d2 = (Double) second.getUserData();
+			GeoPipeFlow first = results.get(i);
+			GeoPipeFlow second = results.get(i + 1);
+			double d1 = (Double) first.getProperties().get("OrthodromicDistance");
+			double d2 = (Double) second.getProperties().get("OrthodromicDistance");
 			assertTrue("Point at position " + i + " (d=" + d1 + ") must be closer than point at position " + (i + 1) + " (d=" + d1
 					+ ")", d1 <= d2);
 		}
@@ -111,12 +115,13 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 
 		Envelope bbox = layer.getIndex().getBoundingBox();
 		double[] centre = bbox.centre();
+		
 		SearchPointsWithinOrthodromicDistance distanceQuery = new SearchPointsWithinOrthodromicDistance(
-				new Coordinate(centre[0], centre[1]), 10.0, false);
+				new Coordinate(centre[0], centre[1]), 10.0);
 		layer.getIndex().executeSearch(distanceQuery);
 		List<SpatialDatabaseRecord> results = distanceQuery.getExtendedResults();
 
-		saveResultsAsImage(results, "temporary-results-layer-" + layer.getName(), 150, 150);
+		saveRecordsAsImage(results, "temporary-results-layer-" + layer.getName(), 150, 150);
 		assertEquals(456, results.size());
 	}
 
@@ -135,7 +140,23 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		}
 	}
 
-	private void saveResultsAsImage(List<SpatialDatabaseRecord> results, String layerName, int width, int height) {
+	private void saveRecordsAsImage(List<SpatialDatabaseRecord> results, String layerName, int width, int height) {
+		List<Geometry> geometries = new ArrayList<Geometry>();
+		for (SpatialDatabaseRecord result : results) {
+			geometries.add(result.getGeometry());
+		}
+		saveResultsAsImage(geometries, layerName, width, height);
+	}	
+	
+	private void saveFlowAsImage(List<GeoPipeFlow> results, String layerName, int width, int height) {
+		List<Geometry> geometries = new ArrayList<Geometry>();
+		for (GeoPipeFlow result : results) {
+			geometries.add(result.getGeometry());
+		}
+		saveResultsAsImage(geometries, layerName, width, height);
+	}
+	
+	private void saveResultsAsImage(List<Geometry> results, String layerName, int width, int height) {	
 		ShapefileExporter shpExporter = new ShapefileExporter(graphDb());
 		shpExporter.setExportDir("target/export/SimplePointTests");
 		StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
@@ -144,8 +165,8 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		imageExporter.setSize(width, height);
 		SpatialDatabaseService db = new SpatialDatabaseService(graphDb());
 		EditableLayer tmpLayer = (EditableLayer) db.createSimplePointLayer(layerName, "lon", "lat");
-		for (SpatialDatabaseRecord record : results) {
-			tmpLayer.add(record.getGeometry());
+		for (Geometry geom : results) {
+			tmpLayer.add(geom);
 		}
 		try {
 			imageExporter.saveLayerImage(layerName);

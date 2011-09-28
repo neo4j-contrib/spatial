@@ -19,39 +19,31 @@
  */
 package org.neo4j.gis.spatial;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
+import org.neo4j.gis.spatial.filter.SearchIntersectWindow;
+import org.neo4j.gis.spatial.pipes.GeoPipeline;
+import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
 
-import org.neo4j.collections.rtree.Envelope;
-import org.neo4j.gis.spatial.query.SearchPointsWithinOrthodromicDistance;
-
+import com.tinkerpop.pipes.filter.FilterPipe;
 import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Envelope;
 
 public class SimplePointLayer extends EditableLayerImpl {
+	
 	public static final int LIMIT_RESULTS = 100;
 
-	public List<SpatialDatabaseRecord> findClosestPointsTo(Coordinate point) {
-		Envelope extent = EnvelopeUtils.fromJtsToNeo4j(
-				SpatialTopologyUtils.createEnvelopeForGeometryDensityEstimate(this, point, LIMIT_RESULTS));
-		SearchPointsWithinOrthodromicDistance distanceQuery = new SearchPointsWithinOrthodromicDistance(point, extent, true);
-		return findClosestPoints(distanceQuery);
+	public GeoPipeline findClosestPointsTo(Coordinate point) {
+		Envelope extent = SpatialTopologyUtils.createEnvelopeForGeometryDensityEstimate(this, point, LIMIT_RESULTS);
+		return GeoPipeline.start(this, new SearchIntersectWindow(this, extent))
+			.calculateOrthodromicDistance(point)
+			.sort("OrthodromicDistance");
 	}
 
-	public List<SpatialDatabaseRecord> findClosestPointsTo(Coordinate point, double distanceInKm) {
-		SearchPointsWithinOrthodromicDistance distanceQuery = new SearchPointsWithinOrthodromicDistance(point, distanceInKm, true);
-		return findClosestPoints(distanceQuery);
-	}
-
-	private List<SpatialDatabaseRecord> findClosestPoints(SearchPointsWithinOrthodromicDistance distanceQuery) {
-		getIndex().executeSearch(distanceQuery);
-		List<SpatialDatabaseRecord> results = distanceQuery.getExtendedResults();
-		Collections.sort(results, new Comparator<SpatialDatabaseRecord>() {
-			public int compare(SpatialDatabaseRecord arg0, SpatialDatabaseRecord arg1) {
-				return ((Double) arg0.getUserData()).compareTo((Double) arg1.getUserData());
-			}
-		});
-		return results;
+	public GeoPipeline findClosestPointsTo(Coordinate point, double maxDistanceInKm) {
+		Envelope extent = OrthodromicDistance.suggestSearchWindow(point, maxDistanceInKm);
+		return GeoPipeline.start(this, new SearchIntersectWindow(this, extent))
+			.calculateOrthodromicDistance(point)
+			.propertyFilter("OrthodromicDistance", maxDistanceInKm, FilterPipe.Filter.LESS_THAN_EQUAL)
+			.sort("OrthodromicDistance");
 	}
 
 	public SpatialDatabaseRecord add(Coordinate coordinate) {
@@ -61,5 +53,4 @@ public class SimplePointLayer extends EditableLayerImpl {
 	public SpatialDatabaseRecord add(double x, double y) {
 		return add(getGeometryFactory().createPoint(new Coordinate(x, y)));
 	}
-
 }
