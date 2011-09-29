@@ -19,33 +19,11 @@
  */
 package org.neo4j.gis.spatial;
 
-import org.neo4j.gis.spatial.filter.SearchIntersectWindow;
-import org.neo4j.gis.spatial.pipes.GeoPipeline;
-import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
-
-import com.tinkerpop.pipes.filter.FilterPipe;
 import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Envelope;
+
 
 public class SimplePointLayer extends EditableLayerImpl {
-	
-	public static final int LIMIT_RESULTS = 100;
-
-	public GeoPipeline findClosestPointsTo(Coordinate point) {
-		Envelope extent = SpatialTopologyUtils.createEnvelopeForGeometryDensityEstimate(this, point, LIMIT_RESULTS);
-		return GeoPipeline.start(this, new SearchIntersectWindow(this, extent))
-			.calculateOrthodromicDistance(point)
-			.sort("OrthodromicDistance");
-	}
-
-	public GeoPipeline findClosestPointsTo(Coordinate point, double maxDistanceInKm) {
-		Envelope extent = OrthodromicDistance.suggestSearchWindow(point, maxDistanceInKm);
-		return GeoPipeline.start(this, new SearchIntersectWindow(this, extent))
-			.calculateOrthodromicDistance(point)
-			.propertyFilter("OrthodromicDistance", maxDistanceInKm, FilterPipe.Filter.LESS_THAN_EQUAL)
-			.sort("OrthodromicDistance");
-	}
-
+		
 	public SpatialDatabaseRecord add(Coordinate coordinate) {
 		return add(getGeometryFactory().createPoint(coordinate));
 	}
@@ -53,4 +31,5 @@ public class SimplePointLayer extends EditableLayerImpl {
 	public SpatialDatabaseRecord add(double x, double y) {
 		return add(getGeometryFactory().createPoint(new Coordinate(x, y)));
 	}
+	
 }
