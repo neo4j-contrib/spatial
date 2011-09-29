@@ -27,7 +27,7 @@ import org.neo4j.gis.spatial.EditableLayer;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
-import org.neo4j.gis.spatial.pipes.GeoPipeline;
+import org.neo4j.gis.spatial.query.SearchWithin;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -171,10 +171,17 @@ public class SpatialPlugin extends ServerPlugin {
 		if (layer == null ) {
 		    layer = spatialService.getLayer(layerName);
 		}
+
+		// TODO why a SearchWithin and not a SearchIntersectWindow?
 		
-		return GeoPipeline
-			.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(minx, maxx, miny, maxy)))
-			.toNodeList();
+		// TODO dynamic layers don't support filter search?
+		/* return GeoPipeline
+			.startWithinSearch(layer, ))
+			.toNodeList(); */		
+		
+		SearchWithin search = new SearchWithin(layer.getGeometryFactory().toGeometry(new Envelope(minx, maxx, miny, maxy)));
+		layer.getIndex().executeSearch(search);
+		return toIterable(search.getExtendedResults());		
 	}
 
 	private Iterable<Node> toArray(Node node) {
