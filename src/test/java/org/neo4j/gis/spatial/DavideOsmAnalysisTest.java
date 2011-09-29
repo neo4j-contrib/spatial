@@ -42,12 +42,13 @@ import junit.framework.TestSuite;
 
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.neo4j.collections.rtree.Envelope;
+import org.neo4j.collections.rtree.filter.SearchAll;
 import org.neo4j.gis.spatial.DynamicLayer.LayerConfig;
+import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.geotools.data.StyledImageExporter;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.osm.OSMRelation;
-import org.neo4j.gis.spatial.query.SearchAll;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -243,10 +244,8 @@ public class DavideOsmAnalysisTest extends TestOSMImport {
 			if (!checkedOne) {
 				int i = 0;
 				System.out.println("Checking layer '" + layerToExport + "' in detail");
-				SearchAll search = new SearchAll();
-				layerToExport.getIndex().executeSearch(search);
-				for (SpatialRecord record : search.getExtendedResults()) {
-					// filter().all().process()) {
+				SearchRecords records = layerToExport.getIndex().search(new SearchAll());
+				for (SpatialRecord record : records) {
 					System.out.println("Got record " + i + ": " + record);
 					for (String name : record.getPropertyNames()) {
 						System.out.println("\t" + name + ":\t" + record.getProperty(name));
