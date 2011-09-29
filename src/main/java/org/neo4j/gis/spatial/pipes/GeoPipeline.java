@@ -106,8 +106,12 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
 	protected GeoPipeline(Layer layer) {
 		this.layer = layer;
 	}
+
+	protected static StartPipe<GeoPipeFlow> createStartPipe(List<SpatialDatabaseRecord> records) {
+		return createStartPipe(records.iterator());
+	}	
 	
-	protected static StartPipe<GeoPipeFlow> createStartPipe(final SearchRecords records) {
+	protected static StartPipe<GeoPipeFlow> createStartPipe(final Iterator<SpatialDatabaseRecord> records) {
 		return new StartPipe<GeoPipeFlow>(new Iterator<GeoPipeFlow>() {
 			@Override
 			public boolean hasNext() {
@@ -124,6 +128,11 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
 				records.remove();
 			}
     	});
+	}
+	
+	public static GeoPipeline start(Layer layer, List<SpatialDatabaseRecord> records) {
+		GeoPipeline pipeline = new GeoPipeline(layer);
+    	return (GeoPipeline) pipeline.add(createStartPipe(records));		
 	}
 	
     public static GeoPipeline start(Layer layer, SearchRecords records) {
