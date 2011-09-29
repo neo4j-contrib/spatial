@@ -19,12 +19,18 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
+import java.util.List;
+import java.util.NoSuchElementException;
 
 import org.geotools.filter.text.cql2.CQLException;
 import org.neo4j.collections.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.Layer;
+import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import org.neo4j.gis.spatial.SpatialTopologyUtils;
+import org.neo4j.gis.spatial.filter.SearchIntersectWindow;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.pipes.filtering.FilterCQL;
 import org.neo4j.gis.spatial.pipes.filtering.FilterContain;
@@ -58,7 +64,6 @@ import org.neo4j.gis.spatial.pipes.processing.Difference;
 import org.neo4j.gis.spatial.pipes.processing.Dimension;
 import org.neo4j.gis.spatial.pipes.processing.Distance;
 import org.neo4j.gis.spatial.pipes.processing.EndPoint;
-import org.neo4j.gis.spatial.pipes.processing.Envelope;
 import org.neo4j.gis.spatial.pipes.processing.ExtractGeometries;
 import org.neo4j.gis.spatial.pipes.processing.ExtractPoints;
 import org.neo4j.gis.spatial.pipes.processing.GML;
@@ -83,11 +88,13 @@ import org.neo4j.gis.spatial.pipes.processing.SymDifference;
 import org.neo4j.gis.spatial.pipes.processing.Union;
 import org.neo4j.gis.spatial.pipes.processing.UnionAll;
 import org.neo4j.gis.spatial.pipes.processing.WellKnownText;
+import org.neo4j.graphdb.Node;
 
 import com.tinkerpop.pipes.filter.FilterPipe;
 import com.tinkerpop.pipes.util.FluentPipeline;
 import com.tinkerpop.pipes.util.StartPipe;
 import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.util.AffineTransformation;
 
@@ -127,7 +134,92 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     public static GeoPipeline start(Layer layer, SearchFilter searchFilter) {
     	return start(layer, layer.getIndex().search(searchFilter));
     }
+
+    public static GeoPipeline startIntersectWindowSearch(Layer layer, Envelope searchWindow) {
+    	return start(layer, layer.getIndex().search(new SearchIntersectWindow(layer, searchWindow)));
+    }
     
+    public static GeoPipeline startContainSearch(Layer layer, Geometry geometry) {
+    	return startIntersectWindowSearch(layer, geometry.getEnvelopeInternal())
+    		.containFilter(geometry);
+    }
+
+    public static GeoPipeline startCoverSearch(Layer layer, Geometry geometry) {
+    	return startIntersectWindowSearch(layer, geometry.getEnvelopeInternal())
+    		.coverFilter(geometry);
+    }    
+
+    public static GeoPipeline startCoveredBySearch(Layer layer, Geometry geometry) {
+    	return startIntersectWindowSearch(layer, geometry.getEnvelopeInternal())
+    		.coveredByFilter(geometry);
+    }    
+
+    public static GeoPipeline startCrossSearch(Layer layer, Geometry geometry) {
+    	return startIntersectWindowSearch(layer, geometry.getEnvelopeInternal())
+    		.crossFilter(geometry);
+    }    
+
+    public static GeoPipeline startEqualSearch(Layer layer, Geometry geometry) {
+    	return startIntersectWindowSearch(layer, geometry.getEnvelopeInternal())
+    		.equalFilter(geometry);
+    }    
+
+    public static GeoPipeline startIntersectSearch(Layer layer, Geometry geometry) {
+    	return startIntersectWindowSearch(layer, geometry.getEnvelopeInternal())
+    		.intersectionFilter(geometry);
+    }    
+
+    public static GeoPipeline startOverlapSearch(Layer layer, Geometry geometry) {
+    	return startIntersectWindowSearch(layer, geometry.getEnvelopeInternal())
+    		.overlapFilter(geometry);
+    }    
+
+    public static GeoPipeline startTouchSearch(Layer layer, Geometry geometry) {
+    	return startIntersectWindowSearch(layer, geometry.getEnvelopeInternal())
+    		.touchFilter(geometry);
+    }    
+    
+    public static GeoPipeline startWithinSearch(Layer layer, Geometry geometry) {
+    	return startIntersectWindowSearch(layer, geometry.getEnvelopeInternal())
+    		.withinFilter(geometry);
+    }
+    
+	public static GeoPipeline startNearestNeighborLatLonSearch(Layer layer, Coordinate point, int limit) {
+		Envelope searchWindow = SpatialTopologyUtils.createEnvelopeForGeometryDensityEstimate(layer, point, limit);
+		return startNearestNeighborLatLonSearch(layer, point, searchWindow);
+	}
+    
+	public static GeoPipeline startNearestNeighborLatLonSearch(Layer layer, Coordinate point, Envelope searchWindow) {
+		return start(layer, new SearchIntersectWindow(layer, searchWindow))
+			.calculateOrthodromicDistance(point);
+	}
+
+	public static GeoPipeline startNearestNeighborLatLonSearch(Layer layer, Coordinate point, double maxDistanceInKm) {
+		Envelope extent = OrthodromicDistance.suggestSearchWindow(point, maxDistanceInKm);
+		return start(layer, new SearchIntersectWindow(layer, extent))
+			.calculateOrthodromicDistance(point)
+			.propertyFilter("OrthodromicDistance", maxDistanceInKm, FilterPipe.Filter.LESS_THAN_EQUAL);
+	}
+
+	public static GeoPipeline startNearestNeighborSearch(Layer layer, Coordinate point, int limit) {	
+		Envelope searchWindow = SpatialTopologyUtils.createEnvelopeForGeometryDensityEstimate(layer, point, limit);
+		return startNearestNeighborSearch(layer, point, searchWindow);
+	}
+	
+	public static GeoPipeline startNearestNeighborSearch(Layer layer, Coordinate point, Envelope searchWindow) {
+		return start(layer, new SearchIntersectWindow(layer, searchWindow))
+			.calculateDistance(layer.getGeometryFactory().createPoint(point));
+	}
+		
+	public static GeoPipeline startNearestNeighborSearch(Layer layer, Coordinate point, double maxDistance) {
+		Envelope extent = new Envelope(point.x - maxDistance, point.x + maxDistance, 
+				point.y - maxDistance, point.y + maxDistance);
+		
+		return start(layer, new SearchIntersectWindow(layer, extent))
+			.calculateDistance(layer.getGeometryFactory().createPoint(point))
+			.propertyFilter("Distance", maxDistance, FilterPipe.Filter.LESS_THAN_EQUAL);	
+	}
+	
     public GeoPipeline addPipe(AbstractGeoPipe geoPipe) {
     	return (GeoPipeline) add(geoPipe);
     }
@@ -173,7 +265,7 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     }
     
     public GeoPipeline toEnvelope() {
-    	return addPipe(new Envelope());
+    	return addPipe(new org.neo4j.gis.spatial.pipes.processing.Envelope());
     }
         
     public GeoPipeline toInteriorPoint() {
@@ -254,7 +346,7 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
 
     public GeoPipeline calculateOrthodromicDistance(Coordinate reference) {
     	return addPipe(new OrthodromicDistance(reference));
-    }
+    } 
     
     public GeoPipeline getDimension() {
     	return addPipe(new Dimension());
@@ -374,5 +466,34 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     
     public GeoPipeline extractGeometries() {
     	return addPipe(new ExtractGeometries());
+    }
+    
+    /**
+     * Warning: this method should *not* be used with pipes that extract many items from a single item 
+     * or with pipes that group many items into fewer items.
+     */
+    public List<SpatialDatabaseRecord> toSpatialDatabaseRecordList() {
+    	List<SpatialDatabaseRecord> result = new ArrayList<SpatialDatabaseRecord>();
+    	try {
+	    	while (true) {
+	    		result.add(next().getRecord());
+	    	}
+    	} catch (NoSuchElementException e) {}
+    	return result;
+    }
+    
+    /**
+     * Warning: this method should *not* be used with pipes that extract many items from a single item 
+     * or with pipes that group many items into fewer items.
+     */    
+    public List<Node> toNodeList() {
+    	List<Node> result = new ArrayList<Node>();
+    	try {
+	    	while (true) {
+	    		result.add(next().getRecord().getGeomNode());	    		
+	    	}
+    	} catch (NoSuchElementException e) {}    	
+    	return result;
+
     }
 }
