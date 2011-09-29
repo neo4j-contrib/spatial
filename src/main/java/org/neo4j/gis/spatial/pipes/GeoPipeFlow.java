@@ -25,12 +25,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import org.neo4j.gis.spatial.SpatialRecord;
 
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 
 
-public class GeoPipeFlow {
+public class GeoPipeFlow implements SpatialRecord {
 
 	private List<SpatialDatabaseRecord> records = new ArrayList<SpatialDatabaseRecord>();
 	private Geometry geometry;
@@ -57,6 +58,7 @@ public class GeoPipeFlow {
 		return records;
 	}
 	
+	@Override
 	public Geometry getGeometry() {
 		return geometry;
 	}
@@ -78,6 +80,15 @@ public class GeoPipeFlow {
 		return properties;
 	}
 	
+	public boolean hasProperty(String name) {
+		return properties.containsKey(name);
+	}
+
+	public String[] getPropertyNames() {
+		return properties.keySet().toArray(new String[] {});
+	}
+	
+	@Override
 	public Object getProperty(String name) {
 		return properties.get(name);
 	}
