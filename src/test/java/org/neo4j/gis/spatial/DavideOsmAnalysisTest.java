@@ -47,6 +47,7 @@ import org.neo4j.gis.spatial.geotools.data.StyledImageExporter;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.osm.OSMRelation;
+import org.neo4j.gis.spatial.query.SearchAll;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -242,7 +243,10 @@ public class DavideOsmAnalysisTest extends TestOSMImport {
 			if (!checkedOne) {
 				int i = 0;
 				System.out.println("Checking layer '" + layerToExport + "' in detail");
-				for (SpatialDatabaseRecord record : layerToExport.filter().all().process()) {
+				SearchAll search = new SearchAll();
+				layerToExport.getIndex().executeSearch(search);
+				for (SpatialRecord record : search.getExtendedResults()) {
+					// filter().all().process()) {
 					System.out.println("Got record " + i + ": " + record);
 					for (String name : record.getPropertyNames()) {
 						System.out.println("\t" + name + ":\t" + record.getProperty(name));
