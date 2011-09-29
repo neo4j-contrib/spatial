@@ -30,6 +30,7 @@ import org.junit.Test;
 import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.gis.spatial.geotools.data.StyledImageExporter;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
+import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.query.SearchContain;
 import org.neo4j.gis.spatial.query.SearchPointsWithinOrthodromicDistance;
 import org.neo4j.gis.spatial.query.SearchWithin;
@@ -76,13 +77,15 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		Envelope bbox = layer.getIndex().getBoundingBox();
 		double[] centre = bbox.centre();
 		
-		List<GeoPipeFlow> results = layer.findClosestPointsTo(new Coordinate(centre[0] + 0.1, centre[1]), 10.0).toList();
+		List<GeoPipeFlow> results = GeoPipeline.startNearestNeighborLatLonSearch(layer, new Coordinate(centre[0] + 0.1, centre[1]), 10.0)
+			.sort("OrthodromicDistance").toList();
 
 		saveResultsAsImage(results, "temporary-results-layer-" + layer.getName(), 130, 70);
 		assertEquals(71, results.size());
 		checkPointOrder(results);
 
-		results = layer.findClosestPointsTo(new Coordinate(centre[0] + 0.1, centre[1]), 5.0).toList();
+		results = GeoPipeline.startNearestNeighborLatLonSearch(layer, new Coordinate(centre[0] + 0.1, centre[1]), 5.0)
+			.sort("OrthodromicDistance").toList();
 
 		saveResultsAsImage(results, "temporary-results-layer2-" + layer.getName(), 130, 70);
 		assertEquals(30, results.size());
@@ -95,7 +98,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 			GeoPipeFlow second = results.get(i + 1);
 			double d1 = (Double) first.getProperties().get("OrthodromicDistance");
 			double d2 = (Double) second.getProperties().get("OrthodromicDistance");
-			assertTrue("Point at position " + i + " (d=" + d1 + ") must be closer than point at position " + (i + 1) + " (d=" + d1
+			assertTrue("Point at position " + i + " (d=" + d1 + ") must be closer than point at position " + (i + 1) + " (d=" + d2
 					+ ")", d1 <= d2);
 		}
 	}
