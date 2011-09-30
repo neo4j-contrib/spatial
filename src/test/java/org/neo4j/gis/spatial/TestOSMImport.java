@@ -176,7 +176,7 @@ public class TestOSMImport extends Neo4jTestCase {
 		OSMLayer layer = (OSMLayer) spatialService.getOrCreateLayer(layerName, OSMGeometryEncoder.class, OSMLayer.class);
 		assertNotNull("OSM Layer index should not be null", layer.getIndex());
 		assertNotNull("OSM Layer index envelope should not be null", layer.getIndex().getBoundingBox());
-		Envelope bbox = EnvelopeUtils.fromNeo4jToJts(layer.getIndex().getBoundingBox());
+		Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox());
 		debugEnvelope(bbox, layerName, "bbox");
 		// ((RTreeIndex)layer.getIndex()).debugIndexTree();
 		checkIndexAndFeatureCount(layer);

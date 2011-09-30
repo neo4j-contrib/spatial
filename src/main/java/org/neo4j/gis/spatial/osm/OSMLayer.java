@@ -27,6 +27,7 @@ import org.json.simple.JSONObject;
 import org.neo4j.collections.rtree.NullListener;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.DynamicLayer;
+import org.neo4j.gis.spatial.DynamicLayerConfig;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.SpatialDataset;
 import org.neo4j.graphdb.Direction;
@@ -150,7 +151,7 @@ public class OSMLayer extends DynamicLayer {
 	 * to the way node and then to the tags node to test if the way is a
 	 * residential street.
 	 */
-    public LayerConfig addDynamicLayerOnWayTags(String name, int type, HashMap<?,?> tags) {
+    public DynamicLayerConfig addDynamicLayerOnWayTags(String name, int type, HashMap<?,?> tags) {
 		JSONObject query = new JSONObject();
 		if (tags != null && !tags.isEmpty()) {
 			JSONObject step2tags = new JSONObject();
@@ -193,7 +194,7 @@ public class OSMLayer extends DynamicLayer {
 	 * @param key
 	 * @param value
 	 */
-	public LayerConfig addSimpleDynamicLayer(String key, String value) {
+	public DynamicLayerConfig addSimpleDynamicLayer(String key, String value) {
 		return addSimpleDynamicLayer(key, value, Constants.GTYPE_LINESTRING);
 	}
 
@@ -208,7 +209,7 @@ public class OSMLayer extends DynamicLayer {
 	 * @param value
 	 * @param geometry type as defined in Constants.
 	 */
-	public LayerConfig addSimpleDynamicLayer(String key, String value, int gtype) {
+	public DynamicLayerConfig addSimpleDynamicLayer(String key, String value, int gtype) {
 		HashMap<String, String> tags = new HashMap<String, String>();
 		tags.put(key, value);
 		return addDynamicLayerOnWayTags(value==null ? key : key + "-" + value, gtype, tags);
@@ -227,7 +228,7 @@ public class OSMLayer extends DynamicLayer {
 	 * @param query
 	 *            String of ',' separated key=value tags to match
 	 */
-	public LayerConfig addSimpleDynamicLayer(int gtype, String tagsQuery) {
+	public DynamicLayerConfig addSimpleDynamicLayer(int gtype, String tagsQuery) {
 		HashMap<String, String> tags = new HashMap<String, String>();
 		StringBuffer name = new StringBuffer();
 		for (String query : tagsQuery.split("\\s*\\,\\s*")) {
@@ -256,7 +257,7 @@ public class OSMLayer extends DynamicLayer {
 	 * @param query
 	 *            String of ',' separated key=value tags to match
 	 */
-	public LayerConfig addSimpleDynamicLayer(String tagsQuery) {
+	public DynamicLayerConfig addSimpleDynamicLayer(String tagsQuery) {
 		return addSimpleDynamicLayer(GTYPE_LINESTRING, tagsQuery);
 	}
 
@@ -265,7 +266,7 @@ public class OSMLayer extends DynamicLayer {
 	 * 
 	 * @param geometry type as defined in Constants.
 	 */
-	public LayerConfig addSimpleDynamicLayer(int gtype) {
+	public DynamicLayerConfig addSimpleDynamicLayer(int gtype) {
 		return addDynamicLayerOnWayTags(SpatialDatabaseService.convertGeometryTypeToName(gtype), gtype, null);
 	}
 

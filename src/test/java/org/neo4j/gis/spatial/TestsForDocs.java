@@ -25,7 +25,7 @@ import java.util.List;
 
 import org.geotools.data.DataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
-import org.neo4j.gis.spatial.DynamicLayer.LayerConfig;
+import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.gis.spatial.geotools.data.Neo4jSpatialDataStore;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMDataset.Way;
@@ -39,7 +39,6 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.impl.batchinsert.BatchInserter;
 import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
 
-import org.neo4j.collections.rtree.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 
 /**
@@ -181,7 +180,7 @@ public class TestsForDocs extends Neo4jTestCase {
 			// START SNIPPET: exportShapefileFromOSM
 			SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
 			OSMLayer layer = (OSMLayer) spatialService.getLayer("map.osm");
-			LayerConfig wayLayer = layer.addSimpleDynamicLayer(Constants.GTYPE_LINESTRING);
+			DynamicLayerConfig wayLayer = layer.addSimpleDynamicLayer(Constants.GTYPE_LINESTRING);
 			ShapefileExporter shpExporter = new ShapefileExporter(database);
 			shpExporter.exportLayer(wayLayer.getName());
 			// END SNIPPET: exportShapefileFromOSM

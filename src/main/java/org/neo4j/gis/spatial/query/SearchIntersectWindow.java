@@ -21,7 +21,7 @@ package org.neo4j.gis.spatial.query;
 
 import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.gis.spatial.AbstractLayerSearch;
-import org.neo4j.gis.spatial.EnvelopeUtils;
+import org.neo4j.gis.spatial.Utilities;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.graphdb.Node;
 
@@ -41,7 +41,7 @@ public class SearchIntersectWindow extends AbstractLayerSearch {
 	
 	public void setLayer(Layer layer) {
 		super.setLayer(layer);
-		this.windowGeom = layer.getGeometryFactory().toGeometry(EnvelopeUtils.fromNeo4jToJts(window));		
+		this.windowGeom = layer.getGeometryFactory().toGeometry(Utilities.fromNeo4jToJts(window));		
 	}
 	
 	public boolean needsToVisit(Envelope indexNodeEnvelope) {

@@ -21,7 +21,7 @@ package org.neo4j.gis.spatial.query;
 
 import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.gis.spatial.AbstractLayerSearch;
-import org.neo4j.gis.spatial.EnvelopeUtils;
+import org.neo4j.gis.spatial.Utilities;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialTopologyUtils;
 import org.neo4j.graphdb.Node;
@@ -69,7 +69,7 @@ public class SearchClosest extends AbstractLayerSearch {
 	}
 
 	private static Envelope makeBufferEnvelope(Geometry other, double buffer) {
-		return EnvelopeUtils.fromJtsToNeo4j(other.buffer(buffer).getEnvelopeInternal());
+		return Utilities.fromJtsToNeo4j(other.buffer(buffer).getEnvelopeInternal());
 	}
 
 	/**
@@ -83,7 +83,7 @@ public class SearchClosest extends AbstractLayerSearch {
 	 *            density to match the specified number of features.
 	 */
 	public SearchClosest(Geometry other, Layer layer, int limit) {
-		this(other, EnvelopeUtils.fromJtsToNeo4j(
+		this(other, Utilities.fromJtsToNeo4j(
 				SpatialTopologyUtils.createEnvelopeForGeometryDensityEstimate(layer, other.getCoordinate(), limit)));
 	}
 

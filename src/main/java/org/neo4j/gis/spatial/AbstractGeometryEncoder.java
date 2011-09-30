@@ -48,7 +48,7 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 	public void encodeGeometry(Geometry geometry, PropertyContainer container) {
 		container.setProperty(PROP_TYPE, encodeGeometryType(geometry.getGeometryType()));
 
-		encodeEnvelope(EnvelopeUtils.fromJtsToNeo4j(geometry.getEnvelopeInternal()), container);
+		encodeEnvelope(Utilities.fromJtsToNeo4j(geometry.getEnvelopeInternal()), container);
 
 		encodeGeometryShape(geometry, container);
 	}

@@ -43,7 +43,6 @@ import junit.framework.TestSuite;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.collections.rtree.filter.SearchAll;
-import org.neo4j.gis.spatial.DynamicLayer.LayerConfig;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.geotools.data.StyledImageExporter;
 import org.neo4j.gis.spatial.osm.OSMDataset;
@@ -199,7 +198,7 @@ public class DavideOsmAnalysisTest extends TestOSMImport {
 			userQuery.append("user = '" + user.name + "'");
 			user_rank++;
 		}
-		LinkedHashMap<LayerConfig,Long> slides = new LinkedHashMap<LayerConfig,Long>();
+		LinkedHashMap<DynamicLayerConfig,Long> slides = new LinkedHashMap<DynamicLayerConfig,Long>();
 		for (int i = -timeWindow; i < slideCount; i++) {
 			long timestamp = latestTimestamp - i * msPerSlide;
 			long minTime = timestamp;
@@ -208,12 +207,12 @@ public class DavideOsmAnalysisTest extends TestOSMImport {
 			Date date = new Date(timestamp);
 			System.out.println("Preparing slides for " + date);
 			String name = osm + "-" + date;
-			LayerConfig config = layer.addLayerConfig(name, Constants.GTYPE_GEOMETRY, "timestamp > " + minTime + " and timestamp < "
+			DynamicLayerConfig config = layer.addLayerConfig(name, Constants.GTYPE_GEOMETRY, "timestamp > " + minTime + " and timestamp < "
 					+ maxTime + " and (" + userQuery + ")");
 			System.out.println("Added dynamic layer '"+config.getName()+"' with CQL: "+config.getQuery());
 			slides.put(config, timestamp);
 		}
-		LayerConfig config = layer.addLayerConfig(osm + "-top-ten", Constants.GTYPE_GEOMETRY, userQuery.toString());
+		DynamicLayerConfig config = layer.addLayerConfig(osm + "-top-ten", Constants.GTYPE_GEOMETRY, userQuery.toString());
 		System.out.println("Added dynamic layer '"+config.getName()+"' with CQL: "+config.getQuery());
 		slides.clear();
 		slides.put(config, 0L);
@@ -237,7 +236,7 @@ public class DavideOsmAnalysisTest extends TestOSMImport {
 		
 		boolean checkedOne = false;
 
-		for(LayerConfig layerToExport:slides.keySet()){
+		for(DynamicLayerConfig layerToExport:slides.keySet()){
 			layerToExport.setExtraPropertyNames(layerPropertyNames);
 			layerToExport.getPropertyMappingManager().addPropertyMapper("timestamp", "days", "Days", Long.toString(slides.get(layerToExport)));
 			layerToExport.getPropertyMappingManager().addPropertyMapper("user", "user_rank", "Map", userParams.toString());
@@ -315,7 +314,7 @@ public class DavideOsmAnalysisTest extends TestOSMImport {
 			}
 		}
 
-		return new ReferencedEnvelope(EnvelopeUtils.fromNeo4jToJts(envelope), crs);
+		return new ReferencedEnvelope(Utilities.fromNeo4jToJts(envelope), crs);
 	}
 
 	private SortedMap<String, Layer> removeEmptyLayers(Map<String, Layer> layers) {
