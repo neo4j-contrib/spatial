@@ -52,11 +52,7 @@ public class Utilities {
 	}	
 	
 	/**
-	 * To create an optimized index search from a Filter 
-	 * try to extract an Envelope from it.
-	 * 
-	 * @param filter
-	 * @return Envelope
+	 * To create an optimized index search from a Filter we try to extract an Envelope from it.
 	 */
 	public static org.neo4j.collections.rtree.Envelope extractEnvelopeFromFilter(Filter filter) {
 		return extractEnvelopeFromFilter(filter, true);

@@ -25,11 +25,15 @@ import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.filter.text.ecql.ECQL;
 import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.collections.rtree.SpatialIndexRecordCounter;
+import org.neo4j.collections.rtree.filter.SearchFilter;
+import org.neo4j.collections.rtree.filter.SearchResults;
 import org.neo4j.collections.rtree.search.Search;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.LayerSearch;
 import org.neo4j.gis.spatial.LayerTreeIndexReader;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import org.neo4j.gis.spatial.Utilities;
+import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.geotools.data.Neo4jFeatureBuilder;
 import org.neo4j.graphdb.Node;
 import org.opengis.feature.simple.SimpleFeature;
@@ -57,6 +61,7 @@ import org.opengis.filter.Filter;
 public class CQLIndexReader extends LayerIndexReaderWrapper {
 
     private final Filter filter;
+	private final Envelope filterEnvelope;    
     private final Neo4jFeatureBuilder builder;
     private final Layer layer;
 
@@ -65,13 +70,18 @@ public class CQLIndexReader extends LayerIndexReaderWrapper {
         this.filter = ECQL.toFilter(query);
         this.builder = new Neo4jFeatureBuilder(layer);
         this.layer = layer;
+        
+        this.filterEnvelope = Utilities.extractEnvelopeFromFilter(filter);
     }
 
     private class Counter extends SpatialIndexRecordCounter {
+    	
+    	@Override
         public boolean needsToVisit(Envelope indexNodeEnvelope) {
             return queryIndexNode(indexNodeEnvelope);
         }
 
+    	@Override
         public void onIndexReference(Node geomNode) {
             if (queryLeafNode(geomNode)) {
                 super.onIndexReference(geomNode);
@@ -94,7 +104,8 @@ public class CQLIndexReader extends LayerIndexReaderWrapper {
 
 		@Override            
         public boolean needsToVisit(Envelope indexNodeEnvelope) {
-            return delegate.needsToVisit(indexNodeEnvelope);
+            return queryIndexNode(indexNodeEnvelope) && 
+            	delegate.needsToVisit(indexNodeEnvelope);
         }
 
 		@Override            
@@ -120,7 +131,8 @@ public class CQLIndexReader extends LayerIndexReaderWrapper {
 
 		@Override            
         public boolean needsToVisit(Envelope indexNodeEnvelope) {
-            return delegate.needsToVisit(indexNodeEnvelope);
+            return queryIndexNode(indexNodeEnvelope) && 
+            	delegate.needsToVisit(indexNodeEnvelope);
         }
 
 		@Override            
@@ -142,7 +154,7 @@ public class CQLIndexReader extends LayerIndexReaderWrapper {
     }
 
     private boolean queryIndexNode(Envelope indexNodeEnvelope) {
-        return true;
+        return filterEnvelope == null || filterEnvelope.intersects(indexNodeEnvelope);
     }
 
 	private boolean queryLeafNode(Node indexNode) {
@@ -150,7 +162,8 @@ public class CQLIndexReader extends LayerIndexReaderWrapper {
 		SimpleFeature feature = builder.buildFeature(dbRecord);
 		return filter.evaluate(feature);
 	}
-
+	
+	@Override
 	public int count() {
 		Counter counter = new Counter();
 		index.visit(counter, index.getIndexRoot());
@@ -160,11 +173,38 @@ public class CQLIndexReader extends LayerIndexReaderWrapper {
 	/**
 	 * @deprecated
 	 */
+	@Override	
 	public void executeSearch(final Search search) {
 		if (LayerSearch.class.isAssignableFrom(search.getClass())) {
 			index.executeSearch(new FilteredLayerSearch((LayerSearch) search));
 		} else {
 			index.executeSearch(new FilteredSearch(search));
 		}
+	}
+	
+	private SearchFilter wrapSearchFilter(final SearchFilter filter) {
+		return new SearchFilter() {
+
+			@Override
+			public boolean needsToVisit(Envelope envelope) {
+				return queryIndexNode(envelope) && 
+					filter.needsToVisit(envelope);
+			}
+
+			@Override
+			public boolean geometryMatches(Node geomNode) {
+				return queryLeafNode(geomNode) && filter.geometryMatches(geomNode);
+			}	
+		};
+	}
+	
+	@Override
+	public SearchResults searchIndex(SearchFilter filter) {
+		return index.searchIndex(wrapSearchFilter(filter));
+	}
+	
+	@Override
+	public SearchRecords search(SearchFilter filter) {
+		return index.search(wrapSearchFilter(filter));
 	}
 }

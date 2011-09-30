@@ -25,10 +25,13 @@ import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.collections.rtree.SpatialIndexRecordCounter;
+import org.neo4j.collections.rtree.filter.SearchFilter;
+import org.neo4j.collections.rtree.filter.SearchResults;
 import org.neo4j.collections.rtree.search.Search;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.LayerSearch;
 import org.neo4j.gis.spatial.LayerTreeIndexReader;
+import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.DynamicRelationshipType;
 import org.neo4j.graphdb.Node;
@@ -66,10 +69,13 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
     private final Layer layer;
     
 	private class DynamicRecordCounter extends SpatialIndexRecordCounter {
+		
+		@Override
 		public boolean needsToVisit(Envelope indexNodeEnvelope) {
 			return queryIndexNode(indexNodeEnvelope);
 		}
 
+		@Override
 		public void onIndexReference(Node geomNode) {
 			if (queryLeafNode(geomNode)) {
 				super.onIndexReference(geomNode);
@@ -102,8 +108,8 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 	 */
 	private boolean queryLeafNode(Node geomNode) {
 		// TODO: Extend support for more complex queries
-		JSONObject properties = (JSONObject)query.get("properties");
-		JSONObject step = (JSONObject)query.get("step");
+		JSONObject properties = (JSONObject) query.get("properties");
+		JSONObject step = (JSONObject) query.get("step");
 		return queryNodeProperties(geomNode,properties) && stepAndQuery(geomNode,step);
 	}
 	
@@ -126,22 +132,25 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 
 	private boolean queryNodeProperties(Node node, JSONObject properties) {
 		if (properties != null) {
-			if(properties.containsKey("geometry")){
+			if (properties.containsKey("geometry")) {
 				System.out.println("Unexpected 'geometry' in query string");
 				properties.remove("geometry");
 			}
+			
 			for (Object key : properties.keySet()) {
 				Object value = node.getProperty(key.toString(), null);
 				Object match = properties.get(key);
-				//TODO: Find a better way to solve minor type mismatches (Long!=Integer) than the string conversion below
+				// TODO: Find a better way to solve minor type mismatches (Long!=Integer) than the string conversion below
 				if (value == null || (match != null && !value.equals(match) && !value.toString().equals(match.toString()))) {
 					return false;
 				}
 			}
 		}
+		
 		return true;
 	}
 
+	@Override
 	public int count() {
 		DynamicRecordCounter counter = new DynamicRecordCounter();
 		index.visit(counter, index.getIndexRoot());
@@ -151,21 +160,24 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 	/**
 	 * @deprecated
 	 */
+	@Override
 	public void executeSearch(final Search search) {
 		if (LayerSearch.class.isAssignableFrom(LayerSearch.class)) {
 			((LayerSearch) search).setLayer(layer);
 		}
 		
 		index.executeSearch(new Search() {
-
+			@Override
 			public List<Node> getResults() {
 				return search.getResults();
 			}
-
+			
+			@Override
 			public boolean needsToVisit(Envelope indexNodeEnvelope) {
 				return search.needsToVisit(indexNodeEnvelope);
 			}
 
+			@Override
 			public void onIndexReference(Node geomNode) {
 				if (queryLeafNode(geomNode)) {
 					search.onIndexReference(geomNode);
@@ -173,4 +185,30 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 			}
 		});
 	}
+	
+	private SearchFilter wrapSearchFilter(final SearchFilter filter) {
+		return new SearchFilter() {
+
+			@Override
+			public boolean needsToVisit(Envelope envelope) {
+				return queryIndexNode(envelope) && 
+					filter.needsToVisit(envelope);
+			}
+
+			@Override
+			public boolean geometryMatches(Node geomNode) {
+				return queryLeafNode(geomNode) && filter.geometryMatches(geomNode);
+			}	
+		};
+	}	
+	
+	@Override
+	public SearchResults searchIndex(final SearchFilter filter) {
+		return index.searchIndex(wrapSearchFilter(filter));
+	}
+	
+	@Override
+	public SearchRecords search(SearchFilter filter) {
+		return index.search(wrapSearchFilter(filter));
+	}	
 }
