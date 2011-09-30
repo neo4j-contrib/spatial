@@ -31,9 +31,6 @@ import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.gis.spatial.geotools.data.StyledImageExporter;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
-import org.neo4j.gis.spatial.query.SearchContain;
-import org.neo4j.gis.spatial.query.SearchPointsWithinOrthodromicDistance;
-import org.neo4j.gis.spatial.query.SearchWithin;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateList;
@@ -49,17 +46,19 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		assertNotNull(layer);
 		SpatialRecord record = layer.add(layer.getGeometryFactory().createPoint(new Coordinate(15.3, 56.2)));
 		assertNotNull(record);
+		
 		// finds geometries that contain the given geometry
-		SearchContain searchQuery = new SearchContain(
-				layer.getGeometryFactory().toGeometry(new com.vividsolutions.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0)));
-		layer.getIndex().executeSearch(searchQuery);
-		List<SpatialDatabaseRecord> results = searchQuery.getExtendedResults();
+		List<SpatialDatabaseRecord> results = GeoPipeline
+			.startContainSearch(layer, layer.getGeometryFactory().toGeometry(new com.vividsolutions.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0)))
+			.toSpatialDatabaseRecordList();
+		
 		// should not be contained
 		assertEquals(0, results.size());
-		SearchWithin withinQuery = new SearchWithin(
-				layer.getGeometryFactory().toGeometry(new com.vividsolutions.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0)));
-		layer.getIndex().executeSearch(withinQuery);
-		results = withinQuery.getExtendedResults();
+		
+		results = GeoPipeline
+			.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new com.vividsolutions.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0)))
+			.toSpatialDatabaseRecordList();
+		
 		assertEquals(1, results.size());
 	}
 
@@ -77,14 +76,16 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		Envelope bbox = layer.getIndex().getBoundingBox();
 		double[] centre = bbox.centre();
 		
-		List<GeoPipeFlow> results = GeoPipeline.startNearestNeighborLatLonSearch(layer, new Coordinate(centre[0] + 0.1, centre[1]), 10.0)
+		List<GeoPipeFlow> results = GeoPipeline
+			.startNearestNeighborLatLonSearch(layer, new Coordinate(centre[0] + 0.1, centre[1]), 10.0)
 			.sort("OrthodromicDistance").toList();
 
 		saveResultsAsImage(results, "temporary-results-layer-" + layer.getName(), 130, 70);
 		assertEquals(71, results.size());
 		checkPointOrder(results);
 
-		results = GeoPipeline.startNearestNeighborLatLonSearch(layer, new Coordinate(centre[0] + 0.1, centre[1]), 5.0)
+		results = GeoPipeline
+			.startNearestNeighborLatLonSearch(layer, new Coordinate(centre[0] + 0.1, centre[1]), 5.0)
 			.sort("OrthodromicDistance").toList();
 
 		saveResultsAsImage(results, "temporary-results-layer2-" + layer.getName(), 130, 70);
@@ -118,11 +119,10 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		Envelope bbox = layer.getIndex().getBoundingBox();
 		double[] centre = bbox.centre();
 		
-		SearchPointsWithinOrthodromicDistance distanceQuery = new SearchPointsWithinOrthodromicDistance(
-				new Coordinate(centre[0], centre[1]), 10.0);
-		layer.getIndex().executeSearch(distanceQuery);
-		List<SpatialDatabaseRecord> results = distanceQuery.getExtendedResults();
-
+		List<SpatialDatabaseRecord> results = GeoPipeline
+			.startNearestNeighborLatLonSearch(layer, new Coordinate(centre[0], centre[1]), 10.0)
+			.toSpatialDatabaseRecordList();
+		
 		saveResultsAsImage(results, "temporary-results-layer-" + layer.getName(), 150, 150);
 		assertEquals(456, results.size());
 	}

@@ -38,7 +38,7 @@ import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.osm.OSMRelation;
-import org.neo4j.gis.spatial.query.SearchWithin;
+import org.neo4j.gis.spatial.pipes.osm.OSMGeoPipeline;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
@@ -184,26 +184,6 @@ public class TestOSMImport extends Neo4jTestCase {
 		checkOSMSearch(layer);
 	}
 
-	/**
-	 * This class returns true for all index nodes, forcing the search to be
-	 * exhaustive. We use it for performance testing of the RTree.
-	 * 
-	 * @since 0.6
-	 * @author craig
-	 */
-	private class SearchWithinAll extends SearchWithin {
-
-		public SearchWithinAll(Geometry other) {
-			super(other);
-		}
-
-		@Override
-		public boolean needsToVisit(org.neo4j.collections.rtree.Envelope indexNodeEnvelope) {
-			return true;
-		}
-
-	}
-
 	private void checkOSMSearch(OSMLayer layer) throws IOException {
 		OSMDataset osm = (OSMDataset) layer.getDataset();
 		Way way = null;
@@ -227,19 +207,18 @@ public class TestOSMImport extends Neo4jTestCase {
 	private void runSearches(OSMLayer layer, Envelope bbox, boolean willHaveResult) {
 		for (int i = 0; i < 4; i++) {
 			Geometry searchArea = layer.getGeometryFactory().toGeometry(bbox);
-			runSearch(layer, new SearchWithinAll(searchArea), willHaveResult);
-			runSearch(layer, new SearchWithin(searchArea), willHaveResult);
+			runWithinSearch(layer, searchArea, willHaveResult);
 			bbox.expandBy(bbox.getWidth(), bbox.getHeight());
 		}
 	}
 
-	private void runSearch(OSMLayer layer, SearchWithin search, boolean willHaveResult) {
+	private void runWithinSearch(OSMLayer layer, Geometry searchArea, boolean willHaveResult) {
 		long start = System.currentTimeMillis();
-		layer.getIndex().executeSearch(search);
-		List<SpatialDatabaseRecord> results = search.getExtendedResults();
+		List<SpatialDatabaseRecord> results = OSMGeoPipeline
+			.startWithinSearch(layer, searchArea).toSpatialDatabaseRecordList();		
 		long time = System.currentTimeMillis() - start;
 		System.out.println("Took " + time + "ms to find " + results.size() + " search results in layer " + layer.getName()
-				+ " using search within " + search);
+				+ " using search within " + searchArea);
 		if (willHaveResult)
 			assertTrue("Should be at least one result, but got zero", results.size() > 0);
 	}

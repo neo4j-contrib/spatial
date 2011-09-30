@@ -25,20 +25,20 @@ import java.util.List;
 
 import org.geotools.data.DataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
-import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.gis.spatial.geotools.data.Neo4jSpatialDataStore;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMDataset.Way;
 import org.neo4j.gis.spatial.osm.OSMDataset.WayPoint;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
-import org.neo4j.gis.spatial.query.SearchIntersectWindow;
+import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.impl.batchinsert.BatchInserter;
 import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
 
+import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 
 /**
@@ -137,9 +137,10 @@ public class TestsForDocs extends Neo4jTestCase {
 			System.out.println("Have " + spatialIndex.count() + " geometries in " + spatialIndex.getBoundingBox());
 
 			Envelope bbox = new Envelope(12.94, 12.96, 56.04, 56.06);
-			LayerSearch searchQuery = new SearchIntersectWindow(bbox);
-			spatialIndex.executeSearch(searchQuery);
-			List<SpatialDatabaseRecord> results = searchQuery.getExtendedResults();
+			List<SpatialDatabaseRecord> results = GeoPipeline
+				.startIntersectWindowSearch(layer, bbox)
+				.toSpatialDatabaseRecordList();
+			
 			doGeometryTestsOnResults(bbox, results);
 		} finally {
 			database.shutdown();
@@ -205,9 +206,9 @@ public class TestsForDocs extends Neo4jTestCase {
 			System.out.println("Have " + spatialIndex.count() + " geometries in " + spatialIndex.getBoundingBox());
 
 			Envelope bbox = new Envelope(12.94, 12.96, 56.04, 56.06);
-			LayerSearch searchQuery = new SearchIntersectWindow(bbox);
-			spatialIndex.executeSearch(searchQuery);
-			List<SpatialDatabaseRecord> results = searchQuery.getExtendedResults();
+			List<SpatialDatabaseRecord> results = GeoPipeline
+				.startIntersectWindowSearch(layer, bbox)
+				.toSpatialDatabaseRecordList();
 
 			spatialService.createResultsLayer("results", results);
 			ShapefileExporter shpExporter = new ShapefileExporter(database);
