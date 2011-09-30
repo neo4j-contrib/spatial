@@ -36,6 +36,7 @@ public class FilterContain extends AbstractFilterGeoPipe {
 	
 	public FilterContain(Geometry other) {
 		this.other = other;
+		this.otherEnvelope = other.getEnvelopeInternal();
 	}
 
 	@Override
