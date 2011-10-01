@@ -470,7 +470,7 @@ terms of the relevant Commercial Agreement.
         <repository>
           <id>Neo4jSnapshots</id>
           <name>Neo4j Snapshot Maven Repository</name>
-          <url>http://m2.neo4j.org/snapshots</url>
+          <url>http://repo.neo4j.org/content/repositories/snapshots</url>
         </repository>
       </repositories>
       <pluginRepositories>
