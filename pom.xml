@@ -467,6 +467,11 @@ terms of the relevant Commercial Agreement.
           <name>Cuke4Duke Maven Repository</name>
           <url>http://cukes.info/maven/</url>
         </repository>
+        <repository>
+          <id>Neo4jSnapshots</id>
+          <name>Neo4j Snapshot Maven Repository</name>
+          <url>http://m2.neo4j.org/snapshots</url>
+        </repository>
       </repositories>
       <pluginRepositories>
         <pluginRepository>
