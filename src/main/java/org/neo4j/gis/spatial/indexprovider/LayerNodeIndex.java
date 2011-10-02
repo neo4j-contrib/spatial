@@ -136,7 +136,7 @@ public class LayerNodeIndex implements Index<Node>
             Double[] point = (Double[]) p.get( POINT_PARAMETER );
             Double distance = (Double) p.get( DISTANCE_IN_KM_PARAMETER );
             LayerSearch withinDistanceQuery = new SearchPointsWithinOrthodromicDistance(
-                    new Coordinate( point[1], point[0] ), distance, true );
+                    new Coordinate( point[1], point[0] ), distance );
             layer.getIndex().executeSearch( withinDistanceQuery );
             List<SpatialDatabaseRecord> res = withinDistanceQuery.getExtendedResults();
             IndexHits<Node> results = new SpatialRecordHits( res );

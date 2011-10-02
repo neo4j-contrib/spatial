@@ -240,6 +240,18 @@ terms of the relevant Commercial Agreement.
     </dependency>
     <dependency>
       <groupId>org.geotools</groupId>
+      <artifactId>gt-geojson</artifactId>
+      <version>${geotools.version}</version>
+      <scope>provided</scope>
+    </dependency>
+     <dependency>
+      <groupId>org.geotools.xsd</groupId>
+      <artifactId>gt-xsd-kml</artifactId>
+      <version>${geotools.version}</version>
+      <scope>provided</scope>
+    </dependency>        
+    <dependency>
+      <groupId>org.geotools</groupId>
       <artifactId>gt-render</artifactId>
       <version>${geotools.version}</version>
       <exclusions>

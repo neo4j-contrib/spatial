@@ -20,7 +20,7 @@
 package org.neo4j.gis.spatial.filter;
 
 import org.neo4j.collections.rtree.filter.AbstractSearchEnvelopeIntersection;
-import org.neo4j.gis.spatial.EnvelopeUtils;
+import org.neo4j.gis.spatial.Utilities;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.graphdb.Node;
 
@@ -35,7 +35,7 @@ public abstract class AbstractSearchIntersection extends AbstractSearchEnvelopeI
 	protected Layer layer;
 
 	public AbstractSearchIntersection(Layer layer, Geometry referenceGeometry) {
-		super(layer.getGeometryEncoder(), EnvelopeUtils.fromJtsToNeo4j(referenceGeometry.getEnvelopeInternal()));
+		super(layer.getGeometryEncoder(), Utilities.fromJtsToNeo4j(referenceGeometry.getEnvelopeInternal()));
 		this.referenceGeometry = referenceGeometry;
 		this.layer = layer;
 	}

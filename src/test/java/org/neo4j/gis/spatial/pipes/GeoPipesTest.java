@@ -20,178 +20,307 @@
 package org.neo4j.gis.spatial.pipes;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
-import java.util.Map;
-
-import org.junit.After;
+import org.geotools.filter.text.cql2.CQLException;
 import org.junit.AfterClass;
-import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
+import org.neo4j.collections.rtree.filter.SearchAll;
+import org.neo4j.collections.rtree.filter.SearchFilter;
+import org.neo4j.gis.spatial.EditableLayerImpl;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.osm.OSMImporter;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.kernel.impl.annotations.Documented;
-import org.neo4j.test.AsciiDocGenerator;
-import org.neo4j.test.GraphDescription;
-import org.neo4j.test.GraphHolder;
+import org.neo4j.gis.spatial.pipes.osm.OSMGeoPipeline;
 import org.neo4j.test.ImpermanentGraphDatabase;
-import org.neo4j.test.JavaTestDocsGenerator;
-import org.neo4j.test.TestData;
-import org.neo4j.visualization.asciidoc.AsciidocHelper;
 
-import com.tinkerpop.pipes.filter.FilterPipe.Filter;
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.util.AffineTransformation;
+import com.vividsolutions.jts.io.WKTReader;
 
-public class GeoPipesTest implements GraphHolder
-{
-    public @Rule
-    TestData<JavaTestDocsGenerator> gen = TestData.producedThrough( JavaTestDocsGenerator.PRODUCER );
-    public @Rule
-    TestData<Map<String, Node>> data = TestData.producedThrough( GraphDescription.createGraphFor(
-            this, true ) );
 
+public class GeoPipesTest {
+	
     private static ImpermanentGraphDatabase graphdb;
-    private static Layer layer = null;
-    public final static String LAYER_NAME = "two-street.osm";
-    public final static int COMMIT_INTERVAL = 100;
+    private static Layer osmLayer;
+    private static EditableLayerImpl boxesLayer;
+    private static EditableLayerImpl concaveLayer;
+    
+    private OSMGeoPipeline startPipeline(Layer layer) {
+    	return startPipeline(layer, new SearchAll());
+    }
+    
+    private OSMGeoPipeline startPipeline(Layer layer, SearchFilter filter) {
+    	return OSMGeoPipeline.start(layer, filter);
+    }    
+    
+    @Test
+    public void find_all() {
+    	int count = 0;
+    	for (GeoPipeFlow flow : startPipeline(osmLayer).createWellKnownText()) {
+    		count++;
+    		
+    		assertEquals(1, flow.getProperties().size());
+    		String wkt = (String) flow.getProperties().get("WellKnownText");
+    		assertTrue(wkt.indexOf("LINESTRING") == 0);
+    	}
+    	
+        assertEquals(2, count);
+    }    
+        
+    @Test
+    public void filter_by_osm_attribute() {
+    	GeoPipeline pipeline = startPipeline(osmLayer).osmAttributeFilter("name", "Storgatan")
+    		.copyDatabaseRecordProperties();
+    	
+    	GeoPipeFlow flow = pipeline.next();
+    	assertFalse(pipeline.hasNext());
 
-    /**
-     * this is the documentation
-     * for this test.
-     * 
-     * @@graph
-     * 
-     * This is the pipe executed over the above graph.
-     * 
-     * @@pipe1
-     * 
-     * Returning all geometries in this layer.
-     * 
-     */
-    @Documented
-    @Test
-    public void count_all_geometries_in_a_layer()
-    {
-        data.get();
-        gen.get();
-        gen.get().addSnippet( "pipe1", AsciiDocGenerator.createSourceSnippet("pipe1", this.getClass()) );
-        gen.get().addSnippet( "graph", AsciidocHelper.createGraphViz("graph1", graphdb(), gen.get().getTitle()) );
-        // START SNIPPET: pipe1
-        long allGeometries = layer.filter().all().process().count();
-        assertEquals( 2, allGeometries );
-        // END SNIPPET: pipe1
-    }
-    @Test
-    public void count_number_of_points_in_all_geometries_in_a_layer()
-    {
-        assertEquals( 24, layer.filter().all().process().countPoints() );
-    }
-    
-    @Test
-    public void break_up_all_geometries_into_points_and_count_them()
-    {
-        assertEquals( 24, layer.filter().all().process().toPoints().count() );
-    }
-    
-    @Test
-    public void count_all_ways_with_a_specific_name()
-    {
-    	assertEquals( 1, layer.filter().all().attributes("name", "Storgatan", Filter.EQUAL).process().count() );
+    	assertEquals("Storgatan", flow.getProperties().get("name"));
     }
 
     @Test
-    public void count_all_geometries_with_in_a_specific_bbox()
-    {
-    	assertEquals( 1, layer.filter().all().bbox(10, 40, 20, 56.0583531).process().count());
+    public void filter_by_property() {
+    	GeoPipeline pipeline = startPipeline(osmLayer)
+    		.copyDatabaseRecordProperties()
+    		.propertyFilter("name", "Storgatan");
+	
+		GeoPipeFlow flow = pipeline.next();
+		assertFalse(pipeline.hasNext());
+	
+		assertEquals("Storgatan", flow.getProperties().get("name"));    	
     }
     
     @Test
-    public void count_all_geometries_with_in_a_specific_bbox_with_cql()
-    {
-    	assertEquals( 2, layer.filter().all().cql("BBOX(the_geom, 10, 40, 20, 57)").process().count());
+    public void filter_by_window_intersection() {
+    	assertEquals(1, startPipeline(osmLayer).windowIntersectionFilter(10, 40, 20, 56.0583531).count());
     }
     
     @Test
-    public void break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them()
-    {
-//    	long result = layer.
-//			filter().
-//				bbox(12.1,43.2,12.5,43.7).
-//				cql("name like 'A%'").
-//			process().
-//				toPoints().
-//				toDensityIslands(0.1).
-//				toConvexHull().
-//				buffer(10).
-//			count();
-
-    	long result = layer.
-		filter().all().
-		process().
-				toPoints().
-				toDensityIslands(0.1).
-				toConvexHull().
-				buffer(10).
-			count();
-
-    	assertEquals( 1, result);
-    	System.out.println(layer.filter().all().process().toPoints().toDensityIslands(0.1).toConvexHull().buffer(10).next());
+    public void filter_by_cql_using_bbox() throws CQLException {
+    	assertEquals(1, startPipeline(osmLayer).cqlFilter("BBOX(the_geom, 10, 40, 20, 56.0583531)").count());
     }
     
-    public static void load( ) throws Exception
-    {
-        try
-        {
-            loadTestOsmData( LAYER_NAME, COMMIT_INTERVAL );
-            SpatialDatabaseService spatialService = new SpatialDatabaseService(
-                    graphdb );
-            layer = spatialService.getLayer( LAYER_NAME );
-        }
-        catch ( Exception e )
-        {
-            e.printStackTrace();
-        }
+    @Test    
+    public void filter_by_cql_using_property() throws CQLException {
+    	GeoPipeline pipeline = startPipeline(osmLayer).cqlFilter("name = 'Storgatan'")
+			.copyDatabaseRecordProperties();
+	
+		GeoPipeFlow flow = pipeline.next();
+		assertFalse(pipeline.hasNext());
+	
+		assertEquals("Storgatan", flow.getProperties().get("name"));    	
+    }
+    
+    @Test
+    public void traslate_geometries() {
+    	GeoPipeline original = startPipeline(osmLayer)
+    		.copyDatabaseRecordProperties()
+    		.sort("name");
+    	
+    	GeoPipeline translated = startPipeline(osmLayer)
+    		.applyAffineTransform(AffineTransformation.translationInstance(10, 25))
+    		.copyDatabaseRecordProperties()
+    		.sort("name");
+
+    	for (int k = 0; k < 2; k++) {
+    		Coordinate[] coords = original.next().getGeometry().getCoordinates();
+    		Coordinate[] newCoords = translated.next().getGeometry().getCoordinates();
+        	assertEquals(coords.length, newCoords.length);
+        	for (int i = 0; i < coords.length; i++) {
+        		assertEquals(coords[i].x + 10, newCoords[i].x, 0);
+        		assertEquals(coords[i].y + 25, newCoords[i].y, 0);
+        	}    		
+    	}
+    }
+    
+    @Test
+    public void calculate_area() {
+    	GeoPipeline pipeline = startPipeline(boxesLayer)
+    		.calculateArea()
+    		.sort("Area");
+    	
+    	assertEquals((Double) pipeline.next().getProperties().get("Area"), 1.0, 0);
+    	assertEquals((Double) pipeline.next().getProperties().get("Area"), 8.0, 0);    	
+    }
+    
+    @Test
+    public void calculate_length() {
+    	GeoPipeline pipeline = startPipeline(boxesLayer)
+    		.calculateLength()
+    		.sort("Length");
+    	
+    	assertEquals((Double) pipeline.next().getProperties().get("Length"), 4.0, 0);
+    	assertEquals((Double) pipeline.next().getProperties().get("Length"), 12.0, 0);    	    	
+    }
+    
+    @Test
+    public void get_boundary_length() {
+    	GeoPipeline pipeline = startPipeline(boxesLayer)
+    		.toBoundary()
+    		.createWellKnownText()
+    		.calculateLength()
+    		.sort("Length");
+
+    	GeoPipeFlow first = pipeline.next();
+    	GeoPipeFlow second = pipeline.next();
+    	assertEquals("LINEARRING (12 56, 12 57, 13 57, 13 56, 12 56)", first.getProperties().get("WellKnownText"));
+    	assertEquals("LINEARRING (2 3, 2 5, 6 5, 6 3, 2 3)", second.getProperties().get("WellKnownText"));    	
+    	assertEquals((Double) first.getProperties().get("Length"), 4.0, 0);
+    	assertEquals((Double) second.getProperties().get("Length"), 12.0, 0);    	    	
+    }    
+    
+    @Test
+    public void get_buffer() {
+    	GeoPipeline pipeline = startPipeline(boxesLayer)
+    		.toBuffer(0.1)
+    		.createWellKnownText()
+    		.calculateArea()
+    		.sort("Area");
+    	
+    	assertTrue(((Double) pipeline.next().getProperties().get("Area")) > 1);
+    	assertTrue(((Double) pipeline.next().getProperties().get("Area")) > 8);    	
+    }
+    
+    @Test
+    public void get_centroid() {
+    	GeoPipeline pipeline = startPipeline(boxesLayer)
+    		.toCentroid()
+    		.createWellKnownText()
+    		.copyDatabaseRecordProperties()
+    		.sort("name");
+    	
+    	assertEquals("POINT (12.5 56.5)", pipeline.next().getProperties().get("WellKnownText"));
+    	assertEquals("POINT (4 4)", pipeline.next().getProperties().get("WellKnownText"));    	
+    }
+    
+    @Test
+    public void get_convex_hull() {
+    	GeoPipeline pipeline = startPipeline(concaveLayer)
+    		.toConvexHull()
+    		.createWellKnownText();
+    	
+    	assertEquals("POLYGON ((0 0, 0 10, 10 10, 10 0, 0 0))", pipeline.next().getProperties().get("WellKnownText"));
+    	
+    	print(pipeline);
+    }
+    
+    @Test
+    public void densify() {
+    	GeoPipeline pipeline = startPipeline(concaveLayer)
+    		.toConvexHull()
+    		.densify(10)
+    		.createWellKnownText();
+    	
+    	assertEquals("POLYGON ((0 0, 0 5, 0 10, 5 10, 10 10, 10 5, 10 0, 5 0, 0 0))", 
+    			pipeline.next().getProperties().get("WellKnownText"));
+    }
+    
+    @Test
+    public void json() {
+    	GeoPipeline pipeline = startPipeline(boxesLayer)
+			.createJson()
+			.copyDatabaseRecordProperties()
+			.sort("name");
+
+    	assertEquals("{\"type\":\"Polygon\",\"coordinates\":[[[12,56],[12,57],[13,57],[13,56],[12,56]]]}", 
+    			pipeline.next().getProperties().get("GeoJSON"));
+    	assertEquals("{\"type\":\"Polygon\",\"coordinates\":[[[2,3],[2,5],[6,5],[6,3],[2,3]]]}", 
+    			pipeline.next().getProperties().get("GeoJSON"));
+    }
+    
+    @Test
+    public void get_max_area() {
+    	GeoPipeline pipeline = startPipeline(boxesLayer)
+    		.calculateArea()
+    		.getMax("Area");
+    	
+    	assertEquals((Double) pipeline.next().getProperties().get("Area"), 8.0, 0);    	
+    }   
+    
+    @Test
+    public void get_min_area() {
+    	GeoPipeline pipeline = startPipeline(boxesLayer)
+    		.calculateArea()
+    		.getMin("Area");
+    	
+    	assertEquals((Double) pipeline.next().getProperties().get("Area"), 1.0, 0);    	
+    }   
+        
+    @Test
+    public void extract_osm_points() {
+    	int count = 0;
+    	for (GeoPipeFlow flow : startPipeline(osmLayer).extractOsmPoints().createWellKnownText()) {
+    		count++;
+    		
+    		assertEquals(1, flow.getProperties().size());
+    		String wkt = (String) flow.getProperties().get("WellKnownText");
+    		assertTrue(wkt.indexOf("POINT") == 0);
+    	}
+    	
+        assertEquals(24, count);
+    }
+        
+    @Test
+    public void break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them() {
+    	assertEquals(1, startPipeline(osmLayer)
+    			.extractOsmPoints().groupByDensityIslands(0.1).toConvexHull().toBuffer(10).count());
+    	System.out.println(startPipeline(osmLayer)
+    			.extractOsmPoints().groupByDensityIslands(0.1).toConvexHull().toBuffer(10).count());
+    }
+    
+    private static void load() throws Exception {
+        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphdb);
+        
+        loadTestOsmData("two-street.osm", 100);
+        osmLayer = spatialService.getLayer("two-street.osm");
+        
+        boxesLayer = (EditableLayerImpl) spatialService.getOrCreateEditableLayer("boxes");
+        boxesLayer.setExtraPropertyNames(new String[] { "name" });
+        WKTReader reader = new WKTReader(boxesLayer.getGeometryFactory());
+        boxesLayer.add(reader.read("POLYGON ((12 56, 12 57, 13 57, 13 56, 12 56))"),
+        		new String[] { "name" }, new Object[] { "A" });
+        boxesLayer.add(reader.read("POLYGON ((2 3, 2 5, 6 5, 6 3, 2 3))"),
+        		new String[] { "name" }, new Object[] { "B" });
+        
+        concaveLayer = (EditableLayerImpl) spatialService.getOrCreateEditableLayer("concave");
+        reader = new WKTReader(concaveLayer.getGeometryFactory());
+        concaveLayer.add(reader.read("POLYGON ((0 0, 2 5, 0 10, 10 10, 10 0, 0 0))"));
     }
 
-    public static void loadTestOsmData( String layerName, int commitInterval )
-            throws Exception
-    {
+    private static void loadTestOsmData(String layerName, int commitInterval) throws Exception {
         String osmPath = "./" + layerName;
-        System.out.println( "\n=== Loading layer " + layerName + " from "
-                            + osmPath + " ===" );
-        OSMImporter importer = new OSMImporter( layerName );
-        importer.importFile( graphdb, osmPath );
-        importer.reIndex( graphdb, commitInterval );
+        System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===" );
+        OSMImporter importer = new OSMImporter(layerName);
+        importer.importFile(graphdb, osmPath);
+        importer.reIndex(graphdb, commitInterval);
     }
 
     @BeforeClass
-    public static void setUpCLass() throws Exception
-    {
+    public static void setUpCLass() throws Exception {
         graphdb = new ImpermanentGraphDatabase("target/db");
         load();
     }
+    
     @AfterClass
-    public static void afterCLass() throws Exception
-    {
+    public static void afterCLass() throws Exception {
         graphdb.shutdown();
     }
-    @Override
-    public GraphDatabaseService graphdb()
-    {
-        return graphdb;
+       
+    private void print(GeoPipeline pipeline) {
+    	while (pipeline.hasNext()) {
+    		print(pipeline.next());
+    	}
     }
     
-    @After
-    public void doc() {
-        gen.get().document("target/docs","examples");
+    private GeoPipeFlow print(GeoPipeFlow pipeFlow) {
+    	System.out.println("GeoPipeFlow:");
+    	for (String key : pipeFlow.getProperties().keySet()) {
+    		System.out.println(key + "=" + pipeFlow.getProperties().get(key));
+    	}
+    	System.out.println("-");
+    	return pipeFlow;
     }
-    
-    @Before
-    public void setUp() {
-        gen.get().setGraph( graphdb );
-    }
-
 }

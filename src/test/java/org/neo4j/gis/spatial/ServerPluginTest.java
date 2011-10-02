@@ -25,7 +25,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.neo4j.collections.rtree.RTreeIndex;
-import org.neo4j.gis.spatial.query.SearchWithin;
+import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.server.plugin.SpatialPlugin;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -93,9 +93,11 @@ public class ServerPluginTest extends Neo4jTestCase {
         plugin.addSimplePointLayer( graphDb(), LAYER, LAT, LON );
 		assertNotNull(spatialService.getLayer(LAYER));
 		Layer layer2 = spatialService.getLayer(LAYER);
-		SearchWithin withinQuery = new SearchWithin(layer2.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 60.0, 61.0)));
-		layer2.getIndex().executeSearch(withinQuery);
-		List<SpatialDatabaseRecord> results = withinQuery.getExtendedResults();
+		
+		List<SpatialDatabaseRecord> results = GeoPipeline
+			.startWithinSearch(layer2, layer2.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 60.0, 61.0)))
+			.toSpatialDatabaseRecordList();
+		
 		assertEquals(0, results.size());
 
 		Transaction tx2 = graphDb().beginTx();
@@ -107,8 +109,11 @@ public class ServerPluginTest extends Neo4jTestCase {
 		tx2.finish();
 		plugin.addNodeToLayer(graphDb(), point, LAYER);
 		plugin.addGeometryWKTToLayer(graphDb(), "POINT(15.2 60.1)", LAYER);
-		layer2.getIndex().executeSearch(withinQuery);
-		results = withinQuery.getExtendedResults();
+		
+		results = GeoPipeline
+			.startWithinSearch(layer2, layer2.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 60.0, 61.0)))
+			.toSpatialDatabaseRecordList();		
+		
 		assertEquals(2, results.size());
 	}
 	

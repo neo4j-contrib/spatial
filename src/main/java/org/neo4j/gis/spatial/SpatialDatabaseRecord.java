@@ -25,11 +25,8 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Geometry;
 
-/**
- * @author Davide Savazzi
- * @author Craig Taverner
- */
-public class SpatialDatabaseRecord implements Constants, Comparable<SpatialDatabaseRecord> {
+
+public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 
 	public SpatialDatabaseRecord(Layer layer, Node geomNode) {
 		this(layer, geomNode, null);
@@ -62,6 +59,7 @@ public class SpatialDatabaseRecord implements Constants, Comparable<SpatialDatab
 		return SpatialDatabaseService.convertJtsClassToGeometryType(getGeometry().getClass());
 	}
 	
+	@Override
 	public Geometry getGeometry() {
 		if (geometry == null)
 			geometry = layer.getGeometryEncoder().decodeGeometry(geomNode);
@@ -82,7 +80,8 @@ public class SpatialDatabaseRecord implements Constants, Comparable<SpatialDatab
 	 * 
 	 * @param name
 	 * @return
-	 */
+	 */	
+	@Override
 	public boolean hasProperty(String name) {
 		PropertyMapper mapper = layer.getPropertyMappingManager().getPropertyMapper(name);
 		return mapper == null ? hasGeometryProperty(name) : hasGeometryProperty(mapper.from());
@@ -92,6 +91,7 @@ public class SpatialDatabaseRecord implements Constants, Comparable<SpatialDatab
 		return layer.getGeometryEncoder().hasAttribute(geomNode,name);
 	}
 
+	@Override
 	public String[] getPropertyNames() {
 		return layer.getExtraPropertyNames();
 	}
@@ -106,6 +106,7 @@ public class SpatialDatabaseRecord implements Constants, Comparable<SpatialDatab
 		return values;
 	}
 	
+	@Override
 	public Object getProperty(String name) {
 		PropertyMapper mapper = layer.getPropertyMappingManager().getPropertyMapper(name);
 		return mapper == null ? getGeometryProperty(name) : mapper.map(getGeometryProperty(mapper.from()));
@@ -164,28 +165,10 @@ public class SpatialDatabaseRecord implements Constants, Comparable<SpatialDatab
 	    return text.toString();
 	}
 
-	@SuppressWarnings("rawtypes")
-	public Comparable getUserData() {
-		return userData;
-	}
-
-	@SuppressWarnings("rawtypes")
-	public void setUserData(Comparable object) {
-		userData = object;
-	}
-
-	@SuppressWarnings("unchecked")
-	public int compareTo(SpatialDatabaseRecord other) {
-		getUserData().compareTo(other.getUserData());
-		return 0;
-	}
-
 	
 	// Attributes
 	
 	private Node geomNode;
 	private Geometry geometry;
 	private Layer layer;
-	@SuppressWarnings("rawtypes")
-	private Comparable userData;
 }

@@ -19,10 +19,8 @@
  */
 package org.neo4j.gis.spatial;
 
-import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
 import org.neo4j.collections.rtree.Listener;
-import org.neo4j.gis.spatial.pipes.GeoFilter;
-import org.neo4j.gis.spatial.pipes.GeoProcessing;
+import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
 import org.neo4j.graphdb.Node;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
@@ -36,11 +34,8 @@ import com.vividsolutions.jts.geom.GeometryFactory;
  * graph). A Layer can be associated with a dataset. In cases where the dataset contains only one
  * layer, the layer itself is the dataset. See the class DefaultLayer for the standard
  * implementation of that pattern.
- * 
- * @author Davide Savazzi
- * @author Craig Taverner
  */
-public interface Layer extends GeoProcessing {
+public interface Layer {
 
     /**
      * The layer is constructed from metadata in the layer node, which requires that the layer have
@@ -155,8 +150,6 @@ public interface Layer extends GeoProcessing {
 	 * @return Style, String, File or null
 	 */
 	Object getStyle();
-
-    GeoFilter filter();
 
     PropertyMappingManager getPropertyMappingManager();
 }

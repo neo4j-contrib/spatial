@@ -29,9 +29,7 @@ import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePropertyEncoder;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMLayer;
-import org.neo4j.gis.spatial.query.SearchContain;
-import org.neo4j.gis.spatial.query.SearchIntersect;
-import org.neo4j.gis.spatial.query.SearchWithin;
+import org.neo4j.gis.spatial.pipes.GeoPipeline;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateList;
@@ -66,18 +64,17 @@ public class LayersTest extends Neo4jTestCase
                 new Coordinate( 15.3, 56.2 ) ) );
         assertNotNull( record );
         // finds geometries that contain the given geometry
-        SearchContain searchQuery = new SearchContain(
-                layer.getGeometryFactory().toGeometry(
-                        new Envelope( 15.0, 16.0, 56.0, 57.0 ) ) );
-        layer.getIndex().executeSearch( searchQuery );
-        List<SpatialDatabaseRecord> results = searchQuery.getExtendedResults();
+        List<SpatialDatabaseRecord> results = GeoPipeline
+        	.startContainSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)))
+        	.toSpatialDatabaseRecordList();
+        
         // should not be contained
         assertEquals( 0, results.size() );
-        SearchWithin withinQuery = new SearchWithin(
-                layer.getGeometryFactory().toGeometry(
-                        new Envelope( 15.0, 16.0, 56.0, 57.0 ) ) );
-        layer.getIndex().executeSearch( withinQuery );
-        results = withinQuery.getExtendedResults();
+        
+        results = GeoPipeline
+        	.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)))
+        	.toSpatialDatabaseRecordList();
+        
         assertEquals( 1, results.size() );
     }
 
@@ -104,19 +101,19 @@ public class LayersTest extends Neo4jTestCase
         SpatialDatabaseRecord record = layer.add( layer.getGeometryFactory().createPoint(
                 new Coordinate( 15.3, 56.2 ) ) );
         assertNotNull( record );
+        
         // finds geometries that contain the given geometry
-        SearchContain searchQuery = new SearchContain(
-                layer.getGeometryFactory().toGeometry(
-                        new Envelope( 15.0, 16.0, 56.0, 57.0 ) ) );
-        layer.getIndex().executeSearch( searchQuery );
-        List<SpatialDatabaseRecord> results = searchQuery.getExtendedResults();
+        List<SpatialDatabaseRecord> results = GeoPipeline
+        	.startContainSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)))
+        	.toSpatialDatabaseRecordList();
+        	
         // should not be contained
         assertEquals( 0, results.size() );
-        SearchWithin withinQuery = new SearchWithin(
-                layer.getGeometryFactory().toGeometry(
-                        new Envelope( 15.0, 16.0, 56.0, 57.0 ) ) );
-        layer.getIndex().executeSearch( withinQuery );
-        results = withinQuery.getExtendedResults();
+                
+        results = GeoPipeline
+        	.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)))
+         	.toSpatialDatabaseRecordList();
+        
         assertEquals( 1, results.size() );
     }
 
@@ -204,26 +201,21 @@ public class LayersTest extends Neo4jTestCase
         layer.add( layer.getGeometryFactory().createLineString(
                 coordinates.toCoordinateArray() ) );
 
-        doSearch(
-                layer,
-                new SearchIntersect( layer.getGeometryFactory().toGeometry(
-                        new Envelope( 13.2, 14.1, 56.1, 56.2 ) ) ) );
-        doSearch(
-                layer,
-                new SearchContain( layer.getGeometryFactory().toGeometry(
-                        new Envelope( 12.0, 15.0, 55.0, 57.0 ) ) ) );
+        // TODO this test is not complete
+        
+        printResults(layer, GeoPipeline
+        		.startIntersectSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(13.2, 14.1, 56.1, 56.2)))
+        		.toSpatialDatabaseRecordList());
 
-        // spatialService.deleteLayer(layer.getName(), new NullListener());
-        // assertNull(spatialService.getLayer(layer.getName()));
+        printResults(layer, GeoPipeline
+        		.startContainSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(12.0, 15.0, 55.0, 57.0)))
+        		.toSpatialDatabaseRecordList());
 
         return layer;
     }
 
-    private void doSearch( Layer layer, LayerSearch searchQuery )
+    private void printResults(Layer layer, List<SpatialDatabaseRecord> results)
     {
-        System.out.println( "Testing search intersection:" );
-        layer.getIndex().executeSearch( searchQuery );
-        List<SpatialDatabaseRecord> results = searchQuery.getExtendedResults();
         System.out.println( "\tTesting layer '" + layer.getName() + "' (class "
                             + layer.getClass() + "), found results: "
                             + results.size() );

@@ -80,6 +80,9 @@ public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader,
 		return results;
 	}
 	
+	/**
+	 * @deprecated
+	 */
 	@Override
 	public void executeSearch(Search search) {
 		if (LayerSearch.class.isAssignableFrom(search.getClass())) {
@@ -89,14 +92,14 @@ public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader,
 		super.executeSearch(search);
 	}	
 	
+	@Override
+	public SearchRecords search(SearchFilter filter) {
+		return new SearchRecords(layer, searchIndex(filter));
+	}	
+	
 	
 	// Attributes
 	
 	private GraphDatabaseService database;
 	private Layer layer;
-
-	@Override
-	public SearchRecords search(SearchFilter filter) {
-		return new SearchRecords(layer, searchIndex(filter));
-	}
 }
