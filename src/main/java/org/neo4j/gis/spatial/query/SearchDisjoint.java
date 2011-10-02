@@ -21,7 +21,7 @@ package org.neo4j.gis.spatial.query;
 
 import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.gis.spatial.AbstractLayerSearch;
-import org.neo4j.gis.spatial.EnvelopeUtils;
+import org.neo4j.gis.spatial.Utilities;
 import org.neo4j.graphdb.Node;
 
 import com.vividsolutions.jts.geom.Geometry;
@@ -36,7 +36,7 @@ public class SearchDisjoint extends AbstractLayerSearch {
 
 	public SearchDisjoint(Geometry other) {
 		this.other = other;
-		this.otherEnvelope = EnvelopeUtils.fromJtsToNeo4j(other.getEnvelopeInternal());
+		this.otherEnvelope = Utilities.fromJtsToNeo4j(other.getEnvelopeInternal());
 	}	
 	
 	public boolean needsToVisit(Envelope indexNodeEnvelope) {

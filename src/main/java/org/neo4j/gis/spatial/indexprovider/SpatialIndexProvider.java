@@ -19,6 +19,8 @@
  */
 package org.neo4j.gis.spatial.indexprovider;
 
+import java.util.Map;
+
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.index.Index;
@@ -26,23 +28,17 @@ import org.neo4j.graphdb.index.IndexImplementation;
 import org.neo4j.graphdb.index.IndexProvider;
 import org.neo4j.graphdb.index.RelationshipIndex;
 import org.neo4j.helpers.Service;
-import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.KernelData;
 import org.neo4j.kernel.KernelExtension;
 
-import java.util.Map;
 
 @Service.Implementation( KernelExtension.class )
 public class SpatialIndexProvider extends IndexProvider
 {
 
-    private EmbeddedGraphDatabase db;
-
-
     public SpatialIndexProvider( )
     {
-        super( "spatial" );
-        
+        super( "spatial" );        
     }
 
     @Override
@@ -51,6 +47,7 @@ public class SpatialIndexProvider extends IndexProvider
     }
 
     private class SpatialIndexImplementation extends IndexImplementation {
+    	
         private GraphDatabaseService db;
 
         public SpatialIndexImplementation(GraphDatabaseService db) {

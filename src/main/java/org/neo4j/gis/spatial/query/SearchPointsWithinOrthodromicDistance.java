@@ -36,10 +36,9 @@ import com.vividsolutions.jts.geom.Geometry;
  */
 public class SearchPointsWithinOrthodromicDistance extends AbstractLayerSearch {
 
-	public SearchPointsWithinOrthodromicDistance(Coordinate reference, double maxDistanceInKm, boolean saveDistanceOnGeometry) {
+	public SearchPointsWithinOrthodromicDistance(Coordinate reference, double maxDistanceInKm) {
 		this.reference = reference;
 		this.maxDistanceInKm = maxDistanceInKm;
-		this.saveDistanceOnGeometry = saveDistanceOnGeometry;
 
 		double lat = reference.y;
 		double lon = reference.x;
@@ -54,7 +53,7 @@ public class SearchPointsWithinOrthodromicDistance extends AbstractLayerSearch {
 		this.bbox = new Envelope(minLon, maxLon, minLat, maxLat);
 	}
 
-	public SearchPointsWithinOrthodromicDistance(Coordinate reference, Envelope bbox, boolean saveDistanceOnGeometry) {
+	public SearchPointsWithinOrthodromicDistance(Coordinate reference, Envelope bbox) {
 		this.reference = reference;
 		this.bbox = bbox;
 		
@@ -62,8 +61,6 @@ public class SearchPointsWithinOrthodromicDistance extends AbstractLayerSearch {
 		
 		this.maxDistanceInKm = calculateDistance(new Coordinate(centre[0], centre[1]), new Coordinate(bbox.getMinX(),
 				(bbox.getMinY() + bbox.getMaxY()) / 2));
-		
-		this.saveDistanceOnGeometry = saveDistanceOnGeometry;
 	}
 
 	public boolean needsToVisit(Envelope indexNodeEnvelope) {
@@ -79,11 +76,7 @@ public class SearchPointsWithinOrthodromicDistance extends AbstractLayerSearch {
 		double distanceInKm = calculateDistance(reference, point);
 
 		if (distanceInKm < maxDistanceInKm) {
-			if (saveDistanceOnGeometry) {
-				add(geomNode, geometry, "distanceInKm", distanceInKm);
-			} else {
-				add(geomNode, geometry);
-			}
+			add(geomNode, geometry);
 		}
 	}
 
@@ -98,7 +91,6 @@ public class SearchPointsWithinOrthodromicDistance extends AbstractLayerSearch {
 	private Coordinate reference;
 	private double maxDistanceInKm;
 	private Envelope bbox;
-	private boolean saveDistanceOnGeometry;
 
 	private static final double earthRadiusInKm = 6371;
 }

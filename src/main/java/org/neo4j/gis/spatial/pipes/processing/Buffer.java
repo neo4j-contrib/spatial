@@ -19,22 +19,25 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
-import com.tinkerpop.pipes.AbstractPipe;
-import com.vividsolutions.jts.geom.Geometry;
+import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
+import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
-public class Buffer extends AbstractPipe<Geometry, Geometry>{
+public class Buffer extends AbstractGeoPipe {
 	
 	private double distance;
 	
 	public Buffer(double distance) {
 		this.distance = distance;
-	}
+	}	
+	
+	public Buffer(double distance, String resultPropertyName) {
+		super(resultPropertyName);
+		this.distance = distance;
+	}	
 
-	public Geometry processNextStart() {
-		while (true) {
-			final Geometry geom = (Geometry) this.starts.next();
-			return geom.buffer(this.distance);
-		}
-
+	@Override
+	protected GeoPipeFlow process(GeoPipeFlow flow) {
+		setGeometry(flow, flow.getGeometry().buffer(distance));
+		return flow;
 	}
 }

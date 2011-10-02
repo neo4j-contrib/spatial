@@ -24,11 +24,10 @@ import java.util.List;
 
 import org.neo4j.gis.spatial.DynamicLayer;
 import org.neo4j.gis.spatial.EditableLayer;
-import org.neo4j.gis.spatial.EnvelopeUtils;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
-import org.neo4j.gis.spatial.query.SearchWithin;
+import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -38,7 +37,7 @@ import org.neo4j.server.plugins.PluginTarget;
 import org.neo4j.server.plugins.ServerPlugin;
 import org.neo4j.server.plugins.Source;
 
-import org.neo4j.collections.rtree.Envelope;
+import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
@@ -169,28 +168,21 @@ public class SpatialPlugin extends ServerPlugin {
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
 
 		Layer layer = spatialService.getDynamicLayer(layerName);
-		if(layer == null ) {
+		if (layer == null ) {
 		    layer = spatialService.getLayer(layerName);
 		}
-		SearchWithin withinQuery = new SearchWithin(layer.getGeometryFactory().toGeometry(
-				EnvelopeUtils.fromNeo4jToJts(new Envelope(minx, maxx, miny, maxy))));
-		layer.getIndex().executeSearch(withinQuery);
-		List<SpatialDatabaseRecord> results = withinQuery.getExtendedResults();
-		return toIterable(results);
+
+		// TODO why a SearchWithin and not a SearchIntersectWindow?
+		
+		return GeoPipeline
+			.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(minx, maxx, miny, maxy)))
+			.toNodeList();
 	}
 
 	private Iterable<Node> toArray(Node node) {
 		ArrayList<Node> result = new ArrayList<Node>();
 		if (result != null)
 			result.add(node);
-		return result;
-	}
-
-	private Iterable<Node> toIterable(List<SpatialDatabaseRecord> records) {
-		ArrayList<Node> result = new ArrayList<Node>();
-		for (SpatialDatabaseRecord record : records) {
-			result.add(record.getGeomNode());
-		}
 		return result;
 	}
 }

@@ -252,12 +252,9 @@ public class TestSpatial extends Neo4jTestCase {
         for (LayerIndexReader index : new LayerIndexReader[] { rtreeIndex, fakeIndex }) {
             ArrayList<TestGeometry> foundData = new ArrayList<TestGeometry>();
 
-            SearchIntersect searchQuery = new SearchIntersect(layer, layer.getGeometryFactory().toGeometry(EnvelopeUtils.fromNeo4jToJts(bbox)));
+            SearchIntersect searchQuery = new SearchIntersect(layer, layer.getGeometryFactory().toGeometry(Utilities.fromNeo4jToJts(bbox)));
             SearchRecords results = index.search(searchQuery);
-            
-            LayerSearch oldSearch = new org.neo4j.gis.spatial.query.SearchIntersect(layer.getGeometryFactory().toGeometry(EnvelopeUtils.fromNeo4jToJts(bbox)));
-            index.executeSearch(oldSearch);
-            
+         
             int count = 0;
             int ri = 0;
             for (SpatialDatabaseRecord r : results) {
@@ -294,8 +291,6 @@ public class TestSpatial extends Neo4jTestCase {
                             + r.toString());
                 }
             }
-            
-            assertEquals(oldSearch.getResults().size(), count);
             
             dumpGeomStats();
             

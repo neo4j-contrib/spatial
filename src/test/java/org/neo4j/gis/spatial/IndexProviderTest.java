@@ -38,12 +38,10 @@
  */
 package org.neo4j.gis.spatial;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.assertEquals;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -168,26 +166,10 @@ public class IndexProviderTest
         tx.success();
         tx.finish();
         Node spatialRecord = hits.getSingle();
-        assertTrue( spatialRecord.getProperty( "distanceInKm" ).equals(
-                1.416623647558699 ) );
+        /* assertTrue( spatialRecord.getProperty( "distanceInKm" ).equals(
+                1.416623647558699 ) ); */
         Node node = db.getNodeById( (Long) spatialRecord.getProperty( "id" ) );
         assertTrue( node.getProperty( "name" ).equals( "batman" ) );
 
-    }
-
-    private static String createTempDir() throws IOException
-    {
-        File d = File.createTempFile( "neo4j-test", "dir" );
-        if ( !d.delete() )
-        {
-            throw new RuntimeException(
-                    "temp config directory pre-delete failed" );
-        }
-        if ( !d.mkdirs() )
-        {
-            throw new RuntimeException( "temp config directory not created" );
-        }
-        d.deleteOnExit();
-        return d.getAbsolutePath();
     }
 }
