@@ -22,9 +22,11 @@ package org.neo4j.gis.spatial.osm;
 import static java.util.Arrays.asList;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -1391,7 +1393,8 @@ public class OSMImporter implements Constants {
         long[] times = new long[]{0L,0L,0L,0L};
         javax.xml.stream.XMLInputFactory factory = javax.xml.stream.XMLInputFactory.newInstance();
         CountedFileReader reader = new CountedFileReader(dataset);
-        javax.xml.stream.XMLStreamReader parser = factory.createXMLStreamReader(reader);
+//        javax.xml.stream.XMLStreamReader parser = factory.createXMLStreamReader(reader);
+        javax.xml.stream.XMLStreamReader parser = factory.createXMLStreamReader(new InputStreamReader( new FileInputStream( dataset ), "UTF8" ));
         int countXMLTags = 0;
         beginProgressMonitor(100);
         setLogContext(dataset);
