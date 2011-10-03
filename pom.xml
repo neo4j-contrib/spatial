@@ -11,7 +11,7 @@
   </properties>
 
   <parent>
-    <artifactId>parent-pom</artifactId>
+    <artifactId>parent-central</artifactId>
     <groupId>org.neo4j.build</groupId>
     <version>25</version>
   </parent>
