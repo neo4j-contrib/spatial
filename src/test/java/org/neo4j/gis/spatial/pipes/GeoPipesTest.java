@@ -22,8 +22,10 @@ package org.neo4j.gis.spatial.pipes;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.nio.charset.Charset;
+import java.util.NoSuchElementException;
 
 import org.geotools.filter.text.cql2.CQLException;
 import org.junit.AfterClass;
@@ -40,6 +42,7 @@ import org.neo4j.test.ImpermanentGraphDatabase;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.util.AffineTransformation;
+import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
 
 
@@ -49,6 +52,7 @@ public class GeoPipesTest {
     private static Layer osmLayer;
     private static EditableLayerImpl boxesLayer;
     private static EditableLayerImpl concaveLayer;
+    private static EditableLayerImpl intersectionLayer;
     
     private OSMGeoPipeline startPipeline(Layer layer) {
     	return startPipeline(layer, new SearchAll());
@@ -273,6 +277,88 @@ public class GeoPipesTest {
     			.extractOsmPoints().groupByDensityIslands(0.1).toConvexHull().toBuffer(10).count());
     }
     
+    @Test
+    public void extract_points() {
+    	int count = 0;
+    	for (GeoPipeFlow flow : startPipeline(boxesLayer).extractPoints().createWellKnownText()) {
+    		count++;
+    		
+    		assertEquals(1, flow.getProperties().size());
+    		String wkt = (String) flow.getProperties().get("WellKnownText");
+    		assertTrue(wkt.indexOf("POINT") == 0);
+    	}
+    	
+        assertEquals(10, count);    	
+    }
+    
+    @Test
+    public void filter_by_null_property() {
+    	assertEquals(2, startPipeline(boxesLayer)
+    			.copyDatabaseRecordProperties()
+    			.propertyNullFilter("address")
+    			.count());
+    	assertEquals(0, startPipeline(boxesLayer)
+    			.copyDatabaseRecordProperties()
+    			.propertyNullFilter("name")
+    			.count());    	
+    }
+
+    @Test
+    public void filter_by_not_null_property() {
+    	assertEquals(0, startPipeline(boxesLayer)
+    			.copyDatabaseRecordProperties()
+    			.propertyNotNullFilter("address")
+    			.count());
+    	assertEquals(2, startPipeline(boxesLayer)
+    			.copyDatabaseRecordProperties()
+    			.propertyNotNullFilter("name")
+    			.count());    	
+    }
+
+    @Test
+    public void compute_distance() throws ParseException {
+        WKTReader reader = new WKTReader(boxesLayer.getGeometryFactory());
+        
+    	GeoPipeline pipeline = startPipeline(boxesLayer)
+    		.calculateDistance(reader.read("POINT (0 0)"))
+    		.sort("Distance");
+    		
+    	assertEquals(Math.round((Double) pipeline.next().getProperty("Distance")), 4);
+    	assertEquals(Math.round((Double) pipeline.next().getProperty("Distance")), 57);
+    }
+    
+    @Test
+    public void union_all() {
+    	GeoPipeline pipeline = startPipeline(intersectionLayer)
+		.unionAll()
+		.createWellKnownText();
+    	
+    	assertEquals("POLYGON ((0 0, 0 5, 2 5, 2 6, 4 6, 4 10, 10 10, 10 4, 6 4, 6 2, 5 2, 5 0, 0 0))", 
+    		pipeline.next().getProperty("WellKnownText"));
+    	
+    	try {
+    		pipeline.next();
+    		fail();
+    	} catch (NoSuchElementException e) {
+    	}
+    }
+
+    @Test
+    public void intersect_all() {
+    	GeoPipeline pipeline = startPipeline(intersectionLayer)
+			.intersectAll()
+			.createWellKnownText();
+    	
+    	assertEquals("POLYGON ((4 5, 5 5, 5 4, 4 4, 4 5))", 
+    		pipeline.next().getProperty("WellKnownText"));
+    	
+    	try {
+    		pipeline.next();
+    		fail();
+    	} catch (NoSuchElementException e) {
+    	}
+    }
+        
     private static void load() throws Exception {
         SpatialDatabaseService spatialService = new SpatialDatabaseService(graphdb);
         
@@ -290,6 +376,12 @@ public class GeoPipesTest {
         concaveLayer = (EditableLayerImpl) spatialService.getOrCreateEditableLayer("concave");
         reader = new WKTReader(concaveLayer.getGeometryFactory());
         concaveLayer.add(reader.read("POLYGON ((0 0, 2 5, 0 10, 10 10, 10 0, 0 0))"));
+        
+        intersectionLayer = (EditableLayerImpl) spatialService.getOrCreateEditableLayer("intersection");
+        reader = new WKTReader(intersectionLayer.getGeometryFactory());
+        intersectionLayer.add(reader.read("POLYGON ((0 0, 0 5, 5 5, 5 0, 0 0))"));
+        intersectionLayer.add(reader.read("POLYGON ((4 4, 4 10, 10 10, 10 4, 4 4))"));
+        intersectionLayer.add(reader.read("POLYGON ((2 2, 2 6, 6 6, 6 2, 2 2))"));        
     }
 
     private static void loadTestOsmData(String layerName, int commitInterval) throws Exception {
