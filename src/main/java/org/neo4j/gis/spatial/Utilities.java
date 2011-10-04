@@ -22,9 +22,16 @@ package org.neo4j.gis.spatial;
 import java.util.Iterator;
 
 import org.geotools.filter.AndImpl;
+import org.geotools.filter.GeometryFilter;
 import org.geotools.filter.LiteralExpressionImpl;
 import org.geotools.filter.spatial.BBOXImpl;
+import org.geotools.filter.spatial.ContainsImpl;
+import org.geotools.filter.spatial.CrossesImpl;
+import org.geotools.filter.spatial.EqualsImpl;
 import org.geotools.filter.spatial.IntersectsImpl;
+import org.geotools.filter.spatial.OverlapsImpl;
+import org.geotools.filter.spatial.TouchesImpl;
+import org.geotools.filter.spatial.WithinImpl;
 import org.neo4j.collections.rtree.Envelope;
 import org.opengis.filter.Filter;
 
@@ -62,8 +69,14 @@ public class Utilities {
 	private static org.neo4j.collections.rtree.Envelope extractEnvelopeFromFilter(Filter filter, boolean inspectAndFilters) {
 		if (filter instanceof BBOXImpl) {
 			return extractEnvelopeFromBBox((BBOXImpl) filter);
-		} else if (filter instanceof IntersectsImpl) {
-			return extractEnvelopeFromIntersectFilter((IntersectsImpl) filter);
+		} else if (filter instanceof IntersectsImpl ||
+				   filter instanceof ContainsImpl ||
+				   filter instanceof CrossesImpl ||
+				   filter instanceof EqualsImpl ||
+				   filter instanceof OverlapsImpl ||
+				   filter instanceof TouchesImpl ||
+				   filter instanceof WithinImpl) {			
+			return extractEnvelopeFromGeometryFilter((GeometryFilter) filter);
 		} else if (filter instanceof AndImpl && inspectAndFilters) {
 			AndImpl andFilter = (AndImpl) filter;
 			Iterator children = andFilter.getFilterIterator();
@@ -80,7 +93,7 @@ public class Utilities {
 	}
 		
 	@SuppressWarnings("deprecation")
-	private static Envelope extractEnvelopeFromIntersectFilter(IntersectsImpl intersectFilter) {
+	private static Envelope extractEnvelopeFromGeometryFilter(GeometryFilter intersectFilter) {
 		if (intersectFilter.getLeftGeometry() instanceof LiteralExpressionImpl) {
 			return extractEnvelopeFromLiteralExpression((LiteralExpressionImpl) intersectFilter.getLeftGeometry());
 		} else if (intersectFilter.getRightGeometry() instanceof LiteralExpressionImpl) {
