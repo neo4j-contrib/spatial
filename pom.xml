@@ -517,9 +517,9 @@ terms of the relevant Commercial Agreement.
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.7.1</version>
+        <!-- <version>2.7.1</version> -->
         <configuration>
-          <argLine>-server -Xms512m -Xmx2000m -XX:+UseConcMarkSweepGC</argLine>
+          <argLine>-server -Xms512m -Xmx2500m -XX:+UseConcMarkSweepGC</argLine>
         </configuration>
       </plugin>
     </plugins>
