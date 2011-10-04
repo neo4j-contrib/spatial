@@ -12,7 +12,7 @@
   </properties>
 
   <parent>
-    <artifactId>parent-central</artifactId>
+    <artifactId>parent-pom</artifactId>
     <groupId>org.neo4j.build</groupId>
     <version>25</version>
   </parent>
@@ -250,6 +250,12 @@ terms of the relevant Commercial Agreement.
       <artifactId>gt-xsd-kml</artifactId>
       <version>${geotools.version}</version>
       <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>picocontainer</groupId>
+          <artifactId>picocontainer</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>        
     <dependency>
       <groupId>org.geotools</groupId>
@@ -466,12 +472,14 @@ terms of the relevant Commercial Agreement.
         <dependency>
           <groupId>org.jruby</groupId>
           <artifactId>jruby-complete</artifactId>
-          <version>1.5.6</version>
+          <version>1.6.4</version>
           <scope>test</scope>
         </dependency>
         <dependency>
           <groupId>org.picocontainer</groupId>
           <artifactId>picocontainer</artifactId>
+          <version>2.13.6</version>
+          <scope>test</scope>
         </dependency>
       </dependencies>
       <repositories>
