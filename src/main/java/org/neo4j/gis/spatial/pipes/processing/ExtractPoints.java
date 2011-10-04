@@ -24,6 +24,9 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 import com.vividsolutions.jts.geom.GeometryFactory;
 
+/**
+ * Extracts every point from a geometry.
+ */
 public class ExtractPoints extends AbstractExtractGeoPipe {
 
 	private GeometryFactory geomFactory;

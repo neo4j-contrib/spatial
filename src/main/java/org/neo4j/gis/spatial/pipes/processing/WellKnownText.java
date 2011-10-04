@@ -24,12 +24,17 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 import com.vividsolutions.jts.io.WKTWriter;
 
-
+/**
+ * Encodes item geometry to Well Known Text (WKT).
+ */
 public class WellKnownText extends AbstractGeoPipe {
 
 	public WellKnownText() {
 	}		
 	
+	/**
+	 * @param resultPropertyName property name to use for geometry output
+	 */	
 	public WellKnownText(String resultPropertyName) {
 		super(resultPropertyName);
 	}	

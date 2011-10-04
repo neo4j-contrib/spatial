@@ -24,8 +24,11 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 
 /**
+ * Copies item Node properties to item properties.<br>
  * Since extracting properties from database Nodes can be expensive it
- * must be done explicitly using this Pipe.
+ * must be done explicitly using this pipe.<br>
+ * This pipe is useful if you want to use pipes that filter by property value or
+ * pipes that process property values.
  */
 public class CopyDatabaseRecordProperties extends AbstractGeoPipe {
 

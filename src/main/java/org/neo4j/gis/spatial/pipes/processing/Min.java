@@ -24,6 +24,10 @@ import java.util.Comparator;
 import org.neo4j.gis.spatial.pipes.AbstractGroupGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
+/**
+ * Computes the minimum value of the specified property and
+ * discard items with a value greater than the minimum.
+ */
 public class Min extends AbstractGroupGeoPipe {
 
 	private String property;

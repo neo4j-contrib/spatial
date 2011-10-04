@@ -23,11 +23,17 @@ import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 
+/**
+ * Counts geometry points for every item in the pipeline.
+ */
 public class NumPoints extends AbstractGeoPipe {
 
 	public NumPoints() {
 	}
 	
+	/**
+	 * @param resultPropertyName property name to use for geometry output
+	 */	
 	public NumPoints(String resultPropertyName) {
 		super(resultPropertyName);
 	}	

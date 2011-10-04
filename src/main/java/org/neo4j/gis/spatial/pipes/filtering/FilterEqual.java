@@ -25,6 +25,9 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import com.vividsolutions.jts.geom.Geometry;
 
 
+/**
+ * Find geometries equal to the given geometry.
+ */
 public class FilterEqual extends AbstractFilterGeoPipe {
 
 	private Geometry other;

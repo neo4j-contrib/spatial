@@ -24,6 +24,10 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 import com.vividsolutions.jts.geom.Geometry;
 
+/**
+ * Computes the symmetric difference of the given geometry with item geometry.
+ * Item geometry is replaced by pipe output unless an alternative property name is given in the constructor.
+ */
 public class SymDifference extends AbstractGeoPipe {
 	
 	private Geometry other;
@@ -32,6 +36,9 @@ public class SymDifference extends AbstractGeoPipe {
 		this.other = other;
 	}		
 	
+	/**
+	 * @param resultPropertyName property name to use for geometry output
+	 */	
 	public SymDifference(Geometry other, String resultPropertyName) {
 		super(resultPropertyName);
 		this.other = other;

@@ -28,6 +28,10 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 
 
+/**
+ * Calculates geometry length for each item in the pipeline.
+ * This pipe assume Layer contains geometries with Latitude / Longitude coordinates in degrees. 
+ */
 public class OrthodromicLength extends AbstractGeoPipe {
 
 	protected CoordinateReferenceSystem crs;
@@ -36,6 +40,9 @@ public class OrthodromicLength extends AbstractGeoPipe {
 		this.crs = crs;
 	}		
 	
+	/**
+	 * @param resultPropertyName property name to use for geometry output
+	 */	
 	public OrthodromicLength(CoordinateReferenceSystem crs, String resultPropertyName) {
 		super(resultPropertyName);
 		this.crs = crs;

@@ -24,14 +24,25 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 import com.vividsolutions.jts.geom.util.AffineTransformation;
 
+/**
+ * Applies an Affine Transformation to every geometry.
+ * Item geometry is replaced by pipe output unless an alternative property name is given in the constructor.
+ */
 public class ApplyAffineTransformation extends AbstractGeoPipe {
 	
 	private AffineTransformation t;
 	
+	/**
+	 * @param t affine transformation
+	 */
 	public ApplyAffineTransformation(AffineTransformation t) {
 		this.t = t;
 	}		
-	
+
+	/**
+	 * @param t affine transformation
+	 * @param resultPropertyName property name to use for geometry output
+	 */
 	public ApplyAffineTransformation(AffineTransformation t, String resultPropertyName) {
 		super(resultPropertyName);
 		this.t = t;

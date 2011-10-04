@@ -24,7 +24,10 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 import com.vividsolutions.jts.simplify.TopologyPreservingSimplifier;
 
-
+/**
+ * Simplifies geometry for every item in the pipeline, using an algorithm that preserves geometry topology.
+ * Item geometry is replaced by pipe output unless an alternative property name is given in the constructor.
+ */
 public class SimplifyPreservingTopology extends AbstractGeoPipe {
 	
 	private double distanceTolerance;
@@ -33,6 +36,9 @@ public class SimplifyPreservingTopology extends AbstractGeoPipe {
 		this.distanceTolerance = distanceTolerance;
 	}		
 	
+	/**
+	 * @param resultPropertyName property name to use for geometry output
+	 */	
 	public SimplifyPreservingTopology(double distanceTolerance, String resultPropertyName) {
 		super(resultPropertyName);
 		this.distanceTolerance = distanceTolerance;

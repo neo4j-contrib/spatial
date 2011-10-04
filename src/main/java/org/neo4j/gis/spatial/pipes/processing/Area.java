@@ -23,11 +23,17 @@ import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 
+/**
+ * Calculates geometry area for each item in the pipeline.
+ */
 public class Area extends AbstractGeoPipe {
 
 	public Area() {
 	}		
-	
+
+	/**
+	 * @param resultPropertyName property name to use for output
+	 */
 	public Area(String resultPropertyName) {
 		super(resultPropertyName);
 	}	

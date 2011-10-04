@@ -29,6 +29,9 @@ import java.util.NoSuchElementException;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
+/**
+ * Sort items in the pipeline comparing values of the given property.
+ */
 public class Sort extends AbstractGeoPipe {
 
 	private List<GeoPipeFlow> sortedFlow;

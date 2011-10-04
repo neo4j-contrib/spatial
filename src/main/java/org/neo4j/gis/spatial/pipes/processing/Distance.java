@@ -25,6 +25,9 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import com.vividsolutions.jts.geom.Geometry;
 
 
+/**
+ * Calculates distance between the given geometry and item geometry for each item in the pipeline.
+ */
 public class Distance extends AbstractGeoPipe {
 
 	private Geometry reference;
@@ -32,7 +35,10 @@ public class Distance extends AbstractGeoPipe {
 	public Distance(Geometry reference) {
 		this.reference = reference;
 	}		
-	
+
+	/**
+	 * @param resultPropertyName property name to use for geometry output
+	 */	
 	public Distance(Geometry reference, String resultPropertyName) {
 		super(resultPropertyName);
 		this.reference = reference;

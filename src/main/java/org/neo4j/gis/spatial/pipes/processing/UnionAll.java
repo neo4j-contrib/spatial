@@ -22,6 +22,11 @@ package org.neo4j.gis.spatial.pipes.processing;
 import org.neo4j.gis.spatial.pipes.AbstractGroupGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
+/**
+ * Unites geometries of every item contained in the pipeline.
+ * This pipe groups every item in the pipeline in a single item containing the geometry output
+ * of the union.
+ */
 public class UnionAll extends AbstractGroupGeoPipe {
 
 	@Override	

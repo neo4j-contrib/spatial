@@ -27,11 +27,17 @@ import org.geotools.xml.Encoder;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
+/**
+ * Encodes item geometry to Keyhole Markup Language (KML).
+ */
 public class KeyholeMarkupLanguage extends AbstractGeoPipe {
 
 	public KeyholeMarkupLanguage() {
 	}		
 	
+	/**
+	 * @param resultPropertyName property name to use for geometry output
+	 */	
 	public KeyholeMarkupLanguage(String resultPropertyName) {
 		super(resultPropertyName);
 	}	

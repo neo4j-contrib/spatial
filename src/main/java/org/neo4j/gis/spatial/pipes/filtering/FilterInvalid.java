@@ -23,7 +23,9 @@ package org.neo4j.gis.spatial.pipes.filtering;
 import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
-
+/**
+ * Find invalid geometries.
+ */
 public class FilterInvalid extends AbstractFilterGeoPipe {
 	
 	@Override

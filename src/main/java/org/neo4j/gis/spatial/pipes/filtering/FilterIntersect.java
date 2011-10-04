@@ -25,6 +25,9 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import com.vividsolutions.jts.geom.Geometry;
 
 
+/**
+ * Find geometries that intersects the given geometry.
+ */
 public class FilterIntersect extends AbstractFilterGeoPipe {
 
 	private Geometry geometry;

@@ -24,6 +24,10 @@ import java.util.Comparator;
 import org.neo4j.gis.spatial.pipes.AbstractGroupGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
+/**
+ * Computes the maximum value of the specified property and
+ * discard items with a value less than the maximum.
+ */
 public class Max extends AbstractGroupGeoPipe {
 
 	private String property;

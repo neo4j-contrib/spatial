@@ -22,12 +22,20 @@ package org.neo4j.gis.spatial.pipes.processing;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
-
+/**
+ * Computes an interior point of a geometry. 
+ * An interior point is guaranteed to lie in the interior of the Geometry, if it possible. 
+ * Otherwise, the point may lie on the boundary of the geometry.
+ * Item geometry is replaced by pipe output unless an alternative property name is given in the constructor.
+ */
 public class InteriorPoint extends AbstractGeoPipe {
 	
 	public InteriorPoint() {
 	}		
 	
+	/**
+	 * @param resultPropertyName property name to use for geometry output
+	 */	
 	public InteriorPoint(String resultPropertyName) {
 		super(resultPropertyName);
 	}	

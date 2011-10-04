@@ -24,11 +24,17 @@ import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 
+/**
+ * Encodes item geometry to JSON.
+ */
 public class GeoJSON extends AbstractGeoPipe {
 
 	public GeoJSON() {
 	}		
 	
+	/**
+	 * @param resultPropertyName property name to use for geometry output
+	 */	
 	public GeoJSON(String resultPropertyName) {
 		super(resultPropertyName);
 	}	

@@ -25,6 +25,10 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import com.vividsolutions.jts.simplify.DouglasPeuckerSimplifier;
 
 
+/**
+ * Simplifies geometry for every item in the pipeline, using Douglas Peucker algorithm.
+ * Item geometry is replaced by pipe output unless an alternative property name is given in the constructor.
+ */
 public class SimplifyWithDouglasPeucker extends AbstractGeoPipe {
 	
 	private double distanceTolerance;
@@ -33,6 +37,9 @@ public class SimplifyWithDouglasPeucker extends AbstractGeoPipe {
 		this.distanceTolerance = distanceTolerance;
 	}		
 	
+	/**
+	 * @param resultPropertyName property name to use for geometry output
+	 */	
 	public SimplifyWithDouglasPeucker(double distanceTolerance, String resultPropertyName) {
 		super(resultPropertyName);
 		this.distanceTolerance = distanceTolerance;

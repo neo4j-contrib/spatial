@@ -23,11 +23,17 @@ import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 
+/**
+ * Calculates geometry type for each item in the pipeline.
+ */
 public class GeometryType extends AbstractGeoPipe {
 
 	public GeometryType() {
 	}		
 	
+	/**
+	 * @param resultPropertyName property name to use for geometry output
+	 */	
 	public GeometryType(String resultPropertyName) {
 		super(resultPropertyName);
 	}	

@@ -24,6 +24,9 @@ import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 
+/**
+ * Find valid geometries.
+ */
 public class FilterValid extends AbstractFilterGeoPipe {
 	
 	@Override

@@ -22,11 +22,18 @@ package org.neo4j.gis.spatial.pipes.processing;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
+/**
+ * Computes the minimum bounding box of item geometry.
+ * Item geometry is replaced by pipe output unless an alternative property name is given in the constructor.
+ */
 public class Envelope extends AbstractGeoPipe {
 	
 	public Envelope() {
-	}		
+	}	
 	
+	/**
+	 * @param resultPropertyName property name to use for geometry output
+	 */	
 	public Envelope(String resultPropertyName) {
 		super(resultPropertyName);
 	}	

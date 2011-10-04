@@ -24,6 +24,10 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 import com.vividsolutions.jts.geom.Geometry;
 
+/**
+ * Unites item geometry with itself or with the given geometry.
+ * Item geometry is replaced by pipe output unless an alternative property name is given in the constructor.
+ */
 public class Union extends AbstractGeoPipe {
 	
 	private Geometry other = null;
@@ -31,6 +35,9 @@ public class Union extends AbstractGeoPipe {
 	public Union() {
 	}		
 	
+	/**
+	 * @param resultPropertyName property name to use for geometry output
+	 */	
 	public Union(String resultPropertyName) {
 		super(resultPropertyName);
 	}	

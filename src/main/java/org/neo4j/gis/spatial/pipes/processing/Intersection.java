@@ -24,6 +24,10 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 import com.vividsolutions.jts.geom.Geometry;
 
+/**
+ * Computes a geometry representing the intersection between item geometry and the given geometry.
+ * Item geometry is replaced by pipe output unless an alternative property name is given in the constructor.
+ */
 public class Intersection extends AbstractGeoPipe {
 	
 	private Geometry other;
@@ -31,7 +35,10 @@ public class Intersection extends AbstractGeoPipe {
 	public Intersection(Geometry other) {
 		this.other = other;
 	}		
-	
+
+	/**
+	 * @param resultPropertyName property name to use for geometry output
+	 */
 	public Intersection(Geometry other, String resultPropertyName) {
 		super(resultPropertyName);
 		this.other = other;

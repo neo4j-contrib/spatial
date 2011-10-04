@@ -24,13 +24,20 @@ import java.util.NoSuchElementException;
 import com.tinkerpop.pipes.AbstractPipe;
 import com.vividsolutions.jts.geom.Geometry;
 
+/**
+ * Abstract pipe for GeoPipelines. 
+ * Filters, processes, extracts or groups GeoPipeFlow objects.
+ */
 public abstract class AbstractGeoPipe extends AbstractPipe<GeoPipeFlow, GeoPipeFlow> {
 
 	protected String resultPropertyName = null;
-	
+
 	protected AbstractGeoPipe() {
 	}
-	
+
+	/**
+	 * @param resultPropertyName name to use for the property containing Pipe output
+	 */
 	protected AbstractGeoPipe(String resultPropertyName) {
 		this.resultPropertyName = resultPropertyName;
 	}
@@ -46,12 +53,18 @@ public abstract class AbstractGeoPipe extends AbstractPipe<GeoPipeFlow, GeoPipeF
 	}
 	
 	/**
-	 * Subclasses should override this method
+	 * Subclasses should override this method.
 	 */
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
 		return flow;
 	}
 
+	/**
+	 * Puts pipe geometry output in the given GeoPipeFlow.
+	 * 
+	 * @param flow
+	 * @param geometry
+	 */
 	protected void setGeometry(GeoPipeFlow flow, Geometry geometry) {
 		if (resultPropertyName != null) {
 			flow.getProperties().put(resultPropertyName, geometry);
@@ -60,6 +73,9 @@ public abstract class AbstractGeoPipe extends AbstractPipe<GeoPipeFlow, GeoPipeF
 		}
 	}
 	
+	/**
+	 * Puts pipe output in the given GeoPipeFlow.
+	 */
 	protected void setProperty(GeoPipeFlow flow, Object result) {
 		if (resultPropertyName != null) {
 			flow.getProperties().put(resultPropertyName, result);
@@ -67,7 +83,10 @@ public abstract class AbstractGeoPipe extends AbstractPipe<GeoPipeFlow, GeoPipeF
 			flow.getProperties().put(generatePropertyName(), result);
 		}		
 	}
-	
+
+	/**
+	 * Creates a default property name, used if no name has been specified.
+	 */
 	protected String generatePropertyName() {
 		String className = getClass().getName();
 		if (className.indexOf(".") != -1) {

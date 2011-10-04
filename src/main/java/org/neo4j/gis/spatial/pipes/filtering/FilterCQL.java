@@ -28,6 +28,9 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.opengis.feature.simple.SimpleFeature;
 
 
+/**
+ * Filter geometries using a CQL query.
+ */
 public class FilterCQL extends AbstractFilterGeoPipe {
 
 	private Neo4jFeatureBuilder featureBuilder;

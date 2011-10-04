@@ -23,11 +23,18 @@ import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 
+/**
+ * Calculates boundary of every geometry in the pipeline.
+ * Item geometry is replaced by pipe output unless an alternative property name is given in the constructor.
+ */
 public class Boundary extends AbstractGeoPipe {
 
 	public Boundary() {
 	}		
 	
+	/**
+	 * @param resultPropertyName property name to use for geometry output
+	 */	
 	public Boundary(String resultPropertyName) {
 		super(resultPropertyName);
 	}	
@@ -37,5 +44,4 @@ public class Boundary extends AbstractGeoPipe {
 		setGeometry(flow, flow.getGeometry().getBoundary());
 		return flow;
 	}	
-	
 }

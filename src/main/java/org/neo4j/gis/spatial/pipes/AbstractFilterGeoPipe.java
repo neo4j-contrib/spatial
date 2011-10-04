@@ -20,18 +20,14 @@
 package org.neo4j.gis.spatial.pipes;
 
 
+/**
+ * Abstract pipe for GeoPipelines that filter items.
+ */
 public abstract class AbstractFilterGeoPipe extends AbstractGeoPipe {
 
 	protected AbstractFilterGeoPipe() {
 	}
-	
-	protected AbstractFilterGeoPipe(String resultPropertyName) {
-		super(resultPropertyName);
-	}
 		
-	/**
-	 * Subclasses should override this method
-	 */
 	@Override
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
 		if (validate(flow)) {

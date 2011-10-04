@@ -24,6 +24,10 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 import com.vividsolutions.jts.geom.Geometry;
 
+/**
+ * Computes a geometry representing the points making up item geometry that do not make up the given geometry.
+ * Item geometry is replaced by pipe output unless an alternative property name is given in the constructor.
+ */
 public class Difference extends AbstractGeoPipe {
 	
 	private Geometry other;
@@ -32,6 +36,10 @@ public class Difference extends AbstractGeoPipe {
 		this.other = other;
 	}		
 	
+	/**
+	 * @param other geometry
+	 * @param resultPropertyName property name to use for geometry output
+	 */	
 	public Difference(Geometry other, String resultPropertyName) {
 		super(resultPropertyName);
 		this.other = other;

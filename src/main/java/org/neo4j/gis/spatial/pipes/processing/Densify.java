@@ -24,15 +24,26 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 import com.vividsolutions.jts.densify.Densifier;
 
-
+/**
+ * Densify geometries by inserting extra vertices along the line segments in the geometry. 
+ * The densified geometry contains no line segment which is longer than the given distance tolerance.
+ * Item geometry is replaced by pipe output unless an alternative property name is given in the constructor.
+ */
 public class Densify extends AbstractGeoPipe {
 
 	private double distanceTolerance;
-	
+
+	/**
+	 * @param distanceTolerance
+	 */
 	public Densify(double distanceTolerance) {
 		this.distanceTolerance = distanceTolerance;
 	}		
 	
+	/**
+	 * @param distanceTolerance
+	 * @param resultPropertyName property name to use for geometry output
+	 */
 	public Densify(double distanceTolerance, String resultPropertyName) {
 		super(resultPropertyName);
 		this.distanceTolerance = distanceTolerance;

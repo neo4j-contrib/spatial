@@ -24,11 +24,18 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 import com.vividsolutions.jts.io.gml2.GMLWriter;
 
+
+/**
+ * Encodes item geometry to GML.
+ */
 public class GML extends AbstractGeoPipe {
 
 	public GML() {
 	}		
 	
+	/**
+	 * @param resultPropertyName property name to use for geometry output
+	 */	
 	public GML(String resultPropertyName) {
 		super(resultPropertyName);
 	}	

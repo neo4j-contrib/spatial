@@ -22,7 +22,9 @@ package org.neo4j.gis.spatial.pipes.filtering;
 import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
-
+/**
+ * Find items which have a null value for the given property.
+ */
 public class FilterPropertyNull extends AbstractFilterGeoPipe {
 
 	private String property;

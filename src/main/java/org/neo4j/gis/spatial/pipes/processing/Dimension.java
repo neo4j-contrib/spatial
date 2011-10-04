@@ -23,11 +23,17 @@ import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 
+/**
+ * Calculates geometry dimension for each item in the pipeline.
+ */
 public class Dimension extends AbstractGeoPipe {
 
 	public Dimension() {
 	}		
 	
+	/**
+	 * @param resultPropertyName property name to use for geometry output
+	 */	
 	public Dimension(String resultPropertyName) {
 		super(resultPropertyName);
 	}	

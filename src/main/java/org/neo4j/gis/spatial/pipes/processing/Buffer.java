@@ -22,14 +22,25 @@ package org.neo4j.gis.spatial.pipes.processing;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
+/**
+ * Applies a buffer to geometries.
+ * Item geometry is replaced by pipe output unless an alternative property name is given in the constructor.
+ */
 public class Buffer extends AbstractGeoPipe {
 	
 	private double distance;
-	
+
+	/**
+	 * @param distance buffer size
+	 */
 	public Buffer(double distance) {
 		this.distance = distance;
 	}	
 	
+	/**
+	 * @param distance buffer size
+	 * @param resultPropertyName property name to use for geometry output
+	 */	
 	public Buffer(double distance, String resultPropertyName) {
 		super(resultPropertyName);
 		this.distance = distance;

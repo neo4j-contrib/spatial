@@ -23,6 +23,10 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
+
+/**
+ * Abstract pipe for GeoPipelines that extract or create new items from every given item.
+ */
 public class AbstractExtractGeoPipe extends AbstractGeoPipe {
 
 	protected List<GeoPipeFlow> extracts = new ArrayList<GeoPipeFlow>();

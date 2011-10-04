@@ -27,7 +27,7 @@ import com.vividsolutions.jts.geom.Geometry;
 
 
 /**
- * Find geometries that are within the given geometry
+ * Find geometries that are within the given geometry.
  */
 public class FilterWithin extends AbstractFilterGeoPipe {
 

@@ -23,11 +23,18 @@ import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 
+/**
+ * Calculates geometry centroid.
+ * Item geometry is replaced by pipe output unless an alternative property name is given in the constructor.
+ */
 public class Centroid extends AbstractGeoPipe {
 	
 	public Centroid() {
 	}		
 	
+	/**
+	 * @param resultPropertyName property name to use for geometry output
+	 */	
 	public Centroid(String resultPropertyName) {
 		super(resultPropertyName);
 	}	

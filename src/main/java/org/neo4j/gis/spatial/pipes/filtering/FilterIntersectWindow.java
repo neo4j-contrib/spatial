@@ -27,6 +27,9 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 
 
+/**
+ * Find geometries that intersects the given rectangle.
+ */
 public class FilterIntersectWindow extends AbstractFilterGeoPipe {
 
 	private Envelope envelope;

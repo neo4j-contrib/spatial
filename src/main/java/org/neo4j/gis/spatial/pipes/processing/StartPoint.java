@@ -24,7 +24,10 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 import com.vividsolutions.jts.geom.GeometryFactory;
 
-
+/**
+ * Find the starting point of item geometry.
+ * Item geometry is replaced by pipe output unless an alternative property name is given in the constructor.
+ */
 public class StartPoint extends AbstractGeoPipe {
 	
 	private GeometryFactory geomFactory;
@@ -33,6 +36,9 @@ public class StartPoint extends AbstractGeoPipe {
 		this.geomFactory = geomFactory;
 	}		
 	
+	/**
+	 * @param resultPropertyName property name to use for geometry output
+	 */	
 	public StartPoint(GeometryFactory geomFactory, String resultPropertyName) {
 		super(resultPropertyName);
 		this.geomFactory = geomFactory;

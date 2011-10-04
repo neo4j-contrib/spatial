@@ -26,6 +26,9 @@ import com.tinkerpop.pipes.filter.FilterPipe;
 import com.tinkerpop.pipes.util.PipeHelper;
 
 
+/**
+ * Filter by property value.
+ */
 public class FilterProperty extends AbstractFilterGeoPipe {
 
 	private String key;

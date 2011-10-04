@@ -130,79 +130,195 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     	});
 	}
 	
+	/**
+	 * Start a new pipeline with a list of SpatialDatabaseRecords
+	 * 
+	 * @param layer
+	 * @param records
+	 * @return geoPipeline
+	 */
 	public static GeoPipeline start(Layer layer, List<SpatialDatabaseRecord> records) {
 		GeoPipeline pipeline = new GeoPipeline(layer);
     	return (GeoPipeline) pipeline.add(createStartPipe(records));		
 	}
-	
+
+	/**
+	 * Start a new pipeline that will iterate through a SearchRecords 
+	 * 
+	 * @param layer
+	 * @param records
+	 * @return geoPipeline
+	 */
     public static GeoPipeline start(Layer layer, SearchRecords records) {
     	GeoPipeline pipeline = new GeoPipeline(layer);
     	return (GeoPipeline) pipeline.add(createStartPipe(records));
     }
-    
+
+    /**
+     * Start a new pipeline that will iterate through a SearchFilter 
+     * 
+     * @param layer
+     * @param searchFilter
+     * @return geoPipeline
+     */
     public static GeoPipeline start(Layer layer, SearchFilter searchFilter) {
     	return start(layer, layer.getIndex().search(searchFilter));
     }
 
+    /**
+     * Extracts Layer items that intersect the given search window and start a pipeline.
+     * 
+     * @param layer
+     * @param searchWindow
+     * @return geoPipeline
+     */
     public static GeoPipeline startIntersectWindowSearch(Layer layer, Envelope searchWindow) {
     	return start(layer, layer.getIndex().search(new SearchIntersectWindow(layer, searchWindow)));
     }
     
+    /**
+     * Extracts Layer items that contain the given geometry and start a pipeline.
+     * 
+     * @param layer
+     * @param geometry
+     * @return geoPipeline
+     */
     public static GeoPipeline startContainSearch(Layer layer, Geometry geometry) {
     	return startIntersectWindowSearch(layer, geometry.getEnvelopeInternal())
     		.containFilter(geometry);
     }
 
+    /**
+     * Extracts Layer items that cover the given geometry and start a pipeline.
+     * 
+     * @param layer
+     * @param geometry
+     * @return geoPipeline
+     */
     public static GeoPipeline startCoverSearch(Layer layer, Geometry geometry) {
     	return startIntersectWindowSearch(layer, geometry.getEnvelopeInternal())
     		.coverFilter(geometry);
     }    
 
+    /**
+     * Extracts Layer items that are covered by the given geometry and start a pipeline.
+     * 
+     * @param layer
+     * @param geometry
+     * @return geoPipeline
+     */
     public static GeoPipeline startCoveredBySearch(Layer layer, Geometry geometry) {
     	return startIntersectWindowSearch(layer, geometry.getEnvelopeInternal())
     		.coveredByFilter(geometry);
     }    
 
+    /**
+     * Extracts Layer items that cross by the given geometry and start a pipeline.
+     * 
+     * @param layer
+     * @param geometry
+     * @return geoPipeline
+     */
     public static GeoPipeline startCrossSearch(Layer layer, Geometry geometry) {
     	return startIntersectWindowSearch(layer, geometry.getEnvelopeInternal())
     		.crossFilter(geometry);
     }    
 
+    /**
+     * Extracts Layer items that are equal to the given geometry and start a pipeline.
+     * 
+     * @param layer
+     * @param geometry
+     * @return geoPipeline
+     */
     public static GeoPipeline startEqualSearch(Layer layer, Geometry geometry) {
     	return startIntersectWindowSearch(layer, geometry.getEnvelopeInternal())
     		.equalFilter(geometry);
     }    
 
+    /**
+     * Extracts Layer items that intersect the given geometry and start a pipeline.
+     * 
+     * @param layer
+     * @param geometry
+     * @return geoPipeline
+     */
     public static GeoPipeline startIntersectSearch(Layer layer, Geometry geometry) {
     	return startIntersectWindowSearch(layer, geometry.getEnvelopeInternal())
     		.intersectionFilter(geometry);
     }    
 
+    /**
+     * Extracts Layer items that overlap the given geometry and start a pipeline.
+     * 
+     * @param layer
+     * @param geometry
+     * @return geoPipeline
+     */
     public static GeoPipeline startOverlapSearch(Layer layer, Geometry geometry) {
     	return startIntersectWindowSearch(layer, geometry.getEnvelopeInternal())
     		.overlapFilter(geometry);
     }    
 
+    /**
+     * Extracts Layer items that touch the given geometry and start a pipeline.
+     * 
+     * @param layer
+     * @param geometry
+     * @return geoPipeline
+     */
     public static GeoPipeline startTouchSearch(Layer layer, Geometry geometry) {
     	return startIntersectWindowSearch(layer, geometry.getEnvelopeInternal())
     		.touchFilter(geometry);
     }    
-    
+
+    /**
+     * Extracts Layer items that are within the given geometry and start a pipeline.
+     * 
+     * @param layer
+     * @param geometry
+     * @return geoPipeline
+     */
     public static GeoPipeline startWithinSearch(Layer layer, Geometry geometry) {
     	return startIntersectWindowSearch(layer, geometry.getEnvelopeInternal())
     		.withinFilter(geometry);
     }
     
-	public static GeoPipeline startNearestNeighborLatLonSearch(Layer layer, Coordinate point, int limit) {
-		Envelope searchWindow = SpatialTopologyUtils.createEnvelopeForGeometryDensityEstimate(layer, point, limit);
+    /**
+	 * Calculates the distance between Layer items nearest to the given point and the given point.
+	 * The search window created is based on Layer items density and it could lead to no results.
+	 * 
+     * @param layer with latitude, longitude coordinates
+     * @param point
+     * @param numberOfItemsToFind tries to find this number of items for comparison
+     * @return geoPipeline
+     */
+	public static GeoPipeline startNearestNeighborLatLonSearch(Layer layer, Coordinate point, int numberOfItemsToFind) {
+		Envelope searchWindow = SpatialTopologyUtils.createEnvelopeForGeometryDensityEstimate(layer, point, numberOfItemsToFind);
 		return startNearestNeighborLatLonSearch(layer, point, searchWindow);
 	}
     
+	/**
+	 * Calculates the distance between Layer items inside the given search window and the given point.
+	 * 
+     * @param layer with latitude, longitude coordinates
+	 * @param point
+	 * @param searchWindow
+	 * @return geoPipeline
+	 */
 	public static GeoPipeline startNearestNeighborLatLonSearch(Layer layer, Coordinate point, Envelope searchWindow) {
 		return start(layer, new SearchIntersectWindow(layer, searchWindow))
 			.calculateOrthodromicDistance(point);
 	}
 
+	/**
+	 * Extracts Layer items with a distance from the given point that is less than or equal the given distance.
+	 * 
+     * @param layer with latitude, longitude coordinates
+	 * @param point
+	 * @param maxDistanceInKm
+	 * @return geoPipeline
+	 */
 	public static GeoPipeline startNearestNeighborLatLonSearch(Layer layer, Coordinate point, double maxDistanceInKm) {
 		Envelope extent = OrthodromicDistance.suggestSearchWindow(point, maxDistanceInKm);
 		return start(layer, new SearchIntersectWindow(layer, extent))
@@ -210,16 +326,41 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
 			.propertyFilter("OrthodromicDistance", maxDistanceInKm, FilterPipe.Filter.LESS_THAN_EQUAL);
 	}
 
-	public static GeoPipeline startNearestNeighborSearch(Layer layer, Coordinate point, int limit) {	
-		Envelope searchWindow = SpatialTopologyUtils.createEnvelopeForGeometryDensityEstimate(layer, point, limit);
+	/**
+	 * Calculates the distance between Layer items nearest to the given point and the given point.
+	 * The search window created is based on Layer items density and it could lead to no results.
+	 * 
+	 * @param layer
+	 * @param point
+     * @param numberOfItemsToFind tries to find this number of items for comparison
+	 * @return geoPipeline
+	 */
+	public static GeoPipeline startNearestNeighborSearch(Layer layer, Coordinate point, int numberOfItemsToFind) {	
+		Envelope searchWindow = SpatialTopologyUtils.createEnvelopeForGeometryDensityEstimate(layer, point, numberOfItemsToFind);
 		return startNearestNeighborSearch(layer, point, searchWindow);
 	}
 	
+	/**
+	 * Calculates the distance between Layer items inside the given search window and the given point.
+	 * 
+	 * @param layer
+	 * @param point
+	 * @param searchWindow
+	 * @return geoPipeline
+	 */
 	public static GeoPipeline startNearestNeighborSearch(Layer layer, Coordinate point, Envelope searchWindow) {
 		return start(layer, new SearchIntersectWindow(layer, searchWindow))
 			.calculateDistance(layer.getGeometryFactory().createPoint(point));
 	}
 		
+	/**
+	 * Extracts Layer items with a distance from the given point that is less than or equal the given distance.
+	 * 
+	 * @param layer
+	 * @param point
+	 * @param maxDistance
+	 * @return geoPipeline
+	 */
 	public static GeoPipeline startNearestNeighborSearch(Layer layer, Coordinate point, double maxDistance) {
 		Envelope extent = new Envelope(point.x - maxDistance, point.x + maxDistance, 
 				point.y - maxDistance, point.y + maxDistance);
@@ -229,255 +370,447 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
 			.propertyFilter("Distance", maxDistance, FilterPipe.Filter.LESS_THAN_EQUAL);	
 	}
 	
+	/**
+	 * Adds a pipe at the end of this pipeline
+	 * 
+	 * @param geoPipe
+	 * @return geoPipeline
+	 */
     public GeoPipeline addPipe(AbstractGeoPipe geoPipe) {
     	return (GeoPipeline) add(geoPipe);
     }
 
+    /**
+	 * @see CopyDatabaseRecordProperties
+     */
     public GeoPipeline copyDatabaseRecordProperties() {
     	return addPipe(new CopyDatabaseRecordProperties());
     }
     
+    /**
+     * @see Min
+     */
     public GeoPipeline getMin(String property) {
     	return addPipe(new Min(property));
     }
 
+    /**
+     * @see Max
+     */
     public GeoPipeline getMax(String property) {
     	return addPipe(new Max(property));
     }
     
+    /**
+     * @see Sort
+     */
     public GeoPipeline sort(String property) {
     	return addPipe(new Sort(property, true));
     }
     
+    /**
+     * @see Sort
+     */
     public GeoPipeline sort(String property, boolean asc) {
     	return addPipe(new Sort(property, asc));
     }
     
+    /**
+     * @see Sort
+     */
     public GeoPipeline sort(String property, Comparator<Object> comparator) {
     	return addPipe(new Sort(property, comparator));
     }    
     
+    /**
+     * @see Boundary
+     */
     public GeoPipeline toBoundary() {
     	return addPipe(new Boundary());
     }
     
+    /**
+     * @see Buffer
+     */
     public GeoPipeline toBuffer(double distance) {
     	return addPipe(new Buffer(distance));
     }
     
+    /**
+     * @see Centroid
+     */
     public GeoPipeline toCentroid() {
     	return addPipe(new Centroid());
     }
 
+    /**
+     * @see ConvexHull
+     */
     public GeoPipeline toConvexHull() {
     	return addPipe(new ConvexHull());
     }
     
+    /**
+     * @see org.neo4j.gis.spatial.pipes.processing.Envelope
+     */
     public GeoPipeline toEnvelope() {
     	return addPipe(new org.neo4j.gis.spatial.pipes.processing.Envelope());
     }
-        
+       
+    /**
+     * @see InteriorPoint
+     */
     public GeoPipeline toInteriorPoint() {
     	return addPipe(new InteriorPoint());
     }
     
+    /**
+     * @see StartPoint
+     */
     public GeoPipeline toStartPoint() {
     	return addPipe(new StartPoint(layer.getGeometryFactory()));
     }
     
+    /**
+     * @see EndPoint
+     */
     public GeoPipeline toEndPoint() {
     	return addPipe(new EndPoint(layer.getGeometryFactory()));
     }
     
+    /**
+     * @see NumPoints
+     */
     public GeoPipeline countPoints() {
     	return addPipe(new NumPoints());
     }
     
+    /**
+     * @see Union
+     */
     public GeoPipeline union() {
     	return addPipe(new Union());
     }
 
+    /**
+     * @see Union
+     */
     public GeoPipeline union(Geometry geometry) {
     	return addPipe(new Union(geometry));
     }
     
+    /**
+     * @see UnionAll
+     */
     public GeoPipeline unionAll() {
     	return addPipe(new UnionAll());
     }
     
+    /**
+     * @see Intersection
+     */
     public GeoPipeline intersect(Geometry geometry) {
     	return addPipe(new Intersection(geometry));
     }
     
+    /**
+     * @see IntersectAll
+     */
     public GeoPipeline intersectAll() {
     	return addPipe(new IntersectAll());
     }
     
+    /**
+     * @see Difference
+     */
     public GeoPipeline difference(Geometry geometry) {
     	return addPipe(new Difference(geometry));
     }
     
+    /**
+     * @see SymDifference
+     */
     public GeoPipeline symDifference(Geometry geometry) {
     	return addPipe(new SymDifference(geometry));
     }
     
+    /**
+     * @see SimplifyWithDouglasPeucker
+     */
     public GeoPipeline simplifyWithDouglasPeucker(double distanceTolerance) {
     	return addPipe(new SimplifyWithDouglasPeucker(distanceTolerance));
     }
     
+    /**
+     * @see SimplifyPreservingTopology
+     */
     public GeoPipeline simplifyPreservingTopology(double distanceTolerance) {
     	return addPipe(new SimplifyPreservingTopology(distanceTolerance));
     }
     
+    /**
+     * @see ApplyAffineTransformation
+     */
     public GeoPipeline applyAffineTransform(AffineTransformation t) {
     	return addPipe(new ApplyAffineTransformation(t));
     }
     
+    /**
+     * @see Densify
+     */
     public GeoPipeline densify(double distanceTolerance) {
     	return addPipe(new Densify(distanceTolerance));
     }
     
+    /**
+     * @see Area
+     */
     public GeoPipeline calculateArea() {
     	return addPipe(new Area());
     }
     
+    /**
+     * @see Length
+     */
     public GeoPipeline calculateLength() {
     	return addPipe(new Length());
     }
     
+    /**
+     * @see OrthodromicLength
+     */
     public GeoPipeline calculateOrthodromicLength() {
     	return addPipe(new OrthodromicLength(layer.getCoordinateReferenceSystem()));
     }    
     
+    /**
+     * @see Distance
+     */
     public GeoPipeline calculateDistance(Geometry reference) {
     	return addPipe(new Distance(reference));
     }
 
+    /**
+     * @see OrthodromicDistance
+     */
     public GeoPipeline calculateOrthodromicDistance(Coordinate reference) {
     	return addPipe(new OrthodromicDistance(reference));
     } 
     
+    /**
+     * @see Dimension
+     */
     public GeoPipeline getDimension() {
     	return addPipe(new Dimension());
     }
     
+    /**
+     * @see GeometryType
+     */
     public GeoPipeline getGeometryType() {
     	return addPipe(new GeometryType());
     }
     
+    /**
+     * @see NumGeometries
+     */
     public GeoPipeline getNumGeometries() {
     	return addPipe(new NumGeometries());
     }
-        
+       
+    /**
+     * @see GeoJSON
+     */
     public GeoPipeline createJson() {
     	return addPipe(new GeoJSON());
     }
     
+    /**
+     * @see WellKnownText
+     */
     public GeoPipeline createWellKnownText() {
     	return addPipe(new WellKnownText());
     }
     
+    /**
+     * @see KeyholeMarkupLanguage
+     */
     public GeoPipeline createKML() {
     	return addPipe(new KeyholeMarkupLanguage());
     }
-    
+
+    /**
+     * @see GML
+     */
     public GeoPipeline createGML() {
     	return addPipe(new GML());
     }
-    
+
+    /**
+     * @see FilterProperty
+     */
     public GeoPipeline propertyFilter(String key, Object value) {
     	return addPipe(new FilterProperty(key, value));
     }    
-    
+
+    /**
+     * @see FilterProperty
+     */
     public GeoPipeline propertyFilter(String key, Object value, FilterPipe.Filter comparison) {
     	return addPipe(new FilterProperty(key, value, comparison));    	
     }
 
+    /**
+     * @see FilterPropertyNotNull
+     */
     public GeoPipeline propertyNotNullFilter(String key) {
     	return addPipe(new FilterPropertyNotNull(key));    	
     }
-    
+
+    /**
+     * @see FilterPropertyNull
+     */
     public GeoPipeline propertyNullFilter(String key) {
     	return addPipe(new FilterPropertyNull(key));    	
     }    
-    
+
+    /**
+     * @see FilterCQL
+     */
     public GeoPipeline cqlFilter(String cql) throws CQLException {
     	return addPipe(new FilterCQL(layer, cql));
     }
-    
+
+    /**
+     * @see FilterIntersect
+     */
     public GeoPipeline intersectionFilter(Geometry geometry) {
     	return addPipe(new FilterIntersect(geometry));
     }
-    
+
+    /**
+     * @see FilterIntersectWindow
+     */
     public GeoPipeline windowIntersectionFilter(double xmin, double ymin, double xmax, double ymax) {
     	return addPipe(new FilterIntersectWindow(layer.getGeometryFactory(), xmin, ymin, xmax, ymax));
     }
-    
+
+    /**
+     * @see FilterContain
+     */
     public GeoPipeline containFilter(Geometry geometry) {
     	return addPipe(new FilterContain(geometry));
     }
-    
+
+    /**
+     * @see FilterCover
+     */
     public GeoPipeline coverFilter(Geometry geometry) {
     	return addPipe(new FilterCover(geometry));
     }
-    
+
+    /**
+     * @see FilterCoveredBy
+     */
     public GeoPipeline coveredByFilter(Geometry geometry) {
     	return addPipe(new FilterCoveredBy(geometry));
     }    
-    
+
+    /**
+     * @see FilterCross
+     */
     public GeoPipeline crossFilter(Geometry geometry) {
     	return addPipe(new FilterCross(geometry));
     }        
 
+    /**
+     * @see FilterDisjoint
+     */
     public GeoPipeline disjointFilter(Geometry geometry) {
     	return addPipe(new FilterDisjoint(geometry));
     }        
-    
+
+    /**
+     * @see FilterEmpty
+     */
     public GeoPipeline emptyFilter() {
     	return addPipe(new FilterEmpty());
     }            
 
+    /**
+     * @see FilterEqual
+     */
     public GeoPipeline equalFilter(Geometry geometry) {
     	return addPipe(new FilterEqual(geometry));
     }        
     
+    /**
+     * @see FilterInRelation
+     */
     public GeoPipeline relationFilter(Geometry geometry, String intersectionPattern) {
     	return addPipe(new FilterInRelation(geometry, intersectionPattern));
     }        
 
+    /**
+     * @see FilterValid
+     */
     public GeoPipeline validFilter() {
     	return addPipe(new FilterValid());
     }            
 
+    /**
+     * @see FilterInvalid
+     */
     public GeoPipeline invalidFilter() {
     	return addPipe(new FilterInvalid());
     }            
     
+    /**
+     * @see FilterOverlap
+     */
     public GeoPipeline overlapFilter(Geometry geometry) {
     	return addPipe(new FilterOverlap(geometry));
     }
 
+    /**
+     * @see FilterTouch
+     */
     public GeoPipeline touchFilter(Geometry geometry) {
     	return addPipe(new FilterTouch(geometry));
     }
-    
+
+    /**
+     * @see FilterWithin
+     */
     public GeoPipeline withinFilter(Geometry geometry) {
     	return addPipe(new FilterWithin(geometry));
     }    
     
+    /**
+     * @see DensityIslands
+     */
     public GeoPipeline groupByDensityIslands(double density) {
     	return addPipe(new DensityIslands(density));
     }
-        
+
+    /**
+     * @see ExtractPoints
+     */
     public GeoPipeline extractPoints() {
     	return addPipe(new ExtractPoints(layer.getGeometryFactory()));
     }    
-    
+
+    /**
+     * @see ExtractGeometries
+     */
     public GeoPipeline extractGeometries() {
     	return addPipe(new ExtractGeometries());
     }
     
     /**
+     * Iterates through the pipeline content and creates a list of all the SpatialDatabaseRecord found.
+     * This will empty the pipeline.
+     * 
      * Warning: this method should *not* be used with pipes that extract many items from a single item 
      * or with pipes that group many items into fewer items.
      */
@@ -492,6 +825,9 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     }
     
     /**
+     * Iterates through the pipeline content and creates a list of all the Nodes found.
+     * This will empty the pipeline.
+     * 
      * Warning: this method should *not* be used with pipes that extract many items from a single item 
      * or with pipes that group many items into fewer items.
      */    

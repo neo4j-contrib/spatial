@@ -27,8 +27,9 @@ import com.vividsolutions.jts.geom.Envelope;
 
 
 /**
- * This search assume Layer contains Points with Latitude / Longitude
- * coordinates in degrees.
+ * Calculates distance between the given geometry and item geometry for each item in the pipeline.
+ * This pipe assume Layer contains geometries with Latitude / Longitude coordinates in degrees.
+ * 
  * Algorithm reference: http://www.movable-type.co.uk/scripts/latlong-db.html
  */
 public class OrthodromicDistance extends AbstractGeoPipe {
@@ -40,6 +41,9 @@ public class OrthodromicDistance extends AbstractGeoPipe {
 		this.reference = reference;
 	}
 	
+	/**
+	 * @param resultPropertyName property name to use for geometry output
+	 */	
 	public OrthodromicDistance(Coordinate reference, String resultPropertyName) {
 		super(resultPropertyName);
 		this.reference = reference;
