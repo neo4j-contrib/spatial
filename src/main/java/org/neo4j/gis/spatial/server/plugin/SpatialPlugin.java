@@ -20,7 +20,6 @@
 package org.neo4j.gis.spatial.server.plugin;
 
 import java.util.ArrayList;
-import java.util.List;
 
 import org.neo4j.gis.spatial.DynamicLayer;
 import org.neo4j.gis.spatial.EditableLayer;

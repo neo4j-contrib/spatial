@@ -145,15 +145,18 @@ public class TestSpatial extends Neo4jTestCase {
     }
 
     public void testShpSwedenAdministrative() throws Exception {
-    	testLayer("sweden_administrative");
+        if ("long".equals(spatialTestMode))
+            testLayer("sweden_administrative");
     }
     
     public void testShpSwedenNatural() throws Exception {
-       	testLayer("sweden_natural");
+        if ("long".equals(spatialTestMode))
+            testLayer("sweden_natural");
     }
     
     public void testShpSwedenWater() throws Exception {
-       	testLayer("sweden_water");
+        if ("long".equals(spatialTestMode))
+            testLayer("sweden_water");
     }
 
     public void testOsmBillesholm() throws Exception {
@@ -193,7 +196,8 @@ public class TestSpatial extends Neo4jTestCase {
                 loadTestShpData(layerName, 1000);
                 break;
             case OSM:
-                loadTestOsmData(layerName, 1000);
+                //TODO: enable batch again
+                loadTestOsmData(layerName, 1000, false);
                 break;
             default:
                 fail("Unknown format: " + layerTestFormats.get(layerName));
@@ -212,14 +216,19 @@ public class TestSpatial extends Neo4jTestCase {
         importer.importFile(shpPath, layerName, Charset.forName("UTF-8"));
     }
 
-    private void loadTestOsmData(String layerName, int commitInterval) throws Exception {
+    private void loadTestOsmData(String layerName, int commitInterval, boolean useBatch) throws Exception {
         String osmPath = OSM_DIR + File.separator + layerName;
         System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
-        reActivateDatabase(false, true, false);
+        reActivateDatabase(false, useBatch, false);
         OSMImporter importer = new OSMImporter(layerName);
 		importer.setCharset(Charset.forName("UTF-8"));
-        importer.importFile(getBatchInserter(), osmPath);
-        reActivateDatabase(false, false, false);
+        if (useBatch) {
+	        importer.importFile(getBatchInserter(), osmPath);
+	        reActivateDatabase(false, false, false);
+        } else {
+            importer.importFile(graphDb(), osmPath);
+            reActivateDatabase(false, false, false);
+        }
         importer.reIndex(graphDb(), commitInterval);
     }
 
@@ -303,9 +312,12 @@ public class TestSpatial extends Neo4jTestCase {
             
             System.out.println("Verifying results for " + layerTestGeometries.size() + " test datasets in region[" + bbox + "]");
             for (TestGeometry testData : layerTestGeometries.get(layerName)) {
-                System.out.println("\t" + testData + ": " + testData.bounds);
+                System.out.println("\ttesting " + testData + ": " + testData.bounds);
                 if (testData.inOrIntersects(bbox) && !foundData.contains(testData)) {
                     String error = "Incorrect test result: test[" + testData + "] not found by search inside region[" + bbox + "]";                	
+                    for (TestGeometry data : foundData) {
+                        System.out.println(data);
+                    }
                     System.out.println(error);
                     fail(error);
                 }

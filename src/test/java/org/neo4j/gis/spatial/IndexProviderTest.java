@@ -121,7 +121,7 @@ public class IndexProviderTest
         CypherParser parser = new CypherParser();
         ExecutionEngine engine = new ExecutionEngine( db );
          Query query = parser.parse(
-         "start n=(layer1,'bbox:[15.0, 16.0, 56.0, 57.0]') match (n) -[r] - (x) return n, type(r), x.layer?, x.bbox?"
+         "start n=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') match (n) -[r] - (x) return n, type(r), x.layer?, x.bbox?"
          );
 //        Query query = parser.parse( "start n=(0) where 1=1 return n" );
         ExecutionResult result = engine.execute( query );
