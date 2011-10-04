@@ -50,7 +50,6 @@ import javax.script.Bindings;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
 import javax.script.SimpleBindings;
 
 import org.junit.Before;
@@ -94,7 +93,7 @@ public class IndexProviderTest
     }
 
     @Test
-    public void testNodeIndex() throws SyntaxException
+    public void testNodeIndex() throws SyntaxException, Exception
     {
         Map<String, String> config = Collections.unmodifiableMap( MapUtil.stringMap(
                 "provider", "spatial" ) );
@@ -120,10 +119,8 @@ public class IndexProviderTest
         // test Cypher query
         CypherParser parser = new CypherParser();
         ExecutionEngine engine = new ExecutionEngine( db );
-         Query query = parser.parse(
-         "start n=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') match (n) -[r] - (x) return n, type(r), x.layer?, x.bbox?"
-         );
-//        Query query = parser.parse( "start n=(0) where 1=1 return n" );
+        Query query = parser.parse( "start n=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') match (n) -[r] - (x) return n, type(r), x.layer?, x.bbox?" );
+        // Query query = parser.parse( "start n=(0) where 1=1 return n" );
         ExecutionResult result = engine.execute( query );
         System.out.println( result.toString() );
 
@@ -133,16 +130,9 @@ public class IndexProviderTest
         final Neo4jGraph graph = new Neo4jGraph( db );
         bindings.put( "g", graph );
         gremlinEngine.setBindings( bindings, ScriptContext.ENGINE_SCOPE );
-        try
-        {
-            assertEquals(2L, gremlinEngine.eval( "g.idx('layer1').get('bbox','[15.0, 16.0, 56.0, 57.0]')._().in().count()"));
-//            System.out.print( gremlinEngine.eval( "g.idx('layer1').get('bbox','[15.0, 16.0, 56.0, 57.0]').in('GEOM').name"));
-        }
-        catch ( ScriptException e )
-        {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
+        assertEquals(
+                2L,
+                gremlinEngine.eval( "g.idx('layer1').get('bbox','[15.0, 16.0, 56.0, 57.0]').toList()._().in().count()" ) );
 
     }
 
