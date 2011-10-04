@@ -21,6 +21,7 @@ package org.neo4j.gis.spatial;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -154,6 +155,7 @@ public class TestOSMImport extends Neo4jTestCase {
 		long start = System.currentTimeMillis();
 		// START SNIPPET: importOsm
 		OSMImporter importer = new OSMImporter(layerName, new ConsoleListener());
+		importer.setCharset(Charset.forName("UTF-8"));
 		if (useBatchInserter) {
 			importer.importFile(getBatchInserter(), osmPath, false);
 			reActivateDatabase(false, false, false);

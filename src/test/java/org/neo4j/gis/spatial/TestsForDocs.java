@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
 
@@ -105,7 +106,7 @@ public class TestsForDocs extends Neo4jTestCase {
 	private void importMapOSM() throws Exception {
 		// START SNIPPET: importOsm
 		OSMImporter importer = new OSMImporter("map.osm");
-
+		importer.setCharset(Charset.forName("UTF-8"));
 		BatchInserter batchInserter = new BatchInserterImpl(databasePath);
 		importer.importFile(batchInserter, "map.osm", false);
 		batchInserter.shutdown();
@@ -160,7 +161,7 @@ public class TestsForDocs extends Neo4jTestCase {
 		GraphDatabaseService database = new EmbeddedGraphDatabase(databasePath);
 		try {
 			ShapefileImporter importer = new ShapefileImporter(database);
-			importer.importFile("shp/highway.shp", "highway");
+			importer.importFile("shp/highway.shp", "highway", Charset.forName("UTF-8"));
 		} finally {
 			database.shutdown();
 		}

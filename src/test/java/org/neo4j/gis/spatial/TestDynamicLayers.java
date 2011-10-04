@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 
 import org.geotools.data.DataSourceException;
@@ -232,6 +233,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
 		reActivateDatabase(false, true, false);
 		OSMImporter importer = new OSMImporter(layerName);
+		importer.setCharset(Charset.forName("UTF-8"));
 		importer.importFile(getBatchInserter(), osmPath, false);
 		reActivateDatabase(false, false, false);
 		importer.reIndex(graphDb(), commitInterval);
@@ -242,7 +244,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		String shpPath = "shp" + File.separator + layerName;
 		System.out.println("\n=== Loading layer " + layerName + " from " + shpPath + " ===");
 		ShapefileImporter importer = new ShapefileImporter(graphDb(), new NullListener(), commitInterval);
-		importer.importFile(shpPath, layerName);
+		importer.importFile(shpPath, layerName, Charset.forName("UTF-8"));
 	}
 
 	private Envelope checkLayer(String layerName) {

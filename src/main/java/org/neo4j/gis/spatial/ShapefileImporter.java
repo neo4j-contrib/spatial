@@ -113,6 +113,10 @@ public class ShapefileImporter implements Constants {
 	// Public methods
 	
 	public void importFile(String dataset, String layerName) throws ShapefileException, FileNotFoundException, IOException {
+		importFile(dataset, layerName, Charset.defaultCharset());
+	}
+	
+	public void importFile(String dataset, String layerName, Charset charset) throws ShapefileException, FileNotFoundException, IOException {
 		EditableLayerImpl layer = (EditableLayerImpl)spatialDatabase.getOrCreateLayer(layerName, WKBGeometryEncoder.class, EditableLayerImpl.class);
 		GeometryFactory geomFactory = layer.getGeometryFactory();
 		
@@ -140,7 +144,7 @@ public class ShapefileImporter implements Constants {
             Integer geometryType = SpatialDatabaseService.convertJtsClassToGeometryType(geometryClass);
 			
 			// TODO ask charset to user?
-			DbaseFileReader dbfReader = new DbaseFileReader(shpFiles, shpMemoryMapped, Charset.defaultCharset());
+			DbaseFileReader dbfReader = new DbaseFileReader(shpFiles, shpMemoryMapped, charset);
 			try {
 				DbaseFileHeader dbaseFileHeader = dbfReader.getHeader();
 	            

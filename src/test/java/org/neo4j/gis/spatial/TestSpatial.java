@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -208,7 +209,7 @@ public class TestSpatial extends Neo4jTestCase {
         String shpPath = SHP_DIR + File.separator + layerName;
         System.out.println("\n=== Loading layer " + layerName + " from " + shpPath + " ===");
         ShapefileImporter importer = new ShapefileImporter(graphDb(), new NullListener(), commitInterval);
-        importer.importFile(shpPath, layerName);
+        importer.importFile(shpPath, layerName, Charset.forName("UTF-8"));
     }
 
     private void loadTestOsmData(String layerName, int commitInterval) throws Exception {
@@ -216,6 +217,7 @@ public class TestSpatial extends Neo4jTestCase {
         System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
         reActivateDatabase(false, true, false);
         OSMImporter importer = new OSMImporter(layerName);
+		importer.setCharset(Charset.forName("UTF-8"));
         importer.importFile(getBatchInserter(), osmPath);
         reActivateDatabase(false, false, false);
         importer.reIndex(graphDb(), commitInterval);

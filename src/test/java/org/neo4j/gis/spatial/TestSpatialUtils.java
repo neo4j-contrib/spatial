@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 
 import org.junit.Test;
@@ -157,6 +158,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
 		System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
 		reActivateDatabase(false, true, false);
 		OSMImporter importer = new OSMImporter(layerName);
+		importer.setCharset(Charset.forName("UTF-8"));
 		importer.importFile(getBatchInserter(), osmPath);
 		reActivateDatabase(false, false, false);
 		importer.reIndex(graphDb(), commitInterval);

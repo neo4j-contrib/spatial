@@ -22,10 +22,12 @@ package org.neo4j.gis.spatial.osm;
 import static java.util.Arrays.asList;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -82,6 +84,8 @@ public class OSMImporter implements Constants {
     private long osm_dataset = -1;
 	private Listener monitor;
     
+	private Charset charset = Charset.defaultCharset();
+	
 	private static class TagStats {
 		private String name;
 		private int count = 0;
@@ -1307,7 +1311,7 @@ public class OSMImporter implements Constants {
     }
 
     public void importFile(GraphDatabaseService database, String dataset, boolean allPoints, int txInterval) throws IOException, XMLStreamException {
-		importFile(OSMWriter.fromGraphDatabase(database, stats, this, txInterval), dataset, allPoints);    	
+		importFile(OSMWriter.fromGraphDatabase(database, stats, this, txInterval), dataset, allPoints, charset);    	
     }
 
 	public void importFile(BatchInserter batchInserter, String dataset) throws IOException, XMLStreamException {
@@ -1315,20 +1319,20 @@ public class OSMImporter implements Constants {
     }
 
 	public void importFile(BatchInserter batchInserter, String dataset, boolean allPoints) throws IOException, XMLStreamException {
-		importFile(OSMWriter.fromBatchInserter(batchInserter, stats, this), dataset, allPoints);
+		importFile(OSMWriter.fromBatchInserter(batchInserter, stats, this), dataset, allPoints, charset);
 	}
 	
-	public static class CountedFileReader extends FileReader {
+	public static class CountedFileReader extends InputStreamReader {
 		private long length = 0;
 		private long charsRead = 0;
 
-		public CountedFileReader(String path) throws FileNotFoundException {
-			super(path);
+		public CountedFileReader(String path, Charset charset) throws FileNotFoundException {
+			super(new FileInputStream(path), charset);
 			this.length = (new File(path)).length();
 		}
 
-		public CountedFileReader(File file) throws FileNotFoundException {
-			super(file);
+		public CountedFileReader(File file, Charset charset) throws FileNotFoundException {
+			super(new FileInputStream(file), charset);
 			this.length = file.length();
 		}
 
@@ -1382,7 +1386,11 @@ public class OSMImporter implements Constants {
 		progressTime = 0;
 	}
 
-	public void importFile(OSMWriter<?> osmWriter, String dataset, boolean allPoints) throws IOException, XMLStreamException {
+	public void setCharset(Charset charset) {
+		this.charset = charset;
+	}
+	
+	public void importFile(OSMWriter<?> osmWriter, String dataset, boolean allPoints, Charset charset) throws IOException, XMLStreamException {
 		System.out.println("Importing with osm-writer: " + osmWriter);
 		osmWriter.getOrCreateOSMDataset(layerName);
         osm_dataset = osmWriter.getDatasetId();
@@ -1390,7 +1398,7 @@ public class OSMImporter implements Constants {
         long startTime = System.currentTimeMillis();
         long[] times = new long[]{0L,0L,0L,0L};
         javax.xml.stream.XMLInputFactory factory = javax.xml.stream.XMLInputFactory.newInstance();
-        CountedFileReader reader = new CountedFileReader(dataset);
+        CountedFileReader reader = new CountedFileReader(dataset, charset);
         javax.xml.stream.XMLStreamReader parser = factory.createXMLStreamReader(reader);
         int countXMLTags = 0;
         beginProgressMonitor(100);

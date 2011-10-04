@@ -8,6 +8,7 @@
     <bundle.namespace>org.neo4j.gis</bundle.namespace>
     <blueprints.version>1.0</blueprints.version>
     <gremlin.version>1.3</gremlin.version>
+	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>    
   </properties>
 
   <parent>

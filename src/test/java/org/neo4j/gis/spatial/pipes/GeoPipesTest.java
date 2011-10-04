@@ -23,6 +23,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.nio.charset.Charset;
+
 import org.geotools.filter.text.cql2.CQLException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -294,6 +296,7 @@ public class GeoPipesTest {
         String osmPath = "./" + layerName;
         System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===" );
         OSMImporter importer = new OSMImporter(layerName);
+		importer.setCharset(Charset.forName("UTF-8"));
         importer.importFile(graphdb, osmPath);
         importer.reIndex(graphdb, commitInterval);
     }
