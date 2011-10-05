@@ -73,6 +73,7 @@ public class StyledImageExporter {
 	double zoom = 1.0;
 	double[] offset = new double[] { 0, 0 };
 	Rectangle displaySize = new Rectangle(400, 300);
+	private String[] styleFiles;
 	static StyleFactory styleFactory = CommonFactoryFinder.getStyleFactory(null);
     static FilterFactory filterFactory = CommonFactoryFinder.getFilterFactory(null);
 
@@ -92,6 +93,18 @@ public class StyledImageExporter {
 		this.displaySize = new Rectangle(width, height);
 	}
 
+	public void setStyleFiles(String[] files) {
+		styleFiles = files;
+	}
+	
+	public Style getStyle(int i) {
+		if (styleFiles != null && i < styleFiles.length) {
+			return getStyleFromSLDFile(styleFiles[i]);
+		} else {
+			return null;
+		}
+	}
+	
 	/**
 	 * When zooming in, it is useful to also control the location of the visable
 	 * window using offsets from the center, in fractions of the bounding box
@@ -132,6 +145,10 @@ public class StyledImageExporter {
 		saveLayerImage(layerNames, null, new File(layerNames[0] + ".png"), null);
 	}
 
+	public void saveLayerImage(String[] layerNames, File imageFile) throws IOException {
+		saveLayerImage(layerNames, null, imageFile, null);
+	}	
+	
 	public void saveLayerImage(String layerName) throws IOException {
 		saveLayerImage(layerName, null, new File(layerName + ".png"), null);
 	}
@@ -174,6 +191,9 @@ public class StyledImageExporter {
 		for (int i = 0; i < layerNames.length; i++) {
 			SimpleFeatureSource featureSource = store.getFeatureSource(layerNames[i]);
 			Style featureStyle = style;
+			if(featureStyle == null) {
+				featureStyle = getStyle(i);
+			}			
 			if (featureStyle == null) {
 				featureStyle = createStyleFromGeometry(featureSource);
 				System.out.println("Created style from geometry '" + featureSource.getSchema().getGeometryDescriptor().getType() + "': " + featureStyle);
