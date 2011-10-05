@@ -21,6 +21,7 @@ package org.neo4j.gis.spatial.indexfilter;
 
 import java.util.List;
 
+import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.filter.text.ecql.ECQL;
 import org.neo4j.collections.rtree.Envelope;
@@ -34,7 +35,6 @@ import org.neo4j.gis.spatial.LayerTreeIndexReader;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.Utilities;
 import org.neo4j.gis.spatial.filter.SearchRecords;
-import org.neo4j.gis.spatial.geotools.data.Neo4jFeatureBuilder;
 import org.neo4j.graphdb.Node;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.filter.Filter;

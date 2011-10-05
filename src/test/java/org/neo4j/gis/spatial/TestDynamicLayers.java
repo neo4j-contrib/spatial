@@ -27,14 +27,14 @@ import java.util.ArrayList;
 
 import org.geotools.data.DataSourceException;
 import org.geotools.data.DataStore;
+import org.geotools.data.neo4j.Neo4jSpatialDataStore;
+import org.geotools.data.neo4j.StyledImageExporter;
 import org.geotools.data.shapefile.shp.ShapefileException;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.junit.Test;
 import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.collections.rtree.NullListener;
 import org.neo4j.collections.rtree.RTreeIndex;
-import org.neo4j.gis.spatial.geotools.data.Neo4jSpatialDataStore;
-import org.neo4j.gis.spatial.geotools.data.StyledImageExporter;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 

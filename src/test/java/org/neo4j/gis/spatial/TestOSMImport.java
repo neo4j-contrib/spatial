@@ -31,8 +31,8 @@ import junit.framework.Test;
 import junit.framework.TestSuite;
 
 import org.geotools.data.DataStore;
+import org.geotools.data.neo4j.Neo4jSpatialDataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
-import org.neo4j.gis.spatial.geotools.data.Neo4jSpatialDataStore;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMDataset.Way;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;

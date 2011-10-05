@@ -26,9 +26,9 @@ import java.util.List;
 
 import junit.framework.AssertionFailedError;
 
+import org.geotools.data.neo4j.StyledImageExporter;
 import org.junit.Test;
 import org.neo4j.collections.rtree.Envelope;
-import org.neo4j.gis.spatial.geotools.data.StyledImageExporter;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 

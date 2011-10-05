@@ -26,9 +26,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.geotools.data.FeatureStore;
+import org.geotools.data.neo4j.Neo4jSpatialDataStore;
 import org.geotools.data.shapefile.ShapefileDataStore;
 import org.geotools.data.shapefile.ShapefileDataStoreFactory;
-import org.neo4j.gis.spatial.geotools.data.Neo4jSpatialDataStore;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.GeometryDescriptor;

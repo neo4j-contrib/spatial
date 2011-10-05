@@ -19,10 +19,10 @@
  */
 package org.neo4j.gis.spatial.pipes.filtering;
 
+import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.filter.text.ecql.ECQL;
 import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.geotools.data.Neo4jFeatureBuilder;
 import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.opengis.feature.simple.SimpleFeature;
