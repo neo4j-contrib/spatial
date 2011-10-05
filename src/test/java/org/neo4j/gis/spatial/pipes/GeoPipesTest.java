@@ -24,9 +24,13 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.io.File;
+import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.NoSuchElementException;
 
+import org.geotools.data.neo4j.StyledImageExporter;
+import org.geotools.feature.FeatureCollection;
 import org.geotools.filter.text.cql2.CQLException;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -39,8 +43,11 @@ import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.pipes.osm.OSMGeoPipeline;
 import org.neo4j.test.ImpermanentGraphDatabase;
+import org.opengis.feature.simple.SimpleFeature;
+import org.opengis.feature.simple.SimpleFeatureType;
 
 import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.util.AffineTransformation;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
@@ -359,6 +366,24 @@ public class GeoPipesTest {
     	}
     }
         
+    @Test
+    public void export_to_png() {
+    	try {
+	    	Envelope envelope = new Envelope(-10, 50, -10, 50);
+	    	
+	    	FeatureCollection<SimpleFeatureType,SimpleFeature> features = startPipeline(intersectionLayer)
+	    		.windowIntersectionFilter(envelope)
+	    		.toStreamingFeatureCollection(envelope);
+	    	
+	    	StyledImageExporter exporter = new StyledImageExporter(graphdb);
+	    	exporter.setExportDir("target/export/");
+	    	exporter.saveImage(features, StyledImageExporter.createDefaultStyle(), new File("intersectionLayer.png"));
+    	} catch (IOException e) {
+    		e.printStackTrace();
+    		fail(e.getMessage());
+    	}
+    }
+    
     private static void load() throws Exception {
         SpatialDatabaseService spatialService = new SpatialDatabaseService(graphdb);
         

@@ -19,13 +19,19 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
+import org.geotools.data.neo4j.Neo4jFeatureBuilder;
+import org.geotools.data.neo4j.Neo4jSpatialDataStore;
+import org.geotools.feature.FeatureCollection;
+import org.geotools.feature.collection.AbstractFeatureCollection;
 import org.geotools.filter.text.cql2.CQLException;
+import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.neo4j.collections.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
@@ -89,6 +95,8 @@ import org.neo4j.gis.spatial.pipes.processing.Union;
 import org.neo4j.gis.spatial.pipes.processing.UnionAll;
 import org.neo4j.gis.spatial.pipes.processing.WellKnownText;
 import org.neo4j.graphdb.Node;
+import org.opengis.feature.simple.SimpleFeature;
+import org.opengis.feature.simple.SimpleFeatureType;
 
 import com.tinkerpop.pipes.filter.FilterPipe;
 import com.tinkerpop.pipes.util.FluentPipeline;
@@ -696,6 +704,13 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     }
 
     /**
+     * @see FilterIntersectWindow
+     */
+    public GeoPipeline windowIntersectionFilter(Envelope envelope) {
+    	return addPipe(new FilterIntersectWindow(layer.getGeometryFactory(), envelope));
+    }    
+    
+    /**
      * @see FilterContain
      */
     public GeoPipeline containFilter(Geometry geometry) {
@@ -805,6 +820,102 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
      */
     public GeoPipeline extractGeometries() {
     	return addPipe(new ExtractGeometries());
+    }
+    
+    public FeatureCollection<SimpleFeatureType,SimpleFeature> toStreamingFeatureCollection(final Envelope bounds) throws IOException {
+    	Neo4jSpatialDataStore datastore = new Neo4jSpatialDataStore(layer.getSpatialDatabase().getDatabase());
+    	final Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(layer);
+    	
+    	return new AbstractFeatureCollection(datastore.getSchema(layer.getName())) {
+			@Override
+			public int size() {
+				return Integer.MAX_VALUE;
+			}
+			
+			@Override
+			protected Iterator<SimpleFeature> openIterator() {
+				return new Iterator<SimpleFeature>() {
+					@Override
+					public boolean hasNext() {
+						return GeoPipeline.this.hasNext();
+					}
+
+					@Override
+					public SimpleFeature next() {
+						return featureBuilder.buildFeature(GeoPipeline.this.next().getRecord());
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}					
+				};
+			}
+			
+			@Override
+			public ReferencedEnvelope getBounds() {
+				return new ReferencedEnvelope(bounds, layer.getCoordinateReferenceSystem());
+			}
+			
+			@Override
+			protected void closeIterator(Iterator<SimpleFeature> iterator) {
+			}
+		};
+    }
+
+    public FeatureCollection<SimpleFeatureType,SimpleFeature> toFeatureCollection() throws IOException {
+    	final List<SpatialDatabaseRecord> records = toSpatialDatabaseRecordList();
+    	Envelope bounds = null;
+    	for (SpatialDatabaseRecord record : records) {
+    		if (bounds == null) {
+    			bounds = record.getGeometry().getEnvelopeInternal();
+    		} else {
+    			bounds.expandToInclude(record.getGeometry().getEnvelopeInternal());
+    		}
+    	}
+    	
+    	final Iterator<SpatialDatabaseRecord> recordsIterator = records.iterator();
+    	final ReferencedEnvelope refBounds = new ReferencedEnvelope(bounds, layer.getCoordinateReferenceSystem());
+    	
+    	Neo4jSpatialDataStore datastore = new Neo4jSpatialDataStore(layer.getSpatialDatabase().getDatabase());
+    	final Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(layer);
+    	
+    	return new AbstractFeatureCollection(datastore.getSchema(layer.getName())) {
+			@Override
+			public int size() {
+				return records.size();
+			}
+			
+			@Override
+			protected Iterator<SimpleFeature> openIterator() {
+				return new Iterator<SimpleFeature>() {
+					
+					@Override
+					public boolean hasNext() {
+						return recordsIterator.hasNext();
+					}
+
+					@Override
+					public SimpleFeature next() {
+						return featureBuilder.buildFeature(recordsIterator.next());
+					}
+
+					@Override
+					public void remove() {
+						throw new UnsupportedOperationException();
+					}					
+				};
+			}
+			
+			@Override
+			public ReferencedEnvelope getBounds() {
+				return refBounds;
+			}
+			
+			@Override
+			protected void closeIterator(Iterator<SimpleFeature> iterator) {
+			}
+		};
     }
     
     /**

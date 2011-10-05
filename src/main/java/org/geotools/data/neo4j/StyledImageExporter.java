@@ -36,11 +36,13 @@ import java.io.IOException;
 import javax.imageio.ImageIO;
 
 import org.geotools.data.DataStore;
-import org.geotools.data.FeatureSource;
 import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.factory.CommonFactoryFinder;
+import org.geotools.feature.FeatureCollection;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.map.DefaultMapContext;
+import org.geotools.map.FeatureLayer;
+import org.geotools.map.MapContent;
 import org.geotools.renderer.lite.StreamingRenderer;
 import org.geotools.styling.FeatureTypeStyle;
 import org.geotools.styling.Fill;
@@ -57,6 +59,7 @@ import org.geotools.styling.StyleFactory;
 import org.neo4j.gis.spatial.SpatialTopologyUtils;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
+import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.filter.FilterFactory;
 
@@ -173,6 +176,38 @@ public class StyledImageExporter {
 		saveLayerImage(layerNames, sldFile, imagefile, bounds);
 	}
 
+	private RenderingHints getRenderingHints() {
+		RenderingHints hints = new RenderingHints(KEY_ANTIALIASING, VALUE_ANTIALIAS_ON);
+		hints.put(KEY_TEXT_ANTIALIASING, VALUE_TEXT_ANTIALIAS_ON);	
+		return hints;
+	}
+	
+	private BufferedImage render(StreamingRenderer renderer, Rectangle displaySize, ReferencedEnvelope bounds) {
+		BufferedImage image = new BufferedImage(displaySize.width, displaySize.height, BufferedImage.TYPE_INT_ARGB);		
+		Graphics2D graphics = image.createGraphics();
+		renderer.paint(graphics, displaySize, bounds);
+		graphics.dispose();
+		return image;
+	}
+	
+	public void saveImage(FeatureCollection<SimpleFeatureType,SimpleFeature> features, String sldFile, File imagefile) throws IOException {
+		saveImage(features, getStyleFromSLDFile(sldFile), imagefile);
+	}
+
+	public void saveImage(FeatureCollection<SimpleFeatureType,SimpleFeature> features, Style style, File imagefile) throws IOException {
+		if (displaySize == null)
+			displaySize = new Rectangle(0, 0, 800, 600);
+		
+		MapContent mapContent = new MapContent();
+		mapContent.addLayer(new FeatureLayer(features, style));
+		
+		StreamingRenderer renderer = new StreamingRenderer();
+		renderer.setJava2DHints(getRenderingHints());		
+		renderer.setMapContent(mapContent);
+		
+		ImageIO.write(render(renderer, displaySize, features.getBounds()), "png", checkFile(imagefile));
+	}
+		
 	public void saveLayerImage(String[] layerNames, String sldFile, File imagefile, ReferencedEnvelope bounds) throws IOException {
 		imagefile = checkFile(imagefile);
 		DataStore store = new Neo4jSpatialDataStore(db);
@@ -195,7 +230,7 @@ public class StyledImageExporter {
 				featureStyle = getStyle(i);
 			}			
 			if (featureStyle == null) {
-				featureStyle = createStyleFromGeometry(featureSource);
+				featureStyle = createStyleFromGeometry((SimpleFeatureType) featureSource.getSchema());
 				System.out.println("Created style from geometry '" + featureSource.getSchema().getGeometryDescriptor().getType() + "': " + featureStyle);
 			}
 			context.addLayer(new org.geotools.map.FeatureLayer(featureSource, featureStyle));
@@ -253,6 +288,10 @@ public class StyledImageExporter {
         return null;
     }
 
+    public static Style createDefaultStyle() {    
+    	return createStyleFromGeometry(null);
+    }
+    
     /**
      * Here is a programmatic alternative to using JSimpleStyleDialog to
      * get a Style. This methods works out what sort of feature geometry
@@ -261,37 +300,34 @@ public class StyledImageExporter {
      * TODO: Consider adding support for attribute based color schemes like in
      * http://docs.geotools.org/stable/userguide/examples/stylefunctionlab.html
      */
-    private Style createStyleFromGeometry(FeatureSource<?,?> featureSource) {
-        SimpleFeatureType schema = (SimpleFeatureType)featureSource.getSchema();
-        Class<?> geomType = schema.getGeometryDescriptor().getType().getBinding();
-
-        if (Polygon.class.isAssignableFrom(geomType)
-                || MultiPolygon.class.isAssignableFrom(geomType)) {
-            return createPolygonStyle();
-
-        } else if (LineString.class.isAssignableFrom(geomType)
-                || MultiLineString.class.isAssignableFrom(geomType)) {
-            return createLineStyle();
-
-        } else if (Point.class.isAssignableFrom(geomType)
-                || MultiPoint.class.isAssignableFrom(geomType)) {
-            return createPointStyle();
-
-        } else {
-        	Style style = styleFactory.createStyle();
-        	style.featureTypeStyles().addAll(createPolygonStyle().featureTypeStyles());
-        	style.featureTypeStyles().addAll(createLineStyle().featureTypeStyles());
-        	style.featureTypeStyles().addAll(createPointStyle().featureTypeStyles());
-            System.out.println("Created Geometry Style: "+style);
-            return style;
-        }
+    public static Style createStyleFromGeometry(SimpleFeatureType schema) {
+    	if (schema != null) {
+	        Class<?> geomType = schema.getGeometryDescriptor().getType().getBinding();
+	        if (Polygon.class.isAssignableFrom(geomType)
+	                || MultiPolygon.class.isAssignableFrom(geomType)) {
+	            return createPolygonStyle();
+	        } else if (LineString.class.isAssignableFrom(geomType)
+	                || MultiLineString.class.isAssignableFrom(geomType)) {
+	            return createLineStyle();
+	        } else if (Point.class.isAssignableFrom(geomType)
+	                || MultiPoint.class.isAssignableFrom(geomType)) {
+	            return createPointStyle();
+	        } 
+    	}
+    	
+        Style style = styleFactory.createStyle();
+        style.featureTypeStyles().addAll(createPolygonStyle().featureTypeStyles());
+        style.featureTypeStyles().addAll(createLineStyle().featureTypeStyles());
+        style.featureTypeStyles().addAll(createPointStyle().featureTypeStyles());
+        System.out.println("Created Geometry Style: "+style);
+        return style;
     }
 
     /**
      * Create a Style to draw polygon features with a thin blue outline and
      * a cyan fill
      */
-    private Style createPolygonStyle() {
+    private static Style createPolygonStyle() {
 
         // create a partially opaque outline stroke
         Stroke stroke = styleFactory.createStroke(
@@ -323,7 +359,7 @@ public class StyledImageExporter {
     /**
      * Create a Style to draw line features as thin blue lines
      */
-    private Style createLineStyle() {
+    private static Style createLineStyle() {
         Stroke stroke = styleFactory.createStroke(
                 filterFactory.literal(Color.BLUE),
                 filterFactory.literal(1));
@@ -348,7 +384,7 @@ public class StyledImageExporter {
      * Create a Style to draw point features as circles with blue outlines
      * and cyan fill
      */
-    private Style createPointStyle() {
+    private static Style createPointStyle() {
         Graphic gr = styleFactory.createDefaultGraphic();
 
         Mark mark = styleFactory.getCircleMark();
