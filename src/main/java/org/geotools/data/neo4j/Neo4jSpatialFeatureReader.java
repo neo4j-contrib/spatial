@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
+import org.apache.log4j.Logger;
 import org.geotools.data.FeatureReader;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.neo4j.gis.spatial.Layer;
@@ -35,13 +36,27 @@ import org.opengis.feature.simple.SimpleFeatureType;
  * FeatureReader implementation.
  * Instances of this class are created by Neo4jSpatialDataStore.
  * 
- * @author Davide Savazzi
+ * @author Davide Savazzi, Andreas Wilhelm
  */
 public class Neo4jSpatialFeatureReader implements FeatureReader<SimpleFeatureType, SimpleFeature> {
-
-	// Constructor
 	
-	protected Neo4jSpatialFeatureReader(Layer layer, SimpleFeatureType featureType, Iterator<SpatialDatabaseRecord> results) {
+    private static final Logger log = Logger.getLogger(Neo4jSpatialFeatureReader.class.getName());
+	protected static final String FEATURE_PROP_GEOM = "the_geom";
+
+	private Layer layer;
+	private SimpleFeatureType featureType;
+    private SimpleFeatureBuilder builder;
+	private Iterator<SpatialDatabaseRecord> results;
+	private String[] extraPropertyNames;
+	
+	/**
+	 * 
+	 * @param layer
+	 * @param featureType
+	 * @param results
+	 */
+	public Neo4jSpatialFeatureReader(Layer layer, SimpleFeatureType featureType, Iterator<SpatialDatabaseRecord> results) {
+		
 		this.layer = layer;
 		this.extraPropertyNames = layer.getExtraPropertyNames();		
 		this.featureType = featureType;
@@ -49,17 +64,24 @@ public class Neo4jSpatialFeatureReader implements FeatureReader<SimpleFeatureTyp
 		this.results = results;
 	}
 	
-	
-	// Public methods
-	
+	/**
+	 * 
+	 * 
+	 */
 	public SimpleFeatureType getFeatureType() {
 		return featureType;
 	}
 
+	/**
+	 * 
+	 */
 	public boolean hasNext() throws IOException {
 		return results != null && results.hasNext();
 	}
 
+	/**
+	 * 
+	 */
 	public SimpleFeature next() throws IOException, IllegalArgumentException, NoSuchElementException {
 		if (results == null) return null;
 		
@@ -80,24 +102,22 @@ public class Neo4jSpatialFeatureReader implements FeatureReader<SimpleFeatureTyp
 	    return builder.buildFeature(Long.toString(record.getId()));						
 	}
 	
+	/**
+	 * 
+	 */
 	public void close() throws IOException {
+		log.debug("");
 		featureType = null;
 		builder = null;
 		results = null;
 	}
 	
+	/**
+	 * 
+	 * @return
+	 */
 	protected Layer getLayer() {
 		return layer;
 	}
-	
-	
-	// Attributes
-	
-	private Layer layer;
-	private SimpleFeatureType featureType;
-    private SimpleFeatureBuilder builder;
-	private Iterator<SpatialDatabaseRecord> results;
-	private String[] extraPropertyNames;
-	
-	protected static final String FEATURE_PROP_GEOM = "the_geom";
+
 }

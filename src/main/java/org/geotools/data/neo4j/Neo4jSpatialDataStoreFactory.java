@@ -19,133 +19,102 @@
  */
 package org.geotools.data.neo4j;
 
-import java.awt.RenderingHints.Key;
 import java.io.File;
-import java.io.Serializable;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Collections;
+import java.io.IOException;
 import java.util.Map;
 
-import org.apache.log4j.Logger;
+import org.geotools.data.AbstractDataStoreFactory;
 import org.geotools.data.DataStore;
-import org.geotools.data.DataStoreFactorySpi;
 import org.geotools.util.KVP;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.TransactionFailureException;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 
-
 /**
- * DataStoreFactorySpi implementation.
- * It needs an "url" parameter containing a path of a Neo4j neostore.id file.
+ * DataStoreFactorySpi implementation. It needs an "url" parameter containing a
+ * path of a Neo4j neostore.id file.
  * 
- * @author Davide Savazzi
+ * @author Davide Savazzi, Andreas Wilhelm
  */
-public class Neo4jSpatialDataStoreFactory implements DataStoreFactorySpi {
-
-	// Public methods
+public class Neo4jSpatialDataStoreFactory extends AbstractDataStoreFactory
+		implements org.geotools.data.DataStoreFactorySpi {
 	
-    /**
-     * Takes a map of parameters which describes how to access a DataStore and
-     * determines if it can be read by the Neo4jSpatialDataStore.
-     * 
-     * @param params A map of parameters describing the location of a datastore
-     * @return true if params contains a url param which points to a file named 'neostore.id'
-     */
-    public boolean canProcess(Map<String,Serializable> params) {
-        if (params == null) {
-            return false;
-        }    	
+	/**
+	 * url to the neostore.id file.
+	 */
+	public static final Param DIRECTORY = new Param("The directory path of the Neo4j database: ", File.class,
+			"db", true);
 
-    	File neo4jDir = getNeo4jDir(params.get(URLP.key));
-    	return neo4jDir != null && neo4jDir.isDirectory() && neo4jDir.canWrite();
-    }
-    
-    public String getDataStoreUniqueIdentifier(Map<String,Serializable> params) {
-		File neo4jDir = getNeo4jDir(params.get(URLP.key));
-		return neo4jDir.getAbsolutePath();
-    }
+	public static final Param DBTYPE = new Param("dbtype", String.class,
+			"must be 'neo4j'", true, "neo4j", new KVP(Param.LEVEL, "program"));
 
-	public DataStore createDataStore(Map<String,Serializable> params) {
-    	File neo4jDir = getNeo4jDir(params.get(URLP.key));
-    	EmbeddedGraphDatabase db = null;
-    	Neo4jSpatialDataStore neo4jSpatialDataStore = null;
-		try {
-			db = new EmbeddedGraphDatabase(neo4jDir.getAbsolutePath());
-			neo4jSpatialDataStore  = new Neo4jSpatialDataStore(db);
-    	} catch (TransactionFailureException tfe) {
-    		tfe.printStackTrace();
-    	}
-		return neo4jSpatialDataStore;
-	}
-	
-	public DataStore createNewDataStore(Map<String,Serializable> params) {
-		return createDataStore(params);
+	/**
+	 * Creates a new instance of Neo4jSpatialDataStoreFactory
+	 */
+	public Neo4jSpatialDataStoreFactory() {
 	}
 
-	public String getDisplayName() {
-		return "Neo4j";
-	}	
-	
-	public String getDescription() {
-        return "Neo4j Graph Database";		
-	}
-
-
-	public Param[] getParametersInfo() {
-        return new Param[] { URLP };
-	}
-
-	public boolean isAvailable() {
-        try {
-        	EmbeddedGraphDatabase.class.getName();
-            GraphDatabaseService.class.getName();
-        } catch (Exception e) {
-        	log.error(e.getMessage(), e);
-            return false;
+	public boolean canProcess(Map params) {
+	    String type = (String) params.get("dbtype");
+	    if(type != null)
+        {
+            if (!(type.equalsIgnoreCase("neo4j"))) {
+            	return false;
+            } else {
+            	return true;
+            }
         }
-
-        return true;
+	    return false;
 	}
-	
-	public Map<Key, ?> getImplementationHints() {
-        return Collections.EMPTY_MAP;		
-	}	
 
 	
-	// Private methods
-	
-	private File getNeo4jDir(Object param) {
-		if (param == null) return null;
-		
-		URL url;
-		if (param instanceof URL) {
-        	url = (URL) param;
-		} else if (param instanceof String) {
-			try {
-				url = new URL((String) param);
-			} catch (MalformedURLException e) {
-				log.warn(e.getMessage(), e);
-				return null;
-			}
-		} else {
-			return null;
+	public DataStore createDataStore(Map params) throws IOException {
+
+		if (!canProcess(params)) {
+			throw new IOException("The parameters map isn't correct!!");
 		}
 		
-		File neostoreId = new File(url.getPath());
-        return neostoreId.getParentFile();		
-	}
-	
-	
-	// Attributes
+	    File neodir = (File) DIRECTORY.lookUp(params);
 
-    /**
-     * url to the neostore.id file.
-     */
-    public static final Param URLP = new Param("url", URL.class,
-            "url to a neostore.id file", true, null,
-            new KVP(Param.EXT, "id"));
-    
-    private static final Logger log = Logger.getLogger("neo4j");
+		GraphDatabaseService db = new EmbeddedGraphDatabase(neodir.getAbsolutePath());
+		Neo4jSpatialDataStore dataStore = new Neo4jSpatialDataStore(db);
+
+		return dataStore;
+	}
+
+	public DataStore createNewDataStore(Map params) throws IOException {
+		throw new UnsupportedOperationException(
+				"Neo4j Spatial cannot create a new database!");
+	}
+
+	
+	/**
+	 * 
+	 */
+	public String getDisplayName() {
+		return "Neo4j";
+	}
+
+
+	/**
+	 * 
+	 */
+	public String getDescription() {
+		return "A datasource backed by a Neo4j Spatial datasource";
+	}
+
+
+	/**
+	 * 
+	 */
+	public boolean isAvailable() {
+		return true;
+	}
+
+	/*
+	 * @see org.geotools.data.DataStoreFactorySpi#getParametersInfo()
+	 */
+	public Param[] getParametersInfo() {
+		return new Param[] { DBTYPE, DIRECTORY };
+	}
+
 }

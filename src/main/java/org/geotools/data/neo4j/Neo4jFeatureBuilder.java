@@ -25,6 +25,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.log4j.Logger;
 import org.geotools.feature.AttributeTypeBuilder;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
@@ -48,19 +49,29 @@ import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
 
 public class Neo4jFeatureBuilder {
+	
+	private static final Logger LOG = Logger.getLogger(DefaultResourceInfo.class.getName());
+	
     private static final String FEATURE_PROP_GEOM = "the_geom";
     private final SimpleFeatureBuilder builder;
     private final List<String> extraPropertyNames;
-
+    
+	/**
+	 * 
+	 */
     public Neo4jFeatureBuilder(SimpleFeatureType sft, List<String> extraPropertyNames) {
         this.builder = new SimpleFeatureBuilder(sft);
         this.extraPropertyNames = extraPropertyNames;
     }
-
+	/**
+	 * 
+	 */
     public Neo4jFeatureBuilder(Layer layer) { 
         this(getTypeFromLayer(layer), Arrays.asList(layer.getExtraPropertyNames()));
     } 
-
+	/**
+	 * 
+	 */
     public SimpleFeature buildFeature(SpatialDatabaseRecord rec) {
         builder.reset();
         builder.set(FEATURE_PROP_GEOM, rec.getGeometry());
