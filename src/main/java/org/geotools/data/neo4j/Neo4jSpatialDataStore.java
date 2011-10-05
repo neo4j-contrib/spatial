@@ -61,11 +61,11 @@ import org.geotools.styling.StyleFactory;
 import org.geotools.styling.StyleFactoryImpl;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.EditableLayer;
-import org.neo4j.gis.spatial.EnvelopeUtils;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.LayerSearch;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
+import org.neo4j.gis.spatial.Utilities;
 import org.neo4j.gis.spatial.query.SearchAll;
 import org.neo4j.gis.spatial.query.SearchIntersect;
 import org.neo4j.gis.spatial.query.SearchIntersectWindow;
@@ -306,7 +306,7 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 	public ReferencedEnvelope getBounds(String typeName) {
     	ReferencedEnvelope result = boundsIndex.get(typeName);
     	if (result == null) {
-			Envelope bbox = EnvelopeUtils.fromNeo4jToJts(
+			Envelope bbox = Utilities.fromNeo4jToJts(
 					spatialDatabase.getLayer(typeName).getIndex().getBoundingBox());
 			result = convertEnvelopeToRefEnvelope(typeName, bbox);
 			boundsIndex.put(typeName, result);		
@@ -369,7 +369,7 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 			// query used in uDig Zoom and Pan
 			BBOX bbox = (BBOX) filter;
 			return getFeatureReader(typeName, new SearchIntersectWindow(
-					EnvelopeUtils.fromJtsToNeo4j(convertBBoxToEnvelope(bbox))));
+					Utilities.fromJtsToNeo4j(convertBBoxToEnvelope(bbox))));
 		} else if (filter instanceof IntersectsImpl) {
 			// query used in uDig Point Info
 			IntersectsImpl intersectFilter = (IntersectsImpl) filter;
@@ -384,7 +384,7 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 					return getFeatureReader(typeName, (IntersectsImpl) childFilter);
 				} else if (childFilter instanceof BBOX) {
 					return getFeatureReader(typeName, new SearchIntersectWindow(
-							EnvelopeUtils.fromJtsToNeo4j(convertBBoxToEnvelope((BBOX) childFilter))));
+							Utilities.fromJtsToNeo4j(convertBBoxToEnvelope((BBOX) childFilter))));
 				}
 			}
 		} else if (filter instanceof FidFilterImpl) {

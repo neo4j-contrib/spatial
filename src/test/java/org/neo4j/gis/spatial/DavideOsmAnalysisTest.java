@@ -223,7 +223,7 @@ public class DavideOsmAnalysisTest extends TestOSMImport {
 		imageExporter.setZoom(2.0);
 		imageExporter.setOffset(-0.2, 0.25);
 		imageExporter.setSize(1280, 800);
-		imageExporter.setStyleFiles(new String[] { "background.sld", "rank.sld" });
+		// TODO imageExporter.setStyleFiles(new String[] { "background.sld", "rank.sld" });
 
 		String[] layerPropertyNames = new String[]{"name", "timestamp", "user", "days", "user_rank"};
 		StringBuffer userParams = new StringBuffer();
@@ -254,7 +254,8 @@ public class DavideOsmAnalysisTest extends TestOSMImport {
 						break;
 				}
 			}
-			imageExporter.saveLayerImage(new String[] { osm, layerToExport.getName() }, new File(layerToExport.getName() + ".png"));
+			
+			// TODO imageExporter.saveLayerImage(new String[] { osm, layerToExport.getName() }, new File(layerToExport.getName() + ".png"));
 			//break;
 		}
 	}
