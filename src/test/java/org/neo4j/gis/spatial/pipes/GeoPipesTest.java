@@ -371,13 +371,17 @@ public class GeoPipesTest {
     	try {
 	    	Envelope envelope = new Envelope(-10, 50, -10, 50);
 	    	
-	    	FeatureCollection<SimpleFeatureType,SimpleFeature> features = startPipeline(intersectionLayer)
-	    		.windowIntersectionFilter(envelope)
-	    		.toStreamingFeatureCollection(envelope);
-	    	
 	    	StyledImageExporter exporter = new StyledImageExporter(graphdb);
 	    	exporter.setExportDir("target/export/");
+	    	
+	    	FeatureCollection<SimpleFeatureType,SimpleFeature> features = startPipeline(intersectionLayer)
+	    		.windowIntersectionFilter(envelope)
+	    		.toStreamingFeatureCollection(envelope);	    	
 	    	exporter.saveImage(features, StyledImageExporter.createDefaultStyle(), new File("intersectionLayer.png"));
+	    	
+	    	features = startPipeline(intersectionLayer)
+    			.toFeatureCollection();    	
+	    	exporter.saveImage(features, StyledImageExporter.createDefaultStyle(), new File("intersectionLayer2.png"));
     	} catch (IOException e) {
     		e.printStackTrace();
     		fail(e.getMessage());
