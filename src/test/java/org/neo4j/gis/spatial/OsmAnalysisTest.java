@@ -58,12 +58,12 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Coordinate;
 
-public class DavideOsmAnalysisTest extends TestOSMImport {
+public class OsmAnalysisTest extends TestOSMImport {
 	public static final String spatialTestMode = System.getProperty("spatial.test.mode");
 	public static final boolean usePoints = true;
 	public static final boolean useBatchInserter = false;
 
-	public DavideOsmAnalysisTest(String layerName) {
+	public OsmAnalysisTest(String layerName) {
 		super(layerName, usePoints, useBatchInserter);
 		setName("DavideOsmAnalysisTest: " + layerName);
 	}
@@ -105,7 +105,7 @@ public class DavideOsmAnalysisTest extends TestOSMImport {
 		for (final String layerName : layersToTest) {
 			for(final int y:years) {
 				for(final int d:days){
-					suite.addTest(new DavideOsmAnalysisTest(layerName) {
+					suite.addTest(new OsmAnalysisTest(layerName) {
 						public void runTest() {
 							try {
 								runAnalysis(layerName, y, d);
@@ -223,7 +223,7 @@ public class DavideOsmAnalysisTest extends TestOSMImport {
 		imageExporter.setZoom(2.0);
 		imageExporter.setOffset(-0.2, 0.25);
 		imageExporter.setSize(1280, 800);
-		// TODO imageExporter.setStyleFiles(new String[] { "background.sld", "rank.sld" });
+		imageExporter.setStyleFiles(new String[] { "background.sld", "rank.sld" });
 
 		String[] layerPropertyNames = new String[]{"name", "timestamp", "user", "days", "user_rank"};
 		StringBuffer userParams = new StringBuffer();
@@ -255,7 +255,7 @@ public class DavideOsmAnalysisTest extends TestOSMImport {
 				}
 			}
 			
-			// TODO imageExporter.saveLayerImage(new String[] { osm, layerToExport.getName() }, new File(layerToExport.getName() + ".png"));
+			imageExporter.saveLayerImage(new String[] { osm, layerToExport.getName() }, new File(layerToExport.getName() + ".png"));
 			//break;
 		}
 	}
