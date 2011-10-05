@@ -2,7 +2,6 @@ module NetworkHelpers
 
   require 'socket'
   require 'timeout'
-  require 'fileutils'
 
   def is_port_open?(ip, port)
     begin
@@ -70,8 +69,10 @@ module NetworkHelpers
     if (current_platform.unix?)
       exec_wait("unzip -o #{full_archive_name} -d #{target}")
     elsif (current_platform.windows?)
-      exec_wait("cmd /c " + fix_file_sep(File.expand_path("../../support/unzip.vbs", __FILE__)) + " " +
-                    fix_file_sep(full_archive_name) + " " + target)
+      unzip_them_all = UnZipThemAll.new(full_archive_name, target) 
+      unzip_them_all.unzip
+#      exec_wait("cmd /c " + fix_file_sep(File.expand_path("../../support/unzip.vbs", __FILE__)) + " " +
+#                   fix_file_sep(full_archive_name) + " " + target)
     else
       raise 'platform not supported'
     end

@@ -4,6 +4,7 @@ require 'features/support/shell_helpers'
 require 'features/support/network_helpers'
 require 'features/support/platform_helpers'
 require 'features/support/neo4j_helpers'
+require 'features/support/unzip'
 
 World(ShellHelpers, NetworkHelpers, PlatformHelpers, Neo4JHelpers)
 
