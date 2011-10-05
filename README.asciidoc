@@ -15,8 +15,8 @@ Some key features include:
 * The possibility to enable spatial operations on any graph of data, regardless of the way the spatial data is stored, as long as an adapter is provided to map from the graph to the geometries.
 * Ability to split a single layer or dataset into multiple sub-layers or views with pre-configured filters
 
-Index and Querying
-------------------
+== Index and Querying ==
+
 
 The current index is an RTree index, but it has been developed in an extensible way allowing for other indices to be added if necessary.
 The spatial queries implemented are:
@@ -33,8 +33,7 @@ The spatial queries implemented are:
 * Within
 * Within Distance
  
-Building
---------
+== Building ==
 
 The simplest way to build Neo4j Spatial is by using maven. Just clone the git repository and run 
   
@@ -47,8 +46,7 @@ The main dependencies are:
 * JTS 1.10
 * Geotools 2.7 (not all of geotools, but at least api, main, shapefile, metadata, render)
 
-Layers and GeometryEncoders
----------------------------
+== Layers and GeometryEncoders ==
 
 The primary type that defines a collection of geometries is the Layer. A layer contains an index for querying. In addition a Layer can be an EditableLayer if it is possible to add and modify geometries in the layer. The next most important interface is the GeometryEncoder.
 
@@ -56,27 +54,27 @@ The DefaultLayer is the standard layer, making use of the WKBGeometryEncoder for
 
 The OSMLayer is a special layer supporting Open Street Map and storing the OSM model as a single fully connected graph. The set of Geometries provided by this layer includes Points, LineStrings and Polygons, and as such cannot be exported to Shapefile format, since that format only allows a single Geometry per layer. However, OMSLayer extends DynamicLayer, which allow it to provide any number of sub-layers, each with a specific geometry type and in addition based on a OSM tag filter. For example you can have a layer providing all cycle paths as LineStrings, or a layer providing all lakes as Polygons. Underneath these are all still backed by the same fully connected graph, but exposed dynamically as apparently separate geometry layers.
 
-Examples
-========
+== Examples ==
 
-Importing a shapefile
----------------------
+=== Importing a shapefile ===
 
 Spatial data is divided in Layers and indexed by a RTree.
 
-    GraphDatabaseService database = new EmbeddedGraphDatabase(storeDir);
+----
+GraphDatabaseService database = new EmbeddedGraphDatabase(storeDir);
 	try {
 		ShapefileImporter importer = new ShapefileImporter(database);
 	    importer.importShapefile("roads.shp", "layer_roads");
 	} finally {
 		database.shutdown();
 	}
+----
 
-Importing an Open Street Map file
----------------------------------
+=== Importing an Open Street Map file ===
 
 This is more complex because the current OSMImporter class runs in two phases, the first requiring a batch-inserter on the database. The is ongoing work to allow for a non-batch-inserter on the entire process, and possibly when you have read this that will already be available. Refer to the unit tests in classes TestDynamicLayers and TestOSMImport for the latest code for importing OSM data. At the time of writing the following worked:
 
+----
 	OSMImporter importer = new OSMImporter("sweden");
 
 	BatchInserter batchInserter = new BatchInserterImpl(dir, config);
@@ -86,11 +84,11 @@ This is more complex because the current OSMImporter class runs in two phases, t
     GraphDatabaseService db = new EmbeddedGraphDatabase(dir);
 	importer.reIndex(db, 10000);
 	db.shutdown();
+----
 
+=== Executing a spatial query ===
 
-Executing a spatial query
--------------------------
-
+----
 	GraphDatabaseService database = new EmbeddedGraphDatabase(storeDir);
 	try {
     	SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
@@ -103,23 +101,89 @@ Executing a spatial query
 	} finally {
 		database.shutdown();
 	}
+----
 
 Refer to the test code in the LayerTest and the SpatialTest classes for more examples of query code. Also review the classes in the org.neo4j.gis.spatial.query package for the full range or search queries currently implemented.
 
-Using Neo4j Spatial with GeoServer
-----------------------------------
-For more info head over to [Neo4j Wiki on Geoserver](http://wiki.neo4j.org/content/Neo4j_Spatial_in_GeoServer)
+== Neo4j Spatial Geoserver Plugin ==
+
+[IMPORTANT]
+Tested with: GeoServer 2.1.1
+
+=== Building ===
+
+----
+mvn clean install
+----
+
+=== Deployment into Geoserver ===
+
+* unzip the +target/xxxx-server-plugin.zip+ into $GEOSERVER_HOME/webapps/geoserver/WEB-INF/lib
+
+* restart geoserver
+
+* configure a new workspace
+
+* configure a new datasource neo4j in your workspace. Point the "The directory path of the Neo4j database:" parameter to the relative (form the GeoServer working dir) or aboslute path to a Neo4j Spatial database with layers (see https://github.com/neo4j/spatial[Neo4j Spatial])
+
+* in Layers, do "Add new resource" and choose your Neo4j datastore to see the exisitng Neo4j Spatial layers and add them.
+
+=== Testing in GeoServer trunk ===
+
+* check out the geoserver source
+
+----
+svn co https://svn.codehaus.org/geoserver/trunk geoserver-trunk
+----
+
+* build the source
+
+----
+cd geoserver-trunk
+mvn clean install
+----
+
+* check that you can run the web app as of http://docs.geoserver.org/latest/en/developer/maven-guide/index.html#running-the-web-module-with-jetty[The GeoServer Maven build guide]
+
+----
+cd src/web/app
+mvn jetty:run
+----
+
+* in $GEOSERVER_SOURCE/src/web/app/pom.xml (https://svn.codehaus.org/geoserver/trunk/src/web/app/pom.xml), add the following lines under the profiles section:
+
+----
+    <profile>
+      <id>neo4j</id>
+      <dependencies>
+        <dependency>
+          <groupId>org.geotools</groupId>
+          <artifactId>gt-neo4j-spatial</artifactId>
+          <version>0.7-SNAPSHOT</version>
+        </dependency>
+      </dependencies>
+    </profile>
+----
+
+* start the GeoServer webapp again with the added neo4j profile
+
+----
+cd $GEOSERVER_SRC/src/web/app
+mvn jetty:run -Pneo4j
+----
+
+* find Neo4j installed as a datasource under http://localhost:8080
 
 
-Using Neo4j Spatial with uDig
-----------------------------------
+== Using Neo4j Spatial with uDig ==
+
 For more info head over to [Neo4j Wiki on uDig](http://wiki.neo4j.org/content/Neo4j_Spatial_in_uDig)
 
-Using the Neo4j Spatial Server plugin
--------------------------------------
+== Using the Neo4j Spatial Server plugin ==
 
 Neo4j Spatial is also packaged as a ZIP file that can be unzipped into the Neo4j Server /plugin directory. After restarting the server, you should be able to do things liek the following REST calls (here illustrated using `curl`)
 
+----
     curl http://localhost:7474/db/data/
   
     {
@@ -161,19 +225,25 @@ Neo4j Spatial is also packaged as a ZIP file that can be unzipped into the Neo4j
       "all_relationships" : "http://localhost:7474/db/data/node/2/relationships/all",
       "incoming_typed_relationships" : "http://localhost:7474/db/data/node/2/relationships/in/{-list|&|types}"
     } ]
-    
-Building Neo4j spatial
-----------------------
-  
+----
+
+== Building Neo4j spatial ==
+
+----  
     git clone https://github.com/neo4j/spatial.git
     cd spatial
     mvn clean package
+----
 
 Integration-Testing the Neo4j-Spatial Server Plugin
 
+----
     source ./setenv.sh
     rake
+----
 
 or
 
+----
     mvn integration-test -Dcucumber.installGems=true -Pqa-test
+----
