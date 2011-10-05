@@ -39,11 +39,6 @@ The simplest way to build Neo4j Spatial is by using maven. Just clone the git re
   mvn install
   
 This will download all dependencies, compiled the library, run the tests and install the artifact in your local repository.
-The main dependencies are:
-
-* Neo4j 1.3M02 (at the time of writing, with trunk build of 0.4-SNAPSHOT)
-* JTS 1.10
-* Geotools 2.7 (not all of geotools, but at least api, main, shapefile, metadata, render)
 
 == Layers and GeometryEncoders ==
 
@@ -156,8 +151,8 @@ mvn jetty:run
       <id>neo4j</id>
       <dependencies>
         <dependency>
-          <groupId>org.geotools</groupId>
-          <artifactId>gt-neo4j-spatial</artifactId>
+          <groupId>org.neo4j</groupId>
+          <artifactId>neo4j-spatial</artifactId>
           <version>0.7-SNAPSHOT</version>
         </dependency>
       </dependencies>
