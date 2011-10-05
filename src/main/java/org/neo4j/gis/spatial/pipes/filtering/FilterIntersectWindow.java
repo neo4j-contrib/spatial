@@ -36,7 +36,11 @@ public class FilterIntersectWindow extends AbstractFilterGeoPipe {
 	private Geometry envelopeGeom;
 	
 	public FilterIntersectWindow(GeometryFactory geomFactory, double xmin, double ymin, double xmax, double ymax) {
-		this.envelope = new Envelope(xmin, xmax, ymin, ymax);
+		this(geomFactory, new Envelope(xmin, xmax, ymin, ymax));
+	}
+	
+	public FilterIntersectWindow(GeometryFactory geomFactory, Envelope envelope) {
+		this.envelope = envelope;
 		this.envelopeGeom = geomFactory.toGeometry(envelope);
 	}	
 	
