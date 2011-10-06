@@ -34,7 +34,7 @@ public class ExtractGeometries extends AbstractExtractGeoPipe {
 		} else {
 			int numGeom = pipeFlow.getGeometry().getNumGeometries();
 			for (int i = 0; i < numGeom; i++) {
-				GeoPipeFlow newGeom = pipeFlow.makeClone();
+				GeoPipeFlow newGeom = pipeFlow.makeClone("geometry" + i);
 				newGeom.setGeometry(pipeFlow.getGeometry().getGeometryN(i));
 				extracts.add(newGeom);
 			}

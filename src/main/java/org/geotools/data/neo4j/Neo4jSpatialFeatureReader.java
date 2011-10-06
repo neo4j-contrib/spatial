@@ -28,6 +28,7 @@ import org.geotools.data.FeatureReader;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import org.neo4j.gis.spatial.SpatialRecord;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 
@@ -99,7 +100,7 @@ public class Neo4jSpatialFeatureReader implements FeatureReader<SimpleFeatureTyp
 	    	}
 	    }
 	        
-	    return builder.buildFeature(Long.toString(record.getId()));						
+	    return builder.buildFeature(record.getId());						
 	}
 	
 	/**

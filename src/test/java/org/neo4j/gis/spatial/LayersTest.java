@@ -88,7 +88,7 @@ public class LayersTest extends Neo4jTestCase
                 new Coordinate( 15.3, 56.2 ) ) );
         assertNotNull( record );
         // try to remove the geometry
-        layer.delete( record.getId() );
+        layer.delete( record.getNodeId() );
     }
 
     

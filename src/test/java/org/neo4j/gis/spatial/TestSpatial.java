@@ -277,7 +277,7 @@ public class TestSpatial extends Neo4jTestCase {
                         props.append(prop + ": " + r.getProperty(prop));
                     }
                     
-                    System.out.println("\tRTreeIndex result[" + ri + "]: " + r.getId() + ":" + r.getType() + " - " + r.toString() + ": PROPS["+props+"]");
+                    System.out.println("\tRTreeIndex result[" + ri + "]: " + r.getNodeId() + ":" + r.getType() + " - " + r.toString() + ": PROPS["+props+"]");
                 } else if (ri == 10) {
                     // System.out.println("\t.. and " + (count - ri) + " more ..");
                 }
@@ -298,7 +298,7 @@ public class TestSpatial extends Neo4jTestCase {
                         } */
                     }
                 } else {
-                    System.err.println("\tNo name or id in RTreeIndex result: " + r.getId() + ":" + r.getType() + " - "
+                    System.err.println("\tNo name or id in RTreeIndex result: " + r.getNodeId() + ":" + r.getType() + " - "
                             + r.toString());
                 }
             }

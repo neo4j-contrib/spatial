@@ -35,7 +35,11 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 	
 	// Public methods
 	
-	public long getId() {
+	public String getId() {
+		return Long.toString(geomNode.getId());
+	}
+	
+	public long getNodeId() {
 		return geomNode.getId();
 	}
 	
@@ -129,11 +133,11 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 		if (!(anotherObject instanceof SpatialDatabaseRecord)) return false;
 		
 		SpatialDatabaseRecord anotherRecord = (SpatialDatabaseRecord) anotherObject;
-		return getId() == anotherRecord.getId();
+		return getNodeId() == anotherRecord.getNodeId();
 	}
 	
 	public String toString() {
-	    return "SpatialDatabaseRecord[" + getId() + "]: type='" + getType() + "', props[" + getPropString() + "]";
+	    return "SpatialDatabaseRecord[" + getNodeId() + "]: type='" + getType() + "', props[" + getPropString() + "]";
 	}
 
 	

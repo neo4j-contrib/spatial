@@ -67,12 +67,13 @@ public class ExtractOSMPoints extends AbstractExtractGeoPipe {
 				.add(OSMRelation.NODE, Direction.OUTGOING))
 				.uniqueness(Uniqueness.NODE_PATH);
 		
+		int counter = 0;
 		for (Path path : td.traverse(node)) {
 			Node pointNode = path.endNode();
 			double longitude = (Double) pointNode.getProperty("lon");
 			double latitude = (Double) pointNode.getProperty("lat");
 			
-			GeoPipeFlow newPoint = pipeFlow.makeClone();
+			GeoPipeFlow newPoint = pipeFlow.makeClone("osmpoint" + counter++);
 			newPoint.setGeometry(geomFactory.createPoint(new Coordinate(longitude, latitude)));
 			extracts.add(newPoint);			
 		}

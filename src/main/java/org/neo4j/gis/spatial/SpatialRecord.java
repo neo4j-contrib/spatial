@@ -23,6 +23,8 @@ import com.vividsolutions.jts.geom.Geometry;
 
 public interface SpatialRecord {
 
+	String getId();
+	
 	Geometry getGeometry();
 
 	boolean hasProperty(String name);

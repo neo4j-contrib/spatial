@@ -36,7 +36,7 @@ public class TestRemove extends Neo4jTestCase {
         
         long[] ids = new long[rtreeMaxNodeReferences + 1];
         for (int i = 0; i < ids.length; i++) {
-        	ids[i] = layer.add(geomFactory.createPoint(new Coordinate(i, i))).getId();
+        	ids[i] = layer.add(geomFactory.createPoint(new Coordinate(i, i))).getNodeId();
         }
 
         debugIndexTree((LayerRTreeIndex) layer.getIndex());        

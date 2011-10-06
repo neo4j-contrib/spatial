@@ -39,7 +39,7 @@ public class ExtractPoints extends AbstractExtractGeoPipe {
 	protected void extract(GeoPipeFlow pipeFlow) {
 		int numPoints = pipeFlow.getGeometry().getCoordinates().length;
 		for (int i = 0; i < numPoints; i++) {
-			GeoPipeFlow newPoint = pipeFlow.makeClone();
+			GeoPipeFlow newPoint = pipeFlow.makeClone("point" + i);
 			newPoint.setGeometry(geomFactory.createPoint(pipeFlow.getGeometry().getCoordinates()[i]));
 			extracts.add(newPoint);
 		}

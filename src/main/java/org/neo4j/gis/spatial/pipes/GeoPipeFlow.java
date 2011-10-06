@@ -33,15 +33,18 @@ import com.vividsolutions.jts.geom.Geometry;
 
 public class GeoPipeFlow implements SpatialRecord {
 
+	private String id;
 	private List<SpatialDatabaseRecord> records = new ArrayList<SpatialDatabaseRecord>();
 	private Geometry geometry;
 	private Envelope geometryEnvelope;
 	private Map<String,Object> properties = new HashMap<String,Object>();
 	
-	private GeoPipeFlow() {
+	private GeoPipeFlow(String id) {
+		this.id = id;
 	}
 	
 	public GeoPipeFlow(SpatialDatabaseRecord record) {
+		this.id = Long.toString(record.getNodeId());
 		this.records.add(record);
 		this.geometry = record.getGeometry();
 	}
@@ -56,6 +59,11 @@ public class GeoPipeFlow implements SpatialRecord {
 	
 	public List<SpatialDatabaseRecord> getRecords() {
 		return records;
+	}
+	
+	@Override
+	public String getId() {
+		return id;
 	}
 	
 	@Override
@@ -95,12 +103,13 @@ public class GeoPipeFlow implements SpatialRecord {
 	
 	public void merge(GeoPipeFlow other) {
 		records.addAll(other.records);
+		// TODO id?
 		// TODO properties?
 	}
 	
-	public GeoPipeFlow makeClone() {
+	public GeoPipeFlow makeClone(String idSuffix) {
 		// we don't need a deeper copy at the moment
-		GeoPipeFlow clone = new GeoPipeFlow();
+		GeoPipeFlow clone = new GeoPipeFlow(id + "-" + idSuffix);
 		clone.records.addAll(records);
 		clone.geometry = geometry;
 		clone.getProperties().putAll(getProperties());
