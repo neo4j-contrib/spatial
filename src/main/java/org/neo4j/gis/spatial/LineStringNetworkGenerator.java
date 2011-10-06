@@ -19,9 +19,9 @@
  */
 package org.neo4j.gis.spatial;
 
-import java.util.List;
+import java.util.Iterator;
 
-import org.neo4j.gis.spatial.query.SearchIntersect;
+import org.neo4j.gis.spatial.filter.SearchIntersect;
 import org.neo4j.graphdb.Node;
 
 import com.vividsolutions.jts.geom.Geometry;
@@ -32,9 +32,7 @@ import com.vividsolutions.jts.geom.MultiLineString;
 /**
  * Creates a Network of LineStrings.
  * If a LineString start point or end point is equal to some other LineString start point or end point, 
- * the two LineStrings are connected together with a Relationship. 
- * 
- * @author Davide Savazzi
+ * the two LineStrings are connected together with a Relationship.
  */
 public class LineStringNetworkGenerator {
 
@@ -97,15 +95,14 @@ public class LineStringNetworkGenerator {
 	protected void addEdgePoint(Node edge, Geometry edgePoint) {
 		if (buffer != null) edgePoint = edgePoint.buffer(buffer.doubleValue());
 		
-		LayerSearch search = new SearchIntersect(edgePoint);
-		pointsLayer.getIndex().executeSearch(search);
-		List<SpatialDatabaseRecord> results = search.getExtendedResults();
-		if (results.size() == 0) {
+		Iterator<SpatialDatabaseRecord> results = pointsLayer.getIndex().search(
+				new SearchIntersect(pointsLayer, edgePoint));
+		if (!results.hasNext()) {
 			SpatialDatabaseRecord point = pointsLayer.add(edgePoint);
 			edge.createRelationshipTo(point.getGeomNode(), SpatialRelationshipTypes.NETWORK);
 		} else {
-			for (SpatialDatabaseRecord point : results) {
-				edge.createRelationshipTo(point.getGeomNode(), SpatialRelationshipTypes.NETWORK);
+			while (results.hasNext()) {
+				edge.createRelationshipTo(results.next().getGeomNode(), SpatialRelationshipTypes.NETWORK);
 			}
 		}
 	}

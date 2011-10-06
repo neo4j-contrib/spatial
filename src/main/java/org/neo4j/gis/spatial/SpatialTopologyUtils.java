@@ -21,10 +21,11 @@ package org.neo4j.gis.spatial;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.Map;
 
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.neo4j.gis.spatial.query.SearchIntersect;
+import org.neo4j.gis.spatial.filter.SearchIntersect;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
@@ -35,6 +36,7 @@ import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.linearref.LengthIndexedLine;
 import com.vividsolutions.jts.linearref.LinearLocation;
 import com.vividsolutions.jts.linearref.LocationIndexedLine;
+
 
 /**
  * This class is a temporary location for collecting a number of spatial
@@ -113,12 +115,12 @@ public class SpatialTopologyUtils {
 		return findClosestEdges(point, layer, factory.toGeometry(search));
 	}
 
-	public static ArrayList<PointResult> findClosestEdges(Point point,
-			Layer layer, Geometry filter) {
+	public static ArrayList<PointResult> findClosestEdges(Point point, Layer layer, Geometry filter) {
 		ArrayList<PointResult> results = new ArrayList<PointResult>();
-		LayerSearch searchQuery = new SearchIntersect(filter);
-		layer.getIndex().executeSearch(searchQuery);
-		for (SpatialDatabaseRecord record : searchQuery.getExtendedResults()) {
+		
+		Iterator<SpatialDatabaseRecord> records = layer.getIndex().search(new SearchIntersect(layer, filter));
+		while (records.hasNext()) {
+			SpatialDatabaseRecord record = records.next();
 			Geometry geom = record.getGeometry();
 			if (geom instanceof LineString) {
 				LocationIndexedLine line = new LocationIndexedLine(geom);

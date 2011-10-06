@@ -28,8 +28,7 @@ import org.neo4j.gis.spatial.EditableLayer;
 import org.neo4j.gis.spatial.LayerSearch;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
-import org.neo4j.gis.spatial.query.SearchPointsWithinOrthodromicDistance;
-import org.neo4j.gis.spatial.query.SearchWithin;
+import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.index.Index;
@@ -121,12 +120,11 @@ public class LayerNodeIndex implements Index<Node>
         {
             Map<?, ?> p = (Map<?, ?>) params;
             Double[] bounds = (Double[]) p.get( ENVELOPE_PARAMETER );
-            SearchWithin withinQuery = new SearchWithin(
-                    layer.getGeometryFactory().toGeometry(
-                            new Envelope( bounds[0], bounds[1], bounds[2],
-                                    bounds[3] ) ) );
-            layer.getIndex().executeSearch( withinQuery );
-            List<SpatialDatabaseRecord> res = withinQuery.getExtendedResults();
+            
+            List<SpatialDatabaseRecord> res = GeoPipeline
+            	.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(bounds[0], bounds[1], bounds[2], bounds[3])))
+            	.toSpatialDatabaseRecordList();
+            
             IndexHits<Node> results = new SpatialRecordHits( res );
             return results;
         }
@@ -135,10 +133,12 @@ public class LayerNodeIndex implements Index<Node>
             Map<?, ?> p = (Map<?, ?>) params;
             Double[] point = (Double[]) p.get( POINT_PARAMETER );
             Double distance = (Double) p.get( DISTANCE_IN_KM_PARAMETER );
-            LayerSearch withinDistanceQuery = new SearchPointsWithinOrthodromicDistance(
-                    new Coordinate( point[1], point[0] ), distance );
-            layer.getIndex().executeSearch( withinDistanceQuery );
-            List<SpatialDatabaseRecord> res = withinDistanceQuery.getExtendedResults();
+            
+            List<SpatialDatabaseRecord> res = GeoPipeline
+            	.startNearestNeighborLatLonSearch(layer, new Coordinate(point[1], point[0]), distance)
+            	.sort("OrthodromicDistance")
+            	.toSpatialDatabaseRecordList();
+            
             IndexHits<Node> results = new SpatialRecordHits( res );
             return results;
         }
@@ -148,12 +148,11 @@ public class LayerNodeIndex implements Index<Node>
             try
             {
                 coords = (List<Double>) new JSONParser().parse( (String) params );
-                SearchWithin withinQuery = new SearchWithin(
-                        layer.getGeometryFactory().toGeometry(
-                                new Envelope( coords.get( 0 ), coords.get( 1 ),
-                                        coords.get( 2 ), coords.get( 3 ) ) ) );
-                layer.getIndex().executeSearch( withinQuery );
-                List<SpatialDatabaseRecord> res = withinQuery.getExtendedResults();
+                
+                List<SpatialDatabaseRecord> res = GeoPipeline
+                	.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(coords.get(0), coords.get(1), coords.get(2), coords.get(3))))
+                	.toSpatialDatabaseRecordList();
+                	
                 IndexHits<Node> results = new SpatialRecordHits( res );
                 return results;
             }
