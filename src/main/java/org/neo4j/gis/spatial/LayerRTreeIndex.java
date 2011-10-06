@@ -25,7 +25,6 @@ import java.util.Set;
 
 import org.neo4j.collections.rtree.RTreeIndex;
 import org.neo4j.collections.rtree.filter.SearchFilter;
-import org.neo4j.collections.rtree.search.Search;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -37,8 +36,6 @@ import org.neo4j.graphdb.Node;
  * support. In addition it implements SpatialTreeIndex which allows it to be
  * wrapped with modifying search functions to that custom classes can be used to
  * perform filtering searches on the tree.
- * 
- * @author Davide Savazzi
  */
 public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader, Constants {
 
@@ -79,19 +76,7 @@ public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader,
 		}
 		return results;
 	}
-	
-	/**
-	 * @deprecated
-	 */
-	@Override
-	public void executeSearch(Search search) {
-		if (LayerSearch.class.isAssignableFrom(search.getClass())) {
-			((LayerSearch) search).setLayer(getLayer());
-		}
 		
-		super.executeSearch(search);
-	}	
-	
 	@Override
 	public SearchRecords search(SearchFilter filter) {
 		return new SearchRecords(layer, searchIndex(filter));

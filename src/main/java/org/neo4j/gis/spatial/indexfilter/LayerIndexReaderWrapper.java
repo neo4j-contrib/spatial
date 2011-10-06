@@ -26,7 +26,6 @@ import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.collections.rtree.EnvelopeDecoder;
 import org.neo4j.collections.rtree.filter.SearchFilter;
 import org.neo4j.collections.rtree.filter.SearchResults;
-import org.neo4j.collections.rtree.search.Search;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.LayerIndexReader;
 import org.neo4j.gis.spatial.LayerTreeIndexReader;
@@ -64,14 +63,6 @@ public class LayerIndexReaderWrapper implements LayerIndexReader {
 	@Override
 	public int count() {
 		return index.count();
-	}
-
-	/**
-	 * @deprecated
-	 */
-	@Override
-	public void executeSearch(Search search) {
-		index.executeSearch(search);
 	}
 
 	@Override

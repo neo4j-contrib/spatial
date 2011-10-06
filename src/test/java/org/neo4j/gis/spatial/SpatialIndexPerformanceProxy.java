@@ -22,14 +22,12 @@ package org.neo4j.gis.spatial;
 import java.util.List;
 import java.util.Set;
 
-import org.neo4j.gis.spatial.filter.SearchRecords;
-import org.neo4j.graphdb.Node;
-
 import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.collections.rtree.EnvelopeDecoder;
 import org.neo4j.collections.rtree.filter.SearchFilter;
 import org.neo4j.collections.rtree.filter.SearchResults;
-import org.neo4j.collections.rtree.search.Search;
+import org.neo4j.gis.spatial.filter.SearchRecords;
+import org.neo4j.graphdb.Node;
 
 
 /**
@@ -80,20 +78,7 @@ public class SpatialIndexPerformanceProxy implements LayerIndexReader {
         System.out.println("# exec time(get(" + geomNodeIds + ")): " + (stop - start) + "ms");    	
         return result;
     }
-    
-    public void executeSearch(Search search) {
-        long start = System.currentTimeMillis();
-        
-        if (LayerSearch.class.isAssignableFrom(LayerSearch.class)) {
-			((LayerSearch) search).setLayer(getLayer());
-		}
-        
-        spatialIndex.executeSearch(search);
-        
-        long stop = System.currentTimeMillis();
-        System.out.println("# exec time(executeSearch(" + search + ")): " + (stop - start) + "ms");
-    }
-
+ 
     public Iterable<Node> getAllGeometryNodes() {
 	    return spatialIndex.getAllIndexedNodes();
     }
