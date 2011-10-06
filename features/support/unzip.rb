@@ -11,10 +11,11 @@ class UnZipThemAll
         end
 
         def unzip
-                if File.exists?( self.zip_file_path ) == false
-                        puts "Zip file #{self.zip_file_path} does not exist!"
-                        return
-                end
+          puts "unzipping #{self.zip_file_path} to #{self.to_folder_path}"
+          if File.exists?( self.zip_file_path ) == false
+           puts "Zip file #{self.zip_file_path} does not exist!"
+           return
+          end
 
                 if File.exists?( self.to_folder_path ) == false
                         FileUtils.mkdir( self.to_folder_path )

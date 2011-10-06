@@ -53,7 +53,7 @@ module NetworkHelpers
         puts target+" not modified - download skipped"
       end
     elsif (location.scheme == "file") then
-      copy_file(location.path, target)
+      copy_file(location.to_s["file:".length, location.to_s.length], target)
     else
       puts "trying to copy #{location.to_s}"
       copy_file(location.to_s, target)
@@ -66,16 +66,8 @@ module NetworkHelpers
   end
 
   def unzip(full_archive_name, target)
-    if (current_platform.unix?)
-      exec_wait("unzip -o #{full_archive_name} -d #{target}")
-    elsif (current_platform.windows?)
       unzip_them_all = UnZipThemAll.new(full_archive_name, target) 
       unzip_them_all.unzip
-#      exec_wait("cmd /c " + fix_file_sep(File.expand_path("../../support/unzip.vbs", __FILE__)) + " " +
-#                   fix_file_sep(full_archive_name) + " " + target)
-    else
-      raise 'platform not supported'
-    end
   end
 
   def exec_wait(cmd)
