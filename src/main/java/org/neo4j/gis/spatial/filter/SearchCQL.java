@@ -27,26 +27,34 @@ import org.neo4j.collections.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import org.neo4j.gis.spatial.Utilities;
 import org.neo4j.graphdb.Node;
 import org.opengis.feature.simple.SimpleFeature;
 
 /**
  * Find geometries that have at least one point in common with the given
  * geometry
- * 
- * @author Davide Savazzi
- * @author Craig Taverner
  */
 public class SearchCQL implements SearchFilter {
+	
 	private Neo4jFeatureBuilder featureBuilder;
 	private Layer layer;
 	private org.opengis.filter.Filter filter;
-
+	private Envelope filterEnvelope;
+	
+	public SearchCQL(Layer layer, org.opengis.filter.Filter filter) {
+		this.layer = layer;
+		this.featureBuilder = new Neo4jFeatureBuilder(layer);
+		this.filter = filter;	
+	    this.filterEnvelope = Utilities.extractEnvelopeFromFilter(filter);		
+	}
+	
 	public SearchCQL(Layer layer, String cql) {
 		this.layer = layer;
 		this.featureBuilder = new Neo4jFeatureBuilder(layer);
 		try {
-			filter = ECQL.toFilter(cql);
+			this.filter = ECQL.toFilter(cql);
+		    this.filterEnvelope = Utilities.extractEnvelopeFromFilter(filter);					
 		} catch (CQLException e) {
 			throw new SpatialDatabaseException("CQLException: " + e.getMessage());
 		}
@@ -54,7 +62,7 @@ public class SearchCQL implements SearchFilter {
 
 	@Override
 	public boolean needsToVisit(Envelope envelope) {
-		return true;
+        return filterEnvelope == null || filterEnvelope.intersects(envelope);
 	}
 
 	@Override
