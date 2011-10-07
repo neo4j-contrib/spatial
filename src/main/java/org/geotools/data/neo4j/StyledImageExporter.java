@@ -40,7 +40,6 @@ import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.geotools.map.DefaultMapContext;
 import org.geotools.map.FeatureLayer;
 import org.geotools.map.MapContent;
 import org.geotools.renderer.lite.StreamingRenderer;
@@ -175,43 +174,20 @@ public class StyledImageExporter {
 		String[] layerNames = new String[] { layerName };
 		saveLayerImage(layerNames, sldFile, imagefile, bounds);
 	}
-
-	private RenderingHints getRenderingHints() {
-		RenderingHints hints = new RenderingHints(KEY_ANTIALIASING, VALUE_ANTIALIAS_ON);
-		hints.put(KEY_TEXT_ANTIALIASING, VALUE_TEXT_ANTIALIAS_ON);	
-		return hints;
-	}
-	
-	private BufferedImage render(StreamingRenderer renderer, Rectangle displaySize, ReferencedEnvelope bounds) {
-		BufferedImage image = new BufferedImage(displaySize.width, displaySize.height, BufferedImage.TYPE_INT_ARGB);		
-		Graphics2D graphics = image.createGraphics();
-		renderer.paint(graphics, displaySize, bounds);
-		graphics.dispose();
-		return image;
-	}
 	
 	public void saveImage(FeatureCollection<SimpleFeatureType,SimpleFeature> features, String sldFile, File imagefile) throws IOException {
 		saveImage(features, getStyleFromSLDFile(sldFile), imagefile);
 	}
 
 	public void saveImage(FeatureCollection<SimpleFeatureType,SimpleFeature> features, Style style, File imagefile) throws IOException {
-		if (displaySize == null)
-			displaySize = new Rectangle(0, 0, 800, 600);
-		
 		MapContent mapContent = new MapContent();
 		mapContent.addLayer(new FeatureLayer(features, style));
-		
-		StreamingRenderer renderer = new StreamingRenderer();
-		renderer.setJava2DHints(getRenderingHints());		
-		renderer.setMapContent(mapContent);
-		
-		ImageIO.write(render(renderer, displaySize, features.getBounds()), "png", checkFile(imagefile));
+		saveMapContentToImageFile(mapContent, imagefile, features.getBounds());
 	}
 		
 	public void saveLayerImage(String[] layerNames, String sldFile, File imagefile, ReferencedEnvelope bounds) throws IOException {
-		imagefile = checkFile(imagefile);
 		DataStore store = new Neo4jSpatialDataStore(db);
-		//debugStore(store, layerNames);
+		// debugStore(store, layerNames);
 		StringBuffer names = new StringBuffer();
 		for (String name : layerNames) {
 			if (names.length() > 0)
@@ -222,25 +198,29 @@ public class StyledImageExporter {
 
 		Style style = getStyleFromSLDFile(sldFile);
 
-		DefaultMapContext context = new DefaultMapContext();
+		MapContent mapContent = new MapContent();
 		for (int i = 0; i < layerNames.length; i++) {
 			SimpleFeatureSource featureSource = store.getFeatureSource(layerNames[i]);
 			Style featureStyle = style;
-			if(featureStyle == null) {
+			if (featureStyle == null) {
 				featureStyle = getStyle(i);
-			}			
+			}
+			
 			if (featureStyle == null) {
 				featureStyle = createStyleFromGeometry((SimpleFeatureType) featureSource.getSchema());
 				System.out.println("Created style from geometry '" + featureSource.getSchema().getGeometryDescriptor().getType() + "': " + featureStyle);
 			}
-			context.addLayer(new org.geotools.map.FeatureLayer(featureSource, featureStyle));
+			
+			mapContent.addLayer(new org.geotools.map.FeatureLayer(featureSource, featureStyle));
+			
 			if (bounds == null) {
 				bounds = featureSource.getBounds();
 			} else {
 				bounds.expandToInclude(featureSource.getBounds());
 			}
 		}
-		saveContextToImageFile(context, imagefile, bounds);
+		
+		saveMapContentToImageFile(mapContent, imagefile, bounds);
 	}
 
 	private Style getStyleFromSLDFile(String sldFile) {
@@ -253,27 +233,27 @@ public class StyledImageExporter {
 		return style;
 	}
 
-	private void saveContextToImageFile(DefaultMapContext context, File imagefile, ReferencedEnvelope bounds) throws IOException {
+	private void saveMapContentToImageFile(MapContent mapContent, File imagefile, ReferencedEnvelope bounds) throws IOException {
 		bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
 		if (displaySize == null)
 			displaySize = new Rectangle(0, 0, 800, 600);
 
-		BufferedImage image = new BufferedImage(displaySize.width, displaySize.height, BufferedImage.TYPE_INT_ARGB);
-
-		StreamingRenderer renderer = new StreamingRenderer();
 		RenderingHints hints = new RenderingHints(KEY_ANTIALIASING, VALUE_ANTIALIAS_ON);
-		hints.put(KEY_TEXT_ANTIALIASING, VALUE_TEXT_ANTIALIAS_ON);
-		renderer.setJava2DHints(hints);
-		renderer.setContext(context);
+		hints.put(KEY_TEXT_ANTIALIASING, VALUE_TEXT_ANTIALIAS_ON);			
 
+		BufferedImage image = new BufferedImage(displaySize.width, displaySize.height, BufferedImage.TYPE_INT_ARGB);		
 		Graphics2D graphics = image.createGraphics();
+		
+		StreamingRenderer renderer = new StreamingRenderer();
+		renderer.setJava2DHints(hints);
+		renderer.setMapContent(mapContent);
 		renderer.paint(graphics, displaySize, bounds);
-		graphics.dispose();
-
-		ImageIO.write(image, "png", imagefile);
-		context.dispose();
+		
+		graphics.dispose();		
+		
+		ImageIO.write(image, "png", checkFile(imagefile));
 	}
-
+			
 	/**
      * Create a Style object from a definition in a SLD document
      */

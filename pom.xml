@@ -434,7 +434,7 @@ terms of the relevant Commercial Agreement.
                 <jvmArg>-DNEO4J_HOME=neo4j_home</jvmArg>
                 <jvmArg>-DNEO4J_PRODUCT=community</jvmArg>
                 <jvmArg>-DDOWNLOAD_LOCATION=http://builder.neo4j.org/guestAuth/repository/download/bt65/.lastSuccessful/standalone/neo4j-community-1.5-SNAPSHOT-unix.tar.gz</jvmArg>
-                <jvmArg>-DDOWNLOAD_PLUGIN_LOCATION=file:${project.dir}/target/neo4j-spatial-0.6-SNAPSHOT-server-plugin.zip</jvmArg>
+                <jvmArg>-DDOWNLOAD_PLUGIN_LOCATION=file:${project.build.directory}/neo4j-spatial-0.7-SNAPSHOT-server-plugin.zip</jvmArg>
               </jvmArgs>
               <!-- You may not need all of these arguments in your own project. We have a lot here for testing purposes... -->
               <cucumberArgs>
@@ -449,6 +449,7 @@ terms of the relevant Commercial Agreement.
               </cucumberArgs>
               <gems>
                 <gem>install cuke4duke --version ${cuke4duke.version}</gem>
+                <gem>install rubyzip</gem>
               </gems>
             </configuration>
             <executions>

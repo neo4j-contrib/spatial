@@ -52,30 +52,27 @@ module NetworkHelpers
       else
         puts target+" not modified - download skipped"
       end
-    elsif (location.scheme == "file") then
-      copy_file(location.path, target)
     else
-      puts "trying to copy #{location.to_s}"
-      copy_file(location.to_s, target)
-#      raise 'unsupported schema ' + location
+      puts "transfer_if_newer: normalized file: #{location.to_s} #{getenv("PLUGIN_NAME")}"
+      File.open(File.join(location.to_s, getenv("PLUGIN_NAME")), "r") do |src|
+        open(target, "wb") do |file|
+          while buf = src.read(2048)
+            file.write(buf)
+          end
+        end
+      end
     end
   end
+
+  
 
   def fix_file_sep(file)
     file.tr('/', '\\')
   end
 
   def unzip(full_archive_name, target)
-    if (current_platform.unix?)
-      exec_wait("unzip -o #{full_archive_name} -d #{target}")
-    elsif (current_platform.windows?)
       unzip_them_all = UnZipThemAll.new(full_archive_name, target) 
       unzip_them_all.unzip
-#      exec_wait("cmd /c " + fix_file_sep(File.expand_path("../../support/unzip.vbs", __FILE__)) + " " +
-#                   fix_file_sep(full_archive_name) + " " + target)
-    else
-      raise 'platform not supported'
-    end
   end
 
   def exec_wait(cmd)
