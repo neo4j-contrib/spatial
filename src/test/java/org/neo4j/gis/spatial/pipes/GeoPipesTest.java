@@ -37,11 +37,13 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.neo4j.collections.rtree.filter.SearchAll;
 import org.neo4j.collections.rtree.filter.SearchFilter;
+import org.neo4j.examples.AbstractJavaDocTestbase;
 import org.neo4j.gis.spatial.EditableLayerImpl;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.pipes.osm.OSMGeoPipeline;
+import org.neo4j.kernel.impl.annotations.Documented;
 import org.neo4j.test.ImpermanentGraphDatabase;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
@@ -53,7 +55,7 @@ import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
 
 
-public class GeoPipesTest {
+public class GeoPipesTest extends AbstractJavaDocTestbase {
 	
     private static ImpermanentGraphDatabase graphdb;
     private static Layer osmLayer;
@@ -366,22 +368,46 @@ public class GeoPipesTest {
     	}
     }
         
+    /**
+     * The window intersection pipe
+     * can take any feature collection
+     * 
+     * The layer
+     * 
+     * @@img-raw-layer
+     * 
+     * intersected with an envelope like
+     * 
+     * @@intersect
+     * 
+     * will result in
+     * 
+     * @@img-intersect-layer
+     * 
+     */
+    @Documented
     @Test
-    public void export_to_png() {
+    public void intersecting_windows() {
     	try {
 	    	Envelope envelope = new Envelope(-10, 50, -10, 50);
 	    	
 	    	StyledImageExporter exporter = new StyledImageExporter(graphdb);
-	    	exporter.setExportDir("target/export/");
+	    	exporter.setExportDir("target/docs/images/");
+	    	String imgName = "intersectionLayerRaw.png";
+            gen.get().addSnippet( "img-raw-layer", "image::"+imgName+"[]" );
+	    	FeatureCollection<SimpleFeatureType,SimpleFeature>  features = startPipeline(intersectionLayer)
+	    	        .toFeatureCollection();    	
+	    	exporter.saveImage(features, StyledImageExporter.createDefaultStyle(), new File(imgName));
 	    	
-	    	FeatureCollection<SimpleFeatureType,SimpleFeature> features = startPipeline(intersectionLayer)
-	    		.windowIntersectionFilter(envelope)
-	    		.toStreamingFeatureCollection(envelope);	    	
-	    	exporter.saveImage(features, StyledImageExporter.createDefaultStyle(), new File("intersectionLayerWithEnvelope.png"));
-	    	
+	    	gen.get().addSourceSnippets( GeoPipesTest.class, "intersect" );
+	    	// START SNIPPET: intersect
 	    	features = startPipeline(intersectionLayer)
-    			.toFeatureCollection();    	
-	    	exporter.saveImage(features, StyledImageExporter.createDefaultStyle(), new File("intersectionLayerAll.png"));
+	    		.windowIntersectionFilter(new Envelope(-10, 50, -10, 50))
+	    		.toStreamingFeatureCollection(envelope);	    	
+	    	// END SNIPPET: intersect
+	    	imgName = "intersectionLayerWithEnvelope.png";
+            exporter.saveImage(features, StyledImageExporter.createDefaultStyle(), new File(imgName));
+            gen.get().addSnippet( "img-intersect-layer", "image::"+imgName+"[]" );
     	} catch (IOException e) {
     		e.printStackTrace();
     		fail(e.getMessage());

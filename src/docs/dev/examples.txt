@@ -2,9 +2,9 @@
 Examples
 ========
 
-:leveloffset: 2
+//:leveloffset: 2
 
-include::examples/count-all-geometries-in-a-layer.txt[]
+//include::examples/count-all-geometries-in-a-layer.txt[]
 
 :leveloffset: 1
 
@@ -86,4 +86,11 @@ For more info head over to http://wiki.neo4j.org/content/Neo4j_Spatial_in_GeoSer
 == Using Neo4j Spatial with uDig ==
 
 For more info head over to http://wiki.neo4j.org/content/Neo4j_Spatial_in_uDig[Neo4j Wiki on uDig]
+
+[[spatial-geopipes]]
+== GeoPipes ==
+
+:leveloffset::3
+
+include::examples/intersecting-windows.txt[]
 
