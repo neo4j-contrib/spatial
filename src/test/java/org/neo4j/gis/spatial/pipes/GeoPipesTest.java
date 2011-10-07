@@ -48,6 +48,7 @@ import org.opengis.feature.simple.SimpleFeatureType;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.util.AffineTransformation;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
@@ -60,6 +61,7 @@ public class GeoPipesTest {
     private static EditableLayerImpl boxesLayer;
     private static EditableLayerImpl concaveLayer;
     private static EditableLayerImpl intersectionLayer;
+    private static EditableLayerImpl equalLayer;
     
     private OSMGeoPipeline startPipeline(Layer layer) {
     	return startPipeline(layer, new SearchAll());
@@ -388,6 +390,46 @@ public class GeoPipesTest {
     	}
     }
     
+    @Test
+    public void test_equality() throws Exception {
+        WKTReader reader = new WKTReader(equalLayer.getGeometryFactory());
+        Geometry geom = reader.read("POLYGON ((0 0, 0 5, 5 5, 5 0, 0 0))");
+        
+        GeoPipeline pipeline = GeoPipeline
+        	.startEqualExactSearch(equalLayer, geom, 0)
+        	.copyDatabaseRecordProperties();
+        assertEquals("equal", pipeline.next().getProperty("name"));
+        assertFalse(pipeline.hasNext());
+        
+        pipeline = GeoPipeline
+    		.startEqualExactSearch(equalLayer, geom, 0.1)
+    		.copyDatabaseRecordProperties()
+    		.sort("id");
+        assertEquals("equal", pipeline.next().getProperty("name"));
+        assertEquals("tolerance", pipeline.next().getProperty("name"));        
+        assertFalse(pipeline.hasNext());
+        
+        pipeline = GeoPipeline
+        	.startIntersectWindowSearch(equalLayer, geom.getEnvelopeInternal())
+        	.equalNormFilter(geom, 0.1)
+    		.copyDatabaseRecordProperties()
+    		.sort("id");        	
+        assertEquals("equal", pipeline.next().getProperty("name"));
+        assertEquals("tolerance", pipeline.next().getProperty("name")); 
+        assertEquals("different order", pipeline.next().getProperty("name"));
+        assertFalse(pipeline.hasNext());
+
+        pipeline = GeoPipeline
+	    	.startIntersectWindowSearch(equalLayer, geom.getEnvelopeInternal())
+	    	.equalTopoFilter(geom)
+			.copyDatabaseRecordProperties()
+			.sort("id");        	
+	    assertEquals("equal", pipeline.next().getProperty("name"));
+	    assertEquals("different order", pipeline.next().getProperty("name"));
+	    assertEquals("topo equal", pipeline.next().getProperty("name"));	    
+	    assertFalse(pipeline.hasNext());
+    }
+    
     private static void load() throws Exception {
         SpatialDatabaseService spatialService = new SpatialDatabaseService(graphdb);
         
@@ -411,6 +453,19 @@ public class GeoPipesTest {
         intersectionLayer.add(reader.read("POLYGON ((0 0, 0 5, 5 5, 5 0, 0 0))"));
         intersectionLayer.add(reader.read("POLYGON ((4 4, 4 10, 10 10, 10 4, 4 4))"));
         intersectionLayer.add(reader.read("POLYGON ((2 2, 2 6, 6 6, 6 2, 2 2))"));        
+
+        equalLayer = (EditableLayerImpl) spatialService.getOrCreateEditableLayer("equal");
+        equalLayer.setExtraPropertyNames(new String[] { "id", "name" });        
+        reader = new WKTReader(intersectionLayer.getGeometryFactory());
+        equalLayer.add(reader.read("POLYGON ((0 0, 0 5, 5 5, 5 0, 0 0))"),
+        		new String[] { "id", "name" }, new Object[] { 1, "equal" });        
+        equalLayer.add(reader.read("POLYGON ((0 0, 0.1 5, 5 5, 5 0, 0 0))"),
+        		new String[] { "id", "name" }, new Object[] { 2, "tolerance" });
+        equalLayer.add(reader.read("POLYGON ((0 5, 5 5, 5 0, 0 0, 0 5))"),
+        		new String[] { "id", "name" }, new Object[] { 3, "different order" });
+        equalLayer.add(reader.read("POLYGON ((0 0, 0 2, 0 4, 0 5, 5 5, 5 3, 5 2, 5 0, 0 0))"),
+        		new String[] { "id", "name" }, new Object[] { 4, "topo equal" });                
+        
     }
 
     private static void loadTestOsmData(String layerName, int commitInterval) throws Exception {
