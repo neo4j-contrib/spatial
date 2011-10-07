@@ -28,7 +28,6 @@ import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.collections.rtree.EnvelopeDecoder;
 import org.neo4j.collections.rtree.filter.SearchFilter;
 import org.neo4j.collections.rtree.filter.SearchResults;
-import org.neo4j.collections.rtree.search.Search;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.graphdb.Node;
 
@@ -95,12 +94,6 @@ public class FakeIndex implements LayerIndexReader, Constants {
     	
     	return results;
     }	
-	
-	public void executeSearch(Search search) {
-        for (Node node: layer.getDataset().getAllGeometryNodes()) {
-			search.onIndexReference(node);
-		}
-	}
 	
 	public Iterable<Node> getAllIndexedNodes() {
 		return layer.getIndex().getAllIndexedNodes();

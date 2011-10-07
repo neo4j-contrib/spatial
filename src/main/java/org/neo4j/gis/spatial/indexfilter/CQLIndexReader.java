@@ -19,8 +19,6 @@
  */
 package org.neo4j.gis.spatial.indexfilter;
 
-import java.util.List;
-
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.filter.text.ecql.ECQL;
@@ -28,9 +26,7 @@ import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.collections.rtree.SpatialIndexRecordCounter;
 import org.neo4j.collections.rtree.filter.SearchFilter;
 import org.neo4j.collections.rtree.filter.SearchResults;
-import org.neo4j.collections.rtree.search.Search;
 import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.LayerSearch;
 import org.neo4j.gis.spatial.LayerTreeIndexReader;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.Utilities;
@@ -89,70 +85,6 @@ public class CQLIndexReader extends LayerIndexReaderWrapper {
         }
     }
 
-    private class FilteredSearch implements Search {
-    	
-        private Search delegate;
-        
-        public FilteredSearch(Search delegate) {
-            this.delegate = delegate;
-        }
-
-		@Override            
-        public List<Node> getResults() {
-            return delegate.getResults();
-        }
-
-		@Override            
-        public boolean needsToVisit(Envelope indexNodeEnvelope) {
-            return queryIndexNode(indexNodeEnvelope) && 
-            	delegate.needsToVisit(indexNodeEnvelope);
-        }
-
-		@Override            
-        public void onIndexReference(Node geomNode) {
-            if (queryLeafNode(geomNode)) {
-                delegate.onIndexReference(geomNode);
-            }
-        }
-    }        
-    
-    private class FilteredLayerSearch implements LayerSearch {
-    	
-        private LayerSearch delegate;
-        
-        public FilteredLayerSearch(LayerSearch delegate) {
-            this.delegate = delegate;
-        }
-
-		@Override            
-        public List<Node> getResults() {
-            return delegate.getResults();
-        }
-
-		@Override            
-        public boolean needsToVisit(Envelope indexNodeEnvelope) {
-            return queryIndexNode(indexNodeEnvelope) && 
-            	delegate.needsToVisit(indexNodeEnvelope);
-        }
-
-		@Override            
-        public void onIndexReference(Node geomNode) {
-            if (queryLeafNode(geomNode)) {
-                delegate.onIndexReference(geomNode);
-            }
-        }
-
-		@Override
-		public void setLayer(Layer layer) {
-			delegate.setLayer(layer);
-		}
-
-		@Override
-		public List<SpatialDatabaseRecord> getExtendedResults() {
-			return delegate.getExtendedResults();
-		}
-    }
-
     private boolean queryIndexNode(Envelope indexNodeEnvelope) {
         return filterEnvelope == null || filterEnvelope.intersects(indexNodeEnvelope);
     }
@@ -168,18 +100,6 @@ public class CQLIndexReader extends LayerIndexReaderWrapper {
 		Counter counter = new Counter();
 		index.visit(counter, index.getIndexRoot());
 		return counter.getResult();
-	}
-
-	/**
-	 * @deprecated
-	 */
-	@Override	
-	public void executeSearch(final Search search) {
-		if (LayerSearch.class.isAssignableFrom(search.getClass())) {
-			index.executeSearch(new FilteredLayerSearch((LayerSearch) search));
-		} else {
-			index.executeSearch(new FilteredSearch(search));
-		}
 	}
 	
 	private SearchFilter wrapSearchFilter(final SearchFilter filter) {

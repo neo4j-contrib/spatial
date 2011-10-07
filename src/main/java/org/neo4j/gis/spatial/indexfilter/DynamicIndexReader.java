@@ -19,17 +19,12 @@
  */
 package org.neo4j.gis.spatial.indexfilter;
 
-import java.util.List;
-
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.collections.rtree.SpatialIndexRecordCounter;
 import org.neo4j.collections.rtree.filter.SearchFilter;
 import org.neo4j.collections.rtree.filter.SearchResults;
-import org.neo4j.collections.rtree.search.Search;
-import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.LayerSearch;
 import org.neo4j.gis.spatial.LayerTreeIndexReader;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.graphdb.Direction;
@@ -66,7 +61,6 @@ import org.neo4j.graphdb.Relationship;
 public class DynamicIndexReader extends LayerIndexReaderWrapper {
 	
 	private JSONObject query;
-    private final Layer layer;
     
 	private class DynamicRecordCounter extends SpatialIndexRecordCounter {
 		
@@ -83,9 +77,8 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 		}
 	}
 
-	public DynamicIndexReader(LayerTreeIndexReader index, Layer layer, String query) {
+	public DynamicIndexReader(LayerTreeIndexReader index, String query) {
 		super(index);
-		this.layer = layer;
 		this.query = (JSONObject) JSONValue.parse(query);
 	}
 
@@ -155,35 +148,6 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 		DynamicRecordCounter counter = new DynamicRecordCounter();
 		index.visit(counter, index.getIndexRoot());
 		return counter.getResult();
-	}
-
-	/**
-	 * @deprecated
-	 */
-	@Override
-	public void executeSearch(final Search search) {
-		if (LayerSearch.class.isAssignableFrom(LayerSearch.class)) {
-			((LayerSearch) search).setLayer(layer);
-		}
-		
-		index.executeSearch(new Search() {
-			@Override
-			public List<Node> getResults() {
-				return search.getResults();
-			}
-			
-			@Override
-			public boolean needsToVisit(Envelope indexNodeEnvelope) {
-				return search.needsToVisit(indexNodeEnvelope);
-			}
-
-			@Override
-			public void onIndexReference(Node geomNode) {
-				if (queryLeafNode(geomNode)) {
-					search.onIndexReference(geomNode);
-				}
-			}
-		});
 	}
 	
 	private SearchFilter wrapSearchFilter(final SearchFilter filter) {

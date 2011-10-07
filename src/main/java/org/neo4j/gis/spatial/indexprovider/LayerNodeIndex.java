@@ -25,7 +25,6 @@ import java.util.Map;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.neo4j.gis.spatial.EditableLayer;
-import org.neo4j.gis.spatial.LayerSearch;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
