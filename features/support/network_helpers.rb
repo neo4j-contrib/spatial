@@ -52,16 +52,15 @@ module NetworkHelpers
       else
         puts target+" not modified - download skipped"
       end
-    elsif (location.scheme == "file") then
-      File.open(location.path, "r") do |src|
+    else
+      puts "transfer_if_newer: normalized file: #{location.to_s} #{getenv("PLUGIN_NAME")}"
+      File.open(File.join(location.to_s, getenv("PLUGIN_NAME")), "r") do |src|
         open(target, "wb") do |file|
           while buf = src.read(2048)
             file.write(buf)
           end
         end
       end
-    else
-      raise 'unsupported schema ' + location
     end
   end
 
