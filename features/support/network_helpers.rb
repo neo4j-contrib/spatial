@@ -53,13 +53,19 @@ module NetworkHelpers
         puts target+" not modified - download skipped"
       end
     elsif (location.scheme == "file") then
-      copy_file(location.to_s["file:".length, location.to_s.length], target)
+      File.open(location.path, "r") do |src|
+        open(target, "wb") do |file|
+          while buf = src.read(2048)
+            file.write(buf)
+          end
+        end
+      end
     else
-      puts "trying to copy #{location.to_s}"
-      copy_file(location.to_s, target)
-#      raise 'unsupported schema ' + location
+      raise 'unsupported schema ' + location
     end
   end
+
+  
 
   def fix_file_sep(file)
     file.tr('/', '\\')
