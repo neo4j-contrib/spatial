@@ -26,19 +26,24 @@ import com.vividsolutions.jts.geom.Geometry;
 
 
 /**
- * Find geometries equal to the given geometry.
+ * Find geometries equal to the given geometry.<br>
+ * <br>
+ * This filter tests for topological equality which is equivalent to drawing the two Geometry objects 
+ * and seeing if all of their component edges overlap. It is the most robust kind of comparison but also 
+ * the most computationally expensive.<br>
+ * <br>
+ * See <a href="http://docs.geotools.org/latest/userguide/library/jts/equals.html">GeoTools documentation</a>.
  */
-public class FilterEqual extends AbstractFilterGeoPipe {
+public class FilterEqualTopo extends AbstractFilterGeoPipe {
 
 	private Geometry other;
 	
-	public FilterEqual(Geometry other) {
+	public FilterEqualTopo(Geometry other) {
 		this.other = other;
 	}
-
+	
 	@Override
 	protected boolean validate(GeoPipeFlow flow) {
-		return other.equals(flow.getGeometry());
+		return other.equalsTopo(flow.getGeometry());
 	}
-
 }

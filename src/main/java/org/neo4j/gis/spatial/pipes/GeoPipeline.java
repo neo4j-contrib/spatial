@@ -45,7 +45,9 @@ import org.neo4j.gis.spatial.pipes.filtering.FilterCoveredBy;
 import org.neo4j.gis.spatial.pipes.filtering.FilterCross;
 import org.neo4j.gis.spatial.pipes.filtering.FilterDisjoint;
 import org.neo4j.gis.spatial.pipes.filtering.FilterEmpty;
-import org.neo4j.gis.spatial.pipes.filtering.FilterEqual;
+import org.neo4j.gis.spatial.pipes.filtering.FilterEqualExact;
+import org.neo4j.gis.spatial.pipes.filtering.FilterEqualNorm;
+import org.neo4j.gis.spatial.pipes.filtering.FilterEqualTopo;
 import org.neo4j.gis.spatial.pipes.filtering.FilterInRelation;
 import org.neo4j.gis.spatial.pipes.filtering.FilterIntersect;
 import org.neo4j.gis.spatial.pipes.filtering.FilterIntersectWindow;
@@ -239,10 +241,10 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
      * @param geometry
      * @return geoPipeline
      */
-    public static GeoPipeline startEqualSearch(Layer layer, Geometry geometry) {
+    public static GeoPipeline startEqualExactSearch(Layer layer, Geometry geometry, double tolerance) {
     	return startIntersectWindowSearch(layer, geometry.getEnvelopeInternal())
-    		.equalFilter(geometry);
-    }    
+    		.equalExactFilter(geometry, tolerance);
+    }
 
     /**
      * Extracts Layer items that intersect the given geometry and start a pipeline.
@@ -753,10 +755,24 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     }            
 
     /**
-     * @see FilterEqual
+     * @see FilterEqualExact
      */
-    public GeoPipeline equalFilter(Geometry geometry) {
-    	return addPipe(new FilterEqual(geometry));
+    public GeoPipeline equalExactFilter(Geometry geometry, double tolerance) {
+    	return addPipe(new FilterEqualExact(geometry, tolerance));
+    }        
+    
+    /**
+     * @see FilterEqualNorm
+     */
+    public GeoPipeline equalNormFilter(Geometry geometry, double tolerance) {
+    	return addPipe(new FilterEqualNorm(geometry, tolerance));
+    }        
+
+    /**
+     * @see FilterEqualTopo
+     */
+    public GeoPipeline equalTopoFilter(Geometry geometry) {
+    	return addPipe(new FilterEqualTopo(geometry));
     }        
     
     /**
