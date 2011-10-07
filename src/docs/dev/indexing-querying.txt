@@ -4,6 +4,7 @@ Index and Querying
 
 The current index is an RTree index, but it has been developed in an extensible way allowing for other indices to be added if necessary.
 
+[[spatial-loading-and-indexing]]
 == Loading and Indexing ==
 
 It is possible to load data into the database and add it to the index during the load.
@@ -32,6 +33,7 @@ simple point layer
 
 editable layer
 
+[[spatial-querying]]
 == Querying ==
 
 === JTS Queries ===

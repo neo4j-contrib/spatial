@@ -32,11 +32,13 @@ import java.util.NoSuchElementException;
 import org.geotools.data.neo4j.StyledImageExporter;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.filter.text.cql2.CQLException;
-import org.junit.AfterClass;
+import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.neo4j.collections.rtree.filter.SearchAll;
 import org.neo4j.collections.rtree.filter.SearchFilter;
+import org.neo4j.cypher.javacompat.CypherParser;
+import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.examples.AbstractJavaDocTestbase;
 import org.neo4j.gis.spatial.EditableLayerImpl;
 import org.neo4j.gis.spatial.Layer;
@@ -45,6 +47,7 @@ import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.pipes.osm.OSMGeoPipeline;
 import org.neo4j.kernel.impl.annotations.Documented;
 import org.neo4j.test.ImpermanentGraphDatabase;
+import org.neo4j.visualization.asciidoc.AsciidocHelper;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 
@@ -58,12 +61,12 @@ import com.vividsolutions.jts.io.WKTReader;
 
 public class GeoPipesTest extends AbstractJavaDocTestbase {
 	
-    private static ImpermanentGraphDatabase graphdb;
     private static Layer osmLayer;
     private static EditableLayerImpl boxesLayer;
     private static EditableLayerImpl concaveLayer;
     private static EditableLayerImpl intersectionLayer;
     private static EditableLayerImpl equalLayer;
+    private static StyledImageExporter exporter;
     
     private OSMGeoPipeline startPipeline(Layer layer) {
     	return startPipeline(layer, new SearchAll());
@@ -376,7 +379,11 @@ public class GeoPipesTest extends AbstractJavaDocTestbase {
      * 
      * The layer
      * 
-     * @@img-raw-layer
+     * @@intersectionLayerRaw
+     * 
+     * is resutling in a graph like
+     * 
+     * @@graph
      * 
      * intersected with an envelope like
      * 
@@ -384,7 +391,8 @@ public class GeoPipesTest extends AbstractJavaDocTestbase {
      * 
      * will result in
      * 
-     * @@img-intersect-layer
+     * @@intersectionLayerWithEnvelope
+     * 
      * 
      */
     @Documented
@@ -393,24 +401,22 @@ public class GeoPipesTest extends AbstractJavaDocTestbase {
     	try {
 	    	Envelope envelope = new Envelope(-10, 50, -10, 50);
 	    	
-	    	StyledImageExporter exporter = new StyledImageExporter(graphdb);
-	    	exporter.setExportDir("target/docs/images/");
-	    	String imgName = "intersectionLayerRaw.png";
-            gen.get().addSnippet( "img-raw-layer", "image::"+imgName+"[]" );
-	    	FeatureCollection<SimpleFeatureType,SimpleFeature>  features = startPipeline(intersectionLayer)
+	    	String imgName = "intersectionLayerRaw";
+            gen.get().addSnippet( "graph", AsciidocHelper.createGraphViz( imgName, graphdb(), imgName ) );
+            gen.get().addSourceSnippets( GeoPipesTest.class, "intersect" );
+            
+            FeatureCollection<SimpleFeatureType,SimpleFeature>  features = startPipeline(intersectionLayer)
 	    	        .toFeatureCollection();    	
-	    	exporter.saveImage(features, StyledImageExporter.createDefaultStyle(), new File(imgName));
+            addImageSnippet( features, imgName );
 	    	
-	    	gen.get().addSourceSnippets( GeoPipesTest.class, "intersect" );
 	    	// START SNIPPET: intersect
 	    	features = startPipeline(intersectionLayer)
 	    		.windowIntersectionFilter(new Envelope(-10, 50, -10, 50))
 	    		.toStreamingFeatureCollection(envelope);	    	
 	    	// END SNIPPET: intersect
-	    	imgName = "intersectionLayerWithEnvelope.png";
-            exporter.saveImage(features, StyledImageExporter.createDefaultStyle(), new File(imgName));
-            gen.get().addSnippet( "img-intersect-layer", "image::"+imgName+"[]" );
-    	} catch (IOException e) {
+	    	
+            addImageSnippet( features, "intersectionLayerWithEnvelope" );
+        } catch (IOException e) {
     		e.printStackTrace();
     		fail(e.getMessage());
     	}
@@ -456,8 +462,23 @@ public class GeoPipesTest extends AbstractJavaDocTestbase {
 	    assertFalse(pipeline.hasNext());
     }
     
+    private void addImageSnippet( FeatureCollection<SimpleFeatureType,SimpleFeature>  features, String imgName )
+    {
+        gen.get().addSnippet( imgName, "\nimage::"+imgName+".png[]\n");
+        try
+        {
+            exporter.saveImage(features, StyledImageExporter.createDefaultStyle(), new File(imgName+".png"));
+        }
+        catch ( IOException e )
+        {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        
+    }
+
     private static void load() throws Exception {
-        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphdb);
+        SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
         
         loadTestOsmData("two-street.osm", 100);
         osmLayer = spatialService.getLayer("two-street.osm");
@@ -499,20 +520,37 @@ public class GeoPipesTest extends AbstractJavaDocTestbase {
         System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===" );
         OSMImporter importer = new OSMImporter(layerName);
 		importer.setCharset(Charset.forName("UTF-8"));
-        importer.importFile(graphdb, osmPath);
-        importer.reIndex(graphdb, commitInterval);
+        importer.importFile(db, osmPath);
+        importer.reIndex(db, commitInterval);
     }
 
-    @BeforeClass
-    public static void setUpCLass() throws Exception {
-        graphdb = new ImpermanentGraphDatabase("target/db");
-        load();
+    @Before
+    public void setUp() {
+        gen.get().setGraph( db );
+        parser = new CypherParser();
+        engine = new ExecutionEngine(db);
     }
     
-    @AfterClass
-    public static void afterCLass() throws Exception {
-        graphdb.shutdown();
+    
+    @BeforeClass
+    public static void init()
+    {
+        db = new ImpermanentGraphDatabase("target/"+ System.currentTimeMillis());
+        db.cleanContent(true);
+        try
+        {
+            load();
+        }
+        catch ( Exception e )
+        {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        exporter = new StyledImageExporter(db);
+        exporter.setExportDir("target/docs/images/");
+        
     }
+    
        
     private void print(GeoPipeline pipeline) {
     	while (pipeline.hasNext()) {
