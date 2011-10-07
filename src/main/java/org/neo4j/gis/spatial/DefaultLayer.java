@@ -28,6 +28,7 @@ import org.geotools.factory.FactoryRegistryException;
 import org.geotools.referencing.ReferencingFactoryFinder;
 import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.collections.rtree.Listener;
+import org.neo4j.collections.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
 import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.graphdb.Direction;
@@ -119,7 +120,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
             return (Integer) layerNode.getProperty(PROP_TYPE);
         } else {
             GuessGeometryTypeSearch geomTypeSearch = new GuessGeometryTypeSearch();
-            index.executeSearch(geomTypeSearch);
+            index.searchIndex(geomTypeSearch).count();
             if (geomTypeSearch.firstFoundType != null) {
                 return geomTypeSearch.firstFoundType;
             } else {
@@ -129,18 +130,22 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         }
     }
 
-    private static class GuessGeometryTypeSearch extends AbstractLayerSearch {
+    private static class GuessGeometryTypeSearch implements SearchFilter {
 
         Integer firstFoundType;
-            
+
+        @Override
         public boolean needsToVisit(Envelope indexNodeEnvelope) {
             return firstFoundType == null;
         }
 
-        public void onIndexReference(Node geomNode) {
+        @Override
+    	public boolean geometryMatches(Node geomNode) {
             if (firstFoundType == null) {
                 firstFoundType = (Integer) geomNode.getProperty(PROP_TYPE);
             }
+            
+            return false;
         }
     }
 

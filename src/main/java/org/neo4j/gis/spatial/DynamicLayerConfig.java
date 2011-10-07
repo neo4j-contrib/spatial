@@ -26,6 +26,7 @@ import java.util.LinkedHashMap;
 import org.geotools.filter.text.cql2.CQLException;
 import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.collections.rtree.Listener;
+import org.neo4j.collections.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
 import org.neo4j.gis.spatial.indexfilter.CQLIndexReader;
 import org.neo4j.gis.spatial.indexfilter.DynamicIndexReader;
@@ -115,21 +116,26 @@ public class DynamicLayerConfig implements Layer, Constants {
 		}
 	}
 
-	private class PropertyUsageSearch extends AbstractLayerSearch {
+	private class PropertyUsageSearch implements SearchFilter {
 		
+		private Layer layer;
 		private LinkedHashMap<String, Integer> names = new LinkedHashMap<String, Integer>();
 		private int nodeCount = 0;
 		private int MAX_COUNT = 10000;
 
+		public PropertyUsageSearch(Layer layer) {
+			this.layer = layer;
+		}
+		
 		@Override
 		public boolean needsToVisit(Envelope indexNodeEnvelope) {
 			return nodeCount < MAX_COUNT;
 		}
 
 		@Override
-		public void onIndexReference(Node geomNode) {
+		public boolean geometryMatches(Node geomNode) {
 			if (nodeCount++ < MAX_COUNT) {
-				SpatialDatabaseRecord record = new SpatialDatabaseRecord(getLayer(), geomNode);
+				SpatialDatabaseRecord record = new SpatialDatabaseRecord(layer, geomNode);
 				for (String name : record.getPropertyNames()) {
 					Object value = record.getProperty(name);
 					if (value != null) {
@@ -140,6 +146,9 @@ public class DynamicLayerConfig implements Layer, Constants {
 					}
 				}
 			}
+			
+			// no need to collect nodes
+			return false;
 		}
 		
 		public String[] getNames() {
@@ -169,8 +178,8 @@ public class DynamicLayerConfig implements Layer, Constants {
 		System.out.println("Before property scan we have " + getExtraPropertyNames().length + " known attributes for layer "
 				+ getName());
 		
-		PropertyUsageSearch search = new PropertyUsageSearch();
-		getIndex().executeSearch(search);
+		PropertyUsageSearch search = new PropertyUsageSearch(this);
+		getIndex().searchIndex(search).count();
 		setExtraPropertyNames(search.getNames());
 		
 		System.out.println("After property scan of " + search.getNodeCount() + " nodes, we have "
@@ -206,7 +215,7 @@ public class DynamicLayerConfig implements Layer, Constants {
 			String query = getQuery();
 			if (query.startsWith("{")) {
 				// Make a standard JSON based dynamic layer
-				return new DynamicIndexReader((LayerTreeIndexReader) parent.index, this, query);
+				return new DynamicIndexReader((LayerTreeIndexReader) parent.index, query);
 			} else {
 				// Make a CQL based dynamic layer
 				try {
