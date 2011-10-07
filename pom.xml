@@ -195,6 +195,13 @@ terms of the relevant Commercial Agreement.
       <scope>provided</scope>
     </dependency>
     <dependency>
+      <groupId>org.neo4j.examples</groupId>
+      <artifactId>neo4j-examples</artifactId>
+      <version>${neo4j.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>com.sun.jersey</groupId>
       <artifactId>jersey-client</artifactId>
       <version>1.9</version>
@@ -434,9 +441,8 @@ terms of the relevant Commercial Agreement.
                 <jvmArg>-DNEO4J_HOME=neo4j_home</jvmArg>
                 <jvmArg>-DNEO4J_PRODUCT=community</jvmArg>
                 <jvmArg>-DDOWNLOAD_LOCATION=http://builder.neo4j.org/guestAuth/repository/download/bt65/.lastSuccessful/standalone/neo4j-community-1.5-SNAPSHOT-unix.tar.gz</jvmArg>
-                <jvmArg>-DDOWNLOAD_PLUGIN_LOCATION=file:${project.build.directory}/neo4j-spatial-0.7-SNAPSHOT-server-plugin.zip</jvmArg>
+                <jvmArg>-DDOWNLOAD_PLUGIN_LOCATION=${project.build.directory}</jvmArg>
               </jvmArgs>
-              <!-- You may not need all of these arguments in your own project. We have a lot here for testing purposes... -->
               <cucumberArgs>
                 <cucumberArg>--verbose</cucumberArg>
                 <cucumberArg>--format</cucumberArg>
