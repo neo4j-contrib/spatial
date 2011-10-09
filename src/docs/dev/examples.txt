@@ -90,6 +90,10 @@ For more info head over to http://wiki.neo4j.org/content/Neo4j_Spatial_in_uDig[N
 [[spatial-geopipes]]
 == GeoPipes ==
 
+IntersectionLayer:
+
+image::intersectionLayer.png[]
+
 :leveloffset: 3
 
 include::examples/intersecting-windows.txt[]
