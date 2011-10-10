@@ -250,6 +250,7 @@ public class StyledImageExporter {
 		renderer.paint(graphics, displaySize, bounds);
 		
 		graphics.dispose();		
+		mapContent.dispose();	
 		
 		ImageIO.write(image, "png", checkFile(imagefile));
 	}
