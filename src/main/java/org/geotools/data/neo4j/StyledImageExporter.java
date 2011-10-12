@@ -184,7 +184,15 @@ public class StyledImageExporter {
 		mapContent.addLayer(new FeatureLayer(features, style));
 		saveMapContentToImageFile(mapContent, imagefile, features.getBounds());
 	}
-		
+	
+	public void saveImage(FeatureCollection<SimpleFeatureType,SimpleFeature>[] features, Style[] styles, File imagefile, ReferencedEnvelope bounds) throws IOException {
+		MapContent mapContent = new MapContent();
+		for (int i = 0; i < features.length; i++) {
+			mapContent.addLayer(new FeatureLayer(features[i], styles[i]));
+		}
+		saveMapContentToImageFile(mapContent, imagefile, bounds);
+	}
+	
 	public void saveLayerImage(String[] layerNames, String sldFile, File imagefile, ReferencedEnvelope bounds) throws IOException {
 		DataStore store = new Neo4jSpatialDataStore(db);
 		// debugStore(store, layerNames);
@@ -207,7 +215,7 @@ public class StyledImageExporter {
 			}
 			
 			if (featureStyle == null) {
-				featureStyle = createStyleFromGeometry((SimpleFeatureType) featureSource.getSchema());
+				featureStyle = createStyleFromGeometry((SimpleFeatureType) featureSource.getSchema(), Color.BLUE, Color.CYAN);
 				System.out.println("Created style from geometry '" + featureSource.getSchema().getGeometryDescriptor().getType() + "': " + featureStyle);
 			}
 			
@@ -235,6 +243,7 @@ public class StyledImageExporter {
 
 	private void saveMapContentToImageFile(MapContent mapContent, File imagefile, ReferencedEnvelope bounds) throws IOException {
 		bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
+		
 		if (displaySize == null)
 			displaySize = new Rectangle(0, 0, 800, 600);
 
@@ -269,8 +278,8 @@ public class StyledImageExporter {
         return null;
     }
 
-    public static Style createDefaultStyle() {    
-    	return createStyleFromGeometry(null);
+    public static Style createDefaultStyle(Color strokeColor, Color fillColor) {    
+    	return createStyleFromGeometry(null, strokeColor, fillColor);
     }
     
     /**
@@ -281,44 +290,42 @@ public class StyledImageExporter {
      * TODO: Consider adding support for attribute based color schemes like in
      * http://docs.geotools.org/stable/userguide/examples/stylefunctionlab.html
      */
-    public static Style createStyleFromGeometry(SimpleFeatureType schema) {
+    public static Style createStyleFromGeometry(SimpleFeatureType schema, Color strokeColor, Color fillColor) {
     	if (schema != null) {
 	        Class<?> geomType = schema.getGeometryDescriptor().getType().getBinding();
 	        if (Polygon.class.isAssignableFrom(geomType)
 	                || MultiPolygon.class.isAssignableFrom(geomType)) {
-	            return createPolygonStyle();
+	            return createPolygonStyle(strokeColor, fillColor);
 	        } else if (LineString.class.isAssignableFrom(geomType)
 	                || MultiLineString.class.isAssignableFrom(geomType)) {
-	            return createLineStyle();
+	            return createLineStyle(strokeColor);
 	        } else if (Point.class.isAssignableFrom(geomType)
 	                || MultiPoint.class.isAssignableFrom(geomType)) {
-	            return createPointStyle();
-	        } 
+	            return createPointStyle(strokeColor, fillColor);
+	        }
     	}
     	
         Style style = styleFactory.createStyle();
-        style.featureTypeStyles().addAll(createPolygonStyle().featureTypeStyles());
-        style.featureTypeStyles().addAll(createLineStyle().featureTypeStyles());
-        style.featureTypeStyles().addAll(createPointStyle().featureTypeStyles());
+        style.featureTypeStyles().addAll(createPolygonStyle(strokeColor, fillColor).featureTypeStyles());
+        style.featureTypeStyles().addAll(createLineStyle(strokeColor).featureTypeStyles());
+        style.featureTypeStyles().addAll(createPointStyle(strokeColor, fillColor).featureTypeStyles());
         System.out.println("Created Geometry Style: "+style);
         return style;
     }
-
+    
     /**
-     * Create a Style to draw polygon features with a thin blue outline and
-     * a cyan fill
+     * Create a Style to draw polygon features
      */
-    private static Style createPolygonStyle() {
-
+    private static Style createPolygonStyle(Color strokeColor, Color fillColor) {
         // create a partially opaque outline stroke
         Stroke stroke = styleFactory.createStroke(
-                filterFactory.literal(Color.BLUE),
+                filterFactory.literal(strokeColor),
                 filterFactory.literal(1),
                 filterFactory.literal(0.5));
 
         // create a partial opaque fill
         Fill fill = styleFactory.createFill(
-                filterFactory.literal(Color.CYAN),
+                filterFactory.literal(fillColor),
                 filterFactory.literal(0.5));
 
         /*
@@ -326,23 +333,24 @@ public class StyledImageExporter {
          * draw the default geomettry of features
          */
         PolygonSymbolizer sym = styleFactory.createPolygonSymbolizer(stroke, fill, null);
-
+        
         Rule rule = styleFactory.createRule();
         rule.symbolizers().add(sym);
-        FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(new Rule[]{rule});
+        
+        FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(new Rule[]{ rule });
         Style style = styleFactory.createStyle();
         style.featureTypeStyles().add(fts);
-        System.out.println("Created Polygon Style: "+style);
+        System.out.println("Created Polygon Style: " + style);
 
         return style;
     }
     
     /**
-     * Create a Style to draw line features as thin blue lines
+     * Create a Style to draw line features
      */
-    private static Style createLineStyle() {
+    private static Style createLineStyle(Color strokeColor) {
         Stroke stroke = styleFactory.createStroke(
-                filterFactory.literal(Color.BLUE),
+                filterFactory.literal(strokeColor),
                 filterFactory.literal(1));
 
         /*
@@ -360,20 +368,20 @@ public class StyledImageExporter {
 
         return style;
     }
-
+    
     /**
      * Create a Style to draw point features as circles with blue outlines
      * and cyan fill
      */
-    private static Style createPointStyle() {
+    private static Style createPointStyle(Color strokeColor, Color fillColor) {
         Graphic gr = styleFactory.createDefaultGraphic();
 
         Mark mark = styleFactory.getCircleMark();
 
         mark.setStroke(styleFactory.createStroke(
-                filterFactory.literal(Color.BLUE), filterFactory.literal(1)));
+                filterFactory.literal(strokeColor), filterFactory.literal(1)));
 
-        mark.setFill(styleFactory.createFill(filterFactory.literal(Color.CYAN)));
+        mark.setFill(styleFactory.createFill(filterFactory.literal(fillColor)));
 
         gr.graphicalSymbols().clear();
         gr.graphicalSymbols().add(mark);
@@ -390,7 +398,7 @@ public class StyledImageExporter {
         FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(new Rule[]{rule});
         Style style = styleFactory.createStyle();
         style.featureTypeStyles().add(fts);
-        System.out.println("Created Point Style: "+style);
+        System.out.println("Created Point Style: " + style);
 
         return style;
     }

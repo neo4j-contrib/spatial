@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.geotools.feature.AttributeTypeBuilder;
@@ -31,8 +32,8 @@ import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.geotools.feature.type.BasicFeatureTypes;
 import org.geotools.resources.Classes;
 import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
+import org.neo4j.gis.spatial.SpatialRecord;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
@@ -60,25 +61,28 @@ public class Neo4jFeatureBuilder {
         this.builder = new SimpleFeatureBuilder(sft);
         this.extraPropertyNames = extraPropertyNames;
     }
+    
 	/**
 	 * 
 	 */
     public Neo4jFeatureBuilder(Layer layer) { 
         this(getTypeFromLayer(layer), Arrays.asList(layer.getExtraPropertyNames()));
     } 
-	/**
-	 * 
-	 */
-    public SimpleFeature buildFeature(SpatialDatabaseRecord rec) {
+    
+    public SimpleFeature buildFeature(String id, Geometry geometry, Map<String,Object> properties) {
         builder.reset();
-        builder.set(FEATURE_PROP_GEOM, rec.getGeometry());
+        builder.set(FEATURE_PROP_GEOM, geometry);
         if (extraPropertyNames != null) {
             for (String name : extraPropertyNames) {
-                builder.set(name, rec.getProperty(name));
+                builder.set(name, properties.get(name));
             }
         }
 
-        return builder.buildFeature(rec.getId());
+        return builder.buildFeature(id);    	
+    }
+    
+    public SimpleFeature buildFeature(SpatialRecord rec) {
+    	return buildFeature(rec.getId(), rec.getGeometry(), rec.getProperties());
     }
 
     private static SimpleFeatureType getTypeFromLayer(Layer layer) {
