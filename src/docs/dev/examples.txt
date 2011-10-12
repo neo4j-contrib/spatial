@@ -104,4 +104,20 @@ include::examples/union-all.txt[]
 
 include::examples/extract-points.txt[]
 
-include::examples/get-convex-hull.txt[]
+include::examples/affine-transformation.txt[]
+
+include::examples/buffer.txt[]
+
+include::examples/boundary.txt[]
+
+include::examples/centroid.txt[]
+
+include::examples/convex-hull.txt[]
+
+include::examples/densify.txt[]
+
+include::examples/difference.txt[]
+
+include::examples/max.txt[]
+
+include::examples/min.txt[]

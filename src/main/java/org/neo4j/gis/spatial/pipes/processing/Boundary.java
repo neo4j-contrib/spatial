@@ -41,6 +41,8 @@ public class Boundary extends AbstractGeoPipe {
 
 	@Override	
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
+		// TODO convert Linear Ring to ... Line?
+		
 		setGeometry(flow, flow.getGeometry().getBoundary());
 		return flow;
 	}	
