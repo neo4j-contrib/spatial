@@ -98,3 +98,10 @@ image::intersectionLayer.png[]
 
 include::examples/intersecting-windows.txt[]
 
+include::examples/intersect-all.txt[]
+
+include::examples/union-all.txt[]
+
+include::examples/extract-points.txt[]
+
+include::examples/get-convex-hull.txt[]

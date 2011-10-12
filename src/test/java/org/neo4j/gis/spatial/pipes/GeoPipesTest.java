@@ -24,19 +24,23 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import java.awt.Color;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.NoSuchElementException;
 
 import org.geotools.data.neo4j.StyledImageExporter;
+import org.geotools.feature.FeatureCollection;
 import org.geotools.filter.text.cql2.CQLException;
+import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.geotools.referencing.crs.DefaultEngineeringCRS;
+import org.geotools.styling.Style;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.neo4j.collections.rtree.filter.SearchAll;
-import org.neo4j.collections.rtree.filter.SearchFilter;
 import org.neo4j.cypher.javacompat.CypherParser;
 import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.examples.AbstractJavaDocTestbase;
@@ -45,9 +49,9 @@ import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.pipes.osm.OSMGeoPipeline;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.impl.annotations.Documented;
 import org.neo4j.test.ImpermanentGraphDatabase;
-import org.neo4j.visualization.asciidoc.AsciidocHelper;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
@@ -64,24 +68,12 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     private static EditableLayerImpl concaveLayer;
     private static EditableLayerImpl intersectionLayer;
     private static EditableLayerImpl equalLayer;
-    private static StyledImageExporter exporter;
-
-    private static OSMGeoPipeline startPipeline( Layer layer )
-    {
-        return startPipeline( layer, new SearchAll() );
-    }
-
-    private static OSMGeoPipeline startPipeline( Layer layer,
-            SearchFilter filter )
-    {
-        return OSMGeoPipeline.start( layer, filter );
-    }
 
     @Test
     public void find_all()
     {
         int count = 0;
-        for ( GeoPipeFlow flow : startPipeline( osmLayer ).createWellKnownText() )
+        for ( GeoPipeFlow flow : GeoPipeline.start( osmLayer ).createWellKnownText() )
         {
             count++;
 
@@ -96,7 +88,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     @Test
     public void filter_by_osm_attribute()
     {
-        GeoPipeline pipeline = startPipeline( osmLayer ).osmAttributeFilter(
+        GeoPipeline pipeline = OSMGeoPipeline.start( osmLayer ).osmAttributeFilter(
                 "name", "Storgatan" ).copyDatabaseRecordProperties();
 
         GeoPipeFlow flow = pipeline.next();
@@ -108,7 +100,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     @Test
     public void filter_by_property()
     {
-        GeoPipeline pipeline = startPipeline( osmLayer ).copyDatabaseRecordProperties().propertyFilter(
+        GeoPipeline pipeline = GeoPipeline.start( osmLayer ).copyDatabaseRecordProperties().propertyFilter(
                 "name", "Storgatan" );
 
         GeoPipeFlow flow = pipeline.next();
@@ -122,7 +114,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     {
         assertEquals(
                 1,
-                startPipeline( osmLayer ).windowIntersectionFilter( 10, 40, 20,
+                GeoPipeline.start( osmLayer ).windowIntersectionFilter( 10, 40, 20,
                         56.0583531 ).count() );
     }
 
@@ -131,14 +123,14 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     {
         assertEquals(
                 1,
-                startPipeline( osmLayer ).cqlFilter(
+                GeoPipeline.start( osmLayer ).cqlFilter(
                         "BBOX(the_geom, 10, 40, 20, 56.0583531)" ).count() );
     }
 
     @Test
     public void filter_by_cql_using_property() throws CQLException
     {
-        GeoPipeline pipeline = startPipeline( osmLayer ).cqlFilter(
+        GeoPipeline pipeline = GeoPipeline.start( osmLayer ).cqlFilter(
                 "name = 'Storgatan'" ).copyDatabaseRecordProperties();
 
         GeoPipeFlow flow = pipeline.next();
@@ -150,10 +142,10 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     @Test
     public void traslate_geometries()
     {
-        GeoPipeline original = startPipeline( osmLayer ).copyDatabaseRecordProperties().sort(
+        GeoPipeline original = GeoPipeline.start( osmLayer ).copyDatabaseRecordProperties().sort(
                 "name" );
 
-        GeoPipeline translated = startPipeline( osmLayer ).applyAffineTransform(
+        GeoPipeline translated = GeoPipeline.start( osmLayer ).applyAffineTransform(
                 AffineTransformation.translationInstance( 10, 25 ) ).copyDatabaseRecordProperties().sort(
                 "name" );
 
@@ -173,7 +165,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     @Test
     public void calculate_area()
     {
-        GeoPipeline pipeline = startPipeline( boxesLayer ).calculateArea().sort(
+        GeoPipeline pipeline = GeoPipeline.start( boxesLayer ).calculateArea().sort(
                 "Area" );
 
         assertEquals( (Double) pipeline.next().getProperties().get( "Area" ),
@@ -185,7 +177,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     @Test
     public void calculate_length()
     {
-        GeoPipeline pipeline = startPipeline( boxesLayer ).calculateLength().sort(
+        GeoPipeline pipeline = GeoPipeline.start( boxesLayer ).calculateLength().sort(
                 "Length" );
 
         assertEquals( (Double) pipeline.next().getProperties().get( "Length" ),
@@ -197,12 +189,12 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     @Test
     public void get_boundary_length()
     {
-        GeoPipeline pipeline = startPipeline( boxesLayer ).toBoundary().createWellKnownText().calculateLength().sort(
+        GeoPipeline pipeline = GeoPipeline.start( boxesLayer ).toBoundary().createWellKnownText().calculateLength().sort(
                 "Length" );
 
         GeoPipeFlow first = pipeline.next();
         GeoPipeFlow second = pipeline.next();
-        assertEquals( "LINEARRING (12 56, 12 57, 13 57, 13 56, 12 56)",
+        assertEquals( "LINEARRING (12 26, 12 27, 13 27, 13 26, 12 26)",
                 first.getProperties().get( "WellKnownText" ) );
         assertEquals( "LINEARRING (2 3, 2 5, 6 5, 6 3, 2 3)",
                 second.getProperties().get( "WellKnownText" ) );
@@ -213,7 +205,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     @Test
     public void get_buffer()
     {
-        GeoPipeline pipeline = startPipeline( boxesLayer ).toBuffer( 0.1 ).createWellKnownText().calculateArea().sort(
+        GeoPipeline pipeline = GeoPipeline.start( boxesLayer ).toBuffer( 0.1 ).createWellKnownText().calculateArea().sort(
                 "Area" );
 
         assertTrue( ( (Double) pipeline.next().getProperties().get( "Area" ) ) > 1 );
@@ -223,30 +215,51 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     @Test
     public void get_centroid()
     {
-        GeoPipeline pipeline = startPipeline( boxesLayer ).toCentroid().createWellKnownText().copyDatabaseRecordProperties().sort(
+        GeoPipeline pipeline = GeoPipeline.start( boxesLayer ).toCentroid().createWellKnownText().copyDatabaseRecordProperties().sort(
                 "name" );
 
-        assertEquals( "POINT (12.5 56.5)",
+        assertEquals( "POINT (12.5 26.5)",
                 pipeline.next().getProperties().get( "WellKnownText" ) );
         assertEquals( "POINT (4 4)",
                 pipeline.next().getProperties().get( "WellKnownText" ) );
     }
 
+    /**
+     * The window intersection pipe can take any 
+     * feature collection
+     * 
+     * The layer TODO
+     * 
+     * intersected with an envelope like
+     * 
+     * @@s_get_convex_hull
+     * 
+     * will result in
+     * 
+     * @@get_convex_hull
+     * 
+     */
+    @Documented     
     @Test
     public void get_convex_hull()
     {
-        GeoPipeline pipeline = startPipeline( concaveLayer ).toConvexHull().createWellKnownText();
+    	Layer layer = concaveLayer;
+    	// START SNIPPET: s_get_convex_hull
+        GeoPipeline pipeline = GeoPipeline.start(layer).toConvexHull();
+        // END SNIPPET: s_get_convex_hull
+        addImageSnippet(layer, GeoPipeline.start(layer).toConvexHull().createWellKnownText(), getTitle());
+        
+    	
+        pipeline = GeoPipeline.start( concaveLayer ).toConvexHull().createWellKnownText();
 
         assertEquals( "POLYGON ((0 0, 0 10, 10 10, 10 0, 0 0))",
                 pipeline.next().getProperties().get( "WellKnownText" ) );
-
-        print( pipeline );
     }
 
     @Test
     public void densify()
     {
-        GeoPipeline pipeline = startPipeline( concaveLayer ).toConvexHull().densify(
+        GeoPipeline pipeline = GeoPipeline.start( concaveLayer ).toConvexHull().densify(
                 10 ).createWellKnownText();
 
         assertEquals(
@@ -257,11 +270,11 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     @Test
     public void json()
     {
-        GeoPipeline pipeline = startPipeline( boxesLayer ).createJson().copyDatabaseRecordProperties().sort(
+        GeoPipeline pipeline = GeoPipeline.start( boxesLayer ).createJson().copyDatabaseRecordProperties().sort(
                 "name" );
 
         assertEquals(
-                "{\"type\":\"Polygon\",\"coordinates\":[[[12,56],[12,57],[13,57],[13,56],[12,56]]]}",
+                "{\"type\":\"Polygon\",\"coordinates\":[[[12,26],[12,27],[13,27],[13,26],[12,26]]]}",
                 pipeline.next().getProperties().get( "GeoJSON" ) );
         assertEquals(
                 "{\"type\":\"Polygon\",\"coordinates\":[[[2,3],[2,5],[6,5],[6,3],[2,3]]]}",
@@ -271,7 +284,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     @Test
     public void get_max_area()
     {
-        GeoPipeline pipeline = startPipeline( boxesLayer ).calculateArea().getMax(
+        GeoPipeline pipeline = GeoPipeline.start( boxesLayer ).calculateArea().getMax(
                 "Area" );
 
         assertEquals( (Double) pipeline.next().getProperties().get( "Area" ),
@@ -281,7 +294,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     @Test
     public void get_min_area()
     {
-        GeoPipeline pipeline = startPipeline( boxesLayer ).calculateArea().getMin(
+        GeoPipeline pipeline = GeoPipeline.start( boxesLayer ).calculateArea().getMin(
                 "Area" );
 
         assertEquals( (Double) pipeline.next().getProperties().get( "Area" ),
@@ -292,7 +305,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     public void extract_osm_points()
     {
         int count = 0;
-        GeoPipeline pipeline = startPipeline( osmLayer ).extractOsmPoints().createWellKnownText();
+        GeoPipeline pipeline = OSMGeoPipeline.start( osmLayer ).extractOsmPoints().createWellKnownText();
         for ( GeoPipeFlow flow : pipeline )
         {
             count++;
@@ -310,17 +323,39 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     {
         assertEquals(
                 1,
-                startPipeline( osmLayer ).extractOsmPoints().groupByDensityIslands(
+                OSMGeoPipeline.start( osmLayer ).extractOsmPoints().groupByDensityIslands(
                         0.1 ).toConvexHull().toBuffer( 10 ).count() );
-        System.out.println( startPipeline( osmLayer ).extractOsmPoints().groupByDensityIslands(
+        System.out.println( OSMGeoPipeline.start( osmLayer ).extractOsmPoints().groupByDensityIslands(
                 0.1 ).toConvexHull().toBuffer( 10 ).count() );
     }
 
+    /**
+     * The window intersection pipe can take any 
+     * feature collection
+     * 
+     * The layer
+     * 
+     * intersected with an envelope like
+     * 
+     * @@s_extract_points
+     * 
+     * will result in
+     * 
+     * @@extract_points
+     * 
+     */
+    @Documented    
     @Test
     public void extract_points()
     {
+    	Layer layer = boxesLayer;
+    	// START SNIPPET: s_extract_points
+        GeoPipeline pipeline = GeoPipeline.start(layer).extractPoints();
+        // END SNIPPET: s_extract_points
+        addImageSnippet(layer, GeoPipeline.start(layer).extractPoints(), getTitle());
+    	
         int count = 0;
-        for ( GeoPipeFlow flow : startPipeline( boxesLayer ).extractPoints().createWellKnownText() )
+        for ( GeoPipeFlow flow : GeoPipeline.start( boxesLayer ).extractPoints().createWellKnownText() )
         {
             count++;
 
@@ -337,11 +372,11 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     {
         assertEquals(
                 2,
-                startPipeline( boxesLayer ).copyDatabaseRecordProperties().propertyNullFilter(
+                GeoPipeline.start( boxesLayer ).copyDatabaseRecordProperties().propertyNullFilter(
                         "address" ).count() );
         assertEquals(
                 0,
-                startPipeline( boxesLayer ).copyDatabaseRecordProperties().propertyNullFilter(
+                GeoPipeline.start( boxesLayer ).copyDatabaseRecordProperties().propertyNullFilter(
                         "name" ).count() );
     }
 
@@ -350,11 +385,11 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     {
         assertEquals(
                 0,
-                startPipeline( boxesLayer ).copyDatabaseRecordProperties().propertyNotNullFilter(
+                GeoPipeline.start( boxesLayer ).copyDatabaseRecordProperties().propertyNotNullFilter(
                         "address" ).count() );
         assertEquals(
                 2,
-                startPipeline( boxesLayer ).copyDatabaseRecordProperties().propertyNotNullFilter(
+                GeoPipeline.start( boxesLayer ).copyDatabaseRecordProperties().propertyNotNullFilter(
                         "name" ).count() );
     }
 
@@ -363,22 +398,39 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     {
         WKTReader reader = new WKTReader( boxesLayer.getGeometryFactory() );
 
-        GeoPipeline pipeline = startPipeline( boxesLayer ).calculateDistance(
+        GeoPipeline pipeline = GeoPipeline.start( boxesLayer ).calculateDistance(
                 reader.read( "POINT (0 0)" ) ).sort( "Distance" );
 
         assertEquals(
-                Math.round( (Double) pipeline.next().getProperty( "Distance" ) ),
-                4 );
+                4, Math.round( (Double) pipeline.next().getProperty( "Distance" ) ) );
         assertEquals(
-                Math.round( (Double) pipeline.next().getProperty( "Distance" ) ),
-                57 );
+                29, Math.round( (Double) pipeline.next().getProperty( "Distance" ) ) );
     }
 
+    /**
+     * The window intersection pipe can take any 
+     * feature collection
+     * 
+     * The layer
+     * 
+     * intersected with an envelope like
+     * 
+     * @@s_union_all
+     * 
+     * will result in
+     * 
+     * @@union_all
+     */
+    @Documented
     @Test
     public void union_all()
     {
-        GeoPipeline pipeline = startPipeline( intersectionLayer ).unionAll().createWellKnownText();
-
+    	// START SNIPPET: s_union_all
+        GeoPipeline pipeline = GeoPipeline.start( intersectionLayer )
+        	.unionAll()
+        	.createWellKnownText();
+        // END SNIPPET: s_union_all
+        
         assertEquals(
                 "POLYGON ((0 0, 0 5, 2 5, 2 6, 4 6, 4 10, 10 10, 10 4, 6 4, 6 2, 5 2, 5 0, 0 0))",
                 pipeline.next().getProperty( "WellKnownText" ) );
@@ -391,16 +443,38 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
         catch ( NoSuchElementException e )
         {
         }
+        
+        addImageSnippet( intersectionLayer, GeoPipeline.start( intersectionLayer ).unionAll(), getTitle() );
     }
-
+    
+    /**
+     * Intersect All
+     * 
+     * The IntersectAll pipe intersects geometries of every item contained in the pipeline.
+     * It groups every item in the pipeline in a single item containing the geometry output
+     * of the intersection.
+     * 
+     * Example:  
+     * 
+     * @@s_intersect_all
+     * 
+     * Output:
+     * 
+     * @@intersect_all
+     */
+    @Documented    
     @Test
     public void intersect_all()
     {
-        GeoPipeline pipeline = startPipeline( intersectionLayer ).intersectAll().createWellKnownText();
-
+    	// START SNIPPET: s_intersect_all
+        GeoPipeline pipeline = GeoPipeline.start( intersectionLayer )
+        	.intersectAll()
+        	.createWellKnownText();
+        // END SNIPPET: s_intersect_all
+        
         assertEquals( "POLYGON ((4 5, 5 5, 5 4, 4 4, 4 5))",
                 pipeline.next().getProperty( "WellKnownText" ) );
-
+        
         try
         {
             pipeline.next();
@@ -409,46 +483,33 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
         catch ( NoSuchElementException e )
         {
         }
+        
+        addImageSnippet( intersectionLayer, GeoPipeline.start( intersectionLayer ).intersectAll(), getTitle() );
     }
 
     /**
-     * The window intersection pipe can take any 
-     * feature collection
+     * Intersecting windows
      * 
-     * The layer
-     * 
-     * is resutling in a graph like
-     * 
-     * @@graph
-     * 
-     * intersected with an envelope like
+     * The FilterIntersectWindow pipe finds geometries that intersects a given rectangle.
+     * This pipeline:
      * 
      * @@s_intersecting_windows
      * 
-     * will result in
+     * will output:
      * 
      * @@intersecting_windows
-     * 
-     * 
      */
     @Documented
     @Test
     public void intersecting_windows()
     {
-
         // START SNIPPET: s_intersecting_windows
-        GeoPipeline pipeline = startPipeline( intersectionLayer ).windowIntersectionFilter(
-                new Envelope( -10, 50, -10, 50 ) );
+        GeoPipeline pipeline = GeoPipeline
+        	.start( boxesLayer )
+        	.windowIntersectionFilter(new Envelope( 0, 10, 0, 10 ) );
         // END SNIPPET: s_intersecting_windows
-        addImageSnippet( pipeline, getTitle() );
         
-
-    }
-
-    private String getTitle()
-    {
-        // TODO Auto-generated method stub
-        return gen.get().getTitle().replace( " ", "_" );
+        addImageSnippet( boxesLayer, pipeline, getTitle() );
     }
 
     @Test
@@ -485,24 +546,43 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
         assertFalse( pipeline.hasNext() );
     }
 
-    private void addImageSnippet(
+    private String getTitle()
+    {
+        return gen.get().getTitle().replace( " ", "_" );
+    }    
+    
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+	private void addImageSnippet(
+    		Layer layer,
             GeoPipeline pipeline,
             String imgName )
     {
         gen.get().addSnippet( imgName, "\nimage::" + imgName + ".png[]\n" );
         try
-        {
-            
-            exporter.saveImage( pipeline.toFeatureCollection(),
-                    StyledImageExporter.createDefaultStyle(), new File(
-                            imgName + ".png" ) );
+        {            
+        	FeatureCollection layerCollection = GeoPipeline.start(layer, new SearchAll()).toFeatureCollection();
+        	
+        	ReferencedEnvelope bounds = layerCollection.getBounds();
+        	bounds.expandBy(1, 1);
+        	
+            StyledImageExporter exporter = new StyledImageExporter( db );
+            exporter.setExportDir( "target/docs/images/" );
+            exporter.saveImage(
+            		new FeatureCollection[] {
+            				layerCollection,
+            				pipeline.toFeatureCollection()
+            		},
+                    new Style[] { 
+            			StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), 
+            			StyledImageExporter.createDefaultStyle(Color.RED, Color.ORANGE)
+            		},
+            		new File( imgName + ".png" ), 
+            		bounds);
         }
         catch ( IOException e )
         {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
-
     }
 
     private static void load() throws Exception
@@ -511,40 +591,50 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
 
         loadTestOsmData( "two-street.osm", 100 );
         osmLayer = spatialService.getLayer( "two-street.osm" );
-        boxesLayer = (EditableLayerImpl) spatialService.getOrCreateEditableLayer( "boxes" );
-        boxesLayer.setExtraPropertyNames( new String[] { "name" } );
-        WKTReader reader = new WKTReader( boxesLayer.getGeometryFactory() );
-        boxesLayer.add(
-                reader.read( "POLYGON ((12 56, 12 57, 13 57, 13 56, 12 56))" ),
-                new String[] { "name" }, new Object[] { "A" } );
-        boxesLayer.add( reader.read( "POLYGON ((2 3, 2 5, 6 5, 6 3, 2 3))" ),
-                new String[] { "name" }, new Object[] { "B" } );
-
-        concaveLayer = (EditableLayerImpl) spatialService.getOrCreateEditableLayer( "concave" );
-        reader = new WKTReader( concaveLayer.getGeometryFactory() );
-        concaveLayer.add( reader.read( "POLYGON ((0 0, 2 5, 0 10, 10 10, 10 0, 0 0))" ) );
-
-        intersectionLayer = (EditableLayerImpl) spatialService.getOrCreateEditableLayer( "intersection" );
-        intersectionLayer.getCoordinateReferenceSystem();
-        reader = new WKTReader( intersectionLayer.getGeometryFactory() );
-        intersectionLayer.add( reader.read( "POLYGON ((0 0, 0 5, 5 5, 5 0, 0 0))" ) );
-        intersectionLayer.add( reader.read( "POLYGON ((4 4, 4 10, 10 10, 10 4, 4 4))" ) );
-        intersectionLayer.add( reader.read( "POLYGON ((2 2, 2 6, 6 6, 6 2, 2 2))" ) );
-
-        equalLayer = (EditableLayerImpl) spatialService.getOrCreateEditableLayer( "equal" );
-        equalLayer.setExtraPropertyNames( new String[] { "id", "name" } );
-        reader = new WKTReader( intersectionLayer.getGeometryFactory() );
-        equalLayer.add( reader.read( "POLYGON ((0 0, 0 5, 5 5, 5 0, 0 0))" ),
-                new String[] { "id", "name" }, new Object[] { 1, "equal" } );
-        equalLayer.add( reader.read( "POLYGON ((0 0, 0.1 5, 5 5, 5 0, 0 0))" ),
-                new String[] { "id", "name" }, new Object[] { 2, "tolerance" } );
-        equalLayer.add( reader.read( "POLYGON ((0 5, 5 5, 5 0, 0 0, 0 5))" ),
-                new String[] { "id", "name" }, new Object[] { 3,
-                        "different order" } );
-        equalLayer.add(
-                reader.read( "POLYGON ((0 0, 0 2, 0 4, 0 5, 5 5, 5 3, 5 2, 5 0, 0 0))" ),
-                new String[] { "id", "name" }, new Object[] { 4, "topo equal" } );
-
+        
+        Transaction tx = db.beginTx();
+        try {
+	        boxesLayer = (EditableLayerImpl) spatialService.getOrCreateEditableLayer( "boxes" );
+	        boxesLayer.setExtraPropertyNames( new String[] { "name" } );
+	        boxesLayer.setCoordinateReferenceSystem(DefaultEngineeringCRS.GENERIC_2D);
+	        WKTReader reader = new WKTReader( boxesLayer.getGeometryFactory() );
+	        boxesLayer.add(
+	                reader.read( "POLYGON ((12 26, 12 27, 13 27, 13 26, 12 26))" ),
+	                new String[] { "name" }, new Object[] { "A" } );
+	        boxesLayer.add( reader.read( "POLYGON ((2 3, 2 5, 6 5, 6 3, 2 3))" ),
+	                new String[] { "name" }, new Object[] { "B" } );
+	
+	        concaveLayer = (EditableLayerImpl) spatialService.getOrCreateEditableLayer( "concave" );
+	        concaveLayer.setCoordinateReferenceSystem(DefaultEngineeringCRS.GENERIC_2D);
+	        reader = new WKTReader( concaveLayer.getGeometryFactory() );
+	        concaveLayer.add( reader.read( "POLYGON ((0 0, 2 5, 0 10, 10 10, 10 0, 0 0))" ) );
+	
+	        intersectionLayer = (EditableLayerImpl) spatialService.getOrCreateEditableLayer( "intersection" );
+	        intersectionLayer.setCoordinateReferenceSystem(DefaultEngineeringCRS.GENERIC_2D);
+	        reader = new WKTReader( intersectionLayer.getGeometryFactory() );
+	        intersectionLayer.add( reader.read( "POLYGON ((0 0, 0 5, 5 5, 5 0, 0 0))" ) );
+	        intersectionLayer.add( reader.read( "POLYGON ((4 4, 4 10, 10 10, 10 4, 4 4))" ) );
+	        intersectionLayer.add( reader.read( "POLYGON ((2 2, 2 6, 6 6, 6 2, 2 2))" ) );
+	
+	        equalLayer = (EditableLayerImpl) spatialService.getOrCreateEditableLayer( "equal" );
+	        equalLayer.setExtraPropertyNames( new String[] { "id", "name" } );
+	        equalLayer.setCoordinateReferenceSystem(DefaultEngineeringCRS.GENERIC_2D);	        
+	        reader = new WKTReader( intersectionLayer.getGeometryFactory() );
+	        equalLayer.add( reader.read( "POLYGON ((0 0, 0 5, 5 5, 5 0, 0 0))" ),
+	                new String[] { "id", "name" }, new Object[] { 1, "equal" } );
+	        equalLayer.add( reader.read( "POLYGON ((0 0, 0.1 5, 5 5, 5 0, 0 0))" ),
+	                new String[] { "id", "name" }, new Object[] { 2, "tolerance" } );
+	        equalLayer.add( reader.read( "POLYGON ((0 5, 5 5, 5 0, 0 0, 0 5))" ),
+	                new String[] { "id", "name" }, new Object[] { 3,
+	                        "different order" } );
+	        equalLayer.add(
+	                reader.read( "POLYGON ((0 0, 0 2, 0 4, 0 5, 5 5, 5 3, 5 2, 5 0, 0 0))" ),
+	                new String[] { "id", "name" }, new Object[] { 4, "topo equal" } );
+	        
+	        tx.success();
+        } finally {
+        	tx.finish();
+        }
     }
 
     private static void loadTestOsmData( String layerName, int commitInterval )
@@ -567,13 +657,26 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
         engine = new ExecutionEngine( db );
         try
         {
-            exporter.saveImage( startPipeline( intersectionLayer ).toFeatureCollection(),
-                    StyledImageExporter.createDefaultStyle(), new File(
+            StyledImageExporter exporter = new StyledImageExporter( db );
+            exporter.setExportDir( "target/docs/images/" );
+            exporter.saveImage( GeoPipeline.start( intersectionLayer ).toFeatureCollection(),
+                    StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
                             "intersectionLayer.png" ) );
+            
+            exporter.saveImage( GeoPipeline.start( boxesLayer ).toFeatureCollection(),
+                    StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
+                            "boxesLayer.png" ) );
+
+            exporter.saveImage( GeoPipeline.start( concaveLayer ).toFeatureCollection(),
+                    StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
+                            "concaveLayer.png" ) );
+
+            exporter.saveImage( GeoPipeline.start( equalLayer ).toFeatureCollection(),
+                    StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
+                            "equalLayer.png" ) );
         }
         catch ( IOException e )
         {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
     }
@@ -581,9 +684,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     @After
     public void doc()
     {
-       String imgName = "graph"+getTitle();
-       gen.get().addSnippet( "graph", AsciidocHelper.createGraphViz(
-        imgName , graphdb(), imgName ) );
+       // gen.get().addSnippet( "graph", AsciidocHelper.createGraphViz( imgName , graphdb(), "graph"+getTitle() ) );
        gen.get().addSourceSnippets( GeoPipesTest.class, "s_"+getTitle() );
        gen.get().document( "target/docs", "examples" );
     }
@@ -591,8 +692,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     @BeforeClass
     public static void init()
     {
-        db = new ImpermanentGraphDatabase( "target/"
-                                           + System.currentTimeMillis() );
+        db = new ImpermanentGraphDatabase( "target/" + System.currentTimeMillis() );
         db.cleanContent( true );
         try
         {
@@ -600,12 +700,11 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
         }
         catch ( Exception e )
         {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        exporter = new StyledImageExporter( db );
+        
+        StyledImageExporter exporter = new StyledImageExporter( db );
         exporter.setExportDir( "target/docs/images/" );
-
     }
 
     private void print( GeoPipeline pipeline )
