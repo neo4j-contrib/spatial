@@ -548,7 +548,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
 
     private String getTitle()
     {
-        return gen.get().getTitle().replace( " ", "_" );
+        return gen.get().getTitle().replace( " ", "_" ).toLowerCase();
     }    
     
     @SuppressWarnings({ "unchecked", "rawtypes" })
@@ -685,7 +685,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     public void doc()
     {
        // gen.get().addSnippet( "graph", AsciidocHelper.createGraphViz( imgName , graphdb(), "graph"+getTitle() ) );
-       gen.get().addSourceSnippets( GeoPipesTest.class, "s_"+getTitle() );
+       gen.get().addSourceSnippets( GeoPipesTest.class, "s_"+getTitle().toLowerCase() );
        gen.get().document( "target/docs", "examples" );
     }
 
