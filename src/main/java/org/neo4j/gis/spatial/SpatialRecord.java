@@ -19,6 +19,8 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.util.Map;
+
 import com.vividsolutions.jts.geom.Geometry;
 
 public interface SpatialRecord {
@@ -32,5 +34,7 @@ public interface SpatialRecord {
 	String[] getPropertyNames();
 
 	Object getProperty(String name);
+
+	Map<String, Object> getProperties();
 
 }

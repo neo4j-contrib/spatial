@@ -19,6 +19,9 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.neo4j.gis.spatial.attributes.PropertyMapper;
 import org.neo4j.graphdb.Node;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -108,6 +111,17 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 			values[i] = getProperty(names[i]);
 		}
 		return values;
+	}
+	
+	public Map<String,Object> getProperties() {
+		Map<String,Object> result = new HashMap<String,Object>();
+		
+		String[] names = getPropertyNames();
+		for (int i = 0; i < names.length; i++) {
+			result.put(names[i], getProperty(names[i]));
+		}
+		
+		return result;
 	}
 	
 	@Override
