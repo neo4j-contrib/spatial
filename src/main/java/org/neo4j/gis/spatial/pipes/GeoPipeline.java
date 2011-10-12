@@ -32,9 +32,11 @@ import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.collection.AbstractFeatureCollection;
 import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.neo4j.collections.rtree.filter.SearchAll;
 import org.neo4j.collections.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import org.neo4j.gis.spatial.SpatialRecord;
 import org.neo4j.gis.spatial.SpatialTopologyUtils;
 import org.neo4j.gis.spatial.filter.SearchIntersectWindow;
 import org.neo4j.gis.spatial.filter.SearchRecords;
@@ -175,6 +177,17 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     	return start(layer, layer.getIndex().search(searchFilter));
     }
 
+    /**
+     * Start a new pipeline that will iterate through all items contained in a Layer 
+     * 
+     * @param layer
+     * @param searchFilter
+     * @return geoPipeline
+     */
+    public static GeoPipeline start(Layer layer) {
+    	return start(layer, new SearchAll());
+    }
+    
     /**
      * Extracts Layer items that intersect the given search window and start a pipeline.
      * 
@@ -880,9 +893,11 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     }
 
     public FeatureCollection<SimpleFeatureType,SimpleFeature> toFeatureCollection() throws IOException {
-    	final List<SpatialDatabaseRecord> records = toSpatialDatabaseRecordList();
+    	@SuppressWarnings("unchecked")
+		final List<SpatialRecord> records = toList();
+    	
     	Envelope bounds = null;
-    	for (SpatialDatabaseRecord record : records) {
+    	for (SpatialRecord record : records) {
     		if (bounds == null) {
     			bounds = record.getGeometry().getEnvelopeInternal();
     		} else {
@@ -890,7 +905,7 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     		}
     	}
     	
-    	final Iterator<SpatialDatabaseRecord> recordsIterator = records.iterator();
+    	final Iterator<SpatialRecord> recordsIterator = records.iterator();
     	final ReferencedEnvelope refBounds = new ReferencedEnvelope(bounds, layer.getCoordinateReferenceSystem());
     	
     	Neo4jSpatialDataStore datastore = new Neo4jSpatialDataStore(layer.getSpatialDatabase().getDatabase());
@@ -938,11 +953,15 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
      * Iterates through the pipeline content and creates a list of all the SpatialDatabaseRecord found.
      * This will empty the pipeline.
      * 
-     * Warning: this method should *not* be used with pipes that extract many items from a single item 
+     * Warning: this method should not be used with pipes that extract many items from a single item 
      * or with pipes that group many items into fewer items.
+     * 
+     * Warning: GeoPipeline doesn't modify SpatialDatabaseRecords thus the geometries contained aren't those
+     * transformed by the pipeline but the original ones.
      */
     public List<SpatialDatabaseRecord> toSpatialDatabaseRecordList() {
     	List<SpatialDatabaseRecord> result = new ArrayList<SpatialDatabaseRecord>();
+    	
     	try {
 	    	while (true) {
 	    		result.add(next().getRecord());
