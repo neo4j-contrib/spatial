@@ -40,6 +40,7 @@ import org.geotools.styling.Style;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.neo4j.collections.rtree.filter.SearchAll;
 import org.neo4j.collections.rtree.filter.SearchFilter;
@@ -546,16 +547,44 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
 
         assertEquals( 24, count );
     }
-
+    
+    /**
+     * A more complex Open Street Map example
+     * 
+     * This example demostrates the some pipes chained together to make a full
+     * geoprocessing pipeline.
+     * 
+     * Example:
+     * 
+     * @@s_break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them
+     * 
+     * Steps:
+     * 
+     * @@step1_break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them
+     * 
+     * @@step2_break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them
+     * 
+     * @@step3_break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them
+     * 
+     * @@step4_break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them
+     */
+    @Documented  
     @Test
+    @Ignore
     public void break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them()
     {
+        OSMGeoPipeline pipe = OSMGeoPipeline.start( osmLayer );
+        // START SNIPPET: s_break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them
         assertEquals(
                 1,
                 OSMGeoPipeline.start( osmLayer ).extractOsmPoints().groupByDensityIslands(
                         0.1 ).toConvexHull().toBuffer( 10 ).count() );
-        System.out.println( OSMGeoPipeline.start( osmLayer ).extractOsmPoints().groupByDensityIslands(
-                0.1 ).toConvexHull().toBuffer( 10 ).count() );
+        // END SNIPPET: s_break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them
+       
+        addImageSnippet(boxesLayer, pipe.extractOsmPoints(), "step1_"+getTitle(), Constants.GTYPE_POINT);
+        addImageSnippet(boxesLayer, pipe.extractOsmPoints().groupByDensityIslands( 0.1 ), "step2_"+getTitle(), Constants.GTYPE_MULTIPOLYGON);
+        addImageSnippet(boxesLayer, pipe.extractOsmPoints().groupByDensityIslands( 0.1 ).toConvexHull(), "step3_"+getTitle(), Constants.GTYPE_POLYGON);
+        addImageSnippet(boxesLayer, pipe.extractOsmPoints().groupByDensityIslands( 0.1 ).toConvexHull().toBuffer( 10 ), "step4_"+getTitle(), Constants.GTYPE_POLYGON);
     }
 
     /**
