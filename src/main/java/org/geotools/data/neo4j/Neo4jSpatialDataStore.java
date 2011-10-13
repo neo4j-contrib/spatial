@@ -45,12 +45,8 @@ import org.geotools.data.Query;
 import org.geotools.data.ResourceInfo;
 import org.geotools.data.TransactionStateDiff;
 import org.geotools.data.simple.SimpleFeatureSource;
-import org.geotools.feature.AttributeTypeBuilder;
-import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
-import org.geotools.feature.type.BasicFeatureTypes;
 import org.geotools.filter.FidFilterImpl;
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.geotools.resources.Classes;
 import org.geotools.styling.SLDParser;
 import org.geotools.styling.Style;
 import org.geotools.styling.StyleFactory;
@@ -69,20 +65,10 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
-import org.opengis.feature.type.AttributeDescriptor;
-import org.opengis.feature.type.GeometryDescriptor;
-import org.opengis.feature.type.GeometryType;
 import org.opengis.filter.Filter;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.MultiLineString;
-import com.vividsolutions.jts.geom.MultiPoint;
-import com.vividsolutions.jts.geom.MultiPolygon;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.geom.Polygon;
 
 
 /**
@@ -139,33 +125,7 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
                 throw new IOException("Layer not found: " + typeName);
             }
 
-            String[] extraPropertyNames = layer.getExtraPropertyNames();
-            List<AttributeDescriptor> types = readAttributes(typeName, extraPropertyNames);
-
-            // find Geometry type
-            SimpleFeatureType parent = null;
-            GeometryDescriptor geomDescriptor = (GeometryDescriptor)types.get(0);
-            Class< ? > geomBinding = geomDescriptor.getType().getBinding();
-            if ((geomBinding == Point.class) || (geomBinding == MultiPoint.class)) {
-                parent = BasicFeatureTypes.POINT;
-            } else if ((geomBinding == Polygon.class) || (geomBinding == MultiPolygon.class)) {
-                parent = BasicFeatureTypes.POLYGON;
-            } else if ((geomBinding == LineString.class) || (geomBinding == MultiLineString.class)) {
-                parent = BasicFeatureTypes.LINE;
-            }
-
-            SimpleFeatureTypeBuilder builder = new SimpleFeatureTypeBuilder();
-            builder.setDefaultGeometry(geomDescriptor.getLocalName());
-            builder.addAll(types);
-            builder.setName(typeName);
-            builder.setNamespaceURI(BasicFeatureTypes.DEFAULT_NAMESPACE);
-            builder.setAbstract(false);
-            builder.setCRS(layer.getCoordinateReferenceSystem());
-            if (parent != null) {
-                builder.setSuperType(parent);
-            }
-
-            result = builder.buildFeatureType();
+            result = Neo4jFeatureBuilder.getTypeFromLayer(layer);
             simpleFeatureTypeIndex.put(typeName, result);
         }
 
@@ -255,8 +215,6 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
     } */
         
     public FeatureWriter<SimpleFeatureType, SimpleFeature> getFeatureWriter(String typeName, Filter filter, org.geotools.data.Transaction transaction) throws IOException {
-		System.out.println("getFeatureWriter(" + typeName + "," + filter.getClass() + " " + filter + "," + transaction + ")");
-		
 		if (filter == null) {
 			throw new NullPointerException("getFeatureReader requires Filter: did you mean Filter.INCLUDE?");
         }
@@ -265,6 +223,8 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 			throw new NullPointerException("getFeatureWriter requires Transaction: did you mean to use Transaction.AUTO_COMMIT?");
 		}
 
+		System.out.println("getFeatureWriter(" + typeName + "," + filter.getClass() + " " + filter + "," + transaction + ")");		
+		
 		FeatureWriter<SimpleFeatureType, SimpleFeature> writer;
 
 		if (transaction == org.geotools.data.Transaction.AUTO_COMMIT) {
@@ -373,41 +333,7 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 		}
     	
 		return new Neo4jSpatialFeatureReader(layer, getSchema(typeName), records);
-    }    
-    
-	protected List<AttributeDescriptor> readAttributes(String typeName, String[] extraPropertyNames) throws IOException {
-    	Class<? extends Geometry> geometryClass = SpatialDatabaseService.convertGeometryTypeToJtsClass(getGeometryType(typeName));
-
-	    AttributeTypeBuilder build = new AttributeTypeBuilder();
-	    build.setName(Classes.getShortName(geometryClass));
-	    build.setNillable(true);
-	    build.setCRS(getCRS(typeName));
-	    build.setBinding(geometryClass);
-	
-	    GeometryType geometryType = build.buildGeometryType();
-	        
-	    List<AttributeDescriptor> attributes = new ArrayList<AttributeDescriptor>();
-	    attributes.add(build.buildDescriptor(BasicFeatureTypes.GEOMETRY_ATTRIBUTE_NAME, geometryType));
-	    
-	    if (extraPropertyNames != null) {
-		    Set<String> usedNames = new HashSet<String>(); 
-		    // record names in case of duplicates
-	        usedNames.add(BasicFeatureTypes.GEOMETRY_ATTRIBUTE_NAME);
-	
-			for (String propertyName : extraPropertyNames) {
-				if (!usedNames.contains(propertyName)) {
-					usedNames.add(propertyName);
-
-					build.setNillable(true);
-					build.setBinding(String.class);
-
-					attributes.add(build.buildDescriptor(propertyName));
-				}
-			}
-	    }
-	    
-        return attributes;
-    }    
+    }
     
     protected ResourceInfo getInfo(String typeName) {
     	return new DefaultResourceInfo(typeName, getCRS(typeName), getBounds(typeName));
