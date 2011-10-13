@@ -41,12 +41,14 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.neo4j.collections.rtree.filter.SearchAll;
+import org.neo4j.collections.rtree.filter.SearchFilter;
 import org.neo4j.cypher.javacompat.CypherParser;
 import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.examples.AbstractJavaDocTestbase;
 import org.neo4j.gis.spatial.EditableLayerImpl;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
+import org.neo4j.gis.spatial.filter.SearchIntersectWindow;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.pipes.osm.OSMGeoPipeline;
 import org.neo4j.graphdb.Transaction;
@@ -68,6 +70,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     private static EditableLayerImpl concaveLayer;
     private static EditableLayerImpl intersectionLayer;
     private static EditableLayerImpl equalLayer;
+    private static EditableLayerImpl linesLayer;
 
     @Test
     public void find_all()
@@ -439,6 +442,61 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
 
         // TODO test?
     }
+     
+    /**
+     * Intersection
+     * 
+     * The Intersection pipe computes a geometry representing the intersection between item geometry and the given geometry.
+	 * 
+     * Example:
+     * 
+     * @@s_intersection
+     * 
+     * Output:
+     * 
+     * @@intersection
+     */
+    @Documented    
+    @Test
+    public void intersection() throws Exception 
+    {
+    	// START SNIPPET: s_intersection
+    	WKTReader reader = new WKTReader( intersectionLayer.getGeometryFactory() );
+        Geometry geometry = reader.read( "POLYGON ((3 3, 3 5, 7 7, 7 3, 3 3))" );
+        GeoPipeline pipeline = GeoPipeline.start( intersectionLayer ).intersect( geometry );
+        // END SNIPPET: s_intersection
+        addImageSnippet( intersectionLayer, pipeline, getTitle() );
+
+        // TODO test?
+    }    
+    
+    /**
+     * Union
+     * 
+     * The Union pipe unites item geometry with a given geometry.
+	 * 
+     * Example:
+     * 
+     * @@s_union
+     * 
+     * Output:
+     * 
+     * @@union
+     */
+    @Documented    
+    @Test
+    public void union() throws Exception 
+    {
+    	// START SNIPPET: s_union
+    	WKTReader reader = new WKTReader( intersectionLayer.getGeometryFactory() );
+        Geometry geometry = reader.read( "POLYGON ((3 3, 3 5, 7 7, 7 3, 3 3))" );
+        SearchFilter filter = new SearchIntersectWindow( intersectionLayer, new Envelope( 7, 10, 7, 10 ) );
+        GeoPipeline pipeline = GeoPipeline.start( intersectionLayer, filter ).union( geometry );
+        // END SNIPPET: s_union
+        addImageSnippet( intersectionLayer, pipeline, getTitle() );
+
+        // TODO test?
+    }    
         
     /**
      * Min
@@ -576,27 +634,27 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     }
 
     /**
-     * Union All 
+     * Unite All 
      * 
-     * The UnionAll pipe unites geometries of every item contained in the pipeline.
+     * The Union All pipe unites geometries of every item contained in the pipeline.
 	 * This pipe groups every item in the pipeline in a single item containing the geometry output
 	 * of the union.
      * 
      * Example:
      * 
-     * @@s_union_all
+     * @@s_unite_all
      * 
      * Output:
      * 
-     * @@union_all
+     * @@unite_all
      */
     @Documented
     @Test
-    public void union_all()
+    public void unite_all()
     {
-    	// START SNIPPET: s_union_all
+    	// START SNIPPET: s_unite_all
         GeoPipeline pipeline = GeoPipeline.start( intersectionLayer ).unionAll();
-        // END SNIPPET: s_union_all
+        // END SNIPPET: s_unite_all
         addImageSnippet( intersectionLayer, pipeline, getTitle() );
         
         pipeline = GeoPipeline.start( intersectionLayer )
@@ -679,10 +737,99 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
         	.start( boxesLayer )
         	.windowIntersectionFilter(new Envelope( 0, 10, 0, 10 ) );
         // END SNIPPET: s_intersecting_windows
-        
         addImageSnippet( boxesLayer, pipeline, getTitle() );
+        
+        // TODO test?
     }
 
+    /**
+     * Start Point
+     * 
+     * The StartPoint pipe finds the starting point of item geometry.
+     * Example:
+     * 
+     * @@s_start_point
+     * 
+     * Output:
+     * 
+     * @@start_point
+     */
+    @Documented
+    @Test
+    public void start_point()
+    {
+        // START SNIPPET: s_start_point
+        GeoPipeline pipeline = GeoPipeline
+        	.start( linesLayer )
+        	.toStartPoint();
+        // END SNIPPET: s_start_point
+        addImageSnippet( linesLayer, pipeline, getTitle() );
+        
+        pipeline = GeoPipeline
+	    	.start( linesLayer )
+	    	.toStartPoint()
+	    	.createWellKnownText();
+        
+        assertEquals("POINT (12 26)", pipeline.next().getProperty("WellKnownText"));
+    }    
+    
+    /**
+     * End Point
+     * 
+     * The EndPoint pipe finds the ending point of item geometry.
+     * Example:
+     * 
+     * @@s_end_point
+     * 
+     * Output:
+     * 
+     * @@end_point
+     */
+    @Documented
+    @Test
+    public void end_point()
+    {
+        // START SNIPPET: s_end_point
+        GeoPipeline pipeline = GeoPipeline
+        	.start( linesLayer )
+        	.toEndPoint();
+        // END SNIPPET: s_end_point
+        addImageSnippet( linesLayer, pipeline, getTitle() );
+        
+        pipeline = GeoPipeline
+	    	.start( linesLayer )
+	    	.toEndPoint()
+	    	.createWellKnownText();
+    
+	    assertEquals("POINT (23 34)", pipeline.next().getProperty("WellKnownText"));
+    }    
+    
+    /**
+     * Envelope
+     * 
+     * The Envelope pipe computes the minimum bounding box of item geometry.
+     * Example:
+     * 
+     * @@s_envelope
+     * 
+     * Output:
+     * 
+     * @@envelope
+     */
+    @Documented
+    @Test
+    public void envelope()
+    {
+        // START SNIPPET: s_envelope
+        GeoPipeline pipeline = GeoPipeline
+        	.start( linesLayer )
+        	.toEnvelope();
+        // END SNIPPET: s_envelope
+        addImageSnippet( linesLayer, pipeline, getTitle() );
+        
+        // TODO test
+    } 
+    
     @Test
     public void test_equality() throws Exception
     {
@@ -803,6 +950,11 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
 	        equalLayer.add(
 	                reader.read( "POLYGON ((0 0, 0 2, 0 4, 0 5, 5 5, 5 3, 5 2, 5 0, 0 0))" ),
 	                new String[] { "id", "name" }, new Object[] { 4, "topo equal" } );
+
+	        linesLayer = (EditableLayerImpl) spatialService.getOrCreateEditableLayer( "lines" );
+	        linesLayer.setCoordinateReferenceSystem(DefaultEngineeringCRS.GENERIC_2D);	        
+	        reader = new WKTReader( intersectionLayer.getGeometryFactory() );
+	        linesLayer.add( reader.read( "LINESTRING (12 26, 15 27, 18 32, 20 38, 23 34)" ) );
 	        
 	        tx.success();
         } finally {

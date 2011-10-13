@@ -39,6 +39,8 @@ import org.geotools.data.DataStore;
 import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.feature.FeatureCollection;
+import org.geotools.filter.text.cql2.CQLException;
+import org.geotools.filter.text.ecql.ECQL;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.map.FeatureLayer;
 import org.geotools.map.MapContent;
@@ -63,6 +65,7 @@ import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.filter.FilterFactory;
 
 import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.LinearRing;
 import com.vividsolutions.jts.geom.MultiLineString;
 import com.vividsolutions.jts.geom.MultiPoint;
 import com.vividsolutions.jts.geom.MultiPolygon;
@@ -297,6 +300,7 @@ public class StyledImageExporter {
 	                || MultiPolygon.class.isAssignableFrom(geomType)) {
 	            return createPolygonStyle(strokeColor, fillColor);
 	        } else if (LineString.class.isAssignableFrom(geomType)
+	        		|| LinearRing.class.isAssignableFrom(geomType)
 	                || MultiLineString.class.isAssignableFrom(geomType)) {
 	            return createLineStyle(strokeColor);
 	        } else if (Point.class.isAssignableFrom(geomType)
@@ -336,6 +340,12 @@ public class StyledImageExporter {
         
         Rule rule = styleFactory.createRule();
         rule.symbolizers().add(sym);
+        try {	
+			rule.setFilter(ECQL.toFilter("geometryType(the_geom)='Polygon' or geometryType(the_geom)='MultiPoligon'"));
+		} catch (CQLException e) {
+			// TODO
+			e.printStackTrace();
+		}
         
         FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(new Rule[]{ rule });
         Style style = styleFactory.createStyle();
@@ -361,6 +371,13 @@ public class StyledImageExporter {
 
         Rule rule = styleFactory.createRule();
         rule.symbolizers().add(sym);
+        try {	
+			rule.setFilter(ECQL.toFilter("geometryType(the_geom)='LineString' or geometryType(the_geom)='LinearRing' or geometryType(the_geom)='MultiLineString'"));
+		} catch (CQLException e) {
+			// TODO
+			e.printStackTrace();
+		}        
+        
         FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(new Rule[]{rule});
         Style style = styleFactory.createStyle();
         style.featureTypeStyles().add(fts);
@@ -374,15 +391,11 @@ public class StyledImageExporter {
      * and cyan fill
      */
     private static Style createPointStyle(Color strokeColor, Color fillColor) {
-        Graphic gr = styleFactory.createDefaultGraphic();
-
         Mark mark = styleFactory.getCircleMark();
-
-        mark.setStroke(styleFactory.createStroke(
-                filterFactory.literal(strokeColor), filterFactory.literal(1)));
-
+        mark.setStroke(styleFactory.createStroke(filterFactory.literal(strokeColor), filterFactory.literal(2)));
         mark.setFill(styleFactory.createFill(filterFactory.literal(fillColor)));
 
+        Graphic gr = styleFactory.createDefaultGraphic();
         gr.graphicalSymbols().clear();
         gr.graphicalSymbols().add(mark);
         gr.setSize(filterFactory.literal(5));
@@ -395,6 +408,18 @@ public class StyledImageExporter {
 
         Rule rule = styleFactory.createRule();
         rule.symbolizers().add(sym);
+        /* try {	
+			// rule.setFilter(ECQL.toFilter("geometryType(the_geom)='Point' or geometryType(the_geom)='MultiPoint'"));
+        	rule.setFilter(ECQL.toFilter("geometryType(the_geom) <> 'Polygon' and " +
+        			"geometryType(the_geom) <> 'MultiPoligon' and " +
+        			"geometryType(the_geom) <> 'LineString' and " +
+        			"geometryType(the_geom) <> 'LinearRing' and " +
+        			"geometryType(the_geom) <> 'MultiLineString'"));
+		} catch (CQLException e) {
+			// TODO
+			e.printStackTrace();
+		} */      
+                
         FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(new Rule[]{rule});
         Style style = styleFactory.createStyle();
         style.featureTypeStyles().add(fts);
