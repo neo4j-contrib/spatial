@@ -1018,6 +1018,9 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
             exporter.saveImage( GeoPipeline.start( linesLayer ).toFeatureCollection(),
                     StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
                             "linesLayer.png" ) );
+            exporter.saveImage( GeoPipeline.start( osmLayer ).toFeatureCollection(),
+                    StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
+                            "osmLayer.png" ) );
         }
         catch ( IOException e )
         {

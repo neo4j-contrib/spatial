@@ -87,9 +87,13 @@ For more info head over to http://wiki.neo4j.org/content/Neo4j_Spatial_in_uDig[N
 [[spatial-geopipes]]
 == GeoPipes ==
 
-=== Setup Layers ===
+=== Base Layers ===
 
-These are the different base layers used for the following examples:
+These are the different base layers being used for the following examples:
+
+OsmLayer:
+
+image::osmLayer.png[]
 
 IntersectionLayer:
 
