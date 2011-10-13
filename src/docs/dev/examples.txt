@@ -2,9 +2,6 @@
 Examples
 ========
 
-//:leveloffset: 2
-
-//include::examples/count-all-geometries-in-a-layer.txt[]
 
 :leveloffset: 1
 
@@ -90,9 +87,29 @@ For more info head over to http://wiki.neo4j.org/content/Neo4j_Spatial_in_uDig[N
 [[spatial-geopipes]]
 == GeoPipes ==
 
+=== Setup Layers ===
+
+These are the different base layers used for the following examples:
+
 IntersectionLayer:
 
 image::intersectionLayer.png[]
+
+LinesLayer:
+
+image::linesLayer.png[]
+
+BoxesLayer:
+
+image::boxesLayer.png[]
+
+ConcaveLayer:
+
+image::concaveLayer.png[]
+
+EqualLayer:
+
+image::equalLayer.png[]
 
 :leveloffset: 3
 
