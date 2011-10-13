@@ -30,6 +30,7 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.NoSuchElementException;
 
+import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.data.neo4j.StyledImageExporter;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.filter.text.cql2.CQLException;
@@ -45,6 +46,7 @@ import org.neo4j.collections.rtree.filter.SearchFilter;
 import org.neo4j.cypher.javacompat.CypherParser;
 import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.examples.AbstractJavaDocTestbase;
+import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.EditableLayerImpl;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
@@ -274,7 +276,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     	// START SNIPPET: s_centroid
         GeoPipeline pipeline = GeoPipeline.start( boxesLayer ).toCentroid();
         // END SNIPPET: s_centroid
-        addImageSnippet(boxesLayer, pipeline, getTitle());
+        addImageSnippet(boxesLayer, pipeline, getTitle(), Constants.GTYPE_POINT);
     	
         pipeline = GeoPipeline.start( boxesLayer ).toCentroid().createWellKnownText().copyDatabaseRecordProperties().sort(
                 "name" );
@@ -334,7 +336,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     	// START SNIPPET: s_densify
         GeoPipeline pipeline = GeoPipeline.start( concaveLayer ).densify( 5 ).extractPoints();
         // END SNIPPET: s_densify
-        addImageSnippet(concaveLayer, pipeline, getTitle());
+        addImageSnippet(concaveLayer, pipeline, getTitle(), Constants.GTYPE_POINT);
     	
     	
         pipeline = GeoPipeline.start( concaveLayer ).toConvexHull().densify( 10 ).createWellKnownText();
@@ -409,10 +411,9 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     	// START SNIPPET: s_boundary
         GeoPipeline pipeline = GeoPipeline.start( boxesLayer ).toBoundary();
         // END SNIPPET: s_boundary
-        addImageSnippet( boxesLayer, pipeline, getTitle() );
+        addImageSnippet( boxesLayer, pipeline, getTitle(), Constants.GTYPE_LINESTRING );
 
         // TODO test?
-        // TODO Linear Ring is rendered as a Polygon :(
     }
 
     /**
@@ -577,7 +578,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     	// START SNIPPET: s_extract_points
         GeoPipeline pipeline = GeoPipeline.start( boxesLayer ).extractPoints();
         // END SNIPPET: s_extract_points
-        addImageSnippet(boxesLayer, pipeline, getTitle());
+        addImageSnippet(boxesLayer, pipeline, getTitle(), Constants.GTYPE_POINT);
     	
         int count = 0;
         for ( GeoPipeFlow flow : GeoPipeline.start( boxesLayer ).extractPoints().createWellKnownText() )
@@ -763,7 +764,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
         	.start( linesLayer )
         	.toStartPoint();
         // END SNIPPET: s_start_point
-        addImageSnippet( linesLayer, pipeline, getTitle() );
+        addImageSnippet( linesLayer, pipeline, getTitle(), Constants.GTYPE_POINT );
         
         pipeline = GeoPipeline
 	    	.start( linesLayer )
@@ -794,7 +795,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
         	.start( linesLayer )
         	.toEndPoint();
         // END SNIPPET: s_end_point
-        addImageSnippet( linesLayer, pipeline, getTitle() );
+        addImageSnippet( linesLayer, pipeline, getTitle(), Constants.GTYPE_POINT );
         
         pipeline = GeoPipeline
 	    	.start( linesLayer )
@@ -825,7 +826,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
         	.start( linesLayer )
         	.toEnvelope();
         // END SNIPPET: s_envelope
-        addImageSnippet( linesLayer, pipeline, getTitle() );
+        addImageSnippet( linesLayer, pipeline, getTitle(), Constants.GTYPE_POLYGON );
         
         // TODO test
     } 
@@ -868,18 +869,33 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     {
         return gen.get().getTitle().replace( " ", "_" ).toLowerCase();
     }    
-    
-    @SuppressWarnings({ "unchecked", "rawtypes" })
+
 	private void addImageSnippet(
     		Layer layer,
             GeoPipeline pipeline,
             String imgName )
     {
+		addImageSnippet( layer, pipeline, imgName, null );
+    }
+    
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+	private void addImageSnippet(
+    		Layer layer,
+            GeoPipeline pipeline,
+            String imgName,
+            Integer geomType )
+    {
         gen.get().addSnippet( imgName, "\nimage::" + imgName + ".png[]\n" );
         try
         {            
         	FeatureCollection layerCollection = GeoPipeline.start(layer, new SearchAll()).toFeatureCollection();
-        	FeatureCollection pipelineCollection = pipeline.toFeatureCollection();
+        	FeatureCollection pipelineCollection;
+        	if (geomType == null) {
+        		pipelineCollection = pipeline.toFeatureCollection();
+        	} else {
+        		pipelineCollection = pipeline.toFeatureCollection(
+        				Neo4jFeatureBuilder.getType(layer.getName(), geomType, layer.getCoordinateReferenceSystem(), layer.getExtraPropertyNames()));
+        	}
         	
         	ReferencedEnvelope bounds = layerCollection.getBounds();
         	bounds.expandToInclude(pipelineCollection.getBounds());

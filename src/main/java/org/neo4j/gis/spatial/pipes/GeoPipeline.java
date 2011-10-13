@@ -21,13 +21,13 @@ package org.neo4j.gis.spatial.pipes;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
-import org.geotools.data.neo4j.Neo4jSpatialDataStore;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.collection.AbstractFeatureCollection;
 import org.geotools.filter.text.cql2.CQLException;
@@ -850,12 +850,14 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     public GeoPipeline extractGeometries() {
     	return addPipe(new ExtractGeometries());
     }
-    
+
     public FeatureCollection<SimpleFeatureType,SimpleFeature> toStreamingFeatureCollection(final Envelope bounds) throws IOException {
-    	Neo4jSpatialDataStore datastore = new Neo4jSpatialDataStore(layer.getSpatialDatabase().getDatabase());
+    	return toStreamingFeatureCollection(Neo4jFeatureBuilder.getTypeFromLayer(layer), bounds);    	
+    }
+    
+    public FeatureCollection<SimpleFeatureType,SimpleFeature> toStreamingFeatureCollection(SimpleFeatureType featureType, final Envelope bounds) throws IOException {
     	final Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(layer);
-    	
-    	return new AbstractFeatureCollection(datastore.getSchema(layer.getName())) {
+    	return new AbstractFeatureCollection(featureType) {
 			@Override
 			public int size() {
 				return Integer.MAX_VALUE;
@@ -893,6 +895,10 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     }
 
     public FeatureCollection<SimpleFeatureType,SimpleFeature> toFeatureCollection() throws IOException {
+    	return toFeatureCollection(Neo4jFeatureBuilder.getTypeFromLayer(layer));
+    }
+    
+    public FeatureCollection<SimpleFeatureType,SimpleFeature> toFeatureCollection(SimpleFeatureType featureType) throws IOException {
     	@SuppressWarnings("unchecked")
 		final List<SpatialRecord> records = toList();
     	
@@ -908,10 +914,8 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     	final Iterator<SpatialRecord> recordsIterator = records.iterator();
     	final ReferencedEnvelope refBounds = new ReferencedEnvelope(bounds, layer.getCoordinateReferenceSystem());
     	
-    	Neo4jSpatialDataStore datastore = new Neo4jSpatialDataStore(layer.getSpatialDatabase().getDatabase());
-    	final Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(layer);
-    	
-    	return new AbstractFeatureCollection(datastore.getSchema(layer.getName())) {
+    	final Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, Arrays.asList(layer.getExtraPropertyNames()));
+    	return new AbstractFeatureCollection(featureType) {
 			@Override
 			public int size() {
 				return records.size();
