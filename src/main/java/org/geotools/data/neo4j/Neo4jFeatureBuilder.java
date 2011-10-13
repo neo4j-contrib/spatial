@@ -39,9 +39,11 @@ import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
 import org.opengis.feature.type.GeometryDescriptor;
 import org.opengis.feature.type.GeometryType;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.LineString;
+import com.vividsolutions.jts.geom.LinearRing;
 import com.vividsolutions.jts.geom.MultiLineString;
 import com.vividsolutions.jts.geom.MultiPoint;
 import com.vividsolutions.jts.geom.MultiPolygon;
@@ -85,29 +87,32 @@ public class Neo4jFeatureBuilder {
     	return buildFeature(rec.getId(), rec.getGeometry(), rec.getProperties());
     }
 
-    private static SimpleFeatureType getTypeFromLayer(Layer layer) {
-        String[] extraPropertyNames = layer.getExtraPropertyNames();
-        List<AttributeDescriptor> types = readAttributes(layer, extraPropertyNames);
+    public static SimpleFeatureType getTypeFromLayer(Layer layer) {    
+    	return getType(layer.getName(), layer.getGeometryType(), layer.getCoordinateReferenceSystem(), layer.getExtraPropertyNames());
+    }
+    
+    public static SimpleFeatureType getType(String name, Integer geometryTypeId, CoordinateReferenceSystem crs, String[] extraPropertyNames) {
+        List<AttributeDescriptor> types = readAttributes(geometryTypeId, crs, extraPropertyNames);
 
         // find Geometry type
         SimpleFeatureType parent = null;
-        GeometryDescriptor geomDescriptor = (GeometryDescriptor)types.get(0);
+        GeometryDescriptor geomDescriptor = (GeometryDescriptor) types.get(0);
         Class< ? > geomBinding = geomDescriptor.getType().getBinding();
         if ((geomBinding == Point.class) || (geomBinding == MultiPoint.class)) {
             parent = BasicFeatureTypes.POINT;
         } else if ((geomBinding == Polygon.class) || (geomBinding == MultiPolygon.class)) {
             parent = BasicFeatureTypes.POLYGON;
-        } else if ((geomBinding == LineString.class) || (geomBinding == MultiLineString.class)) {
+        } else if ((geomBinding == LineString.class) || (geomBinding == MultiLineString.class) || (geomBinding == LinearRing.class)) {
             parent = BasicFeatureTypes.LINE;
         }
 
         SimpleFeatureTypeBuilder builder = new SimpleFeatureTypeBuilder();
         builder.setDefaultGeometry(geomDescriptor.getLocalName());
         builder.addAll(types);
-        builder.setName(layer.getName());
+        builder.setName(name);
         builder.setNamespaceURI(BasicFeatureTypes.DEFAULT_NAMESPACE);
         builder.setAbstract(false);
-        builder.setCRS(layer.getCoordinateReferenceSystem());
+        builder.setCRS(crs);
         if (parent != null) {
             builder.setSuperType(parent);
         }
@@ -115,13 +120,13 @@ public class Neo4jFeatureBuilder {
         return builder.buildFeatureType();
     }
 
-    private static  List<AttributeDescriptor> readAttributes(Layer layer, String[] extraPropertyNames) {
-        Class<? extends Geometry> geometryClass = SpatialDatabaseService.convertGeometryTypeToJtsClass(layer.getGeometryType());
+    private static List<AttributeDescriptor> readAttributes(Integer geometryTypeId, CoordinateReferenceSystem crs, String[] extraPropertyNames) {
+        Class<? extends Geometry> geometryClass = SpatialDatabaseService.convertGeometryTypeToJtsClass(geometryTypeId);
 
         AttributeTypeBuilder build = new AttributeTypeBuilder();
         build.setName(Classes.getShortName(geometryClass));
         build.setNillable(true);
-        build.setCRS(layer.getCoordinateReferenceSystem());
+        build.setCRS(crs);
         build.setBinding(geometryClass);
 
         GeometryType geometryType = build.buildGeometryType();
