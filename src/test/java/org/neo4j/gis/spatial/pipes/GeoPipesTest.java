@@ -40,7 +40,6 @@ import org.geotools.styling.Style;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.neo4j.collections.rtree.filter.SearchAll;
 import org.neo4j.collections.rtree.filter.SearchFilter;
@@ -57,6 +56,7 @@ import org.neo4j.gis.spatial.pipes.osm.OSMGeoPipeline;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.impl.annotations.Documented;
 import org.neo4j.test.ImpermanentGraphDatabase;
+import org.neo4j.test.TestData.Title;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
@@ -94,7 +94,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     @Test
     public void filter_by_osm_attribute()
     {
-        GeoPipeline pipeline = OSMGeoPipeline.start( osmLayer ).osmAttributeFilter(
+        GeoPipeline pipeline = OSMGeoPipeline.startOsm( osmLayer ).osmAttributeFilter(
                 "name", "Storgatan" ).copyDatabaseRecordProperties();
 
         GeoPipeFlow flow = pipeline.next();
@@ -535,7 +535,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     public void extract_osm_points()
     {
         int count = 0;
-        GeoPipeline pipeline = OSMGeoPipeline.start( osmLayer ).extractOsmPoints().createWellKnownText();
+        GeoPipeline pipeline = OSMGeoPipeline.startOsm( osmLayer ).extractOsmPoints().createWellKnownText();
         for ( GeoPipeFlow flow : pipeline )
         {
             count++;
@@ -549,42 +549,41 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     }
     
     /**
-     * A more complex Open Street Map example
+     * A more complex Open Street Map example.
      * 
      * This example demostrates the some pipes chained together to make a full
      * geoprocessing pipeline.
      * 
      * Example:
      * 
-     * @@s_break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them
+     * @@s_break_up_all_geometries_into_points_and_make_density_islands
      * 
      * Steps:
      * 
-     * @@step1_break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them
+     * @@step1_break_up_all_geometries_into_points_and_make_density_islands
      * 
-     * @@step2_break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them
+     * @@step2_break_up_all_geometries_into_points_and_make_density_islands
      * 
-     * @@step3_break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them
-     * 
-     * @@step4_break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them
+     * @@step3_break_up_all_geometries_into_points_and_make_density_islands
      */
     @Documented  
+    @Title("break_up_all_geometries_into_points_and_make_density_islands")
     @Test
-    @Ignore
     public void break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them()
     {
-        OSMGeoPipeline pipe = OSMGeoPipeline.start( osmLayer );
-        // START SNIPPET: s_break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them
-        assertEquals(
-                1,
-                OSMGeoPipeline.start( osmLayer ).extractOsmPoints().groupByDensityIslands(
-                        0.1 ).toConvexHull().toBuffer( 10 ).count() );
-        // END SNIPPET: s_break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them
+        // START SNIPPET: s_break_up_all_geometries_into_points_and_make_density_islands
+        GeoPipeline pipeline = OSMGeoPipeline.startOsm( osmLayer )
+        	.extractOsmPoints()
+        	.groupByDensityIslands( 0.1 )
+        	.toConvexHull()
+        	.toBuffer( 0.1 );
+        // END SNIPPET: s_break_up_all_geometries_into_points_and_make_density_islands
+        	
+        assertEquals( 1, pipeline.count() );
        
-        addImageSnippet(boxesLayer, pipe.extractOsmPoints(), "step1_"+getTitle(), Constants.GTYPE_POINT);
-        addImageSnippet(boxesLayer, pipe.extractOsmPoints().groupByDensityIslands( 0.1 ), "step2_"+getTitle(), Constants.GTYPE_MULTIPOLYGON);
-        addImageSnippet(boxesLayer, pipe.extractOsmPoints().groupByDensityIslands( 0.1 ).toConvexHull(), "step3_"+getTitle(), Constants.GTYPE_POLYGON);
-        addImageSnippet(boxesLayer, pipe.extractOsmPoints().groupByDensityIslands( 0.1 ).toConvexHull().toBuffer( 10 ), "step4_"+getTitle(), Constants.GTYPE_POLYGON);
+        addOsmImageSnippet( osmLayer, OSMGeoPipeline.startOsm( osmLayer ), "step1_"+getTitle(), Constants.GTYPE_LINESTRING );        
+        addOsmImageSnippet( osmLayer, OSMGeoPipeline.startOsm( osmLayer ).extractOsmPoints(), "step2_"+getTitle(), Constants.GTYPE_POINT );
+        addOsmImageSnippet( osmLayer, OSMGeoPipeline.startOsm( osmLayer ).extractOsmPoints().groupByDensityIslands( 0.0005 ).toBuffer( 0.0004 ), "step3_"+getTitle(), Constants.GTYPE_POLYGON );
     }
 
     /**
@@ -908,13 +907,34 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     }
     
     @SuppressWarnings({ "unchecked", "rawtypes" })
+	private void addOsmImageSnippet(
+    		Layer layer,
+            GeoPipeline pipeline,
+            String imgName,
+            Integer geomType )
+    {
+		addImageSnippet( layer, pipeline, imgName, geomType, 0.002 );
+    }
+
 	private void addImageSnippet(
     		Layer layer,
             GeoPipeline pipeline,
             String imgName,
             Integer geomType )
     {
+		addImageSnippet( layer, pipeline, imgName, geomType, 1 );
+    }
+	
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+	private void addImageSnippet(
+    		Layer layer,
+            GeoPipeline pipeline,
+            String imgName,
+            Integer geomType, 
+            double boundsDelta )
+    {
         gen.get().addSnippet( imgName, "\nimage::" + imgName + ".png[scaledwidth=\"75%\"]\n" );
+        
         try
         {            
         	FeatureCollection layerCollection = GeoPipeline.start(layer, new SearchAll()).toFeatureCollection();
@@ -928,7 +948,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
         	
         	ReferencedEnvelope bounds = layerCollection.getBounds();
         	bounds.expandToInclude(pipelineCollection.getBounds());
-        	bounds.expandBy(1, 1);
+        	bounds.expandBy(boundsDelta, boundsDelta);
         	
             StyledImageExporter exporter = new StyledImageExporter( db );
             exporter.setExportDir( "target/docs/images/" );

@@ -36,17 +36,17 @@ public class OSMGeoPipeline extends GeoPipeline {
 		super(layer);
 	}
 
-    public static OSMGeoPipeline start(Layer layer, final SearchRecords records) {
+    public static OSMGeoPipeline startOsm(Layer layer, final SearchRecords records) {
     	OSMGeoPipeline pipeline = new OSMGeoPipeline(layer);
     	return (OSMGeoPipeline) pipeline.add(createStartPipe(records));    	
     }
     
-    public static OSMGeoPipeline start(Layer layer, SearchFilter searchFilter) {
-    	return start(layer, layer.getIndex().search(searchFilter));    	
+    public static OSMGeoPipeline startOsm(Layer layer, SearchFilter searchFilter) {
+    	return startOsm(layer, layer.getIndex().search(searchFilter));    	
     }
 
-    public static OSMGeoPipeline start(Layer layer) {
-    	return start(layer, new SearchAll());  	
+    public static OSMGeoPipeline startOsm(Layer layer) {
+    	return startOsm(layer, new SearchAll());  	
     }    
     
     public OSMGeoPipeline addOsmPipe(AbstractGeoPipe geoPipe) {
