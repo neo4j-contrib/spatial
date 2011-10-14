@@ -410,11 +410,6 @@ public class StyledImageExporter {
         rule.symbolizers().add(sym);
         try {	
 			rule.setFilter(ECQL.toFilter("geometryType(the_geom)='Point' or geometryType(the_geom)='MultiPoint'"));
-        	/* rule.setFilter(ECQL.toFilter("geometryType(the_geom) <> 'Polygon' and " +
-        			"geometryType(the_geom) <> 'MultiPoligon' and " +
-        			"geometryType(the_geom) <> 'LineString' and " +
-        			"geometryType(the_geom) <> 'LinearRing' and " +
-        			"geometryType(the_geom) <> 'MultiLineString'")); */
 		} catch (CQLException e) {
 			// TODO
 			e.printStackTrace();
