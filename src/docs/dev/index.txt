@@ -9,5 +9,9 @@ include::layers.txt[]
 
 :leveloffset: 1
 
+include::geoserver.txt[]
+
+:leveloffset: 1
+
 include::examples.txt[]
 

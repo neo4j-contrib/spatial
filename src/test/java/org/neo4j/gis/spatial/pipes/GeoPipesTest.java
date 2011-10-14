@@ -914,7 +914,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
             String imgName,
             Integer geomType )
     {
-        gen.get().addSnippet( imgName, "\nimage::" + imgName + ".png[]\n" );
+        gen.get().addSnippet( imgName, "\nimage::" + imgName + ".png[scaledwidth=\"75%\"]\n" );
         try
         {            
         	FeatureCollection layerCollection = GeoPipeline.start(layer, new SearchAll()).toFeatureCollection();

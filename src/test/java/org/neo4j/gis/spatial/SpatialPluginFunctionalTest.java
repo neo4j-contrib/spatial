@@ -26,14 +26,21 @@ import java.io.UnsupportedEncodingException;
 import javax.ws.rs.core.Response.Status;
 
 import org.junit.Test;
+import org.neo4j.kernel.impl.annotations.Documented;
 import org.neo4j.server.rest.AbstractRestFunctionalTestBase;
 
 public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
 {
     private static final String ENDPOINT = "http://localhost:7474/db/data/ext/SpatialPlugin";
 
+    /**
+     * The Neo4j Spatial Server plugin, if
+     * installed, will be announced in the root representation
+     * for the Neo4j Server REST API.
+     */
     @Test
-    public void test_exists() throws UnsupportedEncodingException
+    @Documented
+    public void finding_the_plugin() throws UnsupportedEncodingException
     {
         gen.get().expectedStatus( Status.OK.getStatusCode() );
         String response = gen.get().get( ENDPOINT ).entity();

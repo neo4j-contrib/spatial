@@ -1,0 +1,9 @@
+[[spatial-server-plugin]]
+Using the Neo4j Spatial Server plugin
+=====================================
+
+Neo4j Spatial is also packaged as a ZIP file that can be unzipped into the Neo4j Server /plugin directory. After restarting the server, you should be able to do things liek the following REST calls (here illustrated using `curl`)
+
+:leveloffset: 3
+
+include::finding-the-plugin.txt

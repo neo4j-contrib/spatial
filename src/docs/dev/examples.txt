@@ -74,10 +74,7 @@ tag=exportShapefileFromQuery
 
 This time we import the same OSM model, but query for all geometries inside a envelope, and export that to a new Shapefile.
 
-[[spatial-geoserver]]
-== Using Neo4j Spatial with GeoServer ==
-
-For more info head over to http://wiki.neo4j.org/content/Neo4j_Spatial_in_GeoServer[Neo4j Wiki on Geoserver]
+:leveoffset: 2
 
 [[spatial-udig]]
 == Using Neo4j Spatial with uDig ==
