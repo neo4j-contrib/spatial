@@ -31,6 +31,9 @@ import org.junit.Test;
 import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateList;
@@ -93,6 +96,31 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		checkPointOrder(results);
 	}
 
+	@Test
+	public void testIndexingExistingPointNodes() {
+		GraphDatabaseService db = graphDb();
+		SpatialDatabaseService sdb = new SpatialDatabaseService(db);
+		SimplePointLayer layer = sdb.createSimplePointLayer("my-points", "x", "y");
+
+		Coordinate[] coords = makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt");
+		for (Coordinate coordinate : coords) {
+			Transaction tx = db.beginTx();
+			try {
+				Node n = db.createNode();
+				n.setProperty("x", coordinate.x);
+				n.setProperty("y", coordinate.y);
+			
+				layer.add(n);
+				
+				tx.success();
+			} finally {
+				tx.finish();
+			}
+		}
+
+		assertEquals(coords.length, layer.getIndex().count());
+	}
+	
 	private void checkPointOrder(List<GeoPipeFlow> results) {
 		for (int i = 0; i < results.size() - 1; i++) {
 			GeoPipeFlow first = results.get(i);
