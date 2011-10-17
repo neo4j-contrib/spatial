@@ -25,11 +25,18 @@ import com.vividsolutions.jts.geom.Coordinate;
 public class SimplePointLayer extends EditableLayerImpl {
 		
 	public SpatialDatabaseRecord add(Coordinate coordinate) {
-		return add(getGeometryFactory().createPoint(coordinate));
+		return add(coordinate, null, null);
 	}
 
-	public SpatialDatabaseRecord add(double x, double y) {
-		return add(getGeometryFactory().createPoint(new Coordinate(x, y)));
+	public SpatialDatabaseRecord add(Coordinate coordinate, String[] fieldsName, Object[] fields) {
+		return add(getGeometryFactory().createPoint(coordinate), fieldsName, fields);
 	}
-	
+		
+	public SpatialDatabaseRecord add(double x, double y) {
+		return add(new Coordinate(x, y), null, null);
+	}
+
+	public SpatialDatabaseRecord add(double x, double y, String[] fieldsName, Object[] fields) {
+		return add(new Coordinate(x, y), fieldsName, fields);
+	}
 }
