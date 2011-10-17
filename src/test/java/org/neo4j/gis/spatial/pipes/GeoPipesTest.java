@@ -558,13 +558,25 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
      * 
      * @@s_break_up_all_geometries_into_points_and_make_density_islands
      * 
-     * Steps:
+     * _Step1_
      * 
      * @@step1_break_up_all_geometries_into_points_and_make_density_islands
      * 
+     * _Step2_
+     * 
      * @@step2_break_up_all_geometries_into_points_and_make_density_islands
      * 
+     * _Step3_
+     * 
      * @@step3_break_up_all_geometries_into_points_and_make_density_islands
+     * 
+     * _Step4_
+     * 
+     * @@step4_break_up_all_geometries_into_points_and_make_density_islands
+     *
+     * _Step5_
+     * 
+     * @@step5_break_up_all_geometries_into_points_and_make_density_islands
      */
     @Documented  
     @Title("break_up_all_geometries_into_points_and_make_density_islands")
@@ -572,18 +584,25 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     public void break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them()
     {
         // START SNIPPET: s_break_up_all_geometries_into_points_and_make_density_islands
+        //step1
         GeoPipeline pipeline = OSMGeoPipeline.startOsm( osmLayer )
+                //step2
         	.extractOsmPoints()
-        	.groupByDensityIslands( 0.1 )
+        	//step3
+        	.groupByDensityIslands( 0.0005 )
+        	//step4
         	.toConvexHull()
-        	.toBuffer( 0.1 );
+        	//step5
+        	.toBuffer( 0.0004 );
         // END SNIPPET: s_break_up_all_geometries_into_points_and_make_density_islands
         	
-        assertEquals( 1, pipeline.count() );
+        assertEquals( 9, pipeline.count() );
        
         addOsmImageSnippet( osmLayer, OSMGeoPipeline.startOsm( osmLayer ), "step1_"+getTitle(), Constants.GTYPE_LINESTRING );        
         addOsmImageSnippet( osmLayer, OSMGeoPipeline.startOsm( osmLayer ).extractOsmPoints(), "step2_"+getTitle(), Constants.GTYPE_POINT );
-        addOsmImageSnippet( osmLayer, OSMGeoPipeline.startOsm( osmLayer ).extractOsmPoints().groupByDensityIslands( 0.0005 ).toBuffer( 0.0004 ), "step3_"+getTitle(), Constants.GTYPE_POLYGON );
+        addOsmImageSnippet( osmLayer, OSMGeoPipeline.startOsm( osmLayer ).extractOsmPoints().groupByDensityIslands( 0.0005 ), "step3_"+getTitle(), Constants.GTYPE_POLYGON );
+        addOsmImageSnippet( osmLayer, OSMGeoPipeline.startOsm( osmLayer ).extractOsmPoints().groupByDensityIslands( 0.0005 ).toConvexHull(), "step4_"+getTitle(), Constants.GTYPE_POLYGON );
+        addOsmImageSnippet( osmLayer, OSMGeoPipeline.startOsm( osmLayer ).extractOsmPoints().groupByDensityIslands( 0.0005 ).toConvexHull().toBuffer( 0.0004 ), "step5_"+getTitle(), Constants.GTYPE_POLYGON );
     }
 
     /**
