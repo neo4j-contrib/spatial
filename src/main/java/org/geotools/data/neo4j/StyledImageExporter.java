@@ -62,6 +62,7 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
+import org.opengis.feature.type.FeatureType;
 import org.opengis.filter.FilterFactory;
 
 import com.vividsolutions.jts.geom.LineString;
@@ -293,7 +294,7 @@ public class StyledImageExporter {
      * TODO: Consider adding support for attribute based color schemes like in
      * http://docs.geotools.org/stable/userguide/examples/stylefunctionlab.html
      */
-    public static Style createStyleFromGeometry(SimpleFeatureType schema, Color strokeColor, Color fillColor) {
+    public static Style createStyleFromGeometry(FeatureType schema, Color strokeColor, Color fillColor) {
     	if (schema != null) {
 	        Class<?> geomType = schema.getGeometryDescriptor().getType().getBinding();
 	        if (Polygon.class.isAssignableFrom(geomType)
