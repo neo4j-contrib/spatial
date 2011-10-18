@@ -421,6 +421,20 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     public GeoPipeline copyDatabaseRecordProperties() {
     	return addPipe(new CopyDatabaseRecordProperties());
     }
+
+    /**
+	 * @see CopyDatabaseRecordProperties
+     */
+    public GeoPipeline copyDatabaseRecordProperties(String[] keys) {
+    	return addPipe(new CopyDatabaseRecordProperties(keys));
+    }    
+
+    /**
+	 * @see CopyDatabaseRecordProperties
+     */
+    public GeoPipeline copyDatabaseRecordProperties(String key) {
+    	return addPipe(new CopyDatabaseRecordProperties(key));
+    }        
     
     /**
      * @see Min

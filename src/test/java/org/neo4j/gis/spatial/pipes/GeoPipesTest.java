@@ -94,8 +94,9 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     @Test
     public void filter_by_osm_attribute()
     {
-        GeoPipeline pipeline = OSMGeoPipeline.startOsm( osmLayer ).osmAttributeFilter(
-                "name", "Storgatan" ).copyDatabaseRecordProperties();
+        GeoPipeline pipeline = OSMGeoPipeline.startOsm( osmLayer )
+        	.osmAttributeFilter( "name", "Storgatan" )
+        	.copyDatabaseRecordProperties();
 
         GeoPipeFlow flow = pipeline.next();
         assertFalse( pipeline.hasNext() );
@@ -106,8 +107,9 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     @Test
     public void filter_by_property()
     {
-        GeoPipeline pipeline = GeoPipeline.start( osmLayer ).copyDatabaseRecordProperties().propertyFilter(
-                "name", "Storgatan" );
+        GeoPipeline pipeline = GeoPipeline.start( osmLayer )
+        	.copyDatabaseRecordProperties( "name" )
+        	.propertyFilter( "name", "Storgatan" );
 
         GeoPipeFlow flow = pipeline.next();
         assertFalse( pipeline.hasNext() );

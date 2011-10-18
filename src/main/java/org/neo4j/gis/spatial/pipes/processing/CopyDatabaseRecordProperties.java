@@ -32,11 +32,27 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class CopyDatabaseRecordProperties extends AbstractGeoPipe {
 
+	private String[] keys = null;
+	
+	public CopyDatabaseRecordProperties(String key) {
+		this(new String[] { key });
+	}
+	
+	public CopyDatabaseRecordProperties(String[] keys) {
+		this.keys = keys;
+	}
+	
+	public CopyDatabaseRecordProperties() {
+	}
+	
+	
 	@Override	
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
-		for (String name : flow.getRecord().getPropertyNames()) {
+		String[] names = keys != null ? keys : flow.getRecord().getPropertyNames();
+		for (String name : names) {
 			flow.getProperties().put(name, flow.getRecord().getProperty(name));
 		}
+		
 		return flow;
 	}	
 	
