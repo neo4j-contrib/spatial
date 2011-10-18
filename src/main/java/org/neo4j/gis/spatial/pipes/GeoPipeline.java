@@ -141,6 +141,18 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
 			}
     	});
 	}
+
+	/**
+	 * Start a new pipeline with an iterator of SpatialDatabaseRecords
+	 * 
+	 * @param layer
+	 * @param records
+	 * @return geoPipeline
+	 */
+	public static GeoPipeline start(Layer layer, Iterator<SpatialDatabaseRecord> records) {
+		GeoPipeline pipeline = new GeoPipeline(layer);
+    	return (GeoPipeline) pipeline.add(createStartPipe(records));				
+	}
 	
 	/**
 	 * Start a new pipeline with a list of SpatialDatabaseRecords
