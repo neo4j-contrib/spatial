@@ -33,7 +33,7 @@ import com.vividsolutions.jts.io.WKBWriter;
  */
 public class WKBGeometryEncoder extends AbstractGeometryEncoder implements Configurable{
 
-	private String wktProperty;
+	private String wkbProperty=PROP_WKB;
 
 
     // Public methods
@@ -41,7 +41,7 @@ public class WKBGeometryEncoder extends AbstractGeometryEncoder implements Confi
 	public Geometry decodeGeometry(PropertyContainer container) {
 		try {
 			WKBReader reader = new WKBReader(layer.getGeometryFactory());
-			return reader.read((byte[]) container.getProperty(wktProperty));
+			return reader.read((byte[]) container.getProperty(wkbProperty));
 		} catch (ParseException e) {
 			throw new SpatialDatabaseException(e.getMessage(), e);
 		}
@@ -52,7 +52,7 @@ public class WKBGeometryEncoder extends AbstractGeometryEncoder implements Confi
 	
 	protected void encodeGeometryShape(Geometry geometry, PropertyContainer container) {
         WKBWriter writer = new WKBWriter();
-        container.setProperty(wktProperty, writer.write(geometry));
+        container.setProperty(wkbProperty, writer.write(geometry));
 	}
 	
 	@Override    
@@ -60,7 +60,7 @@ public class WKBGeometryEncoder extends AbstractGeometryEncoder implements Confi
     {
         if ( configuration != null )
         {
-            wktProperty = configuration;
+            wkbProperty = configuration;
         }
     }
 
@@ -69,6 +69,6 @@ public class WKBGeometryEncoder extends AbstractGeometryEncoder implements Confi
     public String getConfiguration()
     {
         // TODO Auto-generated method stub
-        return wktProperty;
+        return wkbProperty;
     }
 }

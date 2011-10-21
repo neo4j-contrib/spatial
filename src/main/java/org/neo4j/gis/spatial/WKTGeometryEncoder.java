@@ -33,7 +33,7 @@ import com.vividsolutions.jts.io.WKTWriter;
  */
 public class WKTGeometryEncoder extends AbstractGeometryEncoder implements Configurable{
 
-	private String wktProperty;
+	private String wktProperty = PROP_WKT;
 
 
     // Public methods
@@ -52,7 +52,7 @@ public class WKTGeometryEncoder extends AbstractGeometryEncoder implements Confi
 	
 	protected void encodeGeometryShape(Geometry geometry, PropertyContainer container) {
         WKTWriter writer = new WKTWriter();
-        container.setProperty(PROP_WKT, writer.write(geometry));
+        container.setProperty(wktProperty, writer.write(geometry));
 	}
 	
 	@Override    
