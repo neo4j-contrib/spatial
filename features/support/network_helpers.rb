@@ -53,8 +53,8 @@ module NetworkHelpers
         puts target+" not modified - download skipped"
       end
     else
-      puts "transfer_if_newer: normalized file: #{location.to_s} #{getenv("PLUGIN_NAME")}"
-      File.open(File.join(location.to_s, getenv("PLUGIN_NAME")), "r") do |src|
+      puts "transfer_if_newer: normalized file: #{location.to_s}}"
+      File.open(location.to_s, "r") do |src|
         open(target, "wb") do |file|
           while buf = src.read(2048)
             file.write(buf)
