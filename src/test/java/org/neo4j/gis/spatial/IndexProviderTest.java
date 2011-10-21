@@ -39,6 +39,7 @@
 package org.neo4j.gis.spatial;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
@@ -119,7 +120,9 @@ public class IndexProviderTest
         //within any WKT geometry
         hits = index.query( LayerNodeIndex.WITHIN_WKT_GEOMETRY_QUERY,
                 "POLYGON ((15 56, 15 57, 16 57, 16 56, 15 56))" );
-        assertTrue( hits.hasNext() );
+        hits = index.query( LayerNodeIndex.WITHIN_WKT_GEOMETRY_QUERY,
+                "POLYGON ((15 56, 15 57, 16 57, 16 56, 15 56),(15.1 56.1, 15.1 56.3, 15.4 56.3, 15.4 56.1, 15.1 56.1))" );
+        assertFalse( hits.hasNext() );
         
         
         //within distance
