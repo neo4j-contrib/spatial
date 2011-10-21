@@ -58,7 +58,7 @@ public class WKBGeometryEncoder extends AbstractGeometryEncoder implements Confi
 	@Override    
     public void setConfiguration( String configuration )
     {
-        if ( configuration != null )
+        if ( configuration != null && configuration.trim().length() > 0 )
         {
             wkbProperty = configuration;
         }
@@ -68,7 +68,6 @@ public class WKBGeometryEncoder extends AbstractGeometryEncoder implements Confi
     @Override
     public String getConfiguration()
     {
-        // TODO Auto-generated method stub
         return wkbProperty;
     }
 }
