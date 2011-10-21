@@ -36,6 +36,7 @@ import org.neo4j.graphdb.index.IndexHits;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.io.WKTReader;
 
 public class LayerNodeIndex implements Index<Node>
 {
@@ -47,9 +48,11 @@ public class LayerNodeIndex implements Index<Node>
     public static final String WITHIN_DISTANCE_QUERY = "withinDistance";
     public static final String BBOX_QUERY = "bbox";
     public static final String ENVELOPE_PARAMETER = "envelope";
+    public static final String GEOMETRY_PARAMETER = "envelope";
     public static final String POINT_PARAMETER = "point";
     public static final String DISTANCE_IN_KM_PARAMETER = "distanceInKm";
     public static final String WKT_PROPERTY_KEY = "wkt";
+    public static final String WITHIN_WKT_GEOMETRY_QUERY = "withinWKTGeometry";
     private final String layerName;
     private final GraphDatabaseService db;
     private SpatialDatabaseService spatialDB;
@@ -149,6 +152,28 @@ public class LayerNodeIndex implements Index<Node>
             IndexHits<Node> results = new SpatialRecordHits( res );
             return results;
         }
+        
+        if ( key.equals( WITHIN_WKT_GEOMETRY_QUERY ) )
+        {
+            WKTReader reader = new WKTReader( layer.getGeometryFactory() );
+            Geometry geometry;
+            try
+            {
+                geometry = reader.read( (String)params);
+                List<SpatialDatabaseRecord> res = GeoPipeline.startWithinSearch(
+                        layer,geometry ).toSpatialDatabaseRecordList();
+                
+                IndexHits<Node> results = new SpatialRecordHits( res );
+                return results;
+            }
+            catch ( com.vividsolutions.jts.io.ParseException e )
+            {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+
+        }
+        
         else if ( key.equals( WITHIN_DISTANCE_QUERY ) )
         {
             Map<?, ?> p = (Map<?, ?>) params;

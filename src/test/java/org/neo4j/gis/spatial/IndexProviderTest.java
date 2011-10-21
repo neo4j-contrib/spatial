@@ -105,13 +105,29 @@ public class IndexProviderTest
         tx.success();
         tx.finish();
         Map<String, Object> params = new HashMap<String, Object>();
+        //within Envelope
         params.put( LayerNodeIndex.ENVELOPE_PARAMETER, new Double[] { 15.0,
                 16.0, 56.0, 57.0 } );
         IndexHits<Node> hits = index.query( LayerNodeIndex.WITHIN_QUERY, params );
         assertTrue( hits.hasNext() );
-        // test String search
+        
+        // within BBOX
         hits = index.query( LayerNodeIndex.BBOX_QUERY,
                 "[15.0, 16.0, 56.0, 57.0]" );
+        assertTrue( hits.hasNext() );
+        
+        //within any WKT geometry
+        hits = index.query( LayerNodeIndex.WITHIN_WKT_GEOMETRY_QUERY,
+                "POLYGON ((15 56, 15 57, 16 57, 16 56, 15 56))" );
+        assertTrue( hits.hasNext() );
+        
+        
+        //within distance
+        params.clear();
+        params.put(LayerNodeIndex.POINT_PARAMETER, new Double[]{56.5, 15.5});
+        params.put(LayerNodeIndex.DISTANCE_IN_KM_PARAMETER, 100.0);
+        hits = index.query( LayerNodeIndex.WITHIN_DISTANCE_QUERY,
+                params );
         assertTrue( hits.hasNext() );
         // test Cypher query
         CypherParser parser = new CypherParser();
