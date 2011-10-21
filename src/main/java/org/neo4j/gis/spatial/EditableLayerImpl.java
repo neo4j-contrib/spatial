@@ -70,7 +70,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 	public void delete(long geomNodeId) {
 		Transaction tx = getDatabase().beginTx();
 		try {
-			index.remove(geomNodeId, true);
+			index.remove(geomNodeId, false);
 			tx.success();
 		} finally {
 			tx.finish();
