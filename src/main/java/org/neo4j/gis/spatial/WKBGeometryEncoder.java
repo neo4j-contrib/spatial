@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.graphdb.PropertyContainer;
 
 import com.vividsolutions.jts.geom.Geometry;
@@ -30,14 +31,17 @@ import com.vividsolutions.jts.io.WKBWriter;
 /**
  * @author Davide Savazzi
  */
-public class WKBGeometryEncoder extends AbstractGeometryEncoder {
+public class WKBGeometryEncoder extends AbstractGeometryEncoder implements Configurable{
 
-	// Public methods
+	private String wktProperty;
+
+
+    // Public methods
 	
 	public Geometry decodeGeometry(PropertyContainer container) {
 		try {
 			WKBReader reader = new WKBReader(layer.getGeometryFactory());
-			return reader.read((byte[]) container.getProperty(PROP_WKB));
+			return reader.read((byte[]) container.getProperty(wktProperty));
 		} catch (ParseException e) {
 			throw new SpatialDatabaseException(e.getMessage(), e);
 		}
@@ -48,6 +52,23 @@ public class WKBGeometryEncoder extends AbstractGeometryEncoder {
 	
 	protected void encodeGeometryShape(Geometry geometry, PropertyContainer container) {
         WKBWriter writer = new WKBWriter();
-        container.setProperty(PROP_WKB, writer.write(geometry));
+        container.setProperty(wktProperty, writer.write(geometry));
 	}
+	
+	@Override    
+    public void setConfiguration( String configuration )
+    {
+        if ( configuration != null )
+        {
+            wktProperty = configuration;
+        }
+    }
+
+
+    @Override
+    public String getConfiguration()
+    {
+        // TODO Auto-generated method stub
+        return wktProperty;
+    }
 }

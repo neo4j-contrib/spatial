@@ -42,7 +42,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -60,12 +59,12 @@ import org.neo4j.cypher.javacompat.CypherParser;
 import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.cypher.javacompat.ExecutionResult;
 import org.neo4j.gis.spatial.indexprovider.LayerNodeIndex;
+import org.neo4j.gis.spatial.indexprovider.SpatialIndexProvider;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.index.IndexManager;
-import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.test.ImpermanentGraphDatabase;
 
 import com.tinkerpop.blueprints.pgm.impls.neo4j.Neo4jGraph;
@@ -82,10 +81,9 @@ public class IndexProviderTest
     }
 
     @Test
-    public void testLoadIndex() throws Exception
+    public void testLoadIndex()
     {
-        Map<String, String> config = Collections.unmodifiableMap( MapUtil.stringMap(
-                "provider", "spatial" ) );
+        Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
         IndexManager indexMan = db.index();
         Index<Node> index = indexMan.forNodes( "layer1", config );
         assertNotNull( index );
@@ -95,8 +93,7 @@ public class IndexProviderTest
     @Test
     public void testNodeIndex() throws SyntaxException, Exception
     {
-        Map<String, String> config = Collections.unmodifiableMap( MapUtil.stringMap(
-                "provider", "spatial" ) );
+        Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
         IndexManager indexMan = db.index();
         Index<Node> index = indexMan.forNodes( "layer1", config );
         assertNotNull( index );
@@ -139,12 +136,12 @@ public class IndexProviderTest
     @Test
     public void testWithinDistanceIndex()
     {
-        LayerNodeIndex index = new LayerNodeIndex( "layer1", db,
-                new HashMap<String, String>() );
+        Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG_WKT;
+        IndexManager indexMan = db.index();
+        Index<Node> index = indexMan.forNodes( "layer2", config );
         Transaction tx = db.beginTx();
         Node batman = db.createNode();
-        batman.setProperty( "lat", (double) 37.88 );
-        batman.setProperty( "lon", (double) 41.14 );
+        batman.setProperty( "wkt", "POINT(41.14 37.88 )");
         batman.setProperty( "name", "batman" );
         index.add( batman, "dummy", "value" );
         Map<String, Object> params = new HashMap<String, Object>();

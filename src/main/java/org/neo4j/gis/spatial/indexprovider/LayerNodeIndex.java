@@ -35,7 +35,7 @@ import org.neo4j.graphdb.index.IndexHits;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
-
+import com.vividsolutions.jts.geom.Geometry;
 
 public class LayerNodeIndex implements Index<Node>
 {
@@ -49,14 +49,16 @@ public class LayerNodeIndex implements Index<Node>
     public static final String ENVELOPE_PARAMETER = "envelope";
     public static final String POINT_PARAMETER = "point";
     public static final String DISTANCE_IN_KM_PARAMETER = "distanceInKm";
+    public static final String WKT_PROPERTY_KEY = "wkt";
     private final String layerName;
     private final GraphDatabaseService db;
     private SpatialDatabaseService spatialDB;
     private EditableLayer layer;
 
     /**
-     * This implementation is going to create a new layer if there
-     * is no existing one.
+     * This implementation is going to create a new layer if there is no
+     * existing one.
+     * 
      * @param indexName
      * @param db
      * @param config
@@ -67,8 +69,31 @@ public class LayerNodeIndex implements Index<Node>
         this.layerName = indexName;
         this.db = db;
         spatialDB = new SpatialDatabaseService( this.db );
-        layer = (EditableLayer) spatialDB.getOrCreateEditableLayer( layerName );
-
+        if ( config.containsKey( SpatialIndexProvider.GEOMETRY_TYPE )
+             && config.get( SpatialIndexProvider.GEOMETRY_TYPE ).equals(
+                     POINT_PARAMETER ) )
+        {
+            if ( config.containsKey( LayerNodeIndex.LAT_PROPERTY_KEY )
+                 && config.containsKey( LayerNodeIndex.LON_PROPERTY_KEY ) )
+            {
+                layer = (EditableLayer) spatialDB.getOrCreatePointLayer(
+                        indexName,
+                        config.get( LayerNodeIndex.LON_PROPERTY_KEY ),
+                        config.get( LayerNodeIndex.LAT_PROPERTY_KEY ) );
+            }
+            else if ( config.containsKey( LayerNodeIndex.WKT_PROPERTY_KEY ) )
+            {
+                layer = (EditableLayer) spatialDB.getOrCreateEditableLayer(
+                        indexName, config.get( LayerNodeIndex.WKT_PROPERTY_KEY ) );
+            } else {
+                throw new IllegalArgumentException( "Need to provide lat/lon or wkt property config" );
+            }
+            
+        }
+        else
+        {
+            layer = (EditableLayer) spatialDB.getOrCreateEditableLayer( layerName );
+        }
     }
 
     public String getName()
@@ -81,16 +106,11 @@ public class LayerNodeIndex implements Index<Node>
         return Node.class;
     }
 
-    /**
-     * right now we are assuming only Points with "lat" and "lon" properties
-     */
     public void add( Node geometry, String key, Object value )
     {
-        double lon = (Double) geometry.getProperty( LON_PROPERTY_KEY );
-        double lat = (Double) geometry.getProperty( LAT_PROPERTY_KEY );
+        Geometry decodeGeometry = layer.getGeometryEncoder().decodeGeometry( geometry );
         layer.add(
-                layer.getGeometryFactory().createPoint(
-                        new Coordinate( lon, lat ) ), new String[] { "id" },
+                decodeGeometry, new String[] { "id" },
                 new Object[] { geometry.getId() } );
 
     }
@@ -109,21 +129,23 @@ public class LayerNodeIndex implements Index<Node>
      */
     public IndexHits<Node> get( String key, Object value )
     {
-        return query(key, value);
+        return query( key, value );
     }
 
     public IndexHits<Node> query( String key, Object params )
     {
-//        System.out.println( key + "," + params );
+        // System.out.println( key + "," + params );
         if ( key.equals( WITHIN_QUERY ) )
         {
             Map<?, ?> p = (Map<?, ?>) params;
             Double[] bounds = (Double[]) p.get( ENVELOPE_PARAMETER );
-            
-            List<SpatialDatabaseRecord> res = GeoPipeline
-            	.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(bounds[0], bounds[1], bounds[2], bounds[3])))
-            	.toSpatialDatabaseRecordList();
-            
+
+            List<SpatialDatabaseRecord> res = GeoPipeline.startWithinSearch(
+                    layer,
+                    layer.getGeometryFactory().toGeometry(
+                            new Envelope( bounds[0], bounds[1], bounds[2],
+                                    bounds[3] ) ) ).toSpatialDatabaseRecordList();
+
             IndexHits<Node> results = new SpatialRecordHits( res );
             return results;
         }
@@ -132,12 +154,11 @@ public class LayerNodeIndex implements Index<Node>
             Map<?, ?> p = (Map<?, ?>) params;
             Double[] point = (Double[]) p.get( POINT_PARAMETER );
             Double distance = (Double) p.get( DISTANCE_IN_KM_PARAMETER );
-            
-            List<SpatialDatabaseRecord> res = GeoPipeline
-            	.startNearestNeighborLatLonSearch(layer, new Coordinate(point[1], point[0]), distance)
-            	.sort("OrthodromicDistance")
-            	.toSpatialDatabaseRecordList();
-            
+
+            List<SpatialDatabaseRecord> res = GeoPipeline.startNearestNeighborLatLonSearch(
+                    layer, new Coordinate( point[1], point[0] ), distance ).sort(
+                    "OrthodromicDistance" ).toSpatialDatabaseRecordList();
+
             IndexHits<Node> results = new SpatialRecordHits( res );
             return results;
         }
@@ -147,11 +168,13 @@ public class LayerNodeIndex implements Index<Node>
             try
             {
                 coords = (List<Double>) new JSONParser().parse( (String) params );
-                
-                List<SpatialDatabaseRecord> res = GeoPipeline
-                	.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(coords.get(0), coords.get(1), coords.get(2), coords.get(3))))
-                	.toSpatialDatabaseRecordList();
-                	
+
+                List<SpatialDatabaseRecord> res = GeoPipeline.startWithinSearch(
+                        layer,
+                        layer.getGeometryFactory().toGeometry(
+                                new Envelope( coords.get( 0 ), coords.get( 1 ),
+                                        coords.get( 2 ), coords.get( 3 ) ) ) ).toSpatialDatabaseRecordList();
+
                 IndexHits<Node> results = new SpatialRecordHits( res );
                 return results;
             }
@@ -180,7 +203,11 @@ public class LayerNodeIndex implements Index<Node>
 
     public void remove( Node node, String s )
     {
-        layer.delete( node.getId() );
+        try {
+            layer.delete( node.getId() );
+        } catch (Exception e) {
+            //could not remove
+        }
     }
 
     public void remove( Node node )

@@ -158,19 +158,23 @@ public class SpatialDatabaseService implements Constants {
 	}
 
     public DefaultLayer getOrCreateDefaultLayer(String name) {
-        return (DefaultLayer)getOrCreateLayer(name, WKBGeometryEncoder.class, DefaultLayer.class);
+        return (DefaultLayer)getOrCreateLayer(name, WKBGeometryEncoder.class, DefaultLayer.class, "");
     }
 
-	public EditableLayer getOrCreateEditableLayer(String name, String format) {
+	public EditableLayer getOrCreateEditableLayer(String name, String format, String propertyNameConfig) {
 		Class<? extends GeometryEncoder> geClass = WKBGeometryEncoder.class;
 		if (format != null && format.toUpperCase().startsWith("WKT")) {
 			geClass = WKTGeometryEncoder.class;
 		}
-		return (EditableLayer) getOrCreateLayer(name, geClass, EditableLayerImpl.class);
+		return (EditableLayer) getOrCreateLayer(name, geClass, EditableLayerImpl.class, propertyNameConfig);
 	}
 
     public EditableLayer getOrCreateEditableLayer(String name) {
-        return getOrCreateEditableLayer(name, "WKB");
+        return getOrCreateEditableLayer(name, "WKB", "");
+    }
+    
+    public EditableLayer getOrCreateEditableLayer(String name, String wktProperty) {
+        return getOrCreateEditableLayer(name, "WKT", wktProperty);
     }
 
 	public EditableLayer getOrCreatePointLayer(String name, String xProperty, String yProperty) {
@@ -187,10 +191,10 @@ public class SpatialDatabaseService implements Constants {
 		}
 	}
 
-    public Layer getOrCreateLayer(String name, Class< ? extends GeometryEncoder> geometryEncoder, Class< ? extends Layer> layerClass) {
+    public Layer getOrCreateLayer(String name, Class< ? extends GeometryEncoder> geometryEncoder, Class< ? extends Layer> layerClass, String config) {
         Layer layer = getLayer(name);
         if (layer == null) {
-            return createLayer(name, geometryEncoder, layerClass);
+            return createLayer(name, geometryEncoder, layerClass, config);
         } else if(layerClass == null || layerClass.isInstance(layer)) {
         	return layer;
         } else {
@@ -198,6 +202,9 @@ public class SpatialDatabaseService implements Constants {
         }
     }
 
+    public Layer getOrCreateLayer(String name, Class< ? extends GeometryEncoder> geometryEncoder, Class< ? extends Layer> layerClass) {
+        return getOrCreateLayer(name, geometryEncoder, layerClass, "");
+    }
     /**
      * This method will find the Layer when given a geometry node that this layer contains. It first
      * searches up the RTree index if it exists, and if it cannot find the layer node, it searches
