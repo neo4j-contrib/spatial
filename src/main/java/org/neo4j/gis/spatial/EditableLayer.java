@@ -72,4 +72,5 @@ public interface EditableLayer extends Layer {
 	void setCoordinateReferenceSystem(
 			CoordinateReferenceSystem coordinateReferenceSystem);
 
+    void removeFromIndex(long geomNodeId);
 }

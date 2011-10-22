@@ -19,10 +19,10 @@
  */
 package org.neo4j.gis.spatial.indexprovider;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.io.WKTReader;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.neo4j.gis.spatial.EditableLayer;
@@ -34,10 +34,9 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.io.WKTReader;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public class LayerNodeIndex implements Index<Node>
 {
@@ -121,7 +120,7 @@ public class LayerNodeIndex implements Index<Node>
 
     public void remove( Node entity, String key, Object value )
     {
-        layer.delete( entity.getId() );
+        remove( entity );
     }
 
     public void delete()
@@ -230,16 +229,16 @@ public class LayerNodeIndex implements Index<Node>
 
     public void remove( Node node, String s )
     {
-        try {
-            layer.delete( node.getId() );
-        } catch (Exception e) {
-            //could not remove
-        }
+        remove(node);
     }
 
     public void remove( Node node )
     {
-        layer.delete( node.getId() );
+        try {
+            layer.removeFromIndex( node.getId() );
+        } catch (Exception e) {
+            //could not remove
+        }
     }
 
     @Override

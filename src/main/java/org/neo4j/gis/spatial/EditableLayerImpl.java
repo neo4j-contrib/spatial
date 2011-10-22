@@ -77,6 +77,18 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 		}
 	}
 
+    @Override
+	public void removeFromIndex(long geomNodeId) {
+		Transaction tx = getDatabase().beginTx();
+		try {
+            final boolean deleteGeomNode = false;
+            index.remove(geomNodeId, deleteGeomNode, false);
+			tx.success();
+		} finally {
+			tx.finish();
+		}
+	}
+
 	private Node addGeomNode(Geometry geom, String[] fieldsName, Object[] fields) {
 		Node geomNode = getDatabase().createNode();
 		if (previousGeomNode == null) {
