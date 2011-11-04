@@ -121,10 +121,12 @@ public class LayerNodeIndex implements Index<Node>
         Geometry decodeGeometry = layer.getGeometryEncoder().decodeGeometry( geometry );
         
         // check if node already exists in layer
-        Node matchingNode = IteratorUtil.firstOrNull(Traversal
-          .description().breadthFirst().relationships(SpatialRelationshipTypes.GEOMETRIES, Direction.OUTGOING)
-          .relationships(SpatialRelationshipTypes.NEXT_GEOM, Direction.OUTGOING).evaluator(
-            new NodeIdPropertyEqualsReturnableEvaluator(geometry.getId())).traverse(layer.getLayerNode()).nodes());
+        Node matchingNode = IteratorUtil.firstOrNull(Traversal.description().breadthFirst()
+          .evaluator(Evaluators.excludeStartPosition()).evaluator(
+              new NodeIdPropertyEqualsReturnableEvaluator(geometry.getId()))
+          .relationships(SpatialRelationshipTypes.GEOMETRIES, Direction.OUTGOING)
+          .relationships(SpatialRelationshipTypes.NEXT_GEOM, Direction.OUTGOING)
+          .traverse(layer.getLayerNode()).nodes());
         
         if (matchingNode == null)
         {
