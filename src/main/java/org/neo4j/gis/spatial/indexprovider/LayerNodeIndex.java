@@ -28,11 +28,18 @@ import org.json.simple.parser.ParseException;
 import org.neo4j.gis.spatial.EditableLayer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
+import org.neo4j.gis.spatial.SpatialRelationshipTypes;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
+import org.neo4j.graphdb.traversal.Evaluation;
+import org.neo4j.graphdb.traversal.Evaluator;
+import org.neo4j.helpers.collection.IteratorUtil;
+import org.neo4j.kernel.Traversal;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -112,9 +119,19 @@ public class LayerNodeIndex implements Index<Node>
     public void add( Node geometry, String key, Object value )
     {
         Geometry decodeGeometry = layer.getGeometryEncoder().decodeGeometry( geometry );
-        layer.add(
+        
+        // check if node already exists in layer
+        Node matchingNode = IteratorUtil.firstOrNull(Traversal
+          .description().breadthFirst().relationships(SpatialRelationshipTypes.GEOMETRIES, Direction.OUTGOING)
+          .relationships(SpatialRelationshipTypes.NEXT_GEOM, Direction.OUTGOING).evaluator(
+            new NodeIdPropertyEqualsReturnableEvaluator(geometry.getId())).traverse(layer.getLayerNode()).nodes());
+        
+        if (matchingNode == null)
+        {
+          layer.add(
                 decodeGeometry, new String[] { "id" },
                 new Object[] { geometry.getId() } );
+        }
 
     }
 
@@ -246,4 +263,28 @@ public class LayerNodeIndex implements Index<Node>
     {
         return true;
     }
+    
+    private class NodeIdPropertyEqualsReturnableEvaluator implements Evaluator
+    {
+      private long nodeId;
+
+      NodeIdPropertyEqualsReturnableEvaluator(long nodeId)
+      {
+        this.nodeId = nodeId;
+      }
+
+      @Override
+      public Evaluation evaluate(Path path)
+      {
+        if (path.endNode().hasProperty("id")
+            && path.endNode().getProperty("id").equals(nodeId))
+        {
+          return Evaluation.INCLUDE_AND_PRUNE;
+        }
+        else
+        {
+          return Evaluation.EXCLUDE_AND_CONTINUE;
+        }
+      }
+    }    
 }
