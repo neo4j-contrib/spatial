@@ -38,6 +38,7 @@ import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
+import org.neo4j.helpers.Predicate;
 import org.neo4j.helpers.collection.IteratorUtil;
 import org.neo4j.kernel.Traversal;
 
@@ -266,7 +267,7 @@ public class LayerNodeIndex implements Index<Node>
         return true;
     }
     
-    private class NodeIdPropertyEqualsReturnableEvaluator implements Evaluator
+    private class NodeIdPropertyEqualsReturnableEvaluator implements Evaluator, Predicate<Node>
     {
       private long nodeId;
 
@@ -274,12 +275,17 @@ public class LayerNodeIndex implements Index<Node>
       {
         this.nodeId = nodeId;
       }
+      
+      @Override
+      public boolean accept(Node node)
+      {
+        return node.hasProperty("id") && node.getProperty("id").equals(nodeId);
+      }      
 
       @Override
       public Evaluation evaluate(Path path)
       {
-        if (path.endNode().hasProperty("id")
-            && path.endNode().getProperty("id").equals(nodeId))
+        if (accept(path.endNode())
         {
           return Evaluation.INCLUDE_AND_PRUNE;
         }
