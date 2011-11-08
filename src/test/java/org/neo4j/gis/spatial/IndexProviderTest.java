@@ -120,6 +120,7 @@ public class IndexProviderTest
         //within any WKT geometry
         hits = index.query( LayerNodeIndex.WITHIN_WKT_GEOMETRY_QUERY,
                 "POLYGON ((15 56, 15 57, 16 57, 16 56, 15 56))" );
+        assertTrue( hits.hasNext() );
         //polygon with hole, excluding n1
         hits = index.query( LayerNodeIndex.WITHIN_WKT_GEOMETRY_QUERY,
                 "POLYGON ((15 56, 15 57, 16 57, 16 56, 15 56)," +
