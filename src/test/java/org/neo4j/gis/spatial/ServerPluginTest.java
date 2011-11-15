@@ -76,7 +76,7 @@ public class ServerPluginTest extends Neo4jTestCase {
         debugIndexTree((RTreeIndex) layer.getIndex());
         
         plugin.addNodeToLayer(graphDb(), point, LAYER);
-        Iterable<Node> geometries = plugin.findGeometriesInLayer( graphDb(), 15.0, 15.3, 60.0, 60.2, LAYER );
+        Iterable<Node> geometries = plugin.findGeometriesInBBox( graphDb(), 15.0, 15.3, 60.0, 60.2, LAYER );
         assertTrue( geometries.iterator().hasNext() );
 //        plugin.addEditableLayer(graphDb(), LAYER);
 //        plugin.addGeometryWKTToLayer(graphDb(), "POINT(15.2 60.1)", LAYER);
@@ -130,10 +130,10 @@ public class ServerPluginTest extends Neo4jTestCase {
 		checkResults(plugin.addCQLDynamicLayer(graphDb(), LAYER, "CQL2", "Geometry", "within(the_geom, POLYGON((15.14 60.14, 15.14 60.16, 15.16 60.16, 15.16 60.14, 15.14 60.14)))"), 1, layer);
 		assertNotNull(spatialService.getLayer("CQL1"));
 		assertNotNull(spatialService.getLayer("CQL2"));
-		checkResults(plugin.findGeometriesInLayer(graphDb(), 15.0, 15.3, 60.0, 60.2, LAYER), 4, layer);
-		checkResults(plugin.findGeometriesInLayer(graphDb(), 15.1, 15.2, 60.0, 60.2, LAYER), 2, layer);
-		checkResults(plugin.findGeometriesInLayer(graphDb(), 15.0, 15.3, 60.0, 60.2, "CQL1"), 2, layer);
-		checkResults(plugin.findGeometriesInLayer(graphDb(), 15.0, 15.3, 60.0, 60.2, "CQL2"), 1, layer);
+		checkResults(plugin.findGeometriesInBBox(graphDb(), 15.0, 15.3, 60.0, 60.2, LAYER), 4, layer);
+		checkResults(plugin.findGeometriesInBBox(graphDb(), 15.1, 15.2, 60.0, 60.2, LAYER), 2, layer);
+		checkResults(plugin.findGeometriesInBBox(graphDb(), 15.0, 15.3, 60.0, 60.2, "CQL1"), 2, layer);
+		checkResults(plugin.findGeometriesInBBox(graphDb(), 15.0, 15.3, 60.0, 60.2, "CQL2"), 1, layer);
 	}
 	
 	private int checkResults(Iterable<Node> results, int expected, Layer layer) {
