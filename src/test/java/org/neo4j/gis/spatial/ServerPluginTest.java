@@ -78,6 +78,9 @@ public class ServerPluginTest extends Neo4jTestCase {
         plugin.addNodeToLayer(graphDb(), point, LAYER);
         Iterable<Node> geometries = plugin.findGeometriesInBBox( graphDb(), 15.0, 15.3, 60.0, 60.2, LAYER );
         assertTrue( geometries.iterator().hasNext() );
+        
+        geometries = plugin.findGeometriesWithinDistance(graphDb(), 60.1, 15.2, 100, LAYER);
+        assertTrue(geometries.iterator().hasNext());
 //        plugin.addEditableLayer(graphDb(), LAYER);
 //        plugin.addGeometryWKTToLayer(graphDb(), "POINT(15.2 60.1)", LAYER);
 //        plugin.addCQLDynamicLayer(graphDb(), LAYER, "CQL1", "Geometry", "within(the_geom, POLYGON((15.1 60.0, 15.1 60.2, 15.2 60.2, 15.2 60.0, 15.1 60.0)))");
