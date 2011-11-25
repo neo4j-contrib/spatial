@@ -87,6 +87,7 @@ public class IndexProviderTest
         Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
         IndexManager indexMan = db.index();
         Index<Node> index = indexMan.forNodes( "layer1", config );
+//        index = indexMan.forNodes( "layer1", config );
         assertNotNull( index );
 
     }

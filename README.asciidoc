@@ -180,7 +180,7 @@ Neo4j Spatial is also packaged as a ZIP file that can be unzipped into the Neo4j
 ----
     #install the plugin
     cp $NEO4J_SPATIAL_HOME/target/neo4j-spatial-XXXX-server-plugin.zip $NEO4J_HOME/plugins
-    cd $NEO4J_HOME/plugins && unzip neo4j-spatial-XXXX-server-plugin.zip
+    cd unzip neo4j-spatial-XXXX-server-plugin.zip -d $NEO4J_HOME/plugins
     
     #start the server
     $NEO4J_HOME/bin/neo4j start
