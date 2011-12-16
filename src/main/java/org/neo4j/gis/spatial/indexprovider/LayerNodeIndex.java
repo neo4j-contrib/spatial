@@ -135,6 +135,11 @@ public class LayerNodeIndex implements Index<Node>
                 decodeGeometry, new String[] { "id" },
                 new Object[] { geometry.getId() } );
         }
+        else
+        {
+          // update existing geoNode
+          layer.update(matchingNode.getId(), decodeGeometry);      
+        }
 
     }
 
