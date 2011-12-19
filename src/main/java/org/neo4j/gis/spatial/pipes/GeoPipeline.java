@@ -102,8 +102,8 @@ import org.neo4j.graphdb.Node;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 
+import com.tinkerpop.gremlin.groovy.GremlinGroovyPipeline;
 import com.tinkerpop.pipes.filter.FilterPipe;
-import com.tinkerpop.pipes.util.FluentPipeline;
 import com.tinkerpop.pipes.util.StartPipe;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
@@ -111,7 +111,7 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.util.AffineTransformation;
 
 
-public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
+public class GeoPipeline extends GremlinGroovyPipeline<GeoPipeFlow, GeoPipeFlow> {
 
 	protected Layer layer;
 	
@@ -926,7 +926,7 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     
     public FeatureCollection<SimpleFeatureType,SimpleFeature> toFeatureCollection(SimpleFeatureType featureType) throws IOException {
     	@SuppressWarnings("unchecked")
-		final List<SpatialRecord> records = toList();
+		final List<GeoPipeFlow> records = toList();
     	
     	Envelope bounds = null;
     	for (SpatialRecord record : records) {
@@ -937,7 +937,7 @@ public class GeoPipeline extends FluentPipeline<GeoPipeFlow, GeoPipeFlow> {
     		}
     	}
     	
-    	final Iterator<SpatialRecord> recordsIterator = records.iterator();
+    	final Iterator<GeoPipeFlow> recordsIterator = records.iterator();
     	final ReferencedEnvelope refBounds = new ReferencedEnvelope(bounds, layer.getCoordinateReferenceSystem());
     	
     	final Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, Arrays.asList(layer.getExtraPropertyNames()));

@@ -1109,7 +1109,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     @BeforeClass
     public static void init()
     {
-        db = new ImpermanentGraphDatabase( "target/" + System.currentTimeMillis() );
+        db = new ImpermanentGraphDatabase( );
         db.cleanContent( true );
         try
         {

@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <properties>
-    <neo4j.version>1.5</neo4j.version>
-    <neo4j.graphcollections.version>1.5-SNAPSHOT</neo4j.graphcollections.version>
+    <neo4j.version>1.6-SNAPSHOT</neo4j.version>
+    <neo4j.graphcollections.version>1.6-SNAPSHOT</neo4j.graphcollections.version>
     <geotools.version>8.0-M2</geotools.version>
     <spatial.test.osm.version>20100819</spatial.test.osm.version>
     <spatial.test.shp.version>20100819</spatial.test.shp.version>
     <bundle.namespace>org.neo4j.gis</bundle.namespace>
-    <blueprints.version>1.0</blueprints.version>
-    <gremlin.version>1.3</gremlin.version>
+    <blueprints.version>1.1</blueprints.version>
+    <gremlin.version>1.4</gremlin.version>
 	<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>    
   </properties>
 
@@ -295,8 +295,32 @@ terms of the relevant Commercial Agreement.
       <type>jar</type>
     </dependency>
     <dependency>
-      <groupId>com.tinkerpop</groupId>
-      <artifactId>gremlin</artifactId>
+      <groupId>com.tinkerpop.gremlin</groupId>
+      <artifactId>gremlin-groovy</artifactId>
+      <version>${gremlin.version}</version>
+      <type>jar</type>
+      <scope>provided</scope>
+      <exclusions>
+        <!-- Sail support not needed -->
+        <exclusion>
+          <groupId>com.tinkerpop.blueprints</groupId>
+          <artifactId>blueprints-sail-graph</artifactId>
+        </exclusion>
+        <!-- Maven support in groovy not needed -->
+        <exclusion>
+          <groupId>org.codehaus.groovy.maven</groupId>
+          <artifactId>gmaven-plugin</artifactId>
+        </exclusion>
+        <!-- "readline" not needed - we only expose gremlin through webadmin -->
+        <exclusion>
+          <groupId>jline</groupId>
+          <artifactId>jline</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.tinkerpop.gremlin</groupId>
+      <artifactId>gremlin-java</artifactId>
       <version>${gremlin.version}</version>
       <type>jar</type>
       <scope>provided</scope>
