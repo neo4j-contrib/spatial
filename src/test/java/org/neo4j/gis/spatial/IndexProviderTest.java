@@ -145,14 +145,14 @@ public class IndexProviderTest
         System.out.println( result.toString() );
 
         // test Gremlin
-        ScriptEngine gremlinEngine = new ScriptEngineManager().getEngineByName( "gremlin" );
+        ScriptEngine gremlinEngine = new ScriptEngineManager().getEngineByName( "gremlin-groovy" );
         final Bindings bindings = new SimpleBindings();
-        final Neo4jGraph graph = new Neo4jGraph( db );
+        final Neo4jGraph graph = new Neo4jGraph( db, false );
         bindings.put( "g", graph );
         gremlinEngine.setBindings( bindings, ScriptContext.ENGINE_SCOPE );
         assertEquals(
                 2L,
-                gremlinEngine.eval( "g.idx('layer1').get('bbox','[15.0, 16.0, 56.0, 57.0]').toList()._().in().count()" ) );
+                gremlinEngine.eval( "g.idx('layer1')[[bbox:'[15.0, 16.0, 56.0, 57.0]']].in().count()" ) );
 
     }
 
