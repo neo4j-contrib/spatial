@@ -28,11 +28,19 @@ import org.json.simple.parser.ParseException;
 import org.neo4j.gis.spatial.EditableLayer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
+import org.neo4j.gis.spatial.SpatialRelationshipTypes;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
+import org.neo4j.graphdb.traversal.Evaluation;
+import org.neo4j.graphdb.traversal.Evaluator;
+import org.neo4j.helpers.Predicate;
+import org.neo4j.helpers.collection.IteratorUtil;
+import org.neo4j.kernel.Traversal;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -112,9 +120,26 @@ public class LayerNodeIndex implements Index<Node>
     public void add( Node geometry, String key, Object value )
     {
         Geometry decodeGeometry = layer.getGeometryEncoder().decodeGeometry( geometry );
-        layer.add(
+        
+        // check if node already exists in layer
+        Node matchingNode = IteratorUtil.firstOrNull(Traversal.description().breadthFirst()
+          .evaluator(Evaluators.excludeStartPosition()).evaluator(
+              new NodeIdPropertyEqualsReturnableEvaluator(geometry.getId()))
+          .relationships(SpatialRelationshipTypes.GEOMETRIES, Direction.OUTGOING)
+          .relationships(SpatialRelationshipTypes.NEXT_GEOM, Direction.OUTGOING)
+          .traverse(layer.getLayerNode()).nodes());
+        
+        if (matchingNode == null)
+        {
+          layer.add(
                 decodeGeometry, new String[] { "id" },
                 new Object[] { geometry.getId() } );
+        }
+        else
+        {
+          // update existing geoNode
+          layer.update(matchingNode.getId(), decodeGeometry);      
+        }
 
     }
 
@@ -246,4 +271,33 @@ public class LayerNodeIndex implements Index<Node>
     {
         return true;
     }
+    
+    private class NodeIdPropertyEqualsReturnableEvaluator implements Evaluator, Predicate<Node>
+    {
+      private long nodeId;
+
+      NodeIdPropertyEqualsReturnableEvaluator(long nodeId)
+      {
+        this.nodeId = nodeId;
+      }
+      
+      @Override
+      public boolean accept(Node node)
+      {
+        return node.hasProperty("id") && node.getProperty("id").equals(nodeId);
+      }      
+
+      @Override
+      public Evaluation evaluate(Path path)
+      {
+        if (accept(path.endNode())
+        {
+          return Evaluation.INCLUDE_AND_PRUNE;
+        }
+        else
+        {
+          return Evaluation.EXCLUDE_AND_CONTINUE;
+        }
+      }
+    }    
 }
