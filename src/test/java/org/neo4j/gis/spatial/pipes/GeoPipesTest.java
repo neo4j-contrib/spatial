@@ -64,6 +64,7 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.util.AffineTransformation;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
+import org.neo4j.gis.spatial.pipes.filtering.FilterCQL;
 
 public class GeoPipesTest extends AbstractJavaDocTestbase
 {
@@ -145,6 +146,19 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
         assertFalse( pipeline.hasNext() );
 
         assertEquals( "Storgatan", flow.getProperties().get( "name" ) );
+    }
+    
+    @Test
+    public void filter_by_cql_using_filtercql() throws CQLException
+    {
+        long counter = GeoPipeline.start( osmLayer ).cqlFilter(
+                        "highway is not null and geometryType(the_geom) = 'LineString'" ).count();
+        
+        FilterCQL filter = new FilterCQL(osmLayer,"highway is not null and geometryType(the_geom) = 'LineString'" ); 
+        assertTrue( filter.hasNext() );
+        
+        GeoPipeFlow flow = filter.next();
+        assertEquals( counter, flow.countRecords() );
     }
 
     /**
