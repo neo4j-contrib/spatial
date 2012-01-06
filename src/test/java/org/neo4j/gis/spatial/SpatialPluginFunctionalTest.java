@@ -59,9 +59,11 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
         response = post(Status.CREATED,"{\"lat\":60.1, \"lon\":15.2}", "http://localhost:7474/db/data/node");
         response = post(Status.CREATED,"{\"name\":\"geom\", \"config\":{\"provider\":\"spatial\"}}", "http://localhost:7474/db/data/index/node/");
         response = post(Status.OK,"{\"layer\":\"geom\", \"node\":\"http://localhost:7474/db/data/node/5\"}", ENDPOINT + "/graphdb/addNodeToLayer");
-        response = post(Status.OK,"{\"layer\":\"geom\", \"minx\":15.0,\"maxx\":15.3,\"miny\":60.0,\"maxy\":60.2}", ENDPOINT + "/graphdb/findGeometriesInLayer");
+        response = post(Status.OK,"{\"layer\":\"geom\", \"minx\":15.0,\"maxx\":15.3,\"miny\":60.0,\"maxy\":60.2}", ENDPOINT + "/graphdb/findGeometriesInBBox");
         assertTrue(response.contains( "60.1" ));
-        response = post(Status.OK,"{\"query\":\"start node = node:geom(\'bbox:[15.0,15.3,60.0,60.2]\') return node\"}", "http://localhost:7474/db/data/ext/CypherPlugin/graphdb/execute_query");
+        response = post(Status.OK,"{\"layer\":\"geom\", \"pointX\":15.0,\"pointY\":60.0,\"distanceInKm\":100}", ENDPOINT + "/graphdb/findGeometriesWithinDistance");
+        assertTrue(response.contains( "60.1" ));
+        response = post(Status.OK,"{\"query\":\"start node = node:geom(\'bbox:[15.0,15.3,60.0,60.2]\') return node\"}", "http://localhost:7474/db/data/cypher");
         assertTrue(response.contains( "node" ));
         
     }
