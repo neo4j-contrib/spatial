@@ -36,6 +36,7 @@ import org.neo4j.server.plugins.PluginTarget;
 import org.neo4j.server.plugins.ServerPlugin;
 import org.neo4j.server.plugins.Source;
 
+import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
@@ -156,7 +157,7 @@ public class SpatialPlugin extends ServerPlugin {
 
 	@PluginTarget(GraphDatabaseService.class)
 	@Description("search a layer for geometries in a bounding box. To achieve more complex CQL searches, pre-define the dynamic layer with addCQLDynamicLayer.")
-	public Iterable<Node> findGeometriesInLayer(
+	public Iterable<Node> findGeometriesInBBox(
 			@Source GraphDatabaseService db,
 			@Description("The minimum x value of the bounding box") @Parameter(name = "minx") double minx,
 			@Description("The maximum x value of the bounding box") @Parameter(name = "maxx") double maxx,
@@ -176,6 +177,27 @@ public class SpatialPlugin extends ServerPlugin {
 		return GeoPipeline
 			.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(minx, maxx, miny, maxy)))
 			.toNodeList();
+	}
+
+	@PluginTarget(GraphDatabaseService.class)
+	@Description("search a layer for geometries within a distance of a point. To achieve more complex CQL searches, pre-define the dynamic layer with addCQLDynamicLayer.")
+	public Iterable<Node> findGeometriesWithinDistance(
+			@Source GraphDatabaseService db,
+			@Description("The x value of a point") @Parameter(name = "pointX") double pointX,
+			@Description("The y value of a point") @Parameter(name = "pointY") double pointY,
+			@Description("The distance from the point to search") @Parameter(name = "distanceInKm") double distanceInKm,
+			@Description("The layer to search. Can be a dynamic layer with pre-defined CQL filter.") @Parameter(name = "layer") String layerName) {
+		System.out.println("Finding Geometries in layer '" + layerName + "'");
+		SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
+
+		Layer layer = spatialService.getDynamicLayer(layerName);
+		if (layer == null ) {
+		    layer = spatialService.getLayer(layerName);
+		}
+	
+		return GeoPipeline
+			.startNearestNeighborLatLonSearch(layer, new Coordinate(pointX, pointY), distanceInKm)
+			.sort("OrthodromicDistance").toNodeList();
 	}
 
 	private Iterable<Node> toArray(Node node) {
