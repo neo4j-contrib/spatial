@@ -23,6 +23,8 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.WKTReader;
+
+import org.apache.commons.lang.NotImplementedException;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.neo4j.gis.spatial.EditableLayer;
@@ -300,5 +302,17 @@ public class LayerNodeIndex implements Index<Node>
           return Evaluation.EXCLUDE_AND_CONTINUE;
         }
       }
+    }
+
+    @Override
+    public GraphDatabaseService getGraphDatabase()
+    {
+        return db;
+    }
+
+    @Override
+    public Node putIfAbsent( Node entity, String key, Object value )
+    {
+        throw new NotImplementedException();
     }    
 }
