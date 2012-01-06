@@ -38,6 +38,7 @@ import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
+import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.helpers.Predicate;
 import org.neo4j.helpers.collection.IteratorUtil;
 import org.neo4j.kernel.Traversal;
@@ -290,7 +291,7 @@ public class LayerNodeIndex implements Index<Node>
       @Override
       public Evaluation evaluate(Path path)
       {
-        if (accept(path.endNode())
+        if (accept(path.endNode()))
         {
           return Evaluation.INCLUDE_AND_PRUNE;
         }
