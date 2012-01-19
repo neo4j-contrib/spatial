@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2002-2011 "Neo Technology,"
+ * Copyright (c) 2010-2012 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
  * This file is part of Neo4j.
@@ -288,6 +288,35 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
                 pipeline.next().getProperties().get( "WellKnownText" ) );
         assertEquals( "POINT (4 4)",
                 pipeline.next().getProperties().get( "WellKnownText" ) );
+    }
+    
+    /**
+     * This pipe exports every 
+     * geometry as a http://en.wikipedia.org/wiki/Geography_Markup_Language[GML] snippet.
+     * 
+     * Example:
+     * 
+     * @@s_export_to_gml
+     * 
+     * Output:
+     * 
+     * @@exportgml
+     */
+    @Documented     
+    @Test
+    public void export_to_GML()
+    {
+        // START SNIPPET: s_export_to_gml
+        GeoPipeline pipeline = GeoPipeline.start( boxesLayer ).createGML();
+        for ( GeoPipeFlow flow : pipeline ) {
+            System.out.println(flow.getProperties().get( "GML" ));
+         }
+        // END SNIPPET: s_export_to_gml
+        String result = "";
+        for ( GeoPipeFlow flow : GeoPipeline.start( boxesLayer ).createGML() ) {
+            result = result + flow.getProperties().get( "GML" );
+        }
+        gen.get().addSnippet( "exportgml", "[source,xml]\n----\n"+result+"\n----\n" );
     }
 
     /**

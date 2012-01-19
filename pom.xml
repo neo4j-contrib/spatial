@@ -15,7 +15,7 @@
   <parent>
     <artifactId>parent-pom</artifactId>
     <groupId>org.neo4j.build</groupId>
-    <version>25</version>
+    <version>31</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
   <artifactId>neo4j-spatial</artifactId>
@@ -519,11 +519,6 @@ terms of the relevant Commercial Agreement.
           <id>Cuke4DukeMavenRepository</id>
           <name>Cuke4Duke Maven Repository</name>
           <url>http://cukes.info/maven/</url>
-        </repository>
-        <repository>
-          <id>Neo4jSnapshots</id>
-          <name>Neo4j Snapshot Maven Repository</name>
-          <url>http://repo.neo4j.org/content/repositories/snapshots</url>
         </repository>
       </repositories>
       <pluginRepositories>
