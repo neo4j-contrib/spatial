@@ -135,7 +135,7 @@ include::examples/densify.txt[]
 
 include::examples/envelope.txt[]
 
-include::examples/export-to_gml.txt[]
+include::examples/export-to-gml.txt[]
 
 include::examples/intersection.txt[]
 
