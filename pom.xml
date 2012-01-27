@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <properties>
-    <neo4j.version>1.6-SNAPSHOT</neo4j.version>
-    <neo4j.graphcollections.version>1.6-SNAPSHOT</neo4j.graphcollections.version>
+    <neo4j.version>1.7-SNAPSHOT</neo4j.version>
+    <neo4j.graphcollections.version>1.7-SNAPSHOT</neo4j.graphcollections.version>
     <geotools.version>8.0-M2</geotools.version>
     <spatial.test.osm.version>20100819</spatial.test.osm.version>
     <spatial.test.shp.version>20100819</spatial.test.shp.version>
@@ -366,7 +366,7 @@ terms of the relevant Commercial Agreement.
     <repository>
       <id>neo4j-snapshot-repository</id>
       <name>Maven 2 snapshot repository for Neo4j</name>
-      <url>http://m2.neo4j.org/snapshots</url>
+      <url>http://m2.neo4j.org/content/repositories/snapshots</url>
       <snapshots>
         <enabled>true</enabled>
       </snapshots>
@@ -377,7 +377,7 @@ terms of the relevant Commercial Agreement.
     <repository>
       <id>neo4j-release-repository</id>
       <name>Maven 2 release repository for Neo4j</name>
-      <url>http://m2.neo4j.org/releases</url>
+      <url>http://m2.neo4j.org/content/repositories/releases</url>
       <snapshots>
         <enabled>false</enabled>
       </snapshots>
@@ -462,10 +462,10 @@ terms of the relevant Commercial Agreement.
             <configuration>
               <jvmArgs>
                 <jvmArg>-Dcuke4duke.objectFactory=cuke4duke.internal.jvmclass.PicoFactory</jvmArg>
-                <jvmArg>-DNEO4J_VERSION=1.6-SNAPSHOT</jvmArg>
+                <jvmArg>-DNEO4J_VERSION=1.7-SNAPSHOT</jvmArg>
                 <jvmArg>-DNEO4J_HOME=neo4j_home</jvmArg>
                 <jvmArg>-DNEO4J_PRODUCT=community</jvmArg>
-                <jvmArg>-DDOWNLOAD_LOCATION=http://builder.neo4j.org/guestAuth/repository/download/bt65/.lastSuccessful/standalone/neo4j-community-1.6-SNAPSHOT-unix.tar.gz</jvmArg>
+                <jvmArg>-DDOWNLOAD_LOCATION=http://builder.neo4j.org/guestAuth/repository/download/bt65/.lastSuccessful/standalone/neo4j-community-1.7-SNAPSHOT-unix.tar.gz</jvmArg>
                 <jvmArg>-DDOWNLOAD_PLUGIN_LOCATION=${project.build.directory}/neo4j-spatial-${project.version}-server-plugin.zip</jvmArg>
               </jvmArgs>
               <cucumberArgs>
