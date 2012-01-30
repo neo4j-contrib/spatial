@@ -19,17 +19,12 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
-import java.awt.Color;
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.NoSuchElementException;
-
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.util.AffineTransformation;
+import com.vividsolutions.jts.io.ParseException;
+import com.vividsolutions.jts.io.WKTReader;
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.data.neo4j.StyledImageExporter;
 import org.geotools.feature.FeatureCollection;
@@ -58,12 +53,13 @@ import org.neo4j.kernel.impl.annotations.Documented;
 import org.neo4j.test.ImpermanentGraphDatabase;
 import org.neo4j.test.TestData.Title;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.util.AffineTransformation;
-import com.vividsolutions.jts.io.ParseException;
-import com.vividsolutions.jts.io.WKTReader;
+import java.awt.*;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.NoSuchElementException;
+
+import static org.junit.Assert.*;
 
 public class GeoPipesTest extends AbstractJavaDocTestbase
 {
@@ -1131,7 +1127,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     public void doc()
     {
        // gen.get().addSnippet( "graph", AsciidocHelper.createGraphViz( imgName , graphdb(), "graph"+getTitle() ) );
-       gen.get().addSourceSnippets( GeoPipesTest.class, "s_"+getTitle().toLowerCase() );
+       gen.get().addTestSourceSnippets( GeoPipesTest.class, "s_"+getTitle().toLowerCase() );
        gen.get().document( "target/docs", "examples" );
     }
 
