@@ -42,8 +42,6 @@ import com.tinkerpop.blueprints.pgm.impls.neo4j.Neo4jGraph;
 import org.junit.Before;
 import org.junit.Test;
 import org.neo4j.cypher.SyntaxException;
-import org.neo4j.cypher.internal.commands.Query;
-import org.neo4j.cypher.javacompat.CypherParser;
 import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.cypher.javacompat.ExecutionResult;
 import org.neo4j.gis.spatial.indexprovider.LayerNodeIndex;
@@ -128,11 +126,8 @@ public class IndexProviderTest
                 params );
         assertTrue( hits.hasNext() );
         // test Cypher query
-        CypherParser parser = new CypherParser();
         ExecutionEngine engine = new ExecutionEngine( db );
-        Query query = parser.parse( "start n=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') match (n) -[r] - (x) return n, type(r), x.layer?, x.bbox?" );
-        // Query query = parser.parse( "start n=(0) where 1=1 return n" );
-        ExecutionResult result = engine.execute( query );
+        ExecutionResult result = engine.execute(  "start n=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') match (n) -[r] - (x) return n, type(r), x.layer?, x.bbox?"  );
         System.out.println( result.toString() );
 
         // test Gremlin
