@@ -13,7 +13,7 @@
   </properties>
 
   <parent>
-    <artifactId>parent-central</artifactId>
+    <artifactId>parent-pom</artifactId>
     <groupId>org.neo4j.build</groupId>
     <version>31</version>
   </parent>
