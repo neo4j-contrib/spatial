@@ -19,12 +19,17 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.util.AffineTransformation;
-import com.vividsolutions.jts.io.ParseException;
-import com.vividsolutions.jts.io.WKTReader;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+
+import java.awt.Color;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.util.NoSuchElementException;
+
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.data.neo4j.StyledImageExporter;
 import org.geotools.feature.FeatureCollection;
@@ -47,19 +52,19 @@ import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.filter.SearchIntersectWindow;
 import org.neo4j.gis.spatial.osm.OSMImporter;
+import org.neo4j.gis.spatial.pipes.filtering.FilterCQL;
 import org.neo4j.gis.spatial.pipes.osm.OSMGeoPipeline;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.impl.annotations.Documented;
 import org.neo4j.test.ImpermanentGraphDatabase;
 import org.neo4j.test.TestData.Title;
 
-import java.awt.*;
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.NoSuchElementException;
-
-import static org.junit.Assert.*;
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.util.AffineTransformation;
+import com.vividsolutions.jts.io.ParseException;
+import com.vividsolutions.jts.io.WKTReader;
 
 public class GeoPipesTest extends AbstractJavaDocTestbase
 {
@@ -113,6 +118,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
         assertEquals( "Storgatan", flow.getProperties().get( "name" ) );
     }
 
+
     @Test
     public void filter_by_window_intersection()
     {
@@ -121,14 +127,25 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
                 GeoPipeline.start( osmLayer ).windowIntersectionFilter( 10, 40, 20,
                         56.0583531 ).count() );
     }
-
+    
+    /**
+     * This pipe is filtering according
+     * to a CQL Bounding Box description
+     * 
+     * Example:
+     * 
+     * @@s_filter_by_cql_using_bbox
+     */
     @Test
     public void filter_by_cql_using_bbox() throws CQLException
     {
+        // START SNIPPET: s_filter_by_cql_using_bbox
+        GeoPipeline cqlFilter = GeoPipeline.start( osmLayer ).cqlFilter(
+                "BBOX(the_geom, 10, 40, 20, 56.0583531)" );
+        // END SNIPPET: s_filter_by_cql_using_bbox
         assertEquals(
                 1,
-                GeoPipeline.start( osmLayer ).cqlFilter(
-                        "BBOX(the_geom, 10, 40, 20, 56.0583531)" ).count() );
+                cqlFilter.count() );
     }
 
     @Test
@@ -143,6 +160,35 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
         assertEquals( "Storgatan", flow.getProperties().get( "name" ) );
     }
 
+    /**
+     * This filter will apply the
+     * provided CQL expression to the different geometries and only
+     * let the matching ones pass.
+     * 
+     * Example:
+     * 
+     * @@s_filter_by_cql_using_complex_cql
+     */
+    @Documented
+    @Test
+    public void filter_by_cql_using_complex_cql() throws CQLException
+    {
+        // START SNIPPET: s_filter_by_cql_using_complex_cql
+        long counter  = GeoPipeline.start( osmLayer ).cqlFilter(
+                        "highway is not null and geometryType(the_geom) = 'LineString'" ).count();
+        // END SNIPPET: s_filter_by_cql_using_complex_cql
+        
+        FilterCQL filter = new FilterCQL(osmLayer,"highway is not null and geometryType(the_geom) = 'LineString'" ); 
+        filter.setStarts( GeoPipeline.start( osmLayer ));
+        assertTrue( filter.hasNext() );
+        while(filter.hasNext())
+        {
+            filter.next();
+            counter --;
+        }
+        assertEquals( 0, counter );
+    }
+    
     /**
      * Affine Transformation
      * 
@@ -420,9 +466,8 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     }
 
     /**
-     * Boundary
-     * 
-     * The Boundary pipe calculates boundary of every geometry in the pipeline.
+     * The 
+     * boundary pipe calculates boundary of every geometry in the pipeline.
 	 * 
      * Example:
      * 
@@ -434,7 +479,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
      */
     @Documented    
     @Test
-    public void get_boundary()
+    public void boundary()
     {
     	// START SNIPPET: s_boundary
         GeoPipeline pipeline = GeoPipeline.start( boxesLayer ).toBoundary();
@@ -1147,14 +1192,6 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
         
         StyledImageExporter exporter = new StyledImageExporter( db );
         exporter.setExportDir( "target/docs/images/" );
-    }
-
-    private void print( GeoPipeline pipeline )
-    {
-        while ( pipeline.hasNext() )
-        {
-            print( pipeline.next() );
-        }
     }
 
     private GeoPipeFlow print( GeoPipeFlow pipeFlow )

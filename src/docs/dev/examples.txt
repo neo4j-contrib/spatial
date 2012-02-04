@@ -112,7 +112,14 @@ EqualLayer:
 
 image::equalLayer.png[]
 
+=== GeoPipes Examples ===
+
+Below follows a non-exhaustive lists of interesting GeoPipes that can be chained together to contruct a 
+geoprocessing system in while trying to keep the processing as lazy as possible using iterators through
+the different steps.
+
 :leveloffset: 3
+
 
 include::examples/intersecting-windows.txt[]
 
@@ -121,9 +128,7 @@ include::examples/unite-all.txt[]
 
 include::examples/extract-points.txt[]
 
-include::examples/affine-transformation.txt[]
-
-include::examples/buffer.txt[]
+include::examples/filter-by-cql-using-complex-cql.txt[]
 
 include::examples/boundary.txt[]
 
