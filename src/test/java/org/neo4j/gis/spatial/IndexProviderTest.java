@@ -168,4 +168,21 @@ public class IndexProviderTest
         assertTrue( node.getProperty( "name" ).equals( "batman" ) );
 
     }
+    
+    @Test
+    public void testWithinDistanceIndexViaCypher()
+    {
+        Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG_WKT;
+        IndexManager indexMan = db.index();
+        Index<Node> index = indexMan.forNodes( "layer3", config );
+        Transaction tx = db.beginTx();
+        Node batman = db.createNode();
+        batman.setProperty( "wkt", "POINT(44.44 33.33 )");
+        batman.setProperty( "name", "robin" );
+        index.add( batman, "dummy", "value" );
+        
+        ExecutionEngine engine = new ExecutionEngine( db );
+        ExecutionResult result = engine.execute(  "start n=node:layer3('withinDistance:[44.44, 33.32, 5.0]') return n"  );
+        System.out.println( result.toString() );
+    }
 }
