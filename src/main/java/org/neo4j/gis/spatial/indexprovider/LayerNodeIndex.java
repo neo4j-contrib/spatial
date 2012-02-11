@@ -205,9 +205,34 @@ public class LayerNodeIndex implements Index<Node>
         
         else if ( key.equals( WITHIN_DISTANCE_QUERY ) )
         {
-            Map<?, ?> p = (Map<?, ?>) params;
-            Double[] point = (Double[]) p.get( POINT_PARAMETER );
-            Double distance = (Double) p.get( DISTANCE_IN_KM_PARAMETER );
+            Double[] point;
+            Double distance;
+            
+            // this one should enable distance searches using cypher query lang
+            // by using: withinDistance:[7.0, 10.0, 100.0]  (long, lat. distance)
+            if (params.getClass() == String.class)
+            {
+                try
+                {
+                    List<Double> coordsAndDistance = (List<Double>) new JSONParser().parse( (String) params );
+                    point = new Double[2];
+                    point[0] = coordsAndDistance.get(0);
+                    point[1] = coordsAndDistance.get(1);
+                    distance = coordsAndDistance.get(2);
+                }
+                catch ( ParseException e )
+                {
+                    // TODO Auto-generated catch block
+                    e.printStackTrace();
+                }
+            }
+            
+            else
+            {
+                Map<?, ?> p = (Map<?, ?>) params;
+                Double[] point = (Double[]) p.get( POINT_PARAMETER );
+                Double distance = (Double) p.get( DISTANCE_IN_KM_PARAMETER );
+            }
 
             List<SpatialDatabaseRecord> res = GeoPipeline.startNearestNeighborLatLonSearch(
                     layer, new Coordinate( point[1], point[0] ), distance ).sort(
