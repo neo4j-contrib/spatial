@@ -157,10 +157,10 @@ public class TestOSMImport extends Neo4jTestCase {
 		OSMImporter importer = new OSMImporter(layerName, new ConsoleListener());
 		importer.setCharset(Charset.forName("UTF-8"));
 		if (useBatchInserter) {
-			importer.importFile(getBatchInserter(), osmPath, false);
+			importer.importFile(getBatchInserter(), osmPath, includePoints);
 			reActivateDatabase(false, false, false);
 		} else {
-			importer.importFile(graphDb(), osmPath, false, 5000);
+			importer.importFile(graphDb(), osmPath, includePoints, 5000);
 		}
 		// END SNIPPET: importOsm
 		// Weird hack to force GC on large loads
