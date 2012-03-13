@@ -112,7 +112,7 @@ mvn clean install
 
 === Deployment into Geoserver ===
 
-* unzip the +target/xxxx-server-plugin.zip+ and the Neo4j libraries from your Neo4j download under +NEO4J_HOME/bli+ into $GEOSERVER_HOME/webapps/geoserver/WEB-INF/lib
+* unzip the +target/xxxx-server-plugin.zip+ and the Neo4j libraries from your Neo4j download under +NEO4J_HOME/lib+ into $GEOSERVER_HOME/webapps/geoserver/WEB-INF/lib
 
 * restart geoserver
 
