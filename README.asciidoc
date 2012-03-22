@@ -58,7 +58,7 @@ Spatial data is divided in Layers and indexed by a RTree.
 GraphDatabaseService database = new EmbeddedGraphDatabase(storeDir);
 	try {
 		ShapefileImporter importer = new ShapefileImporter(database);
-	    importer.importShapefile("roads.shp", "layer_roads");
+	    importer.importFile("roads.shp", "layer_roads");
 	} finally {
 		database.shutdown();
 	}
