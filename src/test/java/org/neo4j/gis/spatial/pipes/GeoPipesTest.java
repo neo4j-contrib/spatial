@@ -43,7 +43,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.neo4j.collections.rtree.filter.SearchAll;
 import org.neo4j.collections.rtree.filter.SearchFilter;
-import org.neo4j.cypher.javacompat.CypherParser;
 import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.examples.AbstractJavaDocTestbase;
 import org.neo4j.gis.spatial.Constants;
@@ -1134,7 +1133,6 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     public void setUp()
     {
         gen.get().setGraph( db );
-        parser = new CypherParser();
         engine = new ExecutionEngine( db );
         try
         {

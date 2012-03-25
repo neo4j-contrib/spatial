@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial.indexprovider;
 import java.util.Collections;
 import java.util.Map;
 
+import org.neo4j.graphdb.DependencyResolver;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.index.Index;
@@ -48,11 +49,11 @@ public class SpatialIndexProvider extends IndexProvider
     }
 
     @Override
-    public IndexImplementation load(KernelData kernelData) throws Exception {
-        return new SpatialIndexImplementation(kernelData.graphDatabase());
+    public IndexImplementation load(DependencyResolver dependencyResolver) throws Exception {
+        return new SpatialIndexImplementation(dependencyResolver.resolveDependency(GraphDatabaseService.class));
     }
 
-    private class SpatialIndexImplementation extends IndexImplementation {
+    private class SpatialIndexImplementation implements IndexImplementation {
     	
         private GraphDatabaseService db;
 

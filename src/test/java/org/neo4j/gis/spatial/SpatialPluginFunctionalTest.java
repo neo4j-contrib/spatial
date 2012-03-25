@@ -48,8 +48,10 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
         String response = gen.get().get( ENDPOINT ).entity();
         assertTrue( response.contains( "graphdb" ) );
     }
-    
-    
+
+    /**
+     * allows cypher querying a bounding box
+     */
     @Test
     @Documented
     public void querying_with_cypher() throws UnsupportedEncodingException

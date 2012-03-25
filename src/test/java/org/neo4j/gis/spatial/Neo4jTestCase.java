@@ -39,6 +39,7 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.kernel.AbstractGraphDatabase;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.impl.batchinsert.BatchInserter;
 import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
@@ -228,7 +229,7 @@ public abstract class Neo4jTestCase extends TestCase {
     }
 
     protected long countNodes(Class<?> cls) {
-        return ((EmbeddedGraphDatabase)graphDb).getConfig().getGraphDbModule().getNodeManager().getNumberOfIdsInUse(cls);
+        return ((AbstractGraphDatabase)graphDb).getNodeManager().getNumberOfIdsInUse(cls);
     }
 
     protected void printDatabaseStats() {
