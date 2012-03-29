@@ -1170,7 +1170,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     public void doc()
     {
        // gen.get().addSnippet( "graph", AsciidocHelper.createGraphViz( imgName , graphdb(), "graph"+getTitle() ) );
-       gen.get().addSourceSnippets( GeoPipesTest.class, "s_"+getTitle().toLowerCase() );
+       gen.get().addTestSourceSnippets( GeoPipesTest.class, "s_"+getTitle().toLowerCase() );
        gen.get().document( "target/docs", "examples" );
     }
 

@@ -33,7 +33,6 @@ import org.neo4j.graphdb.index.RelationshipIndex;
 import org.neo4j.helpers.Service;
 import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.kernel.Config;
-import org.neo4j.kernel.KernelData;
 import org.neo4j.kernel.KernelExtension;
 
 
