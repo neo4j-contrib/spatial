@@ -1178,7 +1178,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     public static void init()
     {
         db = new ImpermanentGraphDatabase( );
-        db.cleanContent( true );
+        ((ImpermanentGraphDatabase)db).cleanContent( true );
         try
         {
             load();

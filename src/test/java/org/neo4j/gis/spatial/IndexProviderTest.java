@@ -38,7 +38,20 @@
  */
 package org.neo4j.gis.spatial;
 
-import com.tinkerpop.blueprints.pgm.impls.neo4j.Neo4jGraph;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.script.Bindings;
+import javax.script.ScriptContext;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.SimpleBindings;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.neo4j.cypher.SyntaxException;
@@ -53,11 +66,7 @@ import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.index.IndexManager;
 import org.neo4j.test.ImpermanentGraphDatabase;
 
-import javax.script.*;
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.junit.Assert.*;
+import com.tinkerpop.blueprints.pgm.impls.neo4j.Neo4jGraph;
 
 public class IndexProviderTest
 {

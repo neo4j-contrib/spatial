@@ -22,13 +22,13 @@ package org.neo4j.gis.spatial;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
 
-import org.opengis.feature.type.Name;
 import org.geotools.data.Parameter;
 import org.geotools.feature.NameImpl;
 import org.geotools.process.ProcessExecutor;
 import org.geotools.process.Processors;
 import org.geotools.process.Progress;
 import org.geotools.util.KVP;
+import org.opengis.feature.type.Name;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;

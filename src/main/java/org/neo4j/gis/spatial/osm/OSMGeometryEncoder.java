@@ -25,6 +25,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 
+import org.neo4j.collections.rtree.Envelope;
+import org.neo4j.collections.rtree.RTreeIndex;
 import org.neo4j.gis.spatial.AbstractGeometryEncoder;
 import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
@@ -38,9 +40,6 @@ import org.neo4j.kernel.impl.traversal.TraversalDescriptionImpl;
 
 import com.vividsolutions.jts.algorithm.ConvexHull;
 import com.vividsolutions.jts.geom.Coordinate;
-import org.neo4j.collections.rtree.Envelope;
-import org.neo4j.collections.rtree.RTreeIndex;
-
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
