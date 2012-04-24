@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <properties>
-    <neo4j.version>1.7-SNAPSHOT</neo4j.version>
+    <neo4j.version>1.7</neo4j.version>
     <neo4j.graphcollections.version>0.3-SNAPSHOT</neo4j.graphcollections.version>
     <geotools.version>8.0-M4</geotools.version>
     <spatial.test.osm.version>20100819</spatial.test.osm.version>
@@ -345,6 +345,10 @@ terms of the relevant Commercial Agreement.
         <exclusion>
           <groupId>org.neo4j</groupId>
           <artifactId>neo4j</artifactId>
+        </exclusion>
+        <exclusion>
+          <artifactId>neo4j-ha</artifactId>
+          <groupId>org.neo4j</groupId>
         </exclusion>
       </exclusions>
     </dependency>
