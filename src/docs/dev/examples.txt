@@ -120,6 +120,8 @@ the different steps.
 
 :leveloffset: 3
 
+include::examples/search-within-geometry.txt[]
+
 
 include::examples/intersecting-windows.txt[]
 

@@ -146,6 +146,28 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
                 1,
                 cqlFilter.count() );
     }
+    
+    /**
+     * This pipe performs a search within a
+     * geometry in this example, both OSM street
+     * geometries should be found in when searching with
+     * an enclosing rectangle Envelope.
+     * 
+     * Example:
+     * 
+     * @@s_search_within_geometry
+     */
+    @Test
+    public void search_within_geometry() throws CQLException
+    {
+        // START SNIPPET: s_search_within_geometry
+        GeoPipeline pipeline = GeoPipeline
+        .startWithinSearch(osmLayer, osmLayer.getGeometryFactory().toGeometry(new Envelope(10, 20, 50, 60)));
+        // END SNIPPET: s_search_within_geometry
+        assertEquals(
+                2,
+                pipeline.count() );
+    }
 
     @Test
     public void filter_by_cql_using_property() throws CQLException
