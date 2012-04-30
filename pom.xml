@@ -360,6 +360,11 @@ terms of the relevant Commercial Agreement.
       <url>http://download.osgeo.org/webdav/geotools/</url>
     </repository>
     <repository>
+      <id>java.net</id>
+      <name>Java.net repo</name>
+      <url>https://maven.java.net/service/local/repositories/releases/content/</url>
+    </repository>
+    <repository>
       <snapshots>
         <enabled>true</enabled>
       </snapshots>
