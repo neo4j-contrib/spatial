@@ -60,7 +60,8 @@ public class TestOSMImport extends Neo4jTestCase {
 		deleteBaseDir();
 		TestSuite suite = new TestSuite();
 		String[] smallModels = new String[] { "one-street.osm", "two-street.osm" };
-		String[] mediumModels = new String[] { "map.osm", "map2.osm" };
+//		String[] mediumModels = new String[] { "map.osm", "map2.osm" };
+        String[] mediumModels = new String[] { "map.osm" };
 		String[] largeModels = new String[] { "cyprus.osm", "croatia.osm", "denmark.osm" };
 
 		// Setup default test cases (short or medium only, no long cases)
@@ -80,9 +81,7 @@ public class TestOSMImport extends Neo4jTestCase {
 			// Tests relevant to current development
 			layersToTest.clear();
 //			layersToTest.add("/home/craig/Desktop/AWE/Data/MapData/baden-wurttemberg.osm/baden-wurttemberg.osm");
-//			layersToTest.add("cyprus.osm");
-//			layersToTest.add("croatia.osm");
-			layersToTest.add("map2.osm");
+            layersToTest.addAll(Arrays.asList(largeModels));
 		}
 		boolean[] pointsTestModes = new boolean[] { true, false };
 		boolean[] batchTestModes = new boolean[] { true, false };
@@ -160,7 +159,7 @@ public class TestOSMImport extends Neo4jTestCase {
 			importer.importFile(getBatchInserter(), osmPath, includePoints);
 			reActivateDatabase(false, false, false);
 		} else {
-			importer.importFile(graphDb(), osmPath, includePoints, 5000);
+			importer.importFile(graphDb(), osmPath, includePoints, 5000, true);
 		}
 		// END SNIPPET: importOsm
 		// Weird hack to force GC on large loads
