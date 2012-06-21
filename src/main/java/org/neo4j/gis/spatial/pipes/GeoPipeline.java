@@ -34,6 +34,7 @@ import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.neo4j.collections.rtree.filter.SearchAll;
 import org.neo4j.collections.rtree.filter.SearchFilter;
+import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialRecord;
@@ -355,10 +356,15 @@ public class GeoPipeline extends GremlinGroovyPipeline<GeoPipeFlow, GeoPipeFlow>
 	 * @return geoPipeline
 	 */
 	public static GeoPipeline startNearestNeighborLatLonSearch(Layer layer, Coordinate point, double maxDistanceInKm) {
-		Envelope extent = OrthodromicDistance.suggestSearchWindow(point, maxDistanceInKm);
-		return start(layer, new SearchIntersectWindow(layer, extent))
-			.calculateOrthodromicDistance(point)
-			.propertyFilter("OrthodromicDistance", maxDistanceInKm, FilterPipe.Filter.LESS_THAN_EQUAL);
+		Envelope searchWindow = OrthodromicDistance.suggestSearchWindow(point, maxDistanceInKm);
+		GeoPipeline pipeline = start(layer, new SearchIntersectWindow(layer, searchWindow))
+			.calculateOrthodromicDistance(point);
+		
+		if (layer.getGeometryType() == Constants.GTYPE_POINT) {
+			pipeline = pipeline.propertyFilter("OrthodromicDistance", maxDistanceInKm, FilterPipe.Filter.LESS_THAN_EQUAL);
+		}
+		
+		return pipeline;
 	}
 
 	/**
@@ -925,7 +931,6 @@ public class GeoPipeline extends GremlinGroovyPipeline<GeoPipeFlow, GeoPipeFlow>
     }
     
     public FeatureCollection<SimpleFeatureType,SimpleFeature> toFeatureCollection(SimpleFeatureType featureType) throws IOException {
-    	@SuppressWarnings("unchecked")
 		final List<GeoPipeFlow> records = toList();
     	
     	Envelope bounds = null;
