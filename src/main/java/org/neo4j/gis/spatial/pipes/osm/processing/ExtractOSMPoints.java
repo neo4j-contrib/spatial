@@ -22,9 +22,7 @@ package org.neo4j.gis.spatial.pipes.osm.processing;
 import org.neo4j.gis.spatial.osm.OSMRelation;
 import org.neo4j.gis.spatial.pipes.AbstractExtractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Path;
+import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
 import org.neo4j.graphdb.traversal.TraversalDescription;
@@ -51,20 +49,20 @@ public class ExtractOSMPoints extends AbstractExtractGeoPipe {
 		TraversalDescription td = Traversal
 			.description()
 			.evaluator(new Evaluator() {
-				@Override
-				public Evaluation evaluate(Path path) {
-					if (path.length() > 0 
-							&& !path.relationships().iterator().next().isType(OSMRelation.NEXT)
-							&& path.lastRelationship().isType(OSMRelation.NODE)) {
-						return Evaluation.INCLUDE_AND_PRUNE;
-					}
-						
-					return Evaluation.EXCLUDE_AND_CONTINUE;
-				}
-			}).expand(new OrderedByTypeExpander()
-				.add(OSMRelation.FIRST_NODE, Direction.OUTGOING)
-				.add(OSMRelation.NEXT, Direction.OUTGOING)
-				.add(OSMRelation.NODE, Direction.OUTGOING))
+                @Override
+                public Evaluation evaluate(Path path) {
+                    if (path.length() > 0
+                            && !path.relationships().iterator().next().isType(OSMRelation.NEXT)
+                            && path.lastRelationship().isType(OSMRelation.NODE)) {
+                        return Evaluation.INCLUDE_AND_PRUNE;
+                    }
+
+                    return Evaluation.EXCLUDE_AND_CONTINUE;
+                }
+            }).expand((RelationshipExpander) new OrderedByTypeExpander()
+                        .add(OSMRelation.FIRST_NODE, Direction.OUTGOING)
+                        .add(OSMRelation.NEXT, Direction.OUTGOING)
+                        .add(OSMRelation.NODE, Direction.OUTGOING))
 				.uniqueness(Uniqueness.NODE_PATH);
 		
 		int counter = 0;
