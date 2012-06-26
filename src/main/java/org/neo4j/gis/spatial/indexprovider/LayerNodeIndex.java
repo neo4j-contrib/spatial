@@ -19,6 +19,8 @@
  */
 package org.neo4j.gis.spatial.indexprovider;
 
+import static org.neo4j.gis.spatial.utilities.TraverserFactory.createTraverserInBackwardsCompatibleWay;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +42,8 @@ import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
 import org.neo4j.graphdb.traversal.Evaluators;
+import org.neo4j.graphdb.traversal.TraversalDescription;
+import org.neo4j.graphdb.traversal.Traverser;
 import org.neo4j.helpers.Predicate;
 import org.neo4j.helpers.collection.IteratorUtil;
 import org.neo4j.kernel.Traversal;
@@ -123,15 +127,10 @@ public class LayerNodeIndex implements Index<Node>
     public void add( Node geometry, String key, Object value )
     {
         Geometry decodeGeometry = layer.getGeometryEncoder().decodeGeometry( geometry );
-        
+
         // check if node already exists in layer
-        Node matchingNode = IteratorUtil.firstOrNull(Traversal.description().breadthFirst()
-          .evaluator(Evaluators.excludeStartPosition()).evaluator(
-              new NodeIdPropertyEqualsReturnableEvaluator(geometry.getId()))
-          .relationships(SpatialRelationshipTypes.GEOMETRIES, Direction.OUTGOING)
-          .relationships(SpatialRelationshipTypes.NEXT_GEOM, Direction.OUTGOING)
-          .traverse(layer.getLayerNode()).nodes());
-        
+        Node matchingNode = findExistingNode( geometry );
+
         if (matchingNode == null)
         {
           layer.add(
@@ -144,6 +143,19 @@ public class LayerNodeIndex implements Index<Node>
           layer.update(matchingNode.getId(), decodeGeometry);      
         }
 
+    }
+
+    private Node findExistingNode( Node geometry ) {
+        TraversalDescription traversalDescription = Traversal.description().breadthFirst()
+                .evaluator( Evaluators.excludeStartPosition() ).evaluator(
+                        new NodeIdPropertyEqualsReturnableEvaluator( geometry.getId() ) )
+                .relationships( SpatialRelationshipTypes.GEOMETRIES, Direction.OUTGOING )
+                .relationships( SpatialRelationshipTypes.NEXT_GEOM, Direction.OUTGOING );
+
+        Traverser traverser = createTraverserInBackwardsCompatibleWay( traversalDescription,
+                layer.getLayerNode() );
+
+        return IteratorUtil.firstOrNull( traverser.nodes() );
     }
 
     public void remove( Node entity, String key, Object value )

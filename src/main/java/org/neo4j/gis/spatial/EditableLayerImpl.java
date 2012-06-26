@@ -19,10 +19,13 @@
  */
 package org.neo4j.gis.spatial;
 
+import static org.neo4j.gis.spatial.utilities.TraverserFactory.createTraverserInBackwardsCompatibleWay;
+
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.traversal.Evaluators;
+import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.Traversal;
 
 import com.vividsolutions.jts.geom.Geometry;
@@ -91,10 +94,12 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 	private Node addGeomNode(Geometry geom, String[] fieldsName, Object[] fields) {
 		Node geomNode = getDatabase().createNode();
 		if (previousGeomNode == null) {
-			for (Node node : Traversal.description().order(Traversal.postorderBreadthFirst())
-                                       .relationships(SpatialRelationshipTypes.GEOMETRIES,Direction.INCOMING)
-                                       .relationships(SpatialRelationshipTypes.NEXT_GEOM, Direction.INCOMING)
-                                       .evaluator(Evaluators.excludeStartPosition()).traverse(layerNode).nodes())
+            TraversalDescription traversalDescription = Traversal.description().order( Traversal.postorderBreadthFirst() )
+                    .relationships( SpatialRelationshipTypes.GEOMETRIES, Direction.INCOMING )
+                    .relationships( SpatialRelationshipTypes.NEXT_GEOM, Direction.INCOMING )
+                    .evaluator( Evaluators.excludeStartPosition() );
+
+            for (Node node : createTraverserInBackwardsCompatibleWay( traversalDescription, layerNode ).nodes())
                         {
 				previousGeomNode = node;
 			}
