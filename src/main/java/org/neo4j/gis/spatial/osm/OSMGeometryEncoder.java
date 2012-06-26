@@ -19,6 +19,8 @@
  */
 package org.neo4j.gis.spatial.osm;
 
+import static org.neo4j.gis.spatial.utilities.TraverserFactory.createTraverserInBackwardsCompatibleWay;
+
 import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -36,6 +38,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.PropertyContainer;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.impl.traversal.TraversalDescriptionImpl;
 
 import com.vividsolutions.jts.algorithm.ConvexHull;
@@ -147,8 +150,9 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 		Iterator<Path> traverser;
 
 		NodeProxyIterator(Node first) {
-			traverser = new TraversalDescriptionImpl().relationships(OSMRelation.NEXT, Direction.OUTGOING).traverse(first)
-					.iterator();
+            TraversalDescription traversalDescription = new TraversalDescriptionImpl().relationships( OSMRelation.NEXT,
+                    Direction.OUTGOING );
+            traverser = createTraverserInBackwardsCompatibleWay( traversalDescription, first ).iterator();
 		}
 
 		public boolean hasNext() {

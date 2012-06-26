@@ -19,6 +19,8 @@
  */
 package org.neo4j.gis.spatial.pipes.osm.processing;
 
+import static org.neo4j.gis.spatial.utilities.TraverserFactory.createTraverserInBackwardsCompatibleWay;
+
 import org.neo4j.gis.spatial.osm.OSMRelation;
 import org.neo4j.gis.spatial.pipes.AbstractExtractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
@@ -66,7 +68,7 @@ public class ExtractOSMPoints extends AbstractExtractGeoPipe {
 				.uniqueness(Uniqueness.NODE_PATH);
 		
 		int counter = 0;
-		for (Path path : td.traverse(node)) {
+		for (Path path : createTraverserInBackwardsCompatibleWay( td, node )) {
 			Node pointNode = path.endNode();
 			double longitude = (Double) pointNode.getProperty("lon");
 			double latitude = (Double) pointNode.getProperty("lat");
