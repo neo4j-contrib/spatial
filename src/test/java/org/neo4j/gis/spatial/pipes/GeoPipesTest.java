@@ -135,6 +135,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
      * 
      * @@s_filter_by_cql_using_bbox
      */
+    @Documented
     @Test
     public void filter_by_cql_using_bbox() throws CQLException
     {
@@ -158,6 +159,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
      * @@s_search_within_geometry
      */
     @Test
+    @Documented
     public void search_within_geometry() throws CQLException
     {
         // START SNIPPET: s_search_within_geometry
