@@ -3,7 +3,7 @@
   <properties>
     <neo4j.version>1.8.M07</neo4j.version>
     <neo4j.graphcollections.version>0.4.M01</neo4j.graphcollections.version>
-    <geotools.version>8.0-M4</geotools.version>
+    <geotools.version>8.0</geotools.version>
     <spatial.test.osm.version>20100819</spatial.test.osm.version>
     <spatial.test.shp.version>20100819</spatial.test.shp.version>
     <bundle.namespace>org.neo4j.gis</bundle.namespace>
