@@ -2,7 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <properties>
     <neo4j.version>1.8.RC1</neo4j.version>
-    <neo4j.graphcollections.version>0.4-SNAPSHOT</neo4j.graphcollections.version>
+    <neo4j.graphcollections.version>0.4.RC1</neo4j.graphcollections.version>
     <geotools.version>8.0</geotools.version>
     <spatial.test.osm.version>20100819</spatial.test.osm.version>
     <spatial.test.shp.version>20100819</spatial.test.shp.version>
@@ -174,7 +174,6 @@ terms of the relevant Commercial Agreement.
       <groupId>org.neo4j</groupId>
       <artifactId>neo4j</artifactId>
       <version>${neo4j.version}</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.neo4j</groupId>
@@ -200,7 +199,7 @@ terms of the relevant Commercial Agreement.
       <artifactId>neo4j-server</artifactId>
       <version>${neo4j.version}</version>
       <type>test-jar</type>
-      <scope>provided</scope>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.neo4j.examples</groupId>
@@ -485,7 +484,7 @@ terms of the relevant Commercial Agreement.
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.11</version>
         <configuration>
-          <argLine>-server -Xms512m -Xmx14G -XX:+UseConcMarkSweepGC</argLine>
+          <argLine>-server -Xms512m -Xmx2G -XX:+UseConcMarkSweepGC</argLine>
         </configuration>
       </plugin>
     </plugins>
