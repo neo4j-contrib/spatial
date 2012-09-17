@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial.osm;
 
 import static java.util.Arrays.asList;
+import static org.neo4j.helpers.collection.MapUtil.stringMap;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -42,7 +43,6 @@ import java.util.Map;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
-import org.apache.commons.collections.MapUtils;
 import org.geotools.referencing.datum.DefaultEllipsoid;
 import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.collections.rtree.Listener;
@@ -77,6 +77,7 @@ public class OSMImporter implements Constants
     public static DefaultEllipsoid WGS84 = DefaultEllipsoid.WGS84;
     public static String INDEX_NAME_CHANGESET = "changeset";
     public static String INDEX_NAME_USER = "user";
+    public static String INDEX_NAME_UID = "uid";
     public static String INDEX_NAME_NODE = "node";
     public static String INDEX_NAME_WAY = "node";
 
@@ -435,7 +436,7 @@ public class OSMImporter implements Constants
                 Map<String, Object> extractProperties );
 
         protected abstract void addNodeTags( T node,
-                LinkedHashMap<String, Object> tags, String type );
+                Map<String, Object> tags, String type );
 
         protected abstract void addNodeGeometry( T node, int gtype,
                 Envelope bbox, int vertices );
@@ -444,7 +445,7 @@ public class OSMImporter implements Constants
                 Map<String, Object> properties, String indexKey );
 
         protected abstract void createRelationship( T from, T to,
-                RelationshipType relType, LinkedHashMap<String, Object> relProps );
+                RelationshipType relType, Map<String, Object> relProps );
 
         protected void createRelationship( T from, T to,
                 RelationshipType relType )
@@ -532,7 +533,7 @@ public class OSMImporter implements Constants
             }
         }
 
-        protected void logNodeAddition( LinkedHashMap<String, Object> tags,
+        protected void logNodeAddition( Map<String, Object> tags,
                 String type )
         {
             Integer count = stats.get( type );
@@ -623,7 +624,11 @@ public class OSMImporter implements Constants
         protected int relationCount = 0;
         protected int userCount = 0;
         protected int changesetCount = 0;
-
+        // todo use real cache abstractions with stats
+        protected Map<Long, T> nodeCache =new HashMap<Long, T>(1000000);
+        // todo load existing users/changesets upfront into the cache and don't do index lookups in between
+        protected Map<Long, T> userCache =new HashMap<Long, T>(10000);
+        protected Map<Long, T> changesetCache =new HashMap<Long, T>(10000);
         /**
          * Add the BBox metadata to the dataset
          * 
@@ -645,17 +650,19 @@ public class OSMImporter implements Constants
          */
         protected void createOSMNode( Map<String, Object> nodeProps )
         {
-            T changesetNode = getChangesetNode( nodeProps );
+
+            long changeset = extractChangeset(nodeProps);
+            T changesetNode = getChangesetNode(nodeProps, changeset);
             currentNode = addNode( "node", nodeProps, "node_osm_id" );
+            nodeCache.put((Long) nodeProps.get("node_osm_id"), currentNode);
             createRelationship( currentNode, changesetNode,
                     OSMRelation.CHANGESET );
             nodeCount++;
-            debugNodeWithId( currentNode, "node_osm_id", new long[] { 8090260,
-                    273534207 } );
+            //debugNodeWithId( currentNode, "node_osm_id", new long[] { 8090260, 273534207 } );
         }
 
         private void addOSMNodeTags( boolean allPoints,
-                LinkedHashMap<String, Object> currentNodeTags )
+                Map<String, Object> currentNodeTags )
         {
             currentNodeTags.remove( "created_by" ); // redundant information
             // Nodes with tags get added to the index as point geometries
@@ -710,7 +717,7 @@ public class OSMImporter implements Constants
             {
                 System.out.println( "Debug way: " + way_osm_id );
             }
-            T changesetNode = getChangesetNode( wayProperties );
+            T changesetNode = getChangesetNode( wayProperties, extractChangeset(wayProperties));
             T way = addNode( INDEX_NAME_WAY, wayProperties, "way_osm_id" );
             createRelationship( way, changesetNode, OSMRelation.CHANGESET );
             if ( prev_way == null )
@@ -728,14 +735,16 @@ public class OSMImporter implements Constants
             T prevNode = null;
             T prevProxy = null;
             Map<String, Object> prevProps = null;
-            LinkedHashMap<String, Object> relProps = new LinkedHashMap<String, Object>();
-            HashMap<String, Object> directionProps = new HashMap<String, Object>();
+            Map<String, Object> relProps = new HashMap<String, Object>();
+            Map<String, Object> directionProps = new HashMap<String, Object>();
             directionProps.put( "oneway", true );
             for ( long nd_ref : wayNodes )
             {
-                // long pointNode =
-                // batchIndexService.getSingleNode("node_osm_id", nd_ref);
-                T pointNode = getOSMNode( nd_ref, changesetNode );
+                T pointNode = nodeCache.get(nd_ref);
+                if (pointNode == null && !nodeCache.containsKey(nd_ref)) {
+                    pointNode = getOSMNode( nd_ref, changesetNode );
+                    nodeCache.put(nd_ref, pointNode);
+                }
                 if ( pointNode == null )
                 {
                     /*
@@ -947,9 +956,9 @@ public class OSMImporter implements Constants
 
         protected abstract T createProxyNode();
 
-        protected abstract T getChangesetNode( Map<String, Object> nodeProps );
+        protected abstract T getChangesetNode(Map<String, Object> nodeProps, long changeset);
 
-        protected abstract T getUserNode( Map<String, Object> nodeProps );
+        protected abstract T getUserNode(long uid, String name, Map<String, Object> nodeProps);
 
     }
 
@@ -1082,7 +1091,7 @@ public class OSMImporter implements Constants
 
         @Override
         protected void addNodeTags( Node node,
-                LinkedHashMap<String, Object> tags, String type )
+                Map<String, Object> tags, String type )
         {
             logNodeAddition( tags, type );
             if ( node != null && tags.size() > 0 )
@@ -1162,7 +1171,7 @@ public class OSMImporter implements Constants
 
         @Override
         protected void createRelationship( Node from, Node to,
-                RelationshipType relType, LinkedHashMap<String, Object> relProps )
+                RelationshipType relType, Map<String, Object> relProps )
         {
             Relationship rel = from.createRelationshipTo( to, relType );
             if ( relProps != null && relProps.size() > 0 )
@@ -1186,7 +1195,7 @@ public class OSMImporter implements Constants
         @Override
         protected Map<String, Object> getNodeProperties( Node node )
         {
-            LinkedHashMap<String, Object> properties = new LinkedHashMap<String, Object>();
+            Map<String, Object> properties = new LinkedHashMap<String, Object>();
             for ( String property : node.getPropertyKeys() )
             {
                 properties.put( property, node.getProperty( property ) );
@@ -1197,7 +1206,7 @@ public class OSMImporter implements Constants
         @Override
         protected Node getOSMNode( long osmId, Node changesetNode )
         {
-            if ( currentChangesetNode != changesetNode
+            if ( !currentChangesetNode.equals(changesetNode)
                  || changesetNodes.isEmpty() )
             {
                 currentChangesetNode = changesetNode;
@@ -1270,83 +1279,90 @@ public class OSMImporter implements Constants
         }
 
         @Override
-        protected Node getChangesetNode( Map<String, Object> nodeProps )
+        protected Node getChangesetNode(Map<String, Object> nodeProps, long changeset)
         {
-            long changeset = Long.parseLong( nodeProps.remove(
-                    INDEX_NAME_CHANGESET ).toString() );
-            getUserNode( nodeProps );
-            if ( changeset != currentChangesetId )
-            {
-                currentChangesetId = changeset;
-                IndexHits<Node> result = indexFor( INDEX_NAME_CHANGESET ).get(
-                        INDEX_NAME_CHANGESET, currentChangesetId );
-                if ( result.size() > 0 )
-                {
-                    currentChangesetNode = result.getSingle();
-                }
-                else
-                {
-                    LinkedHashMap<String, Object> changesetProps = new LinkedHashMap<String, Object>();
-                    changesetProps.put( INDEX_NAME_CHANGESET,
-                            currentChangesetId );
-                    changesetProps.put( "timestamp",
-                            nodeProps.get( "timestamp" ) );
-                    currentChangesetNode = (Node) addNode(
-                            INDEX_NAME_CHANGESET, changesetProps,
-                            INDEX_NAME_CHANGESET );
-                    changesetCount++;
-                    if ( currentUserNode != null )
-                    {
-                        createRelationship( currentChangesetNode,
-                                currentUserNode, OSMRelation.USER );
-                    }
-                }
-                result.close();
+            getUserNode(extractUid(nodeProps), extractUserName(nodeProps), nodeProps);
+            if (changeset == currentChangesetId) {
+                return currentChangesetNode;
             }
+            currentChangesetId = changeset;
+            Node foundChangesetNode = changesetCache.get(changeset);
+            if (foundChangesetNode != null ) {
+                return foundChangesetNode;
+            }
+
+            IndexHits<Node> result = indexFor( INDEX_NAME_CHANGESET ).get(
+                    INDEX_NAME_CHANGESET, currentChangesetId );
+            if ( result.size() > 0 )
+            {
+                currentChangesetNode = result.getSingle();
+            }
+            else
+            {
+                Map<String, Object> changesetProps = new LinkedHashMap<String, Object>();
+                changesetProps.put( INDEX_NAME_CHANGESET,
+                        currentChangesetId );
+                changesetProps.put( "timestamp",
+                        nodeProps.get( "timestamp" ) );
+                currentChangesetNode = (Node) addNode(
+                        INDEX_NAME_CHANGESET, changesetProps,
+                        INDEX_NAME_CHANGESET );
+                changesetCount++;
+                if ( currentUserNode != null )
+                {
+                    createRelationship( currentChangesetNode,
+                            currentUserNode, OSMRelation.USER );
+                }
+            }
+            result.close();
+            changesetCache.put(changeset,currentChangesetNode);
             return currentChangesetNode;
         }
 
         @Override
-        protected Node getUserNode( Map<String, Object> nodeProps )
+        protected Node getUserNode(long uid, String name, Map<String, Object> nodeProps)
         {
             try
             {
-                long uid = Long.parseLong( nodeProps.remove( "uid" ).toString() );
-                String name = nodeProps.remove( INDEX_NAME_USER ).toString();
-                if ( uid != currentUserId )
-                {
-                    currentUserId = uid;
-                    IndexHits<Node> result = indexFor( INDEX_NAME_USER ).get(
-                            "uid", currentUserId );
-                    if ( result.size() > 0 )
-                    {
-                        currentUserNode = indexFor( INDEX_NAME_USER ).get(
-                                "uid", currentUserId ).getSingle();
-                    }
-                    else
-                    {
-                        LinkedHashMap<String, Object> userProps = new LinkedHashMap<String, Object>();
-                        userProps.put( "uid", currentUserId );
-                        userProps.put( "name", name );
-                        userProps.put( "timestamp", nodeProps.get( "timestamp" ) );
-                        currentUserNode = (Node) addNode( INDEX_NAME_USER,
-                                userProps, "uid" );
-                        userCount++;
-                        // if (currentChangesetNode != null) {
-                        // currentChangesetNode.createRelationshipTo(currentUserNode,
-                        // OSMRelation.USER);
-                        // }
-                        if ( usersNode == null )
-                        {
-                            usersNode = graphDb.createNode();
-                            osm_dataset.createRelationshipTo( usersNode,
-                                    OSMRelation.USERS );
-                        }
-                        usersNode.createRelationshipTo( currentUserNode,
-                                OSMRelation.OSM_USER );
-                    }
-                    result.close();
+                if (uid == currentUserId) {
+                    return currentUserNode;
                 }
+                currentUserId = uid;
+                Node foundUserNode = userCache.get(uid);
+                if (foundUserNode!=null)
+                {
+                    return foundUserNode;
+                }
+                IndexHits<Node> result = indexFor( INDEX_NAME_USER ).get(
+                        "uid", currentUserId );
+                if ( result.size() > 0 )
+                {
+                    currentUserNode = indexFor( INDEX_NAME_USER ).get(
+                            "uid", currentUserId ).getSingle();
+                }
+                else
+                {
+                    Map<String, Object> userProps = new LinkedHashMap<String, Object>();
+                    userProps.put( "uid", currentUserId );
+                    userProps.put( "name", name );
+                    userProps.put( "timestamp", nodeProps.get( "timestamp" ) );
+                    currentUserNode = (Node) addNode( INDEX_NAME_USER,
+                            userProps, "uid" );
+                    userCount++;
+                    // if (currentChangesetNode != null) {
+                    // currentChangesetNode.createRelationshipTo(currentUserNode,
+                    // OSMRelation.USER);
+                    // }
+                    if ( usersNode == null )
+                    {
+                        usersNode = graphDb.createNode();
+                        osm_dataset.createRelationshipTo( usersNode,
+                                OSMRelation.USERS );
+                    }
+                    usersNode.createRelationshipTo( currentUserNode,
+                            OSMRelation.OSM_USER );
+                }
+                result.close();
             }
             catch ( Exception e )
             {
@@ -1354,6 +1370,7 @@ public class OSMImporter implements Constants
                 currentUserNode = null;
                 logMissingUser( nodeProps );
             }
+            userCache.put(uid,currentUserNode);
             return currentUserNode;
         }
 
@@ -1363,6 +1380,10 @@ public class OSMImporter implements Constants
                    + "]:txInterval[" + this.txInterval + "]";
         }
 
+    }
+
+    private static long extractChangeset(Map<String, Object> nodeProps) {
+        return Long.parseLong( nodeProps.remove(INDEX_NAME_CHANGESET ).toString() );
     }
 
     private static class OSMBatchWriter extends OSMWriter<Long>
@@ -1456,7 +1477,7 @@ public class OSMImporter implements Constants
         @Override
         protected void setDatasetProperties( Map<String, Object> extraProperties )
         {
-            LinkedHashMap<String, Object> properties = new LinkedHashMap<String, Object>();
+            Map<String, Object> properties = new LinkedHashMap<String, Object>();
             properties.putAll( batchInserter.getNodeProperties( osm_dataset ) );
             properties.putAll( extraProperties );
             batchInserter.setNodeProperties( osm_dataset, properties );
@@ -1464,7 +1485,7 @@ public class OSMImporter implements Constants
 
         @Override
         protected void addNodeTags( Long node,
-                LinkedHashMap<String, Object> tags, String type )
+                Map<String, Object> tags, String type )
         {
             logNodeAddition( tags, type );
             if ( node > 0 && tags.size() > 0 )
@@ -1557,7 +1578,7 @@ public class OSMImporter implements Constants
 
         @Override
         protected void createRelationship( Long from, Long to,
-                RelationshipType relType, LinkedHashMap<String, Object> relProps )
+                RelationshipType relType, Map<String, Object> relProps )
         {
             batchInserter.createRelationship( from, to, relType, relProps );
         }
@@ -1605,7 +1626,7 @@ public class OSMImporter implements Constants
                             OSMRelation.CHANGESET.name() ) )
                     {
                         Long node = rel.getStartNode();
-                        Map<String, Object> props = batchInserter.getNodeProperties( node );
+                        Map<String, Object> props = batchInserter.getNodeProperties(node);
                         Long nodeOsmId = (Long) props.get( "node_osm_id" );
                         if ( nodeOsmId != null )
                         {
@@ -1618,13 +1639,13 @@ public class OSMImporter implements Constants
             if ( node == null )
             {
                 logNodeFoundFrom( "node-index" );
-                return indexFor( INDEX_NAME_NODE ).get( "node_osm_id", osmId ).getSingle();
+                node = indexFor( INDEX_NAME_NODE ).get( "node_osm_id", osmId ).getSingle();
             }
             else
             {
                 logNodeFoundFrom( "changeset" );
-                return node;
             }
+            return node;
         }
 
         @Override
@@ -1672,76 +1693,86 @@ public class OSMImporter implements Constants
         }
 
         @Override
-        protected Long getChangesetNode( Map<String, Object> nodeProps )
+        protected Long getChangesetNode(Map<String, Object> nodeProps, long changeset)
         {
-            long changeset = Long.parseLong( nodeProps.remove( "changeset" ).toString() );
-            getUserNode( nodeProps );
-            if ( changeset != currentChangesetId )
-            {
-                currentChangesetId = changeset;
-                changesetNodes.clear();
-                IndexHits<Long> results = indexFor( "changeset" ).get(
-                        "changeset", currentChangesetId );
-                if ( results.size() > 0 )
-                {
-                    currentChangesetNode = results.getSingle();
-                }
-                else
-                {
-                    LinkedHashMap<String, Object> changesetProps = new LinkedHashMap<String, Object>();
-                    changesetProps.put( "changeset", currentChangesetId );
-                    changesetProps.put( "timestamp",
-                            nodeProps.get( "timestamp" ) );
-                    currentChangesetNode = (Long) addNode( "changeset",
-                            changesetProps, "changeset" );
-                    indexFor( "changeset" ).flush();
-                    if ( currentUserNode > 0 )
-                    {
-                        createRelationship( currentChangesetNode,
-                                currentUserNode, OSMRelation.USER );
-                    }
-                }
-                results.close();
+            getUserNode(extractUid(nodeProps), extractUserName(nodeProps), nodeProps);
+            if (changeset == currentChangesetId) {
+                return currentChangesetNode;
             }
+            currentChangesetId = changeset;
+
+            changesetNodes.clear();
+            Long cachedChangeSet = changesetCache.get(currentChangesetId);
+            if (cachedChangeSet != null) {
+                currentChangesetNode = cachedChangeSet;
+                return currentChangesetNode;
+            }
+
+            IndexHits<Long> results = indexFor( "changeset" ).get("changeset", currentChangesetId );
+            if ( results.size() > 0 )
+            {
+                currentChangesetNode = results.getSingle();
+            }
+            else
+            {
+                Map<String, Object> changesetProps = new LinkedHashMap<String, Object>();
+                changesetProps.put( "changeset", currentChangesetId );
+                changesetProps.put( "timestamp",
+                        nodeProps.get( "timestamp" ) );
+                currentChangesetNode = (Long) addNode( "changeset",
+                        changesetProps, "changeset" );
+                indexFor( "changeset" ).flush();
+                if ( currentUserNode > 0 )
+                {
+                    createRelationship( currentChangesetNode,
+                            currentUserNode, OSMRelation.USER );
+                }
+            }
+            results.close();
+            changesetCache.put(currentChangesetId,currentChangesetNode);
             return currentChangesetNode;
         }
 
         @Override
-        protected Long getUserNode( Map<String, Object> nodeProps )
+        protected Long getUserNode(long uid, String name, Map<String, Object> nodeProps)
         {
             try
             {
-                long uid = Long.parseLong( nodeProps.remove( "uid" ).toString() );
-                String name = nodeProps.remove( "user" ).toString();
-                if ( uid != currentUserId )
-                {
-                    currentUserId = uid;
-                    IndexHits<Long> results = indexFor( INDEX_NAME_USER ).get(
-                            "uid", currentUserId );
-                    if ( results.size() > 0 )
-                    {
-                        currentUserNode = results.getSingle();
-                    }
-                    else
-                    {
-                        LinkedHashMap<String, Object> userProps = new LinkedHashMap<String, Object>();
-                        userProps.put( "uid", currentUserId );
-                        userProps.put( "name", name );
-                        userProps.put( "timestamp", nodeProps.get( "timestamp" ) );
-                        currentUserNode = (Long) addNode( "user", userProps,
-                                "uid" );
-                        indexFor( INDEX_NAME_USER ).flush();
-                        if ( usersNode < 0 )
-                        {
-                            usersNode = batchInserter.createNode( MapUtils.EMPTY_MAP );
-                            createRelationship( osm_dataset, usersNode,
-                                    OSMRelation.USERS );
-                        }
-                        createRelationship( usersNode, currentUserNode,
-                                OSMRelation.OSM_USER );
-                    }
-                    results.close();
+                if (uid == currentUserId) {
+                    return currentUserNode;
                 }
+                currentUserId = uid;
+                Long cachedUserNode = userCache.get(uid);
+                if (cachedUserNode!=null) {
+                    currentUserNode = cachedUserNode;
+                    return currentUserNode;
+                }
+
+                IndexHits<Long> results = indexFor( INDEX_NAME_USER ).get(
+                        "uid", currentUserId );
+                if ( results.size() > 0 )
+                {
+                    currentUserNode = results.getSingle();
+                }
+                else
+                {
+                    LinkedHashMap<String, Object> userProps = new LinkedHashMap<String, Object>();
+                    userProps.put( "uid", currentUserId );
+                    userProps.put( "name", name);
+                    userProps.put( "timestamp", nodeProps.get( "timestamp" ) );
+                    currentUserNode = (Long) addNode( "user", userProps,
+                            "uid" );
+                    indexFor( INDEX_NAME_USER ).flush();
+                    if ( usersNode < 0 )
+                    {
+                        usersNode = batchInserter.createNode( Collections.<String,Object>emptyMap() );
+                        createRelationship( osm_dataset, usersNode,
+                                OSMRelation.USERS );
+                    }
+                    createRelationship( usersNode, currentUserNode,
+                            OSMRelation.OSM_USER );
+                }
+                results.close();
             }
             catch ( Exception e )
             {
@@ -1749,9 +1780,18 @@ public class OSMImporter implements Constants
                 currentUserNode = -1;
                 logMissingUser( nodeProps );
             }
+            userCache.put(uid, currentUserNode);
             return currentUserNode;
         }
 
+    }
+
+    private static String extractUserName(Map<String, Object> nodeProps) {
+        return nodeProps.remove(INDEX_NAME_USER).toString();
+    }
+
+    private static long extractUid(Map<String, Object> nodeProps) {
+        return Long.parseLong(nodeProps.remove(INDEX_NAME_UID).toString());
     }
 
     public void importFile( GraphDatabaseService database, String dataset)
@@ -2215,7 +2255,7 @@ public class OSMImporter implements Constants
         }
         else
         {
-            OSMImportManager importer = new OSMImportManager( args[0] );
+            OSMImportManager importer = new OSMImportManager( args[0], true );
             for ( int i = 1; i < args.length; i++ )
             {
                 try
@@ -2245,7 +2285,13 @@ public class OSMImporter implements Constants
 
         public OSMImportManager( String path )
         {
+            this( path, false );
+        }
+
+        public OSMImportManager( String path, boolean useBatchInserter )
+        {
             setDbPath( path );
+            this.useBatchInserter=useBatchInserter;
         }
 
         public void setDbPath( String path )
@@ -2303,7 +2349,15 @@ public class OSMImporter implements Constants
         private void switchToBatchInserter()
         {
             shutdown();
-            batchInserter = new BatchInserterImpl( dbPath.getAbsolutePath() );
+            batchInserter = new BatchInserterImpl( dbPath.getAbsolutePath(),
+                    stringMap("dump_configuration","true",
+                            "use_memory_mapped_buffers","true",
+                            "neostore.nodestore.db.mapped_memory","50M",
+                            "neostore.relationshipstore.db.mapped_memory","500M",
+                            "neostore.propertystore.db.strings.mapped_memory","250M",
+                            "neostore.propertystore.db.mapped_memory","500M"
+                            )
+            );
             graphDb = batchInserter.getGraphDbService();
         }
 
