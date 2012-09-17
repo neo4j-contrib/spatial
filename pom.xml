@@ -2,7 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <properties>
     <neo4j.version>1.8.RC1</neo4j.version>
-    <neo4j.version>1.8.M07</neo4j.version>
+    <neo4j.graphcollections.version>0.4-SNAPSHOT</neo4j.graphcollections.version>
     <geotools.version>8.0</geotools.version>
     <spatial.test.osm.version>20100819</spatial.test.osm.version>
     <spatial.test.shp.version>20100819</spatial.test.shp.version>
@@ -467,88 +467,6 @@ terms of the relevant Commercial Agreement.
         <spatial.test.mode>long</spatial.test.mode>
       </properties>
     </profile>
-    <profile>
-      <id>qa-test</id>
-      <build>
-        <plugins>
-          <plugin>
-            <artifactId>maven-surefire-plugin</artifactId>
-            <configuration>
-              <skipTests>true</skipTests>
-            </configuration>
-          </plugin>
-          <plugin>
-            <groupId>cuke4duke</groupId>
-            <artifactId>cuke4duke-maven-plugin</artifactId>
-            <configuration>
-              <jvmArgs>
-                <jvmArg>-Dcuke4duke.objectFactory=cuke4duke.internal.jvmclass.PicoFactory</jvmArg>
-                <jvmArg>-DNEO4J_VERSION=1.7</jvmArg>
-                <jvmArg>-DNEO4J_HOME=neo4j_home</jvmArg>
-                <jvmArg>-DNEO4J_PRODUCT=community</jvmArg>
-                <jvmArg>-DDOWNLOAD_LOCATION=http://builder.neo4j.org/guestAuth/repository/download/bt65/.lastSuccessful/standalone/neo4j-community-1.7-unix.tar.gz</jvmArg>
-                <jvmArg>-DDOWNLOAD_PLUGIN_LOCATION=${project.build.directory}/neo4j-spatial-${project.version}-server-plugin.zip</jvmArg>
-              </jvmArgs>
-              <cucumberArgs>
-                <cucumberArg>--verbose</cucumberArg>
-                <cucumberArg>--format</cucumberArg>
-                <cucumberArg>pretty</cucumberArg>
-                <cucumberArg>--format</cucumberArg>
-                <cucumberArg>usage</cucumberArg>
-                <cucumberArg>--out</cucumberArg>
-                <cucumberArg>target/usage.txt</cucumberArg>
-                <cucumberArg>${basedir}/target/test-classes</cucumberArg>
-              </cucumberArgs>
-              <gems>
-                <gem>install cuke4duke --version ${cuke4duke.version}</gem>
-                <gem>install rubyzip</gem>
-              </gems>
-            </configuration>
-            <executions>
-              <execution>
-                <id>run-features</id>
-                <phase>integration-test</phase>
-                <goals>
-                  <goal>cucumber</goal>
-                </goals>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-      <dependencies>
-        <dependency>
-          <groupId>cuke4duke</groupId>
-          <artifactId>cuke4duke</artifactId>
-          <scope>test</scope>
-        </dependency>
-        <dependency>
-          <groupId>org.jruby</groupId>
-          <artifactId>jruby-complete</artifactId>
-          <version>1.6.4</version>
-          <scope>test</scope>
-        </dependency>
-        <dependency>
-          <groupId>org.picocontainer</groupId>
-          <artifactId>picocontainer</artifactId>
-          <version>2.13.6</version>
-          <scope>test</scope>
-        </dependency>
-      </dependencies>
-      <repositories>
-        <repository>
-          <id>Cuke4DukeMavenRepository</id>
-          <name>Cuke4Duke Maven Repository</name>
-          <url>http://cukes.info/maven/</url>
-        </repository>
-      </repositories>
-      <pluginRepositories>
-        <pluginRepository>
-          <id>cukes</id>
-          <url>http://cukes.info/maven</url>
-        </pluginRepository>
-      </pluginRepositories>
-    </profile>
   </profiles>
   <reporting>
     <plugins>
@@ -567,7 +485,7 @@ terms of the relevant Commercial Agreement.
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.11</version>
         <configuration>
-          <argLine>-server -Xms512m -Xmx2500m -XX:+UseConcMarkSweepGC</argLine>
+          <argLine>-server -Xms512m -Xmx14G -XX:+UseConcMarkSweepGC</argLine>
         </configuration>
       </plugin>
     </plugins>
