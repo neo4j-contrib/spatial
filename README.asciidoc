@@ -70,7 +70,10 @@ This is more complex because the current OSMImporter class runs in two phases, t
 
 ----
 	OSMImporter importer = new OSMImporter("sweden");
-
+  Map<String, String> config = new HashMap<String, String>();
+  config.put("neostore.nodestore.db.mapped_memory", "90M" );
+  config.put("dump_configuration", "true");
+  config.put("use_memory_mapped_buffers", "true");
 	BatchInserter batchInserter = new BatchInserterImpl(dir, config);
 	importer.importFile(batchInserter, "sweden.osm", false);
 	batchInserter.shutdown();
@@ -236,19 +239,6 @@ Neo4j Spatial is also packaged as a ZIP file that can be unzipped into the Neo4j
     mvn clean package
 ----
 
-Integration-Testing the Neo4j-Spatial Server Plugin
-
-----
-    source ./setenv.sh
-    rake
-----
-
-or
-
-----
-    mvn integration-test -Dcucumber.installGems=true -Pqa-test
-----
-
 == Using Neo4j spatial in your Java project with Maven ==
 Add the following dependency to your project's pom.xml:
 --------------------------
@@ -268,17 +258,14 @@ neo4j-spatial in your own Java project, make sure to add the following dependenc
             <version>1.4</version>
             <type>jar</type>
             <exclusions>
-        <!-- Sail support not needed -->
                 <exclusion>
                     <groupId>com.tinkerpop.blueprints</groupId>
                     <artifactId>blueprints-sail-graph</artifactId>
                 </exclusion>
-        <!-- Maven support in groovy not needed -->
                 <exclusion>
                     <groupId>org.codehaus.groovy.maven</groupId>
                     <artifactId>gmaven-plugin</artifactId>
                 </exclusion>
-        <!-- "readline" not needed - we only expose gremlin through webadmin -->
                 <exclusion>
                     <groupId>jline</groupId>
                     <artifactId>jline</artifactId>
