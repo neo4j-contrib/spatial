@@ -72,6 +72,9 @@ public class LayerNodeIndex implements Index<Node>
     private final GraphDatabaseService db;
     private SpatialDatabaseService spatialDB;
     private EditableLayer layer;
+    
+    //List to hold nodes to remove
+	private List<Long> nodesToRemove;
 
     /**
      * This implementation is going to create a new layer if there is no
@@ -87,6 +90,7 @@ public class LayerNodeIndex implements Index<Node>
         this.layerName = indexName;
         this.db = db;
         spatialDB = new SpatialDatabaseService( this.db );
+        nodesToRemove = new ArrayList<Long>();
         if ( config.containsKey( SpatialIndexProvider.GEOMETRY_TYPE )
              && config.get( SpatialIndexProvider.GEOMETRY_TYPE ).equals(
                      POINT_PARAMETER ) )
@@ -177,7 +181,7 @@ public class LayerNodeIndex implements Index<Node>
 
     public IndexHits<Node> query( String key, Object params )
     {
-        IndexHits<Node> results = new SpatialRecordHits( new ArrayList<SpatialDatabaseRecord>() );
+        IndexHits<Node> results = new SpatialRecordHits2( new ArrayList<SpatialDatabaseRecord>(), layer);
         // System.out.println( key + "," + params );
         if ( key.equals( WITHIN_QUERY ) )
         {
@@ -190,7 +194,7 @@ public class LayerNodeIndex implements Index<Node>
                             new Envelope( bounds[0], bounds[1], bounds[2],
                                     bounds[3] ) ) ).toSpatialDatabaseRecordList();
 
-            results = new SpatialRecordHits( res );
+            results = new SpatialRecordHits2(res, layer);
             return results;
         }
         
@@ -204,7 +208,7 @@ public class LayerNodeIndex implements Index<Node>
                 List<SpatialDatabaseRecord> res = GeoPipeline.startWithinSearch(
                         layer,geometry ).toSpatialDatabaseRecordList();
                 
-                results = new SpatialRecordHits( res );
+                results = new SpatialRecordHits2(res, layer);
                 return results;
             }
             catch ( com.vividsolutions.jts.io.ParseException e )
@@ -250,7 +254,7 @@ public class LayerNodeIndex implements Index<Node>
                     layer, new Coordinate( point[1], point[0] ), distance ).sort(
                     "OrthodromicDistance" ).toSpatialDatabaseRecordList();
 
-            results = new SpatialRecordHits( res );
+            results = new SpatialRecordHits2(res, layer);
             return results;
         }
         else if ( key.equals( BBOX_QUERY ) )
@@ -266,7 +270,7 @@ public class LayerNodeIndex implements Index<Node>
                                 new Envelope( coords.get( 0 ), coords.get( 1 ),
                                         coords.get( 2 ), coords.get( 3 ) ) ) ).toSpatialDatabaseRecordList();
 
-                results = new SpatialRecordHits( res );
+				results = new SpatialRecordHits2(res, layer);
                 return results;
             }
             catch ( ParseException e )
@@ -283,7 +287,7 @@ public class LayerNodeIndex implements Index<Node>
         }
         return null;
     }
-
+    
     public IndexHits<Node> query( Object queryOrQueryObject )
     {
 
