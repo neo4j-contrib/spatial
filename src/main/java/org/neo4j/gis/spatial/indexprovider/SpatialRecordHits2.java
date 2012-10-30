@@ -45,6 +45,7 @@ public class SpatialRecordHits2 extends CatchingIteratorWrapper<Node, SpatialDat
 	private final int size;
 	private SpatialDatabaseService spatialDatabase;
 	private EditableLayer layer;
+	private Iterator<SpatialDatabaseRecord> iterator;
 
 	public SpatialRecordHits2(List<SpatialDatabaseRecord> hits, EditableLayer layer) {
 		super(hits.iterator());
@@ -58,7 +59,8 @@ public class SpatialRecordHits2 extends CatchingIteratorWrapper<Node, SpatialDat
 	}
 
 	public float currentScore() {
-		return this.currentScore();
+		//Not sure if this means anything when operating on a Collection		
+		return 0;
 	}
 
 	@Override
@@ -68,7 +70,7 @@ public class SpatialRecordHits2 extends CatchingIteratorWrapper<Node, SpatialDat
 
 	@Override
 	public void close() {
-		this.close();
+		//Not sure if this means anything when operating on a Collection
 	}
 
 	@Override
@@ -82,7 +84,18 @@ public class SpatialRecordHits2 extends CatchingIteratorWrapper<Node, SpatialDat
 
 	@Override
 	protected Node underlyingObjectToObject(SpatialDatabaseRecord object) {
-		return spatialDatabase.getDatabase().getNodeById(Long.valueOf(object.getProperty("id").toString()));
+		// It looks to be possible to have SpatialDatabaseRecords without any
+		// associated 'real' node. If this is the case is it OK to just return
+		// null or should we return the geomNode
+		
+		Object idString = object.getProperty("id");
+		Node result = null;
+		
+		if(idString != null){
+			result = spatialDatabase.getDatabase().getNodeById(Long.valueOf(idString.toString()));
+		}
+		
+		return result;
 	}
 
 	@Override
