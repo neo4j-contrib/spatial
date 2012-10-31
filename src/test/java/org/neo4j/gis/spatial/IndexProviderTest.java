@@ -136,7 +136,9 @@ public class IndexProviderTest
         assertTrue( hits.hasNext() );
         // test Cypher query
         ExecutionEngine engine = new ExecutionEngine( db );
-        ExecutionResult result = engine.execute(  "start n=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') match (n) -[r] - (x) return n, type(r), x.layer?, x.bbox?"  );
+//        ExecutionResult result = engine.execute(  "start n=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') match (n) -[r] - (x) return n, type(r), x.layer?, x.bbox?"  );
+        
+        ExecutionResult result = engine.execute(  "start n=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') return n"  );
         System.out.println( result.toString() );
 
         // test Gremlin
@@ -145,9 +147,15 @@ public class IndexProviderTest
         final Neo4jGraph graph = new Neo4jGraph( db, false );
         bindings.put( "g", graph );
         gremlinEngine.setBindings( bindings, ScriptContext.ENGINE_SCOPE );
+//        assertEquals(
+//                2L,
+//                gremlinEngine.eval( "g.idx('layer1')[[bbox:'[15.0, 16.0, 56.0, 57.0]']].in().count()" ) );
+
+		// Rather than counting the incoming vertices, we just count the nodes
+		// of which there are one, with no incoming edges
         assertEquals(
-                2L,
-                gremlinEngine.eval( "g.idx('layer1')[[bbox:'[15.0, 16.0, 56.0, 57.0]']].in().count()" ) );
+                1L,
+                gremlinEngine.eval( "g.idx('layer1')[[bbox:'[15.0, 16.0, 56.0, 57.0]']].count()" ) );        
 
     }
 
@@ -170,10 +178,12 @@ public class IndexProviderTest
                 LayerNodeIndex.WITHIN_DISTANCE_QUERY, params );
         tx.success();
         tx.finish();
-        Node spatialRecord = hits.getSingle();
+        Node node = hits.getSingle();
         /* assertTrue( spatialRecord.getProperty( "distanceInKm" ).equals(
                 1.416623647558699 ) ); */
-        Node node = db.getNodeById( (Long) spatialRecord.getProperty( "id" ) );
+
+        //We not longer need this as the node we get back already a 'Real' node
+//        Node node = db.getNodeById( (Long) spatialRecord.getProperty( "id" ) );
         assertTrue( node.getProperty( "name" ).equals( "batman" ) );
 
     }
