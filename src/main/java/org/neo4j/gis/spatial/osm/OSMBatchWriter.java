@@ -59,7 +59,8 @@ class OSMBatchWriter extends OSMWriter<Long>
         this.batchIndexService = new LuceneBatchInserterIndexProvider(
                 batchGraphDb );
         this.cache = OSMImporter.initializeCache( dataset );
-        this.offsettedNodeId = cache.size() + 1 + 1;
+        this.cache.setOffset(1); // root node
+        this.offsettedNodeId = cache.afterLastId();
     }
 
     private BatchInserterIndex indexFor( String indexName )
@@ -186,12 +187,15 @@ class OSMBatchWriter extends OSMWriter<Long>
         return createNode( properties );
     }
 
+    @Override
     protected Long addCachedNode( String name, Map<String, Object> properties,
             String indexKey )
     {
         long osmId = Long.parseLong( properties.get( indexKey ).toString() );
         properties.put( indexKey, osmId );
         long id = (long) cache.getNodeIdFor( osmId );
+        ///System.out.printf("cached node %d = %s%n",id,properties);
+
         batchInserter.createNode( id, properties );
         return id;
     }
@@ -201,6 +205,7 @@ class OSMBatchWriter extends OSMWriter<Long>
     {
         long id = offsettedNodeId;
         batchInserter.createNode( id , properties );
+        ///System.out.printf("added node %d = %s%n",id,properties);
         offsettedNodeId++;
         return id;
     }
@@ -310,7 +315,7 @@ class OSMBatchWriter extends OSMWriter<Long>
 //            logNodeFoundFrom( "changeset" );
 //            return node;
 //        }
-        return cache.getNodeIdFor( osmId );
+        return cache.getNodeIdFor(osmId);
     }
 
     @Override
@@ -357,6 +362,7 @@ class OSMBatchWriter extends OSMWriter<Long>
         return createNode( null );
     }
 
+    Map<Long,Long> changesetCache = new HashMap<Long, Long>();
     @Override
     protected Long getChangesetNode( Map<String, Object> nodeProps )
     {
@@ -366,11 +372,16 @@ class OSMBatchWriter extends OSMWriter<Long>
         {
             currentChangesetId = changeset;
             changesetNodes.clear();
-            IndexHits<Long> results = indexFor( "changeset" ).get(
-                    "changeset", currentChangesetId );
-            if ( results.size() > 0 )
+            if (changesetCache.containsKey(changeset)) {
+                return changesetCache.get(changeset);
+            }
+            IndexHits<Long> results = indexFor( "changeset" ).get("changeset", currentChangesetId );
+
+            Long foundNode = results.getSingle();
+            if ( foundNode != null )
             {
-                currentChangesetNode = results.getSingle();
+                currentChangesetNode = foundNode;
+                changesetCache.put(changeset,foundNode);
             }
             else
             {
@@ -380,18 +391,18 @@ class OSMBatchWriter extends OSMWriter<Long>
                         nodeProps.get( "timestamp" ) );
                 currentChangesetNode = (Long) addNode( "changeset",
                         changesetProps, "changeset" );
-                indexFor( "changeset" ).flush();
+                changesetCache.put(changeset,currentChangesetNode);
                 if ( currentUserNode > 0 )
                 {
                     createRelationship( currentChangesetNode,
                             currentUserNode, OSMRelation.USER );
                 }
             }
-            results.close();
         }
         return currentChangesetNode;
     }
 
+    Map<Long,Long> userCache=new HashMap<Long, Long>();
     @Override
     protected Long getUserNode( Map<String, Object> nodeProps )
     {
@@ -402,11 +413,15 @@ class OSMBatchWriter extends OSMWriter<Long>
             if ( uid != currentUserId )
             {
                 currentUserId = uid;
+                if (userCache.containsKey(uid)) {
+                    return userCache.get(uid);
+                }
                 IndexHits<Long> results = indexFor( OSMImporter.INDEX_NAME_USER ).get(
                         "uid", currentUserId );
                 if ( results.size() > 0 )
                 {
                     currentUserNode = results.getSingle();
+                    userCache.put(uid,currentUserNode);
                 }
                 else
                 {
@@ -414,8 +429,8 @@ class OSMBatchWriter extends OSMWriter<Long>
                     userProps.put( "uid", currentUserId );
                     userProps.put( "name", name );
                     userProps.put( "timestamp", nodeProps.get( "timestamp" ) );
-                    currentUserNode = (Long) addNode( "user", userProps,
-                            "uid" );
+                    currentUserNode = (Long) addNode( "user", userProps, "uid");
+                    userCache.put(uid,currentUserNode);
                     indexFor( OSMImporter.INDEX_NAME_USER ).flush();
                     if ( usersNode < 0 )
                     {

@@ -198,6 +198,11 @@ class OSMGraphWriter extends OSMWriter<Node>
     }
 
     @Override
+    protected Node addCachedNode(String name, Map<String, Object> properties, String indexKey) {
+        return addNode(name,properties,indexKey);
+    }
+
+    @Override
     protected Node addNode( String name, Map<String, Object> properties,
             String indexKey )
     {

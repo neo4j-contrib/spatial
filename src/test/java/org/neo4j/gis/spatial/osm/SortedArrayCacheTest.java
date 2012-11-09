@@ -37,7 +37,7 @@ public class SortedArrayCacheTest
     public void testUpper()
     {
             cache.add( 10 );
-            assertEquals( 0, cache.getNodeIdFor( 10 ) );
+            assertEquals( 0, cache.getNodeIdFor( 10 ).intValue() );
     }
     @Test
     public void testLower()
@@ -47,11 +47,12 @@ public class SortedArrayCacheTest
             cache.add( 5 );
             cache.add( 3 );
             cache.add( 1 );
-            assertEquals( 0, cache.getNodeIdFor( 1 ) );
-            assertEquals( 1, cache.getNodeIdFor( 3 ) );
-            assertEquals( 2, cache.getNodeIdFor( 5 ) );
-            assertEquals( 3, cache.getNodeIdFor( 10 ) );
-            assertEquals( 4, cache.getNodeIdFor( 100 ) );
+            assertEquals( 0, cache.getNodeIdFor( 1 ).intValue() );
+            assertEquals( 1, cache.getNodeIdFor( 3 ).intValue() );
+            assertEquals( 2, cache.getNodeIdFor( 5 ).intValue() );
+            assertEquals( 3, cache.getNodeIdFor( 10 ).intValue() );
+            assertEquals( 4, cache.getNodeIdFor( 100 ).intValue() );
+            assertEquals( null, cache.getNodeIdFor( 102 ) );
     }
     
     @Test(timeout=2000)
@@ -65,7 +66,7 @@ public class SortedArrayCacheTest
             if (i != cache.getNodeIdFor( i )) throw new AssertionError(String.format("%d != %d",i,cache.getNodeIdFor( i )));
         }
         System.out.println((System.currentTimeMillis()-time)+" ms.");
-        assertEquals(ONE_MILLION-1,cache.getNodeIdFor(ONE_MILLION-1));
+        assertEquals(ONE_MILLION-1,cache.getNodeIdFor(ONE_MILLION-1).intValue());
         
     }
 }

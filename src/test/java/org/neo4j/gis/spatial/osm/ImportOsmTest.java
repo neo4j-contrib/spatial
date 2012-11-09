@@ -36,7 +36,7 @@ public class ImportOsmTest
     public void test() throws Exception
     {
         OSMImporter importer = new OSMImporter("layer1", new ConsoleListener());
-        importer.importFile(getBatchInserter(), "one-street.osm", false);
+        importer.importFile(getBatchInserter(), "/Users/mh/java/neo/spatial/target/osm/sweden.osm.administrative", false);
 
     }
 

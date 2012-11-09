@@ -64,8 +64,6 @@ import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.impl.batchinsert.BatchInserter;
 import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
 
-import scala.Int;
-
 public class OSMImporter implements Constants
 {
     public static DefaultEllipsoid WGS84 = DefaultEllipsoid.WGS84;
@@ -410,7 +408,7 @@ public class OSMImporter implements Constants
      */
     public static SortedArrayIdCache initializeCache( String dataset )
     {
-        SortedArrayIdCache cache = new SortedArrayIdCache( 100000 );
+        SortedArrayIdCache cache = new SortedArrayIdCache();
         javax.xml.stream.XMLInputFactory factory = javax.xml.stream.XMLInputFactory.newInstance();
         Reader reader;
         try
@@ -441,7 +439,6 @@ public class OSMImporter implements Constants
                                                        // "changeset" )
                             {
                                 long id = Long.parseLong( parser.getAttributeValue( attPosition ) );
-                                System.out.println( id );
                                 cache.add( id );
                             }
                         }

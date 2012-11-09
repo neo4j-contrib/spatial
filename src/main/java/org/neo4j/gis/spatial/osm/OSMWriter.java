@@ -76,6 +76,9 @@ abstract class OSMWriter<T>
     protected abstract T addNode( String name,
             Map<String, Object> properties, String indexKey );
 
+    protected abstract T addCachedNode( String name,
+            Map<String, Object> properties, String indexKey );
+
     protected abstract void createRelationship( T from, T to,
             RelationshipType relType, Map<String, Object> relProps );
 
@@ -273,11 +276,10 @@ abstract class OSMWriter<T>
     protected void createOSMNode( Map<String, Object> nodeProps )
     {
         // T changesetNode = getChangesetNode( nodeProps );
-        currentNode = addNode( "node", nodeProps, "node_osm_id" );
+        currentNode = addCachedNode("node", nodeProps, "node_osm_id"); // TODO was addNode
         // createRelationship( currentNode, changesetNode, OSMRelation.CHANGESET );
         nodeCount++;
-        debugNodeWithId( currentNode, "node_osm_id", new long[] { 8090260,
-                273534207 } );
+        // debugNodeWithId( currentNode, "node_osm_id", new long[] { 8090260, 273534207});
     }
 
     void addOSMNodeTags( boolean allPoints,

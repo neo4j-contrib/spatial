@@ -20,19 +20,29 @@
 
 package org.neo4j.gis.spatial.osm;
 
-import scala.actors.threadpool.Arrays;
+import java.util.Arrays;
 
 public class SortedArrayIdCache
 {
     long[] data;
     int count;
-    
+    private int offset;
+
     public SortedArrayIdCache(int size) {
         this.data = new long[size];
     }
     public SortedArrayIdCache() {
         this(64);
     }
+
+    public int getOffset() {
+        return offset;
+    }
+
+    public void setOffset(int offset) {
+        this.offset = offset;
+    }
+
     public void add(long otherId) {
         if (count==-1) throw new IllegalStateException("Array already compacted");
         if (count==data.length) {
@@ -51,12 +61,17 @@ public class SortedArrayIdCache
         count = -1;
     }
     
-    public long getNodeIdFor(long otherId) {
+    public Long getNodeIdFor(long otherId) {
         if (count!=-1) compact();
-        return Arrays.binarySearch( data, otherId );
+        final int index = Arrays.binarySearch(data, otherId);
+        if (index<0) return null;
+        return (long)index +offset;
     }
     public int size()
     {
         return count == -1 ? data.length : count;
+    }
+    public int afterLastId() {
+        return size() + offset;
     }
 }
