@@ -375,7 +375,7 @@ class OSMBatchWriter extends OSMWriter<Long>
             if (changesetCache.containsKey(changeset)) {
                 return changesetCache.get(changeset);
             }
-            IndexHits<Long> results = indexFor( "changeset" ).get("changeset", currentChangesetId );
+/*            IndexHits<Long> results = indexFor( "changeset" ).get("changeset", currentChangesetId );
 
             Long foundNode = results.getSingle();
             if ( foundNode != null )
@@ -384,6 +384,7 @@ class OSMBatchWriter extends OSMWriter<Long>
                 changesetCache.put(changeset,foundNode);
             }
             else
+*/
             {
                 LinkedHashMap<String, Object> changesetProps = new LinkedHashMap<String, Object>();
                 changesetProps.put( "changeset", currentChangesetId );
@@ -416,14 +417,15 @@ class OSMBatchWriter extends OSMWriter<Long>
                 if (userCache.containsKey(uid)) {
                     return userCache.get(uid);
                 }
-                IndexHits<Long> results = indexFor( OSMImporter.INDEX_NAME_USER ).get(
-                        "uid", currentUserId );
+/*
+                IndexHits<Long> results = indexFor( OSMImporter.INDEX_NAME_USER ).get("uid", currentUserId);
                 if ( results.size() > 0 )
                 {
                     currentUserNode = results.getSingle();
                     userCache.put(uid,currentUserNode);
                 }
                 else
+*/
                 {
                     LinkedHashMap<String, Object> userProps = new LinkedHashMap<String, Object>();
                     userProps.put( "uid", currentUserId );
@@ -441,7 +443,7 @@ class OSMBatchWriter extends OSMWriter<Long>
                     createRelationship( usersNode, currentUserNode,
                             OSMRelation.OSM_USER );
                 }
-                results.close();
+//                results.close();
             }
         }
         catch ( Exception e )
