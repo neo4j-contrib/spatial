@@ -19,11 +19,11 @@
  */
 package org.neo4j.gis.spatial.osm;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.apache.commons.collections.MapUtils;
 import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.gis.spatial.osm.OSMImporter.GeometryMetaData;
 import org.neo4j.gis.spatial.osm.OSMImporter.StatsManager;
@@ -436,7 +436,7 @@ class OSMBatchWriter extends OSMWriter<Long>
                     indexFor( OSMImporter.INDEX_NAME_USER ).flush();
                     if ( usersNode < 0 )
                     {
-                        usersNode = createNode( MapUtils.EMPTY_MAP );
+                        usersNode = createNode( Collections.<String,Object>emptyMap() );
                         createRelationship( osm_dataset, usersNode,
                                 OSMRelation.USERS );
                     }
