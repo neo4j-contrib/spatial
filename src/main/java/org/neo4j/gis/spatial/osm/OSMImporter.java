@@ -20,6 +20,8 @@
 package org.neo4j.gis.spatial.osm;
 
 import static java.util.Arrays.asList;
+import static org.neo4j.helpers.collection.MapUtil.map;
+import static org.neo4j.helpers.collection.MapUtil.stringMap;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -45,6 +47,7 @@ import javax.xml.namespace.QName;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 
+import org.apache.commons.collections.MapUtils;
 import org.geotools.referencing.datum.DefaultEllipsoid;
 import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.collections.rtree.Listener;
@@ -60,6 +63,7 @@ import org.neo4j.graphdb.StopEvaluator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.Traverser;
 import org.neo4j.graphdb.Traverser.Order;
+import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.impl.batchinsert.BatchInserter;
 import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
@@ -888,7 +892,7 @@ public class OSMImporter implements Constants
         private GraphDatabaseService graphDb;
         private BatchInserter batchInserter;
         private File dbPath;
-        private boolean useBatchInserter = false;
+        private boolean useBatchInserter = true;
 
         public OSMImportManager( String path )
         {
@@ -945,8 +949,25 @@ public class OSMImporter implements Constants
         private void switchToBatchInserter()
         {
             shutdown();
-            batchInserter = new BatchInserterImpl( dbPath.getAbsolutePath() );
+            batchInserter = new BatchInserterImpl( dbPath.getAbsolutePath(), config() );
             graphDb = batchInserter.getGraphDbService();
+        }
+
+        private static Map<String, String> config() {
+            final File configFile = new File("batch.properties");
+            if (configFile.exists()) {
+                try {
+                    return MapUtil.load(configFile);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            return stringMap("use_memory_mapped_buffers", "true",
+                    "cache_type", "none",
+                    "neostore.nodestore.db.mapped_memory", "3G",
+                    "neostore.propertystore.db.mapped_memory", "10G",
+                    "neostore.relationshipstore.db.mapped_memory", "30G"
+            );
         }
 
         protected void shutdown()
