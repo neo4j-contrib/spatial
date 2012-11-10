@@ -19,9 +19,8 @@
  */
 package org.neo4j.gis.spatial.osm;
 
-import java.io.File;
-
 import org.junit.Test;
+import org.neo4j.collections.graphdb.impl.EmbeddedGraphDatabase;
 import org.neo4j.gis.spatial.ConsoleListener;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.kernel.impl.batchinsert.BatchInserter;
@@ -31,19 +30,31 @@ public class ImportOsmTest
 {
 
     private static GraphDatabaseService db;
+    String storeDir = "target/db/"+System.currentTimeMillis();
 
     @Test
     public void test() throws Exception
     {
         OSMImporter importer = new OSMImporter("layer1", new ConsoleListener());
-        importer.importFile(getBatchInserter(), "/Users/mh/java/neo/spatial/target/osm/sweden.osm.administrative", false);
+        BatchInserter batchInserter = getBatchInserter(storeDir);
+        importer.importFile(batchInserter, "map2.osm", false);
+        batchInserter.shutdown();
+//        GraphDatabaseService gdb = getGDB( storeDir );
+//        importer.reIndex( gdb );
+//        gdb.shutdown();
 
     }
 
-    @SuppressWarnings( "deprecation" )
-    private BatchInserter getBatchInserter() throws Exception
+    private BatchInserter getBatchInserter(String storeDir) throws Exception
     {
-        return  new BatchInserterImpl("target/db/"+System.currentTimeMillis() );
+        
+        return  new BatchInserterImpl(storeDir );
+    }
+    
+    private GraphDatabaseService getGDB(String storeDir) throws Exception
+    {
+        
+        return  new EmbeddedGraphDatabase(storeDir );
     }
 
 }

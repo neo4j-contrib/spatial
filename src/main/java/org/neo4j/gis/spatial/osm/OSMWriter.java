@@ -275,9 +275,9 @@ abstract class OSMWriter<T>
      */
     protected void createOSMNode( Map<String, Object> nodeProps )
     {
-        // T changesetNode = getChangesetNode( nodeProps );
+         T changesetNode = getChangesetNode( nodeProps );
         currentNode = addCachedNode("node", nodeProps, "node_osm_id"); // TODO was addNode
-        // createRelationship( currentNode, changesetNode, OSMRelation.CHANGESET );
+        createRelationship( currentNode, changesetNode, OSMRelation.CHANGESET );
         nodeCount++;
         // debugNodeWithId( currentNode, "node_osm_id", new long[] { 8090260, 273534207});
     }

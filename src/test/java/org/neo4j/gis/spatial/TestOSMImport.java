@@ -59,7 +59,8 @@ public class TestOSMImport extends Neo4jTestCase {
 	public static Test suite() {
 		deleteBaseDir();
 		TestSuite suite = new TestSuite();
-		String[] smallModels = new String[] { "one-street.osm", "two-street.osm" };
+//		String[] smallModels = new String[] { "one-street.osm", "two-street.osm" };
+        String[] smallModels = new String[] { "one-street.osm" };
 //		String[] mediumModels = new String[] { "map.osm", "map2.osm" };
         String[] mediumModels = new String[] { "map.osm" };
 		String[] largeModels = new String[] { "cyprus.osm", "croatia.osm", "denmark.osm" };
@@ -80,18 +81,18 @@ public class TestOSMImport extends Neo4jTestCase {
 		} else if (spatialTestMode != null && spatialTestMode.equals("dev")) {
 			// Tests relevant to current development
 			layersToTest.clear();
-//			layersToTest.add("/home/craig/Desktop/AWE/Data/MapData/baden-wurttemberg.osm/baden-wurttemberg.osm");
             layersToTest.addAll(Arrays.asList(largeModels));
 		}
-		boolean[] pointsTestModes = new boolean[] { true, false };
-		boolean[] batchTestModes = new boolean[] { true, false };
-		if (spatialTestModeX != null) {
+//		boolean[] pointsTestModes = new boolean[] { true, false };
+        boolean[] pointsTestModes = new boolean[] { false };
+		boolean[] batchTestModes = new boolean[] { true };
+		/**if (spatialTestModeX != null) {
 			if (spatialTestModeX.equals("suppressBatch")) {
 				batchTestModes = new boolean[] { false };
 			} else if (spatialTestModeX.equals("suppressGraph")) {
 				batchTestModes = new boolean[] { true };
 			}
-		}
+		}*/
 
 		// Finally build the set of complete test cases based on the collection
 		// above
