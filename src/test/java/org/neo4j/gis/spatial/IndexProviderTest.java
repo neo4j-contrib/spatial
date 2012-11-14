@@ -79,13 +79,18 @@ public class IndexProviderTest
         db = new ImpermanentGraphDatabase();
     }
 
+    /**
+     * Test that we can create and retrieve indexes
+     */
     @Test
     public void testLoadIndex()
     {
         Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
         IndexManager indexMan = db.index();
+        // Create a new node index with our settings
         Index<Node> index = indexMan.forNodes( "layer1", config );
-//        index = indexMan.forNodes( "layer1", config );
+        // Retrieve an existing node index, enforcing compatible settings
+        index = indexMan.forNodes( "layer1", config );
         assertNotNull( index );
 
     }
