@@ -90,9 +90,11 @@ public class IndexProviderTest
         
         config = SpatialIndexProvider.SIMPLE_WKT_CONFIG;
         index = indexMan.forNodes( "layer2", config );
+        assertNotNull( index );
         
         config = SpatialIndexProvider.SIMPLE_WKB_CONFIG;
         index = indexMan.forNodes( "layer3", config );
+        assertNotNull( index );
     }
 
     @Test
