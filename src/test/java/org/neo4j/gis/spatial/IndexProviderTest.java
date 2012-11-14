@@ -45,6 +45,7 @@ import static org.junit.Assert.assertTrue;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import javax.script.Bindings;
 import javax.script.ScriptContext;
@@ -203,5 +204,49 @@ public class IndexProviderTest
         ExecutionEngine engine = new ExecutionEngine( db );
         ExecutionResult result = engine.execute(  "start n=node:layer3('withinDistance:[44.44, 33.32, 5.0]') return n"  );
         System.out.println( result.toString() );
+    }
+    
+    /**
+     * Test the performance of LayerNodeIndex.add()
+     * Insert up to 100K nodes into the database, and into the index, randomly distributed over [-80,+80][-170+170]
+     * Calculate speed over 100-node groups, fail if speed falls under 50 adds/second (typical max speed here 500 adds/second)
+     */
+    @Test
+    public void testAddPerformance()
+    {
+        Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
+        IndexManager indexMan = db.index();
+        Index<Node> index = indexMan.forNodes( "pointslayer", config );
+
+        Transaction tx = db.beginTx();
+        try {
+            Random r = new Random();
+            final int stepping = 100;
+            long start = System.currentTimeMillis();
+            long previous = start;
+            for (int i=1; i<=100000; i++) {
+                Node newnode = db.createNode();
+                newnode.setProperty( "lat", (double) r.nextDouble()*160-80 );
+                newnode.setProperty( "lon", (double) r.nextDouble()*340-170 );
+                
+                index.add(newnode, "dummy", "value");
+                
+                if ( i%stepping == 0) {
+                    long now = System.currentTimeMillis();
+                    long duration = now-start;
+                    long stepDuration = now-previous;
+                    double speed = stepping / (stepDuration/1000.0);
+                    System.out.println("testAddPerformance(): "+ stepping +" nodes added in "+ stepDuration +"ms, total "+ i +" in "+ duration +"ms, speed: "+ speed +" adds per second");
+                    final double targetSpeed = 50.0;	// Quite conservative, max speed here 500 adds per second
+                    assertTrue("add is too slow at size:"+i+" ("+speed+" adds per second <= "+targetSpeed+")", speed > targetSpeed);
+
+                    previous = now;
+                }
+            }
+            tx.success();
+        } finally {
+            System.out.println("testAddPerformance(): finishing transaction");
+            tx.finish();
+        }
     }
 }
