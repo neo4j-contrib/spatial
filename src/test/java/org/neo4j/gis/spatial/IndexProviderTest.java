@@ -236,7 +236,8 @@ public class IndexProviderTest
                     long duration = now-start;
                     long stepDuration = now-previous;
                     double speed = stepping / (stepDuration/1000.0);
-                    System.out.println("testAddPerformance(): "+ stepping +" nodes added in "+ stepDuration +"ms, total "+ i +" in "+ duration +"ms, speed: "+ speed +" adds per second");
+                    double linearity = (double)stepDuration/i;
+                    System.out.println("testAddPerformance(): "+ stepping +" nodes added in "+ stepDuration +"ms, total "+ i +" in "+ duration +"ms, speed: "+ speed +" adds per second, "+linearity+" ms per step per node in index");
                     final double targetSpeed = 50.0;	// Quite conservative, max speed here 500 adds per second
                     assertTrue("add is too slow at size:"+i+" ("+speed+" adds per second <= "+targetSpeed+")", speed > targetSpeed);
 
