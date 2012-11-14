@@ -83,8 +83,8 @@ public class SpatialIndexProvider extends IndexProvider
         }
 
         @Override
-        public boolean configMatches(Map<String, String> stringStringMap, Map<String, String> stringStringMap1) {
-            return false;
+        public boolean configMatches(Map<String, String> storedConfig, Map<String, String> config ) {
+            return storedConfig.equals(config);
         }
     }
     
