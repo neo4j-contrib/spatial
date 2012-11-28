@@ -19,11 +19,17 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.util.List;
+
+import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
+import org.neo4j.gis.spatial.pipes.GeoPipeline;
+
 import com.vividsolutions.jts.geom.Coordinate;
 
-
 public class SimplePointLayer extends EditableLayerImpl {
-		
+
+	public static final int LIMIT_RESULTS = 100;
+
 	public SpatialDatabaseRecord add(Coordinate coordinate) {
 		return add(coordinate, null, null);
 	}
@@ -31,12 +37,30 @@ public class SimplePointLayer extends EditableLayerImpl {
 	public SpatialDatabaseRecord add(Coordinate coordinate, String[] fieldsName, Object[] fields) {
 		return add(getGeometryFactory().createPoint(coordinate), fieldsName, fields);
 	}
-		
+
 	public SpatialDatabaseRecord add(double x, double y) {
 		return add(new Coordinate(x, y), null, null);
 	}
 
 	public SpatialDatabaseRecord add(double x, double y, String[] fieldsName, Object[] fields) {
 		return add(new Coordinate(x, y), fieldsName, fields);
+	}
+
+	public List<GeoPipeFlow> findClosestPointsTo(Coordinate coordinate, double d) {
+		return GeoPipeline
+			.startNearestNeighborLatLonSearch(this, coordinate, d)
+			.sort("OrthodromicDistance").toList();
+	}
+
+	public List<GeoPipeFlow> findClosestPointsTo(Coordinate coordinate, int numberOfItemsToFind) {
+		return GeoPipeline
+			.startNearestNeighborLatLonSearch(this, coordinate, 2 * numberOfItemsToFind)
+			.sort("OrthodromicDistance").next(numberOfItemsToFind);
+	}
+
+	public List<GeoPipeFlow> findClosestPointsTo(Coordinate coordinate) {
+		return GeoPipeline
+			.startNearestNeighborLatLonSearch(this, coordinate, 2 * LIMIT_RESULTS)
+			.sort("OrthodromicDistance").next(LIMIT_RESULTS);
 	}
 }
