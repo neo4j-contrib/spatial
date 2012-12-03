@@ -32,6 +32,8 @@ class SpatialOsmImport {
 		/**
 		 * args[0] -> OSM name args[1] -> Graph data path args[2] -> OSM File
 		 * path
+         * example:
+         * mvn clean compile exec:java -Dexec.mainClass="SpatialOsmImport" -Dexec.args="test.osm target/osm-db one-street.osm"
 		 **/
 		OSMImporter importer = new OSMImporter(args[0].toString());
 		 Map<String, String> config = new HashMap<String, String>();

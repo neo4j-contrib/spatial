@@ -37,11 +37,11 @@ public class ImportOsmTest
     {
         OSMImporter importer = new OSMImporter("layer1", new ConsoleListener());
         BatchInserter batchInserter = getBatchInserter(storeDir);
-        importer.importFile(batchInserter, "map2.osm", false);
+        importer.importFile(batchInserter, "osm_files/maharashtra.osm", false);
         batchInserter.shutdown();
-//        GraphDatabaseService gdb = getGDB( storeDir );
-//        importer.reIndex( gdb );
-//        gdb.shutdown();
+        GraphDatabaseService gdb = getGDB( storeDir );
+        importer.reIndex( gdb );
+        gdb.shutdown();
 
     }
 

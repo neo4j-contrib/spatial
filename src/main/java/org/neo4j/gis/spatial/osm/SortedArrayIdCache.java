@@ -46,6 +46,7 @@ public class SortedArrayIdCache
     public void add(long otherId) {
         if (count==-1) throw new IllegalStateException("Array already compacted");
         if (count==data.length) {
+            System.out.println("SortedArrayCache doubling size to "+data.length*2 + " array size");
             long[] newData = new long[data.length*2];
             System.arraycopy( data, 0, newData, 0, data.length );
             this.data = newData;

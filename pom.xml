@@ -484,7 +484,7 @@ terms of the relevant Commercial Agreement.
         <artifactId>maven-surefire-plugin</artifactId>
         <version>2.11</version>
         <configuration>
-          <argLine>-server -Xms512m -Xmx4G -XX:+UseConcMarkSweepGC</argLine>
+          <argLine>-server -Xms4g -Xmx6g -XX:+UseConcMarkSweepGC</argLine>
         </configuration>
       </plugin>
     </plugins>
