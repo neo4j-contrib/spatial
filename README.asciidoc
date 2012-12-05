@@ -289,3 +289,42 @@ at sun.misc.Launcher$AppClassLoader.loadClass(Launcher.java:294)
 at java.lang.ClassLoader.loadClass(ClassLoader.java:266)
 at org.neo4j.gis.spatial.indexprovider.LayerNodeIndex.query(LayerNodeIndex.java:237)
 --------------------------
+
+== Running Neo4j spatial code from the command-line ==
+
+Some of the classes in Neoj4-Spatial include main() methods and can be run on the command-line.
+For example there are command-line options for importing SHP and OSM data. See the main methods
+in the OSMImporter and ShapefileImporter classes. Here we will describe how to setup the dependencies
+for running the command-line, using the OSMImporter and the sample OSM file two-street.osm.
+We will show two ways to run this on the command line, one with the java command itself, and the
+other using the 'exec:java' target in maven. In both cases we use maven to setup the dependencies.
+
+=== Compile ===
+
+----
+git clone git://github.com/neo4j/spatial.git
+cd spatial
+mvn clean compile
+----
+
+=== Run using JAVA command ===
+
+----
+mvn dependency:copy-dependencies
+java -cp target/classes:target/dependency/* org.neo4j.gis.spatial.osm.OSMImporter osm-db two-street.osm 
+----
+
+The first command above only needs to be run once, to get a copy of all required JAR files into the directory target/dependency.
+Once this is done, all further java commands with the -cp specifying that directory will load all dependencies.
+It is likely that the specific command being run does not require all dependencies copied, since it will only be using
+parts of the Neo4j-Spatial library, but working out exactly which dependencies are required can take a little time, so
+the above approach is most certainly the easiest way to do this.
+
+=== Run using 'mvn exec:java' ===
+
+----
+mvn exec:java -Dexec.mainClass=org.neo4j.gis.spatial.osm.OSMImporter -Dexec.args="osm-db two-street.osm"
+----
+
+Note that the OSMImporter cannot re-import the same data multiple times,
+so you need to delete the database between runs if you are planning to do that.
