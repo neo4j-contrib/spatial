@@ -90,6 +90,24 @@ public class IndexProviderTest
 
     }
 
+    /**
+     * Test the deletion of indexes
+     */
+    @Test
+    public void testDeleteIndex()
+    {
+        // Create an index
+        Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
+        IndexManager indexMan = db.index();
+        Index<Node> index = indexMan.forNodes( "layer1", config );
+        assertNotNull( index );
+        // Request deletion
+        index.delete();
+        // Assert deletion
+        assertFalse( indexMan.existsForNodes( "layer1" ) );
+        // TODO: we should probably check the internal structure was also cleanly deleted 
+    }
+
     @Test
     public void testNodeIndex() throws SyntaxException, Exception
     {
