@@ -43,6 +43,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -65,6 +66,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.index.IndexManager;
+import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.test.ImpermanentGraphDatabase;
 
 import com.tinkerpop.blueprints.pgm.impls.neo4j.Neo4jGraph;
@@ -94,6 +96,37 @@ public class IndexProviderTest
         index = indexMan.forNodes( "layer1", config );
         assertNotNull( index );
 
+    }
+
+    /**
+     * Test that invalid configurations do not leave configurations in the index manager
+     */
+    @Test
+    public void testInvalidConfig()
+    {
+        // An invalid configuration
+        Map<String, String> config = 
+                Collections.unmodifiableMap( MapUtil.stringMap(
+                        IndexManager.PROVIDER, SpatialIndexProvider.SERVICE_NAME, SpatialIndexProvider.GEOMETRY_TYPE , LayerNodeIndex.POINT_PARAMETER) );
+        // Use transaction just in case it matters (not that I can tell)
+        Transaction tx = db.beginTx();
+        System.out.println("testInvalidConfig: Begun transaction");
+        
+        // Try to create the index, ignore IllegalArgumentException to continue
+        IndexManager indexMan = db.index();
+        try {
+            Index<Node> index = indexMan.forNodes( "layer1", config );
+            System.out.println("testInvalidConfig: invalid index requested, did not throw exception.");
+            tx.success();    // Won't happen currently
+        } catch (IllegalArgumentException e) {
+            // Bail out
+            tx.failure();
+            System.out.println("testInvalidConfig: invalid index creation failed, good, let the tx rollback");
+        }
+        tx.finish();
+        System.out.println("testInvalidConfig: tx done.");
+        // Assert index isn't referenced in the manager
+        assertFalse( "Index should not exist", indexMan.existsForNodes( "layer1" ) );
     }
 
     @Test
