@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2012 "Neo Technology,"
+ * Copyright (c) 2010-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
  * This file is part of Neo4j.
@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial.osm;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.neo4j.collections.graphdb.impl.EmbeddedGraphDatabase;
 import org.neo4j.gis.spatial.ConsoleListener;
@@ -33,6 +34,7 @@ public class ImportOsmTest
     String storeDir = "target/db/"+System.currentTimeMillis();
 
     @Test
+    @Ignore
     public void test() throws Exception
     {
         OSMImporter importer = new OSMImporter("layer1", new ConsoleListener());
