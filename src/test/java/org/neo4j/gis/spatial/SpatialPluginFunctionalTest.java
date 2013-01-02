@@ -59,7 +59,7 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
         data.get();
         String response = post(Status.OK,"{\"layer\":\"geom\", \"lat\":\"lat\", \"lon\":\"lon\"}", ENDPOINT + "/graphdb/addSimplePointLayer");
         response = post(Status.CREATED,"{\"lat\":60.1, \"lon\":15.2}", "http://localhost:7474/db/data/node");
-        response = post(Status.CREATED,"{\"name\":\"geom\", \"config\":{\"provider\":\"spatial\"}}", "http://localhost:7474/db/data/index/node/");
+        response = post(Status.CREATED,"{\"name\":\"geom\", \"config\":{\"provider\":\"spatial\", \"geometry_type\":\"point\",\"lat\":\"lat\",\"lon\":\"lon\"}}", "http://localhost:7474/db/data/index/node/");
         response = post(Status.OK,"{\"layer\":\"geom\", \"node\":\"http://localhost:7474/db/data/node/5\"}", ENDPOINT + "/graphdb/addNodeToLayer");
         response = post(Status.OK,"{\"layer\":\"geom\", \"minx\":15.0,\"maxx\":15.3,\"miny\":60.0,\"maxy\":60.2}", ENDPOINT + "/graphdb/findGeometriesInBBox");
         assertTrue(response.contains( "60.1" ));
