@@ -95,7 +95,14 @@ public class IndexProviderTest
         // Retrieve an existing node index, enforcing compatible settings
         index = indexMan.forNodes( "layer1", config );
         assertNotNull( index );
-
+        
+        config = SpatialIndexProvider.SIMPLE_WKT_CONFIG;
+        index = indexMan.forNodes( "layer2", config );
+        assertNotNull( index );
+        
+        config = SpatialIndexProvider.SIMPLE_WKB_CONFIG;
+        index = indexMan.forNodes( "layer3", config );
+        assertNotNull( index );
     }
 
     /**
@@ -201,7 +208,7 @@ public class IndexProviderTest
     @Test
     public void testWithinDistanceIndex()
     {
-        Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG_WKT;
+        Map<String, String> config = SpatialIndexProvider.SIMPLE_WKT_CONFIG;
         IndexManager indexMan = db.index();
         Index<Node> index = indexMan.forNodes( "layer2", config );
         Transaction tx = db.beginTx();
@@ -230,7 +237,7 @@ public class IndexProviderTest
     @Test
     public void testWithinDistanceIndexViaCypher()
     {
-        Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG_WKT;
+        Map<String, String> config = SpatialIndexProvider.SIMPLE_WKT_CONFIG;
         IndexManager indexMan = db.index();
         Index<Node> index = indexMan.forNodes( "layer3", config );
         Transaction tx = db.beginTx();

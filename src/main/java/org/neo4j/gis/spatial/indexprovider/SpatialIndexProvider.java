@@ -90,7 +90,9 @@ public class SpatialIndexProvider extends IndexProvider
     
     public static final Map<String, String> SIMPLE_POINT_CONFIG =
             Collections.unmodifiableMap( MapUtil.stringMap(
-                    IndexManager.PROVIDER, SERVICE_NAME, GEOMETRY_TYPE , LayerNodeIndex.POINT_PARAMETER, LayerNodeIndex.LAT_PROPERTY_KEY, "lat", LayerNodeIndex.LON_PROPERTY_KEY, "lon") );
-    public static final Map<String, String> SIMPLE_POINT_CONFIG_WKT = Collections.unmodifiableMap( MapUtil.stringMap(
-            IndexManager.PROVIDER, SERVICE_NAME, GEOMETRY_TYPE , LayerNodeIndex.POINT_PARAMETER, LayerNodeIndex.WKT_PROPERTY_KEY, "wkt") );
+                    IndexManager.PROVIDER, SERVICE_NAME, GEOMETRY_TYPE , LayerNodeIndex.POINT_GEOMETRY_TYPE, LayerNodeIndex.LAT_PROPERTY_KEY, "lat", LayerNodeIndex.LON_PROPERTY_KEY, "lon") );
+    public static final Map<String, String> SIMPLE_WKT_CONFIG = Collections.unmodifiableMap( MapUtil.stringMap(
+            IndexManager.PROVIDER, SERVICE_NAME, LayerNodeIndex.WKT_PROPERTY_KEY, "wkt") );
+    public static final Map<String, String> SIMPLE_WKB_CONFIG = Collections.unmodifiableMap( MapUtil.stringMap(
+            IndexManager.PROVIDER, SERVICE_NAME, LayerNodeIndex.WKB_PROPERTY_KEY, "wkb") );
 }
