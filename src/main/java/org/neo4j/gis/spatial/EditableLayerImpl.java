@@ -31,7 +31,7 @@ import org.neo4j.kernel.Traversal;
 import com.vividsolutions.jts.geom.Geometry;
 
 public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
-	//private Node previousGeomNode;
+	private Node previousGeomNode;
 
 	/**
 	 * Add a geometry to this layer.
@@ -92,10 +92,8 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 	}
 
 	private Node addGeomNode(Geometry geom, String[] fieldsName, Object[] fields) {
-		
 		Node geomNode = getDatabase().createNode();
-		Node previousGeomNode = null;
-		
+		if (previousGeomNode == null) {
             TraversalDescription traversalDescription = Traversal.description().order( Traversal.postorderBreadthFirst() )
                     .relationships( SpatialRelationshipTypes.GEOMETRIES, Direction.INCOMING )
                     .relationships( SpatialRelationshipTypes.NEXT_GEOM, Direction.INCOMING )
@@ -105,13 +103,13 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
                         {
 				previousGeomNode = node;
 			}
-	    
+		}
 		if (previousGeomNode != null) {
 			previousGeomNode.createRelationshipTo(geomNode, SpatialRelationshipTypes.NEXT_GEOM);
 		} else {
 			layerNode.createRelationshipTo(geomNode, SpatialRelationshipTypes.GEOMETRIES);
 		}
-		//previousGeomNode = geomNode;
+		previousGeomNode = geomNode;
 		// other properties
 		if (fieldsName != null) {
 			for (int i = 0; i < fieldsName.length; i++) {
