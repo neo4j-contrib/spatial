@@ -124,12 +124,9 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         } else {
             GuessGeometryTypeSearch geomTypeSearch = new GuessGeometryTypeSearch();
             index.searchIndex(geomTypeSearch).count();
-            if (geomTypeSearch.firstFoundType != null) {
-                return geomTypeSearch.firstFoundType;
-            } else {
-                // layer is empty
-                return null;
-            }
+	    
+	    // returns null for an empty layer!
+	    return geomTypeSearch.firstFoundType;
         }
     }
 
