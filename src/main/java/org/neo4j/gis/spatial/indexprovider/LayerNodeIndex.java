@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2012 "Neo Technology,"
+ * Copyright (c) 2010-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
  * This file is part of Neo4j.
@@ -56,22 +56,30 @@ import com.vividsolutions.jts.io.WKTReader;
 public class LayerNodeIndex implements Index<Node>
 {
 
-    public static final String LON_PROPERTY_KEY = "lon";
-    public static final String LAT_PROPERTY_KEY = "lat";
-    public static final String WITHIN_QUERY = "within";
-    public static final String CQL_QUERY = "CQL";
-    public static final String WITHIN_DISTANCE_QUERY = "withinDistance";
-    public static final String BBOX_QUERY = "bbox";
-    public static final String ENVELOPE_PARAMETER = "envelope";
-    public static final String GEOMETRY_PARAMETER = "envelope";
-    public static final String POINT_PARAMETER = "point";
-    public static final String DISTANCE_IN_KM_PARAMETER = "distanceInKm";
-    public static final String WKT_PROPERTY_KEY = "wkt";
-    public static final String WITHIN_WKT_GEOMETRY_QUERY = "withinWKTGeometry";
+    public static final String LON_PROPERTY_KEY = "lon";	// Config parameter key: longitude property name for nodes in point layers
+    public static final String LAT_PROPERTY_KEY = "lat";	// Config parameter key: latitude property name for nodes in point layers
+    public static final String WKT_PROPERTY_KEY = "wkt";	// Config parameter key: wkt property name for nodes
+    public static final String WKB_PROPERTY_KEY = "wkb";	// Config parameter key: wkb property name for nodes
+    
+    public static final String POINT_GEOMETRY_TYPE = "point";	// Config parameter value: Layer can contain points
+    
+    public static final String WITHIN_QUERY = "within";							// Query type
+    public static final String WITHIN_WKT_GEOMETRY_QUERY = "withinWKTGeometry";	// Query type
+    public static final String WITHIN_DISTANCE_QUERY = "withinDistance";		// Query type
+    public static final String BBOX_QUERY = "bbox";								// Query type
+    public static final String CQL_QUERY = "CQL";								// Query type (unused)
+    
+    public static final String ENVELOPE_PARAMETER = "envelope";					// Query parameter key: envelope for within query
+    public static final String DISTANCE_IN_KM_PARAMETER = "distanceInKm";		// Query parameter key: distance for withinDistance query
+    public static final String POINT_PARAMETER = "point";						// Query parameter key: relative to this point for withinDistance query
+    
     private final String layerName;
     private final GraphDatabaseService db;
     private SpatialDatabaseService spatialDB;
     private EditableLayer layer;
+    
+    //List to hold nodes to remove
+	private List<Long> nodesToRemove;
 
     /**
      * This implementation is going to create a new layer if there is no
@@ -87,30 +95,30 @@ public class LayerNodeIndex implements Index<Node>
         this.layerName = indexName;
         this.db = db;
         spatialDB = new SpatialDatabaseService( this.db );
+        nodesToRemove = new ArrayList<Long>();
         if ( config.containsKey( SpatialIndexProvider.GEOMETRY_TYPE )
-             && config.get( SpatialIndexProvider.GEOMETRY_TYPE ).equals(
-                     POINT_PARAMETER ) )
+             && POINT_GEOMETRY_TYPE.equals(config.get( SpatialIndexProvider.GEOMETRY_TYPE ))
+             && config.containsKey( LayerNodeIndex.LAT_PROPERTY_KEY )
+             && config.containsKey( LayerNodeIndex.LON_PROPERTY_KEY ) )
         {
-            if ( config.containsKey( LayerNodeIndex.LAT_PROPERTY_KEY )
-                 && config.containsKey( LayerNodeIndex.LON_PROPERTY_KEY ) )
-            {
-                layer = (EditableLayer) spatialDB.getOrCreatePointLayer(
-                        indexName,
-                        config.get( LayerNodeIndex.LON_PROPERTY_KEY ),
-                        config.get( LayerNodeIndex.LAT_PROPERTY_KEY ) );
-            }
-            else if ( config.containsKey( LayerNodeIndex.WKT_PROPERTY_KEY ) )
-            {
-                layer = (EditableLayer) spatialDB.getOrCreateEditableLayer(
-                        indexName, config.get( LayerNodeIndex.WKT_PROPERTY_KEY ) );
-            } else {
-                throw new IllegalArgumentException( "Need to provide lat/lon or wkt property config" );
-            }
-            
+            layer = (EditableLayer) spatialDB.getOrCreatePointLayer(
+                    indexName,
+                    config.get( LayerNodeIndex.LON_PROPERTY_KEY ),
+                    config.get( LayerNodeIndex.LAT_PROPERTY_KEY ) );
+        }
+        else if ( config.containsKey( LayerNodeIndex.WKT_PROPERTY_KEY ) )
+        {
+            layer = (EditableLayer) spatialDB.getOrCreateEditableLayer(
+                    indexName, "WKT", config.get( LayerNodeIndex.WKT_PROPERTY_KEY ) );
+        }
+        else if ( config.containsKey( LayerNodeIndex.WKB_PROPERTY_KEY ) )
+        {
+            layer = (EditableLayer) spatialDB.getOrCreateEditableLayer(
+                    indexName, "WKB", config.get( LayerNodeIndex.WKB_PROPERTY_KEY ) );
         }
         else
         {
-            layer = (EditableLayer) spatialDB.getOrCreateEditableLayer( layerName );
+            throw new IllegalArgumentException( "Need to provide (geometry_type=point and lat/lon), wkt or wkb property config" );
         }
     }
 
@@ -177,7 +185,7 @@ public class LayerNodeIndex implements Index<Node>
 
     public IndexHits<Node> query( String key, Object params )
     {
-        IndexHits<Node> results = new SpatialRecordHits( new ArrayList<SpatialDatabaseRecord>() );
+        IndexHits<Node> results = new SpatialRecordHits( new ArrayList<SpatialDatabaseRecord>(), layer);
         // System.out.println( key + "," + params );
         if ( key.equals( WITHIN_QUERY ) )
         {
@@ -190,7 +198,7 @@ public class LayerNodeIndex implements Index<Node>
                             new Envelope( bounds[0], bounds[1], bounds[2],
                                     bounds[3] ) ) ).toSpatialDatabaseRecordList();
 
-            results = new SpatialRecordHits( res );
+            results = new SpatialRecordHits(res, layer);
             return results;
         }
         
@@ -204,7 +212,7 @@ public class LayerNodeIndex implements Index<Node>
                 List<SpatialDatabaseRecord> res = GeoPipeline.startWithinSearch(
                         layer,geometry ).toSpatialDatabaseRecordList();
                 
-                results = new SpatialRecordHits( res );
+                results = new SpatialRecordHits(res, layer);
                 return results;
             }
             catch ( com.vividsolutions.jts.io.ParseException e )
@@ -250,7 +258,7 @@ public class LayerNodeIndex implements Index<Node>
                     layer, new Coordinate( point[1], point[0] ), distance ).sort(
                     "OrthodromicDistance" ).toSpatialDatabaseRecordList();
 
-            results = new SpatialRecordHits( res );
+            results = new SpatialRecordHits(res, layer);
             return results;
         }
         else if ( key.equals( BBOX_QUERY ) )
@@ -266,7 +274,7 @@ public class LayerNodeIndex implements Index<Node>
                                 new Envelope( coords.get( 0 ), coords.get( 1 ),
                                         coords.get( 2 ), coords.get( 3 ) ) ) ).toSpatialDatabaseRecordList();
 
-                results = new SpatialRecordHits( res );
+				results = new SpatialRecordHits(res, layer);
                 return results;
             }
             catch ( ParseException e )
@@ -283,7 +291,7 @@ public class LayerNodeIndex implements Index<Node>
         }
         return null;
     }
-
+    
     public IndexHits<Node> query( Object queryOrQueryObject )
     {
 

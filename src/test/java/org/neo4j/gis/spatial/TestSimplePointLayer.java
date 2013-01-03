@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2012 "Neo Technology,"
+ * Copyright (c) 2010-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
  * This file is part of Neo4j.
@@ -94,6 +94,21 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		saveResultsAsImage(results, "temporary-results-layer2-" + layer.getName(), 130, 70);
 		assertEquals(30, results.size());
 		checkPointOrder(results);
+
+		// Now test the old API
+		results = layer.findClosestPointsTo(new Coordinate(centre[0] + 0.1, centre[1]), 10.0);
+		assertEquals(71, results.size());
+		checkPointOrder(results);
+		results = layer.findClosestPointsTo(new Coordinate(centre[0] + 0.1, centre[1]), 1000);
+		assertEquals(265, results.size());	// There are only 265 points in dataset
+		checkPointOrder(results);
+		results = layer.findClosestPointsTo(new Coordinate(centre[0] + 0.1, centre[1]), 100);
+		assertEquals(100, results.size());	// We expect an exact count from the layer method (but not from the pipeline)
+		checkPointOrder(results);
+		results = layer.findClosestPointsTo(new Coordinate(centre[0] + 0.1, centre[1]));
+		assertEquals(100, results.size());	// The default in SimplePointLayer is 100 results
+		checkPointOrder(results);
+		
 	}
 
 	@Test
@@ -150,9 +165,17 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		List<SpatialDatabaseRecord> results = GeoPipeline
 			.startNearestNeighborLatLonSearch(layer, new Coordinate(centre[0], centre[1]), 10.0)
 			.toSpatialDatabaseRecordList();
-		
+		GeoPipeline.startNearestNeighborLatLonSearch(layer, new Coordinate(centre[0], centre[1]), 10.0).sort("OrthodromicDistance");
 		saveResultsAsImage(results, "temporary-results-layer-" + layer.getName(), 150, 150);
 		assertEquals(456, results.size());
+	
+		// Repeat with sorting
+		results = GeoPipeline
+			.startNearestNeighborLatLonSearch(layer, new Coordinate(centre[0], centre[1]), 10.0)
+			.sort("OrthodromicDistance")
+			.toSpatialDatabaseRecordList();
+	    saveResultsAsImage(results, "temporary-results-layer-sorted-" + layer.getName(), 150, 150);
+	    assertEquals(456, results.size());
 	}
 
 	private void saveLayerAsImage(Layer layer, int width, int height) {

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2012 "Neo Technology,"
+ * Copyright (c) 2010-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
  * This file is part of Neo4j.
@@ -83,14 +83,16 @@ public class SpatialIndexProvider extends IndexProvider
         }
 
         @Override
-        public boolean configMatches(Map<String, String> stringStringMap, Map<String, String> stringStringMap1) {
-            return false;
+        public boolean configMatches(Map<String, String> storedConfig, Map<String, String> config ) {
+            return storedConfig.equals(config);
         }
     }
     
     public static final Map<String, String> SIMPLE_POINT_CONFIG =
             Collections.unmodifiableMap( MapUtil.stringMap(
-                    IndexManager.PROVIDER, SERVICE_NAME, GEOMETRY_TYPE , LayerNodeIndex.POINT_PARAMETER, LayerNodeIndex.LAT_PROPERTY_KEY, "lat", LayerNodeIndex.LON_PROPERTY_KEY, "lon") );
-    public static final Map<String, String> SIMPLE_POINT_CONFIG_WKT = Collections.unmodifiableMap( MapUtil.stringMap(
-            IndexManager.PROVIDER, SERVICE_NAME, GEOMETRY_TYPE , LayerNodeIndex.POINT_PARAMETER, LayerNodeIndex.WKT_PROPERTY_KEY, "wkt") );
+                    IndexManager.PROVIDER, SERVICE_NAME, GEOMETRY_TYPE , LayerNodeIndex.POINT_GEOMETRY_TYPE, LayerNodeIndex.LAT_PROPERTY_KEY, "lat", LayerNodeIndex.LON_PROPERTY_KEY, "lon") );
+    public static final Map<String, String> SIMPLE_WKT_CONFIG = Collections.unmodifiableMap( MapUtil.stringMap(
+            IndexManager.PROVIDER, SERVICE_NAME, LayerNodeIndex.WKT_PROPERTY_KEY, "wkt") );
+    public static final Map<String, String> SIMPLE_WKB_CONFIG = Collections.unmodifiableMap( MapUtil.stringMap(
+            IndexManager.PROVIDER, SERVICE_NAME, LayerNodeIndex.WKB_PROPERTY_KEY, "wkb") );
 }
