@@ -272,7 +272,7 @@ public class IndexProviderTest {
      */
 // Uncomment the next line once the add performance bug is fixed.
 // See https://github.com/neo4j/spatial/issues/72
-//    @Test
+    @Test
     public void testAddPerformance() {
         Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
         IndexManager indexMan = db.index();
@@ -281,7 +281,7 @@ public class IndexProviderTest {
         Transaction tx = db.beginTx();
         try {
             Random r = new Random();
-            final int stepping = 100;
+            final int stepping = 1000;
             long start = System.currentTimeMillis();
             long previous = start;
             for (int i = 1; i <= 100000; i++) {

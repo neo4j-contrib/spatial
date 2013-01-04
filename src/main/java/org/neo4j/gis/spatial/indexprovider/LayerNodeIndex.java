@@ -63,24 +63,21 @@ public class LayerNodeIndex implements Index<Node>
     
     public static final String POINT_GEOMETRY_TYPE = "point";	// Config parameter value: Layer can contain points
     
-    public static final String WITHIN_QUERY = "within";							// Query type
-    public static final String WITHIN_WKT_GEOMETRY_QUERY = "withinWKTGeometry";	// Query type
+    public static final String WITHIN_QUERY = "within";					// Query type
+    public static final String WITHIN_WKT_GEOMETRY_QUERY = "withinWKTGeometry";		// Query type
     public static final String WITHIN_DISTANCE_QUERY = "withinDistance";		// Query type
-    public static final String BBOX_QUERY = "bbox";								// Query type
-    public static final String CQL_QUERY = "CQL";								// Query type (unused)
+    public static final String BBOX_QUERY = "bbox";					// Query type
+    public static final String CQL_QUERY = "CQL";					// Query type (unused)
     
-    public static final String ENVELOPE_PARAMETER = "envelope";					// Query parameter key: envelope for within query
+    public static final String ENVELOPE_PARAMETER = "envelope";				// Query parameter key: envelope for within query
     public static final String DISTANCE_IN_KM_PARAMETER = "distanceInKm";		// Query parameter key: distance for withinDistance query
-    public static final String POINT_PARAMETER = "point";						// Query parameter key: relative to this point for withinDistance query
+    public static final String POINT_PARAMETER = "point";				// Query parameter key: relative to this point for withinDistance query
     
     private final String layerName;
     private final GraphDatabaseService db;
     private SpatialDatabaseService spatialDB;
     private EditableLayer layer;
     
-    //List to hold nodes to remove
-	private List<Long> nodesToRemove;
-
     /**
      * This implementation is going to create a new layer if there is no
      * existing one.
@@ -95,7 +92,6 @@ public class LayerNodeIndex implements Index<Node>
         this.layerName = indexName;
         this.db = db;
         spatialDB = new SpatialDatabaseService( this.db );
-        nodesToRemove = new ArrayList<Long>();
         if ( config.containsKey( SpatialIndexProvider.GEOMETRY_TYPE )
              && POINT_GEOMETRY_TYPE.equals(config.get( SpatialIndexProvider.GEOMETRY_TYPE ))
              && config.containsKey( LayerNodeIndex.LAT_PROPERTY_KEY )
@@ -122,24 +118,25 @@ public class LayerNodeIndex implements Index<Node>
         }
     }
 
+    @Override
     public String getName()
     {
         return layerName;
     }
 
+    @Override
     public Class<Node> getEntityType()
     {
         return Node.class;
     }
 
+    @Override
     public void add( Node geometry, String key, Object value )
     {
         Geometry decodeGeometry = layer.getGeometryEncoder().decodeGeometry( geometry );
 
         // check if node already exists in layer
-        Node matchingNode = findExistingNode( geometry );
-
-        if (matchingNode == null)
+        if (!existsInLayer( geometry ))
         {
           layer.add(
                 decodeGeometry, new String[] { "id" },
@@ -148,29 +145,33 @@ public class LayerNodeIndex implements Index<Node>
         else
         {
           // update existing geoNode
-          layer.update(matchingNode.getId(), decodeGeometry);      
+          layer.update(geometry.getId(), decodeGeometry);      
         }
 
     }
 
-    private Node findExistingNode( Node geometry ) {
-        TraversalDescription traversalDescription = Traversal.description().breadthFirst()
+    private boolean existsInLayer( Node geometry ) {
+	    
+	Node node = getGraphDatabase().getNodeById(geometry.getId());
+	    
+        TraversalDescription traversalDescription = Traversal.description().depthFirst()
                 .evaluator( Evaluators.excludeStartPosition() ).evaluator(
-                        new NodeIdPropertyEqualsReturnableEvaluator( geometry.getId() ) )
-                .relationships( SpatialRelationshipTypes.GEOMETRIES, Direction.OUTGOING )
-                .relationships( SpatialRelationshipTypes.NEXT_GEOM, Direction.OUTGOING );
+                        new NodeIdPropertyEqualsReturnableEvaluator( layer.getLayerNode().getId() ) )
+                .relationships( SpatialRelationshipTypes.GEOMETRIES, Direction.INCOMING );
 
         Traverser traverser = createTraverserInBackwardsCompatibleWay( traversalDescription,
-                layer.getLayerNode() );
+                node );
 
-        return IteratorUtil.firstOrNull( traverser.nodes() );
+        return IteratorUtil.firstOrNull( traverser.nodes() ) != null;
     }
 
+    @Override
     public void remove( Node entity, String key, Object value )
     {
         remove( entity );
     }
 
+	@Override
     public void delete()
     {
     }
@@ -178,14 +179,16 @@ public class LayerNodeIndex implements Index<Node>
     /**
      * Not supported at the moment
      */
+    @Override
     public IndexHits<Node> get( String key, Object value )
     {
         return query( key, value );
     }
 
+    @Override
     public IndexHits<Node> query( String key, Object params )
     {
-        IndexHits<Node> results = new SpatialRecordHits( new ArrayList<SpatialDatabaseRecord>(), layer);
+        IndexHits<Node> results;
         // System.out.println( key + "," + params );
         if ( key.equals( WITHIN_QUERY ) )
         {
@@ -292,6 +295,7 @@ public class LayerNodeIndex implements Index<Node>
         return null;
     }
     
+    @Override
     public IndexHits<Node> query( Object queryOrQueryObject )
     {
 
@@ -300,11 +304,13 @@ public class LayerNodeIndex implements Index<Node>
                 queryString.substring( queryString.indexOf( ":" ) + 1 ) );
     }
 
+    @Override
     public void remove( Node node, String s )
     {
         remove(node);
     }
 
+    @Override
     public void remove( Node node )
     {
         try {
