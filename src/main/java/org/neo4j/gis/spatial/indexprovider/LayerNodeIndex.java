@@ -63,7 +63,7 @@ public class LayerNodeIndex implements Index<Node>
     public static final String DISTANCE_IN_KM_PARAMETER = "distanceInKm";		// Query parameter key: distance for withinDistance query
     public static final String POINT_PARAMETER = "point";						// Query parameter key: relative to this point for withinDistance query
     
-    private static final String nodeLookupIndexName = "spatialNodeLookup";
+    private static String nodeLookupIndexName;
     
     private final String layerName;
     private final GraphDatabaseService db;
@@ -84,7 +84,8 @@ public class LayerNodeIndex implements Index<Node>
     {
         this.layerName = indexName;
         this.db = db;
-	this.idLookup = db.index().forNodes(nodeLookupIndexName);
+        this.nodeLookupIndexName = indexName + "__neo4j-spatial__LayerNodeIndex__internal__spatialNodeLookup__";
+        this.idLookup = db.index().forNodes(nodeLookupIndexName);
         spatialDB = new SpatialDatabaseService( this.db );
         if ( config.containsKey( SpatialIndexProvider.GEOMETRY_TYPE )
              && POINT_GEOMETRY_TYPE.equals(config.get( SpatialIndexProvider.GEOMETRY_TYPE ))
@@ -303,6 +304,7 @@ public class LayerNodeIndex implements Index<Node>
     {
         try {
             layer.removeFromIndex( node.getId() );
+	    idLookup.remove(((SpatialDatabaseRecord) node).getGeomNode());
         } catch (Exception e) {
             //could not remove
         }
@@ -314,34 +316,34 @@ public class LayerNodeIndex implements Index<Node>
         return true;
     }
     
-    private class NodeIdPropertyEqualsReturnableEvaluator implements Evaluator, Predicate<Node>
-    {
-      private long nodeId;
-
-      NodeIdPropertyEqualsReturnableEvaluator(long nodeId)
-      {
-        this.nodeId = nodeId;
-      }
-      
-      @Override
-      public boolean accept(Node node)
-      {
-        return node.hasProperty("id") && node.getProperty("id").equals(nodeId);
-      }      
-
-      @Override
-      public Evaluation evaluate(Path path)
-      {
-        if (accept(path.endNode()))
-        {
-          return Evaluation.INCLUDE_AND_PRUNE;
-        }
-        else
-        {
-          return Evaluation.EXCLUDE_AND_CONTINUE;
-        }
-      }
-    }
+//    private class NodeIdPropertyEqualsReturnableEvaluator implements Evaluator, Predicate<Node>
+//    {
+//      private long nodeId;
+//
+//      NodeIdPropertyEqualsReturnableEvaluator(long nodeId)
+//      {
+//        this.nodeId = nodeId;
+//      }
+//      
+//      @Override
+//      public boolean accept(Node node)
+//      {
+//        return node.hasProperty("id") && node.getProperty("id").equals(nodeId);
+//      }      
+//
+//      @Override
+//      public Evaluation evaluate(Path path)
+//      {
+//        if (accept(path.endNode()))
+//        {
+//          return Evaluation.INCLUDE_AND_PRUNE;
+//        }
+//        else
+//        {
+//          return Evaluation.EXCLUDE_AND_CONTINUE;
+//        }
+//      }
+//    }
 
     @Override
     public GraphDatabaseService getGraphDatabase()
