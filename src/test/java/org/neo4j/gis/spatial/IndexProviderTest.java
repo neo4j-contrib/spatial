@@ -303,11 +303,17 @@ public class IndexProviderTest {
                     assertTrue("add is too slow at size:" + i + " (" + speed + " adds per second <= " + targetSpeed + ")", speed > targetSpeed);
 
                     previous = now;
+		    
+		    // commit transaction
+		    tx.success();
+		    tx.finish();
+		    
+		    tx = db.beginTx();
                 }
             }
             tx.success();
         } finally {
-            System.out.println("testAddPerformance(): finishing transaction");
+            System.out.println("testAddPerformance() finished");
             tx.finish();
         }
     }
