@@ -86,6 +86,13 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.13</version>
+                <configuration>
+                    <argLine>-server -Xms512m -Xmx1024m</argLine>
+                </configuration>
+            </plugin>
         </plugins>
         <pluginManagement>
             <plugins>
@@ -410,7 +417,7 @@
                 <enabled>true</enabled>
             </releases>
         </repository>
-        <repository>
+<!--        <repository>
             <id>tinkerpop-snapshot-repository</id>
             <name>Tinkerpop snapshot repo</name>
             <url>http://tinkerpop.com/maven2</url>
@@ -420,7 +427,7 @@
             <releases>
                 <enabled>true</enabled>
             </releases>
-        </repository>
+        </repository>-->
     </repositories>
     <profiles>
         <profile>
@@ -486,6 +493,7 @@
                 </configuration>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.11</version>
                 <configuration>
