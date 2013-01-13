@@ -410,7 +410,7 @@
                 <enabled>true</enabled>
             </releases>
         </repository>
-        <repository>
+<!--        <repository>
             <id>tinkerpop-snapshot-repository</id>
             <name>Tinkerpop snapshot repo</name>
             <url>http://tinkerpop.com/maven2</url>
@@ -420,7 +420,7 @@
             <releases>
                 <enabled>true</enabled>
             </releases>
-        </repository>
+        </repository>-->
     </repositories>
     <profiles>
         <profile>
