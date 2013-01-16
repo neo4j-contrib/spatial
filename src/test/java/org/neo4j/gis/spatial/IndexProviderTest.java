@@ -302,11 +302,11 @@ public class IndexProviderTest {
 
                     previous = now;
 		    
-		    // commit transaction
-		    tx.success();
-		    tx.finish();
-		    
-		    tx = db.beginTx();
+					// commit transaction
+					tx.success();
+					tx.finish();
+
+					tx = db.beginTx();
                 }
             }
             tx.success();
