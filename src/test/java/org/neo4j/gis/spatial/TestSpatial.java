@@ -212,7 +212,7 @@ public class TestSpatial extends Neo4jTestCase {
     private void loadTestShpData(String layerName, int commitInterval) throws ShapefileException, FileNotFoundException, IOException {
         String shpPath = SHP_DIR + File.separator + layerName;
         System.out.println("\n=== Loading layer " + layerName + " from " + shpPath + " ===");
-        ShapefileImporter importer = new ShapefileImporter(graphDb(), new NullListener(), commitInterval);
+        ShapefileImporter importer = new ShapefileImporter(graphDb(), new NullListener(), commitInterval, true);
         importer.importFile(shpPath, layerName, Charset.forName("UTF-8"));
     }
 

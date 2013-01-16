@@ -51,9 +51,10 @@ import com.vividsolutions.jts.geom.GeometryFactory;
 public class ShapefileImporter implements Constants {
 	
 	private int commitInterval;
-    // Constructor
+	private boolean maintainGeometryOrder = false;
 
-	public ShapefileImporter(GraphDatabaseService database, Listener monitor, int commitInterval) {	
+	public ShapefileImporter(GraphDatabaseService database, Listener monitor, int commitInterval, boolean maintainGeometryOrder) {	
+		this.maintainGeometryOrder = maintainGeometryOrder;
         if (commitInterval < 1) {
             throw new IllegalArgumentException("commitInterval must be > 0");
         }
@@ -65,12 +66,16 @@ public class ShapefileImporter implements Constants {
 		this.monitor = monitor;
 	}
 	
-	public ShapefileImporter(GraphDatabaseService database, Listener monitor) {	
-		this(database, monitor, 1000);
+	public ShapefileImporter(GraphDatabaseService database, Listener monitor, int commitInterval) {
+		this(database, monitor, commitInterval, false);
+	}
+
+	public ShapefileImporter(GraphDatabaseService database, Listener monitor) {
+		this(database, monitor, 1000, false);
 	}
 
 	public ShapefileImporter(GraphDatabaseService database) {	
-		this(database, null, 1000);
+		this(database, null, 1000, false);
 	}
 	
 	// Main
@@ -117,7 +122,8 @@ public class ShapefileImporter implements Constants {
 	}
 	
 	public void importFile(String dataset, String layerName, Charset charset) throws ShapefileException, FileNotFoundException, IOException {
-		EditableLayerImpl layer = (EditableLayerImpl)spatialDatabase.getOrCreateLayer(layerName, WKBGeometryEncoder.class, EditableLayerImpl.class);
+		Class<? extends Layer> layerClass = maintainGeometryOrder ? OrderedEditableLayer.class : EditableLayerImpl.class;
+		EditableLayerImpl layer = (EditableLayerImpl)spatialDatabase.getOrCreateLayer(layerName, WKBGeometryEncoder.class, layerClass);
 		GeometryFactory geomFactory = layer.getGeometryFactory();
 		
 		boolean strict = false;

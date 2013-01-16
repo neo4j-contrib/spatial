@@ -87,7 +87,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 		}
 	}
 
-	private Node addGeomNode(Geometry geom, String[] fieldsName, Object[] fields) {
+	protected Node addGeomNode(Geometry geom, String[] fieldsName, Object[] fields) {
 		Node geomNode = getDatabase().createNode();
 		// other properties
 		if (fieldsName != null) {
