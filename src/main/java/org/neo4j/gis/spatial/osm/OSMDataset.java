@@ -301,6 +301,11 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
         return layer.getAllGeometryNodes();
     }
 
+    public boolean containsGeometryNode(Node geomNode) {
+        //@TODO: support multiple layers
+        return layer.containsGeometryNode(geomNode);
+    }
+
     public GeometryEncoder getGeometryEncoder() {
         //@TODO: support multiple layers
         return layer.getGeometryEncoder();

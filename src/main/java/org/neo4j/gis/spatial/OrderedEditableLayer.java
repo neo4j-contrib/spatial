@@ -23,33 +23,67 @@ import static org.neo4j.gis.spatial.utilities.TraverserFactory.createTraverserIn
 
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.ReturnableEvaluator;
+import org.neo4j.graphdb.StopEvaluator;
+import org.neo4j.graphdb.Traverser.Order;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.Traversal;
 
 import com.vividsolutions.jts.geom.Geometry;
 
+/**
+ * This class extends the EditableLayerImpl in a way that allows for the
+ * geometry order to be maintained. If the user wishes to iterate through the
+ * geometries in the same order they were created, they can use the
+ * getAllGeometryNodes method for this. The super-class EditableLayerImpl used
+ * to have this behavior, but the cost of maintaining the chain through the REST
+ * API was too high, because the previous node could not be easily cached. So we
+ * moved it to this class, and made it optional. The Java API should not suffer
+ * the performance penalty of this, but we decided to make the default behavior
+ * non-ordered for a simpler data structure.
+ * 
+ * @author craig
+ */
 public class OrderedEditableLayer extends EditableLayerImpl {
 	private Node previousGeomNode;
+	enum OrderedRelationshipTypes implements RelationshipType {
+		GEOMETRIES, NEXT_GEOM
+	}
 
 	protected Node addGeomNode(Geometry geom, String[] fieldsName, Object[] fields) {
 		Node geomNode = super.addGeomNode(geom, fieldsName, fields);
 		if (previousGeomNode == null) {
 			TraversalDescription traversalDescription = Traversal.description().order(Traversal.postorderBreadthFirst())
-					.relationships(SpatialRelationshipTypes.GEOMETRIES, Direction.INCOMING)
-					.relationships(SpatialRelationshipTypes.NEXT_GEOM, Direction.INCOMING)
+					.relationships(OrderedRelationshipTypes.GEOMETRIES, Direction.INCOMING)
+					.relationships(OrderedRelationshipTypes.NEXT_GEOM, Direction.INCOMING)
 					.evaluator(Evaluators.excludeStartPosition());
 			for (Node node : createTraverserInBackwardsCompatibleWay(traversalDescription, layerNode).nodes()) {
 				previousGeomNode = node;
 			}
 		}
 		if (previousGeomNode != null) {
-			previousGeomNode.createRelationshipTo(geomNode, SpatialRelationshipTypes.NEXT_GEOM);
+			previousGeomNode.createRelationshipTo(geomNode, OrderedRelationshipTypes.NEXT_GEOM);
 		} else {
-			layerNode.createRelationshipTo(geomNode, SpatialRelationshipTypes.GEOMETRIES);
+			layerNode.createRelationshipTo(geomNode, OrderedRelationshipTypes.GEOMETRIES);
 		}
 		previousGeomNode = geomNode;
 		return geomNode;
 	}
+
+    /**
+     * Provides a method for iterating over all nodes that represent geometries in this dataset.
+     * This is similar to the getAllNodes() methods from GraphDatabaseService but will only return
+     * nodes that this dataset considers its own, and can be passed to the GeometryEncoder to
+     * generate a Geometry. There is no restricting on a node belonging to multiple datasets, or
+     * multiple layers within the same dataset.
+     * 
+     * @return iterable over geometry nodes in the dataset
+     */
+    public Iterable<Node> getAllGeometryNodes() {
+        return layerNode.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH, ReturnableEvaluator.ALL_BUT_START_NODE,
+                OrderedRelationshipTypes.GEOMETRIES, Direction.OUTGOING, OrderedRelationshipTypes.NEXT_GEOM, Direction.OUTGOING);
+    }
 
 }

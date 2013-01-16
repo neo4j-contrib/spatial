@@ -205,41 +205,28 @@ public class SpatialDatabaseService implements Constants {
     public Layer getOrCreateLayer(String name, Class< ? extends GeometryEncoder> geometryEncoder, Class< ? extends Layer> layerClass) {
         return getOrCreateLayer(name, geometryEncoder, layerClass, "");
     }
+
     /**
-     * This method will find the Layer when given a geometry node that this layer contains. It first
-     * searches up the RTree index if it exists, and if it cannot find the layer node, it searches
-     * back the NEXT_GEOM chain. This is the structure created by the default implementation of the
-     * Layer class, so we should consider moving this to the Layer class, so it can be overridden by
-     * other implementations that do not use that structure.
+     * This method will find the Layer when given a geometry node that this layer contains. This method
+     * used to make use of knowledge of the RTree, traversing backwards up the tree to find the layer node, which is fast. However, for reasons of clean abstraction, 
+     * this has been refactored to delegate the logic to the layer, so that each layer can do this in an
+     * implementation specific way. Now we simply iterate through the layers datasets and the first one
+     * to return true on the SpatialDataset.containsGeometryNode(Node) method is returned.
      * 
-     * @TODO: Find a way to override this as we can override normal Layer with different graph structures.
+     * We can consider removing this method for a few reasons:
+     * * It is non-deterministic if more than one layer contains the same geometry
+     * * None of the current code appears to use this method
      * 
      * @param geometryNode to start search
      * @return Layer object containing this geometry
      */
     public Layer findLayerContainingGeometryNode(Node geometryNode) {
-        Node root = null;
-        for (Node node : geometryNode.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH,
-                ReturnableEvaluator.ALL_BUT_START_NODE, RTreeRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING,
-                RTreeRelationshipTypes.RTREE_CHILD, Direction.INCOMING)) {
-            root = node;
+        for (String layerName: getLayerNames()) {
+        	Layer layer = getLayer(layerName);
+        	if (layer.getDataset().containsGeometryNode(geometryNode)) {
+        		return layer;
+        	}
         }
-        
-        if (root != null) {
-            return getLayerFromChild(root, RTreeRelationshipTypes.RTREE_ROOT);
-        }
-        
-        System.out.println("Failed to find layer by following RTree index, will search back geometry list");
-        
-        for (Node node : geometryNode.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH,
-                ReturnableEvaluator.ALL_BUT_START_NODE, SpatialRelationshipTypes.NEXT_GEOM, Direction.INCOMING)) {
-            root = node;
-        }
-        
-        if (root != null) {
-            return getLayerFromChild(root, SpatialRelationshipTypes.NEXT_GEOM);
-        }
-        
         return null;
     }
 

@@ -75,4 +75,11 @@ public interface SpatialDataset {
      * @return iterable over all Layers that can be viewed from this dataset
      */
     public Iterable< ? extends Layer> getLayers();
+
+    /**
+     * Does the dataset (or layer) contain the geometry specified by this node.
+     * 
+     * @return boolean true/false if the geometry node is in this Dataset or Layer
+     */
+    public boolean containsGeometryNode(Node node);
 }
