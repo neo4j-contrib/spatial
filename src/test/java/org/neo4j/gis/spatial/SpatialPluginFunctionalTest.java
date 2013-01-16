@@ -21,19 +21,52 @@ package org.neo4j.gis.spatial;
 
 import static org.junit.Assert.assertTrue;
 
+import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 
 import javax.ws.rs.core.Response.Status;
 
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
+import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.kernel.impl.annotations.Documented;
+import org.neo4j.server.NeoServer;
+import org.neo4j.server.helpers.ServerBuilder;
 import org.neo4j.server.rest.AbstractRestFunctionalTestBase;
 import org.neo4j.test.ImpermanentGraphDatabase;
 
 public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
 {
-    private static final String ENDPOINT = "http://localhost:7474/db/data/ext/SpatialPlugin";
+    private static final int PORT = 7575;
+    private static final String ENDPOINT = "http://localhost:"+PORT+"/db/data/ext/SpatialPlugin";
+
+    /** The server variable in SharedServerTestBase is disabled, and we use an alternative */
+    private static NeoServer altServer;
+	
+    /**
+     * Disable normal server creation, so we can override port number. 
+     * @throws IOException
+     */
+    @BeforeClass
+    public static void allocateServer() throws IOException {
+        altServer = ServerBuilder.server().onPort( PORT ).build();
+        altServer.start();
+    }
+
+	/** Since we created a different server, we need to release that explicitly */
+	@AfterClass
+	public static final void releaseAltServer() {
+		altServer.stop();
+		altServer = null;
+	}
+
+	/** Use the alternative server with different port number */
+	@Override
+	public GraphDatabaseService graphdb() {
+		return altServer.getDatabase().getGraph();
+	}
 
     /**
      * The Neo4j Spatial Server plugin, if
@@ -58,14 +91,14 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
     {
         data.get();
         String response = post(Status.OK,"{\"layer\":\"geom\", \"lat\":\"lat\", \"lon\":\"lon\"}", ENDPOINT + "/graphdb/addSimplePointLayer");
-        response = post(Status.CREATED,"{\"lat\":60.1, \"lon\":15.2}", "http://localhost:7474/db/data/node");
-        response = post(Status.CREATED,"{\"name\":\"geom\", \"config\":{\"provider\":\"spatial\", \"geometry_type\":\"point\",\"lat\":\"lat\",\"lon\":\"lon\"}}", "http://localhost:7474/db/data/index/node/");
-        response = post(Status.OK,"{\"layer\":\"geom\", \"node\":\"http://localhost:7474/db/data/node/5\"}", ENDPOINT + "/graphdb/addNodeToLayer");
+        response = post(Status.CREATED,"{\"lat\":60.1, \"lon\":15.2}", "http://localhost:"+PORT+"/db/data/node");
+        response = post(Status.CREATED,"{\"name\":\"geom\", \"config\":{\"provider\":\"spatial\", \"geometry_type\":\"point\",\"lat\":\"lat\",\"lon\":\"lon\"}}", "http://localhost:"+PORT+"/db/data/index/node/");
+        response = post(Status.OK,"{\"layer\":\"geom\", \"node\":\"http://localhost:"+PORT+"/db/data/node/5\"}", ENDPOINT + "/graphdb/addNodeToLayer");
         response = post(Status.OK,"{\"layer\":\"geom\", \"minx\":15.0,\"maxx\":15.3,\"miny\":60.0,\"maxy\":60.2}", ENDPOINT + "/graphdb/findGeometriesInBBox");
         assertTrue(response.contains( "60.1" ));
         response = post(Status.OK,"{\"layer\":\"geom\", \"pointX\":15.0,\"pointY\":60.0,\"distanceInKm\":100}", ENDPOINT + "/graphdb/findGeometriesWithinDistance");
         assertTrue(response.contains( "60.1" ));
-        response = post(Status.OK,"{\"query\":\"start node = node:geom(\'bbox:[15.0,15.3,60.0,60.2]\') return node\"}", "http://localhost:7474/db/data/cypher");
+        response = post(Status.OK,"{\"query\":\"start node = node:geom(\'bbox:[15.0,15.3,60.0,60.2]\') return node\"}", "http://localhost:"+PORT+"/db/data/cypher");
         assertTrue(response.contains( "node" ));
         
     }
