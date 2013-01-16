@@ -71,6 +71,7 @@ import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.test.ImpermanentGraphDatabase;
 
 import com.tinkerpop.blueprints.pgm.impls.neo4j.Neo4jGraph;
+import org.neo4j.gis.spatial.indexprovider.SpatialRecordHits;
 
 public class IndexProviderTest {
 
@@ -272,7 +273,7 @@ public class IndexProviderTest {
      */
 // Uncomment the next line once the add performance bug is fixed.
 // See https://github.com/neo4j/spatial/issues/72
-//    @Test
+    @Test
     public void testAddPerformance() {
         Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
         IndexManager indexMan = db.index();
@@ -281,7 +282,7 @@ public class IndexProviderTest {
         Transaction tx = db.beginTx();
         try {
             Random r = new Random();
-            final int stepping = 100;
+            final int stepping = 1000;
             long start = System.currentTimeMillis();
             long previous = start;
             for (int i = 1; i <= 100000; i++) {
@@ -302,12 +303,57 @@ public class IndexProviderTest {
                     assertTrue("add is too slow at size:" + i + " (" + speed + " adds per second <= " + targetSpeed + ")", speed > targetSpeed);
 
                     previous = now;
+		    
+		    // commit transaction
+		    tx.success();
+		    tx.finish();
+		    
+		    tx = db.beginTx();
                 }
             }
             tx.success();
         } finally {
-            System.out.println("testAddPerformance(): finishing transaction");
+            System.out.println("testAddPerformance() finished");
             tx.finish();
         }
+    }
+    
+    @Test
+    public void testUpdate() {
+	Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
+        IndexManager indexMan = db.index();
+        Index<Node> index = indexMan.forNodes("pointslayer", config);
+
+        Transaction tx = db.beginTx();
+        Node n1 = db.createNode();
+        n1.setProperty("lat", (double) 56.2);
+        n1.setProperty("lon", (double) 15.3);
+        index.add(n1, "dummy", "value");
+		
+	Map<String, Object> params = new HashMap<String, Object>();
+	params.put(LayerNodeIndex.POINT_PARAMETER, new Double[]{56.2, 15.3});
+	params.put(LayerNodeIndex.DISTANCE_IN_KM_PARAMETER, 0.0001);
+	IndexHits<Node> hits = index.query(LayerNodeIndex.WITHIN_DISTANCE_QUERY, params);
+	assertTrue(hits.hasNext());
+	
+        n1.setProperty("lat", (double) 46.2);
+        n1.setProperty("lon", (double) 25.3);
+		
+	// update
+	index.add(n1, "dummy", "value");
+
+	tx.success();
+        tx.finish();
+	
+	params.put(LayerNodeIndex.POINT_PARAMETER, new Double[]{46.2, 25.3});
+	params.put(LayerNodeIndex.DISTANCE_IN_KM_PARAMETER, 0.0001);
+	hits = index.query(LayerNodeIndex.WITHIN_DISTANCE_QUERY, params);
+	assertTrue(hits.hasNext());
+	
+	hits.next();
+	
+	// make sure there's only one node
+	assertFalse(hits.hasNext());
+
     }
 }

@@ -19,9 +19,6 @@
  */
 package org.neo4j.gis.spatial.indexprovider;
 
-import static org.neo4j.gis.spatial.utilities.TraverserFactory.createTraverserInBackwardsCompatibleWay;
-
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -31,9 +28,7 @@ import org.json.simple.parser.ParseException;
 import org.neo4j.gis.spatial.EditableLayer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
-import org.neo4j.gis.spatial.SpatialRelationshipTypes;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
-import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
@@ -41,12 +36,7 @@ import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
-import org.neo4j.graphdb.traversal.Evaluators;
-import org.neo4j.graphdb.traversal.TraversalDescription;
-import org.neo4j.graphdb.traversal.Traverser;
 import org.neo4j.helpers.Predicate;
-import org.neo4j.helpers.collection.IteratorUtil;
-import org.neo4j.kernel.Traversal;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
@@ -73,14 +63,14 @@ public class LayerNodeIndex implements Index<Node>
     public static final String DISTANCE_IN_KM_PARAMETER = "distanceInKm";		// Query parameter key: distance for withinDistance query
     public static final String POINT_PARAMETER = "point";						// Query parameter key: relative to this point for withinDistance query
     
+    private static String nodeLookupIndexName;
+    
     private final String layerName;
     private final GraphDatabaseService db;
     private SpatialDatabaseService spatialDB;
     private EditableLayer layer;
+    private Index<Node> idLookup;
     
-    //List to hold nodes to remove
-	private List<Long> nodesToRemove;
-
     /**
      * This implementation is going to create a new layer if there is no
      * existing one.
@@ -94,8 +84,9 @@ public class LayerNodeIndex implements Index<Node>
     {
         this.layerName = indexName;
         this.db = db;
+        this.nodeLookupIndexName = indexName + "__neo4j-spatial__LayerNodeIndex__internal__spatialNodeLookup__";
+        this.idLookup = db.index().forNodes(nodeLookupIndexName);
         spatialDB = new SpatialDatabaseService( this.db );
-        nodesToRemove = new ArrayList<Long>();
         if ( config.containsKey( SpatialIndexProvider.GEOMETRY_TYPE )
              && POINT_GEOMETRY_TYPE.equals(config.get( SpatialIndexProvider.GEOMETRY_TYPE ))
              && config.containsKey( LayerNodeIndex.LAT_PROPERTY_KEY )
@@ -122,16 +113,19 @@ public class LayerNodeIndex implements Index<Node>
         }
     }
 
+    @Override
     public String getName()
     {
         return layerName;
     }
 
+    @Override
     public Class<Node> getEntityType()
     {
         return Node.class;
     }
 
+    @Override
     public void add( Node geometry, String key, Object value )
     {
         Geometry decodeGeometry = layer.getGeometryEncoder().decodeGeometry( geometry );
@@ -141,10 +135,13 @@ public class LayerNodeIndex implements Index<Node>
 
         if (matchingNode == null)
         {
-          layer.add(
+          SpatialDatabaseRecord newNode = layer.add(
                 decodeGeometry, new String[] { "id" },
                 new Object[] { geometry.getId() } );
-        }
+
+	  // index geomNode with node of geometry
+	  idLookup.add(newNode.getGeomNode(), "id", geometry.getId());
+	}
         else
         {
           // update existing geoNode
@@ -154,23 +151,16 @@ public class LayerNodeIndex implements Index<Node>
     }
 
     private Node findExistingNode( Node geometry ) {
-        TraversalDescription traversalDescription = Traversal.description().breadthFirst()
-                .evaluator( Evaluators.excludeStartPosition() ).evaluator(
-                        new NodeIdPropertyEqualsReturnableEvaluator( geometry.getId() ) )
-                .relationships( SpatialRelationshipTypes.GEOMETRIES, Direction.OUTGOING )
-                .relationships( SpatialRelationshipTypes.NEXT_GEOM, Direction.OUTGOING );
-
-        Traverser traverser = createTraverserInBackwardsCompatibleWay( traversalDescription,
-                layer.getLayerNode() );
-
-        return IteratorUtil.firstOrNull( traverser.nodes() );
+	return idLookup.query("id", geometry.getId()).getSingle();
     }
 
+    @Override
     public void remove( Node entity, String key, Object value )
     {
         remove( entity );
     }
 
+    @Override
     public void delete()
     {
     }
@@ -178,14 +168,16 @@ public class LayerNodeIndex implements Index<Node>
     /**
      * Not supported at the moment
      */
+    @Override
     public IndexHits<Node> get( String key, Object value )
     {
         return query( key, value );
     }
 
+    @Override
     public IndexHits<Node> query( String key, Object params )
     {
-        IndexHits<Node> results = new SpatialRecordHits( new ArrayList<SpatialDatabaseRecord>(), layer);
+        IndexHits<Node> results;
         // System.out.println( key + "," + params );
         if ( key.equals( WITHIN_QUERY ) )
         {
@@ -292,6 +284,7 @@ public class LayerNodeIndex implements Index<Node>
         return null;
     }
     
+    @Override
     public IndexHits<Node> query( Object queryOrQueryObject )
     {
 
@@ -300,15 +293,18 @@ public class LayerNodeIndex implements Index<Node>
                 queryString.substring( queryString.indexOf( ":" ) + 1 ) );
     }
 
+    @Override
     public void remove( Node node, String s )
     {
         remove(node);
     }
 
+    @Override
     public void remove( Node node )
     {
         try {
             layer.removeFromIndex( node.getId() );
+	    idLookup.remove(((SpatialDatabaseRecord) node).getGeomNode());
         } catch (Exception e) {
             //could not remove
         }
@@ -320,34 +316,34 @@ public class LayerNodeIndex implements Index<Node>
         return true;
     }
     
-    private class NodeIdPropertyEqualsReturnableEvaluator implements Evaluator, Predicate<Node>
-    {
-      private long nodeId;
-
-      NodeIdPropertyEqualsReturnableEvaluator(long nodeId)
-      {
-        this.nodeId = nodeId;
-      }
-      
-      @Override
-      public boolean accept(Node node)
-      {
-        return node.hasProperty("id") && node.getProperty("id").equals(nodeId);
-      }      
-
-      @Override
-      public Evaluation evaluate(Path path)
-      {
-        if (accept(path.endNode()))
-        {
-          return Evaluation.INCLUDE_AND_PRUNE;
-        }
-        else
-        {
-          return Evaluation.EXCLUDE_AND_CONTINUE;
-        }
-      }
-    }
+//    private class NodeIdPropertyEqualsReturnableEvaluator implements Evaluator, Predicate<Node>
+//    {
+//      private long nodeId;
+//
+//      NodeIdPropertyEqualsReturnableEvaluator(long nodeId)
+//      {
+//        this.nodeId = nodeId;
+//      }
+//      
+//      @Override
+//      public boolean accept(Node node)
+//      {
+//        return node.hasProperty("id") && node.getProperty("id").equals(nodeId);
+//      }      
+//
+//      @Override
+//      public Evaluation evaluate(Path path)
+//      {
+//        if (accept(path.endNode()))
+//        {
+//          return Evaluation.INCLUDE_AND_PRUNE;
+//        }
+//        else
+//        {
+//          return Evaluation.EXCLUDE_AND_CONTINUE;
+//        }
+//      }
+//    }
 
     @Override
     public GraphDatabaseService getGraphDatabase()
