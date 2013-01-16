@@ -271,8 +271,6 @@ public class IndexProviderTest {
      * Insert up to 100K nodes into the database, and into the index, randomly distributed over [-80,+80][-170+170]
      * Calculate speed over 100-node groups, fail if speed falls under 50 adds/second (typical max speed here 500 adds/second)
      */
-// Uncomment the next line once the add performance bug is fixed.
-// See https://github.com/neo4j/spatial/issues/72
     @Test
     public void testAddPerformance() {
         Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
