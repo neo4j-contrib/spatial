@@ -31,12 +31,8 @@ import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
-import org.neo4j.graphdb.traversal.Evaluation;
-import org.neo4j.graphdb.traversal.Evaluator;
-import org.neo4j.helpers.Predicate;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
@@ -63,7 +59,7 @@ public class LayerNodeIndex implements Index<Node>
     public static final String DISTANCE_IN_KM_PARAMETER = "distanceInKm";		// Query parameter key: distance for withinDistance query
     public static final String POINT_PARAMETER = "point";						// Query parameter key: relative to this point for withinDistance query
     
-    private static String nodeLookupIndexName;
+    private String nodeLookupIndexName;
     
     private final String layerName;
     private final GraphDatabaseService db;
@@ -226,7 +222,8 @@ public class LayerNodeIndex implements Index<Node>
             {
                 try
                 {
-                    List<Double> coordsAndDistance = (List<Double>) new JSONParser().parse( (String) params );
+                    @SuppressWarnings("unchecked")
+					List<Double> coordsAndDistance = (List<Double>) new JSONParser().parse( (String) params );
                     point = new Double[2];
                     point[0] = coordsAndDistance.get(0);
                     point[1] = coordsAndDistance.get(1);
@@ -255,10 +252,10 @@ public class LayerNodeIndex implements Index<Node>
         }
         else if ( key.equals( BBOX_QUERY ) )
         {
-            List<Double> coords;
             try
             {
-                coords = (List<Double>) new JSONParser().parse( (String) params );
+                @SuppressWarnings("unchecked")
+				List<Double> coords = (List<Double>) new JSONParser().parse( (String) params );
 
                 List<SpatialDatabaseRecord> res = GeoPipeline.startWithinSearch(
                         layer,
@@ -315,35 +312,6 @@ public class LayerNodeIndex implements Index<Node>
     {
         return true;
     }
-    
-//    private class NodeIdPropertyEqualsReturnableEvaluator implements Evaluator, Predicate<Node>
-//    {
-//      private long nodeId;
-//
-//      NodeIdPropertyEqualsReturnableEvaluator(long nodeId)
-//      {
-//        this.nodeId = nodeId;
-//      }
-//      
-//      @Override
-//      public boolean accept(Node node)
-//      {
-//        return node.hasProperty("id") && node.getProperty("id").equals(nodeId);
-//      }      
-//
-//      @Override
-//      public Evaluation evaluate(Path path)
-//      {
-//        if (accept(path.endNode()))
-//        {
-//          return Evaluation.INCLUDE_AND_PRUNE;
-//        }
-//        else
-//        {
-//          return Evaluation.EXCLUDE_AND_CONTINUE;
-//        }
-//      }
-//    }
 
     @Override
     public GraphDatabaseService getGraphDatabase()
