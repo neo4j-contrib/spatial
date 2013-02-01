@@ -1,8 +1,8 @@
-== Neo4j Spatial ==
+# Neo4j Spatial
  
 Neo4j Spatial is a library facilitating the import, storage and querying of spatial data in the [Neo4j open source graph database](http://neo4j.org/).
 
-image::https://raw.github.com/neo4j/spatial/master/src/docs/dev/images/one-street.png[Open Street Map]
+![Open Street Map](https://raw.github.com/neo4j/spatial/master/src/docs/dev/images/one-street.png "Open Street Map")
 
 
 Some key features include:
@@ -14,7 +14,7 @@ Some key features include:
 * The possibility to enable spatial operations on any graph of data, regardless of the way the spatial data is stored, as long as an adapter is provided to map from the graph to the geometries.
 * Ability to split a single layer or dataset into multiple sub-layers or views with pre-configured filters
 
-== Index and Querying ==
+## Index and Querying ##
 
 
 The current index is an RTree index, but it has been developed in an extensible way allowing for other indices to be added if necessary.
@@ -32,15 +32,17 @@ The spatial queries implemented are:
 * Within
 * Within Distance
  
-== Building ==
+## Building ##
 
 The simplest way to build Neo4j Spatial is by using maven. Just clone the git repository and run 
-  
-  mvn install
-  
+
+~~~bash
+    mvn install
+~~~
+
 This will download all dependencies, compiled the library, run the tests and install the artifact in your local repository.
 
-== Layers and GeometryEncoders ==
+## Layers and GeometryEncoders ##
 
 The primary type that defines a collection of geometries is the Layer. A layer contains an index for querying. In addition a Layer can be an EditableLayer if it is possible to add and modify geometries in the layer. The next most important interface is the GeometryEncoder.
 
@@ -48,108 +50,108 @@ The DefaultLayer is the standard layer, making use of the WKBGeometryEncoder for
 
 The OSMLayer is a special layer supporting Open Street Map and storing the OSM model as a single fully connected graph. The set of Geometries provided by this layer includes Points, LineStrings and Polygons, and as such cannot be exported to Shapefile format, since that format only allows a single Geometry per layer. However, OMSLayer extends DynamicLayer, which allow it to provide any number of sub-layers, each with a specific geometry type and in addition based on a OSM tag filter. For example you can have a layer providing all cycle paths as LineStrings, or a layer providing all lakes as Polygons. Underneath these are all still backed by the same fully connected graph, but exposed dynamically as apparently separate geometry layers.
 
-== Examples ==
+## Examples ##
 
-=== Importing a shapefile ===
+### Importing a shapefile ###
 
 Spatial data is divided in Layers and indexed by a RTree.
 
---------------------------
-GraphDatabaseService database = new EmbeddedGraphDatabase(storeDir);
-	try {
-		ShapefileImporter importer = new ShapefileImporter(database);
-	    importer.importFile("roads.shp", "layer_roads");
-	} finally {
-		database.shutdown();
-	}
---------------------------
+~~~java
+    GraphDatabaseService database = new EmbeddedGraphDatabase(storeDir);
+    try {
+        ShapefileImporter importer = new ShapefileImporter(database);
+        importer.importFile("roads.shp", "layer_roads");
+    } finally {
+        database.shutdown();
+    }
+~~~
 
-=== Importing an Open Street Map file ===
+### Importing an Open Street Map file ###
 
 This is more complex because the current OSMImporter class runs in two phases, the first requiring a batch-inserter on the database. The is ongoing work to allow for a non-batch-inserter on the entire process, and possibly when you have read this that will already be available. Refer to the unit tests in classes TestDynamicLayers and TestOSMImport for the latest code for importing OSM data. At the time of writing the following worked:
 
-----
-	OSMImporter importer = new OSMImporter("sweden");
-  Map<String, String> config = new HashMap<String, String>();
-  config.put("neostore.nodestore.db.mapped_memory", "90M" );
-  config.put("dump_configuration", "true");
-  config.put("use_memory_mapped_buffers", "true");
-	BatchInserter batchInserter = new BatchInserterImpl(dir, config);
-	importer.importFile(batchInserter, "sweden.osm", false);
-	batchInserter.shutdown();
+~~~java
+    OSMImporter importer = new OSMImporter("sweden");
+    Map<String, String> config = new HashMap<String, String>();
+    config.put("neostore.nodestore.db.mapped_memory", "90M" );
+    config.put("dump_configuration", "true");
+    config.put("use_memory_mapped_buffers", "true");
+    BatchInserter batchInserter = new BatchInserterImpl(dir, config);
+    importer.importFile(batchInserter, "sweden.osm", false);
+    batchInserter.shutdown();
 
     GraphDatabaseService db = new EmbeddedGraphDatabase(dir);
-	importer.reIndex(db, 10000);
-	db.shutdown();
-----
+    importer.reIndex(db, 10000);
+    db.shutdown();
+~~~
 
-=== Executing a spatial query ===
+### Executing a spatial query ###
 
-----
-	GraphDatabaseService database = new EmbeddedGraphDatabase(storeDir);
-	try {
+~~~java
+    GraphDatabaseService database = new EmbeddedGraphDatabase(storeDir);
+    try {
     	SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
         Layer layer = spatialService.getLayer("layer_roads");
         SpatialIndexReader spatialIndex = layer.getIndex();
         	
         Search searchQuery = new SearchIntersectWindow(new Envelope(xmin, xmax, ymin, ymax));
         spatialIndex.executeSearch(searchQuery);
-   	    List<SpatialDatabaseRecord> results = searchQuery.getResults();
-	} finally {
-		database.shutdown();
-	}
-----
+   	List<SpatialDatabaseRecord> results = searchQuery.getResults();
+    } finally {
+	database.shutdown();
+    }
+~~~
 
 Refer to the test code in the LayerTest and the SpatialTest classes for more examples of query code. Also review the classes in the org.neo4j.gis.spatial.query package for the full range or search queries currently implemented.
 
-== Neo4j Spatial Geoserver Plugin ==
+## Neo4j Spatial Geoserver Plugin ##
 
-[IMPORTANT]
+*IMPORTANT*
 Tested with: GeoServer 2.1.1
 
-=== Building ===
+### Building ###
 
-----
-mvn clean install
-----
+~~~bash
+    mvn clean install
+~~~
 
-=== Deployment into Geoserver ===
+### Deployment into Geoserver ###
 
-* unzip the +target/xxxx-server-plugin.zip+ and the Neo4j libraries from your Neo4j download under +NEO4J_HOME/lib+ into $GEOSERVER_HOME/webapps/geoserver/WEB-INF/lib
+* unzip the `target/xxxx-server-plugin.zip` and the Neo4j libraries from your Neo4j download under `$NEO4J_HOME/lib` into `$GEOSERVER_HOME/webapps/geoserver/WEB-INF/lib`
 
 * restart geoserver
 
 * configure a new workspace
 
-* configure a new datasource neo4j in your workspace. Point the "The directory path of the Neo4j database:" parameter to the relative (form the GeoServer working dir) or aboslute path to a Neo4j Spatial database with layers (see https://github.com/neo4j/spatial[Neo4j Spatial])
+* configure a new datasource neo4j in your workspace. Point the "The directory path of the Neo4j database:" parameter to the relative (form the GeoServer working dir) or aboslute path to a Neo4j Spatial database with layers (see [Neo4j Spatial](https://github.com/neo4j/spatial)
 
 * in Layers, do "Add new resource" and choose your Neo4j datastore to see the exisitng Neo4j Spatial layers and add them.
 
-=== Testing in GeoServer trunk ===
+### Testing in GeoServer trunk ###
 
 * check out the geoserver source
 
-----
-svn co https://svn.codehaus.org/geoserver/trunk geoserver-trunk
-----
+~~~bash
+    svn co https://svn.codehaus.org/geoserver/trunk geoserver-trunk
+~~~
 
 * build the source
 
-----
-cd geoserver-trunk
-mvn clean install
-----
+~~~bash
+    cd geoserver-trunk
+    mvn clean install
+~~~
 
-* check that you can run the web app as of http://docs.geoserver.org/latest/en/developer/maven-guide/index.html#running-the-web-module-with-jetty[The GeoServer Maven build guide]
+* check that you can run the web app as of [The GeoServer Maven build guide](http://docs.geoserver.org/latest/en/developer/maven-guide/index.html#running-the-web-module-with-jetty)
 
-----
-cd src/web/app
-mvn jetty:run
-----
+~~~bash
+    cd src/web/app
+    mvn jetty:run
+~~~
 
-* in $GEOSERVER_SOURCE/src/web/app/pom.xml (https://svn.codehaus.org/geoserver/trunk/src/web/app/pom.xml), add the following lines under the profiles section:
+* in `$GEOSERVER_SOURCE/src/web/app/pom.xml` https://svn.codehaus.org/geoserver/trunk/src/web/app/pom.xml, add the following lines under the profiles section:
 
-----
+~~~xml
     <profile>
       <id>neo4j</id>
       <dependencies>
@@ -160,27 +162,27 @@ mvn jetty:run
         </dependency>
       </dependencies>
     </profile>
-----
+~~~
 
 * start the GeoServer webapp again with the added neo4j profile
 
-----
-cd $GEOSERVER_SRC/src/web/app
-mvn jetty:run -Pneo4j
-----
+~~~bash
+    cd $GEOSERVER_SRC/src/web/app
+    mvn jetty:run -Pneo4j
+~~~
 
 * find Neo4j installed as a datasource under http://localhost:8080
 
 
-== Using Neo4j Spatial with uDig ==
+## Using Neo4j Spatial with uDig ##
 
 For more info head over to [Neo4j Wiki on uDig](http://wiki.neo4j.org/content/Neo4j_Spatial_in_uDig)
 
-== Using the Neo4j Spatial Server plugin ==
+## Using the Neo4j Spatial Server plugin ##
 
 Neo4j Spatial is also packaged as a ZIP file that can be unzipped into the Neo4j Server /plugin directory. After restarting the server, you should be able to do things liek the following REST calls (here illustrated using `curl`)
 
-----
+~~~bash
     #install the plugin
     cp $NEO4J_SPATIAL_HOME/target/neo4j-spatial-XXXX-server-plugin.zip $NEO4J_HOME/plugins
     cd unzip neo4j-spatial-XXXX-server-plugin.zip -d $NEO4J_HOME/plugins
@@ -189,7 +191,9 @@ Neo4j Spatial is also packaged as a ZIP file that can be unzipped into the Neo4j
     $NEO4J_HOME/bin/neo4j start
 
     curl http://localhost:7474/db/data/
-  
+~~~
+
+~~~json
     {
       "relationship_index" : "http://localhost:7474/db/data/index/relationship",
       "node" : "http://localhost:7474/db/data/node",
@@ -204,10 +208,15 @@ Neo4j Spatial is also packaged as a ZIP file that can be unzipped into the Neo4j
         }
       }
     }
-  
+~~~
+
+~~~bash  
     curl -d "layer=test" http://localhost:7474/db/data/ext/SpatialPlugin/graphdb/addSimplePointLayer
-  
+
     Creating new layer 'test' unless it already exists
+~~~
+
+~~~json
     [ {
       "outgoing_relationships" : "http://localhost:7474/db/data/node/2/relationships/out",
       "data" : {
@@ -229,29 +238,32 @@ Neo4j Spatial is also packaged as a ZIP file that can be unzipped into the Neo4j
       "all_relationships" : "http://localhost:7474/db/data/node/2/relationships/all",
       "incoming_typed_relationships" : "http://localhost:7474/db/data/node/2/relationships/in/{-list|&|types}"
     } ]
-----
+~~~
 
-== Building Neo4j spatial ==
+## Building Neo4j spatial ##
 
-----  
+~~~bash  
     git clone https://github.com/neo4j/spatial.git
     cd spatial
     mvn clean package
-----
+~~~
 
-== Using Neo4j spatial in your Java project with Maven ==
+## Using Neo4j spatial in your Java project with Maven ##
 Add the following dependency to your project's pom.xml:
---------------------------
+
+~~~xml
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-spatial</artifactId>
             <version>0.9-SNAPSHOT</version>
         </dependency>
---------------------------
+~~~
+
 Note: neo4j-spatial has a mandatory dependency on GremlinGroovyPipeline from the
 com.tinkerpop.gremlin.groovy package. The dependency in neo4j is type 'provided', so when using
 neo4j-spatial in your own Java project, make sure to add the following dependency to your pom.xml, too.
---------------------------
+
+~~~xml
         <dependency>
             <groupId>com.tinkerpop.gremlin</groupId>
             <artifactId>gremlin-groovy</artifactId>
@@ -272,9 +284,11 @@ neo4j-spatial in your own Java project, make sure to add the following dependenc
                 </exclusion>
             </exclusions>
         </dependency>
---------------------------
+~~~
+
 If the dependency is omitted, neo4j-spatial will probably throw an exception like this:
---------------------------
+
+~~~
 java.lang.NoClassDefFoundError: com/tinkerpop/gremlin/groovy/GremlinGroovyPipeline
 at java.lang.ClassLoader.defineClass1(Native Method)
 at java.lang.ClassLoader.defineClass(ClassLoader.java:634)
@@ -288,9 +302,9 @@ at java.lang.ClassLoader.loadClass(ClassLoader.java:321)
 at sun.misc.Launcher$AppClassLoader.loadClass(Launcher.java:294)
 at java.lang.ClassLoader.loadClass(ClassLoader.java:266)
 at org.neo4j.gis.spatial.indexprovider.LayerNodeIndex.query(LayerNodeIndex.java:237)
---------------------------
+~~~
 
-== Running Neo4j spatial code from the command-line ==
+## Running Neo4j spatial code from the command-line ##
 
 Some of the classes in Neoj4-Spatial include main() methods and can be run on the command-line.
 For example there are command-line options for importing SHP and OSM data. See the main methods
@@ -299,20 +313,20 @@ for running the command-line, using the OSMImporter and the sample OSM file two-
 We will show two ways to run this on the command line, one with the java command itself, and the
 other using the 'exec:java' target in maven. In both cases we use maven to setup the dependencies.
 
-=== Compile ===
+### Compile ###
 
-----
-git clone git://github.com/neo4j/spatial.git
-cd spatial
-mvn clean compile
-----
+~~~bash
+    git clone git://github.com/neo4j/spatial.git
+    cd spatial
+    mvn clean compile
+~~~
 
-=== Run using JAVA command ===
+### Run using JAVA command ###
 
-----
-mvn dependency:copy-dependencies
-java -cp target/classes:target/dependency/* org.neo4j.gis.spatial.osm.OSMImporter osm-db two-street.osm 
-----
+~~~bash
+    mvn dependency:copy-dependencies
+    java -cp target/classes:target/dependency/* org.neo4j.gis.spatial.osm.OSMImporter osm-db two-street.osm 
+~~~
 
 The first command above only needs to be run once, to get a copy of all required JAR files into the directory target/dependency.
 Once this is done, all further java commands with the -cp specifying that directory will load all dependencies.
@@ -320,11 +334,11 @@ It is likely that the specific command being run does not require all dependenci
 parts of the Neo4j-Spatial library, but working out exactly which dependencies are required can take a little time, so
 the above approach is most certainly the easiest way to do this.
 
-=== Run using 'mvn exec:java' ===
+### Run using 'mvn exec:java' ###
 
-----
-mvn exec:java -Dexec.mainClass=org.neo4j.gis.spatial.osm.OSMImporter -Dexec.args="osm-db two-street.osm"
-----
+~~~bash
+    mvn exec:java -Dexec.mainClass=org.neo4j.gis.spatial.osm.OSMImporter -Dexec.args="osm-db two-street.osm"
+~~~
 
 Note that the OSMImporter cannot re-import the same data multiple times,
 so you need to delete the database between runs if you are planning to do that.
