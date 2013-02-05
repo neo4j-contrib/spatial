@@ -14,9 +14,9 @@
     </properties>
 
     <parent>
-        <artifactId>parent-pom</artifactId>
+        <artifactId>parent-central</artifactId>
         <groupId>org.neo4j.build</groupId>
-        <version>35</version>
+        <version>36</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>neo4j-spatial</artifactId>
@@ -294,6 +294,7 @@
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
             <type>jar</type>
+            <version>1.2.16</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
