@@ -30,13 +30,9 @@ import org.neo4j.graphdb.index.IndexImplementation;
 import org.neo4j.graphdb.index.IndexManager;
 import org.neo4j.graphdb.index.IndexProvider;
 import org.neo4j.graphdb.index.RelationshipIndex;
-import org.neo4j.helpers.Service;
 import org.neo4j.helpers.collection.MapUtil;
-import org.neo4j.kernel.KernelExtension;
 import org.neo4j.kernel.configuration.Config;
 
-
-@Service.Implementation( KernelExtension.class )
 public class SpatialIndexProvider extends IndexProvider
 {
 
@@ -53,7 +49,7 @@ public class SpatialIndexProvider extends IndexProvider
         return new SpatialIndexImplementation(dependencyResolver.resolveDependency(GraphDatabaseService.class));
     }
 
-    private class SpatialIndexImplementation implements IndexImplementation {
+    public static class SpatialIndexImplementation implements IndexImplementation {
     	
         private GraphDatabaseService db;
 
