@@ -261,12 +261,6 @@
             <groupId>org.geotools</groupId>
             <artifactId>gt-shapefile</artifactId>
             <version>${geotools.version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>jgridshift</groupId>
-                    <artifactId>jgridshift</artifactId>
-                </exclusion>
-            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.geotools</groupId>
