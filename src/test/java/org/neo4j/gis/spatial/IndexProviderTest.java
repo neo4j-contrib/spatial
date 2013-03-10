@@ -38,11 +38,6 @@
  */
 package org.neo4j.gis.spatial;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -72,6 +67,8 @@ import org.neo4j.test.ImpermanentGraphDatabase;
 
 import com.tinkerpop.blueprints.pgm.impls.neo4j.Neo4jGraph;
 import org.neo4j.gis.spatial.indexprovider.SpatialRecordHits;
+
+import static org.junit.Assert.*;
 
 public class IndexProviderTest {
 
@@ -201,7 +198,7 @@ public class IndexProviderTest {
 //        ExecutionResult result = engine.execute(  "start n=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') match (n) -[r] - (x) return n, type(r), x.layer?, x.bbox?"  );
 
         ExecutionResult result = engine.execute("start n=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') return n");
-        System.out.println(result.toString());
+        System.out.println(result.dumpToString());
 
         // test Gremlin
         ScriptEngine gremlinEngine = new ScriptEngineManager().getEngineByName("gremlin-groovy");
@@ -262,8 +259,10 @@ public class IndexProviderTest {
         index.add(batman, "dummy", "value");
 
         ExecutionEngine engine = new ExecutionEngine(db);
-        ExecutionResult result = engine.execute("start n=node:layer3('withinDistance:[44.44, 33.32, 5.0]') return n");
-        System.out.println(result.toString());
+        ExecutionResult result = engine.execute("start n=node:layer3('withinDistance:[33.32, 44.44, 5.0]') return n");
+
+        Node firstRow = (Node) result.iterator().next().get("n");
+        assertTrue(firstRow.getProperty("name").equals("robin"));
     }
 
     /**
