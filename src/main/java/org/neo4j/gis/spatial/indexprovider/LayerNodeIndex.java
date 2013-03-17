@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2012 "Neo Technology,"
+ * Copyright (c) 2010-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
  * This file is part of Neo4j.
@@ -19,9 +19,6 @@
  */
 package org.neo4j.gis.spatial.indexprovider;
 
-import static org.neo4j.gis.spatial.utilities.TraverserFactory.createTraverserInBackwardsCompatibleWay;
-
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -31,22 +28,11 @@ import org.json.simple.parser.ParseException;
 import org.neo4j.gis.spatial.EditableLayer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
-import org.neo4j.gis.spatial.SpatialRelationshipTypes;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
-import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
-import org.neo4j.graphdb.traversal.Evaluation;
-import org.neo4j.graphdb.traversal.Evaluator;
-import org.neo4j.graphdb.traversal.Evaluators;
-import org.neo4j.graphdb.traversal.TraversalDescription;
-import org.neo4j.graphdb.traversal.Traverser;
-import org.neo4j.helpers.Predicate;
-import org.neo4j.helpers.collection.IteratorUtil;
-import org.neo4j.kernel.Traversal;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
@@ -56,23 +42,31 @@ import com.vividsolutions.jts.io.WKTReader;
 public class LayerNodeIndex implements Index<Node>
 {
 
-    public static final String LON_PROPERTY_KEY = "lon";
-    public static final String LAT_PROPERTY_KEY = "lat";
-    public static final String WITHIN_QUERY = "within";
-    public static final String CQL_QUERY = "CQL";
-    public static final String WITHIN_DISTANCE_QUERY = "withinDistance";
-    public static final String BBOX_QUERY = "bbox";
-    public static final String ENVELOPE_PARAMETER = "envelope";
-    public static final String GEOMETRY_PARAMETER = "envelope";
-    public static final String POINT_PARAMETER = "point";
-    public static final String DISTANCE_IN_KM_PARAMETER = "distanceInKm";
-    public static final String WKT_PROPERTY_KEY = "wkt";
-    public static final String WITHIN_WKT_GEOMETRY_QUERY = "withinWKTGeometry";
+    public static final String LON_PROPERTY_KEY = "lon";	// Config parameter key: longitude property name for nodes in point layers
+    public static final String LAT_PROPERTY_KEY = "lat";	// Config parameter key: latitude property name for nodes in point layers
+    public static final String WKT_PROPERTY_KEY = "wkt";	// Config parameter key: wkt property name for nodes
+    public static final String WKB_PROPERTY_KEY = "wkb";	// Config parameter key: wkb property name for nodes
+    
+    public static final String POINT_GEOMETRY_TYPE = "point";	// Config parameter value: Layer can contain points
+    
+    public static final String WITHIN_QUERY = "within";							// Query type
+    public static final String WITHIN_WKT_GEOMETRY_QUERY = "withinWKTGeometry";	// Query type
+    public static final String WITHIN_DISTANCE_QUERY = "withinDistance";		// Query type
+    public static final String BBOX_QUERY = "bbox";								// Query type
+    public static final String CQL_QUERY = "CQL";								// Query type (unused)
+    
+    public static final String ENVELOPE_PARAMETER = "envelope";					// Query parameter key: envelope for within query
+    public static final String DISTANCE_IN_KM_PARAMETER = "distanceInKm";		// Query parameter key: distance for withinDistance query
+    public static final String POINT_PARAMETER = "point";						// Query parameter key: relative to this point for withinDistance query
+    
+    private String nodeLookupIndexName;
+    
     private final String layerName;
     private final GraphDatabaseService db;
     private SpatialDatabaseService spatialDB;
     private EditableLayer layer;
-
+    private Index<Node> idLookup;
+    
     /**
      * This implementation is going to create a new layer if there is no
      * existing one.
@@ -86,44 +80,48 @@ public class LayerNodeIndex implements Index<Node>
     {
         this.layerName = indexName;
         this.db = db;
+        this.nodeLookupIndexName = indexName + "__neo4j-spatial__LayerNodeIndex__internal__spatialNodeLookup__";
+        this.idLookup = db.index().forNodes(nodeLookupIndexName);
         spatialDB = new SpatialDatabaseService( this.db );
         if ( config.containsKey( SpatialIndexProvider.GEOMETRY_TYPE )
-             && config.get( SpatialIndexProvider.GEOMETRY_TYPE ).equals(
-                     POINT_PARAMETER ) )
+             && POINT_GEOMETRY_TYPE.equals(config.get( SpatialIndexProvider.GEOMETRY_TYPE ))
+             && config.containsKey( LayerNodeIndex.LAT_PROPERTY_KEY )
+             && config.containsKey( LayerNodeIndex.LON_PROPERTY_KEY ) )
         {
-            if ( config.containsKey( LayerNodeIndex.LAT_PROPERTY_KEY )
-                 && config.containsKey( LayerNodeIndex.LON_PROPERTY_KEY ) )
-            {
-                layer = (EditableLayer) spatialDB.getOrCreatePointLayer(
-                        indexName,
-                        config.get( LayerNodeIndex.LON_PROPERTY_KEY ),
-                        config.get( LayerNodeIndex.LAT_PROPERTY_KEY ) );
-            }
-            else if ( config.containsKey( LayerNodeIndex.WKT_PROPERTY_KEY ) )
-            {
-                layer = (EditableLayer) spatialDB.getOrCreateEditableLayer(
-                        indexName, config.get( LayerNodeIndex.WKT_PROPERTY_KEY ) );
-            } else {
-                throw new IllegalArgumentException( "Need to provide lat/lon or wkt property config" );
-            }
-            
+            layer = (EditableLayer) spatialDB.getOrCreatePointLayer(
+                    indexName,
+                    config.get( LayerNodeIndex.LON_PROPERTY_KEY ),
+                    config.get( LayerNodeIndex.LAT_PROPERTY_KEY ) );
+        }
+        else if ( config.containsKey( LayerNodeIndex.WKT_PROPERTY_KEY ) )
+        {
+            layer = (EditableLayer) spatialDB.getOrCreateEditableLayer(
+                    indexName, "WKT", config.get( LayerNodeIndex.WKT_PROPERTY_KEY ) );
+        }
+        else if ( config.containsKey( LayerNodeIndex.WKB_PROPERTY_KEY ) )
+        {
+            layer = (EditableLayer) spatialDB.getOrCreateEditableLayer(
+                    indexName, "WKB", config.get( LayerNodeIndex.WKB_PROPERTY_KEY ) );
         }
         else
         {
-            layer = (EditableLayer) spatialDB.getOrCreateEditableLayer( layerName );
+            throw new IllegalArgumentException( "Need to provide (geometry_type=point and lat/lon), wkt or wkb property config" );
         }
     }
 
+    @Override
     public String getName()
     {
         return layerName;
     }
 
+    @Override
     public Class<Node> getEntityType()
     {
         return Node.class;
     }
 
+    @Override
     public void add( Node geometry, String key, Object value )
     {
         Geometry decodeGeometry = layer.getGeometryEncoder().decodeGeometry( geometry );
@@ -133,10 +131,13 @@ public class LayerNodeIndex implements Index<Node>
 
         if (matchingNode == null)
         {
-          layer.add(
+          SpatialDatabaseRecord newNode = layer.add(
                 decodeGeometry, new String[] { "id" },
                 new Object[] { geometry.getId() } );
-        }
+
+	  // index geomNode with node of geometry
+	  idLookup.add(newNode.getGeomNode(), "id", geometry.getId());
+	}
         else
         {
           // update existing geoNode
@@ -146,23 +147,16 @@ public class LayerNodeIndex implements Index<Node>
     }
 
     private Node findExistingNode( Node geometry ) {
-        TraversalDescription traversalDescription = Traversal.description().breadthFirst()
-                .evaluator( Evaluators.excludeStartPosition() ).evaluator(
-                        new NodeIdPropertyEqualsReturnableEvaluator( geometry.getId() ) )
-                .relationships( SpatialRelationshipTypes.GEOMETRIES, Direction.OUTGOING )
-                .relationships( SpatialRelationshipTypes.NEXT_GEOM, Direction.OUTGOING );
-
-        Traverser traverser = createTraverserInBackwardsCompatibleWay( traversalDescription,
-                layer.getLayerNode() );
-
-        return IteratorUtil.firstOrNull( traverser.nodes() );
+	return idLookup.query("id", geometry.getId()).getSingle();
     }
 
+    @Override
     public void remove( Node entity, String key, Object value )
     {
         remove( entity );
     }
 
+    @Override
     public void delete()
     {
     }
@@ -170,14 +164,16 @@ public class LayerNodeIndex implements Index<Node>
     /**
      * Not supported at the moment
      */
+    @Override
     public IndexHits<Node> get( String key, Object value )
     {
         return query( key, value );
     }
 
+    @Override
     public IndexHits<Node> query( String key, Object params )
     {
-        IndexHits<Node> results = new SpatialRecordHits( new ArrayList<SpatialDatabaseRecord>() );
+        IndexHits<Node> results;
         // System.out.println( key + "," + params );
         if ( key.equals( WITHIN_QUERY ) )
         {
@@ -190,7 +186,7 @@ public class LayerNodeIndex implements Index<Node>
                             new Envelope( bounds[0], bounds[1], bounds[2],
                                     bounds[3] ) ) ).toSpatialDatabaseRecordList();
 
-            results = new SpatialRecordHits( res );
+            results = new SpatialRecordHits(res, layer);
             return results;
         }
         
@@ -204,7 +200,7 @@ public class LayerNodeIndex implements Index<Node>
                 List<SpatialDatabaseRecord> res = GeoPipeline.startWithinSearch(
                         layer,geometry ).toSpatialDatabaseRecordList();
                 
-                results = new SpatialRecordHits( res );
+                results = new SpatialRecordHits(res, layer);
                 return results;
             }
             catch ( com.vividsolutions.jts.io.ParseException e )
@@ -226,7 +222,8 @@ public class LayerNodeIndex implements Index<Node>
             {
                 try
                 {
-                    List<Double> coordsAndDistance = (List<Double>) new JSONParser().parse( (String) params );
+                    @SuppressWarnings("unchecked")
+					List<Double> coordsAndDistance = (List<Double>) new JSONParser().parse( (String) params );
                     point = new Double[2];
                     point[0] = coordsAndDistance.get(0);
                     point[1] = coordsAndDistance.get(1);
@@ -250,15 +247,15 @@ public class LayerNodeIndex implements Index<Node>
                     layer, new Coordinate( point[1], point[0] ), distance ).sort(
                     "OrthodromicDistance" ).toSpatialDatabaseRecordList();
 
-            results = new SpatialRecordHits( res );
+            results = new SpatialRecordHits(res, layer);
             return results;
         }
         else if ( key.equals( BBOX_QUERY ) )
         {
-            List<Double> coords;
             try
             {
-                coords = (List<Double>) new JSONParser().parse( (String) params );
+                @SuppressWarnings("unchecked")
+				List<Double> coords = (List<Double>) new JSONParser().parse( (String) params );
 
                 List<SpatialDatabaseRecord> res = GeoPipeline.startWithinSearch(
                         layer,
@@ -266,7 +263,7 @@ public class LayerNodeIndex implements Index<Node>
                                 new Envelope( coords.get( 0 ), coords.get( 1 ),
                                         coords.get( 2 ), coords.get( 3 ) ) ) ).toSpatialDatabaseRecordList();
 
-                results = new SpatialRecordHits( res );
+				results = new SpatialRecordHits(res, layer);
                 return results;
             }
             catch ( ParseException e )
@@ -283,7 +280,8 @@ public class LayerNodeIndex implements Index<Node>
         }
         return null;
     }
-
+    
+    @Override
     public IndexHits<Node> query( Object queryOrQueryObject )
     {
 
@@ -292,15 +290,18 @@ public class LayerNodeIndex implements Index<Node>
                 queryString.substring( queryString.indexOf( ":" ) + 1 ) );
     }
 
+    @Override
     public void remove( Node node, String s )
     {
         remove(node);
     }
 
+    @Override
     public void remove( Node node )
     {
         try {
             layer.removeFromIndex( node.getId() );
+	    idLookup.remove(((SpatialDatabaseRecord) node).getGeomNode());
         } catch (Exception e) {
             //could not remove
         }
@@ -310,35 +311,6 @@ public class LayerNodeIndex implements Index<Node>
     public boolean isWriteable()
     {
         return true;
-    }
-    
-    private class NodeIdPropertyEqualsReturnableEvaluator implements Evaluator, Predicate<Node>
-    {
-      private long nodeId;
-
-      NodeIdPropertyEqualsReturnableEvaluator(long nodeId)
-      {
-        this.nodeId = nodeId;
-      }
-      
-      @Override
-      public boolean accept(Node node)
-      {
-        return node.hasProperty("id") && node.getProperty("id").equals(nodeId);
-      }      
-
-      @Override
-      public Evaluation evaluate(Path path)
-      {
-        if (accept(path.endNode()))
-        {
-          return Evaluation.INCLUDE_AND_PRUNE;
-        }
-        else
-        {
-          return Evaluation.EXCLUDE_AND_CONTINUE;
-        }
-      }
     }
 
     @Override

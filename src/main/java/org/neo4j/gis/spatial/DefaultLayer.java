@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2012 "Neo Technology,"
+ * Copyright (c) 2010-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
  * This file is part of Neo4j.
@@ -45,11 +45,17 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 
 /**
- * Instances of Layer provide the ability for developers to add/remove and edit geometries
- * associated with a single dataset (or layer). This includes support for several storage
- * mechanisms, like in-node (geometries in properties) and sub-graph (geometries describe by the
- * graph). A Layer can be associated with a dataset. In cases where the dataset contains only one
- * layer, the layer itself is the dataset.
+ * Instances of Layer provide the ability for developers to add/remove and edit
+ * geometries associated with a single dataset (or layer). This includes support
+ * for several storage mechanisms, like in-node (geometries in properties) and
+ * sub-graph (geometries describe by the graph). A Layer can be associated with
+ * a dataset. In cases where the dataset contains only one layer, the layer
+ * itself is the dataset.
+ * 
+ * You should not construct the DefaultLayer directly, but use the included
+ * factor methods for creating layers based on configurations. This will
+ * instantiate the appropriate class correctly. See the methods
+ * makeLayerFromNode and makeLayerInstance.
  */
 public class DefaultLayer implements Constants, Layer, SpatialDataset {
 
@@ -124,12 +130,9 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         } else {
             GuessGeometryTypeSearch geomTypeSearch = new GuessGeometryTypeSearch();
             index.searchIndex(geomTypeSearch).count();
-            if (geomTypeSearch.firstFoundType != null) {
-                return geomTypeSearch.firstFoundType;
-            } else {
-                // layer is empty
-                return null;
-            }
+	    
+	    // returns null for an empty layer!
+	    return geomTypeSearch.firstFoundType;
         }
     }
 
@@ -186,9 +189,13 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         }
     }
     
-    // Protected constructor
-    protected DefaultLayer() {
-    }
+	/**
+	 * The constructor is protected because we should not construct this class
+	 * directly, but use the factory methods to create Layers based on
+	 * configurations
+	 */
+	protected DefaultLayer() {
+	}
     
     /**
      * Factory method to construct a layer from an existing layerNode. This will read the layer
@@ -324,18 +331,12 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         return this;
     }
 
-    /**
-     * Provides a method for iterating over all nodes that represent geometries in this dataset.
-     * This is similar to the getAllNodes() methods from GraphDatabaseService but will only return
-     * nodes that this dataset considers its own, and can be passed to the GeometryEncoder to
-     * generate a Geometry. There is no restricting on a node belonging to multiple datasets, or
-     * multiple layers within the same dataset.
-     * 
-     * @return iterable over geometry nodes in the dataset
-     */
     public Iterable<Node> getAllGeometryNodes() {
-        return layerNode.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH, ReturnableEvaluator.ALL_BUT_START_NODE,
-                SpatialRelationshipTypes.GEOMETRIES, Direction.OUTGOING, SpatialRelationshipTypes.NEXT_GEOM, Direction.OUTGOING);
+        return index.getAllIndexedNodes();
+    }
+
+    public boolean containsGeometryNode(Node geomNode) {
+        return index.isNodeIndexed(geomNode.getId());
     }
 
     /**

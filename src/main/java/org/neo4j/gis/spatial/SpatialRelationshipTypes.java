@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2012 "Neo Technology,"
+ * Copyright (c) 2010-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
  * This file is part of Neo4j.
@@ -26,5 +26,5 @@ import org.neo4j.graphdb.RelationshipType;
  * @author Davide Savazzi
  */
 public enum SpatialRelationshipTypes implements RelationshipType {
-	LAYER, NETWORK, NEXT_GEOM, GEOMETRIES, SPATIAL, LAYERS, DATASETS, LAYER_CONFIG, DATASET, PROPERTY_MAPPING
+	LAYER, NETWORK, SPATIAL, LAYERS, DATASETS, LAYER_CONFIG, DATASET, PROPERTY_MAPPING
 }

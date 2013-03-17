@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2012 "Neo Technology,"
+ * Copyright (c) 2010-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
  * This file is part of Neo4j.
@@ -223,7 +223,7 @@ public class OsmAnalysisTest extends TestOSMImport {
 		imageExporter.setZoom(2.0);
 		imageExporter.setOffset(-0.2, 0.25);
 		imageExporter.setSize(1280, 800);
-		imageExporter.setStyleFiles(new String[] { "background.sld", "rank.sld" });
+		imageExporter.setStyleFiles(new String[] { "sld/background.sld", "sld/rank.sld" });
 
 		String[] layerPropertyNames = new String[]{"name", "timestamp", "user", "days", "user_rank"};
 		StringBuffer userParams = new StringBuffer();

@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2012 "Neo Technology,"
+ * Copyright (c) 2010-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
  * This file is part of Neo4j.
@@ -360,7 +360,7 @@ public class GeoPipeline extends GremlinGroovyPipeline<GeoPipeFlow, GeoPipeFlow>
 		GeoPipeline pipeline = start(layer, new SearchIntersectWindow(layer, searchWindow))
 			.calculateOrthodromicDistance(point);
 		
-		if (layer.getGeometryType() == Constants.GTYPE_POINT) {
+		if (layer.getGeometryType() != null && layer.getGeometryType() == Constants.GTYPE_POINT) {
 			pipeline = pipeline.propertyFilter("OrthodromicDistance", maxDistanceInKm, FilterPipe.Filter.LESS_THAN_EQUAL);
 		}
 		

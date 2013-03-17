@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2012 "Neo Technology,"
+ * Copyright (c) 2010-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
  * This file is part of Neo4j.
@@ -299,6 +299,11 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
     public Iterable<Node> getAllGeometryNodes() {
         //@TODO: support multiple layers
         return layer.getAllGeometryNodes();
+    }
+
+    public boolean containsGeometryNode(Node geomNode) {
+        //@TODO: support multiple layers
+        return layer.containsGeometryNode(geomNode);
     }
 
     public GeometryEncoder getGeometryEncoder() {

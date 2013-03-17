@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2012 "Neo Technology,"
+ * Copyright (c) 2010-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
  * This file is part of Neo4j.
@@ -43,8 +43,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 
 import javax.script.Bindings;
 import javax.script.ScriptContext;
@@ -53,6 +55,7 @@ import javax.script.ScriptEngineManager;
 import javax.script.SimpleBindings;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.neo4j.cypher.SyntaxException;
 import org.neo4j.cypher.javacompat.ExecutionEngine;
@@ -64,134 +67,291 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.index.IndexManager;
+import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.test.ImpermanentGraphDatabase;
 
 import com.tinkerpop.blueprints.pgm.impls.neo4j.Neo4jGraph;
+import org.neo4j.gis.spatial.indexprovider.SpatialRecordHits;
 
-public class IndexProviderTest
-{
+public class IndexProviderTest {
 
     private ImpermanentGraphDatabase db;
 
     @Before
-    public void setup() throws Exception
-    {
+    public void setup() throws Exception {
         db = new ImpermanentGraphDatabase();
     }
 
+    /**
+     * Test that we can create and retrieve indexes
+     */
     @Test
-    public void testLoadIndex()
-    {
+    public void testLoadIndex() {
         Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
         IndexManager indexMan = db.index();
         Index<Node> index = indexMan.forNodes( "layer1", config );
 //        index = indexMan.forNodes( "layer1", config );
         assertNotNull( index );
+        
+        config = SpatialIndexProvider.SIMPLE_WKT_CONFIG;
+        index = indexMan.forNodes( "layer2", config );
+        assertNotNull( index );
+        
+        config = SpatialIndexProvider.SIMPLE_WKB_CONFIG;
+        index = indexMan.forNodes( "layer3", config );
+        assertNotNull( index );
+    }
 
+    /**
+     * Test that invalid configurations do not leave configurations in the index manager
+     */
+    @Test
+    @Ignore
+    //TODO: fix this, issue #71
+    public void testInvalidConfig() {
+        // An invalid configuration
+        Map<String, String> config =
+                Collections.unmodifiableMap(MapUtil.stringMap(
+                        IndexManager.PROVIDER, SpatialIndexProvider.SERVICE_NAME, SpatialIndexProvider.GEOMETRY_TYPE, LayerNodeIndex.POINT_PARAMETER));
+        // Use transaction just in case it matters (not that I can tell)
+        Transaction tx = db.beginTx();
+        System.out.println("testInvalidConfig: Begun transaction");
+
+        // Try to create the index, ignore IllegalArgumentException to continue
+        IndexManager indexMan = db.index();
+        try {
+            Index<Node> index = indexMan.forNodes("layer1", config);
+            System.out.println("testInvalidConfig: invalid index requested, did not throw exception.");
+            tx.success();    // Won't happen currently
+        } catch (IllegalArgumentException e) {
+            // Bail out
+            tx.failure();
+            System.out.println("testInvalidConfig: invalid index creation failed, good, let the tx rollback");
+        }
+        tx.finish();
+        System.out.println("testInvalidConfig: tx done.");
+        // Assert index isn't referenced in the manager
+        assertFalse("Index should not exist", indexMan.existsForNodes("layer1"));
+    }
+
+    /*
+    * Test the deletion of indexes
+    */
+    @Test
+    @Ignore
+    //TODO: fix this, issue #70
+    public void testDeleteIndex() {
+        // Create an index
+        Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
+        IndexManager indexMan = db.index();
+        Index<Node> index = indexMan.forNodes("layer1", config);
+        assertNotNull(index);
+        // Request deletion
+        index.delete();
+        // Assert deletion
+        assertFalse(indexMan.existsForNodes("layer1"));
+        // TODO: we should probably check the internal structure was also cleanly deleted 
     }
 
     @Test
-    public void testNodeIndex() throws SyntaxException, Exception
-    {
+    public void testNodeIndex() throws SyntaxException, Exception {
         Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
         IndexManager indexMan = db.index();
-        Index<Node> index = indexMan.forNodes( "layer1", config );
-        assertNotNull( index );
+        Index<Node> index = indexMan.forNodes("layer1", config);
+        assertNotNull(index);
         Transaction tx = db.beginTx();
         Node n1 = db.createNode();
-        n1.setProperty( "lat", (double) 56.2 );
-        n1.setProperty( "lon", (double) 15.3 );
-        index.add( n1, "dummy", "value" );
+        n1.setProperty("lat", (double) 56.2);
+        n1.setProperty("lon", (double) 15.3);
+        index.add(n1, "dummy", "value");
         tx.success();
         tx.finish();
         Map<String, Object> params = new HashMap<String, Object>();
         //within Envelope
-        params.put( LayerNodeIndex.ENVELOPE_PARAMETER, new Double[] { 15.0,
-                16.0, 56.0, 57.0 } );
-        IndexHits<Node> hits = index.query( LayerNodeIndex.WITHIN_QUERY, params );
-        assertTrue( hits.hasNext() );
-        
+        params.put(LayerNodeIndex.ENVELOPE_PARAMETER, new Double[]{15.0,
+                16.0, 56.0, 57.0});
+        IndexHits<Node> hits = index.query(LayerNodeIndex.WITHIN_QUERY, params);
+        assertTrue(hits.hasNext());
+
         // within BBOX
-        hits = index.query( LayerNodeIndex.BBOX_QUERY,
-                "[15.0, 16.0, 56.0, 57.0]" );
-        assertTrue( hits.hasNext() );
-        
+        hits = index.query(LayerNodeIndex.BBOX_QUERY,
+                "[15.0, 16.0, 56.0, 57.0]");
+        assertTrue(hits.hasNext());
+
         //within any WKT geometry
-        hits = index.query( LayerNodeIndex.WITHIN_WKT_GEOMETRY_QUERY,
-                "POLYGON ((15 56, 15 57, 16 57, 16 56, 15 56))" );
-        assertTrue( hits.hasNext() );
+        hits = index.query(LayerNodeIndex.WITHIN_WKT_GEOMETRY_QUERY,
+                "POLYGON ((15 56, 15 57, 16 57, 16 56, 15 56))");
+        assertTrue(hits.hasNext());
         //polygon with hole, excluding n1
-        hits = index.query( LayerNodeIndex.WITHIN_WKT_GEOMETRY_QUERY,
+        hits = index.query(LayerNodeIndex.WITHIN_WKT_GEOMETRY_QUERY,
                 "POLYGON ((15 56, 15 57, 16 57, 16 56, 15 56)," +
-                "(15.1 56.1, 15.1 56.3, 15.4 56.3, 15.4 56.1, 15.1 56.1))" );
-        assertFalse( hits.hasNext() );
-        
-        
+                        "(15.1 56.1, 15.1 56.3, 15.4 56.3, 15.4 56.1, 15.1 56.1))");
+        assertFalse(hits.hasNext());
+
+
         //within distance
         params.clear();
         params.put(LayerNodeIndex.POINT_PARAMETER, new Double[]{56.5, 15.5});
         params.put(LayerNodeIndex.DISTANCE_IN_KM_PARAMETER, 100.0);
-        hits = index.query( LayerNodeIndex.WITHIN_DISTANCE_QUERY,
-                params );
-        assertTrue( hits.hasNext() );
+        hits = index.query(LayerNodeIndex.WITHIN_DISTANCE_QUERY,
+                params);
+        assertTrue(hits.hasNext());
         // test Cypher query
-        ExecutionEngine engine = new ExecutionEngine( db );
-        ExecutionResult result = engine.execute(  "start n=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') match (n) -[r] - (x) return n, type(r), x.layer?, x.bbox?"  );
-        System.out.println( result.toString() );
+        ExecutionEngine engine = new ExecutionEngine(db);
+//        ExecutionResult result = engine.execute(  "start n=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') match (n) -[r] - (x) return n, type(r), x.layer?, x.bbox?"  );
+
+        ExecutionResult result = engine.execute("start n=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') return n");
+        System.out.println(result.toString());
 
         // test Gremlin
-        ScriptEngine gremlinEngine = new ScriptEngineManager().getEngineByName( "gremlin-groovy" );
+        ScriptEngine gremlinEngine = new ScriptEngineManager().getEngineByName("gremlin-groovy");
         final Bindings bindings = new SimpleBindings();
-        final Neo4jGraph graph = new Neo4jGraph( db, false );
-        bindings.put( "g", graph );
-        gremlinEngine.setBindings( bindings, ScriptContext.ENGINE_SCOPE );
+        final Neo4jGraph graph = new Neo4jGraph(db, false);
+        bindings.put("g", graph);
+        gremlinEngine.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
+//        assertEquals(
+//                2L,
+//                gremlinEngine.eval( "g.idx('layer1')[[bbox:'[15.0, 16.0, 56.0, 57.0]']].in().count()" ) );
+
+        // Rather than counting the incoming vertices, we just count the nodes
+        // of which there are one, with no incoming edges
         assertEquals(
-                2L,
-                gremlinEngine.eval( "g.idx('layer1')[[bbox:'[15.0, 16.0, 56.0, 57.0]']].in().count()" ) );
+                1L,
+                gremlinEngine.eval("g.idx('layer1')[[bbox:'[15.0, 16.0, 56.0, 57.0]']].count()"));
 
     }
 
     @Test
     public void testWithinDistanceIndex()
     {
-        Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG_WKT;
+        Map<String, String> config = SpatialIndexProvider.SIMPLE_WKT_CONFIG;
         IndexManager indexMan = db.index();
-        Index<Node> index = indexMan.forNodes( "layer2", config );
+        Index<Node> index = indexMan.forNodes("layer2", config);
         Transaction tx = db.beginTx();
         Node batman = db.createNode();
-        batman.setProperty( "wkt", "POINT(41.14 37.88 )");
-        batman.setProperty( "name", "batman" );
-        index.add( batman, "dummy", "value" );
+        batman.setProperty("wkt", "POINT(41.14 37.88 )");
+        batman.setProperty("name", "batman");
+        index.add(batman, "dummy", "value");
         Map<String, Object> params = new HashMap<String, Object>();
-        params.put( LayerNodeIndex.POINT_PARAMETER,
-                new Double[] { 37.87, 41.13 } );
-        params.put( LayerNodeIndex.DISTANCE_IN_KM_PARAMETER, 2.0 );
+        params.put(LayerNodeIndex.POINT_PARAMETER,
+                new Double[]{37.87, 41.13});
+        params.put(LayerNodeIndex.DISTANCE_IN_KM_PARAMETER, 2.0);
         IndexHits<Node> hits = index.query(
-                LayerNodeIndex.WITHIN_DISTANCE_QUERY, params );
+                LayerNodeIndex.WITHIN_DISTANCE_QUERY, params);
         tx.success();
         tx.finish();
-        Node spatialRecord = hits.getSingle();
+        Node node = hits.getSingle();
         /* assertTrue( spatialRecord.getProperty( "distanceInKm" ).equals(
                 1.416623647558699 ) ); */
-        Node node = db.getNodeById( (Long) spatialRecord.getProperty( "id" ) );
-        assertTrue( node.getProperty( "name" ).equals( "batman" ) );
 
+        //We not longer need this as the node we get back already a 'Real' node
+//        Node node = db.getNodeById( (Long) spatialRecord.getProperty( "id" ) );
+        assertTrue(node.getProperty("name").equals("batman"));
+
+    }
+
+    @Test
+    public void testWithinDistanceIndexViaCypher() {
+        Map<String, String> config = SpatialIndexProvider.SIMPLE_WKT_CONFIG;
+        IndexManager indexMan = db.index();
+        Index<Node> index = indexMan.forNodes("layer3", config);
+        Transaction tx = db.beginTx();
+        Node batman = db.createNode();
+        batman.setProperty("wkt", "POINT(44.44 33.33 )");
+        batman.setProperty("name", "robin");
+        index.add(batman, "dummy", "value");
+
+        ExecutionEngine engine = new ExecutionEngine(db);
+        ExecutionResult result = engine.execute("start n=node:layer3('withinDistance:[44.44, 33.32, 5.0]') return n");
+        System.out.println(result.toString());
+    }
+
+    /**
+     * Test the performance of LayerNodeIndex.add()
+     * Insert up to 100K nodes into the database, and into the index, randomly distributed over [-80,+80][-170+170]
+     * Calculate speed over 100-node groups, fail if speed falls under 50 adds/second (typical max speed here 500 adds/second)
+     */
+    @Test
+    public void testAddPerformance() {
+        Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
+        IndexManager indexMan = db.index();
+        Index<Node> index = indexMan.forNodes("pointslayer", config);
+
+        Transaction tx = db.beginTx();
+        try {
+            Random r = new Random();
+            final int stepping = 1000;
+            long start = System.currentTimeMillis();
+            long previous = start;
+            for (int i = 1; i <= 100000; i++) {
+                Node newnode = db.createNode();
+                newnode.setProperty("lat", (double) r.nextDouble() * 160 - 80);
+                newnode.setProperty("lon", (double) r.nextDouble() * 340 - 170);
+
+                index.add(newnode, "dummy", "value");
+
+                if (i % stepping == 0) {
+                    long now = System.currentTimeMillis();
+                    long duration = now - start;
+                    long stepDuration = now - previous;
+                    double speed = stepping / (stepDuration / 1000.0);
+                    double linearity = (double) stepDuration / i;
+                    System.out.println("testAddPerformance(): " + stepping + " nodes added in " + stepDuration + "ms, total " + i + " in " + duration + "ms, speed: " + speed + " adds per second, " + linearity + " ms per step per node in index");
+                    final double targetSpeed = 50.0;    // Quite conservative, max speed here 500 adds per second
+                    assertTrue("add is too slow at size:" + i + " (" + speed + " adds per second <= " + targetSpeed + ")", speed > targetSpeed);
+
+                    previous = now;
+		    
+					// commit transaction
+					tx.success();
+					tx.finish();
+
+					tx = db.beginTx();
+                }
+            }
+            tx.success();
+        } finally {
+            System.out.println("testAddPerformance() finished");
+            tx.finish();
+        }
     }
     
     @Test
-    public void testWithinDistanceIndexViaCypher()
-    {
-        Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG_WKT;
+    public void testUpdate() {
+	Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
         IndexManager indexMan = db.index();
-        Index<Node> index = indexMan.forNodes( "layer3", config );
+        Index<Node> index = indexMan.forNodes("pointslayer", config);
+
         Transaction tx = db.beginTx();
-        Node batman = db.createNode();
-        batman.setProperty( "wkt", "POINT(44.44 33.33 )");
-        batman.setProperty( "name", "robin" );
-        index.add( batman, "dummy", "value" );
-        
-        ExecutionEngine engine = new ExecutionEngine( db );
-        ExecutionResult result = engine.execute(  "start n=node:layer3('withinDistance:[44.44, 33.32, 5.0]') return n"  );
-        System.out.println( result.toString() );
+        Node n1 = db.createNode();
+        n1.setProperty("lat", (double) 56.2);
+        n1.setProperty("lon", (double) 15.3);
+        index.add(n1, "dummy", "value");
+		
+	Map<String, Object> params = new HashMap<String, Object>();
+	params.put(LayerNodeIndex.POINT_PARAMETER, new Double[]{56.2, 15.3});
+	params.put(LayerNodeIndex.DISTANCE_IN_KM_PARAMETER, 0.0001);
+	IndexHits<Node> hits = index.query(LayerNodeIndex.WITHIN_DISTANCE_QUERY, params);
+	assertTrue(hits.hasNext());
+	
+        n1.setProperty("lat", (double) 46.2);
+        n1.setProperty("lon", (double) 25.3);
+		
+	// update
+	index.add(n1, "dummy", "value");
+
+	tx.success();
+        tx.finish();
+	
+	params.put(LayerNodeIndex.POINT_PARAMETER, new Double[]{46.2, 25.3});
+	params.put(LayerNodeIndex.DISTANCE_IN_KM_PARAMETER, 0.0001);
+	hits = index.query(LayerNodeIndex.WITHIN_DISTANCE_QUERY, params);
+	assertTrue(hits.hasNext());
+	
+	hits.next();
+	
+	// make sure there's only one node
+	assertFalse(hits.hasNext());
+
     }
 }

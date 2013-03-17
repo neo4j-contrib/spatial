@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2010-2012 "Neo Technology,"
+ * Copyright (c) 2010-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
  * This file is part of Neo4j.
@@ -19,19 +19,12 @@
  */
 package org.neo4j.gis.spatial;
 
-import static org.neo4j.gis.spatial.utilities.TraverserFactory.createTraverserInBackwardsCompatibleWay;
-
-import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.traversal.Evaluators;
-import org.neo4j.graphdb.traversal.TraversalDescription;
-import org.neo4j.kernel.Traversal;
 
 import com.vividsolutions.jts.geom.Geometry;
 
 public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
-	private Node previousGeomNode;
 
 	/**
 	 * Add a geometry to this layer.
@@ -43,6 +36,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 	/**
 	 * Add a geometry to this layer, including properties.
 	 */
+	@Override
 	public SpatialDatabaseRecord add(Geometry geometry, String[] fieldsName, Object[] fields) {
 		Transaction tx = getDatabase().beginTx();
 		try {
@@ -55,6 +49,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 		}
 	}
 
+	@Override
 	public void update(long geomNodeId, Geometry geometry) {
 		Transaction tx = getDatabase().beginTx();
 		try {
@@ -69,6 +64,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 		}
 	}
 
+	@Override
 	public void delete(long geomNodeId) {
 		Transaction tx = getDatabase().beginTx();
 		try {
@@ -79,7 +75,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 		}
 	}
 
-    @Override
+	@Override
 	public void removeFromIndex(long geomNodeId) {
 		Transaction tx = getDatabase().beginTx();
 		try {
@@ -91,25 +87,8 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 		}
 	}
 
-	private Node addGeomNode(Geometry geom, String[] fieldsName, Object[] fields) {
+	protected Node addGeomNode(Geometry geom, String[] fieldsName, Object[] fields) {
 		Node geomNode = getDatabase().createNode();
-		if (previousGeomNode == null) {
-            TraversalDescription traversalDescription = Traversal.description().order( Traversal.postorderBreadthFirst() )
-                    .relationships( SpatialRelationshipTypes.GEOMETRIES, Direction.INCOMING )
-                    .relationships( SpatialRelationshipTypes.NEXT_GEOM, Direction.INCOMING )
-                    .evaluator( Evaluators.excludeStartPosition() );
-
-            for (Node node : createTraverserInBackwardsCompatibleWay( traversalDescription, layerNode ).nodes())
-                        {
-				previousGeomNode = node;
-			}
-		}
-		if (previousGeomNode != null) {
-			previousGeomNode.createRelationshipTo(geomNode, SpatialRelationshipTypes.NEXT_GEOM);
-		} else {
-			layerNode.createRelationshipTo(geomNode, SpatialRelationshipTypes.GEOMETRIES);
-		}
-		previousGeomNode = geomNode;
 		// other properties
 		if (fieldsName != null) {
 			for (int i = 0; i < fieldsName.length; i++) {
