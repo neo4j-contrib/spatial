@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial.indexprovider;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -46,38 +47,36 @@ public class LayerNodeIndex implements Index<Node>
     public static final String LAT_PROPERTY_KEY = "lat";	// Config parameter key: latitude property name for nodes in point layers
     public static final String WKT_PROPERTY_KEY = "wkt";	// Config parameter key: wkt property name for nodes
     public static final String WKB_PROPERTY_KEY = "wkb";	// Config parameter key: wkb property name for nodes
-    
+
     public static final String POINT_GEOMETRY_TYPE = "point";	// Config parameter value: Layer can contain points
-    
+
     public static final String WITHIN_QUERY = "within";							// Query type
     public static final String WITHIN_WKT_GEOMETRY_QUERY = "withinWKTGeometry";	// Query type
     public static final String WITHIN_DISTANCE_QUERY = "withinDistance";		// Query type
     public static final String BBOX_QUERY = "bbox";								// Query type
     public static final String CQL_QUERY = "CQL";								// Query type (unused)
-    
+
     public static final String ENVELOPE_PARAMETER = "envelope";					// Query parameter key: envelope for within query
     public static final String DISTANCE_IN_KM_PARAMETER = "distanceInKm";		// Query parameter key: distance for withinDistance query
     public static final String POINT_PARAMETER = "point";						// Query parameter key: relative to this point for withinDistance query
-    
+
     private String nodeLookupIndexName;
-    
+
     private final String layerName;
     private final GraphDatabaseService db;
     private SpatialDatabaseService spatialDB;
     private EditableLayer layer;
     private Index<Node> idLookup;
-    
+
     /**
      * This implementation is going to create a new layer if there is no
      * existing one.
-     * 
+     *
      * @param indexName
      * @param db
      * @param config
      */
-    public LayerNodeIndex( String indexName, GraphDatabaseService db,
-            Map<String, String> config )
-    {
+    public LayerNodeIndex( String indexName, GraphDatabaseService db, Map<String, String> config) {
         this.layerName = indexName;
         this.db = db;
         this.nodeLookupIndexName = indexName + "__neo4j-spatial__LayerNodeIndex__internal__spatialNodeLookup__";
@@ -110,71 +109,63 @@ public class LayerNodeIndex implements Index<Node>
     }
 
     @Override
-    public String getName()
-    {
+    public String getName() {
         return layerName;
     }
 
     @Override
-    public Class<Node> getEntityType()
-    {
+    public Class<Node> getEntityType() {
         return Node.class;
     }
 
     @Override
-    public void add( Node geometry, String key, Object value )
-    {
+    public void add( Node geometry, String key, Object value ) {
         Geometry decodeGeometry = layer.getGeometryEncoder().decodeGeometry( geometry );
 
         // check if node already exists in layer
         Node matchingNode = findExistingNode( geometry );
 
-        if (matchingNode == null)
-        {
-          SpatialDatabaseRecord newNode = layer.add(
-                decodeGeometry, new String[] { "id" },
-                new Object[] { geometry.getId() } );
+        if (matchingNode == null) {
+            SpatialDatabaseRecord newNode = layer.add(decodeGeometry, new String[] { "id" }, new Object[] { geometry.getId() } );
 
-	  // index geomNode with node of geometry
-	  idLookup.add(newNode.getGeomNode(), "id", geometry.getId());
-	}
-        else
-        {
+	        // index geomNode with node of geometry
+	        idLookup.add(newNode.getGeomNode(), "id", geometry.getId());
+	    } else {
           // update existing geoNode
-          layer.update(matchingNode.getId(), decodeGeometry);      
+          layer.update(matchingNode.getId(), decodeGeometry);
         }
-
     }
 
     private Node findExistingNode( Node geometry ) {
-	return idLookup.query("id", geometry.getId()).getSingle();
+	    return idLookup.query("id", geometry.getId()).getSingle();
     }
 
     @Override
-    public void remove( Node entity, String key, Object value )
-    {
+    public void remove( Node entity, String key, Object value ) {
         remove( entity );
     }
 
     @Override
-    public void delete()
-    {
+    public void delete() {
     }
 
     /**
      * Not supported at the moment
      */
     @Override
-    public IndexHits<Node> get( String key, Object value )
-    {
+    public IndexHits<Node> get( String key, Object value ) {
         return query( key, value );
     }
 
     @Override
-    public IndexHits<Node> query( String key, Object params )
-    {
+    public IndexHits<Node> query( String key, Object params ) {
+        if (!beingCalledInPreM05Way(key) && params.getClass() == String.class) {
+            String queryString = (String) params;
+            key = extractKey(queryString);
+            params = extractParams(queryString);
+        }
+
         IndexHits<Node> results;
-        // System.out.println( key + "," + params );
         if ( key.equals( WITHIN_QUERY ) )
         {
             Map<?, ?> p = (Map<?, ?>) params;
@@ -184,71 +175,33 @@ public class LayerNodeIndex implements Index<Node>
                     layer,
                     layer.getGeometryFactory().toGeometry(
                             new Envelope( bounds[0], bounds[1], bounds[2],
-                                    bounds[3] ) ) ).toSpatialDatabaseRecordList();
+                                    bounds[3]))).toSpatialDatabaseRecordList();
 
             results = new SpatialRecordHits(res, layer);
             return results;
         }
-        
+
         if ( key.equals( WITHIN_WKT_GEOMETRY_QUERY ) )
         {
             WKTReader reader = new WKTReader( layer.getGeometryFactory() );
             Geometry geometry;
-            try
-            {
+            try {
                 geometry = reader.read( (String)params);
                 List<SpatialDatabaseRecord> res = GeoPipeline.startWithinSearch(
                         layer,geometry ).toSpatialDatabaseRecordList();
-                
+
                 results = new SpatialRecordHits(res, layer);
                 return results;
             }
-            catch ( com.vividsolutions.jts.io.ParseException e )
-            {
-                // TODO Auto-generated catch block
+            catch ( com.vividsolutions.jts.io.ParseException e ) {
                 e.printStackTrace();
             }
 
         }
-        
+
         else if ( key.equals( WITHIN_DISTANCE_QUERY ) )
         {
-            Double[] point = null;
-            Double distance = null;
-            
-            // this one should enable distance searches using cypher query lang
-            // by using: withinDistance:[7.0, 10.0, 100.0]  (long, lat. distance)
-            if (params.getClass() == String.class)
-            {
-                try
-                {
-                    @SuppressWarnings("unchecked")
-					List<Double> coordsAndDistance = (List<Double>) new JSONParser().parse( (String) params );
-                    point = new Double[2];
-                    point[0] = coordsAndDistance.get(0);
-                    point[1] = coordsAndDistance.get(1);
-                    distance = coordsAndDistance.get(2);
-                }
-                catch ( ParseException e )
-                {
-                    // TODO Auto-generated catch block
-                    e.printStackTrace();
-                }
-            }
-            
-            else
-            {
-                Map<?, ?> p = (Map<?, ?>) params;
-                point = (Double[]) p.get( POINT_PARAMETER );
-                distance = (Double) p.get( DISTANCE_IN_KM_PARAMETER );
-            }
-
-            List<SpatialDatabaseRecord> res = GeoPipeline.startNearestNeighborLatLonSearch(
-                    layer, new Coordinate( point[1], point[0] ), distance ).sort(
-                    "OrthodromicDistance" ).toSpatialDatabaseRecordList();
-
-            results = new SpatialRecordHits(res, layer);
-            return results;
+            return withinDistanceQuery(params);
         }
         else if ( key.equals( BBOX_QUERY ) )
         {
@@ -274,54 +227,96 @@ public class LayerNodeIndex implements Index<Node>
         }
         else
         {
-            throw new UnsupportedOperationException( String.format(
-                    "only %s, %S and %s are implemented.", WITHIN_QUERY,
-                    WITHIN_DISTANCE_QUERY, BBOX_QUERY ) );
+            throw new UnsupportedOperationException(String.format(
+                    "only %s, %S and %s are implemented. You tried to query [%s]",
+                        WITHIN_QUERY, WITHIN_DISTANCE_QUERY, BBOX_QUERY, key));
         }
         return null;
     }
-    
-    @Override
-    public IndexHits<Node> query( Object queryOrQueryObject )
-    {
 
-        String queryString = (String) queryOrQueryObject;
-        return query( queryString.substring( 0, queryString.indexOf( ":" ) ),
-                queryString.substring( queryString.indexOf( ":" ) + 1 ) );
+    private boolean beingCalledInPreM05Way(String key) {
+        return Arrays.asList(WITHIN_QUERY, WITHIN_WKT_GEOMETRY_QUERY, WITHIN_DISTANCE_QUERY, BBOX_QUERY).contains(key);
+    }
+
+    private String extractParams(String queryString) {
+        return queryString.substring(queryString.indexOf(":") + 1);
+    }
+
+    private String extractKey(String queryString) {
+        return queryString.substring(0, queryString.indexOf(":"));
+    }
+
+    private IndexHits<Node> withinDistanceQuery(Object params) {
+        Double[] point = null;
+        Double distance = null;
+
+        // this one should enable distance searches using cypher query lang
+        // by using: withinDistance:[7.0, 10.0, 100.0]  (long, lat. distance)
+        if (params.getClass() == String.class)
+        {
+            try
+            {
+                @SuppressWarnings("unchecked")
+                List<Double> coordsAndDistance = (List<Double>) new JSONParser().parse( (String) params );
+                point = new Double[2];
+                point[0] = coordsAndDistance.get(0);
+                point[1] = coordsAndDistance.get(1);
+                distance = coordsAndDistance.get(2);
+            }
+            catch ( ParseException e )
+            {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+
+        else
+        {
+            Map<?, ?> p = (Map<?, ?>) params;
+            point = (Double[]) p.get( POINT_PARAMETER );
+            distance = (Double) p.get( DISTANCE_IN_KM_PARAMETER );
+        }
+
+        List<SpatialDatabaseRecord> res = GeoPipeline.startNearestNeighborLatLonSearch(
+                layer, new Coordinate(point[1], point[0]), distance).sort(
+                "OrthodromicDistance" ).toSpatialDatabaseRecordList();
+
+        return new SpatialRecordHits(res, layer);
     }
 
     @Override
-    public void remove( Node node, String s )
-    {
+    public IndexHits<Node> query(Object queryOrQueryObject) {
+        String queryString = (String) queryOrQueryObject;
+        return query(extractKey(queryString), extractParams(queryString));
+    }
+
+    @Override
+    public void remove(Node node, String s) {
         remove(node);
     }
 
     @Override
-    public void remove( Node node )
-    {
+    public void remove( Node node ) {
         try {
             layer.removeFromIndex( node.getId() );
-	    idLookup.remove(((SpatialDatabaseRecord) node).getGeomNode());
+	        idLookup.remove(((SpatialDatabaseRecord) node).getGeomNode());
         } catch (Exception e) {
             //could not remove
         }
     }
 
     @Override
-    public boolean isWriteable()
-    {
+    public boolean isWriteable() {
         return true;
     }
 
     @Override
-    public GraphDatabaseService getGraphDatabase()
-    {
+    public GraphDatabaseService getGraphDatabase() {
         return db;
     }
 
     @Override
-    public Node putIfAbsent( Node entity, String key, Object value )
-    {
+    public Node putIfAbsent( Node entity, String key, Object value ) {
         throw new NotImplementedException();
-    }    
+    }
 }

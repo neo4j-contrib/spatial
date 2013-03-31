@@ -151,7 +151,7 @@ public class IndexProviderTest {
     }
 
     @Test
-    public void testNodeIndex() throws SyntaxException, Exception {
+    public void testNodeIndex() throws Exception {
         Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
         IndexManager indexMan = db.index();
         Index<Node> index = indexMan.forNodes("layer1", config);
@@ -165,37 +165,31 @@ public class IndexProviderTest {
         tx.finish();
         Map<String, Object> params = new HashMap<String, Object>();
         //within Envelope
-        params.put(LayerNodeIndex.ENVELOPE_PARAMETER, new Double[]{15.0,
-                16.0, 56.0, 57.0});
+        params.put(LayerNodeIndex.ENVELOPE_PARAMETER, new Double[]{15.0,16.0, 56.0, 57.0});
         IndexHits<Node> hits = index.query(LayerNodeIndex.WITHIN_QUERY, params);
         assertTrue(hits.hasNext());
 
         // within BBOX
-        hits = index.query(LayerNodeIndex.BBOX_QUERY,
-                "[15.0, 16.0, 56.0, 57.0]");
+        hits = index.query("layer1", String.format("%s:[15.0, 16.0, 56.0, 57.0]", LayerNodeIndex.BBOX_QUERY));
         assertTrue(hits.hasNext());
 
         //within any WKT geometry
-        hits = index.query(LayerNodeIndex.WITHIN_WKT_GEOMETRY_QUERY,
-                "POLYGON ((15 56, 15 57, 16 57, 16 56, 15 56))");
+        hits = index.query("layer1", String.format("%s:POLYGON ((15 56, 15 57, 16 57, 16 56, 15 56))", LayerNodeIndex.WITHIN_WKT_GEOMETRY_QUERY));
         assertTrue(hits.hasNext());
         //polygon with hole, excluding n1
-        hits = index.query(LayerNodeIndex.WITHIN_WKT_GEOMETRY_QUERY,
-                "POLYGON ((15 56, 15 57, 16 57, 16 56, 15 56)," +
-                        "(15.1 56.1, 15.1 56.3, 15.4 56.3, 15.4 56.1, 15.1 56.1))");
+        hits = index.query("layer1",
+                String.format("%s:POLYGON ((15 56, 15 57, 16 57, 16 56, 15 56),(15.1 56.1, 15.1 56.3, 15.4 56.3, 15.4 56.1, 15.1 56.1))",
+                              LayerNodeIndex.WITHIN_WKT_GEOMETRY_QUERY));
         assertFalse(hits.hasNext());
-
 
         //within distance
         params.clear();
         params.put(LayerNodeIndex.POINT_PARAMETER, new Double[]{56.5, 15.5});
         params.put(LayerNodeIndex.DISTANCE_IN_KM_PARAMETER, 100.0);
-        hits = index.query(LayerNodeIndex.WITHIN_DISTANCE_QUERY,
-                params);
+        hits = index.query(LayerNodeIndex.WITHIN_DISTANCE_QUERY, params);
         assertTrue(hits.hasNext());
         // test Cypher query
         ExecutionEngine engine = new ExecutionEngine(db);
-//        ExecutionResult result = engine.execute(  "start n=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') match (n) -[r] - (x) return n, type(r), x.layer?, x.bbox?"  );
 
         ExecutionResult result = engine.execute("start n=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') return n");
         System.out.println(result.dumpToString());
@@ -215,12 +209,10 @@ public class IndexProviderTest {
         assertEquals(
                 1L,
                 gremlinEngine.eval("g.idx('layer1')[[bbox:'[15.0, 16.0, 56.0, 57.0]']].count()"));
-
     }
 
     @Test
-    public void testWithinDistanceIndex()
-    {
+    public void testWithinDistanceIndex() {
         Map<String, String> config = SpatialIndexProvider.SIMPLE_WKT_CONFIG;
         IndexManager indexMan = db.index();
         Index<Node> index = indexMan.forNodes("layer2", config);
@@ -230,21 +222,14 @@ public class IndexProviderTest {
         batman.setProperty("name", "batman");
         index.add(batman, "dummy", "value");
         Map<String, Object> params = new HashMap<String, Object>();
-        params.put(LayerNodeIndex.POINT_PARAMETER,
-                new Double[]{37.87, 41.13});
+        params.put(LayerNodeIndex.POINT_PARAMETER, new Double[]{37.87, 41.13});
         params.put(LayerNodeIndex.DISTANCE_IN_KM_PARAMETER, 2.0);
-        IndexHits<Node> hits = index.query(
-                LayerNodeIndex.WITHIN_DISTANCE_QUERY, params);
+        IndexHits<Node> hits = index.query(LayerNodeIndex.WITHIN_DISTANCE_QUERY, params);
         tx.success();
         tx.finish();
         Node node = hits.getSingle();
-        /* assertTrue( spatialRecord.getProperty( "distanceInKm" ).equals(
-                1.416623647558699 ) ); */
 
-        //We not longer need this as the node we get back already a 'Real' node
-//        Node node = db.getNodeById( (Long) spatialRecord.getProperty( "id" ) );
         assertTrue(node.getProperty("name").equals("batman"));
-
     }
 
     @Test
@@ -271,6 +256,7 @@ public class IndexProviderTest {
      * Calculate speed over 100-node groups, fail if speed falls under 50 adds/second (typical max speed here 500 adds/second)
      */
     @Test
+    @Ignore
     public void testAddPerformance() {
         Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
         IndexManager indexMan = db.index();
