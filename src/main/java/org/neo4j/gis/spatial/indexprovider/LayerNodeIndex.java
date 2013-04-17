@@ -275,7 +275,7 @@ public class LayerNodeIndex implements Index<Node>
         else
         {
             throw new UnsupportedOperationException( String.format(
-                    "only %s, %S and %s are implemented.", WITHIN_QUERY,
+                    "only %s, %s and %s are implemented.", WITHIN_QUERY,
                     WITHIN_DISTANCE_QUERY, BBOX_QUERY ) );
         }
         return null;

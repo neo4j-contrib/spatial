@@ -100,7 +100,9 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
         assertTrue(response.contains( "60.1" ));
         response = post(Status.OK,"{\"query\":\"start node = node:geom(\'bbox:[15.0,15.3,60.0,60.2]\') return node\"}", "http://localhost:"+PORT+"/db/data/cypher");
         assertTrue(response.contains( "node" ));
-        
+        response = post(Status.OK,"{\"query\":\"start node = node:geom(\'withinDistance:[15.0,15.3,60.0,60.2, 5.0]\') return node\"}", "http://localhost:"+PORT+"/db/data/cypher");
+        assertTrue(response.contains( "node" ));
+
     }
     
     private String post(Status status, String payload, String endpoint) {
