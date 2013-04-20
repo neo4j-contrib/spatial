@@ -173,6 +173,12 @@ public class LayerNodeIndex implements Index<Node>
     @Override
     public IndexHits<Node> query( String key, Object params )
     {
+	    
+	// fixes https://github.com/neo4j/spatial/issues/87
+	if (key.equals(layerName)) {
+		return query(params);
+	}
+	    
         IndexHits<Node> results;
         // System.out.println( key + "," + params );
         if ( key.equals( WITHIN_QUERY ) )
