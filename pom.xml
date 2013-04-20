@@ -2,8 +2,8 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <properties>
-        <neo4j.version>1.9.M04</neo4j.version>
-        <neo4j.graphcollections.version>0.5</neo4j.graphcollections.version>
+        <neo4j.version>1.9.RC1</neo4j.version>
+        <neo4j.graphcollections.version>0.6-SNAPSHOT</neo4j.graphcollections.version>
         <geotools.version>8.4</geotools.version>
         <spatial.test.osm.version>20100819</spatial.test.osm.version>
         <spatial.test.shp.version>20100819</spatial.test.shp.version>
@@ -16,7 +16,7 @@
     <parent>
         <artifactId>parent-central</artifactId>
         <groupId>org.neo4j.build</groupId>
-        <version>36</version>
+        <version>39</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>neo4j-spatial</artifactId>
