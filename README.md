@@ -1,5 +1,7 @@
 # Neo4j Spatial
- 
+
+[![Build Status](https://travis-ci.org/neo4j/spatial.png)](https://travis-ci.org/neo4j/spatial)
+
 Neo4j Spatial is a library facilitating the import, storage and querying of spatial data in the [Neo4j open source graph database](http://neo4j.org/).
 
 This projects manual is deployed as part of the local build as the [Neo4j Spatial Manual](http://neo4j.github.io/spatial)
