@@ -71,7 +71,6 @@ import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.test.ImpermanentGraphDatabase;
 
 import com.tinkerpop.blueprints.pgm.impls.neo4j.Neo4jGraph;
-import org.neo4j.gis.spatial.indexprovider.SpatialRecordHits;
 
 public class IndexProviderTest {
 
