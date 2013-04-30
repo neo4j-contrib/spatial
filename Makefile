@@ -14,4 +14,3 @@ make_dir                   = $(tools_dir)/make
 
 include $(make_dir)/context-manual.make
 
-main_source                = docs

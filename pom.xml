@@ -3,6 +3,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <properties>
         <neo4j.version>1.9.M04</neo4j.version>
+        <neo4j.java.version>1.6</neo4j.java.version>
         <neo4j.graphcollections.version>0.5</neo4j.graphcollections.version>
         <geotools.version>8.4</geotools.version>
         <spatial.test.osm.version>20100819</spatial.test.osm.version>
@@ -16,7 +17,7 @@
     <parent>
         <artifactId>parent-central</artifactId>
         <groupId>org.neo4j.build</groupId>
-        <version>36</version>
+        <version>39</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
     <artifactId>neo4j-spatial</artifactId>
@@ -471,7 +472,7 @@
                                     <goal>copy-resources</goal>
                                 </goals>
                                 <configuration>
-                                    <outputDirectory>${project.build.directory}/docs</outputDirectory>
+                                    <outputDirectory>${project.build.directory}/src</outputDirectory>
                                     <resources>
                                         <resource>
                                             <directory>src/docs</directory>
@@ -490,28 +491,6 @@
                                     <resources>
                                         <resource>
                                             <directory>src/docs/conf</directory>
-                                            <excludes>
-                                                <exclude>version</exclude>
-                                            </excludes>
-                                        </resource>
-                                    </resources>
-                                </configuration>
-                            </execution>
-                            <execution>
-                                <id>copy-version</id>
-                                <phase>process-resources</phase>
-                                <goals>
-                                    <goal>copy-resources</goal>
-                                </goals>
-                                <configuration>
-                                    <outputDirectory>${project.build.directory}/conf</outputDirectory>
-                                    <resources>
-                                        <resource>
-                                            <directory>src/docs/conf</directory>
-                                            <filtering>true</filtering>
-                                            <includes>
-                                                <include>version</include>
-                                            </includes>
                                         </resource>
                                     </resources>
                                 </configuration>
@@ -523,12 +502,25 @@
                                     <goal>copy-resources</goal>
                                 </goals>
                                 <configuration>
-                                    <outputDirectory>
-                                        ${project.build.directory}/test-sources/neo4j-python-embedded-test-sources-jar
-                                    </outputDirectory>
+                                    <outputDirectory>${project.build.directory}/test-sources/neo4j-spatial-test-sources-jar</outputDirectory>
                                     <resources>
                                         <resource>
-                                            <directory>src/test/python</directory>
+                                            <directory>src/test/java</directory>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>copy-generated-files</id>
+                                <phase>post-integration-test</phase>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/src/dev/examples</outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>${project.build.directory}/docs/examples</directory>
                                         </resource>
                                     </resources>
                                 </configuration>
@@ -541,7 +533,7 @@
                         <executions>
                             <execution>
                                 <id>execute-asciidoc</id>
-                                <phase>compile</phase>
+                                <phase>verify</phase>
                                 <goals>
                                     <goal>exec</goal>
                                 </goals>
@@ -550,7 +542,6 @@
                                     <arguments>
                                         <argument>init</argument>
                                         <argument>preview</argument>
-                                        <argument>VERSION=${project.version}</argument>
                                     </arguments>
                                 </configuration>
                             </execution>
