@@ -4,7 +4,9 @@
 
 Neo4j Spatial is a library facilitating the import, storage and querying of spatial data in the [Neo4j open source graph database](http://neo4j.org/).
 
-![Open Street Map](https://raw.github.com/neo4j/spatial/master/src/docs/dev/images/one-street.png "Open Street Map")
+This projects manual is deployed as part of the local build as the [Neo4j Spatial Manual](http://neo4j.github.io/spatial)
+
+![Open Street Map](https://raw.github.com/neo4j/spatial/master/src/docs/images/one-street.png "Open Street Map")
 
 
 Some key features include:
@@ -115,6 +117,29 @@ Tested with: GeoServer 2.1.1
 
 ~~~bash
     mvn clean install
+~~~
+
+
+### Building and deploying the docs###
+
+Add your Github credentials in your `~/.m2/settings.xml`
+
+~~~xml
+<settings>
+    <servers>
+      <server>
+        <id>github</id>
+        <username>xxx@xxx.xx</username>
+        <password>secret</password>
+      </server>
+    </servers>
+</settings>
+~~~
+
+now do
+
+~~~bash
+    mvn clean install site -Pneo-docs-build -
 ~~~
 
 ### Deployment into Geoserver ###

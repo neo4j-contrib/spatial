@@ -3,6 +3,7 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <properties>
         <neo4j.version>1.9.RC2</neo4j.version>
+        <neo4j.java.version>1.6</neo4j.java.version>
         <neo4j.graphcollections.version>0.5</neo4j.graphcollections.version>
         <geotools.version>8.4</geotools.version>
         <spatial.test.osm.version>20100819</spatial.test.osm.version>
@@ -11,6 +12,7 @@
         <blueprints.version>1.2</blueprints.version>
         <gremlin.version>1.5</gremlin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <github.global.server>github</github.global.server>
     </properties>
 
     <parent>
@@ -40,6 +42,29 @@
                 <configuration>
                     <skip>true</skip>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-resources</id>
+                        <!-- here the phase you need -->
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${basedir}/target/filtered-test-sources</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${basedir}/target/filtered-test-sources</directory>
+                                    <filtering>true</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>
@@ -94,35 +119,6 @@
                 </configuration>
             </plugin>
         </plugins>
-        <pluginManagement>
-            <plugins>
-                <!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself. -->
-                <plugin>
-                    <groupId>org.eclipse.m2e</groupId>
-                    <artifactId>lifecycle-mapping</artifactId>
-                    <version>1.0.0</version>
-                    <configuration>
-                        <lifecycleMappingMetadata>
-                            <pluginExecutions>
-                                <pluginExecution>
-                                    <pluginExecutionFilter>
-                                        <groupId>org.apache.maven.plugins</groupId>
-                                        <artifactId>maven-dependency-plugin</artifactId>
-                                        <versionRange>[2.1,)</versionRange>
-                                        <goals>
-                                            <goal>copy-dependencies</goal>
-                                        </goals>
-                                    </pluginExecutionFilter>
-                                    <action>
-                                        <ignore/>
-                                    </action>
-                                </pluginExecution>
-                            </pluginExecutions>
-                        </lifecycleMappingMetadata>
-                    </configuration>
-                </plugin>
-            </plugins>
-        </pluginManagement>
     </build>
     <developers>
         <developer>
@@ -430,19 +426,198 @@
                 <enabled>true</enabled>
             </releases>
         </repository>
-<!--        <repository>
-            <id>tinkerpop-snapshot-repository</id>
-            <name>Tinkerpop snapshot repo</name>
-            <url>http://tinkerpop.com/maven2</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-        </repository>-->
     </repositories>
     <profiles>
+        <profile>
+            <id>neo-docs-build</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+                <property>
+                    <name>docsBuild</name>
+                </property>
+            </activation>
+            <dependencies>
+                <dependency>
+                    <groupId>org.neo4j.build.plugins</groupId>
+                    <artifactId>neo4j-doctools</artifactId>
+                    <version>13-SNAPSHOT</version>
+                    <scope>provided</scope>
+                </dependency>
+            </dependencies>
+            <build>
+                <plugins>
+                    <plugin>
+                        <artifactId>maven-dependency-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>unpack-doctools</id>
+                                <phase>generate-sources</phase>
+                                <goals>
+                                    <goal>unpack-dependencies</goal>
+                                </goals>
+                                <configuration>
+                                    <type>jar</type>
+                                    <includeArtifactIds>neo4j-doctools</includeArtifactIds>
+                                    <outputDirectory>${docs.tools}</outputDirectory>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <artifactId>maven-resources-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>copy-docs</id>
+                                <phase>process-resources</phase>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/src</outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>src/docs</directory>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>copy-test-sources</id>
+                                <phase>process-resources</phase>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>
+                                        ${project.build.directory}/test-sources/${project.artifactId}-test-sources-jar
+                                    </outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>src/test/java</directory>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>copy-configuration</id>
+                                <phase>process-resources</phase>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/conf</outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>src/docs/conf</directory>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+
+                            <execution>
+                                <id>filter-asciidoc-files</id>
+                                <phase>post-integration-test</phase>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/docs-filtered</outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>${project.build.directory}/docs</directory>
+                                            <filtering>true</filtering>
+                                        </resource>
+                                    </resources>
+
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>copy-filtered-asciidoc-files-back</id>
+                                <phase>post-integration-test</phase>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/docs</outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>${project.build.directory}/docs-filtered</directory>
+                                            <filtering>false</filtering>
+                                        </resource>
+                                    </resources>
+
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>copy-generated-files</id>
+                                <phase>post-integration-test</phase>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/src/dev</outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>${project.build.directory}/docs</directory>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>exec-maven-plugin</artifactId>
+                        <executions>
+                            <execution>
+                                <id>execute-asciidoc</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>exec</goal>
+                                </goals>
+                                <configuration>
+                                    <executable>make</executable>
+                                    <arguments>
+                                        <argument>init</argument>
+                                        <argument>preview</argument>
+                                        <argument>VERSION=${project.version}</argument>
+                                    </arguments>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-site-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>com.github.github</groupId>
+                        <artifactId>site-maven-plugin</artifactId>
+                        <version>0.8-SNAPSHOT</version>
+                        <configuration>
+                            <message>Creating site for ${project.version}</message>
+                            <outputDirectory>target/html5</outputDirectory>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>site</goal>
+                                </goals>
+                                <phase>site</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+            <properties>
+                <docs.tools>${project.build.directory}/tools</docs.tools>
+                <attach-docs-phase>none</attach-docs-phase>
+            </properties>
+        </profile>
         <profile>
             <id>test-default</id>
             <activation>

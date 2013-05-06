@@ -120,39 +120,39 @@ the different steps.
 
 :leveloffset: 3
 
-include::examples/search-within-geometry.txt[]
+include::examples/search-within-geometry.asciidoc[]
 
 
-include::examples/intersecting-windows.txt[]
+include::examples/intersecting-windows.asciidoc[]
 
-include::examples/intersect-all.txt[]
-include::examples/unite-all.txt[]
+include::examples/intersect-all.asciidoc[]
+include::examples/unite-all.asciidoc[]
 
-include::examples/extract-points.txt[]
+include::examples/extract-points.asciidoc[]
 
-include::examples/filter-by-cql-using-complex-cql.txt[]
+include::examples/filter-by-cql-using-complex-cql.asciidoc[]
 
-include::examples/boundary.txt[]
+include::examples/boundary.asciidoc[]
 
-include::examples/centroid.txt[]
+include::examples/centroid.asciidoc[]
 
-include::examples/convex-hull.txt[]
+include::examples/convex-hull.asciidoc[]
 
-include::examples/densify.txt[]
+include::examples/densify.asciidoc[]
 
-include::examples/envelope.txt[]
+include::examples/envelope.asciidoc[]
 
-include::examples/export-to-gml.txt[]
+include::examples/export-to-gml.asciidoc[]
 
-include::examples/intersection.txt[]
+include::examples/intersection.asciidoc[]
 
-include::examples/union.txt[]
+include::examples/union.asciidoc[]
 
-include::examples/start-point.txt[]
-include::examples/end-point.txt[]
+include::examples/start-point.asciidoc[]
+include::examples/end-point.asciidoc[]
 
-include::examples/max.txt[]
-include::examples/min.txt[]
+include::examples/max.asciidoc[]
+include::examples/min.asciidoc[]
 
-include::examples/break-up-all-geometries-into-points-and-make-density-islands.txt[]
+include::examples/break-up-all-geometries-into-points-and-make-density-islands.asciidoc[]
 

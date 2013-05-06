@@ -1,0 +1,13 @@
+= Neo4j Spatial v{neo4j-version} =
+
+:neo4j-spatial-version: {neo4j-version}
+
+:leveloffset: 1
+
+include::dev/introduction.txt[]
+
+:leveloffset: 1
+
+include::dev/index.txt[]
+
+
