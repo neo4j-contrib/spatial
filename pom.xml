@@ -12,6 +12,7 @@
         <blueprints.version>1.2</blueprints.version>
         <gremlin.version>1.5</gremlin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <github.global.server>github</github.global.server>
     </properties>
 
     <parent>
@@ -41,6 +42,29 @@
                 <configuration>
                     <skip>true</skip>
                 </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-resources</id>
+                        <!-- here the phase you need -->
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${basedir}/target/filtered-test-sources</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${basedir}/target/filtered-test-sources</directory>
+                                    <filtering>true</filtering>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
             </plugin>
             <plugin>
                 <artifactId>maven-dependency-plugin</artifactId>
@@ -95,35 +119,6 @@
                 </configuration>
             </plugin>
         </plugins>
-        <pluginManagement>
-            <plugins>
-                <!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself. -->
-                <plugin>
-                    <groupId>org.eclipse.m2e</groupId>
-                    <artifactId>lifecycle-mapping</artifactId>
-                    <version>1.0.0</version>
-                    <configuration>
-                        <lifecycleMappingMetadata>
-                            <pluginExecutions>
-                                <pluginExecution>
-                                    <pluginExecutionFilter>
-                                        <groupId>org.apache.maven.plugins</groupId>
-                                        <artifactId>maven-dependency-plugin</artifactId>
-                                        <versionRange>[2.1,)</versionRange>
-                                        <goals>
-                                            <goal>copy-dependencies</goal>
-                                        </goals>
-                                    </pluginExecutionFilter>
-                                    <action>
-                                        <ignore/>
-                                    </action>
-                                </pluginExecution>
-                            </pluginExecutions>
-                        </lifecycleMappingMetadata>
-                    </configuration>
-                </plugin>
-            </plugins>
-        </pluginManagement>
     </build>
     <developers>
         <developer>
@@ -481,6 +476,23 @@
                                 </configuration>
                             </execution>
                             <execution>
+                                <id>copy-test-sources</id>
+                                <phase>process-resources</phase>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>
+                                        ${project.build.directory}/test-sources/${project.artifactId}-test-sources-jar
+                                    </outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>src/test/java</directory>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                            <execution>
                                 <id>copy-configuration</id>
                                 <phase>process-resources</phase>
                                 <goals>
@@ -495,19 +507,39 @@
                                     </resources>
                                 </configuration>
                             </execution>
+
                             <execution>
-                                <id>copy-test-sources</id>
-                                <phase>process-resources</phase>
+                                <id>filter-asciidoc-files</id>
+                                <phase>post-integration-test</phase>
                                 <goals>
                                     <goal>copy-resources</goal>
                                 </goals>
                                 <configuration>
-                                    <outputDirectory>${project.build.directory}/test-sources/neo4j-spatial-test-sources-jar</outputDirectory>
+                                    <outputDirectory>${project.build.directory}/docs-filtered</outputDirectory>
                                     <resources>
                                         <resource>
-                                            <directory>src/test/java</directory>
+                                            <directory>${project.build.directory}/docs</directory>
+                                            <filtering>true</filtering>
                                         </resource>
                                     </resources>
+
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>copy-filtered-asciidoc-files-back</id>
+                                <phase>post-integration-test</phase>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/docs</outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>${project.build.directory}/docs-filtered</directory>
+                                            <filtering>false</filtering>
+                                        </resource>
+                                    </resources>
+
                                 </configuration>
                             </execution>
                             <execution>
@@ -517,10 +549,10 @@
                                     <goal>copy-resources</goal>
                                 </goals>
                                 <configuration>
-                                    <outputDirectory>${project.build.directory}/src/dev/examples</outputDirectory>
+                                    <outputDirectory>${project.build.directory}/src/dev</outputDirectory>
                                     <resources>
                                         <resource>
-                                            <directory>${project.build.directory}/docs/examples</directory>
+                                            <directory>${project.build.directory}/docs</directory>
                                         </resource>
                                     </resources>
                                 </configuration>
@@ -542,8 +574,34 @@
                                     <arguments>
                                         <argument>init</argument>
                                         <argument>preview</argument>
+                                        <argument>VERSION=${project.version}</argument>
                                     </arguments>
                                 </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-site-plugin</artifactId>
+                        <configuration>
+                            <skip>true</skip>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>com.github.github</groupId>
+                        <artifactId>site-maven-plugin</artifactId>
+                        <version>0.8-SNAPSHOT</version>
+                        <configuration>
+                            <message>Creating site for ${project.version}</message>
+                            <outputDirectory>target/html5</outputDirectory>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>site</goal>
+                                </goals>
+                                <phase>site</phase>
                             </execution>
                         </executions>
                     </plugin>
