@@ -119,6 +119,29 @@ Tested with: GeoServer 2.1.1
     mvn clean install
 ~~~
 
+
+### Building and deploying the docs###
+
+Add your Github credentials in your `~/.m2/settings.xml`
+
+~~~xml
+<settings>
+    <servers>
+      <server>
+        <id>github</id>
+        <username>xxx@xxx.xx</username>
+        <password>secret</password>
+      </server>
+    </servers>
+</settings>
+~~~
+
+now do
+
+~~~bash
+    mvn clean install site -Pneo-docs-build -
+~~~
+
 ### Deployment into Geoserver ###
 
 * unzip the `target/xxxx-server-plugin.zip` and the Neo4j libraries from your Neo4j download under `$NEO4J_HOME/lib` into `$GEOSERVER_HOME/webapps/geoserver/WEB-INF/lib`
