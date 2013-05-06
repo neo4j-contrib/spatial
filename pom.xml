@@ -2,7 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <properties>
-        <neo4j.version>1.9-SNAPSHOT</neo4j.version>
+        <neo4j.version>1.9.RC2</neo4j.version>
         <neo4j.graphcollections.version>0.5</neo4j.graphcollections.version>
         <geotools.version>8.4</geotools.version>
         <spatial.test.osm.version>20100819</spatial.test.osm.version>
@@ -21,7 +21,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>neo4j-spatial</artifactId>
     <groupId>org.neo4j</groupId>
-    <version>0.11-SNAPSHOT</version>
+    <version>0.11-neo4j-1.9.RC2</version>
     <name>Neo4j - Spatial Components</name>
     <description>Spatial utilities and components for Neo4j</description>
     <url>http://components.neo4j.org/${project.artifactId}/${project.version}</url>
