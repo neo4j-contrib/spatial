@@ -6,7 +6,7 @@ Neo4j Spatial is a library facilitating the import, storage and querying of spat
 
 This projects manual is deployed as part of the local build as the [Neo4j Spatial Manual](http://neo4j.github.io/spatial)
 
-![Open Street Map](https://raw.github.com/neo4j/spatial/master/src/docs/dev/images/one-street.png "Open Street Map")
+![Open Street Map](https://raw.github.com/neo4j/spatial/master/src/docs/images/one-street.png "Open Street Map")
 
 
 Some key features include:
