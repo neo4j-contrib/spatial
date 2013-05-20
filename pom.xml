@@ -15,7 +15,7 @@
   <modelVersion>4.0.0</modelVersion>
   <artifactId>neo4j-spatial</artifactId>
   <groupId>org.neo4j</groupId>
-  <version>0.9-neo4j-1.8-SNAPSHOT</version>
+  <version>0.9-neo4j-1.8.2</version>
   <name>Neo4j - Spatial Components</name>
   <description>Spatial utilities and components for Neo4j</description>
   <url>http://components.neo4j.org/${project.artifactId}/${project.version}</url>
