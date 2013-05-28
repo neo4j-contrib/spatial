@@ -85,8 +85,32 @@ public class IndexProviderTest
         Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
         IndexManager indexMan = db.index();
         Index<Node> index = indexMan.forNodes( "layer1", config );
-//        index = indexMan.forNodes( "layer1", config );
         assertNotNull( index );
+
+        //Load the an existing index again
+        index = indexMan.forNodes( "layer1", config );
+        assertNotNull( index );
+
+
+        //Try a different config
+        Map<String, String> config2 = SpatialIndexProvider.SIMPLE_POINT_CONFIG_WKT;
+        index=indexMan.forNodes("layer2",config2);
+        assertNotNull( index );
+
+        //Load the index again
+        index=indexMan.forNodes("layer2",config2);
+        assertNotNull( index );
+
+        //Try loading the same index with a different config
+        boolean exceptionThrown=false;
+        try {
+            index=indexMan.forNodes("layer2",config);
+        }
+        catch(IllegalArgumentException iae) {
+            exceptionThrown=true;
+        }
+        assertTrue(exceptionThrown);
+
 
     }
 
