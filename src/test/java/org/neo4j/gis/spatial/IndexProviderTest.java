@@ -38,22 +38,7 @@
  */
 package org.neo4j.gis.spatial;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
-
-import javax.script.Bindings;
-import javax.script.ScriptContext;
-import javax.script.ScriptEngine;
-import javax.script.ScriptEngineManager;
-import javax.script.SimpleBindings;
-
+import com.tinkerpop.blueprints.pgm.impls.neo4j.Neo4jGraph;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -70,7 +55,13 @@ import org.neo4j.graphdb.index.IndexManager;
 import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.test.ImpermanentGraphDatabase;
 
-import com.tinkerpop.blueprints.pgm.impls.neo4j.Neo4jGraph;
+import javax.script.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Random;
+
+import static org.junit.Assert.*;
 
 public class IndexProviderTest {
 
@@ -88,17 +79,38 @@ public class IndexProviderTest {
     public void testLoadIndex() {
         Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
         IndexManager indexMan = db.index();
-        Index<Node> index = indexMan.forNodes( "layer1", config );
-//        index = indexMan.forNodes( "layer1", config );
-        assertNotNull( index );
-        
+        Index<Node> index = indexMan.forNodes("layer1", config);
+        assertNotNull(index);
+
+        //Load the an existing index again
+        index = indexMan.forNodes("layer1", config);
+        assertNotNull(index);
+
+        //Try a different config
+        Map<String, String> config2 = SpatialIndexProvider.SIMPLE_WKT_CONFIG;
+        index = indexMan.forNodes("layer2", config2);
+        assertNotNull(index);
+
+        //Load the index again
+        index = indexMan.forNodes("layer2", config2);
+        assertNotNull(index);
+
+        //Try loading the same index with a different config
+        boolean exceptionThrown = false;
+        try {
+            index = indexMan.forNodes("layer2", config);
+        } catch (IllegalArgumentException iae) {
+            exceptionThrown = true;
+        }
+        assertTrue(exceptionThrown);
+
         config = SpatialIndexProvider.SIMPLE_WKT_CONFIG;
-        index = indexMan.forNodes( "layer2", config );
-        assertNotNull( index );
-        
+        index = indexMan.forNodes("layer2", config);
+        assertNotNull(index);
+
         config = SpatialIndexProvider.SIMPLE_WKB_CONFIG;
-        index = indexMan.forNodes( "layer3", config );
-        assertNotNull( index );
+        index = indexMan.forNodes("layer3", config);
+        assertNotNull(index);
     }
 
     /**
@@ -218,8 +230,7 @@ public class IndexProviderTest {
     }
 
     @Test
-    public void testWithinDistanceIndex()
-    {
+    public void testWithinDistanceIndex() {
         Map<String, String> config = SpatialIndexProvider.SIMPLE_WKT_CONFIG;
         IndexManager indexMan = db.index();
         Index<Node> index = indexMan.forNodes("layer2", config);
@@ -297,12 +308,12 @@ public class IndexProviderTest {
                     assertTrue("add is too slow at size:" + i + " (" + speed + " adds per second <= " + targetSpeed + ")", speed > targetSpeed);
 
                     previous = now;
-		    
-					// commit transaction
-					tx.success();
-					tx.finish();
 
-					tx = db.beginTx();
+                    // commit transaction
+                    tx.success();
+                    tx.finish();
+
+                    tx = db.beginTx();
                 }
             }
             tx.success();
@@ -311,10 +322,10 @@ public class IndexProviderTest {
             tx.finish();
         }
     }
-    
+
     @Test
     public void testUpdate() {
-	Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
+        Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
         IndexManager indexMan = db.index();
         Index<Node> index = indexMan.forNodes("pointslayer", config);
 
@@ -323,31 +334,31 @@ public class IndexProviderTest {
         n1.setProperty("lat", (double) 56.2);
         n1.setProperty("lon", (double) 15.3);
         index.add(n1, "dummy", "value");
-		
-	Map<String, Object> params = new HashMap<String, Object>();
-	params.put(LayerNodeIndex.POINT_PARAMETER, new Double[]{56.2, 15.3});
-	params.put(LayerNodeIndex.DISTANCE_IN_KM_PARAMETER, 0.0001);
-	IndexHits<Node> hits = index.query(LayerNodeIndex.WITHIN_DISTANCE_QUERY, params);
-	assertTrue(hits.hasNext());
-	
+
+        Map<String, Object> params = new HashMap<String, Object>();
+        params.put(LayerNodeIndex.POINT_PARAMETER, new Double[]{56.2, 15.3});
+        params.put(LayerNodeIndex.DISTANCE_IN_KM_PARAMETER, 0.0001);
+        IndexHits<Node> hits = index.query(LayerNodeIndex.WITHIN_DISTANCE_QUERY, params);
+        assertTrue(hits.hasNext());
+
         n1.setProperty("lat", (double) 46.2);
         n1.setProperty("lon", (double) 25.3);
-		
-	// update
-	index.add(n1, "dummy", "value");
 
-	tx.success();
+        // update
+        index.add(n1, "dummy", "value");
+
+        tx.success();
         tx.finish();
-	
-	params.put(LayerNodeIndex.POINT_PARAMETER, new Double[]{46.2, 25.3});
-	params.put(LayerNodeIndex.DISTANCE_IN_KM_PARAMETER, 0.0001);
-	hits = index.query(LayerNodeIndex.WITHIN_DISTANCE_QUERY, params);
-	assertTrue(hits.hasNext());
-	
-	hits.next();
-	
-	// make sure there's only one node
-	assertFalse(hits.hasNext());
+
+        params.put(LayerNodeIndex.POINT_PARAMETER, new Double[]{46.2, 25.3});
+        params.put(LayerNodeIndex.DISTANCE_IN_KM_PARAMETER, 0.0001);
+        hits = index.query(LayerNodeIndex.WITHIN_DISTANCE_QUERY, params);
+        assertTrue(hits.hasNext());
+
+        hits.next();
+
+        // make sure there's only one node
+        assertFalse(hits.hasNext());
 
     }
 }
