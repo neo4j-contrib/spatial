@@ -159,10 +159,10 @@ public class IndexProviderTest {
         Index<Node> index = indexMan.forNodes("layer1", config);
         assertNotNull(index);
         Transaction tx = db.beginTx();
-        Node n1 = db.createNode();
-        n1.setProperty("lat", (double) 56.2);
-        n1.setProperty("lon", (double) 15.3);
-        index.add(n1, "dummy", "value");
+        ExecutionEngine engine = new ExecutionEngine(db);
+        ExecutionResult result1 = engine.execute("create (malmo{name:'Malmö',lat:56.2, lon:15.3})-[:TRAIN]->(stockholm{name:'Stockholm',lat:59.3,lon:18.0}) return malmo");
+        Node malmo = (Node) result1.iterator().next().get("malmo");
+        index.add(malmo, "dummy", "value");
         tx.success();
         tx.finish();
         Map<String, Object> params = new HashMap<String, Object>();
@@ -195,12 +195,9 @@ public class IndexProviderTest {
         hits = index.query(LayerNodeIndex.WITHIN_DISTANCE_QUERY,
                 params);
         assertTrue(hits.hasNext());
-        // test Cypher query
-        ExecutionEngine engine = new ExecutionEngine(db);
-//        ExecutionResult result = engine.execute(  "start n=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') match (n) -[r] - (x) return n, type(r), x.layer?, x.bbox?"  );
 
-        ExecutionResult result = engine.execute("start n=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') return n");
-        System.out.println(result.toString());
+        ExecutionResult result = engine.execute("start malmo=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') match p=malmo--other return malmo, other");
+        System.out.println(result.dumpToString());
 
         // test Gremlin
         ScriptEngine gremlinEngine = new ScriptEngineManager().getEngineByName("gremlin-groovy");
@@ -216,7 +213,7 @@ public class IndexProviderTest {
         // of which there are one, with no incoming edges
         assertEquals(
                 1L,
-                gremlinEngine.eval("g.idx('layer1')[[bbox:'[15.0, 16.0, 56.0, 57.0]']].count()"));
+                gremlinEngine.eval("g.idx('layer1')[[bbox:'[15.0, 16.0, 56.0, 57.0]']].out('TRAIN').count()"));
 
     }
 
