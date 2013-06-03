@@ -39,6 +39,11 @@
 package org.neo4j.gis.spatial;
 
 import com.tinkerpop.blueprints.pgm.impls.neo4j.Neo4jGraph;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.io.ParseException;
+import com.vividsolutions.jts.io.WKTReader;
+import com.vividsolutions.jts.operation.distance.DistanceOp;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -47,6 +52,7 @@ import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.cypher.javacompat.ExecutionResult;
 import org.neo4j.gis.spatial.indexprovider.LayerNodeIndex;
 import org.neo4j.gis.spatial.indexprovider.SpatialIndexProvider;
+import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
@@ -238,25 +244,33 @@ public class IndexProviderTest {
         Index<Node> index = indexMan.forNodes("layer2", config);
         Transaction tx = db.beginTx();
         Node batman = db.createNode();
-        batman.setProperty("wkt", "POINT(41.14 37.88 )");
-        batman.setProperty("name", "batman");
+        String wktPoint = "POINT(41.14 37.88 )";
+        batman.setProperty("wkt", wktPoint);
+        String batman1 = "batman";
+        batman.setProperty("name", batman1);
         index.add(batman, "dummy", "value");
         Map<String, Object> params = new HashMap<String, Object>();
+        Double[] point = {37.87, 41.13};
         params.put(LayerNodeIndex.POINT_PARAMETER,
-                new Double[]{37.87, 41.13});
+                point);
         params.put(LayerNodeIndex.DISTANCE_IN_KM_PARAMETER, 2.0);
         IndexHits<Node> hits = index.query(
                 LayerNodeIndex.WITHIN_DISTANCE_QUERY, params);
         tx.success();
         tx.finish();
         Node node = hits.getSingle();
-        /* assertTrue( spatialRecord.getProperty( "distanceInKm" ).equals(
-                1.416623647558699 ) ); */
+        assertTrue(node.getId() == batman.getId());
+        assertTrue(node.getProperty("name").equals(batman1));
 
-        //We not longer need this as the node we get back already a 'Real' node
-//        Node node = db.getNodeById( (Long) spatialRecord.getProperty( "id" ) );
-        assertTrue(node.getProperty("name").equals("batman"));
-
+    }
+    
+    @Test
+    public void testDistance() throws ParseException {
+        WKTReader wktRdr = new WKTReader();
+        Geometry A = wktRdr.read("POINT(40.00 30.00 )");
+        Geometry B = wktRdr.read("POINT(40.00 40.00 )");
+        DistanceOp distOp = new DistanceOp(A, B);
+        assertEquals(10.0, distOp.distance(), 0);
     }
 
     @Test
