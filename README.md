@@ -209,6 +209,12 @@ For more info head over to [Neo4j Wiki on uDig](http://wiki.neo4j.org/content/Ne
 
 Neo4j Spatial is also packaged as a ZIP file that can be unzipped into the Neo4j Server /plugin directory. After restarting the server, you should be able to do things liek the following REST calls (here illustrated using `curl`)
 
+Precompiled versions of that ZIP file ready for download and use:
+
+* [for Neo4j 1.9](http://dist.neo4j.org.s3.amazonaws.com/spatial/neo4j-spatial-0.11-neo4j-1.9-server-plugin.zip)
+* [for Neo4j 1.8.2](http://dist.neo4j.org.s3.amazonaws.com/spatial/neo4j-spatial-0.9.1-neo4j-1.8.2-server-plugin.zip)
+* [for Neo4j 2.0](http://dist.neo4j.org.s3.amazonaws.com/spatial/neo4j-spatial-0.12-neo4j-2.0.0-SNAPSHOT-server-plugin.zip)
+
 ~~~bash
     #install the plugin
     cp $NEO4J_SPATIAL_HOME/target/neo4j-spatial-XXXX-server-plugin.zip $NEO4J_HOME/plugins
