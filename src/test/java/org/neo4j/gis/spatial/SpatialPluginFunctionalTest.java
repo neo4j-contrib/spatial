@@ -23,9 +23,13 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.Map;
 
 import javax.ws.rs.core.Response.Status;
-
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -41,6 +45,8 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
 {
     private static final int PORT = 7575;
     private static final String ENDPOINT = "http://localhost:"+PORT+"/db/data/ext/SpatialPlugin";
+    JSONParser jsonParser = new JSONParser();
+    
 
     /** The server variable in SharedServerTestBase is disabled, and we use an alternative */
     private static NeoServer altServer;
@@ -83,17 +89,17 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
     }
 
     /**
-     * allows cypher querying a bounding box
+     * This allows cypher querying a bounding box
      */
     @Test
     @Documented
-    public void querying_with_cypher() throws UnsupportedEncodingException
-    {
+    public void querying_with_cypher() throws UnsupportedEncodingException, ParseException {
         data.get();
         String response = post(Status.OK,"{\"layer\":\"geom\", \"lat\":\"lat\", \"lon\":\"lon\"}", ENDPOINT + "/graphdb/addSimplePointLayer");
         response = post(Status.CREATED,"{\"lat\":60.1, \"lon\":15.2}", "http://localhost:"+PORT+"/db/data/node");
+        int nodeId = getNodeId(response);
         response = post(Status.CREATED,"{\"name\":\"geom\", \"config\":{\"provider\":\"spatial\", \"geometry_type\":\"point\",\"lat\":\"lat\",\"lon\":\"lon\"}}", "http://localhost:"+PORT+"/db/data/index/node/");
-        response = post(Status.OK,"{\"layer\":\"geom\", \"node\":\"http://localhost:"+PORT+"/db/data/node/5\"}", ENDPOINT + "/graphdb/addNodeToLayer");
+        response = post(Status.OK,"{\"layer\":\"geom\", \"node\":\"http://localhost:"+PORT+"/db/data/node/"+nodeId+"\"}", ENDPOINT + "/graphdb/addNodeToLayer");
         response = post(Status.OK,"{\"layer\":\"geom\", \"minx\":15.0,\"maxx\":15.3,\"miny\":60.0,\"maxy\":60.2}", ENDPOINT + "/graphdb/findGeometriesInBBox");
         assertTrue(response.contains( "60.1" ));
         response = post(Status.OK,"{\"layer\":\"geom\", \"pointX\":15.0,\"pointY\":60.0,\"distanceInKm\":100}", ENDPOINT + "/graphdb/findGeometriesWithinDistance");
@@ -104,6 +110,140 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
         assertTrue(response.contains( "node" ));
 
     }
+
+    private int getNodeId(String response) throws ParseException {
+        JSONObject o = (JSONObject) jsonParser.parse(response);
+//        JSONArray array = (JSONArray) o;
+        String self = (String)  o.get("self");
+        String res = self.substring(self.lastIndexOf("/")+1);
+        return Integer.parseInt(res);
+    }
+
+    /**
+     * Firstly, create a point layer, specifying the `lon` and `lat` node properties as the ones carrying the
+     * spatial information.
+     */
+    @Test
+    @Documented
+    public void create_a_pointlayer() throws UnsupportedEncodingException
+    {
+        data.get();
+        String response = post(Status.OK,"{\"layer\":\"geom\", \"lat\":\"lat\", \"lon\":\"lon\"}", ENDPOINT + "/graphdb/addSimplePointLayer");
+    }
+
+    /**
+     * Now, add that node to the spatial
+     * layer.
+     */
+    @Test
+    @Documented
+    public void create_a_spatial_index() throws UnsupportedEncodingException
+    {
+        data.get();
+        String response = post(Status.OK,"{\"layer\":\"geom\", \"lat\":\"lat\", \"lon\":\"lon\"}", ENDPOINT + "/graphdb/addSimplePointLayer");
+        response = post(Status.CREATED,"{\"name\":\"geom\", \"config\":{\"provider\":\"spatial\", \"geometry_type\":\"point\",\"lat\":\"lat\",\"lon\":\"lon\"}}", "http://localhost:"+PORT+"/db/data/index/node/");
+    }
+    /**
+     * Create a node with some spatial data like `lon` and `lat` 
+     * attached.
+     */
+    @Test
+    @Documented
+    public void create_a_node_with_spatial_data() throws UnsupportedEncodingException
+    {
+        data.get();
+        String response = post(Status.OK,"{\"layer\":\"geom\", \"lat\":\"lat\", \"lon\":\"lon\"}", ENDPOINT + "/graphdb/addSimplePointLayer");
+        response = post(Status.CREATED,"{\"name\":\"geom\", \"config\":{\"provider\":\"spatial\", \"geometry_type\":\"point\",\"lat\":\"lat\",\"lon\":\"lon\"}}", "http://localhost:"+PORT+"/db/data/index/node/");
+        response = post(Status.CREATED,"{\"lat\":60.1, \"lon\":15.2}", "http://localhost:"+PORT+"/db/data/node");
+    }
+
+    /**
+     * Add the node we created to the spatial 
+     * index.
+     */
+    @Test
+    @Documented
+    public void add_a_node_to_the_spatial_index() throws Exception {
+        data.get();
+        String response = post(Status.OK,"{\"layer\":\"geom\", \"lat\":\"lat\", \"lon\":\"lon\"}", ENDPOINT + "/graphdb/addSimplePointLayer");
+        response = post(Status.CREATED,"{\"name\":\"geom\", \"config\":{\"provider\":\"spatial\", \"geometry_type\":\"point\",\"lat\":\"lat\",\"lon\":\"lon\"}}", "http://localhost:"+PORT+"/db/data/index/node/");
+        response = post(Status.CREATED,"{\"lat\":60.1, \"lon\":15.2}", "http://localhost:"+PORT+"/db/data/node");
+        int nodeId = getNodeId(response);
+        response = post(Status.OK,"{\"layer\":\"geom\", \"node\":\"http://localhost:"+PORT+"/db/data/node/"+nodeId+"\"}", ENDPOINT + "/graphdb/addNodeToLayer");
+    }
+
+    /**
+     * Find geometries in a bounding 
+     * box.
+     */
+    @Test
+    @Documented
+    public void find_geometries_in_a_bounding_box() throws Exception
+    {
+        data.get();
+        String response = post(Status.OK,"{\"layer\":\"geom\", \"lat\":\"lat\", \"lon\":\"lon\"}", ENDPOINT + "/graphdb/addSimplePointLayer");
+        response = post(Status.CREATED,"{\"name\":\"geom\", \"config\":{\"provider\":\"spatial\", \"geometry_type\":\"point\",\"lat\":\"lat\",\"lon\":\"lon\"}}", "http://localhost:"+PORT+"/db/data/index/node/");
+        response = post(Status.CREATED,"{\"lat\":60.1, \"lon\":15.2}", "http://localhost:"+PORT+"/db/data/node");
+        int nodeId = getNodeId(response);
+        response = post(Status.OK,"{\"layer\":\"geom\", \"node\":\"http://localhost:"+PORT+"/db/data/node/"+nodeId+"\"}", ENDPOINT + "/graphdb/addNodeToLayer");
+        response = post(Status.OK,"{\"layer\":\"geom\", \"minx\":15.0,\"maxx\":15.3,\"miny\":60.0,\"maxy\":60.2}", ENDPOINT + "/graphdb/findGeometriesInBBox");
+        assertTrue(response.contains( "60.1" ));
+    }
+
+    /**
+     * Find geometries within a 
+     * distance.
+     */
+    @Test
+    @Documented
+    public void find_geometries_within__distance() throws Exception
+    {
+        data.get();
+        String response = post(Status.OK,"{\"layer\":\"geom\", \"lat\":\"lat\", \"lon\":\"lon\"}", ENDPOINT + "/graphdb/addSimplePointLayer");
+        response = post(Status.CREATED,"{\"name\":\"geom\", \"config\":{\"provider\":\"spatial\", \"geometry_type\":\"point\",\"lat\":\"lat\",\"lon\":\"lon\"}}", "http://localhost:"+PORT+"/db/data/index/node/");
+        response = post(Status.CREATED,"{\"lat\":60.1, \"lon\":15.2}", "http://localhost:"+PORT+"/db/data/node");
+        int nodeId = getNodeId(response);
+        response = post(Status.OK,"{\"layer\":\"geom\", \"node\":\"http://localhost:"+PORT+"/db/data/node/"+nodeId+"\"}", ENDPOINT + "/graphdb/addNodeToLayer");
+        response = post(Status.OK,"{\"layer\":\"geom\", \"pointX\":15.0,\"pointY\":60.0,\"distanceInKm\":100}", ENDPOINT + "/graphdb/findGeometriesWithinDistance");
+        assertTrue(response.contains( "60.1" ));
+    }
+
+    /**
+     * Find geometries in a bounding 
+     * box.
+     */
+    @Test
+    @Documented
+    public void find_geometries_in_a_bounding_box_using_cypher() throws Exception
+    {
+        data.get();
+        String response = post(Status.OK,"{\"layer\":\"geom\", \"lat\":\"lat\", \"lon\":\"lon\"}", ENDPOINT + "/graphdb/addSimplePointLayer");
+        response = post(Status.CREATED,"{\"name\":\"geom\", \"config\":{\"provider\":\"spatial\", \"geometry_type\":\"point\",\"lat\":\"lat\",\"lon\":\"lon\"}}", "http://localhost:"+PORT+"/db/data/index/node/");
+        response = post(Status.CREATED,"{\"lat\":60.1, \"lon\":15.2}", "http://localhost:"+PORT+"/db/data/node");
+        int nodeId = getNodeId(response);
+        response = post(Status.OK,"{\"layer\":\"geom\", \"node\":\"http://localhost:"+PORT+"/db/data/node/"+nodeId+"\"}", ENDPOINT + "/graphdb/addNodeToLayer");
+        response = post(Status.OK,"{\"query\":\"start node = node:geom(\'bbox:[15.0,15.3,60.0,60.2]\') return node\"}", "http://localhost:"+PORT+"/db/data/cypher");
+        assertTrue(response.contains( "node" ));
+    }
+
+    /**
+     * Find geometries within a distance, using 
+     * Cypher.
+     */
+    @Test
+    @Documented
+    public void find_geometries_within__distance_using_cypher() throws Exception
+    {
+        data.get();
+        String response = post(Status.OK,"{\"layer\":\"geom\", \"lat\":\"lat\", \"lon\":\"lon\"}", ENDPOINT + "/graphdb/addSimplePointLayer");
+        response = post(Status.CREATED,"{\"name\":\"geom\", \"config\":{\"provider\":\"spatial\", \"geometry_type\":\"point\",\"lat\":\"lat\",\"lon\":\"lon\"}}", "http://localhost:"+PORT+"/db/data/index/node/");
+        response = post(Status.CREATED,"{\"lat\":60.1, \"lon\":15.2}", "http://localhost:"+PORT+"/db/data/node");
+        int nodeId = getNodeId(response);
+        response = post(Status.OK,"{\"layer\":\"geom\", \"node\":\"http://localhost:"+PORT+"/db/data/node/"+nodeId+"\"}", ENDPOINT + "/graphdb/addNodeToLayer");
+        response = post(Status.OK,"{\"query\":\"start node = node:geom(\'withinDistance:[15.0,15.3,60.0,60.2, 5.0]\') return node\"}", "http://localhost:"+PORT+"/db/data/cypher");
+        assertTrue(response.contains( "node" ));
+    }
+
     
     private String post(Status status, String payload, String endpoint) {
         return gen().expectedStatus( status.getStatusCode() ).payload( payload ).post( endpoint).entity();

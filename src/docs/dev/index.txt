@@ -9,6 +9,10 @@ include::layers.txt[]
 
 :leveloffset: 1
 
+include::server-plugin.txt[]
+
+:leveloffset: 1
+
 include::geoserver.txt[]
 
 :leveloffset: 1

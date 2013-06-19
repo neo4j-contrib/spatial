@@ -2,8 +2,40 @@
 Using the Neo4j Spatial Server plugin
 =====================================
 
-Neo4j Spatial is also packaged as a ZIP file that can be unzipped into the Neo4j Server /plugin directory. After restarting the server, you should be able to do things liek the following REST calls (here illustrated using `curl`)
+Neo4j Spatial is also packaged as a ZIP file that can be unzipped into the (http://neo4j.org)[Neo4j Server] /plugin directory. After restarting the server, you should be able to do things like the following REST calls
 
-:leveloffset: 3
+:leveloffset: 0
 
-include::finding-the-plugin.txt
+include::dev/rest-api/finding-the-plugin.asciidoc[]
+
+:leveloffset: 0
+
+include::dev/rest-api/create-a-pointlayer.asciidoc[]
+
+:leveloffset: 0
+
+include::dev/rest-api/create-a-spatial-index.asciidoc[]
+
+:leveloffset: 0
+
+include::dev/rest-api/create-a-node-with-spatial-data.asciidoc[]
+
+:leveloffset: 0
+
+include::dev/rest-api/add-a-node-to-the-spatial-index.asciidoc[]
+
+:leveloffset: 0
+
+include::dev/rest-api/find-geometries-in-a-bounding-box.asciidoc[]
+
+:leveloffset: 0
+
+include::dev/rest-api/find-geometries-within--distance.asciidoc[]
+
+:leveloffset: 0
+
+include::dev/rest-api/find-geometries-in-a-bounding-box-using-cypher.asciidoc[]
+
+:leveloffset: 0
+
+include::dev/rest-api/find-geometries-within--distance-using-cypher.asciidoc[]

@@ -281,6 +281,14 @@ Precompiled versions of that ZIP file ready for download and use:
     mvn clean package
 ~~~
 
+### Building Neo4j Spatial Documentation ###
+
+~~~bash  
+    git clone https://github.com/neo4j/spatial.git
+    cd spatial
+    mvn clean install -Pneo-docs-build
+~~~
+
 ## Using Neo4j spatial in your Java project with Maven ##
 Add the following dependency to your project's pom.xml:
 

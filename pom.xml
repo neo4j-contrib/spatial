@@ -4,6 +4,9 @@
         <neo4j.version>1.9</neo4j.version>
         <neo4j.java.version>1.6</neo4j.java.version>
         <neo4j.graphcollections.version>0.6-neo4j-1.9</neo4j.graphcollections.version>
+        <skinGroupId>org.neo4j.maven.skins</skinGroupId>
+        <skinArtifactId>default-skin</skinArtifactId>
+        <skinVersion>2</skinVersion>
         <geotools.version>8.4</geotools.version>
         <spatial.test.osm.version>20100819</spatial.test.osm.version>
         <spatial.test.shp.version>20100819</spatial.test.shp.version>
