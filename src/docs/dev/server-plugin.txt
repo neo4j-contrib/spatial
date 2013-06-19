@@ -2,7 +2,7 @@
 Using the Neo4j Spatial Server plugin
 =====================================
 
-Neo4j Spatial is also packaged as a ZIP file that can be unzipped into the (http://neo4j.org)[Neo4j Server] /plugin directory. After restarting the server, you should be able to do things like the following REST calls
+Neo4j Spatial is also packaged as a ZIP file that can be unzipped into the http://neo4j.org[Neo4j Server] `/plugin` directory. After restarting the server, you should be able to do things like the following REST calls
 
 :leveloffset: 0
 
