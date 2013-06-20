@@ -59,13 +59,11 @@ import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.index.IndexManager;
 import org.neo4j.helpers.collection.MapUtil;
+import org.neo4j.kernel.impl.core.NodeProxy;
 import org.neo4j.test.ImpermanentGraphDatabase;
 
 import javax.script.*;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 
 import static org.junit.Assert.*;
 
@@ -280,13 +278,20 @@ public class IndexProviderTest {
         Index<Node> index = indexMan.forNodes("layer3", config);
         Transaction tx = db.beginTx();
         Node batman = db.createNode();
-        batman.setProperty("wkt", "POINT(44.44 33.33 )");
+        batman.setProperty("wkt", "POINT(44.44 33.33)");
         batman.setProperty("name", "robin");
         index.add(batman, "dummy", "value");
 
         ExecutionEngine engine = new ExecutionEngine(db);
-        ExecutionResult result = engine.execute("start n=node:layer3('withinDistance:[44.44, 33.32, 5.0]') return n");
-        System.out.println(result.toString());
+        ExecutionResult result = engine.execute("start n=node:layer3('withinDistance:[33.32, 44.44, 5.0]') return n");
+
+        Iterator<Object> rows = result.columnAs("n");
+
+        assertTrue(rows.hasNext());
+
+        NodeProxy row = (org.neo4j.kernel.impl.core.NodeProxy) rows.next();
+        assertEquals("robin", row.getProperty("name"));
+        assertEquals("POINT(44.44 33.33)", row.getProperty("wkt"));
     }
 
     /**
