@@ -221,7 +221,10 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
         response = post(Status.CREATED,"{\"name\":\"geom\", \"config\":{\"provider\":\"spatial\", \"geometry_type\":\"point\",\"lat\":\"lat\",\"lon\":\"lon\"}}", "http://localhost:"+PORT+"/db/data/index/node/");
         response = post(Status.CREATED,"{\"lat\":60.1, \"lon\":15.2}", "http://localhost:"+PORT+"/db/data/node");
         int nodeId = getNodeId(response);
-        response = post(Status.OK,"{\"layer\":\"geom\", \"node\":\"http://localhost:"+PORT+"/db/data/node/"+nodeId+"\"}", ENDPOINT + "/graphdb/addNodeToLayer");
+//      response = post(Status.OK,"{\"layer\":\"geom\", \"node\":\"http://localhost:"+PORT+"/db/data/node/"+nodeId+"\"}", ENDPOINT + "/graphdb/addNodeToLayer");
+        // add domain-node via index, so that the geometry companion is created and added to the layer
+        response = post(Status.CREATED,"{\"value\":\"dummy\",\"key\":\"dummy\", \"uri\":\"http://localhost:"+PORT+"/db/data/node/"+nodeId+"\"}", "http://localhost:"+PORT+"/db/data/index/node/geom");
+
         response = post(Status.OK,"{\"query\":\"start node = node:geom(\'bbox:[15.0,15.3,60.0,60.2]\') return node\"}", "http://localhost:"+PORT+"/db/data/cypher");
         assertTrue(response.contains( "node" ));
     }
@@ -239,8 +242,10 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
         response = post(Status.CREATED,"{\"name\":\"geom\", \"config\":{\"provider\":\"spatial\", \"geometry_type\":\"point\",\"lat\":\"lat\",\"lon\":\"lon\"}}", "http://localhost:"+PORT+"/db/data/index/node/");
         response = post(Status.CREATED,"{\"lat\":60.1, \"lon\":15.2}", "http://localhost:"+PORT+"/db/data/node");
         int nodeId = getNodeId(response);
-        response = post(Status.OK,"{\"layer\":\"geom\", \"node\":\"http://localhost:"+PORT+"/db/data/node/"+nodeId+"\"}", ENDPOINT + "/graphdb/addNodeToLayer");
-        response = post(Status.OK,"{\"query\":\"start node = node:geom(\'withinDistance:[15.0,15.3,60.0,60.2, 5.0]\') return node\"}", "http://localhost:"+PORT+"/db/data/cypher");
+//        response = post(Status.OK,"{\"layer\":\"geom\", \"node\":\"http://localhost:"+PORT+"/db/data/node/"+nodeId+"\"}", ENDPOINT + "/graphdb/addNodeToLayer");
+        // add domain-node via index, so that the geometry companion is created and added to the layer
+        response = post(Status.CREATED,"{\"value\":\"dummy\",\"key\":\"dummy\", \"uri\":\"http://localhost:"+PORT+"/db/data/node/"+nodeId+"\"}", "http://localhost:"+PORT+"/db/data/index/node/geom");
+        response = post(Status.OK,"{\"query\":\"start node = node:geom(\'withinDistance:[60.0,15.0, 100.0]\') return node\"}", "http://localhost:"+PORT+"/db/data/cypher");
         assertTrue(response.contains( "node" ));
     }
 
