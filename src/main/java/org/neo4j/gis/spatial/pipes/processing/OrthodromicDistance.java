@@ -38,7 +38,7 @@ public class OrthodromicDistance extends AbstractGeoPipe {
 	public static final double earthRadiusInKm = 6371;	
 	
 	public OrthodromicDistance(Coordinate reference) {
-		this.reference = reference;
+        this(reference, "OrthodromicDistance");
 	}
 	
 	/**
