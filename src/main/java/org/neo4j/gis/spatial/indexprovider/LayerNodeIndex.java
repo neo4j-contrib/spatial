@@ -28,6 +28,7 @@ import org.json.simple.parser.ParseException;
 import org.neo4j.gis.spatial.EditableLayer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
+import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -243,11 +244,11 @@ public class LayerNodeIndex implements Index<Node>
                 distance = (Double) p.get( DISTANCE_IN_KM_PARAMETER );
             }
 
-            List<SpatialDatabaseRecord> res = GeoPipeline.startNearestNeighborLatLonSearch(
-                    layer, new Coordinate( point[1], point[0] ), distance ).sort(
-                    "OrthodromicDistance" ).toSpatialDatabaseRecordList();
+            List<GeoPipeFlow> res = GeoPipeline.startNearestNeighborLatLonSearch(
+                    layer, new Coordinate(point[1], point[0]), distance).sort(
+                    "OrthodromicDistance").toList();
 
-            results = new SpatialRecordHits(res, layer);
+            results = new GeoPipeFlowHits(res, layer);
             return results;
         }
         else if ( key.equals( BBOX_QUERY ) )

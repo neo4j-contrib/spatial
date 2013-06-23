@@ -257,8 +257,9 @@ public class IndexProviderTest {
         tx.success();
         tx.finish();
         Node node = hits.getSingle();
-        assertTrue(node.getId() == batman.getId());
-        assertTrue(node.getProperty("name").equals(batman1));
+        assertEquals(node.getId(), batman.getId());
+        assertEquals(batman1,node.getProperty("name"));
+        assertEquals(1.41f, hits.currentScore(),0.01f);
 
     }
     
