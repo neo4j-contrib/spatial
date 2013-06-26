@@ -32,6 +32,8 @@ import org.neo4j.graphdb.Transaction;
 
 import com.vividsolutions.jts.geom.Envelope;
 
+import static java.util.Arrays.asList;
+
 
 public class ServerPluginTest extends Neo4jTestCase {
 
@@ -64,9 +66,7 @@ public class ServerPluginTest extends Neo4jTestCase {
 	@Test
 	public void testSearchPoints() {
 	    Transaction tx2 = graphDb().beginTx();
-        Node point = graphDb().createNode();
-        point.setProperty(LAT, 60.1);
-        point.setProperty(LON, 15.2);
+        Node point = createPointNode(60.1, 15.2);
         tx2.success();
         tx2.finish();
         plugin.addSimplePointLayer( graphDb(), LAYER, LAT, LON );
@@ -96,30 +96,62 @@ public class ServerPluginTest extends Neo4jTestCase {
 		assertNotNull(spatialService.getLayer(LAYER));
 		Layer layer2 = spatialService.getLayer(LAYER);
 		
-		List<SpatialDatabaseRecord> results = GeoPipeline
-			.startWithinSearch(layer2, layer2.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 60.0, 61.0)))
-			.toSpatialDatabaseRecordList();
+		List<SpatialDatabaseRecord> results = findRecordsWithinDefaultEnvelope(layer2);
 		
 		assertEquals(0, results.size());
 
 		Transaction tx2 = graphDb().beginTx();
-		Node point = graphDb().createNode();
-		point.setProperty(LAT, 60.1);
-		point.setProperty(LON, 15.2);
-		point.setProperty("bbox", new double[] { 15.2, 60.1, 15.2, 60.1 });
+        Node point = createPointNode(60.1, 15.2);
 		tx2.success();
 		tx2.finish();
 		plugin.addNodeToLayer(graphDb(), point, LAYER);
 		plugin.addGeometryWKTToLayer(graphDb(), "POINT(15.2 60.1)", LAYER);
 		
-		results = GeoPipeline
-			.startWithinSearch(layer2, layer2.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 60.0, 61.0)))
-			.toSpatialDatabaseRecordList();		
+		results = findRecordsWithinDefaultEnvelope(layer2);
 		
 		assertEquals(2, results.size());
 	}
-	
+
 	@Test
+	public void testAddMultiplePointToLayerWithDefaults() {
+		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+        plugin.addSimplePointLayer( graphDb(), LAYER, LAT, LON );
+		assertNotNull(spatialService.getLayer(LAYER));
+		Layer layer2 = spatialService.getLayer(LAYER);
+
+		List<SpatialDatabaseRecord> results = findRecordsWithinDefaultEnvelope(layer2);
+
+		assertEquals(0, results.size());
+
+		Transaction tx2 = graphDb().beginTx();
+        Node point = createPointNode(60.1, 15.2);
+        Node point2 = createPointNode(60.1, 15.3);
+        Node point3 = createPointNode(60.2, 15.2);
+		tx2.success();
+		tx2.finish();
+		plugin.addMultipleNodesToLayer(graphDb(), asList(point, point2, point3), LAYER);
+
+		results = findRecordsWithinDefaultEnvelope(layer2);
+
+		assertEquals(3, results.size());
+	}
+
+    private Node createPointNode(double lat, double lon) {
+        Node point = graphDb().createNode();
+        point.setProperty(LAT, lat);
+        point.setProperty(LON, lon);
+//        point.setProperty("bbox", new double[] { lon, lat, lon, lat });
+
+        return point;
+    }
+
+    private List<SpatialDatabaseRecord> findRecordsWithinDefaultEnvelope(Layer layer2) {
+        return GeoPipeline
+            .startWithinSearch(layer2, layer2.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 60.0, 61.0)))
+            .toSpatialDatabaseRecordList();
+    }
+
+    @Test
 	public void testDynamicLayer() {
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
 		plugin.addEditableLayer(graphDb(), LAYER, "WKT");

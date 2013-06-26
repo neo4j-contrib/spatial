@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial.server.plugin;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.neo4j.gis.spatial.DynamicLayer;
 import org.neo4j.gis.spatial.EditableLayer;
@@ -113,7 +114,31 @@ public class SpatialPlugin extends ServerPlugin {
 		return toArray(node);
 	}
 
-	@PluginTarget(GraphDatabaseService.class)
+    @PluginTarget(GraphDatabaseService.class)
+    @Description("adds geometry nodes to a layer, as long as the nodes contain the geometry information appropriate to this layer.")
+    public Iterable<Node> addMultipleNodesToLayer(@Source GraphDatabaseService db,
+                                                  @Description("The node representing a geometry to add to the layer") @Parameter(name = "nodes") List<Node> nodes,
+                                                  @Description("The layer to add the node to.") @Parameter(name = "layer") String layer) {
+        SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
+
+        EditableLayer spatialLayer = (EditableLayer) spatialService.getLayer(layer);
+        Transaction tx = db.beginTx();
+        try {
+            for (Node node : nodes) {
+                spatialLayer.add(node);
+            }
+            tx.success();
+        } catch (Exception e) {
+            e.printStackTrace();
+            tx.failure();
+            throw new RuntimeException("Error adding nodes to layer "+layer,e);
+        } finally {
+            tx.finish();
+        }
+        return nodes;
+    }
+
+    @PluginTarget(GraphDatabaseService.class)
 	@Description("add a geometry specified in WKT format to a layer, encoding in the specified layers encoding schemea.")
 	public Iterable<Node> addGeometryWKTToLayer(@Source GraphDatabaseService db,
 			@Description("The geometry in WKT to add to the layer") @Parameter(name = "geometry") String geometryWKT,
