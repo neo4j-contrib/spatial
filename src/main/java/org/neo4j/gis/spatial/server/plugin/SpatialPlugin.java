@@ -19,7 +19,7 @@
  */
 package org.neo4j.gis.spatial.server.plugin;
 
-import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.neo4j.gis.spatial.DynamicLayer;
@@ -31,6 +31,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.kernel.impl.cache.LruCache;
 import org.neo4j.server.plugins.Description;
 import org.neo4j.server.plugins.Parameter;
 import org.neo4j.server.plugins.PluginTarget;
@@ -46,74 +47,112 @@ import com.vividsolutions.jts.io.WKTReader;
 @Description("a set of extensions that perform operations using the neo4j-spatial component")
 public class SpatialPlugin extends ServerPlugin {
 
-	@PluginTarget(GraphDatabaseService.class)
-	@Description("add a new layer specialized at storing simple point location data")
-	public Iterable<Node> addSimplePointLayer(
-			@Source GraphDatabaseService db,
-			@Description("The layer to find or create.") @Parameter(name = "layer") String layer,
-			@Description("The node property that contains the latitude. Default is 'lat'") @Parameter(name = "lat", optional = true) String lat,
-			@Description("The node property that contains the longitude. Default is 'lon'") @Parameter(name = "lon", optional = true) String lon) {
-		System.out.println("Creating new layer '" + layer + "' unless it already exists");
-		SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
-		return toArray(spatialService.getOrCreatePointLayer(layer, lon, lat).getLayerNode());
-	}
+    private SpatialDatabaseService spatialDatabaseService;
+    // works because the plugin is a singleton, synchronized on cache-instance
+    private final LruCache<String, Layer> layers=new LruCache<String,Layer>("spatial-plugin-layers",10);
 
-	@PluginTarget(GraphDatabaseService.class)
-	@Description("add a new layer specialized at storing generic geometry data in WKB")
-	public Iterable<Node> addEditableLayer(@Source GraphDatabaseService db,
-			@Description("The layer to find or create.") @Parameter(name = "layer") String layer,
-			@Description("The format for internal representation, either WKB or WKT") @Parameter(name = "format", optional = true) String format) {
-		System.out.println("Creating new layer '" + layer + "' unless it already exists");
-		SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
-		return toArray(spatialService.getOrCreateEditableLayer(layer).getLayerNode());
-	}
+    private SpatialDatabaseService getSpatialDatabaseService(GraphDatabaseService db) {
+        if (spatialDatabaseService!=null) {
+            if (spatialDatabaseService.getDatabase()==db) {
+                return spatialDatabaseService;
+            } else {
+                spatialDatabaseService=null;
+                layers.clear();
+            }
+        }
+        spatialDatabaseService = new SpatialDatabaseService(db);
+        return spatialDatabaseService;
+    }
 
-	@PluginTarget(GraphDatabaseService.class)
-	@Description("add a new dynamic layer exposing a filtered view of an existing layer")
-	public Iterable<Node> addCQLDynamicLayer(
-			@Source GraphDatabaseService db,
-			@Description("The master layer to find") @Parameter(name = "master_layer") String master_layer,
-			@Description("The name for the new dynamic layer") @Parameter(name = "name") String name,
-			@Description("The type of geometry to use for streaming data from the new view") @Parameter(name = "geometry", optional = true) String geometry,
-			@Description("The CQL query to use for defining this dynamic layer") @Parameter(name = "layer") String query) {
-		System.out.println("Creating new dynamic layer '" + name + "' from existing layer '" + master_layer + "'");
-		SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
-		DynamicLayer dynamicLayer = spatialService.asDynamicLayer(spatialService.getLayer(master_layer));
-		int gtype = SpatialDatabaseService.convertGeometryNameToType(geometry);
-		return toArray(dynamicLayer.addLayerConfig(name, gtype, query).getLayerNode());
-	}
+    private void addLayer(String layerName, Layer layer) {
+        synchronized (layers) {
+            layers.put(layerName, layer);
+        }
+    }
 
-	@PluginTarget(GraphDatabaseService.class)
-	@Description("find an existing layer")
-	public Iterable<Node> getLayer(@Source GraphDatabaseService db,
-			@Description("The layer to find.") @Parameter(name = "layer") String layer) {
-		System.out.println("Finding layer '" + layer + "'");
-		SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
-		return toArray(spatialService.getLayer(layer).getLayerNode());
-	}
+    private Layer getLayer(SpatialDatabaseService service, String layerName) {
+        Layer layer = layers.get(layerName);
+        if (layer!=null) return layer;
+        synchronized (layers) {
+            layer = layers.get(layerName);
+            if (layer!=null) return layer;
+            layer = service.getDynamicLayer(layerName);
+            if (layer==null) layer = service.getLayer(layerName);
+            if (layer!=null) addLayer(layerName,layer);
+        }
+        return layer;
+    }
 
-	@PluginTarget(GraphDatabaseService.class)
-	@Description("add a geometry node to a layer, as long as the node contains the geometry information appropriate to this layer.")
-	public Iterable<Node> addNodeToLayer(@Source GraphDatabaseService db,
-			@Description("The node representing a geometry to add to the layer") @Parameter(name = "node") Node node,
-			@Description("The layer to add the node to.") @Parameter(name = "layer") String layer) {
-		SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
-		System.out.println( "adding node " + node + " to layer '" + layer + "'");
-        
-		EditableLayer spatialLayer = (EditableLayer) spatialService.getLayer(layer);
-		Transaction tx = db.beginTx();
-		try {
-		    spatialLayer.add(node);
-		    tx.success();
-		} catch (Exception e) {
-		    e.printStackTrace();
-		    tx.failure();
-		} finally {
-		    tx.finish();
-		}
-		return toArray(node);
-	}
+    @PluginTarget(GraphDatabaseService.class)
+    @Description("add a new layer specialized at storing simple point location data")
+    public Iterable<Node> addSimplePointLayer(
+            @Source GraphDatabaseService db,
+            @Description("The layer to find or create.") @Parameter(name = "layer") String layer,
+            @Description("The node property that contains the latitude. Default is 'lat'") @Parameter(name = "lat", optional = true) String lat,
+            @Description("The node property that contains the longitude. Default is 'lon'") @Parameter(name = "lon", optional = true) String lon) {
+        SpatialDatabaseService spatialService = getSpatialDatabaseService(db);
+        EditableLayer pointLayer = spatialService.getOrCreatePointLayer(layer, lon, lat);
+        addLayer(layer,pointLayer);
+        return toIterable(pointLayer.getLayerNode());
+    }
 
+
+    @PluginTarget(GraphDatabaseService.class)
+    @Description("add a new layer specialized at storing generic geometry data in WKB")
+    public Iterable<Node> addEditableLayer(@Source GraphDatabaseService db,
+                                           @Description("The layer to find or create.") @Parameter(name = "layer") String layerName,
+                                           @Description("The format for internal representation, either WKB or WKT") @Parameter(name = "format", optional = true) String format) {
+        SpatialDatabaseService spatialService = getSpatialDatabaseService(db);
+        EditableLayer layer = spatialService.getOrCreateEditableLayer(layerName);
+        addLayer(layerName,layer);
+        return toIterable(layer.getLayerNode());
+    }
+
+    @PluginTarget(GraphDatabaseService.class)
+    @Description("add a new dynamic layer exposing a filtered view of an existing layer")
+    public Iterable<Node> addCQLDynamicLayer(
+            @Source GraphDatabaseService db,
+            @Description("The master layer to find") @Parameter(name = "master_layer") String master_layer,
+            @Description("The name for the new dynamic layer") @Parameter(name = "name") String name,
+            @Description("The type of geometry to use for streaming data from the new view") @Parameter(name = "geometry", optional = true) String geometry,
+            @Description("The CQL query to use for defining this dynamic layer") @Parameter(name = "layer") String query) {
+        System.out.println("Creating new dynamic layer '" + name + "' from existing layer '" + master_layer + "'");
+        SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
+        DynamicLayer dynamicLayer = spatialService.asDynamicLayer(getLayer(spatialService,master_layer));
+        int gtype = SpatialDatabaseService.convertGeometryNameToType(geometry);
+        return toIterable(dynamicLayer.addLayerConfig(name, gtype, query).getLayerNode());
+    }
+
+    @PluginTarget(GraphDatabaseService.class)
+    @Description("find an existing layer")
+    public Iterable<Node> getLayer(@Source GraphDatabaseService db,
+                                   @Description("The layer to find.") @Parameter(name = "layer") String layer) {
+        System.out.println("Finding layer '" + layer + "'");
+        SpatialDatabaseService spatialService = getSpatialDatabaseService(db);
+        return toIterable(getLayer(spatialService, layer).getLayerNode());
+    }
+
+    @PluginTarget(GraphDatabaseService.class)
+    @Description("add a geometry node to a layer, as long as the node contains the geometry information appropriate to this layer.")
+    public Iterable<Node> addNodeToLayer(@Source GraphDatabaseService db,
+                                         @Description("The node representing a geometry to add to the layer") @Parameter(name = "node") Node node,
+                                         @Description("The layer to add the node to.") @Parameter(name = "layer") String layer) {
+        SpatialDatabaseService spatialService = getSpatialDatabaseService(db);
+
+        EditableLayer spatialLayer = (EditableLayer) getLayer(spatialService,layer);
+        Transaction tx = db.beginTx();
+        try {
+            spatialLayer.add(node);
+            tx.success();
+        } catch (Exception e) {
+            e.printStackTrace();
+            tx.failure();
+            throw new RuntimeException("Error adding nodes to layer "+layer,e);
+        } finally {
+            tx.finish();
+        }
+        return toIterable(node);
+    }
     @PluginTarget(GraphDatabaseService.class)
     @Description("adds geometry nodes to a layer, as long as the nodes contain the geometry information appropriate to this layer.")
     public Iterable<Node> addMultipleNodesToLayer(@Source GraphDatabaseService db,
@@ -138,97 +177,88 @@ public class SpatialPlugin extends ServerPlugin {
         return nodes;
     }
 
+
     @PluginTarget(GraphDatabaseService.class)
-	@Description("add a geometry specified in WKT format to a layer, encoding in the specified layers encoding schemea.")
-	public Iterable<Node> addGeometryWKTToLayer(@Source GraphDatabaseService db,
-			@Description("The geometry in WKT to add to the layer") @Parameter(name = "geometry") String geometryWKT,
-			@Description("The layer to add the node to.") @Parameter(name = "layer") String layer) {
-		System.out.println("Adding geometry to layer '" + layer + "': " + geometryWKT);
-		SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
+    @Description("add a geometry specified in WKT format to a layer, encoding in the specified layers encoding schemea.")
+    public Iterable<Node> addGeometryWKTToLayer(@Source GraphDatabaseService db,
+                                                @Description("The geometry in WKT to add to the layer") @Parameter(name = "geometry") String geometryWKT,
+                                                @Description("The layer to add the node to.") @Parameter(name = "layer") String layer) {
+        SpatialDatabaseService spatialService = getSpatialDatabaseService(db);
 
-		EditableLayer spatialLayer = (EditableLayer) spatialService.getLayer(layer);
-		try {
-			WKTReader reader = new WKTReader(spatialLayer.getGeometryFactory());
-			Geometry geometry = reader.read(geometryWKT);
-			SpatialDatabaseRecord record = spatialLayer.add(geometry);
-			return toArray(record.getGeomNode());
-		} catch (ParseException e) {
-			System.err.println("Invalid Geometry: " + e.getLocalizedMessage());
-		}
-		return null;
-	}
+        EditableLayer spatialLayer = (EditableLayer) getLayer(spatialService, layer);
+        try {
+            WKTReader reader = new WKTReader(spatialLayer.getGeometryFactory());
+            Geometry geometry = reader.read(geometryWKT);
+            SpatialDatabaseRecord record = spatialLayer.add(geometry);
+            return toIterable(record.getGeomNode());
+        } catch (ParseException e) {
+            System.err.println("Invalid Geometry: " + e.getLocalizedMessage());
+        }
+        return null;
+    }
 
-	@PluginTarget(GraphDatabaseService.class)
-	@Description("update an existing geometry specified in WKT format. The layer must already contain the record.")
-	public Iterable<Node> updateGeometryFromWKT(@Source GraphDatabaseService db,
-			@Description("The geometry in WKT to add to the layer") @Parameter(name = "geometry") String geometryWKT,
-			@Description("The geometry node id") @Parameter(name = "node") long nodeId,
-			@Description("The layer to add the node to.") @Parameter(name = "layer") String layer) {
-		System.out.println("Adding geometry to layer '" + layer + "': " + geometryWKT);
-		SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
+    @PluginTarget(GraphDatabaseService.class)
+    @Description("update an existing geometry specified in WKT format. The layer must already contain the record.")
+    public Iterable<Node> updateGeometryFromWKT(@Source GraphDatabaseService db,
+                                                @Description("The geometry in WKT to add to the layer") @Parameter(name = "geometry") String geometryWKT,
+                                                @Description("The geometry node id") @Parameter(name = "node") long nodeId,
+                                                @Description("The layer to add the node to.") @Parameter(name = "layer") String layer) {
+        SpatialDatabaseService spatialService = getSpatialDatabaseService(db);
 
-		EditableLayer spatialLayer = (EditableLayer) spatialService.getLayer(layer);
-		try {
-			WKTReader reader = new WKTReader(spatialLayer.getGeometryFactory());
-			Geometry geometry = reader.read(geometryWKT);
-			SpatialDatabaseRecord record = spatialLayer.getIndex().get(nodeId);
-			spatialLayer.getGeometryEncoder().encodeGeometry(geometry, record.getGeomNode());
-			return toArray(record.getGeomNode());
-		} catch (ParseException e) {
-			System.err.println("Invalid Geometry: " + e.getLocalizedMessage());
-		}
-		return null;
-	}
+        EditableLayer spatialLayer = (EditableLayer) getLayer(spatialService, layer);
+        try {
+            WKTReader reader = new WKTReader(spatialLayer.getGeometryFactory());
+            Geometry geometry = reader.read(geometryWKT);
+            SpatialDatabaseRecord record = spatialLayer.getIndex().get(nodeId);
+            spatialLayer.getGeometryEncoder().encodeGeometry(geometry, record.getGeomNode());
+            return toIterable(record.getGeomNode());
+        } catch (ParseException e) {
+            System.err.println("Invalid Geometry: " + e.getLocalizedMessage());
+        }
+        return null;
+    }
 
-	@PluginTarget(GraphDatabaseService.class)
-	@Description("search a layer for geometries in a bounding box. To achieve more complex CQL searches, pre-define the dynamic layer with addCQLDynamicLayer.")
-	public Iterable<Node> findGeometriesInBBox(
-			@Source GraphDatabaseService db,
-			@Description("The minimum x value of the bounding box") @Parameter(name = "minx") double minx,
-			@Description("The maximum x value of the bounding box") @Parameter(name = "maxx") double maxx,
-			@Description("The minimum y value of the bounding box") @Parameter(name = "miny") double miny,
-			@Description("The maximum y value of the bounding box") @Parameter(name = "maxy") double maxy,
-			@Description("The layer to search. Can be a dynamic layer with pre-defined CQL filter.") @Parameter(name = "layer") String layerName) {
-		System.out.println("Finding Geometries in layer '" + layerName + "'");
-		SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
+    @PluginTarget(GraphDatabaseService.class)
+    @Description("search a layer for geometries in a bounding box. To achieve more complex CQL searches, pre-define the dynamic layer with addCQLDynamicLayer.")
+    public Iterable<Node> findGeometriesInBBox(
+            @Source GraphDatabaseService db,
+            @Description("The minimum x value of the bounding box") @Parameter(name = "minx") double minx,
+            @Description("The maximum x value of the bounding box") @Parameter(name = "maxx") double maxx,
+            @Description("The minimum y value of the bounding box") @Parameter(name = "miny") double miny,
+            @Description("The maximum y value of the bounding box") @Parameter(name = "maxy") double maxy,
+            @Description("The layer to search. Can be a dynamic layer with pre-defined CQL filter.") @Parameter(name = "layer") String layerName) {
+        SpatialDatabaseService spatialService = getSpatialDatabaseService(db);
 
-		Layer layer = spatialService.getDynamicLayer(layerName);
-		if (layer == null ) {
-		    layer = spatialService.getLayer(layerName);
-		}
+        Layer layer = getLayer(spatialService, layerName);
 
-		// TODO why a SearchWithin and not a SearchIntersectWindow?
-		
-		return GeoPipeline
-			.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(minx, maxx, miny, maxy)))
-			.toNodeList();
-	}
+        // TODO why a SearchWithin and not a SearchIntersectWindow?
 
-	@PluginTarget(GraphDatabaseService.class)
-	@Description("search a layer for geometries within a distance of a point. To achieve more complex CQL searches, pre-define the dynamic layer with addCQLDynamicLayer.")
-	public Iterable<Node> findGeometriesWithinDistance(
-			@Source GraphDatabaseService db,
-			@Description("The x value of a point") @Parameter(name = "pointX") double pointX,
-			@Description("The y value of a point") @Parameter(name = "pointY") double pointY,
-			@Description("The distance from the point to search") @Parameter(name = "distanceInKm") double distanceInKm,
-			@Description("The layer to search. Can be a dynamic layer with pre-defined CQL filter.") @Parameter(name = "layer") String layerName) {
-		System.out.println("Finding Geometries in layer '" + layerName + "'");
-		SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
+        return GeoPipeline
+                .startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(minx, maxx, miny, maxy)))
+                .toNodeList();
+    }
 
-		Layer layer = spatialService.getDynamicLayer(layerName);
-		if (layer == null ) {
-		    layer = spatialService.getLayer(layerName);
-		}
-	
-		return GeoPipeline
-			.startNearestNeighborLatLonSearch(layer, new Coordinate(pointX, pointY), distanceInKm)
-			.sort("OrthodromicDistance").toNodeList();
-	}
+    @PluginTarget(GraphDatabaseService.class)
+    @Description("search a layer for geometries within a distance of a point. To achieve more complex CQL searches, pre-define the dynamic layer with addCQLDynamicLayer.")
+    public Iterable<Node> findGeometriesWithinDistance(
+            @Source GraphDatabaseService db,
+            @Description("The x value of a point") @Parameter(name = "pointX") double pointX,
+            @Description("The y value of a point") @Parameter(name = "pointY") double pointY,
+            @Description("The distance from the point to search") @Parameter(name = "distanceInKm") double distanceInKm,
+            @Description("The layer to search. Can be a dynamic layer with pre-defined CQL filter.") @Parameter(name = "layer") String layerName) {
+        SpatialDatabaseService spatialService = getSpatialDatabaseService(db);
 
-	private Iterable<Node> toArray(Node node) {
-		ArrayList<Node> result = new ArrayList<Node>();
-		if (result != null)
-			result.add(node);
-		return result;
-	}
+        Layer layer = getLayer(spatialService,layerName);
+
+        return GeoPipeline
+                .startNearestNeighborLatLonSearch(layer, new Coordinate(pointX, pointY), distanceInKm)
+                .sort("OrthodromicDistance").toNodeList();
+    }
+
+    private Iterable<Node> toIterable(Node node) {
+        if (node == null) {
+            return Collections.emptyList();
+        }
+        return Collections.singletonList(node);
+    }
 }
