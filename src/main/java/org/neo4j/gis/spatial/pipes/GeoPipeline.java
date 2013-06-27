@@ -919,10 +919,6 @@ public class GeoPipeline extends GremlinGroovyPipeline<GeoPipeFlow, GeoPipeFlow>
 			public ReferencedEnvelope getBounds() {
 				return new ReferencedEnvelope(bounds, layer.getCoordinateReferenceSystem());
 			}
-			
-			@Override
-			protected void closeIterator(Iterator<SimpleFeature> iterator) {
-			}
 		};
     }
 
@@ -976,10 +972,6 @@ public class GeoPipeline extends GremlinGroovyPipeline<GeoPipeFlow, GeoPipeFlow>
 			@Override
 			public ReferencedEnvelope getBounds() {
 				return refBounds;
-			}
-			
-			@Override
-			protected void closeIterator(Iterator<SimpleFeature> iterator) {
 			}
 		};
     }
