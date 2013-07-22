@@ -133,6 +133,8 @@ public class SpatialPlugin extends ServerPlugin {
 		return null;
 	}
 
+    
+    //TODO: there is no test verifying this.
 	@PluginTarget(GraphDatabaseService.class)
 	@Description("update an existing geometry specified in WKT format. The layer must already contain the record.")
 	public Iterable<Node> updateGeometryFromWKT(@Source GraphDatabaseService db,
