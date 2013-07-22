@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.TestCase.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -187,6 +188,12 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
         int nodeId = getNodeId(response);
         response = post(Status.OK,"{\"layer\":\"geom_wkt\", \"node\":\"http://localhost:"+PORT+"/db/data/node/"+nodeId+"\"}", ENDPOINT + "/graphdb/addNodeToLayer");
         assertTrue(findNodeInBox("geom_wkt",15.0, 15.3, 60.0, 61.0).contains( "60.1" ));
+        //update the node
+        response = put(Status.NO_CONTENT,"{\"wkt\":\"POINT(31 61)\"}", "http://localhost:"+PORT+"/db/data/node/"+nodeId+"/properties");
+        response = post(Status.OK,"{\"layer\":\"geom_wkt\", \"node\":\"http://localhost:"+PORT+"/db/data/node/"+nodeId+"\"}", ENDPOINT + "/graphdb/addNodeToLayer");
+//        assertFalse(findNodeInBox("geom_wkt", 15.0, 15.3, 60.0, 61.0).contains("60.1"));
+        assertTrue(findNodeInBox("geom_wkt",30, 32, 60.0, 62.0).contains( "31" ));
+
 
     }
 
@@ -204,7 +211,7 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
         response = post(Status.CREATED,"{\"lat\":60.1, \"lon\":15.2}", "http://localhost:"+PORT+"/db/data/node");
         int nodeId = getNodeId(response);
         response = post(Status.OK,"{\"layer\":\"geom\", \"node\":\"http://localhost:"+PORT+"/db/data/node/"+nodeId+"\"}", ENDPOINT + "/graphdb/addNodeToLayer");
-        assertTrue(findNodeInBox("geom",15.0, 15.3, 60.0, 61.0).contains( "60.1" ));
+        assertTrue(findNodeInBox("geom",15.0, 15.3, 60.0, 61.0).contains("60.1"));
 
     }
 
@@ -284,6 +291,9 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
     
     private String post(Status status, String payload, String endpoint) {
         return gen().expectedStatus( status.getStatusCode() ).payload( payload ).post( endpoint).entity();
+    }
+    private String put(Status status, String payload, String endpoint) {
+        return gen().expectedStatus( status.getStatusCode() ).payload( payload ).put(endpoint).entity();
     }
     
     @Before

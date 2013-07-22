@@ -304,13 +304,9 @@ public class IndexProviderTest {
         index.add(robin, "dummy", "value");
 
         ExecutionEngine engine = new ExecutionEngine(db);
-        ExecutionResult result = engine.execute("start n=node:layer3('withinDistance:[33.32, 44.44, 5.0]') return n");
+        assertTrue(engine.execute("start n=node:layer3('withinDistance:[33.32, 44.44, 5.0]') return n").columnAs("n").hasNext());
 
-        Iterator<Object> rows = result.columnAs("n");
-
-        assertTrue(rows.hasNext());
-
-        NodeProxy row = (org.neo4j.kernel.impl.core.NodeProxy) rows.next();
+        NodeProxy row = (org.neo4j.kernel.impl.core.NodeProxy) engine.execute("start n=node:layer3('withinDistance:[33.32, 44.44, 5.0]') return n").columnAs("n").next();
         assertEquals("robin", row.getProperty("name"));
         assertEquals("POINT(44.44 33.33)", row.getProperty("wkt"));
         
