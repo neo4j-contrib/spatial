@@ -40,7 +40,6 @@ package org.neo4j.gis.spatial;
 
 import com.tinkerpop.blueprints.pgm.impls.neo4j.Neo4jGraph;
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
 import com.vividsolutions.jts.operation.distance.DistanceOp;
@@ -52,7 +51,6 @@ import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.cypher.javacompat.ExecutionResult;
 import org.neo4j.gis.spatial.indexprovider.LayerNodeIndex;
 import org.neo4j.gis.spatial.indexprovider.SpatialIndexProvider;
-import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
@@ -161,6 +159,28 @@ public class IndexProviderTest {
         IndexManager indexMan = db.index();
         Index<Node> index = indexMan.forNodes("layer1", config);
         assertNotNull(index);
+        Transaction transaction = db.beginTx();
+
+        Node node = null;
+        try {
+            node = db.createNode();
+            node.setProperty("lat", 56.2);
+            node.setProperty("lon", 15.3);
+            transaction.success();
+            transaction.finish();
+        } catch (Exception e) {
+            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+
+
+        try {
+            transaction = db.beginTx();
+            index.add(node, "", "");
+            transaction.success();
+            transaction.finish();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
         // Request deletion
         index.delete();
         // Assert deletion
@@ -258,11 +278,11 @@ public class IndexProviderTest {
         tx.finish();
         Node node = hits.getSingle();
         assertEquals(node.getId(), batman.getId());
-        assertEquals(batman1,node.getProperty("name"));
-        assertEquals(1.41f, hits.currentScore(),0.01f);
+        assertEquals(batman1, node.getProperty("name"));
+        assertEquals(1.41f, hits.currentScore(), 0.01f);
 
     }
-    
+
     @Test
     public void testDistance() throws ParseException {
         WKTReader wktRdr = new WKTReader();
@@ -278,10 +298,10 @@ public class IndexProviderTest {
         IndexManager indexMan = db.index();
         Index<Node> index = indexMan.forNodes("layer3", config);
         Transaction tx = db.beginTx();
-        Node batman = db.createNode();
-        batman.setProperty("wkt", "POINT(44.44 33.33)");
-        batman.setProperty("name", "robin");
-        index.add(batman, "dummy", "value");
+        Node robin = db.createNode();
+        robin.setProperty("wkt", "POINT(44.44 33.33)");
+        robin.setProperty("name", "robin");
+        index.add(robin, "dummy", "value");
 
         ExecutionEngine engine = new ExecutionEngine(db);
         ExecutionResult result = engine.execute("start n=node:layer3('withinDistance:[33.32, 44.44, 5.0]') return n");
@@ -293,6 +313,13 @@ public class IndexProviderTest {
         NodeProxy row = (org.neo4j.kernel.impl.core.NodeProxy) rows.next();
         assertEquals("robin", row.getProperty("name"));
         assertEquals("POINT(44.44 33.33)", row.getProperty("wkt"));
+        
+        //update the node
+        robin.setProperty("wkt", "POINT(55.55 33.33)");
+        index.add(robin, "dummy", "value");
+        assertFalse(engine.execute("start n=node:layer3('withinDistance:[33.32, 44.44, 5.0]') return n").columnAs("n").hasNext());
+        assertTrue(engine.execute("start n=node:layer3('withinDistance:[33.32, 55.55, 5.0]') return n").columnAs("n").hasNext());
+
     }
 
     /**

@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Map;
 
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
@@ -174,6 +175,22 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
     }
 
     /**
+     * Add a node to an index created as a WKT
+     */
+    @Test
+    @Documented
+    public void add_a_wkt_node_to_the_spatial_index() throws Exception {
+        data.get();
+        String response = post(Status.OK,"{\"layer\":\"geom\", \"lat\":\"lat\", \"lon\":\"lon\"}", ENDPOINT + "/graphdb/addSimplePointLayer");
+        response = post(Status.CREATED,"{\"name\":\"geom_wkt\", \"config\":{\"provider\":\"spatial\", \"wkt\":\"wkt\"}}", "http://localhost:"+PORT+"/db/data/index/node/");
+        response = post(Status.CREATED,"{\"wkt\":\"POINT(15.2 60.1)\"}", "http://localhost:"+PORT+"/db/data/node");
+        int nodeId = getNodeId(response);
+        response = post(Status.OK,"{\"layer\":\"geom_wkt\", \"node\":\"http://localhost:"+PORT+"/db/data/node/"+nodeId+"\"}", ENDPOINT + "/graphdb/addNodeToLayer");
+        assertTrue(findNodeInBox("geom_wkt",15.0, 15.3, 60.0, 61.0).contains( "60.1" ));
+
+    }
+
+    /**
      * Find geometries in a bounding 
      * box.
      */
@@ -187,8 +204,14 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
         response = post(Status.CREATED,"{\"lat\":60.1, \"lon\":15.2}", "http://localhost:"+PORT+"/db/data/node");
         int nodeId = getNodeId(response);
         response = post(Status.OK,"{\"layer\":\"geom\", \"node\":\"http://localhost:"+PORT+"/db/data/node/"+nodeId+"\"}", ENDPOINT + "/graphdb/addNodeToLayer");
-        response = post(Status.OK,"{\"layer\":\"geom\", \"minx\":15.0,\"maxx\":15.3,\"miny\":60.0,\"maxy\":60.2}", ENDPOINT + "/graphdb/findGeometriesInBBox");
-        assertTrue(response.contains( "60.1" ));
+        assertTrue(findNodeInBox("geom",15.0, 15.3, 60.0, 61.0).contains( "60.1" ));
+
+    }
+
+    private String findNodeInBox(String layer_name, double lon1, double lon2, double lat1, double lat2) {
+        String response;
+        return response = post(Status.OK,String.format("{\"layer\":\"%s\", \"minx\":%s,\"maxx\":%s,\"miny\":%s,\"maxy\":%s}",layer_name, lon1, lon2, lat1, lat2), ENDPOINT + "/graphdb/findGeometriesInBBox");
+        
     }
 
     /**
@@ -266,8 +289,11 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
     @Before
     public void cleanContent()
     {
-        ((ImpermanentGraphDatabase)graphdb()).cleanContent(true);
+        ImpermanentGraphDatabase graphdb = (ImpermanentGraphDatabase) graphdb();
+        graphdb.cleanContent(true);
+        //clean
         gen.get().setGraph( graphdb() );
+        
     }
     
 }
