@@ -39,12 +39,12 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.kernel.AbstractGraphDatabase;
-import org.neo4j.kernel.EmbeddedGraphDatabase;
-import org.neo4j.kernel.impl.batchinsert.BatchInserter;
-import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
 import org.neo4j.kernel.impl.nioneo.store.PropertyStore;
 import org.neo4j.kernel.impl.util.FileUtils;
+import org.neo4j.unsafe.batchinsert.BatchInserter;
+import org.neo4j.unsafe.batchinsert.BatchInserters;
 
 
 /**
@@ -119,6 +119,9 @@ public abstract class Neo4jTestCase extends TestCase {
         if (graphDb != null) {
             graphDb.shutdown(); // shuts down batchInserter also, if this was made from that
             graphDb = null;
+        }
+        if (batchInserter!=null) {
+            batchInserter.shutdown();
             batchInserter = null;
         }
         if (deleteDb) {
@@ -143,14 +146,17 @@ public abstract class Neo4jTestCase extends TestCase {
             config = LARGE_CONFIG;
         }
         if (useBatchInserter) {
-            batchInserter = new BatchInserterImpl(getNeoPath().getAbsolutePath(), config);
-            graphDb = batchInserter.getGraphDbService();
-        } else {
-            graphDb = new EmbeddedGraphDatabase(getNeoPath().getAbsolutePath(), config );
+            batchInserter = BatchInserters.inserter(getNeoPath().getAbsolutePath(), config);
         }
-        if (autoTx) {
-            // with the batch inserter the tx is a dummy that simply succeeds all the time
-            tx = graphDb.beginTx();
+        else {
+            graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder( getNeoPath().getAbsolutePath() )
+                    .setConfig( config )
+                    .newGraphDatabase();
+            
+            if (autoTx) {
+                // with the batch inserter the tx is a dummy that simply succeeds all the time
+                tx = graphDb.beginTx();
+            }
         }
     }
 
