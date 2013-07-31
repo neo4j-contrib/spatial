@@ -246,8 +246,9 @@ public class LayerNodeIndex implements Index<Node>
                 distance = (Double) p.get( DISTANCE_IN_KM_PARAMETER );
             }
 
+            Coordinate start = new Coordinate(point[1], point[0]);
             List<GeoPipeFlow> res = GeoPipeline.startNearestNeighborLatLonSearch(
-                    layer, new Coordinate(point[1], point[0]), distance).sort(
+                    layer, start, distance).sort(
                     "OrthodromicDistance").toList();
 
             results = new GeoPipeFlowHits(res, layer);
@@ -289,8 +290,9 @@ public class LayerNodeIndex implements Index<Node>
     {
 
         String queryString = (String) queryOrQueryObject;
-        return query( queryString.substring( 0, queryString.indexOf( ":" ) ),
-                queryString.substring( queryString.indexOf( ":" ) + 1 ) );
+        IndexHits<Node> indexHits = query(queryString.substring(0, queryString.indexOf(":")),
+                queryString.substring(queryString.indexOf(":") + 1));
+        return indexHits;
     }
 
     @Override
