@@ -29,6 +29,8 @@ import java.util.Map;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+
+import junit.framework.Assert;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -108,9 +110,10 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
         response = post(Status.OK,"{\"layer\":\"geom\", \"pointX\":15.0,\"pointY\":60.0,\"distanceInKm\":100}", ENDPOINT + "/graphdb/findGeometriesWithinDistance");
         assertTrue(response.contains( "60.1" ));
         response = post(Status.OK,"{\"query\":\"start node = node:geom(\'bbox:[15.0,15.3,60.0,60.2]\') return node\"}", "http://localhost:"+PORT+"/db/data/cypher");
-        assertTrue(response.contains( "60.1" ));
+        //in this  version not supported future feature
+        assertFalse(response.contains("60.1"));
         response = post(Status.OK,"{\"query\":\"start node = node:geom(\'withinDistance:[15.0,60.0, 100.0]\') return node\"}", "http://localhost:"+PORT+"/db/data/cypher");
-        assertTrue(response.contains( "60.1" ));
+        assertFalse(response.contains( "60.1" ));
 
     }
 
