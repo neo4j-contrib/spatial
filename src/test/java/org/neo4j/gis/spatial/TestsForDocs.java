@@ -36,11 +36,12 @@ import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
-import org.neo4j.kernel.impl.batchinsert.BatchInserter;
-import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
 
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
+import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import org.neo4j.unsafe.batchinsert.BatchInserter;
+import org.neo4j.unsafe.batchinsert.BatchInserters;
 
 /**
  * Some test code written specifically for the user manual. This normally means
@@ -107,11 +108,12 @@ public class TestsForDocs extends Neo4jTestCase {
 		// START SNIPPET: importOsm
 		OSMImporter importer = new OSMImporter("map.osm");
 		importer.setCharset(Charset.forName("UTF-8"));
-		BatchInserter batchInserter = new BatchInserterImpl(databasePath);
+		BatchInserter batchInserter = BatchInserters.inserter(databasePath);
 		importer.importFile(batchInserter, "map.osm", false);
 		batchInserter.shutdown();
 
-		GraphDatabaseService db = new EmbeddedGraphDatabase(databasePath);
+                GraphDatabaseFactory gdf = new GraphDatabaseFactory();
+		GraphDatabaseService db = gdf.newEmbeddedDatabase(databasePath);
 		importer.reIndex(db);
 		db.shutdown();
 		// END SNIPPET: importOsm

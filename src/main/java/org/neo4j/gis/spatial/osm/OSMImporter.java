@@ -60,17 +60,17 @@ import org.neo4j.graphdb.StopEvaluator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.Traverser;
 import org.neo4j.graphdb.Traverser.Order;
-import org.neo4j.graphdb.index.BatchInserterIndex;
-import org.neo4j.graphdb.index.BatchInserterIndexProvider;
+import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.helpers.collection.MapUtil;
-import org.neo4j.index.impl.lucene.LuceneBatchInserterIndexProvider;
+import org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider;
 import org.neo4j.kernel.AbstractGraphDatabase;
-import org.neo4j.kernel.EmbeddedGraphDatabase;
-import org.neo4j.kernel.impl.batchinsert.BatchInserter;
-import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
-import org.neo4j.kernel.impl.batchinsert.SimpleRelationship;
+import org.neo4j.unsafe.batchinsert.BatchInserter;
+import org.neo4j.unsafe.batchinsert.BatchInserterIndex;
+import org.neo4j.unsafe.batchinsert.BatchInserterIndexProvider;
+import org.neo4j.unsafe.batchinsert.BatchInserters;
+import org.neo4j.unsafe.batchinsert.BatchRelationship;
 
 public class OSMImporter implements Constants
 {
@@ -1415,7 +1415,7 @@ public class OSMImporter implements Constants
         private long findNode( BatchInserter batchInserter, String name,
                 long parent, RelationshipType relType )
         {
-            for ( SimpleRelationship relationship : batchInserter.getRelationships( parent ) )
+            for ( BatchRelationship relationship : batchInserter.getRelationships( parent ) )
             {
                 if ( relationship.getType().name().equals( relType.name() ) )
                 {
@@ -1599,7 +1599,7 @@ public class OSMImporter implements Constants
             {
                 currentChangesetNode = changesetNode;
                 changesetNodes.clear();
-                for ( SimpleRelationship rel : batchInserter.getRelationships( changesetNode ) )
+                for ( BatchRelationship rel : batchInserter.getRelationships( changesetNode ) )
                 {
                     if ( rel.getType().name().equals(
                             OSMRelation.CHANGESET.name() ) )
@@ -1631,7 +1631,7 @@ public class OSMImporter implements Constants
         protected void updateGeometryMetaDataFromMember( Long member,
                 GeometryMetaData metaGeom, Map<String, Object> nodeProps )
         {
-            for ( SimpleRelationship rel : batchInserter.getRelationships( member ) )
+            for ( BatchRelationship rel : batchInserter.getRelationships( member ) )
             {
                 if ( rel.getType().equals( OSMRelation.GEOM ) )
                 {
@@ -2201,45 +2201,8 @@ public class OSMImporter implements Constants
         contextLine++;
     }
 
-    /**
-     * This method allows for a console, command-line application for loading
-     * one or more *.osm files into a new database.
-     * 
-     * @param args , the database directory followed by one or more osm files
-     */
-    public static void main( String[] args )
-    {
-        if ( args.length < 2 )
-        {
-            System.out.println( "Usage: osmimporter databasedir osmfile <..osmfiles..>" );
-        }
-        else
-        {
-            OSMImportManager importer = new OSMImportManager( args[0] );
-            for ( int i = 1; i < args.length; i++ )
-            {
-                try
-                {
-                    importer.loadTestOsmData( args[i], 5000 );
-                }
-                catch ( Exception e )
-                {
-                    System.err.println( "Error importing OSM file '" + args[i]
-                                        + "': " + e );
-                    e.printStackTrace();
-                }
-                finally
-                {
-                    importer.shutdown();
-                }
-            }
-        }
-    }
-
     private static class OSMImportManager
     {
-        private GraphDatabaseService graphDb;
-        private BatchInserter batchInserter;
         private File dbPath;
         private boolean useBatchInserter = false;
 
@@ -2273,49 +2236,27 @@ public class OSMImporter implements Constants
             System.out.println( "\n=== Loading layer " + layerName + " from "
                                 + osmPath + " ===" );
             long start = System.currentTimeMillis();
+            GraphDatabaseService graphDb;
             if ( useBatchInserter )
             {
-                switchToBatchInserter();
+                BatchInserter batchInserter = BatchInserters.inserter( dbPath.getAbsolutePath() );
                 OSMImporter importer = new OSMImporter( layerName );
                 importer.importFile( batchInserter, osmPath );
-                switchToEmbeddedGraphDatabase();
+                batchInserter.shutdown();
+                graphDb = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath.getAbsolutePath());
                 importer.reIndex( graphDb, commitInterval );
             }
             else
             {
-                switchToEmbeddedGraphDatabase();
+                graphDb = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath.getAbsolutePath());
                 OSMImporter importer = new OSMImporter( layerName );
                 importer.importFile( graphDb, osmPath, false, commitInterval, true );
                 importer.reIndex( graphDb, commitInterval );
             }
-            shutdown();
+            graphDb.shutdown();
             System.out.println( "=== Completed loading " + layerName + " in "
                                 + ( System.currentTimeMillis() - start )
                                 / 1000.0 + " seconds ===" );
-        }
-
-        private void switchToEmbeddedGraphDatabase()
-        {
-            shutdown();
-            graphDb = new EmbeddedGraphDatabase( dbPath.getAbsolutePath() );
-        }
-
-        private void switchToBatchInserter()
-        {
-            shutdown();
-            batchInserter = new BatchInserterImpl( dbPath.getAbsolutePath() );
-            graphDb = batchInserter.getGraphDbService();
-        }
-
-        protected void shutdown()
-        {
-            if ( graphDb != null )
-            {
-                graphDb.shutdown();
-                // batch
-                graphDb = null;
-                batchInserter = null;
-            }
         }
     }
 }
