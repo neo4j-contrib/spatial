@@ -92,7 +92,9 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 		// other properties
 		if (fieldsName != null) {
 			for (int i = 0; i < fieldsName.length; i++) {
-				geomNode.setProperty(fieldsName[i], fields[i]);
+				if (fieldsName[i] != null && fields[i] != null) {
+					geomNode.setProperty(fieldsName[i], fields[i]);
+				}
 			}
 		}
 		getGeometryEncoder().encodeGeometry(geom, geomNode);
