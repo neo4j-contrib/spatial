@@ -42,6 +42,7 @@ import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.osm.OSMRelation;
 import org.neo4j.gis.spatial.pipes.osm.OSMGeoPipeline;
 import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 
@@ -130,7 +131,7 @@ public class TestOSMImport extends Neo4jTestCase {
 		}
 		printDatabaseStats();
 		loadTestOsmData(osm, osmPath, includePoints, useBatchInserter, 1000);
-		checkOSMLayer(osm);
+		checkOSMLayer(graphDb(), osm);
 		printDatabaseStats();
 	}
 
@@ -173,8 +174,8 @@ public class TestOSMImport extends Neo4jTestCase {
 		importer.reIndex(graphDb(), commitInterval, includePoints, false);
 	}
 
-	protected void checkOSMLayer(String layerName) throws IOException {
-		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+	protected static void checkOSMLayer(GraphDatabaseService graphDatabaseService, String layerName) throws IOException {
+		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDatabaseService);
 		OSMLayer layer = (OSMLayer) spatialService.getOrCreateLayer(layerName, OSMGeometryEncoder.class, OSMLayer.class);
 		assertNotNull("OSM Layer index should not be null", layer.getIndex());
 		assertNotNull("OSM Layer index envelope should not be null", layer.getIndex().getBoundingBox());
@@ -186,7 +187,7 @@ public class TestOSMImport extends Neo4jTestCase {
 		checkOSMSearch(layer);
 	}
 
-	private void checkOSMSearch(OSMLayer layer) throws IOException {
+	public static void checkOSMSearch(OSMLayer layer) throws IOException {
 		OSMDataset osm = (OSMDataset) layer.getDataset();
 		Way way = null;
 		int count = 0;
@@ -206,7 +207,7 @@ public class TestOSMImport extends Neo4jTestCase {
 		runSearches(layer, bbox, false);
 	}
 
-	private void runSearches(OSMLayer layer, Envelope bbox, boolean willHaveResult) {
+	private static void runSearches(OSMLayer layer, Envelope bbox, boolean willHaveResult) {
 		for (int i = 0; i < 4; i++) {
 			Geometry searchArea = layer.getGeometryFactory().toGeometry(bbox);
 			runWithinSearch(layer, searchArea, willHaveResult);
@@ -214,7 +215,7 @@ public class TestOSMImport extends Neo4jTestCase {
 		}
 	}
 
-	private void runWithinSearch(OSMLayer layer, Geometry searchArea, boolean willHaveResult) {
+	private static void runWithinSearch(OSMLayer layer, Geometry searchArea, boolean willHaveResult) {
 		long start = System.currentTimeMillis();
 		List<SpatialDatabaseRecord> results = OSMGeoPipeline
 			.startWithinSearch(layer, searchArea).toSpatialDatabaseRecordList();		
