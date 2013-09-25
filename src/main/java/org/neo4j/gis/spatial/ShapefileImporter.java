@@ -41,6 +41,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
+import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 
@@ -183,6 +184,7 @@ public class ShapefileImporter implements Constants {
 					Object[] values;
                     ArrayList<Object> fields = new ArrayList<Object>();
 					int recordCounter = 0;
+					int filterCounter = 0;
 					while (shpReader.hasNext() && dbfReader.hasNext()) {
 						tx = database.beginTx();
 						try {
@@ -195,14 +197,19 @@ public class ShapefileImporter implements Constants {
 									try {
                                         fields.clear();
 										geometry = (Geometry) record.shape();
-										values = dbfReader.readEntry();
-										fields.add(recordCounter);
-										Collections.addAll(fields, values);
-										if (geometry.isEmpty()) {
-											log("warn | found empty geometry in record " + recordCounter);
+										if (filterEnvelope == null || filterEnvelope.intersects(geometry.getEnvelopeInternal())) {
+											values = dbfReader.readEntry();
+											fields.add(recordCounter);
+											Collections.addAll(fields, values);
+											if (geometry.isEmpty()) {
+												log("warn | found empty geometry in record " + recordCounter);
+											} else {
+												// TODO check geometry.isValid()
+												// ?
+												layer.add(geometry, fieldsName, fields.toArray(values));
+											}
 										} else {
-											// TODO check geometry.isValid() ?
-											layer.add(geometry, fieldsName, fields.toArray(values));
+											filterCounter ++;
 										}
 									} catch (IllegalArgumentException e) {
 										// org.geotools.data.shapefile.shp.ShapefileReader.Record.shape() can throw this exception
@@ -210,10 +217,15 @@ public class ShapefileImporter implements Constants {
 									}
 								}
 							}
-							
-							log("info | inserted geometries: " + recordCounter);
 							monitor.worked(committedSinceLastNotification);
 							tx.success();
+
+							log("info | inserted geometries: " + (recordCounter-filterCounter));
+							if (filterCounter > 0) {
+								log("info | ignored " + filterCounter + "/" + recordCounter
+										+ " geometries outside filter envelope: " + filterEnvelope);
+							}
+
 						} finally {
 							tx.finish();
 						}
@@ -264,4 +276,9 @@ public class ShapefileImporter implements Constants {
 	private Listener monitor;
 	private GraphDatabaseService database;
 	private SpatialDatabaseService spatialDatabase;
+	private Envelope filterEnvelope;
+
+	public void setFilterEnvelope(Envelope filterEnvelope) {
+		this.filterEnvelope = filterEnvelope;
+	}
 }
