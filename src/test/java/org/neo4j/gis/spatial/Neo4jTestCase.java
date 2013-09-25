@@ -52,7 +52,7 @@ import org.neo4j.unsafe.batchinsert.SpatialBatchGraphDatabaseService;
  * Base class for the meta model tests.
  */
 public abstract class Neo4jTestCase extends TestCase {
-    private static final Map<String, String> NORMAL_CONFIG = new HashMap<String, String>();
+    public static final Map<String, String> NORMAL_CONFIG = new HashMap<String, String>();
     static {
         NORMAL_CONFIG.put( "neostore.nodestore.db.mapped_memory", "50M" );
         NORMAL_CONFIG.put( "neostore.relationshipstore.db.mapped_memory", "120M" );
@@ -61,7 +61,7 @@ public abstract class Neo4jTestCase extends TestCase {
         NORMAL_CONFIG.put( "neostore.propertystore.db.arrays.mapped_memory", "0M" );
         NORMAL_CONFIG.put( "dump_configuration", "false" );
     }
-    private static final Map<String, String> LARGE_CONFIG = new HashMap<String, String>();
+    protected static final Map<String, String> LARGE_CONFIG = new HashMap<String, String>();
     static {
         LARGE_CONFIG.put( "neostore.nodestore.db.mapped_memory", "100M" );
         LARGE_CONFIG.put( "neostore.relationshipstore.db.mapped_memory", "300M" );
