@@ -85,6 +85,7 @@ public class OSMImporter implements Constants
     private StatsManager stats = new StatsManager();
     private long osm_dataset = -1;
     private Listener monitor;
+    private com.vividsolutions.jts.geom.Envelope filterEnvelope = null;
 
     private Charset charset = Charset.defaultCharset();
 
@@ -228,9 +229,15 @@ public class OSMImporter implements Constants
 
     public OSMImporter( String layerName, Listener monitor )
     {
+        this( layerName, null, null );
+    }
+
+    public OSMImporter( String layerName, Listener monitor, com.vividsolutions.jts.geom.Envelope filterEnvelope )
+    {
         this.layerName = layerName;
         if ( monitor == null ) monitor = new NullListener();
         this.monitor = monitor;
+        this.filterEnvelope = filterEnvelope;
     }
 
     public void reIndex( GraphDatabaseService database )
@@ -1467,7 +1474,7 @@ public class OSMImporter implements Constants
                 LinkedHashMap<String, Object> tags, String type )
         {
             logNodeAddition( tags, type );
-            if ( node > 0 && tags.size() > 0 )
+            if ( node != null && node > 0 && tags.size() > 0 )
             {
                 statsManager.addToTagStats( type, tags.keySet() );
                 long id = batchInserter.createNode( tags );
@@ -1927,8 +1934,14 @@ public class OSMImporter implements Constants
                         // lon="12.9693483" user="sanna" uid="31450"
                         // visible="true" version="1" changeset="133823"
                         // timestamp="2008-06-11T12:36:28Z"/>
-                        osmWriter.createOSMNode( extractProperties( "node",
-                                parser ) );
+                    	boolean includeNode = true;
+                    	Map<String, Object> nodeProperties = extractProperties( "node", parser );
+                    	if(filterEnvelope!=null) {
+                    		includeNode = filterEnvelope.contains((Double)nodeProperties.get("lon"), (Double)nodeProperties.get("lat"));
+                    	}
+                    	if (includeNode) {
+                    		osmWriter.createOSMNode( nodeProperties );
+                    	}
                     }
                     else if ( tagPath.equals( "[osm, way]" ) )
                     {
@@ -2000,7 +2013,7 @@ public class OSMImporter implements Constants
                 case javax.xml.stream.XMLStreamConstants.END_ELEMENT:
                     if ( currentXMLTags.toString().equals( "[osm, node]" ) )
                     {
-                        osmWriter.addOSMNodeTags( allPoints, currentNodeTags );
+                    	osmWriter.addOSMNodeTags( allPoints, currentNodeTags );
                     }
                     else if ( currentXMLTags.toString().equals( "[osm, way]" ) )
                     {
