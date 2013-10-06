@@ -22,11 +22,9 @@ package org.neo4j.gis.spatial.pipes.osm.filtering;
 import org.neo4j.gis.spatial.osm.OSMRelation;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
+import org.neo4j.gis.spatial.pipes.impl.FilterPipe;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
-
-import com.tinkerpop.pipes.filter.FilterPipe;
-import com.tinkerpop.pipes.util.PipeHelper;
 
 
 public class FilterOSMAttributes extends AbstractGeoPipe {
@@ -51,7 +49,7 @@ public class FilterOSMAttributes extends AbstractGeoPipe {
 		Node waysNode = geomNode.getSingleRelationship(OSMRelation.GEOM, Direction.INCOMING).getStartNode();
 		Node tagNode = waysNode.getSingleRelationship(OSMRelation.TAGS, Direction.OUTGOING).getEndNode();
 		if (tagNode.hasProperty(key) 
-				&& PipeHelper.compareObjects(comparison, tagNode.getProperty(key), value)) {
+				&& comparison.compare(tagNode.getProperty(key), value)) {
 			return flow;
 		} else {
 			return null;

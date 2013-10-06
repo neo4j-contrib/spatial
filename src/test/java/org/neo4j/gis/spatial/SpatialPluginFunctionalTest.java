@@ -25,12 +25,15 @@ import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.util.List;
 import java.util.Map;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import junit.framework.Assert;
+import org.codehaus.jackson.JsonNode;
+import org.codehaus.jackson.map.ObjectMapper;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -260,9 +263,10 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
 
         response = post(Status.OK,"{\"query\":\"start node = node:geom(\'bbox:[15.0,15.3,60.0,60.2]\') return node\"}", "http://localhost:"+PORT+"/db/data/cypher");
 
-        org.codehaus.jettison.json.JSONObject node = new org.codehaus.jettison.json.JSONObject(response).getJSONArray("data").getJSONArray(0).getJSONObject(0).getJSONObject("data");
-        assertEquals(15.2, node.getDouble("lon"));
-        assertEquals(60.1, node.getDouble("lat"));
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode node = mapper.readTree(response).get("data").get(0).get(0).get("data");
+        assertEquals(15.2, node.get("lon").getDoubleValue());
+        assertEquals(60.1, node.get("lat").getDoubleValue());
     }
 
     /**
@@ -283,12 +287,10 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
         response = post(Status.CREATED,"{\"value\":\"dummy\",\"key\":\"dummy\", \"uri\":\"http://localhost:"+PORT+"/db/data/node/"+nodeId+"\"}", "http://localhost:"+PORT+"/db/data/index/node/geom");
         response = post(Status.OK,"{\"query\":\"start node = node:geom(\'withinDistance:[60.0,15.0, 100.0]\') return node\"}", "http://localhost:"+PORT+"/db/data/cypher");
 
-        org.codehaus.jettison.json.JSONObject responseAsJSON = new org.codehaus.jettison.json.JSONObject(response);
-
-        org.codehaus.jettison.json.JSONObject node = responseAsJSON.getJSONArray("data").getJSONArray(0).getJSONObject(0).getJSONObject("data");
-        assertEquals(15.2, node.getDouble("lon"));
-        assertEquals(60.1, node.getDouble("lat"));
-
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode node = mapper.readTree(response).get("data").get(0).get(0).get("data");
+        assertEquals(15.2, node.get("lon").getDoubleValue());
+        assertEquals(60.1, node.get("lat").getDoubleValue());
     }
 
     
