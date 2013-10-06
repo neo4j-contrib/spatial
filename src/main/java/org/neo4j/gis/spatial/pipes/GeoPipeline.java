@@ -62,6 +62,7 @@ import org.neo4j.gis.spatial.pipes.filtering.FilterPropertyNull;
 import org.neo4j.gis.spatial.pipes.filtering.FilterTouch;
 import org.neo4j.gis.spatial.pipes.filtering.FilterValid;
 import org.neo4j.gis.spatial.pipes.filtering.FilterWithin;
+import org.neo4j.gis.spatial.pipes.impl.*;
 import org.neo4j.gis.spatial.pipes.processing.ApplyAffineTransformation;
 import org.neo4j.gis.spatial.pipes.processing.Area;
 import org.neo4j.gis.spatial.pipes.processing.Boundary;
@@ -103,44 +104,47 @@ import org.neo4j.graphdb.Node;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 
-import com.tinkerpop.gremlin.groovy.GremlinGroovyPipeline;
-import com.tinkerpop.pipes.filter.FilterPipe;
-import com.tinkerpop.pipes.util.StartPipe;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.util.AffineTransformation;
 
 
-public class GeoPipeline extends GremlinGroovyPipeline<GeoPipeFlow, GeoPipeFlow> {
+public class GeoPipeline extends Pipeline<GeoPipeFlow,GeoPipeFlow> {
 
 	protected Layer layer;
 	
 	protected GeoPipeline(Layer layer) {
-		this.layer = layer;
+        this.layer = layer;
 	}
 
-	protected static StartPipe<GeoPipeFlow> createStartPipe(List<SpatialDatabaseRecord> records) {
+	protected static IdentityPipe<GeoPipeFlow> createStartPipe(List<SpatialDatabaseRecord> records) {
 		return createStartPipe(records.iterator());
 	}	
 	
-	protected static StartPipe<GeoPipeFlow> createStartPipe(final Iterator<SpatialDatabaseRecord> records) {
-		return new StartPipe<GeoPipeFlow>(new Iterator<GeoPipeFlow>() {
-			@Override
-			public boolean hasNext() {
-				return records.hasNext();
-			}
+	protected static IdentityPipe<GeoPipeFlow> createStartPipe(final Iterator<SpatialDatabaseRecord> records) {
+        Iterator<GeoPipeFlow> startIterator = new Iterator<GeoPipeFlow>() {
+            @Override
+            public boolean hasNext() {
+                return records.hasNext();
+            }
 
-			@Override
-			public GeoPipeFlow next() {
-				return new GeoPipeFlow(records.next());
-			}
+            @Override
+            public GeoPipeFlow next() {
+                return new GeoPipeFlow(records.next());
+            }
 
-			@Override
-			public void remove() {
-				records.remove();
-			}
-    	});
+            @Override
+            public void remove() {
+                records.remove();
+            }
+        };
+        final Object start = startIterator;
+        return new IdentityPipe<GeoPipeFlow>() {
+            {
+                super.setStarts((Iterator) start);
+            }
+        };
 	}
 
 	/**
@@ -194,7 +198,6 @@ public class GeoPipeline extends GremlinGroovyPipeline<GeoPipeFlow, GeoPipeFlow>
      * Start a new pipeline that will iterate through all items contained in a Layer 
      * 
      * @param layer
-     * @param searchFilter
      * @return geoPipeline
      */
     public static GeoPipeline start(Layer layer) {
@@ -408,7 +411,7 @@ public class GeoPipeline extends GremlinGroovyPipeline<GeoPipeFlow, GeoPipeFlow>
 		
 		return start(layer, new SearchIntersectWindow(layer, extent))
 			.calculateDistance(layer.getGeometryFactory().createPoint(point))
-			.propertyFilter("Distance", maxDistance, FilterPipe.Filter.LESS_THAN_EQUAL);	
+			.propertyFilter("Distance", maxDistance, FilterPipe.Filter.LESS_THAN_EQUAL);
 	}
 	
 	/**
@@ -1013,5 +1016,14 @@ public class GeoPipeline extends GremlinGroovyPipeline<GeoPipeFlow, GeoPipeFlow>
     	} catch (NoSuchElementException e) {}    	
     	return result;
 
+    }
+
+    public <T> GeoPipeline add(final Pipe<?, T> pipe) {
+        this.addPipe(pipe);
+        return (GeoPipeline) this;
+    }
+
+    public GeoPipeline range(final int low, final int high) {
+        return this.add(new RangeFilterPipe<GeoPipeFlow>(low, high));
     }
 }

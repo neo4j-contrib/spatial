@@ -38,7 +38,6 @@
  */
 package org.neo4j.gis.spatial;
 
-import com.tinkerpop.blueprints.pgm.impls.neo4j.Neo4jGraph;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
@@ -237,21 +236,21 @@ public class IndexProviderTest {
         result = engine.execute("start malmo=node:layer1('withinDistance:[56.0, 15.0,1000.0]') match p=malmo--other return malmo, other");
         assertTrue(result.iterator().hasNext());
         System.out.println(result.dumpToString());
-// test Gremlin
-        ScriptEngine gremlinEngine = new ScriptEngineManager().getEngineByName("gremlin-groovy");
-        final Bindings bindings = new SimpleBindings();
-        final Neo4jGraph graph = new Neo4jGraph(db, false);
-        bindings.put("g", graph);
-        gremlinEngine.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
+//// test Gremlin
+//        ScriptEngine gremlinEngine = new ScriptEngineManager().getEngineByName("gremlin-groovy");
+//        final Bindings bindings = new SimpleBindings();
+//        final Neo4jGraph graph = new Neo4jGraph(db, false);
+//        bindings.put("g", graph);
+//        gremlinEngine.setBindings(bindings, ScriptContext.ENGINE_SCOPE);
+////        assertEquals(
+////                2L,
+////                gremlinEngine.eval( "g.idx('layer1')[[bbox:'[15.0, 16.0, 56.0, 57.0]']].in().count()" ) );
+//
+//        // Rather than counting the incoming vertices, we just count the nodes
+//        // of which there are one, with no incoming edges
 //        assertEquals(
-//                2L,
-//                gremlinEngine.eval( "g.idx('layer1')[[bbox:'[15.0, 16.0, 56.0, 57.0]']].in().count()" ) );
-
-        // Rather than counting the incoming vertices, we just count the nodes
-        // of which there are one, with no incoming edges
-        assertEquals(
-                1L,
-                gremlinEngine.eval("g.idx('layer1')[[bbox:'[15.0, 16.0, 56.0, 57.0]']].out('TRAIN').count()"));
+//                1L,
+//                gremlinEngine.eval("g.idx('layer1')[[bbox:'[15.0, 16.0, 56.0, 57.0]']].out('TRAIN').count()"));
 
     }
 

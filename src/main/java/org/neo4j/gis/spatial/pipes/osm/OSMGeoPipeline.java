@@ -25,10 +25,9 @@ import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
+import org.neo4j.gis.spatial.pipes.impl.FilterPipe;
 import org.neo4j.gis.spatial.pipes.osm.filtering.FilterOSMAttributes;
 import org.neo4j.gis.spatial.pipes.osm.processing.ExtractOSMPoints;
-
-import com.tinkerpop.pipes.filter.FilterPipe;
 
 public class OSMGeoPipeline extends GeoPipeline {
 	

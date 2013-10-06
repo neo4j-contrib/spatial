@@ -21,8 +21,8 @@ package org.neo4j.gis.spatial.pipes;
 
 import java.util.NoSuchElementException;
 
-import com.tinkerpop.pipes.AbstractPipe;
 import com.vividsolutions.jts.geom.Geometry;
+import org.neo4j.gis.spatial.pipes.impl.AbstractPipe;
 
 /**
  * Abstract pipe for GeoPipelines. 
