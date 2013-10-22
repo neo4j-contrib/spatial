@@ -322,7 +322,7 @@
             <artifactId>gremlin-groovy</artifactId>
             <version>${gremlin.version}</version>
             <type>jar</type>
-            <scope>provided</scope>
+
             <exclusions>
                 <!-- Sail support not needed -->
                 <exclusion>
