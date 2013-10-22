@@ -1150,7 +1150,10 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
         OSMImporter importer = new OSMImporter( layerName );
         importer.setCharset( Charset.forName( "UTF-8" ) );
         importer.importFile( db, osmPath );
-        importer.reIndex( db, commitInterval );
+        try(Transaction tx = db.beginTx()) {
+            importer.reIndex( db, commitInterval );
+            tx.success();
+        }
     }
 
     @Before
@@ -1160,29 +1163,32 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
         engine = new ExecutionEngine( db );
         try
         {
-            StyledImageExporter exporter = new StyledImageExporter( db );
-            exporter.setExportDir( "target/docs/images/" );
-            exporter.saveImage( GeoPipeline.start( intersectionLayer ).toFeatureCollection(),
-                    StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
-                            "intersectionLayer.png" ) );
-            
-            exporter.saveImage( GeoPipeline.start( boxesLayer ).toFeatureCollection(),
-                    StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
-                            "boxesLayer.png" ) );
+            try(Transaction tx = db.beginTx()) {
+                StyledImageExporter exporter = new StyledImageExporter( db );
+                exporter.setExportDir( "target/docs/images/" );
+                exporter.saveImage( GeoPipeline.start( intersectionLayer ).toFeatureCollection(),
+                        StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
+                                "intersectionLayer.png" ) );
 
-            exporter.saveImage( GeoPipeline.start( concaveLayer ).toFeatureCollection(),
-                    StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
-                            "concaveLayer.png" ) );
+                exporter.saveImage( GeoPipeline.start( boxesLayer ).toFeatureCollection(),
+                        StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
+                                "boxesLayer.png" ) );
 
-            exporter.saveImage( GeoPipeline.start( equalLayer ).toFeatureCollection(),
-                    StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
-                            "equalLayer.png" ) );
-            exporter.saveImage( GeoPipeline.start( linesLayer ).toFeatureCollection(),
-                    StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
-                            "linesLayer.png" ) );
-            exporter.saveImage( GeoPipeline.start( osmLayer ).toFeatureCollection(),
-                    StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
-                            "osmLayer.png" ) );
+                exporter.saveImage( GeoPipeline.start( concaveLayer ).toFeatureCollection(),
+                        StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
+                                "concaveLayer.png" ) );
+
+                exporter.saveImage( GeoPipeline.start( equalLayer ).toFeatureCollection(),
+                        StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
+                                "equalLayer.png" ) );
+                exporter.saveImage( GeoPipeline.start( linesLayer ).toFeatureCollection(),
+                        StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
+                                "linesLayer.png" ) );
+                exporter.saveImage( GeoPipeline.start( osmLayer ).toFeatureCollection(),
+                        StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
+                                "osmLayer.png" ) );
+                tx.success();
+            }
         }
         catch ( IOException e )
         {

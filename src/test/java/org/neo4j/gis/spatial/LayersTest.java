@@ -35,6 +35,7 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateList;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.LineString;
+import org.neo4j.graphdb.Transaction;
 
 
 public class LayersTest extends Neo4jTestCase
@@ -101,20 +102,28 @@ public class LayersTest extends Neo4jTestCase
         SpatialDatabaseRecord record = layer.add( layer.getGeometryFactory().createPoint(
                 new Coordinate( 15.3, 56.2 ) ) );
         assertNotNull( record );
-        
+
+        List<SpatialDatabaseRecord> results;
+
         // finds geometries that contain the given geometry
-        List<SpatialDatabaseRecord> results = GeoPipeline
-        	.startContainSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)))
-        	.toSpatialDatabaseRecordList();
-        	
-        // should not be contained
-        assertEquals( 0, results.size() );
-                
-        results = GeoPipeline
-        	.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)))
-         	.toSpatialDatabaseRecordList();
-        
-        assertEquals( 1, results.size() );
+        try(Transaction tx = graphDb().beginTx()) {
+            results = GeoPipeline
+                .startContainSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)))
+                .toSpatialDatabaseRecordList();
+
+            // should not be contained
+            assertEquals( 0, results.size() );
+            tx.success();
+        }
+
+        try(Transaction tx = graphDb().beginTx()) {
+            results = GeoPipeline
+                .startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)))
+                .toSpatialDatabaseRecordList();
+
+            assertEquals( 1, results.size() );
+            tx.success();
+        }
     }
 
     @Test
@@ -148,30 +157,33 @@ public class LayersTest extends Neo4jTestCase
     {
         SpatialDatabaseService spatialService = new SpatialDatabaseService(
                 graphDb() );
-        testSpecificEditableLayer( spatialService,
-                (EditableLayer) spatialService.createLayer(
-                        "test dynamic layer with property encoder",
-                        SimplePropertyEncoder.class, DynamicLayer.class ) );
-        testSpecificEditableLayer( spatialService,
-                (EditableLayer) spatialService.createLayer(
-                        "test dynamic layer with graph encoder",
-                        SimpleGraphEncoder.class, DynamicLayer.class ) );
-        testSpecificEditableLayer( spatialService,
-                (EditableLayer) spatialService.createLayer(
-                        "test OSM layer with OSM encoder",
-                        OSMGeometryEncoder.class, OSMLayer.class ) );
-        testSpecificEditableLayer( spatialService,
-                (EditableLayer) spatialService.createLayer(
-                        "test editable layer with property encoder",
-                        SimplePropertyEncoder.class, EditableLayerImpl.class ) );
-        testSpecificEditableLayer( spatialService,
-                (EditableLayer) spatialService.createLayer(
-                        "test editable layer with graph encoder",
-                        SimpleGraphEncoder.class, EditableLayerImpl.class ) );
-        testSpecificEditableLayer( spatialService,
-                (EditableLayer) spatialService.createLayer(
-                        "test editable layer with OSM encoder",
-                        OSMGeometryEncoder.class, EditableLayerImpl.class ) );
+        try(Transaction tx = graphDb().beginTx()) {
+            testSpecificEditableLayer( spatialService,
+                    (EditableLayer) spatialService.createLayer(
+                            "test dynamic layer with property encoder",
+                            SimplePropertyEncoder.class, DynamicLayer.class ) );
+            testSpecificEditableLayer( spatialService,
+                    (EditableLayer) spatialService.createLayer(
+                            "test dynamic layer with graph encoder",
+                            SimpleGraphEncoder.class, DynamicLayer.class ) );
+            testSpecificEditableLayer( spatialService,
+                    (EditableLayer) spatialService.createLayer(
+                            "test OSM layer with OSM encoder",
+                            OSMGeometryEncoder.class, OSMLayer.class ) );
+            testSpecificEditableLayer( spatialService,
+                    (EditableLayer) spatialService.createLayer(
+                            "test editable layer with property encoder",
+                            SimplePropertyEncoder.class, EditableLayerImpl.class ) );
+            testSpecificEditableLayer( spatialService,
+                    (EditableLayer) spatialService.createLayer(
+                            "test editable layer with graph encoder",
+                            SimpleGraphEncoder.class, EditableLayerImpl.class ) );
+            testSpecificEditableLayer( spatialService,
+                    (EditableLayer) spatialService.createLayer(
+                            "test editable layer with OSM encoder",
+                            OSMGeometryEncoder.class, EditableLayerImpl.class ) );
+        tx.success();
+        }
     }
 
     private Layer testSpecificEditableLayer(
@@ -233,18 +245,22 @@ public class LayersTest extends Neo4jTestCase
         ArrayList<Layer> layers = new ArrayList<Layer>();
         SpatialDatabaseService spatialService = new SpatialDatabaseService(
                 graphDb() );
-        layers.add( testSpecificEditableLayer( spatialService,
-                (EditableLayer) spatialService.createLayer(
-                        "test dynamic layer with property encoder",
-                        SimplePropertyEncoder.class, DynamicLayer.class ) ) );
-        layers.add( testSpecificEditableLayer( spatialService,
-                (EditableLayer) spatialService.createLayer(
-                        "test dynamic layer with graph encoder",
-                        SimpleGraphEncoder.class, DynamicLayer.class ) ) );
-        layers.add( testSpecificEditableLayer( spatialService,
-                (EditableLayer) spatialService.createLayer(
-                        "test dynamic layer with OSM encoder",
-                        OSMGeometryEncoder.class, OSMLayer.class ) ) );
+        try(Transaction tx = graphDb().beginTx()) {
+            layers.add( testSpecificEditableLayer( spatialService,
+                    (EditableLayer) spatialService.createLayer(
+                            "test dynamic layer with property encoder",
+                            SimplePropertyEncoder.class, DynamicLayer.class ) ) );
+            layers.add( testSpecificEditableLayer( spatialService,
+                    (EditableLayer) spatialService.createLayer(
+                            "test dynamic layer with graph encoder",
+                            SimpleGraphEncoder.class, DynamicLayer.class ) ) );
+            layers.add( testSpecificEditableLayer( spatialService,
+                    (EditableLayer) spatialService.createLayer(
+                            "test dynamic layer with OSM encoder",
+                            OSMGeometryEncoder.class, OSMLayer.class ) ) );
+
+            tx.success();
+        }
         Exception osmExportException = null;
         try
         {

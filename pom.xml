@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <properties>
-        <neo4j.version>1.9</neo4j.version>
-        <neo4j.java.version>1.6</neo4j.java.version>
-        <neo4j.graphcollections.version>0.6-neo4j-1.9</neo4j.graphcollections.version>
+        <neo4j.version>2.0.0-M06</neo4j.version>
+        <neo4j.java.version>1.7</neo4j.java.version>
+        <neo4j.graphcollections.version>0.7-neo4j-2.0.0-SNAPSHOT</neo4j.graphcollections.version>
         <skinGroupId>org.neo4j.maven.skins</skinGroupId>
         <skinArtifactId>default-skin</skinArtifactId>
         <skinVersion>2</skinVersion>
@@ -37,8 +37,8 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.6</source>
-                    <target>1.6</target>
+                    <source>1.7</source>
+                    <target>1.7</target>
                 </configuration>
             </plugin>
             <plugin>
@@ -322,7 +322,7 @@
             <artifactId>gremlin-groovy</artifactId>
             <version>${gremlin.version}</version>
             <type>jar</type>
-            <scope>provided</scope>
+
             <exclusions>
                 <!-- Sail support not needed -->
                 <exclusion>

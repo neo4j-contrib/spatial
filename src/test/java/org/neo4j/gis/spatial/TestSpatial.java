@@ -316,7 +316,7 @@ public class TestSpatial extends Neo4jTestCase {
                 if (testData.inOrIntersects(bbox) && !foundData.contains(testData)) {
                     String error = "Incorrect test result: test[" + testData + "] not found by search inside region[" + bbox + "]";                	
                     for (TestGeometry data : foundData) {
-                        System.out.println(data);
+                        //System.out.println(data);
                     }
                     System.out.println(error);
                     fail(error);

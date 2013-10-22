@@ -42,7 +42,7 @@ import org.junit.Test;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.kernel.impl.annotations.Documented;
 import org.neo4j.server.NeoServer;
-import org.neo4j.server.helpers.ServerBuilder;
+import org.neo4j.server.helpers.CommunityServerBuilder;
 import org.neo4j.server.rest.AbstractRestFunctionalTestBase;
 import org.neo4j.test.ImpermanentGraphDatabase;
 
@@ -62,7 +62,7 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
      */
     @BeforeClass
     public static void allocateServer() throws IOException {
-        altServer = ServerBuilder.server().onPort( PORT ).build();
+        altServer = CommunityServerBuilder.server().onPort( PORT ).build();
         altServer.start();
     }
 

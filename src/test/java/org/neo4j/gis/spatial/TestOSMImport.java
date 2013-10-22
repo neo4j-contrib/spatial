@@ -33,6 +33,7 @@ import junit.framework.TestSuite;
 import org.geotools.data.DataStore;
 import org.geotools.data.neo4j.Neo4jSpatialDataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
+import org.neo4j.collections.rtree.RTreeIndex;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMDataset.Way;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
@@ -47,6 +48,7 @@ import org.neo4j.graphdb.Relationship;
 
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
+import org.neo4j.graphdb.Transaction;
 
 
 public class TestOSMImport extends Neo4jTestCase {
@@ -67,7 +69,7 @@ public class TestOSMImport extends Neo4jTestCase {
 
 		// Setup default test cases (short or medium only, no long cases)
 		ArrayList<String> layersToTest = new ArrayList<String>();
-		layersToTest.addAll(Arrays.asList(smallModels));
+//		layersToTest.addAll(Arrays.asList(smallModels));
 		layersToTest.addAll(Arrays.asList(mediumModels));
 
 		// Now modify the test cases based on the spatial.test.mode setting
@@ -170,7 +172,10 @@ public class TestOSMImport extends Neo4jTestCase {
 				Thread.sleep(1000);
 			}
 		}
-		importer.reIndex(graphDb(), commitInterval, includePoints, false);
+        try(Transaction tx = graphDb().beginTx()) {
+		    importer.reIndex(graphDb(), commitInterval, includePoints, false);
+            tx.success();
+        }
 	}
 
 	protected static void checkOSMLayer(GraphDatabaseService graphDatabaseService, String layerName) throws IOException {
@@ -180,8 +185,8 @@ public class TestOSMImport extends Neo4jTestCase {
 		assertNotNull("OSM Layer index envelope should not be null", layer.getIndex().getBoundingBox());
 		Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox());
 		debugEnvelope(bbox, layerName, "bbox");
-		// ((RTreeIndex)layer.getIndex()).debugIndexTree();
-		checkIndexAndFeatureCount(layer);
+        System.out.println("((RTreeIndex)layer.getIndex()).getBoundingBox(); = " + ((RTreeIndex) layer.getIndex()).getBoundingBox());
+        checkIndexAndFeatureCount(layer);
 		checkChangesetsAndUsers(layer);
 		checkOSMSearch(layer);
 	}

@@ -60,7 +60,7 @@ public class SpatialIndexProvider extends IndexProvider
 
         @Override
         public String getDataSourceName() {
-            return Config.DEFAULT_DATA_SOURCE_NAME;
+            return "nioneodb";
         }
 
         @Override

@@ -81,38 +81,42 @@ public class IndexProviderTest {
     public void testLoadIndex() {
         Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
         IndexManager indexMan = db.index();
-        Index<Node> index = indexMan.forNodes("layer1", config);
-        assertNotNull(index);
+        Index<Node> index;
+        try(Transaction tx = db.beginTx()) {
+            index = indexMan.forNodes("layer1", config);
+            assertNotNull(index);
 
-        //Load the an existing index again
-        index = indexMan.forNodes("layer1", config);
-        assertNotNull(index);
+            //Load the an existing index again
+            index = indexMan.forNodes("layer1", config);
+            assertNotNull(index);
 
-        //Try a different config
-        Map<String, String> config2 = SpatialIndexProvider.SIMPLE_WKT_CONFIG;
-        index = indexMan.forNodes("layer2", config2);
-        assertNotNull(index);
+            //Try a different config
+            Map<String, String> config2 = SpatialIndexProvider.SIMPLE_WKT_CONFIG;
+            index = indexMan.forNodes("layer2", config2);
+            assertNotNull(index);
 
-        //Load the index again
-        index = indexMan.forNodes("layer2", config2);
-        assertNotNull(index);
+            //Load the index again
+            index = indexMan.forNodes("layer2", config2);
+            assertNotNull(index);
 
-        //Try loading the same index with a different config
-        boolean exceptionThrown = false;
-        try {
+            //Try loading the same index with a different config
+            boolean exceptionThrown = false;
+            try {
+                index = indexMan.forNodes("layer2", config);
+            } catch (IllegalArgumentException iae) {
+                exceptionThrown = true;
+            }
+            assertTrue(exceptionThrown);
+
+            config = SpatialIndexProvider.SIMPLE_WKT_CONFIG;
             index = indexMan.forNodes("layer2", config);
-        } catch (IllegalArgumentException iae) {
-            exceptionThrown = true;
+            assertNotNull(index);
+
+            config = SpatialIndexProvider.SIMPLE_WKB_CONFIG;
+            index = indexMan.forNodes("layer3", config);
+            assertNotNull(index);
+            tx.success();
         }
-        assertTrue(exceptionThrown);
-
-        config = SpatialIndexProvider.SIMPLE_WKT_CONFIG;
-        index = indexMan.forNodes("layer2", config);
-        assertNotNull(index);
-
-        config = SpatialIndexProvider.SIMPLE_WKB_CONFIG;
-        index = indexMan.forNodes("layer3", config);
-        assertNotNull(index);
     }
 
     /**
@@ -157,9 +161,11 @@ public class IndexProviderTest {
         // Create an index
         Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
         IndexManager indexMan = db.index();
+
+        Transaction transaction = db.beginTx();
+
         Index<Node> index = indexMan.forNodes("layer1", config);
         assertNotNull(index);
-        Transaction transaction = db.beginTx();
 
         Node node = null;
         try {
@@ -192,9 +198,9 @@ public class IndexProviderTest {
     public void testNodeIndex() throws SyntaxException, Exception {
         Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
         IndexManager indexMan = db.index();
+        Transaction tx = db.beginTx();
         Index<Node> index = indexMan.forNodes("layer1", config);
         assertNotNull(index);
-        Transaction tx = db.beginTx();
         ExecutionEngine engine = new ExecutionEngine(db);
         ExecutionResult result1 = engine.execute("create (malmo{name:'Malmö',lat:56.2, lon:15.3})-[:TRAIN]->(stockholm{name:'Stockholm',lat:59.3,lon:18.0}) return malmo");
         Node malmo = (Node) result1.iterator().next().get("malmo");
@@ -259,8 +265,8 @@ public class IndexProviderTest {
     public void testWithinDistanceIndex() {
         Map<String, String> config = SpatialIndexProvider.SIMPLE_WKT_CONFIG;
         IndexManager indexMan = db.index();
-        Index<Node> index = indexMan.forNodes("layer2", config);
         Transaction tx = db.beginTx();
+        Index<Node> index = indexMan.forNodes("layer2", config);
         Node batman = db.createNode();
         String wktPoint = "POINT(41.14 37.88 )";
         batman.setProperty("wkt", wktPoint);
@@ -296,8 +302,8 @@ public class IndexProviderTest {
     public void testWithinDistanceIndexViaCypher() {
         Map<String, String> config = SpatialIndexProvider.SIMPLE_WKT_CONFIG;
         IndexManager indexMan = db.index();
-        Index<Node> index = indexMan.forNodes("layer3", config);
         Transaction tx = db.beginTx();
+        Index<Node> index = indexMan.forNodes("layer3", config);
         Node robin = db.createNode();
         robin.setProperty("wkt", "POINT(44.44 33.33)");
         robin.setProperty("name", "robin");
@@ -327,9 +333,10 @@ public class IndexProviderTest {
     public void testAddPerformance() {
         Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
         IndexManager indexMan = db.index();
-        Index<Node> index = indexMan.forNodes("pointslayer", config);
+        Index<Node> index;
 
         Transaction tx = db.beginTx();
+        index = indexMan.forNodes("pointslayer", config);
         try {
             Random r = new Random();
             final int stepping = 1000;
@@ -372,9 +379,9 @@ public class IndexProviderTest {
     public void testUpdate() {
         Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
         IndexManager indexMan = db.index();
+        Transaction tx = db.beginTx();
         Index<Node> index = indexMan.forNodes("pointslayer", config);
 
-        Transaction tx = db.beginTx();
         Node n1 = db.createNode();
         n1.setProperty("lat", (double) 56.2);
         n1.setProperty("lon", (double) 15.3);

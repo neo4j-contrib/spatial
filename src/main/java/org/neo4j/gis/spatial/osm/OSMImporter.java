@@ -60,17 +60,13 @@ import org.neo4j.graphdb.StopEvaluator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.Traverser;
 import org.neo4j.graphdb.Traverser.Order;
-import org.neo4j.graphdb.index.BatchInserterIndex;
-import org.neo4j.graphdb.index.BatchInserterIndexProvider;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.helpers.collection.MapUtil;
-import org.neo4j.index.impl.lucene.LuceneBatchInserterIndexProvider;
+import org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider;
 import org.neo4j.kernel.AbstractGraphDatabase;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
-import org.neo4j.kernel.impl.batchinsert.BatchInserter;
-import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
-import org.neo4j.kernel.impl.batchinsert.SimpleRelationship;
+import org.neo4j.unsafe.batchinsert.*;
 
 public class OSMImporter implements Constants
 {
@@ -267,9 +263,12 @@ public class OSMImporter implements Constants
         // TODO: The next line creates the relationship between the dataset and
         // layer, but this seems more like a side-effect and should be done
         // explicitly
-        OSMDataset dataset = layer.getDataset( osm_dataset );
-        layer.clear(); // clear the index without destroying underlying data
-
+        OSMDataset dataset;
+        try(Transaction tx = database.beginTx()) {
+            dataset = layer.getDataset( osm_dataset );
+            layer.clear(); // clear the index without destroying underlying data
+            tx.success();
+        }
         long startTime = System.currentTimeMillis();
         Traverser traverser = database.getNodeById( osm_dataset ).traverse(
                 Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH,
@@ -1422,7 +1421,7 @@ public class OSMImporter implements Constants
         private long findNode( BatchInserter batchInserter, String name,
                 long parent, RelationshipType relType )
         {
-            for ( SimpleRelationship relationship : batchInserter.getRelationships( parent ) )
+            for ( BatchRelationship relationship : batchInserter.getRelationships( parent ) )
             {
                 if ( relationship.getType().name().equals( relType.name() ) )
                 {
@@ -1606,7 +1605,7 @@ public class OSMImporter implements Constants
             {
                 currentChangesetNode = changesetNode;
                 changesetNodes.clear();
-                for ( SimpleRelationship rel : batchInserter.getRelationships( changesetNode ) )
+                for ( BatchRelationship rel : batchInserter.getRelationships( changesetNode ) )
                 {
                     if ( rel.getType().name().equals(
                             OSMRelation.CHANGESET.name() ) )
@@ -1638,7 +1637,7 @@ public class OSMImporter implements Constants
         protected void updateGeometryMetaDataFromMember( Long member,
                 GeometryMetaData metaGeom, Map<String, Object> nodeProps )
         {
-            for ( SimpleRelationship rel : batchInserter.getRelationships( member ) )
+            for ( BatchRelationship rel : batchInserter.getRelationships( member ) )
             {
                 if ( rel.getType().equals( OSMRelation.GEOM ) )
                 {
@@ -2316,8 +2315,8 @@ public class OSMImporter implements Constants
         private void switchToBatchInserter()
         {
             shutdown();
-            batchInserter = new BatchInserterImpl( dbPath.getAbsolutePath() );
-            graphDb = batchInserter.getGraphDbService();
+            batchInserter = BatchInserters.inserter(dbPath.getAbsolutePath());
+            graphDb = new SpatialBatchGraphDatabaseService(batchInserter);
         }
 
         protected void shutdown()

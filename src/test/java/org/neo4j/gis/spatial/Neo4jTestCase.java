@@ -41,10 +41,11 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.AbstractGraphDatabase;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
-import org.neo4j.kernel.impl.batchinsert.BatchInserter;
-import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
 import org.neo4j.kernel.impl.nioneo.store.PropertyStore;
 import org.neo4j.kernel.impl.util.FileUtils;
+import org.neo4j.unsafe.batchinsert.BatchInserter;
+import org.neo4j.unsafe.batchinsert.BatchInserters;
+import org.neo4j.unsafe.batchinsert.SpatialBatchGraphDatabaseService;
 
 
 /**
@@ -143,8 +144,8 @@ public abstract class Neo4jTestCase extends TestCase {
             config = LARGE_CONFIG;
         }
         if (useBatchInserter) {
-            batchInserter = new BatchInserterImpl(getNeoPath().getAbsolutePath(), config);
-            graphDb = batchInserter.getGraphDbService();
+            batchInserter = BatchInserters.inserter(getNeoPath().getAbsolutePath(), config);
+            graphDb = new SpatialBatchGraphDatabaseService(batchInserter);
         } else {
             graphDb = new EmbeddedGraphDatabase(getNeoPath().getAbsolutePath(), config );
         }
@@ -305,7 +306,10 @@ public abstract class Neo4jTestCase extends TestCase {
     }
     
 	protected void debugIndexTree(RTreeIndex index) {
-		printTree(index.getIndexRoot(), 0);
+        try( Transaction tx = graphDb.beginTx()) {
+		    printTree(index.getIndexRoot(), 0);
+            tx.success();
+        }
 	}
 	
 	private static String arrayString(double[] test) {

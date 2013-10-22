@@ -100,39 +100,43 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 		// String[] keys = {"id","name","address","city","state","zip"};
 		String[] keys = { "id", "name" };
 		Coordinate loc = new Coordinate(15.0, 15.0);
-		GeoPipeline flowList = ((GeoPipeline) GeoPipeline.startNearestNeighborLatLonSearch(layer, loc, records))
-				.copyDatabaseRecordProperties(keys);
-		int i = 0;
-		ArrayList<TimeRecord> totals = new ArrayList<TimeRecord>();
-		long prevTime = System.currentTimeMillis();
-		long prevChunk = 0;
-		while (flowList.hasNext()) {
-			GeoPipeFlow geoPipeFlow = flowList.next();
-			// System.out.println("Result: " + geoPipeFlow.countRecords() +
-			// " records");
-			int chunk = i / chunkSize;
-			if (chunk != prevChunk) {
-				long time = System.currentTimeMillis();
-				totals.add(new TimeRecord(chunk, (int) (time - prevTime), chunkSize));
-				prevTime = time;
-				prevChunk = chunk;
-			}
-			i++;
-		}
-		if (i % chunkSize > 0) {
-			totals.add(new TimeRecord(totals.size(), (int) (System.currentTimeMillis() - prevTime), i % chunkSize));
-		}
-		int total = 0;
-		int count = 0;
-		System.out.println("Measured " + totals.size() + " groups of reads of up to " + chunkSize + " records");
-		for (TimeRecord rec : totals) {
-			total += rec.time;
-			count += rec.count;
-			System.out.println("\t" + rec);
-			float average = (float) rec.time / (float) rec.count;
-			assertTrue("Expected record average of " + rec.average() + " to not be substantially larger than running average "
-					+ average, rec.average() < 2 * average);
-		}
+        try(Transaction tx = spatial.beginTx()) {
+            GeoPipeline flowList = ((GeoPipeline) GeoPipeline.startNearestNeighborLatLonSearch(layer, loc, records))
+                    .copyDatabaseRecordProperties(keys);
+            int i = 0;
+            ArrayList<TimeRecord> totals = new ArrayList<TimeRecord>();
+            long prevTime = System.currentTimeMillis();
+            long prevChunk = 0;
+            while (flowList.hasNext()) {
+                GeoPipeFlow geoPipeFlow = flowList.next();
+                // System.out.println("Result: " + geoPipeFlow.countRecords() +
+                // " records");
+                int chunk = i / chunkSize;
+                if (chunk != prevChunk) {
+                    long time = System.currentTimeMillis();
+                    totals.add(new TimeRecord(chunk, (int) (time - prevTime), chunkSize));
+                    prevTime = time;
+                    prevChunk = chunk;
+                }
+                i++;
+            }
+            if (i % chunkSize > 0) {
+                totals.add(new TimeRecord(totals.size(), (int) (System.currentTimeMillis() - prevTime), i % chunkSize));
+            }
+
+            int total = 0;
+            int count = 0;
+            System.out.println("Measured " + totals.size() + " groups of reads of up to " + chunkSize + " records");
+            for (TimeRecord rec : totals) {
+                total += rec.time;
+                count += rec.count;
+                System.out.println("\t" + rec);
+                float average = (float) rec.time / (float) rec.count;
+                assertTrue("Expected record average of " + rec.average() + " to not be substantially larger than running average "
+                        + average, rec.average() < 2 * average);
+            }
+            tx.success();
+        }
 	}
 
 	@Test
@@ -147,20 +151,24 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 		for (int chunk = 0; chunk < 20; chunk++) {
 			int low = chunk * chunkSize;
 			int high = (chunk + 1) * chunkSize - 1;
-			GeoPipeline flowList = ((GeoPipeline) GeoPipeline.startNearestNeighborLatLonSearch(layer, loc, records)
-					.range(low, high)).copyDatabaseRecordProperties(keys);
-			if (!flowList.hasNext())
-				break;
-			int count = 0;
-			while (flowList.hasNext()) {
-				GeoPipeFlow geoPipeFlow = flowList.next();
-				// System.out.println("Result: " + geoPipeFlow.countRecords() +
-				// " records");
-				count++;
-			}
-			long time = System.currentTimeMillis();
-			totals.add(new TimeRecord(chunk, (int) (time - prevTime), count));
-			prevTime = time;
+            try(Transaction tx = spatial.beginTx()) {
+                GeoPipeline flowList = ((GeoPipeline) GeoPipeline.startNearestNeighborLatLonSearch(layer, loc, records)
+                        .range(low, high)).copyDatabaseRecordProperties(keys);
+                if (!flowList.hasNext())
+                    break;
+                int count = 0;
+                while (flowList.hasNext()) {
+                    GeoPipeFlow geoPipeFlow = flowList.next();
+                    // System.out.println("Result: " + geoPipeFlow.countRecords() +
+                    // " records");
+                    count++;
+                }
+
+                long time = System.currentTimeMillis();
+                totals.add(new TimeRecord(chunk, (int) (time - prevTime), count));
+                prevTime = time;
+                tx.success();
+            }
 		}
 		int total = 0;
 		int count = 0;
