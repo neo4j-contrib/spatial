@@ -95,14 +95,15 @@ public class ServerPluginTest extends Neo4jTestCase {
         plugin.addSimplePointLayer( graphDb(), LAYER, LAT, LON );
 		assertNotNull(spatialService.getLayer(LAYER));
 		Layer layer2 = spatialService.getLayer(LAYER);
-		
-		List<SpatialDatabaseRecord> results = GeoPipeline
+
+        Transaction tx2 = graphDb().beginTx();
+
+   		List<SpatialDatabaseRecord> results = GeoPipeline
 			.startWithinSearch(layer2, layer2.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 60.0, 61.0)))
 			.toSpatialDatabaseRecordList();
 		
 		assertEquals(0, results.size());
 
-		Transaction tx2 = graphDb().beginTx();
 		Node point = graphDb().createNode();
 		point.setProperty(LAT, 60.1);
 		point.setProperty(LON, 15.2);
@@ -111,12 +112,15 @@ public class ServerPluginTest extends Neo4jTestCase {
 		tx2.finish();
 		plugin.addNodeToLayer(graphDb(), point, LAYER);
 		plugin.addGeometryWKTToLayer(graphDb(), "POINT(15.2 60.1)", LAYER);
-		
-		results = GeoPipeline
-			.startWithinSearch(layer2, layer2.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 60.0, 61.0)))
-			.toSpatialDatabaseRecordList();		
-		
-		assertEquals(2, results.size());
+
+        try(Transaction tx = graphDb().beginTx()) {
+            results = GeoPipeline
+                .startWithinSearch(layer2, layer2.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 60.0, 61.0)))
+                .toSpatialDatabaseRecordList();
+
+            assertEquals(2, results.size());
+            tx.success();
+        }
 	}
 	
 	@Test
@@ -142,16 +146,19 @@ public class ServerPluginTest extends Neo4jTestCase {
 	private int checkResults(Iterable<Node> results, int expected, Layer layer) {
 		int count = 0;
 		StringBuffer sb = new StringBuffer();
-		for (Node node : results) {
-			if (sb.length() > 0)
-				sb.append(", ");
-			if (node.hasProperty(Constants.PROP_TYPE)) {
-				sb.append(layer.getGeometryEncoder().decodeGeometry(node).toString());
-			} else {
-				sb.append(node.toString());
-			}
-			count++;
-		}
+        try(Transaction tx = graphDb().beginTx()) {
+            for (Node node : results) {
+                if (sb.length() > 0)
+                    sb.append(", ");
+                if (node.hasProperty(Constants.PROP_TYPE)) {
+                    sb.append(layer.getGeometryEncoder().decodeGeometry(node).toString());
+                } else {
+                    sb.append(node.toString());
+                }
+                count++;
+            }
+            tx.success();
+        }
 		System.out.println("Found " + count + " results: " + sb);
 		assertEquals("Count of geometries not correct", expected, count);
 		return count;

@@ -35,6 +35,7 @@ import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 
 import com.vividsolutions.jts.geom.Envelope;
@@ -112,7 +113,10 @@ public class TestsForDocs extends Neo4jTestCase {
 		batchInserter.shutdown();
 
 		GraphDatabaseService db = new EmbeddedGraphDatabase(databasePath);
-		importer.reIndex(db);
+        try(Transaction tx = db.beginTx()) {
+		    importer.reIndex(db);
+            tx.success();
+        }
 		db.shutdown();
 		// END SNIPPET: importOsm
 	}

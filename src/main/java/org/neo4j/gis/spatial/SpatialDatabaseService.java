@@ -51,83 +51,100 @@ public class SpatialDatabaseService implements Constants {
 
 
     // Constructor
-	
+
+    //DONE
 	public SpatialDatabaseService(GraphDatabaseService database) {
 		this.database = database;
 	}
 
+    public Transaction beginTx() {
+        return database.beginTx();
+    }
 	
 	// Public methods
 
+    //DONE
     private Node getOrCreateRootFrom(Node ref, RelationshipType relType) {
         Relationship rel = ref.getSingleRelationship(relType, Direction.OUTGOING);
         if (rel == null) {
-            Transaction tx = database.beginTx();
-            try {
-                Node node = database.createNode();
-                node.setProperty("type", "spatial");
-                ref.createRelationshipTo(node, relType);
-                tx.success();
-                return node;
-            } finally {
-                tx.finish();
-            }
+            Node node = database.createNode();
+            node.setProperty("type", "spatial");
+            ref.createRelationshipTo(node, relType);
+            return node;
         } else {
             return rel.getEndNode();
         }
     }
 
-    protected Node getSpatialRoot() {
+    //DONE
+    private Node getSpatialRoot() {
         if (spatialRoot == null) {
             spatialRoot = getOrCreateRootFrom(database.getReferenceNode(), SpatialRelationshipTypes.SPATIAL);
         }
         return spatialRoot;
     }
 
+    //DONE
 	public String[] getLayerNames() {
 		List<String> names = new ArrayList<String>();
-		
-		for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
-            Layer layer = DefaultLayer.makeLayerFromNode(this, relationship.getEndNode());
-            if (layer instanceof DynamicLayer) {
-            	names.addAll(((DynamicLayer)layer).getLayerNames());
-            } else {
-            	names.add(layer.getName());
+        try ( Transaction tx = database.beginTx() ) {
+            for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
+                Layer layer = DefaultLayer.makeLayerFromNode(this, relationship.getEndNode());
+                if (layer instanceof DynamicLayer) {
+                    names.addAll(((DynamicLayer)layer).getLayerNames());
+                } else {
+                    names.add(layer.getName());
+                }
             }
+            tx.success();
         }
-        
 		return names.toArray(new String[names.size()]);
 	}
-	
+
+    //DONE
 	public Layer getLayer(String name) {
-		for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
-			Node node = relationship.getEndNode();
-			if (name.equals(node.getProperty(PROP_LAYER))) {
-				return DefaultLayer.makeLayerFromNode(this, node);
-			}
-		}
-		return getDynamicLayer(name);
+        try ( Transaction tx = database.beginTx() ) {
+            Layer layer =  getLayerFromGraph(name);
+            tx.success();
+            return layer;
+        }
 	}
 
+    //DONE - centralized logic to allow for transactions on all public methods
+    private Layer getLayerFromGraph(String name) {
+        for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
+            Node node = relationship.getEndNode();
+            if (name.equals(node.getProperty(PROP_LAYER))) {
+                return DefaultLayer.makeLayerFromNode(this, node);
+            }
+        }
+        return getDynamicLayer(name);
+    }
+
+    //DONE
 	public Layer getDynamicLayer(String name) {
-		ArrayList<DynamicLayer> dynamicLayers = new ArrayList<DynamicLayer>();
-		for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
-			Node node = relationship.getEndNode();
-			if (!node.getProperty(PROP_LAYER_CLASS, "").toString().startsWith("DefaultLayer")) {
-				Layer layer = DefaultLayer.makeLayerFromNode(this, node);
-				if (layer instanceof DynamicLayer) {
-					dynamicLayers.add((DynamicLayer) DefaultLayer.makeLayerFromNode(this, node));
-				}
-			}
-		}
-		for (DynamicLayer layer : dynamicLayers) {
-			for (String dynLayerName : layer.getLayerNames()) {
-				if (name.equals(dynLayerName)) {
-					return layer.getLayer(dynLayerName);
-				}
-			}
-		}
-		return null;
+        Layer toReturn = null;
+        try ( Transaction tx = database.beginTx() ) {
+            ArrayList<DynamicLayer> dynamicLayers = new ArrayList<DynamicLayer>();
+            for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
+                Node node = relationship.getEndNode();
+                if (!node.getProperty(PROP_LAYER_CLASS, "").toString().startsWith("DefaultLayer")) {
+                    Layer layer = DefaultLayer.makeLayerFromNode(this, node);
+                    if (layer instanceof DynamicLayer) {
+                        dynamicLayers.add((DynamicLayer) DefaultLayer.makeLayerFromNode(this, node));
+                    }
+                }
+            }
+            for (DynamicLayer layer : dynamicLayers) {
+                for (String dynLayerName : layer.getLayerNames()) {
+                    if (name.equals(dynLayerName)) {
+                        toReturn =  layer.getLayer(dynLayerName);
+                    }
+                }
+            }
+            tx.success();
+        }
+		return toReturn;
 	}
 
 	/**
@@ -137,26 +154,26 @@ public class SpatialDatabaseService implements Constants {
 	 * @param layer
 	 * @return new DynamicLayer version of the original layer
 	 */
+    //DONE
 	public DynamicLayer asDynamicLayer(Layer layer) {
 		if (layer instanceof DynamicLayer) {
 			return (DynamicLayer) layer;
 		} else {
-			Transaction tx = database.beginTx();
-			try {
+            try ( Transaction tx = database.beginTx() ) {
 				Node node = layer.getLayerNode();
 				node.setProperty(PROP_LAYER_CLASS, DynamicLayer.class.getCanonicalName());
 				tx.success();
 				return (DynamicLayer) DefaultLayer.makeLayerFromNode(this, node);
-			} finally {
-				tx.finish();
 			}
 		}
 	}
 
+    //DONE
     public DefaultLayer getOrCreateDefaultLayer(String name) {
         return (DefaultLayer)getOrCreateLayer(name, WKBGeometryEncoder.class, DefaultLayer.class, "");
     }
 
+    //DONE
 	public EditableLayer getOrCreateEditableLayer(String name, String format, String propertyNameConfig) {
 		Class<? extends GeometryEncoder> geClass = WKBGeometryEncoder.class;
 		if (format != null && format.toUpperCase().startsWith("WKT")) {
@@ -165,14 +182,17 @@ public class SpatialDatabaseService implements Constants {
 		return (EditableLayer) getOrCreateLayer(name, geClass, EditableLayerImpl.class, propertyNameConfig);
 	}
 
+    //DONE
     public EditableLayer getOrCreateEditableLayer(String name) {
         return getOrCreateEditableLayer(name, "WKB", "");
     }
-    
+
+    //DONE
     public EditableLayer getOrCreateEditableLayer(String name, String wktProperty) {
         return getOrCreateEditableLayer(name, "WKT", wktProperty);
     }
 
+    //DONE
 	public EditableLayer getOrCreatePointLayer(String name, String xProperty, String yProperty) {
 		Layer layer = getLayer(name);
 		if (layer == null) {
@@ -187,6 +207,7 @@ public class SpatialDatabaseService implements Constants {
 		}
 	}
 
+    //DONE
     public Layer getOrCreateLayer(String name, Class< ? extends GeometryEncoder> geometryEncoder, Class< ? extends Layer> layerClass, String config) {
         Layer layer = getLayer(name);
         if (layer == null) {
@@ -198,75 +219,47 @@ public class SpatialDatabaseService implements Constants {
         }
     }
 
+    //DONE
     public Layer getOrCreateLayer(String name, Class< ? extends GeometryEncoder> geometryEncoder, Class< ? extends Layer> layerClass) {
         return getOrCreateLayer(name, geometryEncoder, layerClass, "");
     }
 
-    /**
-     * This method will find the Layer when given a geometry node that this layer contains. This method
-     * used to make use of knowledge of the RTree, traversing backwards up the tree to find the layer node, which is fast. However, for reasons of clean abstraction, 
-     * this has been refactored to delegate the logic to the layer, so that each layer can do this in an
-     * implementation specific way. Now we simply iterate through the layers datasets and the first one
-     * to return true on the SpatialDataset.containsGeometryNode(Node) method is returned.
-     * 
-     * We can consider removing this method for a few reasons:
-     * * It is non-deterministic if more than one layer contains the same geometry
-     * * None of the current code appears to use this method
-     * 
-     * @param geometryNode to start search
-     * @return Layer object containing this geometry
-     */
-    public Layer findLayerContainingGeometryNode(Node geometryNode) {
-        for (String layerName: getLayerNames()) {
-        	Layer layer = getLayer(layerName);
-        	if (layer.getDataset().containsGeometryNode(geometryNode)) {
-        		return layer;
-        	}
-        }
-        return null;
-    }
-
-    private Layer getLayerFromChild(Node child, RelationshipType relType) {
-        Relationship indexRel = child.getSingleRelationship(relType, Direction.INCOMING);
-        if (indexRel != null) {
-            Node layerNode = indexRel.getStartNode();
-            if (layerNode.hasProperty(PROP_LAYER)) {
-                return DefaultLayer.makeLayerFromNode(this, layerNode);
-            }
-        }
-        return null;
-    }
-	
+    //DONE
 	public boolean containsLayer(String name) {
-		return getLayer(name) != null;
+		return getLayerFromGraph(name) != null;
 	}
 
+    //DONE
     public Layer createWKBLayer(String name) {
         return createLayer(name, WKBGeometryEncoder.class, EditableLayerImpl.class);
     }
 
+    //DONE
 	public SimplePointLayer createSimplePointLayer(String name) {
 		return (SimplePointLayer) createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, null,
 				org.geotools.referencing.crs.DefaultGeographicCRS.WGS84);
 	}
 
+    //DONE
 	public SimplePointLayer createSimplePointLayer(String name, String xProperty, String yProperty) {
 		return (SimplePointLayer) createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, xProperty + ":" + yProperty,
 				org.geotools.referencing.crs.DefaultGeographicCRS.WGS84);
 	}
 
+    //DONE
     public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass, Class<? extends Layer> layerClass) {
     	return createLayer(name, geometryEncoderClass, layerClass, null);
     }
 
+    //DONE
     public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass, Class<? extends Layer> layerClass, String encoderConfig) {
     	return createLayer(name, geometryEncoderClass, layerClass, encoderConfig, null);
     }
 
+    //DONE
 	public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass, Class<? extends Layer> layerClass,
 			String encoderConfig, CoordinateReferenceSystem crs) {
-        Transaction tx = database.beginTx();
-        try {
+        try(Transaction tx = database.beginTx()) {
             if (containsLayer(name))
                 throw new SpatialDatabaseException("Layer " + name + " already exists");
 
@@ -287,19 +280,19 @@ public class SpatialDatabaseService implements Constants {
 			}
             tx.success();
             return layer;
-        } finally {
-            tx.finish();
         }
 	}
 
+    //DONE
     public void deleteLayer(String name, Listener monitor) {
-        Layer layer = getLayer(name);
+        Layer layer = getLayerFromGraph(name);
         if (layer == null)
             throw new SpatialDatabaseException("Layer " + name + " does not exist");
 
         layer.delete(monitor);
     }
-	
+
+    //DONE
 	public GraphDatabaseService getDatabase() {
 		return database;
 	}
@@ -310,6 +303,7 @@ public class SpatialDatabaseService implements Constants {
 	private GraphDatabaseService database;
 
 	@SuppressWarnings("unchecked")
+    //DONE
 	public static int convertGeometryNameToType(String geometryName) {
 		if(geometryName == null) return GTYPE_GEOMETRY;
 		try {
@@ -320,11 +314,11 @@ public class SpatialDatabaseService implements Constants {
 			return GTYPE_GEOMETRY;
 		}
 	}
-
+    //DONE
 	public static String convertGeometryTypeToName(Integer geometryType) {
 		return convertGeometryTypeToJtsClass(geometryType).getName().replace("com.vividsolutions.jts.geom.", "");
 	}
-
+    //DONE
 	public static Class<? extends Geometry> convertGeometryTypeToJtsClass(Integer geometryType) {
 		switch (geometryType) {
 			case GTYPE_POINT: return Point.class;
@@ -336,7 +330,7 @@ public class SpatialDatabaseService implements Constants {
 			default: return Geometry.class;
 		}
 	}
-
+    //DONE
 	public static int convertJtsClassToGeometryType(Class<? extends Geometry> jtsClass) {
 		if (jtsClass.equals(Point.class)) {
 			return GTYPE_POINT;

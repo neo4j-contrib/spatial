@@ -263,9 +263,12 @@ public class OSMImporter implements Constants
         // TODO: The next line creates the relationship between the dataset and
         // layer, but this seems more like a side-effect and should be done
         // explicitly
-        OSMDataset dataset = layer.getDataset( osm_dataset );
-        layer.clear(); // clear the index without destroying underlying data
-
+        OSMDataset dataset;
+        try(Transaction tx = database.beginTx()) {
+            dataset = layer.getDataset( osm_dataset );
+            layer.clear(); // clear the index without destroying underlying data
+            tx.success();
+        }
         long startTime = System.currentTimeMillis();
         Traverser traverser = database.getNodeById( osm_dataset ).traverse(
                 Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH,

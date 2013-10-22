@@ -79,7 +79,13 @@ public class SpatialPlugin extends ServerPlugin {
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
 		DynamicLayer dynamicLayer = spatialService.asDynamicLayer(spatialService.getLayer(master_layer));
 		int gtype = SpatialDatabaseService.convertGeometryNameToType(geometry);
-		return toArray(dynamicLayer.addLayerConfig(name, gtype, query).getLayerNode());
+        Iterable<Node> nodes = null;
+
+        try(Transaction tx = db.beginTx()) {
+            nodes = toArray(dynamicLayer.addLayerConfig(name, gtype, query).getLayerNode());
+            tx.success();
+        }
+        return nodes;
 	}
 
 	@PluginTarget(GraphDatabaseService.class)
@@ -174,11 +180,16 @@ public class SpatialPlugin extends ServerPlugin {
 		    layer = spatialService.getLayer(layerName);
 		}
 
+        Iterable<Node> pipeline = null;
+
 		// TODO why a SearchWithin and not a SearchIntersectWindow?
-		
-		return GeoPipeline
-			.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(minx, maxx, miny, maxy)))
-			.toNodeList();
+        try(Transaction tx = db.beginTx()) {
+            pipeline = GeoPipeline
+			    .startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(minx, maxx, miny, maxy)))
+			    .toNodeList();
+            tx.success();
+        }
+        return pipeline;
 	}
 
 	@PluginTarget(GraphDatabaseService.class)
@@ -196,10 +207,16 @@ public class SpatialPlugin extends ServerPlugin {
 		if (layer == null ) {
 		    layer = spatialService.getLayer(layerName);
 		}
-	
-		return GeoPipeline
-			.startNearestNeighborLatLonSearch(layer, new Coordinate(pointX, pointY), distanceInKm)
-			.sort("OrthodromicDistance").toNodeList();
+
+        Iterable<Node> pipeline = null;
+        try(Transaction tx = db.beginTx()) {
+            pipeline =  GeoPipeline
+                .startNearestNeighborLatLonSearch(layer, new Coordinate(pointX, pointY), distanceInKm)
+                .sort("OrthodromicDistance").toNodeList();
+
+            tx.success();
+        }
+        return pipeline;
 	}
 
 	private Iterable<Node> toArray(Node node) {

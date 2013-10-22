@@ -48,6 +48,7 @@ import org.neo4j.graphdb.Relationship;
 
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
+import org.neo4j.graphdb.Transaction;
 
 
 public class TestOSMImport extends Neo4jTestCase {
@@ -171,7 +172,10 @@ public class TestOSMImport extends Neo4jTestCase {
 				Thread.sleep(1000);
 			}
 		}
-		importer.reIndex(graphDb(), commitInterval, includePoints, false);
+        try(Transaction tx = graphDb().beginTx()) {
+		    importer.reIndex(graphDb(), commitInterval, includePoints, false);
+            tx.success();
+        }
 	}
 
 	protected static void checkOSMLayer(GraphDatabaseService graphDatabaseService, String layerName) throws IOException {

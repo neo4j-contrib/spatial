@@ -306,7 +306,10 @@ public abstract class Neo4jTestCase extends TestCase {
     }
     
 	protected void debugIndexTree(RTreeIndex index) {
-		printTree(index.getIndexRoot(), 0);
+        try( Transaction tx = graphDb.beginTx()) {
+		    printTree(index.getIndexRoot(), 0);
+            tx.success();
+        }
 	}
 	
 	private static String arrayString(double[] test) {
