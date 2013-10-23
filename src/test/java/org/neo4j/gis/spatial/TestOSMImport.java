@@ -41,10 +41,7 @@ import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.osm.OSMRelation;
 import org.neo4j.gis.spatial.pipes.osm.OSMGeoPipeline;
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.*;
 
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
@@ -175,16 +172,19 @@ public class TestOSMImport extends Neo4jTestCase {
 	}
 
 	protected static void checkOSMLayer(GraphDatabaseService graphDatabaseService, String layerName) throws IOException {
-		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDatabaseService);
-		OSMLayer layer = (OSMLayer) spatialService.getOrCreateLayer(layerName, OSMGeometryEncoder.class, OSMLayer.class);
-		assertNotNull("OSM Layer index should not be null", layer.getIndex());
-		assertNotNull("OSM Layer index envelope should not be null", layer.getIndex().getBoundingBox());
-		Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox());
-		debugEnvelope(bbox, layerName, "bbox");
-        System.out.println("((RTreeIndex)layer.getIndex()).getBoundingBox(); = " + ((RTreeIndex) layer.getIndex()).getBoundingBox());
-        checkIndexAndFeatureCount(layer);
-		checkChangesetsAndUsers(layer);
-		checkOSMSearch(layer);
+        try (Transaction tx = graphDatabaseService.beginTx()) {
+            SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDatabaseService);
+            OSMLayer layer = (OSMLayer) spatialService.getOrCreateLayer(layerName, OSMGeometryEncoder.class, OSMLayer.class);
+            assertNotNull("OSM Layer index should not be null", layer.getIndex());
+            assertNotNull("OSM Layer index envelope should not be null", layer.getIndex().getBoundingBox());
+            Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox());
+            debugEnvelope(bbox, layerName, "bbox");
+            System.out.println("((RTreeIndex)layer.getIndex()).getBoundingBox(); = " + ((RTreeIndex) layer.getIndex()).getBoundingBox());
+            checkIndexAndFeatureCount(layer);
+            checkChangesetsAndUsers(layer);
+            checkOSMSearch(layer);
+            tx.success();
+        }
 	}
 
 	public static void checkOSMSearch(OSMLayer layer) throws IOException {

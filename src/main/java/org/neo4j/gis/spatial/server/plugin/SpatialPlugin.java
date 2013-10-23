@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial.server.plugin;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import org.neo4j.gis.spatial.DynamicLayer;
 import org.neo4j.gis.spatial.EditableLayer;
@@ -169,16 +170,20 @@ public class SpatialPlugin extends ServerPlugin {
 		System.out.println("Finding Geometries in layer '" + layerName + "'");
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
 
-		Layer layer = spatialService.getDynamicLayer(layerName);
-		if (layer == null ) {
-		    layer = spatialService.getLayer(layerName);
-		}
+        try (Transaction tx = db.beginTx()) {
 
-		// TODO why a SearchWithin and not a SearchIntersectWindow?
-		
-		return GeoPipeline
-			.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(minx, maxx, miny, maxy)))
-			.toNodeList();
+            Layer layer = spatialService.getDynamicLayer(layerName);
+            if (layer == null ) {
+                layer = spatialService.getLayer(layerName);
+            }
+            // TODO why a SearchWithin and not a SearchIntersectWindow?
+
+            List<Node> result = GeoPipeline
+                    .startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(minx, maxx, miny, maxy)))
+                    .toNodeList();
+            tx.success();
+            return result;
+        }
 	}
 
 	@PluginTarget(GraphDatabaseService.class)
@@ -192,14 +197,18 @@ public class SpatialPlugin extends ServerPlugin {
 		System.out.println("Finding Geometries in layer '" + layerName + "'");
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
 
-		Layer layer = spatialService.getDynamicLayer(layerName);
-		if (layer == null ) {
-		    layer = spatialService.getLayer(layerName);
-		}
-	
-		return GeoPipeline
-			.startNearestNeighborLatLonSearch(layer, new Coordinate(pointX, pointY), distanceInKm)
-			.sort("OrthodromicDistance").toNodeList();
+        try (Transaction tx = db.beginTx()) {
+            Layer layer = spatialService.getDynamicLayer(layerName);
+            if (layer == null ) {
+                layer = spatialService.getLayer(layerName);
+            }
+
+            List<Node> result = GeoPipeline
+                    .startNearestNeighborLatLonSearch(layer, new Coordinate(pointX, pointY), distanceInKm)
+                    .sort("OrthodromicDistance").toNodeList();
+            tx.success();
+            return result;
+        }
 	}
 
 	private Iterable<Node> toArray(Node node) {

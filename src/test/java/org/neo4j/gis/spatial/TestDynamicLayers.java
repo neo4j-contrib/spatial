@@ -41,6 +41,7 @@ import org.neo4j.gis.spatial.osm.OSMLayer;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.LinearRing;
 import com.vividsolutions.jts.geom.Polygon;
+import org.neo4j.graphdb.Transaction;
 
 public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 
@@ -67,36 +68,43 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 
 		// Define dynamic layers
 		ArrayList<Layer> layers = new ArrayList<Layer>();
-		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-		DynamicLayer shpLayer = spatialService.asDynamicLayer(spatialService.getLayer(shpFile));
-		layers.add(shpLayer.addLayerConfig("CQL0-highway", GTYPE_GEOMETRY, "highway is not null"));
-		layers.add(shpLayer.addLayerConfig("CQL1-highway", GTYPE_POINT, "geometryType(the_geom) = 'MultiLineString'"));
-		layers.add(shpLayer.addLayerConfig("CQL2-highway", GTYPE_LINESTRING, "highway is not null and geometryType(the_geom) = 'MultiLineString'"));
-		layers.add(shpLayer.addLayerConfig("CQL3-residential", GTYPE_MULTILINESTRING, "highway = 'residential'"));
-		layers.add(shpLayer.addLayerConfig("CQL4-nameV", GTYPE_LINESTRING, "name is not null and name like 'V%'"));
-		layers.add(shpLayer.addLayerConfig("CQL5-nameS", GTYPE_LINESTRING, "name is not null and name like 'S%'"));
-		layers.add(shpLayer.addLayerConfig("CQL6-nameABC", GTYPE_LINESTRING, "name like 'A%' or name like 'B%' or name like 'B%'"));
-		layers.add(shpLayer.addCQLDynamicLayerOnAttribute("highway", "residential", GTYPE_MULTILINESTRING));
-		layers.add(shpLayer.addCQLDynamicLayerOnAttribute("highway", "path", GTYPE_MULTILINESTRING));
-		layers.add(shpLayer.addCQLDynamicLayerOnAttribute("highway", "track", GTYPE_MULTILINESTRING));
-		assertEquals(layers.size() + 1, shpLayer.getLayerNames().size());
+        try (Transaction tx = graphDb().beginTx()) {
 
-		// Now export the layers to files
-		// First prepare the SHP and PNG exporters
-		StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
-		imageExporter.setExportDir("target/export/" + shpFile);
-		imageExporter.setZoom(3.0);
-		imageExporter.setOffset(-0.05, -0.05);
-		imageExporter.setSize(1024, 768);
+            SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+            DynamicLayer shpLayer = spatialService.asDynamicLayer(spatialService.getLayer(shpFile));
+            layers.add(shpLayer.addLayerConfig("CQL0-highway", GTYPE_GEOMETRY, "highway is not null"));
+            layers.add(shpLayer.addLayerConfig("CQL1-highway", GTYPE_POINT, "geometryType(the_geom) = 'MultiLineString'"));
+            layers.add(shpLayer.addLayerConfig("CQL2-highway", GTYPE_LINESTRING, "highway is not null and geometryType(the_geom) = 'MultiLineString'"));
+            layers.add(shpLayer.addLayerConfig("CQL3-residential", GTYPE_MULTILINESTRING, "highway = 'residential'"));
+            layers.add(shpLayer.addLayerConfig("CQL4-nameV", GTYPE_LINESTRING, "name is not null and name like 'V%'"));
+            layers.add(shpLayer.addLayerConfig("CQL5-nameS", GTYPE_LINESTRING, "name is not null and name like 'S%'"));
+            layers.add(shpLayer.addLayerConfig("CQL6-nameABC", GTYPE_LINESTRING, "name like 'A%' or name like 'B%' or name like 'B%'"));
+            layers.add(shpLayer.addCQLDynamicLayerOnAttribute("highway", "residential", GTYPE_MULTILINESTRING));
+            layers.add(shpLayer.addCQLDynamicLayerOnAttribute("highway", "path", GTYPE_MULTILINESTRING));
+            layers.add(shpLayer.addCQLDynamicLayerOnAttribute("highway", "track", GTYPE_MULTILINESTRING));
+            assertEquals(layers.size() + 1, shpLayer.getLayerNames().size());
+            tx.success();
+        }
+        try (Transaction tx = graphDb().beginTx()) {
 
-		// Now loop through all dynamic layers and export them to images,
-		// where possible. Layers will multiple geometries cannot be exported
-		// and we take note of how many times that happens
-		for (Layer layer : layers) {
-			// for (Layer layer : new Layer[] {}) {
-			checkIndexAndFeatureCount(layer);
-			imageExporter.saveLayerImage(layer.getName(), null);
-		}
+            // Now export the layers to files
+            // First prepare the SHP and PNG exporters
+            StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
+            imageExporter.setExportDir("target/export/" + shpFile);
+            imageExporter.setZoom(3.0);
+            imageExporter.setOffset(-0.05, -0.05);
+            imageExporter.setSize(1024, 768);
+
+            // Now loop through all dynamic layers and export them to images,
+            // where possible. Layers will multiple geometries cannot be exported
+            // and we take note of how many times that happens
+            for (Layer layer : layers) {
+                // for (Layer layer : new Layer[] {}) {
+                checkIndexAndFeatureCount(layer);
+                imageExporter.saveLayerImage(layer.getName(), null);
+            }
+            tx.success();
+        }
 	}
 
 	private void runShapefileExport(String osmFile) throws Exception {
@@ -110,90 +118,95 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		//bbox.expandBy(-0.1);
 		bbox = scale(bbox, 0.2);
 
-		// Define dynamic layers
-		ArrayList<Layer> layers = new ArrayList<Layer>();
-		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-		OSMLayer osmLayer = (OSMLayer) spatialService.getLayer(osmFile);
-		LinearRing ring = osmLayer.getGeometryFactory().createLinearRing(
-				new Coordinate[] { new Coordinate(bbox.getMinX(), bbox.getMinY()), new Coordinate(bbox.getMinX(), bbox.getMaxY()),
-						new Coordinate(bbox.getMaxX(), bbox.getMaxY()), new Coordinate(bbox.getMaxX(), bbox.getMinY()),
-						new Coordinate(bbox.getMinX(), bbox.getMinY()) });
-		Polygon polygon = osmLayer.getGeometryFactory().createPolygon(ring, null);
-		layers.add(osmLayer.addLayerConfig("CQL1-highway", GTYPE_LINESTRING, "highway is not null and geometryType(the_geom) = 'LineString'"));
-		layers.add(osmLayer.addLayerConfig("CQL2-residential", GTYPE_LINESTRING, "highway = 'residential' and geometryType(the_geom) = 'LineString'"));
-		layers.add(osmLayer.addLayerConfig("CQL3-natural", GTYPE_POLYGON, "natural is not null and geometryType(the_geom) = 'Polygon'"));
-		layers.add(osmLayer.addLayerConfig("CQL4-water", GTYPE_POLYGON, "natural = 'water' and geometryType(the_geom) = 'Polygon'"));
-		layers.add(osmLayer.addLayerConfig("CQL5-bbox", GTYPE_GEOMETRY, "BBOX(the_geom, " + toCoordinateText(bbox) + ")"));
-		layers.add(osmLayer.addLayerConfig("CQL6-bbox-polygon", GTYPE_GEOMETRY, "within(the_geom, POLYGON(("
-				+ toCoordinateText(polygon.getCoordinates()) + ")))"));
-		layers.add(osmLayer.addSimpleDynamicLayer("highway", "primary"));
-		layers.add(osmLayer.addSimpleDynamicLayer("highway", "secondary"));
-		layers.add(osmLayer.addSimpleDynamicLayer("highway", "tertiary"));
-		layers.add(osmLayer.addSimpleDynamicLayer(GTYPE_LINESTRING, "highway=*"));
-		layers.add(osmLayer.addSimpleDynamicLayer(GTYPE_LINESTRING, "highway=footway, bicycle=yes"));
-		layers.add(osmLayer.addSimpleDynamicLayer("highway=*, bicycle=yes"));
-		layers.add(osmLayer.addSimpleDynamicLayer("highway", "residential"));
-		layers.add(osmLayer.addCQLDynamicLayerOnAttribute("highway", "residential", GTYPE_LINESTRING));
-		layers.add(osmLayer.addSimpleDynamicLayer("highway", "footway"));
-		layers.add(osmLayer.addSimpleDynamicLayer("highway", "cycleway"));
-		layers.add(osmLayer.addSimpleDynamicLayer("highway", "track"));
-		layers.add(osmLayer.addSimpleDynamicLayer("highway", "path"));
-		layers.add(osmLayer.addSimpleDynamicLayer("highway", "unclassified"));
-		layers.add(osmLayer.addSimpleDynamicLayer("amenity", "parking", GTYPE_POLYGON));
-		layers.add(osmLayer.addSimpleDynamicLayer("railway", null));
-		layers.add(osmLayer.addSimpleDynamicLayer("highway", null));
-		layers.add(osmLayer.addSimpleDynamicLayer("waterway", null));
-		layers.add(osmLayer.addSimpleDynamicLayer("building", null, GTYPE_POLYGON));
-		layers.add(osmLayer.addCQLDynamicLayerOnAttribute("building", null, GTYPE_POLYGON));
-		layers.add(osmLayer.addSimpleDynamicLayer("natural", null, GTYPE_GEOMETRY));
-		layers.add(osmLayer.addSimpleDynamicLayer("natural", "water", GTYPE_POLYGON));
-		layers.add(osmLayer.addSimpleDynamicLayer("natural", "wood", GTYPE_POLYGON));
-		layers.add(osmLayer.addSimpleDynamicLayer("natural", "coastline"));
-		layers.add(osmLayer.addSimpleDynamicLayer("natural", "beach"));
-		layers.add(osmLayer.addSimpleDynamicLayer(GTYPE_POLYGON));
-		layers.add(osmLayer.addSimpleDynamicLayer(GTYPE_POINT));
-		layers.add(osmLayer.addCQLDynamicLayerOnGeometryType(GTYPE_POLYGON));
-		layers.add(osmLayer.addCQLDynamicLayerOnGeometryType(GTYPE_POINT));
-		assertEquals(layers.size() + 1, osmLayer.getLayerNames().size());
+        // Define dynamic layers
+        ArrayList<Layer> layers = new ArrayList<Layer>();
+        try (Transaction tx = graphDb().beginTx()) {
+            SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+            OSMLayer osmLayer = (OSMLayer) spatialService.getLayer(osmFile);
+            LinearRing ring = osmLayer.getGeometryFactory().createLinearRing(
+                    new Coordinate[] { new Coordinate(bbox.getMinX(), bbox.getMinY()), new Coordinate(bbox.getMinX(), bbox.getMaxY()),
+                            new Coordinate(bbox.getMaxX(), bbox.getMaxY()), new Coordinate(bbox.getMaxX(), bbox.getMinY()),
+                            new Coordinate(bbox.getMinX(), bbox.getMinY()) });
+            Polygon polygon = osmLayer.getGeometryFactory().createPolygon(ring, null);
+            layers.add(osmLayer.addLayerConfig("CQL1-highway", GTYPE_LINESTRING, "highway is not null and geometryType(the_geom) = 'LineString'"));
+            layers.add(osmLayer.addLayerConfig("CQL2-residential", GTYPE_LINESTRING, "highway = 'residential' and geometryType(the_geom) = 'LineString'"));
+            layers.add(osmLayer.addLayerConfig("CQL3-natural", GTYPE_POLYGON, "natural is not null and geometryType(the_geom) = 'Polygon'"));
+            layers.add(osmLayer.addLayerConfig("CQL4-water", GTYPE_POLYGON, "natural = 'water' and geometryType(the_geom) = 'Polygon'"));
+            layers.add(osmLayer.addLayerConfig("CQL5-bbox", GTYPE_GEOMETRY, "BBOX(the_geom, " + toCoordinateText(bbox) + ")"));
+            layers.add(osmLayer.addLayerConfig("CQL6-bbox-polygon", GTYPE_GEOMETRY, "within(the_geom, POLYGON(("
+                    + toCoordinateText(polygon.getCoordinates()) + ")))"));
+            layers.add(osmLayer.addSimpleDynamicLayer("highway", "primary"));
+            layers.add(osmLayer.addSimpleDynamicLayer("highway", "secondary"));
+            layers.add(osmLayer.addSimpleDynamicLayer("highway", "tertiary"));
+            layers.add(osmLayer.addSimpleDynamicLayer(GTYPE_LINESTRING, "highway=*"));
+            layers.add(osmLayer.addSimpleDynamicLayer(GTYPE_LINESTRING, "highway=footway, bicycle=yes"));
+            layers.add(osmLayer.addSimpleDynamicLayer("highway=*, bicycle=yes"));
+            layers.add(osmLayer.addSimpleDynamicLayer("highway", "residential"));
+            layers.add(osmLayer.addCQLDynamicLayerOnAttribute("highway", "residential", GTYPE_LINESTRING));
+            layers.add(osmLayer.addSimpleDynamicLayer("highway", "footway"));
+            layers.add(osmLayer.addSimpleDynamicLayer("highway", "cycleway"));
+            layers.add(osmLayer.addSimpleDynamicLayer("highway", "track"));
+            layers.add(osmLayer.addSimpleDynamicLayer("highway", "path"));
+            layers.add(osmLayer.addSimpleDynamicLayer("highway", "unclassified"));
+            layers.add(osmLayer.addSimpleDynamicLayer("amenity", "parking", GTYPE_POLYGON));
+            layers.add(osmLayer.addSimpleDynamicLayer("railway", null));
+            layers.add(osmLayer.addSimpleDynamicLayer("highway", null));
+            layers.add(osmLayer.addSimpleDynamicLayer("waterway", null));
+            layers.add(osmLayer.addSimpleDynamicLayer("building", null, GTYPE_POLYGON));
+            layers.add(osmLayer.addCQLDynamicLayerOnAttribute("building", null, GTYPE_POLYGON));
+            layers.add(osmLayer.addSimpleDynamicLayer("natural", null, GTYPE_GEOMETRY));
+            layers.add(osmLayer.addSimpleDynamicLayer("natural", "water", GTYPE_POLYGON));
+            layers.add(osmLayer.addSimpleDynamicLayer("natural", "wood", GTYPE_POLYGON));
+            layers.add(osmLayer.addSimpleDynamicLayer("natural", "coastline"));
+            layers.add(osmLayer.addSimpleDynamicLayer("natural", "beach"));
+            layers.add(osmLayer.addSimpleDynamicLayer(GTYPE_POLYGON));
+            layers.add(osmLayer.addSimpleDynamicLayer(GTYPE_POINT));
+            layers.add(osmLayer.addCQLDynamicLayerOnGeometryType(GTYPE_POLYGON));
+            layers.add(osmLayer.addCQLDynamicLayerOnGeometryType(GTYPE_POINT));
+            assertEquals(layers.size() + 1, osmLayer.getLayerNames().size());
+            tx.success();
+        }
+        try (Transaction tx = graphDb().beginTx()) {
+            // Now export the layers to files
+            // First prepare the SHP and PNG exporters
+            ShapefileExporter shpExporter = new ShapefileExporter(graphDb());
+            shpExporter.setExportDir("target/export/" + osmFile);
+            StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
+            imageExporter.setExportDir("target/export/" + osmFile);
+            imageExporter.setZoom(3.0);
+            imageExporter.setOffset(-0.05, -0.05);
+            imageExporter.setSize(1024, 768);
+            // imageExporter.saveLayerImage("highway", null);
+            // imageExporter.saveLayerImage(osmLayer.getName(), "neo.sld.xml");
 
-		// Now export the layers to files
-		// First prepare the SHP and PNG exporters
-		ShapefileExporter shpExporter = new ShapefileExporter(graphDb());
-		shpExporter.setExportDir("target/export/" + osmFile);
-		StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
-		imageExporter.setExportDir("target/export/" + osmFile);
-		imageExporter.setZoom(3.0);
-		imageExporter.setOffset(-0.05, -0.05);
-		imageExporter.setSize(1024, 768);
-		// imageExporter.saveLayerImage("highway", null);
-		// imageExporter.saveLayerImage(osmLayer.getName(), "neo.sld.xml");
-
-		// Now loop through all dynamic layers and export them to shapefiles,
-		// where possible. Layers will multiple geometries cannot be exported
-		// and we take note of how many times that happens
-		int countMultiGeometryLayers = 0;
-		int countMultiGeometryExceptions = 0;
-		for (Layer layer : layers) {
-			// for (Layer layer : new Layer[] {}) {
-			if (layer.getGeometryType() == GTYPE_GEOMETRY) {
-				countMultiGeometryLayers++;
-			}
-			checkIndexAndFeatureCount(layer);
-			try {
-				imageExporter.saveLayerImage(layer.getName(), null);
-				shpExporter.exportLayer(layer.getName());
-			} catch (Exception e) {
-				if (e instanceof DataSourceException && e.getMessage().contains("geom.Geometry")) {
-					System.out.println("Got geometry exception on layer with geometry["
-							+ SpatialDatabaseService.convertGeometryTypeToName(layer.getGeometryType()) + "]: " + e.getMessage());
-					countMultiGeometryExceptions++;
-				} else {
-					throw e;
-				}
-			}
-		}
-		assertEquals("Mismatching number of data source exceptions and raw geometry layers", countMultiGeometryLayers,
-				countMultiGeometryExceptions);
+            // Now loop through all dynamic layers and export them to shapefiles,
+            // where possible. Layers will multiple geometries cannot be exported
+            // and we take note of how many times that happens
+            int countMultiGeometryLayers = 0;
+            int countMultiGeometryExceptions = 0;
+            for (Layer layer : layers) {
+                // for (Layer layer : new Layer[] {}) {
+                if (layer.getGeometryType() == GTYPE_GEOMETRY) {
+                    countMultiGeometryLayers++;
+                }
+                checkIndexAndFeatureCount(layer);
+                try {
+                    imageExporter.saveLayerImage(layer.getName(), null);
+                    shpExporter.exportLayer(layer.getName());
+                } catch (Exception e) {
+                    if (e instanceof DataSourceException && e.getMessage().contains("geom.Geometry")) {
+                        System.out.println("Got geometry exception on layer with geometry["
+                                + SpatialDatabaseService.convertGeometryTypeToName(layer.getGeometryType()) + "]: " + e.getMessage());
+                        countMultiGeometryExceptions++;
+                    } else {
+                        throw e;
+                    }
+                }
+            }
+            assertEquals("Mismatching number of data source exceptions and raw geometry layers", countMultiGeometryLayers,
+                    countMultiGeometryExceptions);
+            tx.success();
+        }
 	}
 
 	private Envelope scale(Envelope bbox, double fraction) {

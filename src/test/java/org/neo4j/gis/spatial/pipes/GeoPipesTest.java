@@ -74,6 +74,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     private static EditableLayerImpl intersectionLayer;
     private static EditableLayerImpl equalLayer;
     private static EditableLayerImpl linesLayer;
+    private Transaction tx;
 
     @Test
     public void find_all()
@@ -1088,11 +1089,10 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     {
         SpatialDatabaseService spatialService = new SpatialDatabaseService( db );
 
-        loadTestOsmData( "two-street.osm", 100 );
-        osmLayer = spatialService.getLayer( "two-street.osm" );
+        try (Transaction tx = db.beginTx()) {
+            loadTestOsmData( "two-street.osm", 100 );
+            osmLayer = spatialService.getLayer( "two-street.osm" );
         
-        Transaction tx = db.beginTx();
-        try {
 	        boxesLayer = (EditableLayerImpl) spatialService.getOrCreateEditableLayer( "boxes" );
 	        boxesLayer.setExtraPropertyNames( new String[] { "name" } );
 	        boxesLayer.setCoordinateReferenceSystem(DefaultEngineeringCRS.GENERIC_2D);
@@ -1136,8 +1136,6 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
 	        linesLayer.add( reader.read( "LINESTRING (12 26, 15 27, 18 32, 20 38, 23 34)" ) );
 	        
 	        tx.success();
-        } finally {
-        	tx.finish();
         }
     }
 
@@ -1158,7 +1156,7 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     {
         gen.get().setGraph( db );
         engine = new ExecutionEngine( db );
-        try
+        try (Transaction tx = db.beginTx())
         {
             StyledImageExporter exporter = new StyledImageExporter( db );
             exporter.setExportDir( "target/docs/images/" );
@@ -1183,11 +1181,13 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
             exporter.saveImage( GeoPipeline.start( osmLayer ).toFeatureCollection(),
                     StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
                             "osmLayer.png" ) );
+            tx.success();
         }
         catch ( IOException e )
         {
             e.printStackTrace();
         }
+        tx = db.beginTx();
     }
 
     @After
@@ -1196,6 +1196,9 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
        // gen.get().addSnippet( "graph", AsciidocHelper.createGraphViz( imgName , graphdb(), "graph"+getTitle() ) );
        gen.get().addTestSourceSnippets( GeoPipesTest.class, "s_"+getTitle().toLowerCase() );
        gen.get().document( "target/docs", "examples" );
+       if (tx!=null) {
+           tx.success(); tx.close();
+       }
     }
 
     @BeforeClass

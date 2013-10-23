@@ -19,46 +19,31 @@
  */
 package org.neo4j.gis.spatial;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map.Entry;
-
-import javax.xml.stream.XMLStreamException;
-
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.impl.CoordinateArraySequence;
+import com.vividsolutions.jts.io.ParseException;
+import com.vividsolutions.jts.simplify.TopologyPreservingSimplifier;
 import junit.framework.TestCase;
-
 import org.geotools.data.shapefile.shp.ShapefileException;
 import org.junit.Test;
-import org.neo4j.collections.rtree.NullListener;
-import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMImporter;
-import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.kernel.AbstractGraphDatabase;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
-import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
+import org.neo4j.unsafe.batchinsert.BatchInserter;
+import org.neo4j.unsafe.batchinsert.BatchInserterImpl;
+import org.neo4j.unsafe.batchinsert.BatchInserters;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.MultiPoint;
-import com.vividsolutions.jts.geom.impl.CoordinateArraySequence;
-import com.vividsolutions.jts.io.ParseException;
-import com.vividsolutions.jts.simplify.TopologyPreservingSimplifier;
+import javax.xml.stream.XMLStreamException;
+import java.io.*;
+import java.nio.charset.Charset;
+import java.util.*;
+import java.util.Map.Entry;
 
 public class TestIntersectsPathQueries extends TestCase {
 
@@ -125,7 +110,7 @@ public class TestIntersectsPathQueries extends TestCase {
 	private void importOSMDatabase(String osmPath, String dbPath, String layerName) throws ParseException, IOException, XMLStreamException, InterruptedException {
 		OSMImporter importer = new OSMImporter(layerName, new ConsoleListener(), makeFilterEnvelope());
 		importer.setCharset(Charset.forName("UTF-8"));
-        BatchInserterImpl batchInserter = new BatchInserterImpl(dbPath, Neo4jTestCase.LARGE_CONFIG);
+        BatchInserter batchInserter = BatchInserters.inserter(dbPath, Neo4jTestCase.LARGE_CONFIG);
         //GraphDatabaseService graphDb = batchInserter.getGraphDbService();
 		//importer.importFile(graphDb, osmPath, false, 10000, true);
 		importer.importFile(batchInserter, osmPath, false);

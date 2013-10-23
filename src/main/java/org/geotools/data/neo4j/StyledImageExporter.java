@@ -59,6 +59,7 @@ import org.geotools.styling.Style;
 import org.geotools.styling.StyleFactory;
 import org.neo4j.gis.spatial.SpatialTopologyUtils;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
@@ -199,40 +200,43 @@ public class StyledImageExporter {
 	
 	public void saveLayerImage(String[] layerNames, String sldFile, File imagefile, ReferencedEnvelope bounds) throws IOException {
 		DataStore store = new Neo4jSpatialDataStore(db);
-		// debugStore(store, layerNames);
-		StringBuffer names = new StringBuffer();
-		for (String name : layerNames) {
-			if (names.length() > 0)
-				names.append(", ");
-			names.append(name);
-		}
-		System.out.println("Exporting layers '" + names + "' to styled image " + imagefile.getPath());
+        try (Transaction tx=db.beginTx()) {
+            // debugStore(store, layerNames);
+            StringBuffer names = new StringBuffer();
+            for (String name : layerNames) {
+                if (names.length() > 0)
+                    names.append(", ");
+                names.append(name);
+            }
+            System.out.println("Exporting layers '" + names + "' to styled image " + imagefile.getPath());
 
-		Style style = getStyleFromSLDFile(sldFile);
+            Style style = getStyleFromSLDFile(sldFile);
 
-		MapContent mapContent = new MapContent();
-		for (int i = 0; i < layerNames.length; i++) {
-			SimpleFeatureSource featureSource = store.getFeatureSource(layerNames[i]);
-			Style featureStyle = style;
-			if (featureStyle == null) {
-				featureStyle = getStyle(i);
-			}
-			
-			if (featureStyle == null) {
-				featureStyle = createStyleFromGeometry((SimpleFeatureType) featureSource.getSchema(), Color.BLUE, Color.CYAN);
-				System.out.println("Created style from geometry '" + featureSource.getSchema().getGeometryDescriptor().getType() + "': " + featureStyle);
-			}
-			
-			mapContent.addLayer(new org.geotools.map.FeatureLayer(featureSource, featureStyle));
-			
-			if (bounds == null) {
-				bounds = featureSource.getBounds();
-			} else {
-				bounds.expandToInclude(featureSource.getBounds());
-			}
-		}
-		
-		saveMapContentToImageFile(mapContent, imagefile, bounds);
+            MapContent mapContent = new MapContent();
+            for (int i = 0; i < layerNames.length; i++) {
+                SimpleFeatureSource featureSource = store.getFeatureSource(layerNames[i]);
+                Style featureStyle = style;
+                if (featureStyle == null) {
+                    featureStyle = getStyle(i);
+                }
+
+                if (featureStyle == null) {
+                    featureStyle = createStyleFromGeometry((SimpleFeatureType) featureSource.getSchema(), Color.BLUE, Color.CYAN);
+                    System.out.println("Created style from geometry '" + featureSource.getSchema().getGeometryDescriptor().getType() + "': " + featureStyle);
+                }
+
+                mapContent.addLayer(new org.geotools.map.FeatureLayer(featureSource, featureStyle));
+
+                if (bounds == null) {
+                    bounds = featureSource.getBounds();
+                } else {
+                    bounds.expandToInclude(featureSource.getBounds());
+                }
+            }
+
+            saveMapContentToImageFile(mapContent, imagefile, bounds);
+            tx.success();
+        }
 	}
 
 	private Style getStyleFromSLDFile(String sldFile) {

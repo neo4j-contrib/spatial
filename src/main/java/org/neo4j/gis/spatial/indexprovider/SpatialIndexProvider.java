@@ -32,6 +32,7 @@ import org.neo4j.graphdb.index.IndexProvider;
 import org.neo4j.graphdb.index.RelationshipIndex;
 import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.kernel.configuration.Config;
+import org.neo4j.kernel.impl.nioneo.xa.NeoStoreXaDataSource;
 
 public class SpatialIndexProvider extends IndexProvider
 {
@@ -60,7 +61,7 @@ public class SpatialIndexProvider extends IndexProvider
 
         @Override
         public String getDataSourceName() {
-            return Config.DEFAULT_DATA_SOURCE_NAME;
+            return NeoStoreXaDataSource.DEFAULT_DATA_SOURCE_NAME;
         }
 
         @Override

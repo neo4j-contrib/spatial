@@ -35,6 +35,7 @@ import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 
 import com.vividsolutions.jts.geom.Envelope;
@@ -62,7 +63,7 @@ public class TestsForDocs extends Neo4jTestCase {
 
 	private void checkIndexAndFeatureCount(String layerName) throws IOException {
 		GraphDatabaseService database = new EmbeddedGraphDatabase(databasePath);
-		try {
+		try (Transaction tx = database.beginTx()) {
 			SpatialDatabaseService spatial = new SpatialDatabaseService(database);
 			Layer layer = spatial.getLayer(layerName);
 			if (layer.getIndex().count() < 1) {
@@ -76,6 +77,7 @@ public class TestsForDocs extends Neo4jTestCase {
 					.count(), features.size());
 			if (layer instanceof OSMLayer)
 				checkOSMAPI(layer);
+            tx.success();
 		} finally {
 			database.shutdown();
 		}
@@ -138,11 +140,14 @@ public class TestsForDocs extends Neo4jTestCase {
 			System.out.println("Have " + spatialIndex.count() + " geometries in " + spatialIndex.getBoundingBox());
 
 			Envelope bbox = new Envelope(12.94, 12.96, 56.04, 56.06);
-			List<SpatialDatabaseRecord> results = GeoPipeline
-				.startIntersectWindowSearch(layer, bbox)
-				.toSpatialDatabaseRecordList();
-			
-			doGeometryTestsOnResults(bbox, results);
+            try (Transaction tx = database.beginTx()) {
+                List<SpatialDatabaseRecord> results = GeoPipeline
+                    .startIntersectWindowSearch(layer, bbox)
+                    .toSpatialDatabaseRecordList();
+
+                doGeometryTestsOnResults(bbox, results);
+                tx.success();
+            }
 		} finally {
 			database.shutdown();
 		}
@@ -180,11 +185,14 @@ public class TestsForDocs extends Neo4jTestCase {
 		GraphDatabaseService database = new EmbeddedGraphDatabase(databasePath);
 		try {
 			// START SNIPPET: exportShapefileFromOSM
-			SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
-			OSMLayer layer = (OSMLayer) spatialService.getLayer("map.osm");
-			DynamicLayerConfig wayLayer = layer.addSimpleDynamicLayer(Constants.GTYPE_LINESTRING);
-			ShapefileExporter shpExporter = new ShapefileExporter(database);
-			shpExporter.exportLayer(wayLayer.getName());
+            SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
+            try (Transaction tx = database.beginTx()) {
+    			OSMLayer layer = (OSMLayer) spatialService.getLayer("map.osm");
+	    		DynamicLayerConfig wayLayer = layer.addSimpleDynamicLayer(Constants.GTYPE_LINESTRING);
+		    	ShapefileExporter shpExporter = new ShapefileExporter(database);
+			    shpExporter.exportLayer(wayLayer.getName());
+                tx.success();
+            }
 			// END SNIPPET: exportShapefileFromOSM
 		} finally {
 			database.shutdown();
@@ -207,16 +215,19 @@ public class TestsForDocs extends Neo4jTestCase {
 			System.out.println("Have " + spatialIndex.count() + " geometries in " + spatialIndex.getBoundingBox());
 
 			Envelope bbox = new Envelope(12.94, 12.96, 56.04, 56.06);
-			List<SpatialDatabaseRecord> results = GeoPipeline
-				.startIntersectWindowSearch(layer, bbox)
-				.toSpatialDatabaseRecordList();
+            try (Transaction tx = database.beginTx()) {
+                List<SpatialDatabaseRecord> results = GeoPipeline
+                    .startIntersectWindowSearch(layer, bbox)
+                    .toSpatialDatabaseRecordList();
 
-			spatialService.createResultsLayer("results", results);
-			ShapefileExporter shpExporter = new ShapefileExporter(database);
-			shpExporter.exportLayer("results");
+                spatialService.createResultsLayer("results", results);
+                ShapefileExporter shpExporter = new ShapefileExporter(database);
+                shpExporter.exportLayer("results");
+                tx.success();
 			// END SNIPPET: exportShapefileFromQuery
 
-			doGeometryTestsOnResults(bbox, results);
+    			doGeometryTestsOnResults(bbox, results);
+            }
 		} finally {
 			database.shutdown();
 		}

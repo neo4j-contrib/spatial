@@ -57,23 +57,21 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
      * @param datasetId
      */
     public OSMDataset(SpatialDatabaseService spatialDatabase, OSMLayer osmLayer, Node layerNode, long datasetId) {
-        this.layer = osmLayer;
-        this.datasetNode = spatialDatabase.getDatabase().getNodeById(datasetId);
-        Relationship rel = layerNode.getSingleRelationship(SpatialRelationshipTypes.LAYERS, Direction.INCOMING);
-        if (rel == null) {
-            Transaction tx = spatialDatabase.getDatabase().beginTx();
-            try {
-                datasetNode.createRelationshipTo(layerNode, SpatialRelationshipTypes.LAYERS);
-                tx.success();
-            } finally {
-                tx.finish();
+        try (Transaction tx = spatialDatabase.getDatabase().beginTx()) {
+            this.layer = osmLayer;
+            this.datasetNode = spatialDatabase.getDatabase().getNodeById(datasetId);
+            Relationship rel = layerNode.getSingleRelationship(SpatialRelationshipTypes.LAYERS, Direction.INCOMING);
+            if (rel == null) {
+                    datasetNode.createRelationshipTo(layerNode, SpatialRelationshipTypes.LAYERS);
+            } else {
+                Node node = rel.getStartNode();
+                if (!node.equals(datasetNode)) {
+                    throw new SpatialDatabaseException("Layer '" + osmLayer + "' already belongs to another dataset: " + node);
+                }
             }
-        } else {
-            Node node = rel.getStartNode();
-            if (!node.equals(datasetNode)) {
-                throw new SpatialDatabaseException("Layer '" + osmLayer + "' already belongs to another dataset: " + node);
-            }
+            tx.success();
         }
+
     }
 
     /**

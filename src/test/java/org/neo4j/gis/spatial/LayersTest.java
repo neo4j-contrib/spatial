@@ -35,6 +35,7 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateList;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.LineString;
+import org.neo4j.graphdb.Transaction;
 
 
 public class LayersTest extends Neo4jTestCase
@@ -64,18 +65,21 @@ public class LayersTest extends Neo4jTestCase
                 new Coordinate( 15.3, 56.2 ) ) );
         assertNotNull( record );
         // finds geometries that contain the given geometry
-        List<SpatialDatabaseRecord> results = GeoPipeline
+        try (Transaction tx = graphDb().beginTx()) {
+            List<SpatialDatabaseRecord> results = GeoPipeline
         	.startContainSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)))
         	.toSpatialDatabaseRecordList();
         
-        // should not be contained
-        assertEquals( 0, results.size() );
-        
-        results = GeoPipeline
-        	.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)))
-        	.toSpatialDatabaseRecordList();
-        
-        assertEquals( 1, results.size() );
+            // should not be contained
+            assertEquals( 0, results.size() );
+
+            results = GeoPipeline
+                .startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)))
+                .toSpatialDatabaseRecordList();
+
+            assertEquals( 1, results.size() );
+            tx.success();
+        }
     }
 
     @Test
@@ -101,20 +105,24 @@ public class LayersTest extends Neo4jTestCase
         SpatialDatabaseRecord record = layer.add( layer.getGeometryFactory().createPoint(
                 new Coordinate( 15.3, 56.2 ) ) );
         assertNotNull( record );
-        
-        // finds geometries that contain the given geometry
-        List<SpatialDatabaseRecord> results = GeoPipeline
-        	.startContainSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)))
-        	.toSpatialDatabaseRecordList();
-        	
-        // should not be contained
-        assertEquals( 0, results.size() );
-                
-        results = GeoPipeline
-        	.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)))
-         	.toSpatialDatabaseRecordList();
-        
-        assertEquals( 1, results.size() );
+
+        try (Transaction tx = graphDb().beginTx()) {
+
+            // finds geometries that contain the given geometry
+            List<SpatialDatabaseRecord> results = GeoPipeline
+                .startContainSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)))
+                .toSpatialDatabaseRecordList();
+
+            // should not be contained
+            assertEquals( 0, results.size() );
+
+            results = GeoPipeline
+                .startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)))
+                .toSpatialDatabaseRecordList();
+
+            assertEquals( 1, results.size() );
+            tx.success();
+        }
     }
 
     @Test
@@ -202,15 +210,17 @@ public class LayersTest extends Neo4jTestCase
                 coordinates.toCoordinateArray() ) );
 
         // TODO this test is not complete
-        
-        printResults(layer, GeoPipeline
-        		.startIntersectSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(13.2, 14.1, 56.1, 56.2)))
-        		.toSpatialDatabaseRecordList());
 
-        printResults(layer, GeoPipeline
-        		.startContainSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(12.0, 15.0, 55.0, 57.0)))
-        		.toSpatialDatabaseRecordList());
+        try (Transaction tx = graphDb().beginTx()) {
+            printResults(layer, GeoPipeline
+                    .startIntersectSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(13.2, 14.1, 56.1, 56.2)))
+                    .toSpatialDatabaseRecordList());
 
+            printResults(layer, GeoPipeline
+                    .startContainSearch(layer, layer.getGeometryFactory().toGeometry(new Envelope(12.0, 15.0, 55.0, 57.0)))
+                    .toSpatialDatabaseRecordList());
+            tx.success();
+        }
         return layer;
     }
 
@@ -233,6 +243,7 @@ public class LayersTest extends Neo4jTestCase
         ArrayList<Layer> layers = new ArrayList<Layer>();
         SpatialDatabaseService spatialService = new SpatialDatabaseService(
                 graphDb() );
+
         layers.add( testSpecificEditableLayer( spatialService,
                 (EditableLayer) spatialService.createLayer(
                         "test dynamic layer with property encoder",
