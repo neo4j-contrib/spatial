@@ -257,12 +257,13 @@ public class LayersTest extends Neo4jTestCase
                         "test dynamic layer with OSM encoder",
                         OSMGeometryEncoder.class, OSMLayer.class ) ) );
         Exception osmExportException = null;
-        try
+        try (Transaction tx = graphDb().beginTx())
         {
             for ( Layer layer : layers )
             {
                 exporter.exportLayer( layer.getName() );
             }
+            tx.success();
         }
         catch ( Exception e )
         {

@@ -24,6 +24,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import org.geotools.data.DataSourceException;
 import org.geotools.data.DataStore;
@@ -42,6 +43,7 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.LinearRing;
 import com.vividsolutions.jts.geom.Polygon;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.helpers.Exceptions;
 
 public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 
@@ -206,6 +208,8 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
             assertEquals("Mismatching number of data source exceptions and raw geometry layers", countMultiGeometryLayers,
                     countMultiGeometryExceptions);
             tx.success();
+        } catch (Exception e) {
+            throw e;
         }
 	}
 
