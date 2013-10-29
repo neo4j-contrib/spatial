@@ -88,7 +88,7 @@ public class TestIntersectsPathQueries extends TestCase {
 		String shpPath = "albert/shp/massachusetts_highway.shp";
 		String dbPath = "target/massachusetts.highway.db";
 		String layerName = "massachusetts";
-		String tracePath = "albert/locations_input.txt";
+		String tracePath = "albert/locations.txt";
 		File osmFile = new File(osmPath);
 		File dbDir = new File(dbPath);
 		if(dbDir.exists() && dbDir.isDirectory()) {
@@ -225,10 +225,11 @@ public class TestIntersectsPathQueries extends TestCase {
 		String line;
 		Performance performance = new Performance("import");
 		while ((line = locations.readLine()) != null) {
-			String[] fields = line.split("\\s");
+			// 2013-08-19 11:19:59.467 UBIy[4385:907], 42.355511, -71.467386
+			String[] fields = line.split(",\\s*");
 			if(fields.length>1) {
-				double latitude = Double.parseDouble(fields[0]);
-				double longitude = Double.parseDouble(fields[1]);
+				double latitude = Double.parseDouble(fields[1]);
+				double longitude = Double.parseDouble(fields[2]);
 				coordinates.add(new Coordinate(longitude,latitude));
 			}
 		}
