@@ -213,7 +213,7 @@ Precompiled versions of that ZIP file ready for download and use:
 
 * [for Neo4j 1.9](http://dist.neo4j.org.s3.amazonaws.com/spatial/neo4j-spatial-0.11-neo4j-1.9-server-plugin.zip)
 * [for Neo4j 1.8.2](http://dist.neo4j.org.s3.amazonaws.com/spatial/neo4j-spatial-0.9.1-neo4j-1.8.2-server-plugin.zip)
-* [for Neo4j 2.0](http://dist.neo4j.org.s3.amazonaws.com/spatial/neo4j-spatial-0.12-neo4j-2.0.0-SNAPSHOT-server-plugin.zip)
+* [for Neo4j 2.0-M06](http://dist.neo4j.org/spatial/neo4j-spatial-0.12-neo4j-2.0.0-M06-server-plugin.zip)
 
 ~~~bash
     #install the plugin
