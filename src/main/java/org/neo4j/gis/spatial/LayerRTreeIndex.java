@@ -47,8 +47,7 @@ public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader,
 	
 	public LayerRTreeIndex(GraphDatabaseService database, Layer layer, int maxNodeReferences) {
 		super(database, layer.getLayerNode(), layer.getGeometryEncoder(), maxNodeReferences);
-		
-		this.layer = layer;
+        this.layer = layer;
 	}
 	
 	
@@ -61,7 +60,7 @@ public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader,
 	
 	@Override
 	public SpatialDatabaseRecord get(Long geomNodeId) {
-		Node geomNode = database.getNodeById(geomNodeId);			
+		Node geomNode = this.getDatabase().getNodeById(geomNodeId);			
 		// be sure geomNode is inside this RTree
 		findLeafContainingGeometryNode(geomNode, true);
 
@@ -84,7 +83,5 @@ public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader,
 	
 	
 	// Attributes
-	
-	private GraphDatabaseService database;
 	private Layer layer;
 }

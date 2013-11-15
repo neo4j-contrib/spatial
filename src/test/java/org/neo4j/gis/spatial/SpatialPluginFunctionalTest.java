@@ -21,6 +21,7 @@ package org.neo4j.gis.spatial;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.TestCase.assertFalse;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
@@ -42,6 +43,8 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.neo4j.cypher.javacompat.ExecutionEngine;
+import org.neo4j.cypher.javacompat.ExecutionResult;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.kernel.impl.annotations.Documented;
 import org.neo4j.server.NeoServer;
@@ -129,7 +132,7 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
     }
 
     /**
-     * Firstly, create a point layer, specifying the `lon` and `lat` node properties as the ones carrying the
+     * Create a point layer, specifying the `lon` and `lat` node properties as the ones carrying the
      * spatial information.
      */
     @Test
@@ -141,7 +144,25 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
     }
 
     /**
-     * Now, add that node to the spatial
+     * Find a layer by its name, returning th layer
+     * .
+     */
+    @Test
+    @Documented
+    public void find_layer() throws UnsupportedEncodingException
+    {
+        data.get();
+        String geom = "geom";
+        String response = post(Status.OK,"{\"layer\":\""+geom+"\", \"format\":\"WKT\",\"nodePropertyName\":\"wkt\"}", ENDPOINT + "/graphdb/addEditableLayer");
+        String wkt = "LINESTRING (15.2 60.1, 15.3 60.1)";
+        response = post(Status.OK,"{\"layer\":\""+geom+ "\", \"geometry\":\"" + wkt + "\"}", ENDPOINT+ "/graphdb/addGeometryWKTToLayer");
+        response = post(Status.OK,"{\"layer\":\""+geom+ "\"}", ENDPOINT+ "/graphdb/getLayer");
+        assertTrue(response.contains(geom));
+
+    }
+
+    /**
+     * Add that node to the spatial
      * layer.
      */
     @Test
@@ -219,6 +240,87 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
         response = post(Status.OK,"{\"layer\":\"geom\", \"node\":\"http://localhost:"+PORT+"/db/data/node/"+nodeId+"\"}", ENDPOINT + "/graphdb/addNodeToLayer");
         assertTrue(findNodeInBox("geom",15.0, 15.3, 60.0, 61.0).contains("60.1"));
 
+    }
+
+    
+    /**
+     * Creates a layer with nodes that have a
+     * property containing WKT or WKB, returns the layer node containing the configuration for the newly
+     * created layer.
+     */
+    @Test
+    @Documented
+    public void create_a_WKT_layer() throws Exception
+    {
+        data.get();
+        String geom = "geom";
+        String response = post(Status.OK,"{\"layer\":\""+geom+"\", \"format\":\"WKT\",\"nodePropertyName\":\"wkt\"}", ENDPOINT + "/graphdb/addEditableLayer");
+        assertTrue(response.contains("wkt"));
+
+    }
+
+    /**
+     * Add a geometry, encoded in WKT, to a
+     * layer.
+     */
+    @Test
+    @Documented
+    public void add_a_WKT_geometry_to_a_layer() throws Exception
+    {
+        data.get();
+        String geom = "geom";
+        String response = post(Status.OK,"{\"layer\":\""+geom+"\", \"format\":\"WKT\",\"nodePropertyName\":\"wkt\"}", ENDPOINT + "/graphdb/addEditableLayer");
+        String wkt = "LINESTRING (15.2 60.1, 15.3 60.1)";
+        response = post(Status.OK,"{\"layer\":\""+geom+ "\", \"geometry\":\"" + wkt + "\"}", ENDPOINT+ "/graphdb/addGeometryWKTToLayer");
+        assertTrue(response.contains(wkt));
+
+    }
+
+    /**
+     * Update a geometry, encoded in WKT, on an existing geometry in a
+     * layer.
+     */
+    @Test
+    @Documented
+    public void update_a_WKT_geometry_in_a_layer() throws Exception
+    {
+        data.get();
+        String geom = "geom";
+        String response = post(Status.OK,"{\"layer\":\""+geom+"\", \"format\":\"WKT\",\"nodePropertyName\":\"wkt\"}", ENDPOINT + "/graphdb/addEditableLayer");
+        String wkt = "LINESTRING (15.2 60.1, 15.3 60.1)";
+        String wkt2 = "LINESTRING (16.2 60.1, 15.3 60.1)";
+        response = post(Status.OK,"{\"layer\":\""+geom+ "\", \"geometry\":\"" + wkt + "\"}", ENDPOINT+ "/graphdb/addGeometryWKTToLayer");
+        String self = (String) ((JSONObject)((JSONArray) new JSONParser().parse(response)).get(0)).get("self");
+        String geomId=self.substring(self.lastIndexOf("/")+1);
+        response = post(Status.OK,"{\"layer\":\""+geom+ "\", \"geometry\":\"" + wkt2 + "\",\"geometryNodeId\":"+geomId+"}", ENDPOINT+ "/graphdb/updateGeometryFromWKT");
+
+        assertTrue(response.contains(wkt2));
+        assertTrue(response.contains("http://localhost:"+PORT+"/db/data/node/"+geomId));
+
+    }
+
+    /**
+     * Find geometries which clostest edges are less than a certain distance from a 
+     * point.
+     */
+    @Test
+    @Documented
+    public void find_geometries_close_to_a_point() throws Exception
+    {
+        data.get();
+        String geom = "geom";
+        String response = post(Status.OK,"{\"layer\":\""+geom+"\", \"format\":\"WKT\",\"nodePropertyName\":\"wkt\"}", ENDPOINT + "/graphdb/addEditableLayer");
+        response = post(Status.OK,"{\"layer\":\""+geom+"\", \"geometry\":\"LINESTRING(15.2 60.1, 15.3 60.1)\"}", ENDPOINT+ "/graphdb/addGeometryWKTToLayer");
+        response = post(Status.OK,String.format("{\"layer\":\"%s\", \"pointX\":%s,\"pointY\":%s,\"distanceInKm\":%s}",geom,15.2, 60.1, 1.0 ), ENDPOINT + "/graphdb/findClosestGeometries");
+//        dumpDB();
+        assertTrue(response.contains("60.1"));
+
+    }
+
+
+    private void dumpDB() {
+        ExecutionResult cypher = new ExecutionEngine(graphdb()).execute("MATCH (n)-[r]->() return n,type(r),r");
+        System.out.println(cypher.dumpToString());
     }
 
     private String findNodeInBox(String layer_name, double lon1, double lon2, double lat1, double lat2) {
