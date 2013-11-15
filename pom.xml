@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <properties>
-        <neo4j.version>1.9</neo4j.version>
+        <neo4j.version>1.9.5</neo4j.version>
         <neo4j.java.version>1.6</neo4j.java.version>
-        <neo4j.graphcollections.version>0.6-neo4j-1.9</neo4j.graphcollections.version>
+        <neo4j.graphcollections.version>0.6-neo4j-1.9.5</neo4j.graphcollections.version>
         <geotools.version>8.4</geotools.version>
         <spatial.test.osm.version>20100819</spatial.test.osm.version>
         <spatial.test.shp.version>20100819</spatial.test.shp.version>
@@ -17,7 +17,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>neo4j-spatial</artifactId>
     <groupId>org.neo4j</groupId>
-    <version>0.11-neo4j-1.9</version>
+    <version>0.11-neo4j-1.9.5</version>
     <name>Neo4j - Spatial Components</name>
     <description>Spatial utilities and components for Neo4j</description>
     <url>http://components.neo4j.org/${project.artifactId}/${project.version}</url>
@@ -110,6 +110,15 @@
                 <version>2.13</version>
                 <configuration>
                     <argLine>-server -Xms512m -Xmx1024m</argLine>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>2.3.2</version>
+                <configuration>
+                    <source>1.6</source>
+                    <target>1.6</target>
                 </configuration>
             </plugin>
         </plugins>
@@ -421,6 +430,26 @@
                 <enabled>true</enabled>
             </releases>
         </repository>
+        <repository>
+            <id>neo4j-contrib-releases</id>
+            <url>https://raw.github.com/neo4j-contrib/m2/master/releases</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>neo4j-contrib-snapshots</id>
+            <url>https://raw.github.com/neo4j-contrib/m2/master/snapshots</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
     </repositories>
     <profiles>
         <profile>
@@ -686,20 +715,16 @@
         </plugins>
     </reporting>
 
-  <distributionManagement>
-    <repository>
-      <id>releases@repo.neo4j.org</id>
-      <name>releases@repo.neo4j.org</name>
-      <uniqueVersion>false</uniqueVersion>
-      <url>http://m2.neo4j.org/content/repositories/releases</url>
-    </repository>
-    <snapshotRepository>
-      <id>snapshots@repo.neo4j.org</id>
-      <name>snapshots@repo.neo4j.org</name>
-      <uniqueVersion>false</uniqueVersion>
-      <url>http://m2.neo4j.org/content/repositories/snapshots</url>
-    </snapshotRepository>
-  </distributionManagement>
+    <distributionManagement>
+        <repository>
+            <id>repo</id>
+            <url>https://raw.github.com/neo4j-contrib/m2/master/releases</url>
+        </repository>
+        <snapshotRepository>
+            <id>snapshot-repo</id>
+            <url>https://raw.github.com/neo4j-contrib/m2/master/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
 
 </project>
 
