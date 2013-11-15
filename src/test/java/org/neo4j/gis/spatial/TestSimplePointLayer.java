@@ -47,13 +47,16 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		SpatialDatabaseService db = new SpatialDatabaseService(graphDb());
 		EditableLayer layer = (EditableLayer) db.createSimplePointLayer("test", "Longitude", "Latitude");
 		assertNotNull(layer);
-		
-		// finds geometries around point
-		List<SpatialDatabaseRecord> results = GeoPipeline.startNearestNeighborLatLonSearch(layer, new Coordinate(15.3, 56.2), 1.0)
-			.toSpatialDatabaseRecordList();
-		
-		// should find no results
-		assertEquals(0, results.size());
+
+        try (Transaction tx = graphDb().beginTx()) {
+            // finds geometries around point
+            List<SpatialDatabaseRecord> results = GeoPipeline.startNearestNeighborLatLonSearch(layer, new Coordinate(15.3, 56.2), 1.0)
+                .toSpatialDatabaseRecordList();
+
+            // should find no results
+            assertEquals(0, results.size());
+            tx.success();
+        }
 		
 	}
 
@@ -64,65 +67,72 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		assertNotNull(layer);
 		SpatialRecord record = layer.add(layer.getGeometryFactory().createPoint(new Coordinate(15.3, 56.2)));
 		assertNotNull(record);
-		
-		// finds geometries that contain the given geometry
-		List<SpatialDatabaseRecord> results = GeoPipeline
-			.startContainSearch(layer, layer.getGeometryFactory().toGeometry(new com.vividsolutions.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0)))
-			.toSpatialDatabaseRecordList();
-		
-		// should not be contained
-		assertEquals(0, results.size());
-		
-		results = GeoPipeline
-			.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new com.vividsolutions.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0)))
-			.toSpatialDatabaseRecordList();
-		
-		assertEquals(1, results.size());
+
+        try (Transaction tx = graphDb().beginTx()) {
+            // finds geometries that contain the given geometry
+            List<SpatialDatabaseRecord> results = GeoPipeline
+                .startContainSearch(layer, layer.getGeometryFactory().toGeometry(new com.vividsolutions.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0)))
+                .toSpatialDatabaseRecordList();
+
+            // should not be contained
+            assertEquals(0, results.size());
+
+            results = GeoPipeline
+                .startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new com.vividsolutions.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0)))
+                .toSpatialDatabaseRecordList();
+
+            assertEquals(1, results.size());
+            tx.success();
+        }
 	}
 
 	@Test
 	public void testNeoTextLayer() {
 		SpatialDatabaseService db = new SpatialDatabaseService(graphDb());
-		SimplePointLayer layer = db.createSimplePointLayer("neo-text");
-		assertNotNull(layer);
-		for (Coordinate coordinate : makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt")) {
-			SpatialRecord record = layer.add(coordinate);
-			assertNotNull(record);
-		}
-		saveLayerAsImage(layer, 700, 70);
+		try (Transaction tx = graphDb().beginTx()) {
+            SimplePointLayer layer = db.createSimplePointLayer("neo-text");
+            assertNotNull(layer);
+            assertNotNull("layer name is not null",layer.getName());
+            for (Coordinate coordinate : makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt")) {
+                SpatialRecord record = layer.add(coordinate);
+                assertNotNull(record);
+            }
+            saveLayerAsImage(layer, 700, 70);
 
-		Envelope bbox = layer.getIndex().getBoundingBox();
-		double[] centre = bbox.centre();
-		
-		List<GeoPipeFlow> results = GeoPipeline
-			.startNearestNeighborLatLonSearch(layer, new Coordinate(centre[0] + 0.1, centre[1]), 10.0)
-			.sort("OrthodromicDistance").toList();
+            Envelope bbox = layer.getIndex().getBoundingBox();
+            double[] centre = bbox.centre();
 
-		saveResultsAsImage(results, "temporary-results-layer-" + layer.getName(), 130, 70);
-		assertEquals(71, results.size());
-		checkPointOrder(results);
+            List<GeoPipeFlow> results = GeoPipeline
+                .startNearestNeighborLatLonSearch(layer, new Coordinate(centre[0] + 0.1, centre[1]), 10.0)
+                .sort("OrthodromicDistance").toList();
 
-		results = GeoPipeline
-			.startNearestNeighborLatLonSearch(layer, new Coordinate(centre[0] + 0.1, centre[1]), 5.0)
-			.sort("OrthodromicDistance").toList();
+            saveResultsAsImage(results, "temporary-results-layer-" + layer.getName(), 130, 70);
+            assertEquals(71, results.size());
+            checkPointOrder(results);
 
-		saveResultsAsImage(results, "temporary-results-layer2-" + layer.getName(), 130, 70);
-		assertEquals(30, results.size());
-		checkPointOrder(results);
+            results = GeoPipeline
+                .startNearestNeighborLatLonSearch(layer, new Coordinate(centre[0] + 0.1, centre[1]), 5.0)
+                .sort("OrthodromicDistance").toList();
 
-		// Now test the old API
-		results = layer.findClosestPointsTo(new Coordinate(centre[0] + 0.1, centre[1]), 10.0);
-		assertEquals(71, results.size());
-		checkPointOrder(results);
-		results = layer.findClosestPointsTo(new Coordinate(centre[0] + 0.1, centre[1]), 1000);
-		assertEquals(265, results.size());	// There are only 265 points in dataset
-		checkPointOrder(results);
-		results = layer.findClosestPointsTo(new Coordinate(centre[0] + 0.1, centre[1]), 100);
-		assertEquals(100, results.size());	// We expect an exact count from the layer method (but not from the pipeline)
-		checkPointOrder(results);
-		results = layer.findClosestPointsTo(new Coordinate(centre[0] + 0.1, centre[1]));
-		assertEquals(100, results.size());	// The default in SimplePointLayer is 100 results
-		checkPointOrder(results);
+            saveResultsAsImage(results, "temporary-results-layer2-" + layer.getName(), 130, 70);
+            assertEquals(30, results.size());
+            checkPointOrder(results);
+
+            // Now test the old API
+            results = layer.findClosestPointsTo(new Coordinate(centre[0] + 0.1, centre[1]), 10.0);
+            assertEquals(71, results.size());
+            checkPointOrder(results);
+            results = layer.findClosestPointsTo(new Coordinate(centre[0] + 0.1, centre[1]), 1000);
+            assertEquals(265, results.size());	// There are only 265 points in dataset
+            checkPointOrder(results);
+            results = layer.findClosestPointsTo(new Coordinate(centre[0] + 0.1, centre[1]), 100);
+            assertEquals(100, results.size());	// We expect an exact count from the layer method (but not from the pipeline)
+            checkPointOrder(results);
+            results = layer.findClosestPointsTo(new Coordinate(centre[0] + 0.1, centre[1]));
+            assertEquals(100, results.size());	// The default in SimplePointLayer is 100 results
+            checkPointOrder(results);
+            tx.success();
+        }
 		
 	}
 
@@ -165,32 +175,35 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 	@Test
 	public void testDensePointLayer() {
 		SpatialDatabaseService db = new SpatialDatabaseService(graphDb());
-		SimplePointLayer layer = db.createSimplePointLayer("neo-dense", "lon", "lat");
-		assertNotNull(layer);
-		for (Coordinate coordinate : makeDensePointData()) {
-			Point point = layer.getGeometryFactory().createPoint(coordinate);
-			SpatialRecord record = layer.add(point);
-			assertNotNull(record);
-		}
-		saveLayerAsImage(layer, 300, 300);
+        try (Transaction tx = graphDb().beginTx()) {
+            SimplePointLayer layer = db.createSimplePointLayer("neo-dense", "lon", "lat");
+            assertNotNull(layer);
+            for (Coordinate coordinate : makeDensePointData()) {
+                Point point = layer.getGeometryFactory().createPoint(coordinate);
+                SpatialRecord record = layer.add(point);
+                assertNotNull(record);
+            }
+            saveLayerAsImage(layer, 300, 300);
 
-		Envelope bbox = layer.getIndex().getBoundingBox();
-		double[] centre = bbox.centre();
-		
-		List<SpatialDatabaseRecord> results = GeoPipeline
-			.startNearestNeighborLatLonSearch(layer, new Coordinate(centre[0], centre[1]), 10.0)
-			.toSpatialDatabaseRecordList();
-		GeoPipeline.startNearestNeighborLatLonSearch(layer, new Coordinate(centre[0], centre[1]), 10.0).sort("OrthodromicDistance");
-		saveResultsAsImage(results, "temporary-results-layer-" + layer.getName(), 150, 150);
-		assertEquals(456, results.size());
-	
-		// Repeat with sorting
-		results = GeoPipeline
-			.startNearestNeighborLatLonSearch(layer, new Coordinate(centre[0], centre[1]), 10.0)
-			.sort("OrthodromicDistance")
-			.toSpatialDatabaseRecordList();
-	    saveResultsAsImage(results, "temporary-results-layer-sorted-" + layer.getName(), 150, 150);
-	    assertEquals(456, results.size());
+            Envelope bbox = layer.getIndex().getBoundingBox();
+            double[] centre = bbox.centre();
+
+            List<SpatialDatabaseRecord> results = GeoPipeline
+                .startNearestNeighborLatLonSearch(layer, new Coordinate(centre[0], centre[1]), 10.0)
+                .toSpatialDatabaseRecordList();
+            GeoPipeline.startNearestNeighborLatLonSearch(layer, new Coordinate(centre[0], centre[1]), 10.0).sort("OrthodromicDistance");
+            saveResultsAsImage(results, "temporary-results-layer-" + layer.getName(), 150, 150);
+            assertEquals(456, results.size());
+
+            // Repeat with sorting
+            results = GeoPipeline
+                .startNearestNeighborLatLonSearch(layer, new Coordinate(centre[0], centre[1]), 10.0)
+                .sort("OrthodromicDistance")
+                .toSpatialDatabaseRecordList();
+            saveResultsAsImage(results, "temporary-results-layer-sorted-" + layer.getName(), 150, 150);
+            assertEquals(456, results.size());
+            tx.success();
+        }
 	}
 
 	private void saveLayerAsImage(Layer layer, int width, int height) {
@@ -204,6 +217,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 			imageExporter.saveLayerImage(layer.getName());
 			shpExporter.exportLayer(layer.getName());
 		} catch (Exception e) {
+            e.printStackTrace();
 			throw new AssertionFailedError("Failed to save layer '" + layer.getName() + "' as image: " + e.getMessage());
 		}
 	}

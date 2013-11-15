@@ -30,6 +30,7 @@ import org.geotools.data.neo4j.Neo4jSpatialDataStore;
 import org.geotools.data.shapefile.ShapefileDataStore;
 import org.geotools.data.shapefile.ShapefileDataStoreFactory;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Transaction;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.GeometryDescriptor;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -70,29 +71,29 @@ public class ShapefileExporter {
 	}
 
 	public File exportLayer(String layerName, File file) throws Exception {
-		file = checkFile(file);
-		ShapefileDataStoreFactory factory = new ShapefileDataStoreFactory();
-		Map<String, Serializable> create = new HashMap<String, Serializable>();
-		URL url = file.toURI().toURL();
-		create.put("url", url);
-		create.put("create spatial index", Boolean.TRUE);
-		create.put("charset", "UTF-8");
-		ShapefileDataStore shpDataStore = (ShapefileDataStore) factory.createNewDataStore(create);
-		SimpleFeatureType featureType = neo4jDataStore.getSchema(layerName);
-		GeometryDescriptor geometryType = featureType.getGeometryDescriptor();
-		CoordinateReferenceSystem crs = geometryType.getCoordinateReferenceSystem();
-		// crs = neo4jDataStore.getFeatureSource(layerName).getInfo().getCRS();
+            file = checkFile(file);
+            ShapefileDataStoreFactory factory = new ShapefileDataStoreFactory();
+            Map<String, Serializable> create = new HashMap<String, Serializable>();
+            URL url = file.toURI().toURL();
+            create.put("url", url);
+            create.put("create spatial index", Boolean.TRUE);
+            create.put("charset", "UTF-8");
+            ShapefileDataStore shpDataStore = (ShapefileDataStore) factory.createNewDataStore(create);
+            SimpleFeatureType featureType = neo4jDataStore.getSchema(layerName);
+            GeometryDescriptor geometryType = featureType.getGeometryDescriptor();
+            CoordinateReferenceSystem crs = geometryType.getCoordinateReferenceSystem();
+            // crs = neo4jDataStore.getFeatureSource(layerName).getInfo().getCRS();
 
-		shpDataStore.createSchema(featureType);
-		FeatureStore store = (FeatureStore) shpDataStore.getFeatureSource();
-		store.addFeatures(neo4jDataStore.getFeatureSource(layerName).getFeatures());
-		if (crs != null)
-			shpDataStore.forceSchemaCRS(crs);
-		if (!file.exists()) {
-			throw new Exception("Shapefile was not created: " + file);
-		} else if (file.length() < 10) {
-			throw new Exception("Shapefile was unexpectedly small, only " + file.length() + " bytes: " + file);
-		}
-		return file;
+            shpDataStore.createSchema(featureType);
+            FeatureStore store = (FeatureStore) shpDataStore.getFeatureSource();
+            store.addFeatures(neo4jDataStore.getFeatureSource(layerName).getFeatures());
+            if (crs != null)
+                shpDataStore.forceSchemaCRS(crs);
+            if (!file.exists()) {
+                throw new Exception("Shapefile was not created: " + file);
+            } else if (file.length() < 10) {
+                throw new Exception("Shapefile was unexpectedly small, only " + file.length() + " bytes: " + file);
+            }
+            return file;
 	}
 }

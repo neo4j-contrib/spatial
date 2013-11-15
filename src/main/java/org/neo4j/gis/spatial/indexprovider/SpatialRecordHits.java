@@ -27,6 +27,7 @@ import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
+import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.helpers.collection.CatchingIteratorWrapper;
 import org.neo4j.helpers.collection.IteratorUtil;
@@ -64,7 +65,7 @@ public class SpatialRecordHits extends CatchingIteratorWrapper<Node, SpatialData
 	}
 
 	@Override
-	public Iterator<Node> iterator() {
+	public ResourceIterator<Node> iterator() {
 		return this;
 	}
 

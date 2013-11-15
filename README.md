@@ -226,52 +226,7 @@ Precompiled versions of that ZIP file ready for download and use:
     curl http://localhost:7474/db/data/
 ~~~
 
-~~~json
-    {
-      "relationship_index" : "http://localhost:7474/db/data/index/relationship",
-      "node" : "http://localhost:7474/db/data/node",
-      "relationship_types" : "http://localhost:7474/db/data/relationship/types",
-      "extensions_info" : "http://localhost:7474/db/data/ext",
-      "node_index" : "http://localhost:7474/db/data/index/node",
-      "reference_node" : "http://localhost:7474/db/data/node/0",
-      "extensions" : {
-      "SpatialPlugin" : {
-          "addSimplePointLayer" : "http://localhost:7474/db/data/ext/SpatialPlugin/graphdb/addSimplePointLayer",
-          "addNodeToLayer" : "http://localhost:7474/db/data/ext/SpatialPlugin/graphdb/addNodeToLayer"
-        }
-      }
-    }
-~~~
-
-~~~bash  
-    curl -d "layer=test" http://localhost:7474/db/data/ext/SpatialPlugin/graphdb/addSimplePointLayer
-
-    Creating new layer 'test' unless it already exists
-~~~
-
-~~~json
-    [ {
-      "outgoing_relationships" : "http://localhost:7474/db/data/node/2/relationships/out",
-      "data" : {
-        "layer_class" : "org.neo4j.gis.spatial.EditableLayerImpl",
-        "layer" : "test",
-        "geomencoder" : "org.neo4j.gis.spatial.encoders.SimplePointEncoder",
-        "ctime" : 1304444390349
-      },
-      "traverse" : "http://localhost:7474/db/data/node/2/traverse/{returnType}",
-      "all_typed_relationships" : "http://localhost:7474/db/data/node/2/relationships/all/{-list|&|types}",
-      "property" : "http://localhost:7474/db/data/node/2/properties/{key}",
-      "self" : "http://localhost:7474/db/data/node/2",
-      "properties" : "http://localhost:7474/db/data/node/2/properties",
-      "outgoing_typed_relationships" : "http://localhost:7474/db/data/node/2/relationships/out/{-list|&|types}",
-      "incoming_relationships" : "http://localhost:7474/db/data/node/2/relationships/in",
-      "extensions" : {
-      },
-      "create_relationship" : "http://localhost:7474/db/data/node/2/relationships",
-      "all_relationships" : "http://localhost:7474/db/data/node/2/relationships/all",
-      "incoming_typed_relationships" : "http://localhost:7474/db/data/node/2/relationships/in/{-list|&|types}"
-    } ]
-~~~
+For the REST API, see [Neo4j Spatial Manual REST part](http://neo4j.github.io/spatial/#spatial-server-plugin)
 
 ## Building Neo4j spatial ##
 
@@ -286,10 +241,11 @@ Precompiled versions of that ZIP file ready for download and use:
 ~~~bash  
     git clone https://github.com/neo4j/spatial.git
     cd spatial
-    mvn clean install -Pneo-docs-build
+    mvn clean install site -Pneo-docs-build  
 ~~~
 
 ## Using Neo4j spatial in your Java project with Maven ##
+
 Add the following dependency to your project's pom.xml:
 
 ~~~xml
@@ -298,51 +254,6 @@ Add the following dependency to your project's pom.xml:
             <artifactId>neo4j-spatial</artifactId>
             <version>0.9-SNAPSHOT</version>
         </dependency>
-~~~
-
-Note: neo4j-spatial has a mandatory dependency on GremlinGroovyPipeline from the
-com.tinkerpop.gremlin.groovy package. The dependency in neo4j is type 'provided', so when using
-neo4j-spatial in your own Java project, make sure to add the following dependency to your pom.xml, too.
-
-~~~xml
-        <dependency>
-            <groupId>com.tinkerpop.gremlin</groupId>
-            <artifactId>gremlin-groovy</artifactId>
-            <version>1.4</version>
-            <type>jar</type>
-            <exclusions>
-                <exclusion>
-                    <groupId>com.tinkerpop.blueprints</groupId>
-                    <artifactId>blueprints-sail-graph</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>org.codehaus.groovy.maven</groupId>
-                    <artifactId>gmaven-plugin</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>jline</groupId>
-                    <artifactId>jline</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-~~~
-
-If the dependency is omitted, neo4j-spatial will probably throw an exception like this:
-
-~~~
-java.lang.NoClassDefFoundError: com/tinkerpop/gremlin/groovy/GremlinGroovyPipeline
-at java.lang.ClassLoader.defineClass1(Native Method)
-at java.lang.ClassLoader.defineClass(ClassLoader.java:634)
-at java.security.SecureClassLoader.defineClass(SecureClassLoader.java:142)
-at java.net.URLClassLoader.defineClass(URLClassLoader.java:277)
-at java.net.URLClassLoader.access$000(URLClassLoader.java:73)
-at java.net.URLClassLoader$1.run(URLClassLoader.java:212)
-at java.security.AccessController.doPrivileged(Native Method)
-at java.net.URLClassLoader.findClass(URLClassLoader.java:205)
-at java.lang.ClassLoader.loadClass(ClassLoader.java:321)
-at sun.misc.Launcher$AppClassLoader.loadClass(Launcher.java:294)
-at java.lang.ClassLoader.loadClass(ClassLoader.java:266)
-at org.neo4j.gis.spatial.indexprovider.LayerNodeIndex.query(LayerNodeIndex.java:237)
 ~~~
 
 ## Running Neo4j spatial code from the command-line ##

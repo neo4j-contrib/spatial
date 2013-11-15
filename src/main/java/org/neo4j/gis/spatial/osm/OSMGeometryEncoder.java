@@ -472,7 +472,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 				}
 			} catch (NullPointerException e) {
 				if (missingTags++ < 10) {
-					System.err.println("Geometry has no related tags node: " + geomNode);
+                    System.err.println("Geometry has no related tags node: " + geomNode);
 				} else if (missingTags % 100 == 0) {
 					System.err.println("Geometries without tags found " + missingTags + " times");
 				}
@@ -506,8 +506,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	 * models with different encodings.
 	 * 
 	 * @param geomNode
-	 * @param attribute
-	 *            to test
+	 * @param name to test
 	 * @return
 	 */
 	public boolean hasAttribute(Node geomNode, String name) {
@@ -522,8 +521,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	 * the method returns null.
 	 * 
 	 * @param geomNode
-	 * @param attribute
-	 *            to test
+	 * @param name to test
 	 * @return attribute, or null
 	 */
 	public Object getAttribute(Node geomNode, String name) {

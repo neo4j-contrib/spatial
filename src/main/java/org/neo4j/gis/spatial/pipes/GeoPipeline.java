@@ -990,7 +990,8 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow,GeoPipeFlow> {
      * transformed by the pipeline but the original ones.
      */
     public List<SpatialDatabaseRecord> toSpatialDatabaseRecordList() {
-    	List<SpatialDatabaseRecord> result = new ArrayList<SpatialDatabaseRecord>();
+
+        List<SpatialDatabaseRecord> result = new ArrayList<SpatialDatabaseRecord>();
     	
     	try {
 	    	while (true) {

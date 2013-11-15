@@ -60,20 +60,18 @@ public class SpatialDatabaseService implements Constants {
 	// Public methods
 
     private Node getOrCreateRootFrom(Node ref, RelationshipType relType) {
-        Relationship rel = ref.getSingleRelationship(relType, Direction.OUTGOING);
-        if (rel == null) {
-            Transaction tx = database.beginTx();
-            try {
-                Node node = database.createNode();
+        try (Transaction tx = database.beginTx()) {
+            Relationship rel = ref.getSingleRelationship(relType, Direction.OUTGOING);
+            Node node;
+            if (rel == null) {
+                node = database.createNode();
                 node.setProperty("type", "spatial");
                 ref.createRelationshipTo(node, relType);
-                tx.success();
-                return node;
-            } finally {
-                tx.finish();
+            } else {
+                node = rel.getEndNode();
             }
-        } else {
-            return rel.getEndNode();
+            tx.success();
+            return node;
         }
     }
 
@@ -100,13 +98,19 @@ public class SpatialDatabaseService implements Constants {
 	}
 	
 	public Layer getLayer(String name) {
-		for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
-			Node node = relationship.getEndNode();
-			if (name.equals(node.getProperty(PROP_LAYER))) {
-				return DefaultLayer.makeLayerFromNode(this, node);
-			}
-		}
-		return getDynamicLayer(name);
+        try (Transaction tx = getDatabase().beginTx()) {
+            for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
+                Node node = relationship.getEndNode();
+                if (name.equals(node.getProperty(PROP_LAYER))) {
+                    Layer layer = DefaultLayer.makeLayerFromNode(this, node);
+                    tx.success();
+                    return layer;
+                }
+            }
+            Layer layer = getDynamicLayer(name);
+            tx.success();
+            return layer;
+        }
 	}
 
 	public Layer getDynamicLayer(String name) {
@@ -188,13 +192,15 @@ public class SpatialDatabaseService implements Constants {
 	}
 
     public Layer getOrCreateLayer(String name, Class< ? extends GeometryEncoder> geometryEncoder, Class< ? extends Layer> layerClass, String config) {
-        Layer layer = getLayer(name);
-        if (layer == null) {
-            return createLayer(name, geometryEncoder, layerClass, config);
-        } else if(layerClass == null || layerClass.isInstance(layer)) {
-        	return layer;
-        } else {
-        	throw new SpatialDatabaseException("Existing layer '"+layer+"' is not of the expected type: "+layerClass);
+        try (Transaction tx = database.beginTx()) {
+            Layer layer = getLayer(name);
+            if (layer == null) {
+                layer = createLayer(name, geometryEncoder, layerClass, config);
+            } else if (!(layerClass == null || layerClass.isInstance(layer))) {
+                throw new SpatialDatabaseException("Existing layer '"+layer+"' is not of the expected type: "+layerClass);
+            }
+            tx.success();
+            return layer;
         }
     }
 
@@ -297,7 +303,10 @@ public class SpatialDatabaseService implements Constants {
         if (layer == null)
             throw new SpatialDatabaseException("Layer " + name + " does not exist");
 
-        layer.delete(monitor);
+        try (Transaction tx = database.beginTx()) {
+            layer.delete(monitor);
+            tx.success();
+        }
     }
 	
 	public GraphDatabaseService getDatabase() {

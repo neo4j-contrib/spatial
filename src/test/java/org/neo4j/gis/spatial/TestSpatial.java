@@ -33,6 +33,7 @@ import org.neo4j.gis.spatial.filter.SearchIntersect;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 
 
 /**
@@ -237,94 +238,97 @@ public class TestSpatial extends Neo4jTestCase {
         long start = System.currentTimeMillis();
 
         SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-        Layer layer = spatialService.getLayer(layerName);
-        if (layer == null || layer.getIndex() == null || layer.getIndex().count() < 1) {
-            fail("Layer not loaded: " + layerName);
-        }
-
-        LayerIndexReader fakeIndex = new SpatialIndexPerformanceProxy(new FakeIndex(layer));
-        LayerIndexReader rtreeIndex = new SpatialIndexPerformanceProxy(layer.getIndex());
-
-        System.out.println("RTreeIndex bounds: " + rtreeIndex.getBoundingBox());
-        System.out.println("FakeIndex bounds: " + fakeIndex.getBoundingBox());        
-        assertEnvelopeEquals(fakeIndex.getBoundingBox(), rtreeIndex.getBoundingBox());
-        
-        System.out.println("RTreeIndex count: " + rtreeIndex.count());
-        assertEquals(fakeIndex.count(), rtreeIndex.count());
-        
-        Envelope bbox = layerTestEnvelope.get(layerName);
-
-        System.out.println("Displaying test geometries for layer '" + layerName + "' including expected search results");
-        for (TestGeometry testData : layerTestGeometries.get(layerName)) {
-            System.out.println("\tGeometry: " + testData + " " + (testData.inOrIntersects(bbox) ? "is" : "is NOT")
-                    + " inside search region");
-        }
-
-        for (LayerIndexReader index : new LayerIndexReader[] { rtreeIndex, fakeIndex }) {
-            ArrayList<TestGeometry> foundData = new ArrayList<TestGeometry>();
-
-            SearchIntersect searchQuery = new SearchIntersect(layer, layer.getGeometryFactory().toGeometry(Utilities.fromNeo4jToJts(bbox)));
-            SearchRecords results = index.search(searchQuery);
-         
-            int count = 0;
-            int ri = 0;
-            for (SpatialDatabaseRecord r : results) {
-            	count++;
-                if (ri++ < 10) {
-                    StringBuffer props = new StringBuffer();
-                    for (String prop : r.getPropertyNames()) {
-                        if (props.length() > 0) props.append(", ");
-                        props.append(prop + ": " + r.getProperty(prop));
-                    }
-                    
-                    System.out.println("\tRTreeIndex result[" + ri + "]: " + r.getNodeId() + ":" + r.getType() + " - " + r.toString() + ": PROPS["+props+"]");
-                } else if (ri == 10) {
-                    // System.out.println("\t.. and " + (count - ri) + " more ..");
-                }
-                
-                addGeomStats(r.getGeomNode());
-                
-                String name = (String) r.getProperty("NAME");
-                if (name == null) name = (String) r.getProperty("name");
-                
-                Integer id = (Integer) r.getProperty("ID");
-                if ((name != null && name.length() > 0) || id != null) {
-                    for (TestGeometry testData : layerTestGeometries.get(layerName)) {
-                        if ((name != null && name.length() > 0 && testData.name.equals(name)) || (id != null && testData.id.equals(id))) {
-                            System.out.println("\tFound match in test data: test[" + testData + "] == result[" + r + "]");
-                            foundData.add(testData);
-                        } /* else if(name != null && name.length()>0 && name.startsWith(testData.name.substring(0,1))) {
-                            System.out.println("\tOnly first character matched: test[" + testData + "] == result[" + r + "]");
-                        } */
-                    }
-                } else {
-                    System.err.println("\tNo name or id in RTreeIndex result: " + r.getNodeId() + ":" + r.getType() + " - "
-                            + r.toString());
-                }
+        try (Transaction tx = graphDb().beginTx()) {
+            Layer layer = spatialService.getLayer(layerName);
+            if (layer == null || layer.getIndex() == null || layer.getIndex().count() < 1) {
+                fail("Layer not loaded: " + layerName);
             }
-            
-            dumpGeomStats();
-            
-            System.out.println("Found " + foundData.size() + " test datasets in region[" + bbox + "]");
-            for (TestGeometry testData : foundData) {
-                System.out.println("\t" + testData + ": " + testData.bounds);
-            }
-            
-            System.out.println("Verifying results for " + layerTestGeometries.size() + " test datasets in region[" + bbox + "]");
+
+            LayerIndexReader fakeIndex = new SpatialIndexPerformanceProxy(new FakeIndex(layer));
+            LayerIndexReader rtreeIndex = new SpatialIndexPerformanceProxy(layer.getIndex());
+
+            System.out.println("RTreeIndex bounds: " + rtreeIndex.getBoundingBox());
+            System.out.println("FakeIndex bounds: " + fakeIndex.getBoundingBox());
+            assertEnvelopeEquals(fakeIndex.getBoundingBox(), rtreeIndex.getBoundingBox());
+
+            System.out.println("RTreeIndex count: " + rtreeIndex.count());
+            assertEquals(fakeIndex.count(), rtreeIndex.count());
+
+            Envelope bbox = layerTestEnvelope.get(layerName);
+
+            System.out.println("Displaying test geometries for layer '" + layerName + "' including expected search results");
             for (TestGeometry testData : layerTestGeometries.get(layerName)) {
-                System.out.println("\ttesting " + testData + ": " + testData.bounds);
-                if (testData.inOrIntersects(bbox) && !foundData.contains(testData)) {
-                    String error = "Incorrect test result: test[" + testData + "] not found by search inside region[" + bbox + "]";                	
-                    for (TestGeometry data : foundData) {
-                        System.out.println(data);
+                System.out.println("\tGeometry: " + testData + " " + (testData.inOrIntersects(bbox) ? "is" : "is NOT")
+                        + " inside search region");
+            }
+
+            for (LayerIndexReader index : new LayerIndexReader[] { rtreeIndex, fakeIndex }) {
+                ArrayList<TestGeometry> foundData = new ArrayList<TestGeometry>();
+
+                SearchIntersect searchQuery = new SearchIntersect(layer, layer.getGeometryFactory().toGeometry(Utilities.fromNeo4jToJts(bbox)));
+                SearchRecords results = index.search(searchQuery);
+
+                int count = 0;
+                int ri = 0;
+                for (SpatialDatabaseRecord r : results) {
+                    count++;
+                    if (ri++ < 10) {
+                        StringBuffer props = new StringBuffer();
+                        for (String prop : r.getPropertyNames()) {
+                            if (props.length() > 0) props.append(", ");
+                            props.append(prop + ": " + r.getProperty(prop));
+                        }
+
+                        System.out.println("\tRTreeIndex result[" + ri + "]: " + r.getNodeId() + ":" + r.getType() + " - " + r.toString() + ": PROPS["+props+"]");
+                    } else if (ri == 10) {
+                        // System.out.println("\t.. and " + (count - ri) + " more ..");
                     }
-                    System.out.println(error);
-                    fail(error);
+
+                    addGeomStats(r.getGeomNode());
+
+                    String name = (String) r.getProperty("NAME");
+                    if (name == null) name = (String) r.getProperty("name");
+
+                    Integer id = (Integer) r.getProperty("ID");
+                    if ((name != null && name.length() > 0) || id != null) {
+                        for (TestGeometry testData : layerTestGeometries.get(layerName)) {
+                            if ((name != null && name.length() > 0 && testData.name.equals(name)) || (id != null && testData.id.equals(id))) {
+                                System.out.println("\tFound match in test data: test[" + testData + "] == result[" + r + "]");
+                                foundData.add(testData);
+                            } /* else if(name != null && name.length()>0 && name.startsWith(testData.name.substring(0,1))) {
+                                System.out.println("\tOnly first character matched: test[" + testData + "] == result[" + r + "]");
+                            } */
+                        }
+                    } else {
+                        System.err.println("\tNo name or id in RTreeIndex result: " + r.getNodeId() + ":" + r.getType() + " - "
+                                + r.toString());
+                    }
+                }
+
+                dumpGeomStats();
+
+                System.out.println("Found " + foundData.size() + " test datasets in region[" + bbox + "]");
+                for (TestGeometry testData : foundData) {
+                    System.out.println("\t" + testData + ": " + testData.bounds);
+                }
+
+                System.out.println("Verifying results for " + layerTestGeometries.size() + " test datasets in region[" + bbox + "]");
+                for (TestGeometry testData : layerTestGeometries.get(layerName)) {
+                    System.out.println("\ttesting " + testData + ": " + testData.bounds);
+                    if (testData.inOrIntersects(bbox) && !foundData.contains(testData)) {
+                        String error = "Incorrect test result: test[" + testData + "] not found by search inside region[" + bbox + "]";
+                        for (TestGeometry data : foundData) {
+                            System.out.println(data);
+                        }
+                        System.out.println(error);
+                        fail(error);
+                    }
                 }
             }
-        }
 
-        System.out.println("Total time for index test: " + 1.0 * (System.currentTimeMillis() - start) / 1000.0 + "s");
+            System.out.println("Total time for index test: " + 1.0 * (System.currentTimeMillis() - start) / 1000.0 + "s");
+            tx.success();
+        }
     }
 
 	private void assertEnvelopeEquals(Envelope a, Envelope b) {

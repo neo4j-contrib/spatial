@@ -44,6 +44,7 @@ import javax.xml.stream.XMLStreamReader;
 
 import org.apache.commons.collections.MapUtils;
 import org.geotools.referencing.datum.DefaultEllipsoid;
+import org.neo4j.collections.graphdb.TraversalDescription;
 import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.collections.rtree.Listener;
 import org.neo4j.collections.rtree.NullListener;
@@ -60,17 +61,15 @@ import org.neo4j.graphdb.StopEvaluator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.Traverser;
 import org.neo4j.graphdb.Traverser.Order;
-import org.neo4j.graphdb.index.BatchInserterIndex;
-import org.neo4j.graphdb.index.BatchInserterIndexProvider;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
+import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.helpers.collection.MapUtil;
-import org.neo4j.index.impl.lucene.LuceneBatchInserterIndexProvider;
+import org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider;
 import org.neo4j.kernel.AbstractGraphDatabase;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
-import org.neo4j.kernel.impl.batchinsert.BatchInserter;
-import org.neo4j.kernel.impl.batchinsert.BatchInserterImpl;
-import org.neo4j.kernel.impl.batchinsert.SimpleRelationship;
+import org.neo4j.kernel.Traversal;
+import org.neo4j.unsafe.batchinsert.*;
 
 public class OSMImporter implements Constants
 {
@@ -271,10 +270,11 @@ public class OSMImporter implements Constants
         layer.clear(); // clear the index without destroying underlying data
 
         long startTime = System.currentTimeMillis();
-        Traverser traverser = database.getNodeById( osm_dataset ).traverse(
-                Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH,
-                ReturnableEvaluator.ALL_BUT_START_NODE, OSMRelation.WAYS,
-                Direction.OUTGOING, OSMRelation.NEXT, Direction.OUTGOING );
+        org.neo4j.graphdb.traversal.TraversalDescription traversal = Traversal.description().depthFirst()
+                .evaluator(Evaluators.excludeStartPosition())
+                .relationships(OSMRelation.WAYS, Direction.OUTGOING)
+                .relationships(OSMRelation.NEXT, Direction.OUTGOING);
+
         Transaction tx = database.beginTx();
         boolean useWays = false;
         int count = 0;
@@ -284,7 +284,7 @@ public class OSMImporter implements Constants
             if ( useWays )
             {
                 beginProgressMonitor( dataset.getWayCount() );
-                for ( Node way : traverser )
+                for ( Node way : traversal.traverse(database.getNodeById( osm_dataset )).nodes() )
                 {
                     updateProgressMonitor( count );
                     incrLogContext();
@@ -1422,7 +1422,7 @@ public class OSMImporter implements Constants
         private long findNode( BatchInserter batchInserter, String name,
                 long parent, RelationshipType relType )
         {
-            for ( SimpleRelationship relationship : batchInserter.getRelationships( parent ) )
+            for ( BatchRelationship relationship : batchInserter.getRelationships( parent ) )
             {
                 if ( relationship.getType().name().equals( relType.name() ) )
                 {
@@ -1606,7 +1606,7 @@ public class OSMImporter implements Constants
             {
                 currentChangesetNode = changesetNode;
                 changesetNodes.clear();
-                for ( SimpleRelationship rel : batchInserter.getRelationships( changesetNode ) )
+                for ( BatchRelationship rel : batchInserter.getRelationships( changesetNode ) )
                 {
                     if ( rel.getType().name().equals(
                             OSMRelation.CHANGESET.name() ) )
@@ -1638,7 +1638,7 @@ public class OSMImporter implements Constants
         protected void updateGeometryMetaDataFromMember( Long member,
                 GeometryMetaData metaGeom, Map<String, Object> nodeProps )
         {
-            for ( SimpleRelationship rel : batchInserter.getRelationships( member ) )
+            for ( BatchRelationship rel : batchInserter.getRelationships( member ) )
             {
                 if ( rel.getType().equals( OSMRelation.GEOM ) )
                 {
@@ -2316,8 +2316,8 @@ public class OSMImporter implements Constants
         private void switchToBatchInserter()
         {
             shutdown();
-            batchInserter = new BatchInserterImpl( dbPath.getAbsolutePath() );
-            graphDb = batchInserter.getGraphDbService();
+            batchInserter = BatchInserters.inserter(dbPath.getAbsolutePath());
+            graphDb = new SpatialBatchGraphDatabaseService(batchInserter);
         }
 
         protected void shutdown()
