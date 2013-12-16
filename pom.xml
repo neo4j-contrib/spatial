@@ -3,7 +3,7 @@
     <properties>
         <neo4j.version>2.0.0</neo4j.version>
         <neo4j.java.version>1.7</neo4j.java.version>
-        <neo4j.graphcollections.version>0.7.1-neo4j-2.0.0-SNAPSHOT</neo4j.graphcollections.version>
+        <neo4j.graphcollections.version>0.7.1-neo4j-2.0.0</neo4j.graphcollections.version>
         <maven-compiler-plugin.version>3.1</maven-compiler-plugin.version>
         <maven-gpg-plugin.version>1.4</maven-gpg-plugin.version>
         <maven-resources-plugin.version>2.6</maven-resources-plugin.version>
@@ -21,7 +21,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>neo4j-spatial</artifactId>
     <groupId>org.neo4j</groupId>
-    <version>0.12-neo4j-2.0.0-SNAPSHOT</version>
+    <version>0.12-neo4j-2.0.0</version>
     <name>Neo4j - Spatial Components</name>
     <description>Spatial utilities and components for Neo4j</description>
     <url>http://components.neo4j.org/${project.artifactId}/${project.version}</url>
@@ -373,6 +373,26 @@
                 <enabled>true</enabled>
             </releases>
         </repository>
+        <repository>
+            <id>neo4j-contrib-releases</id>
+            <url>https://raw.github.com/neo4j-contrib/m2/master/releases</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>neo4j-contrib-snapshots</id>
+            <url>https://raw.github.com/neo4j-contrib/m2/master/snapshots</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
     </repositories>
     <profiles>
         <profile>
@@ -638,20 +658,16 @@
         </plugins>
     </reporting>
 
-  <distributionManagement>
-    <repository>
-      <id>releases@repo.neo4j.org</id>
-      <name>releases@repo.neo4j.org</name>
-      <uniqueVersion>false</uniqueVersion>
-      <url>http://m2.neo4j.org/content/repositories/releases</url>
-    </repository>
-    <snapshotRepository>
-      <id>snapshots@repo.neo4j.org</id>
-      <name>snapshots@repo.neo4j.org</name>
-      <uniqueVersion>false</uniqueVersion>
-      <url>http://m2.neo4j.org/content/repositories/snapshots</url>
-    </snapshotRepository>
-  </distributionManagement>
+    <distributionManagement>
+        <repository>
+            <id>repo</id>
+            <url>https://raw.github.com/neo4j-contrib/m2/master/releases</url>
+        </repository>
+        <snapshotRepository>
+            <id>snapshot-repo</id>
+            <url>https://raw.github.com/neo4j-contrib/m2/master/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
 
 </project>
 
