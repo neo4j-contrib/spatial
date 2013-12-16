@@ -144,7 +144,7 @@ public class IndexProviderTest {
             tx.failure();
             System.out.println("testInvalidConfig: invalid index creation failed, good, let the tx rollback");
         }
-        tx.finish();
+        tx.close();
         System.out.println("testInvalidConfig: tx done.");
         // Assert index isn't referenced in the manager
         assertFalse("Index should not exist", indexMan.existsForNodes("layer1"));
@@ -204,7 +204,7 @@ public class IndexProviderTest {
         Node malmo = (Node) result1.iterator().next().get("malmo");
         index.add(malmo, "dummy", "value");
         tx.success();
-        tx.finish();
+        tx.close();
         tx = db.beginTx();
         Map<String, Object> params = new HashMap<String, Object>();
         //within Envelope
@@ -266,7 +266,7 @@ public class IndexProviderTest {
         IndexHits<Node> hits = index.query(
                 LayerNodeIndex.WITHIN_DISTANCE_QUERY, params);
         tx.success();
-        tx.finish();
+        tx.close();
         tx = db.beginTx();
         Node node = hits.getSingle();
         assertEquals(node.getId(), batman.getId());
@@ -274,7 +274,7 @@ public class IndexProviderTest {
         assertEquals(1.41f, hits.currentScore(), 0.01f);
 
         tx.success();
-        tx.finish();
+        tx.close();
     }
 
     @Test
@@ -355,7 +355,7 @@ public class IndexProviderTest {
 
                     // commit transaction
                     tx.success();
-                    tx.finish();
+                    tx.close();
 
                     tx = db.beginTx();
                 }
@@ -363,7 +363,7 @@ public class IndexProviderTest {
             tx.success();
         } finally {
             System.out.println("testAddPerformance() finished");
-            tx.finish();
+            tx.close();
         }
     }
 
@@ -393,7 +393,7 @@ public class IndexProviderTest {
         index.add(n1, "dummy", "value");
 
         tx.success();
-        tx.finish();
+        tx.close();
 
         tx = db.beginTx();
 
@@ -407,7 +407,7 @@ public class IndexProviderTest {
         // make sure there's only one node
         assertFalse(hits.hasNext());
         tx.success();
-        tx.finish();
+        tx.close();
 
     }
 }

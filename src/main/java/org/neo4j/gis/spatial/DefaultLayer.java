@@ -167,7 +167,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
             getLayerNode().setProperty(PROP_LAYERNODEEXTRAPROPS, names);
             tx.success();
         } finally {
-            tx.finish();
+            tx.close();
         }
     }
     
@@ -303,7 +303,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
             
             tx.success();
         } finally {
-            tx.finish();
+            tx.close();
         }
     }
     

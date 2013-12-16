@@ -19,72 +19,18 @@
  */
 package org.neo4j.gis.spatial.indexprovider;
 
+import org.neo4j.graphdb.index.IndexManager;
+import org.neo4j.helpers.collection.MapUtil;
+
 import java.util.Collections;
 import java.util.Map;
 
-import org.neo4j.graphdb.DependencyResolver;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.index.Index;
-import org.neo4j.graphdb.index.IndexImplementation;
-import org.neo4j.graphdb.index.IndexManager;
-import org.neo4j.graphdb.index.IndexProvider;
-import org.neo4j.graphdb.index.RelationshipIndex;
-import org.neo4j.helpers.collection.MapUtil;
-import org.neo4j.kernel.configuration.Config;
-import org.neo4j.kernel.impl.nioneo.xa.NeoStoreXaDataSource;
-
-public class SpatialIndexProvider extends IndexProvider
+public class SpatialIndexProvider
 {
 
     public static final String SERVICE_NAME = "spatial";
     public static final String GEOMETRY_TYPE = "geometry_type";
 
-    public SpatialIndexProvider( )
-    {
-        super( SERVICE_NAME );        
-    }
-
-    @Override
-    public IndexImplementation load(DependencyResolver dependencyResolver) throws Exception {
-        return new SpatialIndexImplementation(dependencyResolver.resolveDependency(GraphDatabaseService.class));
-    }
-
-    public static class SpatialIndexImplementation implements IndexImplementation {
-    	
-        private GraphDatabaseService db;
-
-        public SpatialIndexImplementation(GraphDatabaseService db) {
-
-            this.db = db;
-        }
-
-        @Override
-        public String getDataSourceName() {
-            return NeoStoreXaDataSource.DEFAULT_DATA_SOURCE_NAME;
-        }
-
-        @Override
-        public Index<Node> nodeIndex(String indexName, Map<String, String> config) {
-            return new LayerNodeIndex(indexName, db, config);
-        }
-
-        @Override
-        public RelationshipIndex relationshipIndex(String indexName, Map<String, String> config) {
-            throw new UnsupportedOperationException("Spatial relationship indexing is not supported at the moment. Please use the node index.");
-        }
-
-        @Override
-        public Map<String, String> fillInDefaults(Map<String, String> config) {
-            return config;
-        }
-
-        @Override
-        public boolean configMatches(Map<String, String> storedConfig, Map<String, String> config ) {
-            return storedConfig.equals(config);
-        }
-    }
-    
     public static final Map<String, String> SIMPLE_POINT_CONFIG =
             Collections.unmodifiableMap( MapUtil.stringMap(
                     IndexManager.PROVIDER, SERVICE_NAME, GEOMETRY_TYPE , LayerNodeIndex.POINT_GEOMETRY_TYPE, LayerNodeIndex.LAT_PROPERTY_KEY, "lat", LayerNodeIndex.LON_PROPERTY_KEY, "lon") );

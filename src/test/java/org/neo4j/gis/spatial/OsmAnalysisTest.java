@@ -42,6 +42,7 @@ import junit.framework.TestSuite;
 
 import org.geotools.data.neo4j.StyledImageExporter;
 import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.neo4j.collections.graphdb.ReferenceNodes;
 import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.collections.rtree.filter.SearchAll;
 import org.neo4j.gis.spatial.filter.SearchRecords;
@@ -53,6 +54,7 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
@@ -145,7 +147,7 @@ public class OsmAnalysisTest extends TestOSMImport {
 		if (db != null) {
 			shutdownDatabase();
 		}
-		db = new EmbeddedGraphDatabase("var/" + dataset);
+		db = new GraphDatabaseFactory().newEmbeddedDatabase("var/" + dataset);
 		return new SpatialDatabaseService(db);
 	}
 	
@@ -261,7 +263,7 @@ public class OsmAnalysisTest extends TestOSMImport {
 	}
 
 	public void testAnalysis(String osm, int years, int days) throws Exception {
-		Node osmRoot = graphDb().getReferenceNode().getSingleRelationship(OSMRelation.OSM, Direction.OUTGOING).getEndNode();
+		Node osmRoot = ReferenceNodes.getReferenceNode(graphDb(),"osm_root");
 		Node osmImport = osmRoot.getSingleRelationship(OSMRelation.OSM, Direction.OUTGOING).getEndNode();
 		Node usersNode = osmImport.getSingleRelationship(OSMRelation.USERS, Direction.OUTGOING).getEndNode();
 
@@ -392,7 +394,7 @@ public class OsmAnalysisTest extends TestOSMImport {
 
 						tx.success();
 					} finally {
-						tx.finish();
+						tx.close();
 					}
 				}
 			}

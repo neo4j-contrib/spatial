@@ -27,7 +27,7 @@ import org.geotools.data.AbstractDataStoreFactory;
 import org.geotools.data.DataStore;
 import org.geotools.util.KVP;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.kernel.EmbeddedGraphDatabase;
+import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
 /**
  * DataStoreFactorySpi implementation. It needs an "url" parameter containing a
@@ -75,7 +75,7 @@ public class Neo4jSpatialDataStoreFactory extends AbstractDataStoreFactory
 		
 	    File neodir = (File) DIRECTORY.lookUp(params);
 
-		GraphDatabaseService db = new EmbeddedGraphDatabase(neodir.getAbsolutePath());
+		GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(neodir.getAbsolutePath());
 		Neo4jSpatialDataStore dataStore = new Neo4jSpatialDataStore(db);
 
 		return dataStore;

@@ -80,7 +80,7 @@ public class DynamicLayerConfig implements Layer, Constants {
 			tx.success();
 			configNode = node;
 		} finally {
-			tx.finish();
+			tx.close();
 		}
 	}
 
@@ -194,7 +194,7 @@ public class DynamicLayerConfig implements Layer, Constants {
 			propertyNames = names;
 			tx.success();
 		} finally {
-			tx.finish();
+			tx.close();
 		}
 	}		
 	

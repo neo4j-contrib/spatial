@@ -84,7 +84,7 @@ public class PropertyMappingManager {
 			}
 			tx.success();
 		} finally {
-			tx.finish();
+			tx.close();
 		}
 	}
 

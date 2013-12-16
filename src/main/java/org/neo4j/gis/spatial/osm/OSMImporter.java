@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial.osm;
 
 import static java.util.Arrays.asList;
+import static org.neo4j.helpers.collection.MapUtil.map;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -44,30 +45,21 @@ import javax.xml.stream.XMLStreamReader;
 
 import org.apache.commons.collections.MapUtils;
 import org.geotools.referencing.datum.DefaultEllipsoid;
-import org.neo4j.collections.graphdb.TraversalDescription;
+import org.neo4j.collections.graphdb.ReferenceNodes;
 import org.neo4j.collections.rtree.Envelope;
 import org.neo4j.collections.rtree.Listener;
 import org.neo4j.collections.rtree.NullListener;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.PropertyContainer;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.RelationshipType;
-import org.neo4j.graphdb.ReturnableEvaluator;
-import org.neo4j.graphdb.StopEvaluator;
-import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.Traverser;
+import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.Traverser.Order;
+import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider;
 import org.neo4j.kernel.AbstractGraphDatabase;
-import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.Traversal;
 import org.neo4j.unsafe.batchinsert.*;
 
@@ -306,7 +298,7 @@ public class OSMImporter implements Constants
                     if ( ++count % commitInterval == 0 )
                     {
                         tx.success();
-                        tx.finish();
+                        tx.close();
                         tx = database.beginTx();
                     }
                 } // TODO ask charset to user?
@@ -327,7 +319,7 @@ public class OSMImporter implements Constants
                     if ( ++count % commitInterval == 0 )
                     {
                         tx.success();
-                        tx.finish();
+                        tx.close();
                         tx = database.beginTx();
                     }
                 } // TODO ask charset to user?
@@ -337,7 +329,7 @@ public class OSMImporter implements Constants
         finally
         {
             endProgressMonitor();
-            tx.finish();
+            tx.close();
         }
 
         long stopTime = System.currentTimeMillis();
@@ -995,7 +987,7 @@ public class OSMImporter implements Constants
             if ( tx != null )
             {
                 tx.success();
-                tx.finish();
+                tx.close();
                 tx = null;
                 checkCount = 0;
             }
@@ -1060,8 +1052,7 @@ public class OSMImporter implements Constants
         {
             if ( osm_dataset == null )
             {
-                osm_root = getOrCreateNode( "osm_root", "osm",
-                        graphDb.getReferenceNode(), OSMRelation.OSM );
+                osm_root = ReferenceNodes.getReferenceNode(graphDb, "osm_root" );
                 osm_dataset = getOrCreateNode( name, "osm", osm_root,
                         OSMRelation.OSM );
             }
@@ -1411,8 +1402,7 @@ public class OSMImporter implements Constants
         {
             if ( osm_dataset == null || osm_dataset <= 0 )
             {
-                osm_root = getOrCreateNode( "osm_root", "osm",
-                        batchInserter.getReferenceNode(), OSMRelation.OSM );
+                osm_root = batchInserter.createNode(map("name", "osm_root"), DynamicLabel.label("ReferenceNode"));
                 osm_dataset = getOrCreateNode( name, "osm", osm_root,
                         OSMRelation.OSM );
             }
@@ -2310,7 +2300,7 @@ public class OSMImporter implements Constants
         private void switchToEmbeddedGraphDatabase()
         {
             shutdown();
-            graphDb = new EmbeddedGraphDatabase( dbPath.getAbsolutePath() );
+            graphDb = new GraphDatabaseFactory().newEmbeddedDatabase( dbPath.getAbsolutePath() );
         }
 
         private void switchToBatchInserter()

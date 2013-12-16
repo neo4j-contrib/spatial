@@ -39,7 +39,6 @@ import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.PropertyContainer;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.traversal.TraversalDescription;
-import org.neo4j.kernel.impl.traversal.TraversalDescriptionImpl;
 
 import com.vividsolutions.jts.algorithm.ConvexHull;
 import com.vividsolutions.jts.geom.Coordinate;
@@ -150,8 +149,8 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 		Iterator<Path> traverser;
 
 		NodeProxyIterator(Node first) {
-            TraversalDescription traversalDescription = new TraversalDescriptionImpl().relationships( OSMRelation.NEXT,
-                    Direction.OUTGOING );
+            TraversalDescription traversalDescription =  first.getGraphDatabase().traversalDescription().relationships(OSMRelation.NEXT,
+                    Direction.OUTGOING);
             traverser = createTraverserInBackwardsCompatibleWay( traversalDescription, first ).iterator();
 		}
 

@@ -407,7 +407,7 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
     public void cleanContent()
     {
         ImpermanentGraphDatabase graphdb = (ImpermanentGraphDatabase) graphdb();
-        graphdb.cleanContent(true);
+        graphdb.cleanContent();
         //clean
         gen.get().setGraph( graphdb() );
         

@@ -45,7 +45,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 			tx.success();
 			return new SpatialDatabaseRecord(this, geomNode, geometry);
 		} finally {
-			tx.finish();
+			tx.close();
 		}
 	}
 
@@ -60,7 +60,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 			index.add(geomNode);
 			tx.success();
 		} finally {
-			tx.finish();
+			tx.close();
 		}
 	}
 
@@ -71,7 +71,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 			index.remove(geomNodeId, true, false);
 			tx.success();
 		} finally {
-			tx.finish();
+			tx.close();
 		}
 	}
 
@@ -83,7 +83,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
             index.remove(geomNodeId, deleteGeomNode, false);
 			tx.success();
 		} finally {
-			tx.finish();
+			tx.close();
 		}
 	}
 

@@ -55,7 +55,7 @@ public abstract class PropertyMapper {
 			node.setProperty("params", this.params);
 			tx.success();
 		} finally {
-			tx.finish();
+			tx.close();
 		}
 	}
 

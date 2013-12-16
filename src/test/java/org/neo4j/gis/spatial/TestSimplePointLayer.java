@@ -154,7 +154,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 				
 				tx.success();
 			} finally {
-				tx.finish();
+				tx.close();
 			}
 		}
 

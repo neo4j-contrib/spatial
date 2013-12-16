@@ -26,7 +26,7 @@ import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.ShapefileExporter;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.kernel.EmbeddedGraphDatabase;
+import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
 public class OSMLayerToShapefileExporter {
 	/**
@@ -44,7 +44,7 @@ public class OSMLayerToShapefileExporter {
 		if (args.length < 4) {
 			System.out.println("Usage: osmtoshp databasedir exportdir osmdataset layerspec <..layerspecs..>");
 		} else {
-			GraphDatabaseService db = new EmbeddedGraphDatabase((new File(args[0])).getAbsolutePath());
+			GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase((new File(args[0])).getAbsolutePath());
 			SpatialDatabaseService spatial = new SpatialDatabaseService(db);
 			OSMLayer layer = (OSMLayer) spatial.getLayer(args[2]);
 			if (layer != null) {

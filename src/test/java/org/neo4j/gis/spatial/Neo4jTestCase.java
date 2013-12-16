@@ -39,8 +39,11 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.kernel.AbstractGraphDatabase;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
+import org.neo4j.kernel.GraphDatabaseAPI;
+import org.neo4j.kernel.impl.core.NodeManager;
 import org.neo4j.kernel.impl.nioneo.store.PropertyStore;
 import org.neo4j.kernel.impl.util.FileUtils;
 import org.neo4j.unsafe.batchinsert.BatchInserter;
@@ -113,7 +116,7 @@ public abstract class Neo4jTestCase extends TestCase {
     protected void shutdownDatabase(boolean deleteDb) {
         if (tx != null) {
             tx.success();
-            tx.finish();
+            tx.close();
             tx = null;
         }
         beforeShutdown();
@@ -147,7 +150,7 @@ public abstract class Neo4jTestCase extends TestCase {
             batchInserter = BatchInserters.inserter(getNeoPath().getAbsolutePath(), config);
             graphDb = new SpatialBatchGraphDatabaseService(batchInserter);
         } else {
-            graphDb = new EmbeddedGraphDatabase(getNeoPath().getAbsolutePath(), config );
+            graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(getNeoPath().getAbsolutePath()).setConfig( config ).newGraphDatabase();
         }
         if (autoTx) {
             // with the batch inserter the tx is a dummy that simply succeeds all the time
@@ -230,7 +233,7 @@ public abstract class Neo4jTestCase extends TestCase {
     }
 
     protected long countNodes(Class<?> cls) {
-        return ((AbstractGraphDatabase)graphDb).getNodeManager().getNumberOfIdsInUse(cls);
+        return ((GraphDatabaseAPI)graphDb).getDependencyResolver().resolveDependency(NodeManager.class).getNumberOfIdsInUse(cls);
     }
 
     protected void printDatabaseStats() {
@@ -251,7 +254,7 @@ public abstract class Neo4jTestCase extends TestCase {
             } else {
                 tx.failure();
             }
-            tx.finish();
+            tx.close();
             tx = graphDb.beginTx();
         }
     }

@@ -61,7 +61,7 @@ The OSMLayer is a special layer supporting Open Street Map and storing the OSM m
 Spatial data is divided in Layers and indexed by a RTree.
 
 ~~~java
-    GraphDatabaseService database = new EmbeddedGraphDatabase(storeDir);
+    GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(storeDir);
     try {
         ShapefileImporter importer = new ShapefileImporter(database);
         importer.importFile("roads.shp", "layer_roads");
@@ -84,7 +84,7 @@ This is more complex because the current OSMImporter class runs in two phases, t
     importer.importFile(batchInserter, "sweden.osm", false);
     batchInserter.shutdown();
 
-    GraphDatabaseService db = new EmbeddedGraphDatabase(dir);
+    GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dir);
     importer.reIndex(db, 10000);
     db.shutdown();
 ~~~
@@ -92,7 +92,7 @@ This is more complex because the current OSMImporter class runs in two phases, t
 ### Executing a spatial query ###
 
 ~~~java
-    GraphDatabaseService database = new EmbeddedGraphDatabase(storeDir);
+    GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(storeDir);
     try {
     	SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
         Layer layer = spatialService.getLayer("layer_roads");

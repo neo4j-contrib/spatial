@@ -60,7 +60,7 @@ import org.geotools.styling.StyleFactory;
 import org.neo4j.gis.spatial.SpatialTopologyUtils;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.kernel.EmbeddedGraphDatabase;
+import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.FeatureType;
@@ -437,7 +437,7 @@ public class StyledImageExporter {
 		String exportdir = args[1];
 		String stylefile = args[2];
 		double zoom = new Double(args[3]);
-		GraphDatabaseService db = new EmbeddedGraphDatabase(database);
+		GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(database);
 		try {
 			StyledImageExporter imageExporter = new StyledImageExporter(db);
 			imageExporter.setExportDir(exportdir);

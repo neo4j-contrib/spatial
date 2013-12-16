@@ -81,7 +81,7 @@ public class DynamicLayer extends EditableLayerImpl {
 					config.configNode.delete();
 					tx.success();
 				} finally {
-					tx.finish();
+					tx.close();
 				}
 				return true;
 			}

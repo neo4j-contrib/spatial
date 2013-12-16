@@ -57,7 +57,7 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 				record.getGeomNode().setProperty("name", name);
 			}
 			tx.success();
-			tx.finish();
+			tx.close();
 			System.out.println("Finished writing " + records + " point records to database");
 		} catch (Exception e) {
 			System.err.println("Error initializing database: " + e);

@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.neo4j.collections.graphdb.ReferenceNodes;
 import org.neo4j.collections.rtree.Listener;
 import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
@@ -77,7 +78,7 @@ public class SpatialDatabaseService implements Constants {
 
     protected Node getSpatialRoot() {
         if (spatialRoot == null) {
-            spatialRoot = getOrCreateRootFrom(database.getReferenceNode(), SpatialRelationshipTypes.SPATIAL);
+            spatialRoot = ReferenceNodes.getReferenceNode(database, "spatial_root");
         }
         return spatialRoot;
     }
@@ -152,7 +153,7 @@ public class SpatialDatabaseService implements Constants {
 				tx.success();
 				return (DynamicLayer) DefaultLayer.makeLayerFromNode(this, node);
 			} finally {
-				tx.finish();
+				tx.close();
 			}
 		}
 	}
@@ -294,7 +295,7 @@ public class SpatialDatabaseService implements Constants {
             tx.success();
             return layer;
         } finally {
-            tx.finish();
+            tx.close();
         }
 	}
 

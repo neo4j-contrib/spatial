@@ -100,7 +100,7 @@ public class SpatialPlugin extends ServerPlugin {
             e.printStackTrace();
             tx.failure();
         } finally {
-            tx.finish();
+            tx.close();
         }
         return toArray(node);
     }

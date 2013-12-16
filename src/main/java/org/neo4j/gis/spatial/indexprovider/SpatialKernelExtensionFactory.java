@@ -55,7 +55,7 @@ public class SpatialKernelExtensionFactory extends KernelExtensionFactory<Spatia
 
         @Override
         public void start() throws Throwable {
-            indexProviders.registerIndexProvider(SpatialIndexProvider.SERVICE_NAME,new SpatialIndexProvider.SpatialIndexImplementation(graphDatabaseService));
+            indexProviders.registerIndexProvider(SpatialIndexProvider.SERVICE_NAME,new SpatialIndexImplementation(graphDatabaseService));
         }
 
         @Override

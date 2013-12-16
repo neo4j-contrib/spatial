@@ -38,7 +38,7 @@ import org.neo4j.collections.rtree.Listener;
 import org.neo4j.collections.rtree.NullListener;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.kernel.EmbeddedGraphDatabase;
+import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Envelope;
@@ -106,7 +106,7 @@ public class ShapefileImporter implements Constants {
 			commitInterval = Integer.parseInt(args[3]);
 		}
 		
-		GraphDatabaseService database = new EmbeddedGraphDatabase(neoPath);
+		GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(neoPath);
 		try {
 	        ShapefileImporter importer = new ShapefileImporter(database, new NullListener(), commitInterval);
 	        importer.importFile(shpPath, layerName);
@@ -174,7 +174,7 @@ public class ShapefileImporter implements Constants {
 					layer.mergeExtraPropertyNames(fieldsName);
 					tx.success();
 				} finally {
-					tx.finish();
+					tx.close();
 				}
 				
 				monitor.begin(dbaseFileHeader.getNumRecords());
@@ -227,7 +227,7 @@ public class ShapefileImporter implements Constants {
 							}
 
 						} finally {
-							tx.finish();
+							tx.close();
 						}
 					}
 				} finally {

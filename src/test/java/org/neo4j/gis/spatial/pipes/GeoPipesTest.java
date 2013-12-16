@@ -44,7 +44,7 @@ import org.junit.Test;
 import org.neo4j.collections.rtree.filter.SearchAll;
 import org.neo4j.collections.rtree.filter.SearchFilter;
 import org.neo4j.cypher.javacompat.ExecutionEngine;
-import org.neo4j.examples.AbstractJavaDocTestbase;
+import org.neo4j.examples.AbstractJavaDocTestBase;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.EditableLayerImpl;
 import org.neo4j.gis.spatial.Layer;
@@ -64,8 +64,9 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.util.AffineTransformation;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
+import org.neo4j.test.TestGraphDatabaseFactory;
 
-public class GeoPipesTest extends AbstractJavaDocTestbase
+public class GeoPipesTest extends AbstractJavaDocTestBase
 {
 
     private static Layer osmLayer;
@@ -1204,8 +1205,8 @@ public class GeoPipesTest extends AbstractJavaDocTestbase
     @BeforeClass
     public static void init()
     {
-        db = new ImpermanentGraphDatabase( );
-        ((ImpermanentGraphDatabase)db).cleanContent( true );
+        db = new TestGraphDatabaseFactory( ).newImpermanentDatabase();
+        ((ImpermanentGraphDatabase)db).cleanContent(  );
         try
         {
             load();

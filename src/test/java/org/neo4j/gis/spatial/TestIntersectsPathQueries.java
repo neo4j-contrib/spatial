@@ -33,8 +33,11 @@ import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.kernel.AbstractGraphDatabase;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
+import org.neo4j.kernel.GraphDatabaseAPI;
+import org.neo4j.kernel.impl.core.NodeManager;
 import org.neo4j.unsafe.batchinsert.BatchInserter;
 import org.neo4j.unsafe.batchinsert.BatchInserterImpl;
 import org.neo4j.unsafe.batchinsert.BatchInserters;
@@ -93,7 +96,7 @@ public class TestIntersectsPathQueries extends TestCase {
 	}
 	
 	private void importShapefileDatabase(String shpPath, String dbPath, String layerName) throws ShapefileException, FileNotFoundException, IOException {
-		GraphDatabaseService graphDb = new EmbeddedGraphDatabase(dbPath, Neo4jTestCase.LARGE_CONFIG );
+		GraphDatabaseService graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(dbPath).setConfig(Neo4jTestCase.LARGE_CONFIG ).newGraphDatabase();
         ShapefileImporter importer = new ShapefileImporter(graphDb, new ConsoleListener(), 10000, true);
         importer.setFilterEnvelope(makeFilterEnvelope());
         importer.importFile(shpPath, layerName, Charset.forName("UTF-8"));
@@ -124,7 +127,7 @@ public class TestIntersectsPathQueries extends TestCase {
 				Thread.sleep(1000);
 			}
 		}
-		GraphDatabaseService graphDb = new EmbeddedGraphDatabase(dbPath, Neo4jTestCase.LARGE_CONFIG );
+		GraphDatabaseService graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(dbPath).setConfig(Neo4jTestCase.LARGE_CONFIG ).newGraphDatabase();
 		importer.reIndex(graphDb, 10000, false, false);
 		TestOSMImport.checkOSMLayer(graphDb, layerName);
 		graphDb.shutdown();
@@ -187,9 +190,9 @@ public class TestIntersectsPathQueries extends TestCase {
 	}
 
 	private void runTestPointSetGeoptimaIntersection(String tracePath, String dbPath, String layerName, boolean testMultiPoint) throws ParseException, IOException, XMLStreamException {
-		EmbeddedGraphDatabase graphDb = new EmbeddedGraphDatabase(dbPath, Neo4jTestCase.NORMAL_CONFIG );
+		GraphDatabaseService graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(dbPath).setConfig( Neo4jTestCase.NORMAL_CONFIG ).newGraphDatabase();
 		SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb);
-        System.out.println("Opened database with node count="+((AbstractGraphDatabase)graphDb).getNodeManager().getNumberOfIdsInUse(Node.class));
+        System.out.println("Opened database with node count=" + ((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency(NodeManager.class).getNumberOfIdsInUse(Node.class));
 		System.out.println("Searching for '"+layerName+"' in "+spatial.getLayerNames().length+" layers:");
 		for(String name:spatial.getLayerNames()){
 			System.out.println("\t"+name);

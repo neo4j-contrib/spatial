@@ -136,7 +136,7 @@ public class Neo4jSpatialFeatureWriter implements
 				layer.delete(Long.parseLong(live.getID()));
 				tx.success();
 			} finally {
-				tx.finish();
+				tx.close();
 			}
 
 			listener.fireFeaturesRemoved(featureType.getTypeName(),
@@ -171,7 +171,7 @@ public class Neo4jSpatialFeatureWriter implements
 							(Geometry) current.getDefaultGeometry());
 					tx.success();
 				} finally {
-					tx.finish();
+					tx.close();
 				}
 
 				listener.fireFeaturesChanged(featureType.getTypeName(),
@@ -186,7 +186,7 @@ public class Neo4jSpatialFeatureWriter implements
 				layer.add((Geometry) current.getDefaultGeometry());
 				tx.success();
 			} finally {
-				tx.finish();
+				tx.close();
 			}
 
 			listener.fireFeaturesAdded(featureType.getTypeName(), transaction,
