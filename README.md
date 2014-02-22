@@ -72,7 +72,7 @@ Spatial data is divided in Layers and indexed by a RTree.
 
 ### Importing an Open Street Map file ###
 
-This is more complex because the current OSMImporter class runs in two phases, the first requiring a batch-inserter on the database. The is ongoing work to allow for a non-batch-inserter on the entire process, and possibly when you have read this that will already be available. Refer to the unit tests in classes TestDynamicLayers and TestOSMImport for the latest code for importing OSM data. At the time of writing the following worked:
+This is more complex because the current OSMImporter class runs in two phases, the first requiring a batch-inserter on the database. There is ongoing work to allow for a non-batch-inserter on the entire process, and possibly when you have read this that will already be available. Refer to the unit tests in classes TestDynamicLayers and TestOSMImport for the latest code for importing OSM data. At the time of writing the following worked:
 
 ~~~java
     OSMImporter importer = new OSMImporter("sweden");
