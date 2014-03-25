@@ -203,6 +203,24 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
     }
 
     /**
+     * Add multiple nodes to the spatial layer.
+     */
+    @Test
+    @Documented
+    public void add_many_nodes_to_the_spatial_layer() throws Exception {
+        data.get();
+        String response = post(Status.OK,"{\"layer\":\"geom\", \"lat\":\"lat\", \"lon\":\"lon\"}", ENDPOINT + "/graphdb/addSimplePointLayer");
+        int nodeId = getNodeId(post(Status.CREATED, "{\"lat\":60.1, \"lon\":15.2}", "http://localhost:" + PORT + "/db/data/node"));
+        int nodeId2 = getNodeId(post(Status.CREATED,"{\"lat\":60.1, \"lon\":15.3}", "http://localhost:"+PORT+"/db/data/node"));
+        response = post(Status.OK,"{\"layer\":\"geom\", \"nodes\": [\"http://localhost:"+PORT+"/db/data/node/"+nodeId+"\",\"http://localhost:"+PORT+"/db/data/node/"+nodeId2+"\"]}", ENDPOINT + "/graphdb/addNodesToLayer");
+        System.out.println("response = " + response);
+        response = post(Status.OK,String.format("{\"layer\":\"%s\", \"pointX\":%s,\"pointY\":%s,\"distanceInKm\":%s}","geom",15.2,60.1,10.0 ), ENDPOINT + "/graphdb/findGeometriesWithinDistance");
+        System.out.println("response = " + response);
+        assertTrue(response.contains("15.2"));
+        assertTrue(response.contains("15.3"));
+    }
+
+    /**
      * Add a node to an index created as a WKT
      */
     @Test

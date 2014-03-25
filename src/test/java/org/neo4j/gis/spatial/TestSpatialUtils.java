@@ -21,6 +21,7 @@ package org.neo4j.gis.spatial;
 
 import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.Test;
 import org.neo4j.gis.spatial.SpatialTopologyUtils.PointResult;
@@ -109,7 +110,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
 		printDatabaseStats();
 
 		// Define dynamic layers
-		ArrayList<Layer> layers = new ArrayList<Layer>();
+		List<Layer> layers = new ArrayList<Layer>();
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
 		OSMLayer osmLayer = (OSMLayer) spatialService.getLayer(osm);
 		layers.add(osmLayer.addSimpleDynamicLayer("highway", "primary"));
@@ -134,7 +135,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
 			Layer layer = osmLayer.getLayer(layerName);
 			assertNotNull("Missing layer: " + layerName, layer);
 			System.out.println("Closest features in " + layerName + " to point " + point + ":");
-			ArrayList<PointResult> edgeResults = SpatialTopologyUtils.findClosestEdges(point, layer);
+			List<PointResult> edgeResults = SpatialTopologyUtils.findClosestEdges(point, layer);
 			for (PointResult result : edgeResults) {
 				System.out.println("\t" + result);
 				results.add(result.getKey(), fieldsNames, new Object[] { result.getValue().getGeomNode().getId(),
