@@ -3,7 +3,7 @@
     <properties>
         <neo4j.version>2.0.2</neo4j.version>
         <neo4j.java.version>1.7</neo4j.java.version>
-        <neo4j.graphcollections.version>0.7.1-neo4j-2.0.1</neo4j.graphcollections.version>
+        <neo4j.graphcollections.version>0.7.2-neo4j-2.0.2</neo4j.graphcollections.version>
         <maven-compiler-plugin.version>3.1</maven-compiler-plugin.version>
         <maven-gpg-plugin.version>1.4</maven-gpg-plugin.version>
         <maven-resources-plugin.version>2.6</maven-resources-plugin.version>
