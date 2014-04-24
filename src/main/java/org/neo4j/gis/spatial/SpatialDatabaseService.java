@@ -26,12 +26,7 @@ import org.neo4j.collections.graphdb.ReferenceNodes;
 import org.neo4j.collections.rtree.Listener;
 import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.RelationshipType;
-import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.*;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Geometry;
@@ -77,13 +72,23 @@ public class SpatialDatabaseService implements Constants {
     }
 
     protected Node getSpatialRoot() {
-        if (spatialRoot == null) {
+        if (spatialRoot == null || !isValid(spatialRoot)) {
             spatialRoot = ReferenceNodes.getReferenceNode(database, "spatial_root");
         }
         return spatialRoot;
     }
 
-	public String[] getLayerNames() {
+    private boolean isValid(Node node) {
+        if (node==null) return false;
+        try {
+            node.getPropertyKeys().iterator().hasNext();
+            return true;
+        } catch(NotFoundException nfe) {
+            return false;
+        }
+    }
+
+    public String[] getLayerNames() {
 		List<String> names = new ArrayList<String>();
 		
 		for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {

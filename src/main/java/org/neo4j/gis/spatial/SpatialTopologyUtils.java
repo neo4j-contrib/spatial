@@ -19,10 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.neo4j.gis.spatial.filter.SearchIntersect;
@@ -97,12 +94,12 @@ public class SpatialTopologyUtils {
 		}
 	}
 
-	public static ArrayList<PointResult> findClosestEdges(Point point,
+	public static List<PointResult> findClosestEdges(Point point,
 			Layer layer) {
 		return findClosestEdges(point, layer, 0.0);
 	}
 
-	public static ArrayList<PointResult> findClosestEdges(Point point,
+	public static List<PointResult> findClosestEdges(Point point,
 			Layer layer, double distance) {
 		ReferencedEnvelope env = new ReferencedEnvelope(
 				Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox()), 
@@ -115,7 +112,15 @@ public class SpatialTopologyUtils {
 		return findClosestEdges(point, layer, factory.toGeometry(search));
 	}
 
-	public static ArrayList<PointResult> findClosestEdges(Point point, Layer layer, Geometry filter) {
+    /**
+     * Find geometries in the given layer that are closest to the given point while applying the filter
+     * currently only handles point and linestrings (projecting them to a point) TODO Craig for other geoms
+     * @param point
+     * @param layer
+     * @param filter
+     * @return list of point results containing the matched point on the geometry, the spatial record and the distance each
+     */
+	public static List<PointResult> findClosestEdges(Point point, Layer layer, Geometry filter) {
 		ArrayList<PointResult> results = new ArrayList<PointResult>();
 		
 		Iterator<SpatialDatabaseRecord> records = layer.getIndex().search(new SearchIntersect(layer, filter));
@@ -129,7 +134,10 @@ public class SpatialTopologyUtils {
 				double distance = snap.distance(point.getCoordinate());
 				results.add(new PointResult(layer.getGeometryFactory()
 						.createPoint(snap), record, distance));
-			}
+			} else if (geom instanceof Point) {
+                Point here = (Point) geom;
+                results.add(new PointResult(here,record,here.distance(point)));
+            }
 		}
 		Collections.sort(results);
 		return results;
