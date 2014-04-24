@@ -19,10 +19,12 @@
  */
 package org.neo4j.gis.spatial.indexprovider;
 
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.io.WKTReader;
 import java.util.List;
 import java.util.Map;
-
-import org.apache.commons.lang.NotImplementedException;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.neo4j.collections.rtree.NullListener;
@@ -35,11 +37,6 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
-
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.io.WKTReader;
 
 public class LayerNodeIndex implements Index<Node>
 {
@@ -327,6 +324,6 @@ public class LayerNodeIndex implements Index<Node>
     @Override
     public Node putIfAbsent( Node entity, String key, Object value )
     {
-        throw new NotImplementedException();
+        throw new UnsupportedOperationException();
     }    
 }
