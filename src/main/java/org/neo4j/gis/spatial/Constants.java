@@ -19,7 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
-import org.neo4j.collections.rtree.RTreeIndex;
+import org.neo4j.gis.spatial.rtree.RTreeIndex;
 
 
 /**

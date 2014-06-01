@@ -149,7 +149,7 @@ public class TestOSMImport extends Neo4jTestCase {
         assertNotNull("Should be at least one way", way);
         Envelope bbox = way.getEnvelope();
         runSearches(layer, bbox, true);
-        org.neo4j.collections.rtree.Envelope layerBBox = layer.getIndex().getBoundingBox();
+        org.neo4j.gis.spatial.rtree.Envelope layerBBox = layer.getIndex().getBoundingBox();
         double[] centre = layerBBox.centre();
         double width = layerBBox.getWidth() / 100.0;
         double height = layerBBox.getHeight() / 100.0;

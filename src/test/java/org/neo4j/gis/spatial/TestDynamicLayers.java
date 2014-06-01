@@ -33,9 +33,9 @@ import org.geotools.data.neo4j.StyledImageExporter;
 import org.geotools.data.shapefile.shp.ShapefileException;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.junit.Test;
-import org.neo4j.collections.rtree.Envelope;
-import org.neo4j.collections.rtree.NullListener;
-import org.neo4j.collections.rtree.RTreeIndex;
+import org.neo4j.gis.spatial.rtree.Envelope;
+import org.neo4j.gis.spatial.rtree.NullListener;
+import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 

@@ -22,8 +22,8 @@ package org.neo4j.gis.spatial;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.neo4j.collections.graphdb.ReferenceNodes;
-import org.neo4j.collections.rtree.Listener;
+import org.neo4j.gis.spatial.utilities.ReferenceNodes;
+import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.graphdb.*;

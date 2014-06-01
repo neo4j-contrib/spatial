@@ -21,10 +21,10 @@ package org.neo4j.gis.spatial.indexfilter;
 
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
-import org.neo4j.collections.rtree.Envelope;
-import org.neo4j.collections.rtree.SpatialIndexRecordCounter;
-import org.neo4j.collections.rtree.filter.SearchFilter;
-import org.neo4j.collections.rtree.filter.SearchResults;
+import org.neo4j.gis.spatial.rtree.Envelope;
+import org.neo4j.gis.spatial.rtree.SpatialIndexRecordCounter;
+import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
+import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.gis.spatial.LayerTreeIndexReader;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.graphdb.Direction;
