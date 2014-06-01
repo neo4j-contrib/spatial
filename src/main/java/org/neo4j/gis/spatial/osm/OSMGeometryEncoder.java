@@ -27,8 +27,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 
-import org.neo4j.collections.rtree.Envelope;
-import org.neo4j.collections.rtree.RTreeIndex;
+import org.neo4j.gis.spatial.rtree.Envelope;
+import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.gis.spatial.AbstractGeometryEncoder;
 import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.gis.spatial.SpatialDatabaseService;

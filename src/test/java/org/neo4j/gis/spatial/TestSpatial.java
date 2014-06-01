@@ -27,8 +27,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.geotools.data.shapefile.shp.ShapefileException;
-import org.neo4j.collections.rtree.Envelope;
-import org.neo4j.collections.rtree.NullListener;
+import org.neo4j.gis.spatial.rtree.Envelope;
+import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.gis.spatial.filter.SearchIntersect;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.osm.OSMImporter;

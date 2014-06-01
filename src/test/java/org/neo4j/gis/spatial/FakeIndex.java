@@ -24,10 +24,10 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import org.neo4j.collections.rtree.Envelope;
-import org.neo4j.collections.rtree.EnvelopeDecoder;
-import org.neo4j.collections.rtree.filter.SearchFilter;
-import org.neo4j.collections.rtree.filter.SearchResults;
+import org.neo4j.gis.spatial.rtree.Envelope;
+import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
+import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
+import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.graphdb.Node;
 

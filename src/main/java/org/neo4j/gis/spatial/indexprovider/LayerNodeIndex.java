@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
-import org.neo4j.collections.rtree.NullListener;
+import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.gis.spatial.EditableLayer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;

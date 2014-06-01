@@ -19,7 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
-import org.neo4j.collections.rtree.SpatialIndexVisitor;
+import org.neo4j.gis.spatial.rtree.SpatialIndexVisitor;
 import org.neo4j.graphdb.Node;
 
 /**
