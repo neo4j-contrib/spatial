@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import org.neo4j.collections.graphdb.ReferenceNodes;
@@ -393,5 +394,59 @@ public class SpatialDatabaseService implements Constants {
 		}
 		return layer;
 	}
+
+
+    /**
+     * Support mapping a String (ex: 'SimplePoint') to the respective GeometryEncoder and Layer classes
+     * to allow for more streamlined method for creating Layers
+     * This was added to help support Spatial Cypher project.
+     */
+    static class RegisteredLayerType {
+        String typeName;
+        Class< ? extends GeometryEncoder> geometryEncoder;
+        Class< ? extends Layer> layerClass;
+        String defaultConfig;
+        org.geotools.referencing.crs.AbstractCRS crs;
+
+        public RegisteredLayerType(String typeName, Class<? extends GeometryEncoder> geometryEncoder,
+                                   Class<? extends Layer> layerClass, org.geotools.referencing.crs.AbstractCRS crs, String defaultConfig) {
+            this.typeName = typeName;
+            this.geometryEncoder = geometryEncoder;
+            this.layerClass = layerClass;
+            this.crs = crs;
+            this.defaultConfig = defaultConfig;
+        }
+    }
+
+
+    static HashMap<String, RegisteredLayerType> registeredLayerTypes = new HashMap<String, RegisteredLayerType>();
+    static {
+        registeredLayerTypes.put("SimplePoint", new RegisteredLayerType("SimplePoint", SimplePointEncoder.class,
+                EditableLayerImpl.class, org.geotools.referencing.crs.DefaultGeographicCRS.WGS84, "lon:lat"));
+    }
+
+    /** 
+     *
+     * @param name
+     * @param type
+     * @param config
+     * @return
+     */
+    public Layer getOrCreateRegisteredTypeLayer(String name, String type, String config){
+        RegisteredLayerType registeredLayerType = registeredLayerTypes.get(type);
+        return getOrCreateRegisteredTypeLayer(name, registeredLayerType, config);
+    }
+
+    /**
+     *
+     * @param name
+     * @param registeredLayerType
+     * @param config
+     * @return
+     */
+    public Layer getOrCreateRegisteredTypeLayer(String name, RegisteredLayerType registeredLayerType, String config) {
+        return getOrCreateLayer(name, registeredLayerType.geometryEncoder, registeredLayerType.layerClass,
+                (config == null) ? registeredLayerType.defaultConfig : config);
+    }
 
 }
