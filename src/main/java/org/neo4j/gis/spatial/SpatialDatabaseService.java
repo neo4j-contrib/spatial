@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.neo4j.collections.graphdb.ReferenceNodes;
 import org.neo4j.collections.rtree.Listener;
 import org.neo4j.gis.spatial.encoders.Configurable;
@@ -423,9 +424,12 @@ public class SpatialDatabaseService implements Constants {
     static {
         registeredLayerTypes.put("SimplePoint", new RegisteredLayerType("SimplePoint", SimplePointEncoder.class,
                 EditableLayerImpl.class, org.geotools.referencing.crs.DefaultGeographicCRS.WGS84, "lon:lat"));
+        registeredLayerTypes.put("WKT", new RegisteredLayerType("WKT", WKTGeometryEncoder.class, EditableLayerImpl.class,
+                DefaultGeographicCRS.WGS84, "geom"));
+
     }
 
-    /** 
+    /**
      *
      * @param name
      * @param type
