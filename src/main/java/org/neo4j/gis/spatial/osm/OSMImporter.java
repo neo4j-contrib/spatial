@@ -45,10 +45,10 @@ import javax.xml.stream.XMLStreamReader;
 
 import org.apache.commons.collections.MapUtils;
 import org.geotools.referencing.datum.DefaultEllipsoid;
-import org.neo4j.collections.graphdb.ReferenceNodes;
-import org.neo4j.collections.rtree.Envelope;
-import org.neo4j.collections.rtree.Listener;
-import org.neo4j.collections.rtree.NullListener;
+import org.neo4j.gis.spatial.utilities.ReferenceNodes;
+import org.neo4j.gis.spatial.rtree.Envelope;
+import org.neo4j.gis.spatial.rtree.Listener;
+import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.graphdb.*;
