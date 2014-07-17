@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <properties>
-        <neo4j.version>2.1.1</neo4j.version>
+        <neo4j.version>2.0.4</neo4j.version>
         <neo4j.java.version>1.7</neo4j.java.version>
-        <neo4j.graphcollections.version>0.7.1-neo4j-2.0.1</neo4j.graphcollections.version>
+        <neo4j.graphcollections.version>0.7.4-neo4j-2.0.4</neo4j.graphcollections.version>
         <maven-compiler-plugin.version>3.1</maven-compiler-plugin.version>
         <maven-gpg-plugin.version>1.4</maven-gpg-plugin.version>
         <maven-resources-plugin.version>2.6</maven-resources-plugin.version>
@@ -21,7 +21,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>neo4j-spatial</artifactId>
     <groupId>org.neo4j</groupId>
-    <version>0.13-neo4j-2.1.1</version>
+    <version>0.12-neo4j-2.0.4</version>
     <name>Neo4j - Spatial Components</name>
     <description>Spatial utilities and components for Neo4j</description>
     <url>http://components.neo4j.org/${project.artifactId}/${project.version}</url>
@@ -236,7 +236,7 @@
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
-            <version>2.2.2</version>
+            <version>2.2.4</version>
             <scope>test</scope>
         </dependency>
         <dependency>
@@ -318,7 +318,7 @@
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
             <type>jar</type>
-            <version>1.2.16</version>
+            <version>1.2.17</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
@@ -327,11 +327,11 @@
             <version>1.1</version>
             <type>jar</type>
         </dependency>
-        <dependency>
+<!--        <dependency>
             <groupId>commons-lang</groupId>
             <artifactId>commons-lang</artifactId>
-            <version>2.4</version>
-        </dependency>
+            <version></version>
+        </dependency>-->
     </dependencies>
     <repositories>
         <repository>
@@ -373,6 +373,26 @@
             <releases>
                 <enabled>true</enabled>
             </releases>
+        </repository>
+        <repository>
+            <id>neo4j-contrib-releases</id>
+            <url>https://raw.github.com/neo4j-contrib/m2/master/releases</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>neo4j-contrib-snapshots</id>
+            <url>https://raw.github.com/neo4j-contrib/m2/master/snapshots</url>
+            <releases>
+                <enabled>false</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
         </repository>
     </repositories>
     <profiles>
@@ -639,20 +659,16 @@
         </plugins>
     </reporting>
 
-  <distributionManagement>
-    <repository>
-      <id>releases@repo.neo4j.org</id>
-      <name>releases@repo.neo4j.org</name>
-      <uniqueVersion>false</uniqueVersion>
-      <url>http://m2.neo4j.org/content/repositories/releases</url>
-    </repository>
-    <snapshotRepository>
-      <id>snapshots@repo.neo4j.org</id>
-      <name>snapshots@repo.neo4j.org</name>
-      <uniqueVersion>false</uniqueVersion>
-      <url>http://m2.neo4j.org/content/repositories/snapshots</url>
-    </snapshotRepository>
-  </distributionManagement>
+    <distributionManagement>
+        <repository>
+            <id>repo</id>
+            <url>https://raw.github.com/neo4j-contrib/m2/master/releases</url>
+        </repository>
+        <snapshotRepository>
+            <id>snapshot-repo</id>
+            <url>https://raw.github.com/neo4j-contrib/m2/master/snapshots</url>
+        </snapshotRepository>
+    </distributionManagement>
 
 </project>
 
