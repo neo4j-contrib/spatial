@@ -19,8 +19,8 @@
  */
 package org.neo4j.gis.spatial.pipes.osm;
 
-import org.neo4j.collections.rtree.filter.SearchAll;
-import org.neo4j.collections.rtree.filter.SearchFilter;
+import org.neo4j.gis.spatial.rtree.filter.SearchAll;
+import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;

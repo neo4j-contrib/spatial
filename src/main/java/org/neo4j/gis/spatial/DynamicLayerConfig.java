@@ -24,9 +24,9 @@ import java.io.PrintStream;
 import java.util.LinkedHashMap;
 
 import org.geotools.filter.text.cql2.CQLException;
-import org.neo4j.collections.rtree.Envelope;
-import org.neo4j.collections.rtree.Listener;
-import org.neo4j.collections.rtree.filter.SearchFilter;
+import org.neo4j.gis.spatial.rtree.Envelope;
+import org.neo4j.gis.spatial.rtree.Listener;
+import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
 import org.neo4j.gis.spatial.indexfilter.CQLIndexReader;
 import org.neo4j.gis.spatial.indexfilter.DynamicIndexReader;

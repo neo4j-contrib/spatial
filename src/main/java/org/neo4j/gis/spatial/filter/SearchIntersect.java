@@ -19,7 +19,7 @@
  */
 package org.neo4j.gis.spatial.filter;
 
-import org.neo4j.collections.rtree.Envelope;
+import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.graphdb.Node;
 

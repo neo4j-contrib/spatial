@@ -24,7 +24,7 @@ import java.util.HashMap;
 
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.json.simple.JSONObject;
-import org.neo4j.collections.rtree.NullListener;
+import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.DynamicLayer;
 import org.neo4j.gis.spatial.DynamicLayerConfig;

@@ -23,8 +23,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import org.neo4j.collections.rtree.RTreeIndex;
-import org.neo4j.collections.rtree.filter.SearchFilter;
+import org.neo4j.gis.spatial.rtree.RTreeIndex;
+import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;

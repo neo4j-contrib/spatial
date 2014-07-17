@@ -21,7 +21,7 @@ package org.neo4j.gis.spatial.filter;
 
 import java.util.Iterator;
 
-import org.neo4j.collections.rtree.filter.SearchResults;
+import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.graphdb.Node;
