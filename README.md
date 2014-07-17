@@ -296,7 +296,7 @@ other using the 'exec:java' target in maven. In both cases we use maven to setup
 ### Compile ###
 
 ~~~bash
-    git clone git://github.com/neo4j/spatial.git
+    git clone git://github.com/neo4j-contrib/spatial.git
     cd spatial
     mvn clean compile
 ~~~
