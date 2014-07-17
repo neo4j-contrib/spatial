@@ -1,12 +1,12 @@
 # Neo4j Spatial
 
-[![Build Status](https://travis-ci.org/neo4j/spatial.png)](https://travis-ci.org/neo4j/spatial)
+[![Build Status](https://travis-ci.org/neo4j-contrib/spatial.png)](https://travis-ci.org/neo4j-contrib/spatial)
 
 Neo4j Spatial is a library facilitating the import, storage and querying of spatial data in the [Neo4j open source graph database](http://neo4j.org/).
 
 This projects manual is deployed as part of the local build as the [Neo4j Spatial Manual](http://neo4j-contrib.github.io/spatial)
 
-![Open Street Map](https://raw.github.com/neo4j/spatial/master/src/docs/images/one-street.png "Open Street Map")
+![Open Street Map](https://raw.github.com/neo4j-contrib/spatial/master/src/docs/images/one-street.png "Open Street Map")
 
 
 Some key features include:
@@ -185,7 +185,7 @@ now do
         <dependency>
           <groupId>org.neo4j</groupId>
           <artifactId>neo4j-spatial</artifactId>
-          <version>0.9-SNAPSHOT</version>
+          <version>0.13-neo4j-2.1.2</version>
         </dependency>
       </dependencies>
     </profile>
@@ -215,6 +215,10 @@ Precompiled versions of that ZIP file ready for download and use:
 * [for Neo4j 1.8.2](http://dist.neo4j.org.s3.amazonaws.com/spatial/neo4j-spatial-0.9.1-neo4j-1.8.2-server-plugin.zip)
 * [for Neo4j 2.0](http://dist.neo4j.org/spatial/neo4j-spatial-0.12-neo4j-2.0.0-server-plugin.zip)
 * [for Neo4j 2.0.1](http://dist.neo4j.org/spatial/neo4j-spatial-0.12-neo4j-2.0.1-server-plugin.zip)
+* [for Neo4j 2.0.2](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.12-neo4j-2.0.2/neo4j-spatial-0.12-neo4j-2.0.2-server-plugin.zip?raw=true)
+* [for Neo4j 2.0.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.12-neo4j-2.0.3/neo4j-spatial-0.12-neo4j-2.0.3-server-plugin.zip?raw=true)
+* [for Neo4j 2.0.4](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.12-neo4j-2.0.4/neo4j-spatial-0.12-neo4j-2.0.4-server-plugin.zip?raw=true)
+* [for Neo4j 2.1.2](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.13-neo4j-2.1.2/neo4j-spatial-0.13-neo4j-2.1.2-server-plugin.zip?raw=true)
 
 ~~~bash
     #install the plugin
@@ -276,7 +280,7 @@ Add the following repositories and dependency to your project's pom.xml:
     <dependency>
         <groupId>org.neo4j</groupId>
         <artifactId>neo4j-spatial</artifactId>
-        <version>0.12-neo4j-2.0.2</version>
+        <version>0.13-neo4j-2.1.2</version>
     </dependency>
 ~~~
 
