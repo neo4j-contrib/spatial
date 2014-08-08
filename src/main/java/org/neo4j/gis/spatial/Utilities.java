@@ -32,7 +32,7 @@ import org.geotools.filter.spatial.IntersectsImpl;
 import org.geotools.filter.spatial.OverlapsImpl;
 import org.geotools.filter.spatial.TouchesImpl;
 import org.geotools.filter.spatial.WithinImpl;
-import org.neo4j.collections.rtree.Envelope;
+import org.neo4j.gis.spatial.rtree.Envelope;
 import org.opengis.filter.Filter;
 
 import com.vividsolutions.jts.geom.Geometry;
@@ -61,12 +61,12 @@ public class Utilities {
 	/**
 	 * To create an optimized index search from a Filter we try to extract an Envelope from it.
 	 */
-	public static org.neo4j.collections.rtree.Envelope extractEnvelopeFromFilter(Filter filter) {
+	public static org.neo4j.gis.spatial.rtree.Envelope extractEnvelopeFromFilter(Filter filter) {
 		return extractEnvelopeFromFilter(filter, true);
 	}
 
 	@SuppressWarnings("rawtypes")
-	private static org.neo4j.collections.rtree.Envelope extractEnvelopeFromFilter(Filter filter, boolean inspectAndFilters) {
+	private static org.neo4j.gis.spatial.rtree.Envelope extractEnvelopeFromFilter(Filter filter, boolean inspectAndFilters) {
 		if (filter instanceof BBOXImpl) {
 			return extractEnvelopeFromBBox((BBOXImpl) filter);
 		} else if (filter instanceof IntersectsImpl ||

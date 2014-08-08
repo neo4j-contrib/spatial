@@ -19,7 +19,7 @@
  */
 package org.neo4j.gis.spatial.filter;
 
-import org.neo4j.collections.rtree.filter.AbstractSearchEnvelopeIntersection;
+import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.Utilities;
 import org.neo4j.graphdb.Node;
@@ -44,7 +44,7 @@ public class SearchIntersectWindow extends AbstractSearchEnvelopeIntersection {
 	}
 
 	@Override
-	protected boolean onEnvelopeIntersection(Node geomNode, org.neo4j.collections.rtree.Envelope geomEnvelope) {
+	protected boolean onEnvelopeIntersection(Node geomNode, org.neo4j.gis.spatial.rtree.Envelope geomEnvelope) {
 		Geometry geometry = layer.getGeometryEncoder().decodeGeometry(geomNode);
 		// The next line just calls the method that is causing exceptions on OSM data for testing
 		// TODO: Remove when OSM is working properly

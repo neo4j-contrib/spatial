@@ -21,7 +21,7 @@ package org.neo4j.gis.spatial;
 
 import java.io.PrintStream;
 
-import org.neo4j.collections.rtree.Listener;
+import org.neo4j.gis.spatial.rtree.Listener;
 
 
 /**

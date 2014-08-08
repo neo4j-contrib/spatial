@@ -32,8 +32,8 @@ import junit.framework.TestCase;
 
 import org.junit.After;
 import org.junit.Before;
-import org.neo4j.collections.rtree.RTreeIndex;
-import org.neo4j.collections.rtree.RTreeRelationshipTypes;
+import org.neo4j.gis.spatial.rtree.RTreeIndex;
+import org.neo4j.gis.spatial.rtree.RTreeRelationshipTypes;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;

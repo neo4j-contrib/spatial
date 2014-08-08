@@ -42,9 +42,9 @@ import junit.framework.TestSuite;
 
 import org.geotools.data.neo4j.StyledImageExporter;
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.neo4j.collections.graphdb.ReferenceNodes;
-import org.neo4j.collections.rtree.Envelope;
-import org.neo4j.collections.rtree.filter.SearchAll;
+import org.neo4j.gis.spatial.utilities.ReferenceNodes;
+import org.neo4j.gis.spatial.rtree.Envelope;
+import org.neo4j.gis.spatial.rtree.filter.SearchAll;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMLayer;
