@@ -26,13 +26,16 @@ import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.impl.CoordinateArraySequence;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.simplify.TopologyPreservingSimplifier;
+
 import junit.framework.TestCase;
+
 import org.geotools.data.shapefile.shp.ShapefileException;
 import org.junit.Test;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.kernel.AbstractGraphDatabase;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
@@ -43,6 +46,7 @@ import org.neo4j.unsafe.batchinsert.BatchInserterImpl;
 import org.neo4j.unsafe.batchinsert.BatchInserters;
 
 import javax.xml.stream.XMLStreamException;
+
 import java.io.*;
 import java.nio.charset.Charset;
 import java.util.*;
@@ -229,13 +233,16 @@ public class TestIntersectsPathQueries extends TestCase {
 		System.out.println("Searching for geometries near "+coordinates.size()+" locations: " + coordinates.get(0) + " ... "
 				+ coordinates.get(coordinates.size() - 1));
 		performance = new Performance("search points");
-		for (Coordinate coordinate: coordinates) {
-			List<Node> res = GeoPipeline.startNearestNeighborLatLonSearch(layer, coordinate, distanceInKm)
-					.sort("OrthodromicDistance").toNodeList();
-			results.addAll(res);
+		try (Transaction tx = graphDb.beginTx()) {
+			for (Coordinate coordinate : coordinates) {
+				List<Node> res = GeoPipeline.startNearestNeighborLatLonSearch(layer, coordinate, distanceInKm)
+						.sort("OrthodromicDistance").toNodeList();
+				results.addAll(res);
+			}
+			printResults(results);
+			performance.stop(results);
+			tx.success();
 		}
-		printResults(results);
-		performance.stop(results);
 		performances.put(performance.name,performance);
 		System.out.println("Point search took "+performance.duration()+" seconds to find "+results.size()+" results");
 
@@ -260,10 +267,13 @@ public class TestIntersectsPathQueries extends TestCase {
 			Geometry geometry = entry.getValue();
 			System.out.println("Searching for geometries near Geometry: " + gname);
 			performance = new Performance(gname);
-			List<Node> res = runSearch(GeoPipeline.startIntersectSearch(layer, geometry), true);
-			performance.stop(res);
-			performances.put(performance.name,performance);
-			System.out.println("Geometry search took " + performance.duration() + " seconds to find " + res.size() + " results");
+			try (Transaction tx = graphDb.beginTx()) {
+				List<Node> res = runSearch(GeoPipeline.startIntersectSearch(layer, geometry), true);
+				performance.stop(res);
+				performances.put(performance.name,performance);
+				System.out.println("Geometry search took " + performance.duration() + " seconds to find " + res.size() + " results");
+				tx.success();
+			}
 		}
 
 		// Print summary of results

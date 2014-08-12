@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.neo4j.gis.spatial.utilities.ReferenceNodes;
 import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.encoders.Configurable;
@@ -92,14 +93,18 @@ public class SpatialDatabaseService implements Constants {
     public String[] getLayerNames() {
 		List<String> names = new ArrayList<String>();
 		
-		for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
-            Layer layer = DefaultLayer.makeLayerFromNode(this, relationship.getEndNode());
-            if (layer instanceof DynamicLayer) {
-            	names.addAll(((DynamicLayer)layer).getLayerNames());
-            } else {
-            	names.add(layer.getName());
-            }
-        }
+		try (Transaction tx = getDatabase().beginTx()) {
+			for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER,
+					Direction.OUTGOING)) {
+				Layer layer = DefaultLayer.makeLayerFromNode(this, relationship.getEndNode());
+				if (layer instanceof DynamicLayer) {
+					names.addAll(((DynamicLayer) layer).getLayerNames());
+				} else {
+					names.add(layer.getName());
+				}
+			}
+			tx.success();
+		}
         
 		return names.toArray(new String[names.size()]);
 	}

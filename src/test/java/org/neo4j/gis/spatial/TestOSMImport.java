@@ -21,8 +21,10 @@ package org.neo4j.gis.spatial;
 
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
+
 import junit.framework.Test;
 import junit.framework.TestSuite;
+
 import org.geotools.data.DataStore;
 import org.geotools.data.neo4j.Neo4jSpatialDataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
@@ -186,12 +188,18 @@ public class TestOSMImport extends Neo4jTestCase {
         if (layer.getIndex().count() < 1) {
             System.out.println("Warning: index count zero: " + layer.getName());
         }
-        System.out.println("Layer '" + layer.getName() + "' has " + layer.getIndex().count() + " entries in the index");
-        DataStore store = new Neo4jSpatialDataStore(layer.getSpatialDatabase().getDatabase());
-        SimpleFeatureCollection features = store.getFeatureSource(layer.getName()).getFeatures();
-        System.out.println("Layer '" + layer.getName() + "' has " + features.size() + " features");
-        assertEquals("FeatureCollection.size for layer '" + layer.getName() + "' not the same as index count", layer.getIndex()
-                .count(), features.size());
+		System.out.println("Layer '" + layer.getName() + "' has " + layer.getIndex().count() + " entries in the index");
+		GraphDatabaseService graphDb = layer.getSpatialDatabase().getDatabase();
+		DataStore store = new Neo4jSpatialDataStore(graphDb);
+		try (Transaction tx = graphDb.beginTx()) {
+			SimpleFeatureCollection features = store.getFeatureSource(layer.getName()).getFeatures();
+			int featuresSize = features.size();
+			int indexCount = layer.getIndex().count();
+			System.out.println("Layer '" + layer.getName() + "' has " + featuresSize + " features");
+			assertEquals("FeatureCollection.size for layer '" + layer.getName() + "' not the same as index count",
+					indexCount, featuresSize);
+			tx.success();
+		}
     }
 
     public static void checkChangesetsAndUsers(OSMLayer layer) {
