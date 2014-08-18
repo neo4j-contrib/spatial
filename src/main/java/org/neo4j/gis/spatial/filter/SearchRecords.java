@@ -25,6 +25,7 @@ import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 
 public class SearchRecords implements Iterable<SpatialDatabaseRecord>, Iterator<SpatialDatabaseRecord> {
 	
@@ -34,8 +35,10 @@ public class SearchRecords implements Iterable<SpatialDatabaseRecord>, Iterator<
 
 	public SearchRecords(Layer layer, SearchResults results) {
 		this.layer = layer;
-		this.results = results;
-		nodeIterator = results.iterator();
+		try (Transaction tx = this.layer.getSpatialDatabase().getDatabase().beginTx()) {
+			this.results = results;
+			nodeIterator = results.iterator();
+		}
 	}
 
 	@Override
@@ -45,7 +48,9 @@ public class SearchRecords implements Iterable<SpatialDatabaseRecord>, Iterator<
 
 	@Override
 	public boolean hasNext() {
-		return nodeIterator.hasNext();
+		try (Transaction tx = layer.getSpatialDatabase().getDatabase().beginTx()) {
+			return nodeIterator.hasNext();
+		}
 	}
 
 	@Override
