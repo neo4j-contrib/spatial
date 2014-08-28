@@ -37,12 +37,9 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-import org.neo4j.kernel.AbstractGraphDatabase;
-import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.GraphDatabaseAPI;
 import org.neo4j.kernel.impl.core.NodeManager;
 import org.neo4j.unsafe.batchinsert.BatchInserter;
-import org.neo4j.unsafe.batchinsert.BatchInserterImpl;
 import org.neo4j.unsafe.batchinsert.BatchInserters;
 
 import javax.xml.stream.XMLStreamException;
@@ -81,7 +78,6 @@ public class TestIntersectsPathQueries extends TestCase {
 		String dbPath = "target/massachusetts.highway.db";
 		String layerName = "massachusetts";
 		String tracePath = "albert/locations_input.txt";
-		File osmFile = new File(osmPath);
 		File dbDir = new File(dbPath);
 		if(dbDir.exists() && dbDir.isDirectory()) {
 			System.out.println("Found database["+dbPath+"]  - running test directly on existing database");
@@ -224,6 +220,7 @@ public class TestIntersectsPathQueries extends TestCase {
 				coordinates.add(new Coordinate(longitude,latitude));
 			}
 		}
+		locations.close();
 		performance.stop(coordinates.size());
 		performances.put(performance.name,performance);
 

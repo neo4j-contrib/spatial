@@ -40,7 +40,6 @@ import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.kernel.impl.core.NodeProxy;
 import org.neo4j.test.ImpermanentGraphDatabase;
 
-import javax.script.*;
 import java.util.*;
 
 import static org.junit.Assert.*;
