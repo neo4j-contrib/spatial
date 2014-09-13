@@ -93,10 +93,21 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
     }   
     
     public CoordinateReferenceSystem getCoordinateReferenceSystem() {
+        boolean hasProp = false;
         Node layerNode = getLayerNode();
-        if (layerNode.hasProperty(PROP_CRS)) {
+        Object property = null;
+
+        try (Transaction tx = getDatabase().beginTx()) {
+            hasProp = layerNode.hasProperty(PROP_CRS);
+            if (hasProp) {
+                property = layerNode.getProperty(PROP_CRS);
+            }
+            tx.success();
+        }
+
+        if (hasProp) {
             try {
-                return ReferencingFactoryFinder.getCRSFactory(null).createFromWKT((String) layerNode.getProperty(PROP_CRS));
+                return ReferencingFactoryFinder.getCRSFactory(null).createFromWKT((String) property);
             } catch (FactoryRegistryException e) {
                 throw new SpatialDatabaseException(e);
             } catch (FactoryException e) {
@@ -121,16 +132,39 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
     }
     
     public Integer getGeometryType() {
-        Node layerNode = getLayerNode();
-        if (layerNode.hasProperty(PROP_TYPE)) {
-            return (Integer) layerNode.getProperty(PROP_TYPE);
-        } else {
-            GuessGeometryTypeSearch geomTypeSearch = new GuessGeometryTypeSearch();
-            index.searchIndex(geomTypeSearch).count();
-	    
-	    // returns null for an empty layer!
-	    return geomTypeSearch.firstFoundType;
+        Node layerNode;
+        Object property = null;
+
+        try (Transaction tx = getDatabase().beginTx()) {
+            boolean hasProp = false;
+
+            layerNode = getLayerNode();
+            hasProp = layerNode.hasProperty(PROP_TYPE);
+
+            if (hasProp) {
+                property = layerNode.getProperty(PROP_TYPE);
+            }
+
+            tx.success();
+
         }
+
+        if (property != null) {
+            return (Integer) property;
+        }
+        else {
+
+            GuessGeometryTypeSearch geomTypeSearch = new GuessGeometryTypeSearch();
+            try (Transaction tx = getDatabase().beginTx()) {
+                index.searchIndex(geomTypeSearch).count();
+                tx.success();
+            }
+
+            // returns null for an empty layer!
+            return geomTypeSearch.firstFoundType;
+
+        }
+
     }
 
     private static class GuessGeometryTypeSearch implements SearchFilter {
@@ -153,12 +187,23 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
     }
 
     public String[] getExtraPropertyNames() {
-        Node layerNode = getLayerNode();
-        if (layerNode.hasProperty(PROP_LAYERNODEEXTRAPROPS)) {
-            return (String[]) layerNode.getProperty(PROP_LAYERNODEEXTRAPROPS);
-        } else {
-            return new String[] {};
+        boolean hasExtraProps = false;
+        Node layerNode;
+        String[] props = {};
+
+        try (Transaction tx = getDatabase().beginTx()) {
+            layerNode = getLayerNode();
+            hasExtraProps = layerNode.hasProperty(PROP_LAYERNODEEXTRAPROPS);
+
+            if (hasExtraProps) {
+                props = (String[]) layerNode.getProperty(PROP_LAYERNODEEXTRAPROPS);
+            }
+
+            tx.success();
         }
+
+        return props;
+
     }
     
     public void setExtraPropertyNames(String[] names) {

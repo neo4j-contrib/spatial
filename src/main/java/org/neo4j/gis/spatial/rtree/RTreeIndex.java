@@ -221,8 +221,13 @@ public class RTreeIndex implements SpatialIndexWriter {
 
 	@Override
 	public boolean isEmpty() {
-		Node indexRoot = getIndexRoot();
-		return !indexRoot.hasProperty(PROP_BBOX);
+
+        try (Transaction tx = database.beginTx()) {  
+            Node indexRoot = getIndexRoot();
+            tx.success();
+			return !indexRoot.hasProperty(PROP_BBOX);
+        }
+
 	}
 	
 	@Override
@@ -287,8 +292,12 @@ public class RTreeIndex implements SpatialIndexWriter {
 	public SearchResults searchIndex(SearchFilter filter) {
 		// TODO: Refactor to new traversal API
 		SearchEvaluator searchEvaluator = new SearchEvaluator(filter);
-		return new SearchResults(getIndexRoot().traverse(Order.DEPTH_FIRST, searchEvaluator, searchEvaluator,
+		try (Transaction tx = database.beginTx()) {
+			SearchResults results = new SearchResults(getIndexRoot().traverse(Order.DEPTH_FIRST, searchEvaluator, searchEvaluator,
 				RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING, RTreeRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING));
+            tx.success();
+            return results;
+        }
 	}
 
 	public void visit(SpatialIndexVisitor visitor, Node indexNode) {
@@ -310,7 +319,11 @@ public class RTreeIndex implements SpatialIndexWriter {
 	}
 	
 	public Node getIndexRoot() {
-        return getRootNode().getSingleRelationship(RTreeRelationshipTypes.RTREE_ROOT, Direction.OUTGOING).getEndNode();
+        try (Transaction tx = database.beginTx()) {
+            Node endNode = getRootNode().getSingleRelationship(RTreeRelationshipTypes.RTREE_ROOT, Direction.OUTGOING).getEndNode();
+            tx.success();
+            return endNode;
+        }
 	}
 	
 		

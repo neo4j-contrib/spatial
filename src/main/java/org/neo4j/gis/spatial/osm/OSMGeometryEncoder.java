@@ -38,6 +38,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.PropertyContainer;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 
 import com.vividsolutions.jts.algorithm.ConvexHull;
@@ -131,7 +132,13 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	}
 	
 	public static Node getOSMNodeFromGeometryNode(Node geomNode) {
-		return geomNode.getSingleRelationship(OSMRelation.GEOM, Direction.INCOMING).getStartNode();
+		Node osmNode;
+
+		try (Transaction tx = geomNode.getGraphDatabase().beginTx()) {
+			osmNode = geomNode.getSingleRelationship(OSMRelation.GEOM, Direction.INCOMING).getStartNode();
+			tx.success();
+			return osmNode;
+		}
 	}
 
 	public static Node getGeometryNodeFromOSMNode(Node osmNode) {
@@ -180,22 +187,29 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 
 	public Geometry decodeGeometry(PropertyContainer container) {
 		Node geomNode = testIsNode(container);
-		try {
-			GeometryFactory geomFactory = layer.getGeometryFactory();
-			Node osmNode = getOSMNodeFromGeometryNode(geomNode);
-			if (osmNode.hasProperty("node_osm_id")) {
-				return geomFactory.createPoint(new Coordinate((Double) osmNode.getProperty("lon", 0.0), (Double) osmNode
-						.getProperty("lat", 0.0)));
-			} else if (osmNode.hasProperty("way_osm_id")) {
-				int vertices = (Integer) geomNode.getProperty("vertices");
-				int gtype = (Integer) geomNode.getProperty(PROP_TYPE);
-				return decodeGeometryFromWay(osmNode, gtype, vertices, geomFactory);
-			} else {
-				int gtype = (Integer) geomNode.getProperty(PROP_TYPE);
-				return decodeGeometryFromRelation(osmNode, gtype, geomFactory);
+
+		try (Transaction tx = geomNode.getGraphDatabase().beginTx()) {
+			try {
+				GeometryFactory geomFactory = layer.getGeometryFactory();
+				Node osmNode = getOSMNodeFromGeometryNode(geomNode);
+				if (osmNode.hasProperty("node_osm_id")) {
+					Geometry point;
+					point = geomFactory.createPoint(new Coordinate((Double) osmNode.getProperty("lon", 0.0), (Double) osmNode.getProperty("lat", 0.0)));
+					tx.success();
+					return point;
+				} else if (osmNode.hasProperty("way_osm_id")) {
+					int vertices = (Integer) geomNode.getProperty("vertices");
+					int gtype = (Integer) geomNode.getProperty(PROP_TYPE);
+					tx.success();
+					return decodeGeometryFromWay(osmNode, gtype, vertices, geomFactory);
+				} else {
+					int gtype = (Integer) geomNode.getProperty(PROP_TYPE);
+					tx.success();
+					return decodeGeometryFromRelation(osmNode, gtype, geomFactory);
+				}
+			} catch (Exception e) {
+				throw new OSMGraphException("Failed to decode OSM geometry: " + e.getMessage(), e);
 			}
-		} catch (Exception e) {
-			throw new OSMGraphException("Failed to decode OSM geometry: " + e.getMessage(), e);
 		}
 	}
 
@@ -509,7 +523,12 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	 * @return
 	 */
 	public boolean hasAttribute(Node geomNode, String name) {
-		return getProperties(geomNode).hasProperty(name);
+		try (Transaction tx = geomNode.getGraphDatabase().beginTx()) {
+			boolean hasAttr;
+			hasAttr = getProperties(geomNode).hasProperty(name);
+			tx.success();
+			return hasAttr;
+		}
 	}
 
 	/**
@@ -524,7 +543,12 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	 * @return attribute, or null
 	 */
 	public Object getAttribute(Node geomNode, String name) {
-		return getProperties(geomNode).getProperty(name);
+		try (Transaction tx = geomNode.getGraphDatabase().beginTx()) {
+			Object property;
+			property = getProperties(geomNode).getProperty(name);
+			tx.success();
+			return property;
+		}
 	}
 
 	public enum OSMId {
