@@ -132,8 +132,12 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	}
 	
 	public static Node getOSMNodeFromGeometryNode(Node geomNode) {
+		Node osmNode;
+
 		try (Transaction tx = geomNode.getGraphDatabase().beginTx()) {
-			return geomNode.getSingleRelationship(OSMRelation.GEOM, Direction.INCOMING).getStartNode();
+			osmNode = geomNode.getSingleRelationship(OSMRelation.GEOM, Direction.INCOMING).getStartNode();
+			tx.success();
+			return osmNode;
 		}
 	}
 
@@ -189,14 +193,18 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 				GeometryFactory geomFactory = layer.getGeometryFactory();
 				Node osmNode = getOSMNodeFromGeometryNode(geomNode);
 				if (osmNode.hasProperty("node_osm_id")) {
-					return geomFactory.createPoint(new Coordinate((Double) osmNode.getProperty("lon", 0.0), (Double) osmNode
-							.getProperty("lat", 0.0)));
+					Geometry point;
+					point = geomFactory.createPoint(new Coordinate((Double) osmNode.getProperty("lon", 0.0), (Double) osmNode.getProperty("lat", 0.0)));
+					tx.success();
+					return point;
 				} else if (osmNode.hasProperty("way_osm_id")) {
 					int vertices = (Integer) geomNode.getProperty("vertices");
 					int gtype = (Integer) geomNode.getProperty(PROP_TYPE);
+					tx.success();
 					return decodeGeometryFromWay(osmNode, gtype, vertices, geomFactory);
 				} else {
 					int gtype = (Integer) geomNode.getProperty(PROP_TYPE);
+					tx.success();
 					return decodeGeometryFromRelation(osmNode, gtype, geomFactory);
 				}
 			} catch (Exception e) {
@@ -516,8 +524,12 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	 */
 	public boolean hasAttribute(Node geomNode, String name) {
 		try (Transaction tx = geomNode.getGraphDatabase().beginTx()) {
-			return getProperties(geomNode).hasProperty(name);
-		}	}
+			boolean hasAttr;
+			hasAttr = getProperties(geomNode).hasProperty(name);
+			tx.success();
+			return hasAttr;
+		}
+	}
 
 	/**
 	 * This method wraps the getProperty(String,null) method on the geometry
@@ -532,7 +544,10 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	 */
 	public Object getAttribute(Node geomNode, String name) {
 		try (Transaction tx = geomNode.getGraphDatabase().beginTx()) {
-			return getProperties(geomNode).getProperty(name);
+			Object property;
+			property = getProperties(geomNode).getProperty(name);
+			tx.success();
+			return property;
 		}
 	}
 

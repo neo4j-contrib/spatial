@@ -221,11 +221,13 @@ public class RTreeIndex implements SpatialIndexWriter {
 
 	@Override
 	public boolean isEmpty() {
-		try (Transaction tx = database.beginTx()) {
+
+        try (Transaction tx = database.beginTx()) {  
             Node indexRoot = getIndexRoot();
             tx.success();
 			return !indexRoot.hasProperty(PROP_BBOX);
         }
+
 	}
 	
 	@Override
@@ -291,9 +293,11 @@ public class RTreeIndex implements SpatialIndexWriter {
 		// TODO: Refactor to new traversal API
 		SearchEvaluator searchEvaluator = new SearchEvaluator(filter);
 		try (Transaction tx = database.beginTx()) {
-			return new SearchResults(getIndexRoot().traverse(Order.DEPTH_FIRST, searchEvaluator, searchEvaluator,
+			SearchResults results = new SearchResults(getIndexRoot().traverse(Order.DEPTH_FIRST, searchEvaluator, searchEvaluator,
 				RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING, RTreeRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING));
-		}
+            tx.success();
+            return results;
+        }
 	}
 
 	public void visit(SpatialIndexVisitor visitor, Node indexNode) {
