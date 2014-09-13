@@ -157,6 +157,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
             GuessGeometryTypeSearch geomTypeSearch = new GuessGeometryTypeSearch();
             try (Transaction tx = getDatabase().beginTx()) {
                 index.searchIndex(geomTypeSearch).count();
+                tx.success();
             }
 
             // returns null for an empty layer!

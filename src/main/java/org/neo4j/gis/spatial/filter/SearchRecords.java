@@ -38,6 +38,7 @@ public class SearchRecords implements Iterable<SpatialDatabaseRecord>, Iterator<
 		try (Transaction tx = this.layer.getSpatialDatabase().getDatabase().beginTx()) {
 			this.results = results;
 			nodeIterator = results.iterator();
+			tx.success();
 		}
 	}
 
@@ -49,7 +50,10 @@ public class SearchRecords implements Iterable<SpatialDatabaseRecord>, Iterator<
 	@Override
 	public boolean hasNext() {
 		try (Transaction tx = layer.getSpatialDatabase().getDatabase().beginTx()) {
-			return nodeIterator.hasNext();
+			boolean hasNext;
+			hasNext = nodeIterator.hasNext();
+			tx.success();
+			return hasNext;
 		}
 	}
 
