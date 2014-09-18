@@ -71,6 +71,7 @@ public class ShapefileExporter {
 	}
 
 	public File exportLayer(String layerName, File file) throws Exception {
+		try (Transaction tx = neo4jDataStore.beginTx()) {
             file = checkFile(file);
             ShapefileDataStoreFactory factory = new ShapefileDataStoreFactory();
             Map<String, Serializable> create = new HashMap<String, Serializable>();
@@ -94,6 +95,8 @@ public class ShapefileExporter {
             } else if (file.length() < 10) {
                 throw new Exception("Shapefile was unexpectedly small, only " + file.length() + " bytes: " + file);
             }
+            tx.success();
             return file;
+		}
 	}
 }
