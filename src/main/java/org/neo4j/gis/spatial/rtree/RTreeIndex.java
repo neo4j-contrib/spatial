@@ -20,7 +20,6 @@
 package org.neo4j.gis.spatial.rtree;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
 
@@ -42,6 +41,8 @@ import org.neo4j.graphdb.Traverser.Order;
  * 
  */
 public class RTreeIndex implements SpatialIndexWriter {
+	
+	public static final String INDEX_PROP_BBOX = "bbox_xx";
 
 	// Constructor
 	
@@ -222,7 +223,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 	@Override
 	public boolean isEmpty() {
 		Node indexRoot = getIndexRoot();
-		return !indexRoot.hasProperty(PROP_BBOX);
+		return !indexRoot.hasProperty(INDEX_PROP_BBOX);
 	}
 	
 	@Override
@@ -286,31 +287,46 @@ public class RTreeIndex implements SpatialIndexWriter {
 
 	public SearchResults searchIndex(SearchFilter filter) {
 		// TODO: Refactor to new traversal API
-		SearchEvaluator searchEvaluator = new SearchEvaluator(filter);
-		return new SearchResults(getIndexRoot().traverse(Order.DEPTH_FIRST, searchEvaluator, searchEvaluator,
-				RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING, RTreeRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING));
+		try (Transaction tx = database.beginTx()) {
+			SearchEvaluator searchEvaluator = new SearchEvaluator(filter);
+			SearchResults results = new SearchResults(getIndexRoot().traverse(Order.DEPTH_FIRST, searchEvaluator,
+					searchEvaluator, RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING,
+					RTreeRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING));
+			tx.success();
+			return results;
+		}
 	}
 
 	public void visit(SpatialIndexVisitor visitor, Node indexNode) {
 		if (!visitor.needsToVisit(getIndexNodeEnvelope(indexNode))) return;
 		
-		if (indexNode.hasRelationship(RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
-			// Node is not a leaf
-			for (Relationship rel : indexNode.getRelationships(RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
-				Node child = rel.getEndNode();
-				// collect children results
-				visit(visitor, child);
+		try (Transaction tx = database.beginTx()) {
+			if (indexNode.hasRelationship(RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
+				// Node is not a leaf
+				for (Relationship rel : indexNode.getRelationships(RTreeRelationshipTypes.RTREE_CHILD,
+						Direction.OUTGOING)) {
+					Node child = rel.getEndNode();
+					// collect children results
+					visit(visitor, child);
+				}
+			} else if (indexNode.hasRelationship(RTreeRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)) {
+				// Node is a leaf
+				for (Relationship rel : indexNode.getRelationships(RTreeRelationshipTypes.RTREE_REFERENCE,
+						Direction.OUTGOING)) {
+					visitor.onIndexReference(rel.getEndNode());
+				}
 			}
-		} else if (indexNode.hasRelationship(RTreeRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)) {
-			// Node is a leaf
-			for (Relationship rel : indexNode.getRelationships(RTreeRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)) {
-				visitor.onIndexReference(rel.getEndNode());
-			}
+			tx.success();
 		}
 	}
 	
 	public Node getIndexRoot() {
-        return getRootNode().getSingleRelationship(RTreeRelationshipTypes.RTREE_ROOT, Direction.OUTGOING).getEndNode();
+		try (Transaction tx = database.beginTx()) {
+			Node indexRoot = getRootNode().getSingleRelationship(RTreeRelationshipTypes.RTREE_ROOT, Direction.OUTGOING)
+					.getEndNode();
+			tx.success();
+			return indexRoot;
+		}
 	}
 	
 		
@@ -339,14 +355,18 @@ public class RTreeIndex implements SpatialIndexWriter {
 	 */
 	protected Envelope getIndexNodeEnvelope(Node indexNode) {
 		if (indexNode == null) indexNode = getIndexRoot();
-		if (!indexNode.hasProperty(PROP_BBOX)) {
-			// this is ok after an index node split
-			return null;
+		try (Transaction tx = database.beginTx()) {
+			if (!indexNode.hasProperty(INDEX_PROP_BBOX)) {
+				// this is ok after an index node split
+				tx.success();
+				return null;
+			}
+
+			double[] bbox = (double[]) indexNode.getProperty(INDEX_PROP_BBOX);
+			tx.success();
+			// Envelope parameters: xmin, xmax, ymin, ymax
+			return new Envelope(bbox[0], bbox[2], bbox[1], bbox[3]);
 		}
-		
-		double[] bbox = (double[]) indexNode.getProperty(PROP_BBOX);
-    	// Envelope parameters: xmin, xmax, ymin, ymax
-        return new Envelope(bbox[0], bbox[2], bbox[1], bbox[3]);
 	}
 		
 	private void visitInTx(SpatialIndexVisitor visitor, Long indexNodeId) {
@@ -539,7 +559,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 			// if indexNode is the root
 			createNewRoot(indexNode, newIndexNode);
 		} else {
-			expandParentBoundingBoxAfterNewChild(parent, (double[]) indexNode.getProperty(PROP_BBOX));
+			expandParentBoundingBoxAfterNewChild(parent, (double[]) indexNode.getProperty(INDEX_PROP_BBOX));
 			
 			addChild(parent, RTreeRelationshipTypes.RTREE_CHILD, newIndexNode);
 
@@ -635,7 +655,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 		}
 		
 		// reset bounding box and add new children
-		indexNode.removeProperty(PROP_BBOX);
+		indexNode.removeProperty(INDEX_PROP_BBOX);
 		for (Node node : group1) {
 			addChild(indexNode, relationshipType, node);
 		}
@@ -685,8 +705,8 @@ public class RTreeIndex implements SpatialIndexWriter {
 	 */
 	private boolean adjustParentBoundingBox(Node indexNode, RelationshipType relationshipType) {
 		double[] old = null;
-		if (indexNode.hasProperty(PROP_BBOX)) {
-			old = (double[]) indexNode.getProperty(PROP_BBOX);
+		if (indexNode.hasProperty(INDEX_PROP_BBOX)) {
+			old = (double[]) indexNode.getProperty(INDEX_PROP_BBOX);
 		}
  		
 		Envelope bbox = null;
@@ -713,7 +733,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 			bbox.getMaxX() != old[2] ||
 			bbox.getMaxY() != old[3]) 
 		{
-			indexNode.setProperty(PROP_BBOX, new double[] { bbox.getMinX(), bbox.getMinY(), bbox.getMaxX(), bbox.getMaxY() });
+			indexNode.setProperty(INDEX_PROP_BBOX, new double[] { bbox.getMinX(), bbox.getMinY(), bbox.getMaxX(), bbox.getMaxY() });
 			return true;
 		} else {
 			return false;
@@ -727,12 +747,12 @@ public class RTreeIndex implements SpatialIndexWriter {
 	 * @return is bbox changed?
 	 */
 	private boolean expandParentBoundingBoxAfterNewChild(Node parent, double[] childBBox) {
-		if (!parent.hasProperty(PROP_BBOX)) {
-			parent.setProperty(PROP_BBOX, new double[] { childBBox[0], childBBox[1], childBBox[2], childBBox[3] });
+		if (!parent.hasProperty(INDEX_PROP_BBOX)) {
+			parent.setProperty(INDEX_PROP_BBOX, new double[] { childBBox[0], childBBox[1], childBBox[2], childBBox[3] });
 			return true;
 		}
 		
-		double[] parentBBox = (double[]) parent.getProperty(PROP_BBOX);
+		double[] parentBBox = (double[]) parent.getProperty(INDEX_PROP_BBOX);
 		
 		boolean valueChanged = setMin(parentBBox, childBBox, 0);
 		valueChanged = setMin(parentBBox, childBBox, 1) || valueChanged;
@@ -740,7 +760,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 		valueChanged = setMax(parentBBox, childBBox, 3) || valueChanged;
 		
 		if (valueChanged) {
-			parent.setProperty(PROP_BBOX, parentBBox);
+			parent.setProperty(INDEX_PROP_BBOX, parentBBox);
 		}
 		
 		return valueChanged;
@@ -854,9 +874,6 @@ public class RTreeIndex implements SpatialIndexWriter {
 	private Node metadataNode;
 	private int totalGeometryCount = 0;
 	private boolean countSaved = false;	
-	
-	public static final String PROP_BBOX = "bbox";
-	
 	
 	// Private classes
 

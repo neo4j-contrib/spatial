@@ -168,49 +168,45 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
             assertEquals(layers.size() + 1, osmLayer.getLayerNames().size());
             tx.success();
         }
-        try (Transaction tx = graphDb().beginTx()) {
-            // Now export the layers to files
-            // First prepare the SHP and PNG exporters
-            ShapefileExporter shpExporter = new ShapefileExporter(graphDb());
-            shpExporter.setExportDir("target/export/" + osmFile);
-            StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
-            imageExporter.setExportDir("target/export/" + osmFile);
-            imageExporter.setZoom(3.0);
-            imageExporter.setOffset(-0.05, -0.05);
-            imageExporter.setSize(1024, 768);
-            // imageExporter.saveLayerImage("highway", null);
-            // imageExporter.saveLayerImage(osmLayer.getName(), "neo.sld.xml");
+		// Now export the layers to files
+		// First prepare the SHP and PNG exporters
+		ShapefileExporter shpExporter = new ShapefileExporter(graphDb());
+		shpExporter.setExportDir("target/export/" + osmFile);
+		StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
+		imageExporter.setExportDir("target/export/" + osmFile);
+		imageExporter.setZoom(3.0);
+		imageExporter.setOffset(-0.05, -0.05);
+		imageExporter.setSize(1024, 768);
+		// imageExporter.saveLayerImage("highway", null);
+		// imageExporter.saveLayerImage(osmLayer.getName(), "neo.sld.xml");
 
-            // Now loop through all dynamic layers and export them to shapefiles,
-            // where possible. Layers will multiple geometries cannot be exported
-            // and we take note of how many times that happens
-            int countMultiGeometryLayers = 0;
-            int countMultiGeometryExceptions = 0;
-            for (Layer layer : layers) {
-                // for (Layer layer : new Layer[] {}) {
-                if (layer.getGeometryType() == GTYPE_GEOMETRY) {
-                    countMultiGeometryLayers++;
-                }
-                checkIndexAndFeatureCount(layer);
-                try {
-                    imageExporter.saveLayerImage(layer.getName(), null);
-                    shpExporter.exportLayer(layer.getName());
-                } catch (Exception e) {
-                    if (e instanceof DataSourceException && e.getMessage().contains("geom.Geometry")) {
-                        System.out.println("Got geometry exception on layer with geometry["
-                                + SpatialDatabaseService.convertGeometryTypeToName(layer.getGeometryType()) + "]: " + e.getMessage());
-                        countMultiGeometryExceptions++;
-                    } else {
-                        throw e;
-                    }
-                }
-            }
-            assertEquals("Mismatching number of data source exceptions and raw geometry layers", countMultiGeometryLayers,
-                    countMultiGeometryExceptions);
-            tx.success();
-        } catch (Exception e) {
-            throw e;
-        }
+		// Now loop through all dynamic layers and export them to shapefiles,
+		// where possible. Layers will multiple geometries cannot be exported
+		// and we take note of how many times that happens
+		int countMultiGeometryLayers = 0;
+		int countMultiGeometryExceptions = 0;
+		for (Layer layer : layers) {
+			// for (Layer layer : new Layer[] {}) {
+			if (layer.getGeometryType() == GTYPE_GEOMETRY) {
+				countMultiGeometryLayers++;
+			}
+			checkIndexAndFeatureCount(layer);
+			try {
+				imageExporter.saveLayerImage(layer.getName(), null);
+				shpExporter.exportLayer(layer.getName());
+			} catch (Exception e) {
+				if (e instanceof DataSourceException && e.getMessage().contains("geom.Geometry")) {
+					System.out.println("Got geometry exception on layer with geometry["
+							+ SpatialDatabaseService.convertGeometryTypeToName(layer.getGeometryType()) + "]: "
+							+ e.getMessage());
+					countMultiGeometryExceptions++;
+				} else {
+					throw e;
+				}
+			}
+		}
+		assertEquals("Mismatching number of data source exceptions and raw geometry layers", countMultiGeometryLayers,
+				countMultiGeometryExceptions);
 	}
 
 	private Envelope scale(Envelope bbox, double fraction) {
@@ -239,10 +235,13 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		}
 		System.out.println("Layer '" + layer.getName() + "' has " + layer.getIndex().count() + " entries in the index");
 		DataStore store = new Neo4jSpatialDataStore(graphDb());
-		SimpleFeatureCollection features = store.getFeatureSource(layer.getName()).getFeatures();
-		System.out.println("Layer '" + layer.getName() + "' has " + features.size() + " features");
-		assertEquals("FeatureCollection.size for layer '" + layer.getName() + "' not the same as index count", layer.getIndex()
-				.count(), features.size());
+		try (Transaction tx = graphDb().beginTx()) {
+			SimpleFeatureCollection features = store.getFeatureSource(layer.getName()).getFeatures();
+			System.out.println("Layer '" + layer.getName() + "' has " + features.size() + " features");
+			assertEquals("FeatureCollection.size for layer '" + layer.getName() + "' not the same as index count",
+					layer.getIndex().count(), features.size());
+			tx.success();
+		}
 	}
 
 	private void loadTestOsmData(String layerName, int commitInterval) throws Exception {

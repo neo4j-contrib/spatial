@@ -165,8 +165,8 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		GraphDatabaseService db = graphDb();
 		SpatialDatabaseService sdb = new SpatialDatabaseService(db);
 		double x_offset = 1.0, y_offset = 1.0;
-		SimplePointLayer layerA = sdb.createSimplePointLayer("my-points-A", "xa", "ya");
-		SimplePointLayer layerB = sdb.createSimplePointLayer("my-points-B", "xb", "yb");
+		SimplePointLayer layerA = sdb.createSimplePointLayer("my-points-A", "xa", "ya", "bbox_a");
+		SimplePointLayer layerB = sdb.createSimplePointLayer("my-points-B", "xb", "yb", "bbox_b");
 
 		Coordinate[] coords = makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt", testOrigin);
 		try (Transaction tx = db.beginTx()) {

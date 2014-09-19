@@ -154,11 +154,16 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 
     public String[] getExtraPropertyNames() {
         Node layerNode = getLayerNode();
-        if (layerNode.hasProperty(PROP_LAYERNODEEXTRAPROPS)) {
-            return (String[]) layerNode.getProperty(PROP_LAYERNODEEXTRAPROPS);
-        } else {
-            return new String[] {};
-        }
+		try (Transaction tx = layerNode.getGraphDatabase().beginTx()) {
+			String[] extraPropertyNames;
+			if (layerNode.hasProperty(PROP_LAYERNODEEXTRAPROPS)) {
+				extraPropertyNames = (String[]) layerNode.getProperty(PROP_LAYERNODEEXTRAPROPS);
+			} else {
+				extraPropertyNames = new String[] {};
+			}
+			tx.success();
+			return extraPropertyNames;
+		}
     }
     
     public void setExtraPropertyNames(String[] names) {

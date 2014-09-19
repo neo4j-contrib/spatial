@@ -120,14 +120,14 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	@Override
 	public Envelope decodeEnvelope(PropertyContainer container) {
 		Node geomNode = testIsNode(container);
-		double[] bbox = (double[]) geomNode.getProperty("bbox");
+		double[] bbox = (double[]) geomNode.getProperty(PROP_BBOX);
 		// double xmin, double xmax, double ymin, double ymax
 		return new Envelope(bbox[0], bbox[1], bbox[2], bbox[3]);
 	}
 
 	@Override
 	public void encodeEnvelope(Envelope mbb, PropertyContainer container) {
-		container.setProperty(RTreeIndex.PROP_BBOX, new double[] { mbb.getMinX(), mbb.getMaxX(), mbb.getMinY(), mbb.getMaxY() });
+		container.setProperty(PROP_BBOX, new double[] { mbb.getMinX(), mbb.getMaxX(), mbb.getMinY(), mbb.getMaxY() });
 	}
 	
 	public static Node getOSMNodeFromGeometryNode(Node geomNode) {

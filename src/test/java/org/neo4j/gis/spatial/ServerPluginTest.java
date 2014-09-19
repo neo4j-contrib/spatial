@@ -109,7 +109,7 @@ public class ServerPluginTest extends Neo4jTestCase {
             point = graphDb().createNode();
             point.setProperty(LAT, 60.1);
             point.setProperty(LON, 15.2);
-            point.setProperty("bbox", new double[] { 15.2, 60.1, 15.2, 60.1 });
+            point.setProperty(Constants.PROP_BBOX, new double[] { 15.2, 60.1, 15.2, 60.1 });
             tx.success();
         }
 		plugin.addNodeToLayer(graphDb(), point, LAYER);
