@@ -164,7 +164,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 	public void testIndexingExistingPointNodesWithMultipleLocations() {
 		GraphDatabaseService db = graphDb();
 		SpatialDatabaseService sdb = new SpatialDatabaseService(db);
-		double x_offset = 1.0, y_offset = 1.0;
+		double x_offset = 0.15, y_offset = 0.15;
 		SimplePointLayer layerA = sdb.createSimplePointLayer("my-points-A", "xa", "ya", "bbox_a");
 		SimplePointLayer layerB = sdb.createSimplePointLayer("my-points-B", "xb", "yb", "bbox_b");
 
@@ -183,25 +183,31 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 				tx.success();
 			}
 		}
-        saveLayerAsImage(layerA, 700, 70);
-        saveLayerAsImage(layerB, 700, 70);
+		saveLayerAsImage(layerA, 700, 70);
+		saveLayerAsImage(layerB, 700, 70);
+		Envelope bboxA = layerA.getIndex().getBoundingBox();
+		Envelope bboxB = layerB.getIndex().getBoundingBox();
+		double[] centreA = bboxA.centre();
+		double[] centreB = bboxB.centre();
 
 		List<SpatialDatabaseRecord> resultsA;
 		List<SpatialDatabaseRecord> resultsB;
 		try (Transaction tx = db.beginTx()) {
-			resultsA = GeoPipeline.startNearestNeighborLatLonSearch(layerA, testOrigin, 200.0)
-					.toSpatialDatabaseRecordList();
-			resultsB = GeoPipeline.startNearestNeighborLatLonSearch(layerA,
-					new Coordinate(testOrigin.x + x_offset, testOrigin.y + y_offset), 200.0)
-					.toSpatialDatabaseRecordList();
+			resultsA = GeoPipeline.startNearestNeighborLatLonSearch(layerA,
+					new Coordinate(centreA[0] + 0.1, centreA[1]), 10.0).toSpatialDatabaseRecordList();
+			resultsB = GeoPipeline.startNearestNeighborLatLonSearch(layerB,
+					new Coordinate(centreB[0] + 0.1, centreB[1]), 10.0).toSpatialDatabaseRecordList();
 			tx.success();
 		}
 		List<SpatialDatabaseRecord> results = new ArrayList<SpatialDatabaseRecord>();
 		results.addAll(resultsA);
 		results.addAll(resultsB);
-		saveResultsAsImage(resultsA, "temporary-results-layer-" + layerA.getName(), 500, 500);
-		saveResultsAsImage(resultsB, "temporary-results-layer-" + layerB.getName(), 500, 500);
-		saveResultsAsImage(results, "temporary-results-layer-" + layerA.getName() + "-" + layerB.getName(), 500, 500);
+        assertEquals(71, resultsA.size());
+        assertEquals(71, resultsB.size());
+        assertEquals(142, results.size());
+		saveResultsAsImage(resultsA, "temporary-results-layer-" + layerA.getName(), 130, 70);
+		saveResultsAsImage(resultsB, "temporary-results-layer-" + layerB.getName(), 130, 70);
+		saveResultsAsImage(results, "temporary-results-layer-" + layerA.getName() + "-" + layerB.getName(), 200, 200);
 
 		assertEquals(coords.length, layerA.getIndex().count());
 		assertEquals(coords.length, layerB.getIndex().count());
