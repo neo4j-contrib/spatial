@@ -264,13 +264,28 @@ public class SpatialDatabaseService implements Constants {
     }
 
 	public SimplePointLayer createSimplePointLayer(String name) {
-		return (SimplePointLayer) createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, null,
-				org.geotools.referencing.crs.DefaultGeographicCRS.WGS84);
+		return createSimplePointLayer(name, null, null, null);
 	}
 
 	public SimplePointLayer createSimplePointLayer(String name, String xProperty, String yProperty) {
-		return (SimplePointLayer) createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, xProperty + ":" + yProperty,
-				org.geotools.referencing.crs.DefaultGeographicCRS.WGS84);
+		return createSimplePointLayer(name, xProperty, yProperty, null);
+	}
+
+	private String makeConfig(String... args) {
+		StringBuffer sb = new StringBuffer();
+		for (String arg : args) {
+			if (arg != null) {
+				if (sb.length() > 0)
+					sb.append(":");
+				sb.append(arg);
+			}
+		}
+		return sb.toString();
+	}
+	
+	public SimplePointLayer createSimplePointLayer(String name, String xProperty, String yProperty, String bboxProperty) {
+		return (SimplePointLayer) createLayer(name, SimplePointEncoder.class, SimplePointLayer.class,
+				makeConfig(xProperty, yProperty, bboxProperty), org.geotools.referencing.crs.DefaultGeographicCRS.WGS84);
 	}
 
     public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass, Class<? extends Layer> layerClass) {

@@ -340,8 +340,8 @@ public abstract class Neo4jTestCase extends TestCase {
 			tab.append("  ");
 		}
 		
-		if (root.hasProperty("bbox")) {
-			System.out.println(tab.toString() + "INDEX: " + root + " BBOX[" + arrayString((double[]) root.getProperty("bbox")) + "]");
+		if (root.hasProperty(Constants.PROP_BBOX)) {
+			System.out.println(tab.toString() + "INDEX: " + root + " BBOX[" + arrayString((double[]) root.getProperty(Constants.PROP_BBOX)) + "]");
 		} else {
 			System.out.println(tab.toString() + "INDEX: " + root);
 		}

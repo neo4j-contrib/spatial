@@ -202,7 +202,7 @@ public class TestIntersectsPathQueries extends TestCase {
 		assertNotNull("Layer index should not be null", layer.getIndex());
 		assertNotNull("Layer index envelope should not be null", layer.getIndex().getBoundingBox());
 		Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox());
-		TestOSMImport.debugEnvelope(bbox, layerName, "bbox");
+		TestOSMImport.debugEnvelope(bbox, layerName, Constants.PROP_BBOX);
 		TestOSMImport.checkIndexAndFeatureCount(layer);
 
 		HashMap<String,Performance> performances = new LinkedHashMap<String,Performance>(); 
