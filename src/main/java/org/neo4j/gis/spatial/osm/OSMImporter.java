@@ -363,7 +363,7 @@ public class OSMImporter implements Constants
 
         public void expandToIncludeBBox( Map<String, Object> nodeProps )
         {
-            double[] sbb = (double[]) nodeProps.get( "bbox" );
+            double[] sbb = (double[]) nodeProps.get( PROP_BBOX );
             bbox.expandToInclude( sbb[0], sbb[2] );
             bbox.expandToInclude( sbb[1], sbb[3] );
             vertices += (Integer) nodeProps.get( "vertices" );
@@ -630,7 +630,7 @@ public class OSMImporter implements Constants
          */
         protected void addOSMBBox( Map<String, Object> bboxProperties )
         {
-            T bbox = addNode( "bbox", bboxProperties, null );
+            T bbox = addNode( PROP_BBOX, bboxProperties, null );
             createRelationship( osm_dataset, bbox, OSMRelation.BBOX );
         }
 
@@ -1104,7 +1104,7 @@ public class OSMImporter implements Constants
                 Node geomNode = graphDb.createNode();
                 geomNode.setProperty( "gtype", gtype );
                 geomNode.setProperty( "vertices", vertices );
-                geomNode.setProperty( "bbox", new double[] { bbox.getMinX(),
+                geomNode.setProperty( PROP_BBOX, new double[] { bbox.getMinX(),
                         bbox.getMaxX(), bbox.getMinY(), bbox.getMaxY() } );
                 node.createRelationshipTo( geomNode, OSMRelation.GEOM );
                 statsManager.addGeomStats( gtype );
@@ -1486,7 +1486,7 @@ public class OSMImporter implements Constants
                 properties.put( "gtype", gtype );
                 properties.put( "vertices", vertices );
                 properties.put(
-                        "bbox",
+                        PROP_BBOX,
                         new double[] { bbox.getMinX(), bbox.getMaxX(),
                                 bbox.getMinY(), bbox.getMaxY() } );
                 long id = batchInserter.createNode( properties );
@@ -1916,7 +1916,7 @@ public class OSMImporter implements Constants
                     }
                     else if ( tagPath.equals( "[osm, bounds]" ) )
                     {
-                        osmWriter.addOSMBBox( extractProperties( "bbox", parser ) );
+                        osmWriter.addOSMBBox( extractProperties( PROP_BBOX, parser ) );
                     }
                     else if ( tagPath.equals( "[osm, node]" ) )
                     {

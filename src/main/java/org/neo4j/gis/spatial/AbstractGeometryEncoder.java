@@ -33,6 +33,8 @@ import com.vividsolutions.jts.geom.Geometry;
  */
 public abstract class AbstractGeometryEncoder implements GeometryEncoder, Constants {
 
+	protected String bboxProperty = PROP_BBOX;
+
 	// Public methods
 
 	@Override	
@@ -41,7 +43,7 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 	}
 
 	public void encodeEnvelope(Envelope mbb, PropertyContainer container) {
-		container.setProperty(RTreeIndex.PROP_BBOX, new double[] { mbb.getMinX(), mbb.getMinY(), mbb.getMaxX(), mbb.getMaxY() });
+		container.setProperty(bboxProperty, new double[] { mbb.getMinX(), mbb.getMinY(), mbb.getMaxX(), mbb.getMaxY() });
 	}
 
 	@Override	
@@ -56,7 +58,7 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 	@Override
 	public Envelope decodeEnvelope(PropertyContainer container) {
 	    double[] bbox = new double[] { 0,0,0,0 };
-	    Object bboxProp = container.getProperty(RTreeIndex.PROP_BBOX);
+	    Object bboxProp = container.getProperty(bboxProperty);
 		if (bboxProp instanceof Double[]) {
 		    bbox = ArrayUtils.toPrimitive((Double[]) bboxProp);
 		} else if (bboxProp instanceof double[]) {

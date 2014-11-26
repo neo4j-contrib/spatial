@@ -20,8 +20,10 @@
 package org.neo4j.gis.spatial;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
+import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.neo4j.gis.spatial.utilities.ReferenceNodes;
 import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.encoders.Configurable;
@@ -91,14 +93,18 @@ public class SpatialDatabaseService implements Constants {
     public String[] getLayerNames() {
 		List<String> names = new ArrayList<String>();
 		
-		for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER, Direction.OUTGOING)) {
-            Layer layer = DefaultLayer.makeLayerFromNode(this, relationship.getEndNode());
-            if (layer instanceof DynamicLayer) {
-            	names.addAll(((DynamicLayer)layer).getLayerNames());
-            } else {
-            	names.add(layer.getName());
-            }
-        }
+		try (Transaction tx = getDatabase().beginTx()) {
+			for (Relationship relationship : getSpatialRoot().getRelationships(SpatialRelationshipTypes.LAYER,
+					Direction.OUTGOING)) {
+				Layer layer = DefaultLayer.makeLayerFromNode(this, relationship.getEndNode());
+				if (layer instanceof DynamicLayer) {
+					names.addAll(((DynamicLayer) layer).getLayerNames());
+				} else {
+					names.add(layer.getName());
+				}
+			}
+			tx.success();
+		}
         
 		return names.toArray(new String[names.size()]);
 	}
@@ -258,13 +264,28 @@ public class SpatialDatabaseService implements Constants {
     }
 
 	public SimplePointLayer createSimplePointLayer(String name) {
-		return (SimplePointLayer) createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, null,
-				org.geotools.referencing.crs.DefaultGeographicCRS.WGS84);
+		return createSimplePointLayer(name, null, null, null);
 	}
 
 	public SimplePointLayer createSimplePointLayer(String name, String xProperty, String yProperty) {
-		return (SimplePointLayer) createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, xProperty + ":" + yProperty,
-				org.geotools.referencing.crs.DefaultGeographicCRS.WGS84);
+		return createSimplePointLayer(name, xProperty, yProperty, null);
+	}
+
+	private String makeConfig(String... args) {
+		StringBuffer sb = new StringBuffer();
+		for (String arg : args) {
+			if (arg != null) {
+				if (sb.length() > 0)
+					sb.append(":");
+				sb.append(arg);
+			}
+		}
+		return sb.toString();
+	}
+	
+	public SimplePointLayer createSimplePointLayer(String name, String xProperty, String yProperty, String bboxProperty) {
+		return (SimplePointLayer) createLayer(name, SimplePointEncoder.class, SimplePointLayer.class,
+				makeConfig(xProperty, yProperty, bboxProperty), org.geotools.referencing.crs.DefaultGeographicCRS.WGS84);
 	}
 
     public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass, Class<? extends Layer> layerClass) {
@@ -393,5 +414,62 @@ public class SpatialDatabaseService implements Constants {
 		}
 		return layer;
 	}
+
+
+    /**
+     * Support mapping a String (ex: 'SimplePoint') to the respective GeometryEncoder and Layer classes
+     * to allow for more streamlined method for creating Layers
+     * This was added to help support Spatial Cypher project.
+     */
+    static class RegisteredLayerType {
+        String typeName;
+        Class< ? extends GeometryEncoder> geometryEncoder;
+        Class< ? extends Layer> layerClass;
+        String defaultConfig;
+        org.geotools.referencing.crs.AbstractCRS crs;
+
+        public RegisteredLayerType(String typeName, Class<? extends GeometryEncoder> geometryEncoder,
+                                   Class<? extends Layer> layerClass, org.geotools.referencing.crs.AbstractCRS crs, String defaultConfig) {
+            this.typeName = typeName;
+            this.geometryEncoder = geometryEncoder;
+            this.layerClass = layerClass;
+            this.crs = crs;
+            this.defaultConfig = defaultConfig;
+        }
+    }
+
+
+    static HashMap<String, RegisteredLayerType> registeredLayerTypes = new HashMap<String, RegisteredLayerType>();
+    static {
+        registeredLayerTypes.put("SimplePoint", new RegisteredLayerType("SimplePoint", SimplePointEncoder.class,
+                EditableLayerImpl.class, org.geotools.referencing.crs.DefaultGeographicCRS.WGS84, "lon:lat"));
+        registeredLayerTypes.put("WKT", new RegisteredLayerType("WKT", WKTGeometryEncoder.class, EditableLayerImpl.class,
+                DefaultGeographicCRS.WGS84, "geom"));
+
+    }
+
+    /**
+     *
+     * @param name
+     * @param type
+     * @param config
+     * @return
+     */
+    public Layer getOrCreateRegisteredTypeLayer(String name, String type, String config){
+        RegisteredLayerType registeredLayerType = registeredLayerTypes.get(type);
+        return getOrCreateRegisteredTypeLayer(name, registeredLayerType, config);
+    }
+
+    /**
+     *
+     * @param name
+     * @param registeredLayerType
+     * @param config
+     * @return
+     */
+    public Layer getOrCreateRegisteredTypeLayer(String name, RegisteredLayerType registeredLayerType, String config) {
+        return getOrCreateLayer(name, registeredLayerType.geometryEncoder, registeredLayerType.layerClass,
+                (config == null) ? registeredLayerType.defaultConfig : config);
+    }
 
 }

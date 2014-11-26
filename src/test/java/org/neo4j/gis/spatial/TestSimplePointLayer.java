@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 import junit.framework.AssertionFailedError;
@@ -41,6 +42,8 @@ import com.vividsolutions.jts.geom.Point;
 
 
 public class TestSimplePointLayer extends Neo4jTestCase {
+
+	private static final Coordinate testOrigin = new Coordinate(13.0, 55.6);
 
 	@Test
 	public void testNearestNeighborSearchOnEmptyLayer() {
@@ -93,7 +96,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
             SimplePointLayer layer = db.createSimplePointLayer("neo-text");
             assertNotNull(layer);
             assertNotNull("layer name is not null",layer.getName());
-            for (Coordinate coordinate : makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt")) {
+            for (Coordinate coordinate : makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt", testOrigin)) {
                 SpatialRecord record = layer.add(coordinate);
                 assertNotNull(record);
             }
@@ -142,25 +145,74 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		SpatialDatabaseService sdb = new SpatialDatabaseService(db);
 		SimplePointLayer layer = sdb.createSimplePointLayer("my-points", "x", "y");
 
-		Coordinate[] coords = makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt");
-		for (Coordinate coordinate : coords) {
-			Transaction tx = db.beginTx();
-			try {
+		Coordinate[] coords = makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt", testOrigin);
+		try (Transaction tx = db.beginTx()) {
+			for (Coordinate coordinate : coords) {
 				Node n = db.createNode();
 				n.setProperty("x", coordinate.x);
 				n.setProperty("y", coordinate.y);
-			
 				layer.add(n);
-				
-				tx.success();
-			} finally {
-				tx.close();
 			}
+			tx.success();
 		}
+        saveLayerAsImage(layer, 700, 70);
 
 		assertEquals(coords.length, layer.getIndex().count());
 	}
 	
+	@Test
+	public void testIndexingExistingPointNodesWithMultipleLocations() {
+		GraphDatabaseService db = graphDb();
+		SpatialDatabaseService sdb = new SpatialDatabaseService(db);
+		double x_offset = 0.15, y_offset = 0.15;
+		SimplePointLayer layerA = sdb.createSimplePointLayer("my-points-A", "xa", "ya", "bbox_a");
+		SimplePointLayer layerB = sdb.createSimplePointLayer("my-points-B", "xb", "yb", "bbox_b");
+
+		Coordinate[] coords = makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt", testOrigin);
+		try (Transaction tx = db.beginTx()) {
+			for (Coordinate coordinate : coords) {
+				Node n = db.createNode();
+				n.setProperty("xa", coordinate.x);
+				n.setProperty("ya", coordinate.y);
+				n.setProperty("xb", coordinate.x + x_offset);
+				n.setProperty("yb", coordinate.y + y_offset);
+
+				layerA.add(n);
+				layerB.add(n);
+
+				tx.success();
+			}
+		}
+		saveLayerAsImage(layerA, 700, 70);
+		saveLayerAsImage(layerB, 700, 70);
+		Envelope bboxA = layerA.getIndex().getBoundingBox();
+		Envelope bboxB = layerB.getIndex().getBoundingBox();
+		double[] centreA = bboxA.centre();
+		double[] centreB = bboxB.centre();
+
+		List<SpatialDatabaseRecord> resultsA;
+		List<SpatialDatabaseRecord> resultsB;
+		try (Transaction tx = db.beginTx()) {
+			resultsA = GeoPipeline.startNearestNeighborLatLonSearch(layerA,
+					new Coordinate(centreA[0] + 0.1, centreA[1]), 10.0).toSpatialDatabaseRecordList();
+			resultsB = GeoPipeline.startNearestNeighborLatLonSearch(layerB,
+					new Coordinate(centreB[0] + 0.1, centreB[1]), 10.0).toSpatialDatabaseRecordList();
+			tx.success();
+		}
+		List<SpatialDatabaseRecord> results = new ArrayList<SpatialDatabaseRecord>();
+		results.addAll(resultsA);
+		results.addAll(resultsB);
+        assertEquals(71, resultsA.size());
+        assertEquals(71, resultsB.size());
+        assertEquals(142, results.size());
+		saveResultsAsImage(resultsA, "temporary-results-layer-" + layerA.getName(), 130, 70);
+		saveResultsAsImage(resultsB, "temporary-results-layer-" + layerB.getName(), 130, 70);
+		saveResultsAsImage(results, "temporary-results-layer-" + layerA.getName() + "-" + layerB.getName(), 200, 200);
+
+		assertEquals(coords.length, layerA.getIndex().count());
+		assertEquals(coords.length, layerB.getIndex().count());
+	}
+
 	private void checkPointOrder(List<GeoPipeFlow> results) {
 		for (int i = 0; i < results.size() - 1; i++) {
 			GeoPipeFlow first = results.get(i);
@@ -191,7 +243,6 @@ public class TestSimplePointLayer extends Neo4jTestCase {
             List<SpatialDatabaseRecord> results = GeoPipeline
                 .startNearestNeighborLatLonSearch(layer, new Coordinate(centre[0], centre[1]), 10.0)
                 .toSpatialDatabaseRecordList();
-            GeoPipeline.startNearestNeighborLatLonSearch(layer, new Coordinate(centre[0], centre[1]), 10.0).sort("OrthodromicDistance");
             saveResultsAsImage(results, "temporary-results-layer-" + layer.getName(), 150, 150);
             assertEquals(456, results.size());
 
@@ -243,11 +294,10 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 	}
 
 	@SuppressWarnings("unchecked")
-	private static Coordinate[] makeCoordinateDataFromTextFile(String textFile) {
+	private static Coordinate[] makeCoordinateDataFromTextFile(String textFile, Coordinate origin) {
 		CoordinateList data = new CoordinateList();
 		try {
 			BufferedReader reader = new BufferedReader(new FileReader("src/main/resources/"+textFile));
-			Coordinate origin = new Coordinate(13.0, 55.6);
 			String line;
 			int row = 0;
 			while ((line = reader.readLine()) != null) {

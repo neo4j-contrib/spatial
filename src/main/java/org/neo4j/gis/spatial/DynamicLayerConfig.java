@@ -85,11 +85,19 @@ public class DynamicLayerConfig implements Layer, Constants {
 	}
 
 	public String getName() {
-		return (String) configNode.getProperty(PROP_LAYER);
+    	try (Transaction tx = configNode.getGraphDatabase().beginTx()) {
+    		String name = (String) configNode.getProperty(PROP_LAYER);
+    		tx.success();
+    		return name;
+    	}
 	}
 
 	public String getQuery() {
-		return (String) configNode.getProperty(PROP_QUERY);
+    	try (Transaction tx = configNode.getGraphDatabase().beginTx()) {
+    		String name = (String) configNode.getProperty(PROP_QUERY);
+    		tx.success();
+    		return name;
+    	}
 	}
 
 	public SpatialDatabaseRecord add(Node geomNode) {
@@ -188,13 +196,10 @@ public class DynamicLayerConfig implements Layer, Constants {
 	}
 	
 	public void setExtraPropertyNames(String[] names) {
-		Transaction tx = configNode.getGraphDatabase().beginTx();
-		try {
+		try (Transaction tx = configNode.getGraphDatabase().beginTx()) {
 			configNode.setProperty("propertyNames", names);
 			propertyNames = names;
 			tx.success();
-		} finally {
-			tx.close();
 		}
 	}		
 	
@@ -207,7 +212,11 @@ public class DynamicLayerConfig implements Layer, Constants {
 	}
 
 	public Integer getGeometryType() {
-		return (Integer) configNode.getProperty(PROP_TYPE);
+		try (Transaction tx = configNode.getGraphDatabase().beginTx()) {
+			Integer geometryType = (Integer) configNode.getProperty(PROP_TYPE);
+			tx.success();
+			return geometryType;
+		}
 	}
 
 	public LayerIndexReader getIndex() {

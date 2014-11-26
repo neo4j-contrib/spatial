@@ -38,52 +38,40 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 	 */
 	@Override
 	public SpatialDatabaseRecord add(Geometry geometry, String[] fieldsName, Object[] fields) {
-		Transaction tx = getDatabase().beginTx();
-		try {
+        try (Transaction tx = getDatabase().beginTx()) {
 			Node geomNode = addGeomNode(geometry, fieldsName, fields);
 			index.add(geomNode);
 			tx.success();
 			return new SpatialDatabaseRecord(this, geomNode, geometry);
-		} finally {
-			tx.close();
 		}
 	}
 
 	@Override
 	public void update(long geomNodeId, Geometry geometry) {
-		Transaction tx = getDatabase().beginTx();
-		try {
+        try (Transaction tx = getDatabase().beginTx()) {
 			index.remove(geomNodeId, false);
 
 			Node geomNode = getDatabase().getNodeById(geomNodeId);
 			getGeometryEncoder().encodeGeometry(geometry, geomNode);
 			index.add(geomNode);
 			tx.success();
-		} finally {
-			tx.close();
 		}
 	}
 
 	@Override
 	public void delete(long geomNodeId) {
-		Transaction tx = getDatabase().beginTx();
-		try {
+		try (Transaction tx = getDatabase().beginTx()) {
 			index.remove(geomNodeId, true, false);
 			tx.success();
-		} finally {
-			tx.close();
 		}
 	}
 
 	@Override
 	public void removeFromIndex(long geomNodeId) {
-		Transaction tx = getDatabase().beginTx();
-		try {
+        try (Transaction tx = getDatabase().beginTx()) {
             final boolean deleteGeomNode = false;
             index.remove(geomNodeId, deleteGeomNode, false);
 			tx.success();
-		} finally {
-			tx.close();
 		}
 	}
 

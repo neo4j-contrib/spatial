@@ -69,17 +69,18 @@ public class SimplePointEncoder extends AbstractGeometryEncoder implements
     @Override
     public String getConfiguration()
     {
-        return xProperty + ":" + yProperty;
+        return xProperty + ":" + yProperty + ":" + bboxProperty;
     }
 
     @Override    
     public void setConfiguration( String configuration )
     {
-        if ( configuration != null )
+        if ( configuration != null && configuration.trim().length() > 0)
         {
             String[] fields = configuration.split( ":" );
             if ( fields.length > 0 ) xProperty = fields[0];
             if ( fields.length > 1 ) yProperty = fields[1];
+            if ( fields.length > 2 ) bboxProperty = fields[2];
         }
     }
 }

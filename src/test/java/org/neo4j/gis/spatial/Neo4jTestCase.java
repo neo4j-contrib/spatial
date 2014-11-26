@@ -40,6 +40,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import org.neo4j.graphdb.factory.GraphDatabaseSettings;
 import org.neo4j.kernel.AbstractGraphDatabase;
 import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.neo4j.kernel.GraphDatabaseAPI;
@@ -57,21 +58,21 @@ import org.neo4j.unsafe.batchinsert.SpatialBatchGraphDatabaseService;
 public abstract class Neo4jTestCase extends TestCase {
     public static final Map<String, String> NORMAL_CONFIG = new HashMap<String, String>();
     static {
-        NORMAL_CONFIG.put( "neostore.nodestore.db.mapped_memory", "50M" );
-        NORMAL_CONFIG.put( "neostore.relationshipstore.db.mapped_memory", "120M" );
-        NORMAL_CONFIG.put( "neostore.propertystore.db.mapped_memory", "150M" );
-        NORMAL_CONFIG.put( "neostore.propertystore.db.strings.mapped_memory", "200M" );
-        NORMAL_CONFIG.put( "neostore.propertystore.db.arrays.mapped_memory", "0M" );
-        NORMAL_CONFIG.put( "dump_configuration", "false" );
+        NORMAL_CONFIG.put( GraphDatabaseSettings.nodestore_mapped_memory_size.name(), "50M" );
+        NORMAL_CONFIG.put( GraphDatabaseSettings.relationshipstore_mapped_memory_size.name(), "120M" );
+        NORMAL_CONFIG.put( GraphDatabaseSettings.nodestore_propertystore_mapped_memory_size.name(), "150M" );
+        NORMAL_CONFIG.put( GraphDatabaseSettings.strings_mapped_memory_size.name(), "200M" );
+        NORMAL_CONFIG.put( GraphDatabaseSettings.arrays_mapped_memory_size.name(), "0M" );
+        NORMAL_CONFIG.put( GraphDatabaseSettings.dump_configuration.name(), "false" );
     }
     protected static final Map<String, String> LARGE_CONFIG = new HashMap<String, String>();
     static {
-        LARGE_CONFIG.put( "neostore.nodestore.db.mapped_memory", "100M" );
-        LARGE_CONFIG.put( "neostore.relationshipstore.db.mapped_memory", "300M" );
-        LARGE_CONFIG.put( "neostore.propertystore.db.mapped_memory", "400M" );
-        LARGE_CONFIG.put( "neostore.propertystore.db.strings.mapped_memory", "800M" );
-        LARGE_CONFIG.put( "neostore.propertystore.db.arrays.mapped_memory", "10M" );
-        LARGE_CONFIG.put( "dump_configuration", "true" );
+        LARGE_CONFIG.put( GraphDatabaseSettings.nodestore_mapped_memory_size.name(), "100M" );
+        LARGE_CONFIG.put( GraphDatabaseSettings.relationshipstore_mapped_memory_size.name(), "300M" );
+        LARGE_CONFIG.put( GraphDatabaseSettings.nodestore_propertystore_mapped_memory_size.name(), "400M" );
+        LARGE_CONFIG.put( GraphDatabaseSettings.strings_mapped_memory_size.name(), "800M" );
+        LARGE_CONFIG.put( GraphDatabaseSettings.arrays_mapped_memory_size.name(), "10M" );
+        LARGE_CONFIG.put( GraphDatabaseSettings.dump_configuration.name(), "true" );
     }
     private static File basePath = new File("target/var");
     private static File dbPath = new File(basePath, "neo4j-db");
@@ -339,8 +340,8 @@ public abstract class Neo4jTestCase extends TestCase {
 			tab.append("  ");
 		}
 		
-		if (root.hasProperty("bbox")) {
-			System.out.println(tab.toString() + "INDEX: " + root + " BBOX[" + arrayString((double[]) root.getProperty("bbox")) + "]");
+		if (root.hasProperty(Constants.PROP_BBOX)) {
+			System.out.println(tab.toString() + "INDEX: " + root + " BBOX[" + arrayString((double[]) root.getProperty(Constants.PROP_BBOX)) + "]");
 		} else {
 			System.out.println(tab.toString() + "INDEX: " + root);
 		}
