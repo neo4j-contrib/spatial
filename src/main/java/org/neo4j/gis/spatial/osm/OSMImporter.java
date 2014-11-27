@@ -58,8 +58,7 @@ import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.helpers.collection.MapUtil;
-import org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider;
-import org.neo4j.kernel.AbstractGraphDatabase;
+import org.neo4j.index.impl.lucene.LuceneBatchInserterIndexProviderNewImpl;
 import org.neo4j.kernel.Traversal;
 import org.neo4j.unsafe.batchinsert.*;
 
@@ -998,14 +997,7 @@ public class OSMImporter implements Constants
             if ( checkCount++ > txInterval || tx == null )
             {
                 successTx();
-                if ( relatxedTxFlush )
-                {
-                    tx = ( (AbstractGraphDatabase) graphDb ).tx().unforced().begin();
-                }
-                else
-                {
-                    tx = graphDb.beginTx();
-                }
+                tx = graphDb.beginTx();
             }
         }
 
@@ -1381,7 +1373,7 @@ public class OSMImporter implements Constants
         {
             super( statsManager, osmImporter );
             this.batchInserter = batchGraphDb;
-            this.batchIndexService = new LuceneBatchInserterIndexProvider(
+            this.batchIndexService = new LuceneBatchInserterIndexProviderNewImpl(
                     batchGraphDb );
         }
 
@@ -2276,21 +2268,10 @@ public class OSMImporter implements Constants
             System.out.println( "\n=== Loading layer " + layerName + " from "
                                 + osmPath + " ===" );
             long start = System.currentTimeMillis();
-            if ( useBatchInserter )
-            {
-                switchToBatchInserter();
-                OSMImporter importer = new OSMImporter( layerName );
-                importer.importFile( batchInserter, osmPath );
-                switchToEmbeddedGraphDatabase();
-                importer.reIndex( graphDb, commitInterval );
-            }
-            else
-            {
-                switchToEmbeddedGraphDatabase();
-                OSMImporter importer = new OSMImporter( layerName );
-                importer.importFile( graphDb, osmPath, false, commitInterval, true );
-                importer.reIndex( graphDb, commitInterval );
-            }
+	    switchToEmbeddedGraphDatabase();
+	    OSMImporter importer = new OSMImporter( layerName );
+	    importer.importFile( graphDb, osmPath, false, commitInterval, true );
+	    importer.reIndex( graphDb, commitInterval );
             shutdown();
             System.out.println( "=== Completed loading " + layerName + " in "
                                 + ( System.currentTimeMillis() - start )
@@ -2301,13 +2282,6 @@ public class OSMImporter implements Constants
         {
             shutdown();
             graphDb = new GraphDatabaseFactory().newEmbeddedDatabase( dbPath.getAbsolutePath() );
-        }
-
-        private void switchToBatchInserter()
-        {
-            shutdown();
-            batchInserter = BatchInserters.inserter(dbPath.getAbsolutePath());
-            graphDb = new SpatialBatchGraphDatabaseService(batchInserter);
         }
 
         protected void shutdown()

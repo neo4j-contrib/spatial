@@ -11,9 +11,9 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-import org.neo4j.kernel.impl.util.FileUtils;
 
 import static org.junit.Assert.assertEquals;
+import org.neo4j.io.fs.FileUtils;
 
 public class TestReadOnlyTransactions {
     private GraphDatabaseService graphDb;
@@ -116,8 +116,8 @@ public class TestReadOnlyTransactions {
 		try {
 			readNamesWithNestedTransaction(true, false);
 		} catch (Exception e) {
-			assertEquals("Expected transaction failure from RollbackException", e.getCause().getMessage(),
-					"Failed to commit, transaction rolled back");
+			assertEquals("Expected transaction failure from RollbackException",
+				"Transaction rolled back even if marked as successful", e.getCause().getMessage());
 		}
 	}
 }

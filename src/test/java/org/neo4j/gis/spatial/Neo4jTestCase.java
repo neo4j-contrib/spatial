@@ -41,15 +41,12 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
-import org.neo4j.kernel.AbstractGraphDatabase;
-import org.neo4j.kernel.EmbeddedGraphDatabase;
+import org.neo4j.io.fs.FileUtils;
 import org.neo4j.kernel.GraphDatabaseAPI;
-import org.neo4j.kernel.impl.core.NodeManager;
-import org.neo4j.kernel.impl.nioneo.store.PropertyStore;
-import org.neo4j.kernel.impl.util.FileUtils;
+import org.neo4j.kernel.impl.store.NeoStore;
+import org.neo4j.kernel.impl.transaction.state.NeoStoreProvider;
 import org.neo4j.unsafe.batchinsert.BatchInserter;
 import org.neo4j.unsafe.batchinsert.BatchInserters;
-import org.neo4j.unsafe.batchinsert.SpatialBatchGraphDatabaseService;
 
 
 /**
@@ -149,10 +146,8 @@ public abstract class Neo4jTestCase extends TestCase {
         }
         if (useBatchInserter) {
             batchInserter = BatchInserters.inserter(getNeoPath().getAbsolutePath(), config);
-            graphDb = new SpatialBatchGraphDatabaseService(batchInserter);
-        } else {
-            graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(getNeoPath().getAbsolutePath()).setConfig( config ).newGraphDatabase();
         }
+	graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(getNeoPath().getAbsolutePath()).setConfig( config ).newGraphDatabase();
         if (autoTx) {
             // with the batch inserter the tx is a dummy that simply succeeds all the time
             tx = graphDb.beginTx();
@@ -233,16 +228,12 @@ public abstract class Neo4jTestCase extends TestCase {
         return calculateDiskUsage(getNeoPath());
     }
 
-    protected long countNodes(Class<?> cls) {
-        return ((GraphDatabaseAPI)graphDb).getDependencyResolver().resolveDependency(NodeManager.class).getNumberOfIdsInUse(cls);
-    }
-
     protected void printDatabaseStats() {
         System.out.println("Database stats:");
         System.out.println("\tTotal disk usage: "+(databaseDiskUsage())/(1024.0*1024.0)+"MB");
-        System.out.println("\tTotal # nodes:    "+countNodes(Node.class));
-        System.out.println("\tTotal # rels:     "+countNodes(Relationship.class));
-        System.out.println("\tTotal # props:    "+countNodes(PropertyStore.class));
+        System.out.println("\tTotal # nodes:    "+nodeStore().getNumberOfIdsInUse());
+        System.out.println("\tTotal # rels:     "+relationshipStore().getNumberOfIdsInUse());
+        System.out.println("\tTotal # props:    "+propertyStore().getNumberOfIdsInUse());
     }
     protected void restartTx() {
         restartTx(true);
@@ -270,6 +261,24 @@ public abstract class Neo4jTestCase extends TestCase {
 
     protected boolean isUsingBatchInserter() {
         return batchInserter != null;
+    }
+
+    protected org.neo4j.kernel.impl.store.PropertyStore propertyStore()
+    {
+        NeoStore neoStore = ((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency( NeoStoreProvider.class ).evaluate();
+        return neoStore.getPropertyStore();
+    }
+
+    protected org.neo4j.kernel.impl.store.NodeStore nodeStore()
+    {
+        NeoStore neoStore = ((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency( NeoStoreProvider.class ).evaluate();
+        return neoStore.getNodeStore();
+    }
+
+    protected org.neo4j.kernel.impl.store.RelationshipStore relationshipStore()
+    {
+        NeoStore neoStore = ((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency( NeoStoreProvider.class ).evaluate();
+        return neoStore.getRelationshipStore();
     }
 
     protected <T> void assertCollection(Collection<T> collection, T... expectedItems) {
