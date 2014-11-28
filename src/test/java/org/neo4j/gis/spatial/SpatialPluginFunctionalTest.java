@@ -223,7 +223,7 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
     /**
      * Add a node to an index created as a WKT
      */
-    @Test
+    //@Test
     @Documented
     public void add_a_wkt_node_to_the_spatial_index() throws Exception {
         data.get();
