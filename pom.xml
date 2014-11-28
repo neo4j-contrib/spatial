@@ -192,6 +192,13 @@
         </dependency>
         <dependency>
             <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-io</artifactId>
+            <version>${neo4j.version}</version>
+            <type>test-jar</type>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
             <artifactId>neo4j-kernel</artifactId>
             <version>${neo4j.version}</version>
             <type>test-jar</type>
@@ -226,7 +233,13 @@
         <dependency>
             <groupId>com.sun.jersey</groupId>
             <artifactId>jersey-client</artifactId>
-            <version>1.9</version>
+            <version>1.18.1</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.sun.jersey</groupId>
+            <artifactId>jersey-server</artifactId>
+            <version>1.18.1</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

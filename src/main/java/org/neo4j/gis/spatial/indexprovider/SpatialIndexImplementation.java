@@ -28,6 +28,7 @@ import java.util.Map;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.index.IndexCommandFactory;
 import org.neo4j.graphdb.index.LegacyIndexProviderTransaction;
+import org.neo4j.kernel.api.LegacyIndex;
 import org.neo4j.kernel.impl.transaction.command.NeoCommandHandler;
 
 public class SpatialIndexImplementation implements IndexImplementation {
@@ -49,23 +50,40 @@ public class SpatialIndexImplementation implements IndexImplementation {
         return storedConfig.equals(config);
     }
 
-	@Override
-	public LegacyIndexProviderTransaction newTransaction(IndexCommandFactory icf) {
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-	}
+    @Override
+    public LegacyIndexProviderTransaction newTransaction(IndexCommandFactory icf) {
+        
+	    return new LegacyIndexProviderTransaction() {
 
-	@Override
-	public NeoCommandHandler newApplier(boolean bln) {
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-	}
+		@Override
+		public LegacyIndex nodeIndex(String indexName, Map<String, String> configuration) {
+			return new LegacyIndexNodeWrapper(new LayerNodeIndex(indexName, db, configuration));
+		}
 
-	@Override
-	public void force() {
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-	}
+		@Override
+		public LegacyIndex relationshipIndex(String indexName, Map<String, String> configuration) {
+			throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+		}
 
-	@Override
-	public ResourceIterator<File> listStoreFiles() throws IOException {
-		throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
-	}
+		@Override
+		public void close() {
+			
+		}
+	};
+    }
+
+    @Override
+    public NeoCommandHandler newApplier(boolean bln) {
+        return NeoCommandHandler.EMPTY;
+    }
+
+    @Override
+    public void force() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public ResourceIterator<File> listStoreFiles() throws IOException {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
 }

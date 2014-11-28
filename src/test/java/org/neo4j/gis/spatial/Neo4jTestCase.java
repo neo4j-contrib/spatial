@@ -32,6 +32,7 @@ import junit.framework.TestCase;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.gis.spatial.rtree.RTreeRelationshipTypes;
 import org.neo4j.graphdb.Direction;
@@ -41,10 +42,13 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
+import org.neo4j.graphdb.mockfs.EphemeralFileSystemAbstraction;
 import org.neo4j.io.fs.FileUtils;
 import org.neo4j.kernel.GraphDatabaseAPI;
 import org.neo4j.kernel.impl.store.NeoStore;
 import org.neo4j.kernel.impl.transaction.state.NeoStoreProvider;
+import org.neo4j.test.EphemeralFileSystemRule;
+import org.neo4j.test.TestGraphDatabaseFactory;
 import org.neo4j.unsafe.batchinsert.BatchInserter;
 import org.neo4j.unsafe.batchinsert.BatchInserters;
 
@@ -119,10 +123,13 @@ public abstract class Neo4jTestCase extends TestCase {
         }
         beforeShutdown();
         if (graphDb != null) {
-            graphDb.shutdown(); // shuts down batchInserter also, if this was made from that
+            graphDb.shutdown();
             graphDb = null;
-            batchInserter = null;
         }
+	if (batchInserter != null) {
+	    batchInserter.shutdown();
+	    batchInserter = null;
+	}
         if (deleteDb) {
             deleteDatabase(true);
         }
@@ -146,12 +153,27 @@ public abstract class Neo4jTestCase extends TestCase {
         }
         if (useBatchInserter) {
             batchInserter = BatchInserters.inserter(getNeoPath().getAbsolutePath(), config);
+	    //graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(getNeoPath().getAbsolutePath()).setConfig( config ).newGraphDatabase();
+	    //graphDb = new TestGraphDatabaseFactory().setFileSystem( fileSystem ).newImpermanentDatabase( getNeoPath().getAbsolutePath() );
+        } else {
+	    //graphDb = new TestGraphDatabaseFactory().setFileSystem( fileSystem ).newImpermanentDatabase( getNeoPath().getAbsolutePath() );
+	    graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(getNeoPath().getAbsolutePath()).setConfig( config ).newGraphDatabase();
         }
-	graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(getNeoPath().getAbsolutePath()).setConfig( config ).newGraphDatabase();
         if (autoTx) {
             // with the batch inserter the tx is a dummy that simply succeeds all the time
             tx = graphDb.beginTx();
         }
+    }
+    
+    @Rule
+    public EphemeralFileSystemRule fileSystemRule = new EphemeralFileSystemRule();
+    private EphemeralFileSystemAbstraction fileSystem;
+
+    @Before
+    public void before() throws Exception
+    {
+        fileSystem = fileSystemRule.get();
+        fileSystem.mkdirs( new File( "target" ) );
     }
 
     @Override

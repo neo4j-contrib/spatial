@@ -56,10 +56,13 @@ import org.neo4j.graphdb.Traverser.Order;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
+import org.neo4j.graphdb.mockfs.EphemeralFileSystemAbstraction;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.index.impl.lucene.LuceneBatchInserterIndexProviderNewImpl;
 import org.neo4j.kernel.Traversal;
+import org.neo4j.test.EphemeralFileSystemRule;
+import org.neo4j.test.TestGraphDatabaseFactory;
 import org.neo4j.unsafe.batchinsert.*;
 
 public class OSMImporter implements Constants
@@ -2268,10 +2271,21 @@ public class OSMImporter implements Constants
             System.out.println( "\n=== Loading layer " + layerName + " from "
                                 + osmPath + " ===" );
             long start = System.currentTimeMillis();
-	    switchToEmbeddedGraphDatabase();
-	    OSMImporter importer = new OSMImporter( layerName );
-	    importer.importFile( graphDb, osmPath, false, commitInterval, true );
-	    importer.reIndex( graphDb, commitInterval );
+            if ( useBatchInserter )
+            {
+                switchToBatchInserter();
+                OSMImporter importer = new OSMImporter( layerName );
+                importer.importFile( batchInserter, osmPath );
+	        switchToEmbeddedGraphDatabase();
+                importer.reIndex( graphDb, commitInterval );
+            }
+            else
+            {
+                switchToEmbeddedGraphDatabase();
+	        OSMImporter importer = new OSMImporter( layerName );
+	        importer.importFile( graphDb, osmPath, false, commitInterval, true );
+	        importer.reIndex( graphDb, commitInterval );
+            }
             shutdown();
             System.out.println( "=== Completed loading " + layerName + " in "
                                 + ( System.currentTimeMillis() - start )
@@ -2282,6 +2296,14 @@ public class OSMImporter implements Constants
         {
             shutdown();
             graphDb = new GraphDatabaseFactory().newEmbeddedDatabase( dbPath.getAbsolutePath() );
+        }
+
+        private void switchToBatchInserter()
+        {
+            shutdown();
+            batchInserter = BatchInserters.inserter(dbPath.getAbsolutePath());
+	    //graphDb = new TestGraphDatabaseFactory().setFileSystem(Default)newImpermanentDatabase( dbPath.getAbsolutePath() );
+	    graphDb = new GraphDatabaseFactory().newEmbeddedDatabase( dbPath.getAbsolutePath() );
         }
 
         protected void shutdown()
