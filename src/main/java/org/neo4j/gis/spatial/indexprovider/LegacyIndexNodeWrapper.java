@@ -26,7 +26,7 @@ import org.neo4j.kernel.api.LegacyIndexHits;
 
 public class LegacyIndexNodeWrapper implements LegacyIndex {
 	
-	private Index<Node> index;
+	private final Index<Node> index;
 
 	public LegacyIndexNodeWrapper(Index<Node> index) {
 		this.index = index;
