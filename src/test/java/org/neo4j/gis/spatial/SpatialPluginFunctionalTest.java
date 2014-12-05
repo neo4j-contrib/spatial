@@ -228,7 +228,8 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
     public void add_a_wkt_node_to_the_spatial_index() throws Exception {
         data.get();
         String response = post(Status.OK,"{\"layer\":\"geom\", \"lat\":\"lat\", \"lon\":\"lon\"}", ENDPOINT + "/graphdb/addSimplePointLayer");
-        response = post(Status.CREATED,"{\"name\":\"geom_wkt\", \"config\":{\"provider\":\"spatial\", \"wkt\":\"wkt\"}}", "http://localhost:"+PORT+"/db/data/index/node/");
+        //response = post(Status.CREATED,"{\"name\":\"geom_wkt\", \"config\":{\"provider\":\"spatial\", \"wkt\":\"wkt\"}}", "http://localhost:"+PORT+"/db/data/index/node/");
+	response = post(Status.OK,"{\"layer\":\"geom_wkt\", \"format\":\"WKT\",\"nodePropertyName\":\"wkt\"}", ENDPOINT + "/graphdb/addEditableLayer");
         response = post(Status.CREATED,"{\"wkt\":\"POINT(15.2 60.1)\"}", "http://localhost:"+PORT+"/db/data/node");
         int nodeId = getNodeId(response);
         response = post(Status.OK,"{\"layer\":\"geom_wkt\", \"node\":\"http://localhost:"+PORT+"/db/data/node/"+nodeId+"\"}", ENDPOINT + "/graphdb/addNodeToLayer");

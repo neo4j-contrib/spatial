@@ -19,14 +19,17 @@
  */
 package org.neo4j.gis.spatial.indexprovider;
 
+import java.io.File;
+import java.io.IOException;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexImplementation;
-import org.neo4j.graphdb.index.RelationshipIndex;
-import org.neo4j.kernel.impl.nioneo.xa.NeoStoreXaDataSource;
 
 import java.util.Map;
+import org.neo4j.graphdb.ResourceIterator;
+import org.neo4j.graphdb.index.IndexCommandFactory;
+import org.neo4j.graphdb.index.LegacyIndexProviderTransaction;
+import org.neo4j.kernel.api.LegacyIndex;
+import org.neo4j.kernel.impl.transaction.command.NeoCommandHandler;
 
 public class SpatialIndexImplementation implements IndexImplementation {
 
@@ -38,21 +41,6 @@ public class SpatialIndexImplementation implements IndexImplementation {
     }
 
     @Override
-    public String getDataSourceName() {
-        return NeoStoreXaDataSource.DEFAULT_DATA_SOURCE_NAME;
-    }
-
-    @Override
-    public Index<Node> nodeIndex(String indexName, Map<String, String> config) {
-        return new LayerNodeIndex(indexName, db, config);
-    }
-
-    @Override
-    public RelationshipIndex relationshipIndex(String indexName, Map<String, String> config) {
-        throw new UnsupportedOperationException("Spatial relationship indexing is not supported at the moment. Please use the node index.");
-    }
-
-    @Override
     public Map<String, String> fillInDefaults(Map<String, String> config) {
         return config;
     }
@@ -60,5 +48,42 @@ public class SpatialIndexImplementation implements IndexImplementation {
     @Override
     public boolean configMatches(Map<String, String> storedConfig, Map<String, String> config ) {
         return storedConfig.equals(config);
+    }
+
+    @Override
+    public LegacyIndexProviderTransaction newTransaction(IndexCommandFactory icf) {
+        
+	    return new LegacyIndexProviderTransaction() {
+
+		@Override
+		public LegacyIndex nodeIndex(String indexName, Map<String, String> configuration) {
+			return new LegacyIndexNodeWrapper(new LayerNodeIndex(indexName, db, configuration));
+		}
+
+		@Override
+		public LegacyIndex relationshipIndex(String indexName, Map<String, String> configuration) {
+			throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+		}
+
+		@Override
+		public void close() {
+			
+		}
+	};
+    }
+
+    @Override
+    public NeoCommandHandler newApplier(boolean bln) {
+        return NeoCommandHandler.EMPTY;
+    }
+
+    @Override
+    public void force() {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+    }
+
+    @Override
+    public ResourceIterator<File> listStoreFiles() throws IOException {
+        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
     }
 }

@@ -17,10 +17,44 @@
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.unsafe.batchinsert;
+package org.neo4j.gis.spatial.indexprovider;
 
-public class SpatialBatchGraphDatabaseService extends BatchGraphDatabaseImpl {
-    public SpatialBatchGraphDatabaseService(BatchInserter batchInserter) {
-        super(batchInserter);
-    }
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.index.IndexHits;
+import org.neo4j.kernel.api.LegacyIndexHits;
+
+public class LegacyIndexHitsWrapper implements LegacyIndexHits {
+
+	private final IndexHits<Node> hits;
+	
+	public LegacyIndexHitsWrapper(IndexHits<Node> hits) {
+		
+		this.hits = hits;
+	}
+	
+	@Override
+	public int size() {
+		return hits.size();
+	}
+
+	@Override
+	public float currentScore() {
+		return hits.currentScore();
+	}
+
+	@Override
+	public boolean hasNext() {
+		return hits.hasNext();
+	}
+
+	@Override
+	public long next() {
+		return hits.next().getId();
+	}
+
+	@Override
+	public void close() {
+		hits.close();
+	}
+	
 }

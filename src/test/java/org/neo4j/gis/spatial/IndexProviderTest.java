@@ -26,7 +26,6 @@ import com.vividsolutions.jts.operation.distance.DistanceOp;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.neo4j.cypher.SyntaxException;
 import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.cypher.javacompat.ExecutionResult;
 import org.neo4j.gis.spatial.indexprovider.LayerNodeIndex;
@@ -172,7 +171,7 @@ public class IndexProviderTest {
     }
 
     @Test
-    public void testNodeIndex() throws SyntaxException, Exception {
+    public void testNodeIndex() throws Exception {
         Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
         IndexManager indexMan = db.index();
         Index<Node> index;
