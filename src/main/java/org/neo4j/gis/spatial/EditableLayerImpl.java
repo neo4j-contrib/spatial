@@ -1,18 +1,18 @@
 /**
- * Copyright (c) 2010-2013 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+ * Copyright (c) 2010-2013 "Neo Technology," Network Engine for Objects in Lund
+ * AB [http://neotechnology.com]
  *
  * This file is part of Neo4j.
  *
- * Neo4j is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * Neo4j is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU Affero General Public License as published by the Free
+ * Software Foundation, either version 3 of the License, or (at your option) any
+ * later version.
  *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ * This program is distributed in the hope that it will be useful, but WITHOUT
+ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+ * FOR A PARTICULAR PURPOSE. See the GNU Affero General Public License for more
+ * details.
  *
  * You should have received a copy of the GNU Affero General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
@@ -38,7 +38,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 	 */
 	@Override
 	public SpatialDatabaseRecord add(Geometry geometry, String[] fieldsName, Object[] fields) {
-        try (Transaction tx = getDatabase().beginTx()) {
+		try (Transaction tx = getDatabase().beginTx()) {
 			Node geomNode = addGeomNode(geometry, fieldsName, fields);
 			index.add(geomNode);
 			tx.success();
@@ -48,7 +48,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 
 	@Override
 	public void update(long geomNodeId, Geometry geometry) {
-        try (Transaction tx = getDatabase().beginTx()) {
+		try (Transaction tx = getDatabase().beginTx()) {
 			index.remove(geomNodeId, false);
 
 			Node geomNode = getDatabase().getNodeById(geomNodeId);
@@ -68,9 +68,9 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 
 	@Override
 	public void removeFromIndex(long geomNodeId) {
-        try (Transaction tx = getDatabase().beginTx()) {
-            final boolean deleteGeomNode = false;
-            index.remove(geomNodeId, deleteGeomNode, false);
+		try (Transaction tx = getDatabase().beginTx()) {
+			final boolean deleteGeomNode = false;
+			index.remove(geomNodeId, deleteGeomNode, false);
 			tx.success();
 		}
 	}
