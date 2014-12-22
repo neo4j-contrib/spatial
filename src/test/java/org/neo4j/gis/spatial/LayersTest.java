@@ -19,8 +19,10 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 import org.junit.Test;
 import org.neo4j.gis.spatial.rtree.NullListener;
@@ -35,7 +37,11 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateList;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.LineString;
+import org.neo4j.graphdb.DynamicLabel;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
 
 public class LayersTest extends Neo4jTestCase
@@ -53,6 +59,43 @@ public class LayersTest extends Neo4jTestCase
         assertTrue( "Should be a default layer", layer instanceof DefaultLayer );
         spatialService.deleteLayer( layer.getName(), new NullListener() );
         assertNull( spatialService.getLayer( layer.getName() ) );
+    }
+
+    @Test
+    public void testBulkInsertion() throws Exception {
+
+        File dbPath = new File("target/var/BulkTest");
+        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath.getCanonicalPath());
+
+        SpatialDatabaseService sdbs = new SpatialDatabaseService(db);
+        int N = 20000;
+        int Q = 10;
+        Random random = new Random();
+
+        long totalTimeStart = System.currentTimeMillis();
+        for(int j =0; j < Q; j++){
+            System.out.println("BulkLoadingTestRun " + j);
+            try(Transaction tx = db.beginTx()){
+                ArrayList<Node> coords = new ArrayList<>(N);
+
+                EditableLayer layer = sdbs.getOrCreatePointLayer("BulkLoader", "lat", "lon");
+
+                for(int i=0; i<N; i++){
+                    Node n = db.createNode(DynamicLabel.label("Coordinate"));
+                    n.setProperty("lat", random.nextDouble()*90.0);
+                    n.setProperty("lon", random.nextDouble()*90.0);
+                    coords.add(n);
+                    //                   layer.add(n);
+                }
+                long time = System.currentTimeMillis();
+
+                layer.addAllNodes(coords);
+                System.out.println("********************** time taken to load "+N+" records" + (System.currentTimeMillis() - time));
+                tx.success();
+            }
+        }
+        System.out.println("Total Time for "+(N*Q)+" Nodes in "+Q+" Batches of "+N+" is: ");
+        System.out.println(((System.currentTimeMillis() - totalTimeStart)/1000) + " seconds");
     }
 
     @Test

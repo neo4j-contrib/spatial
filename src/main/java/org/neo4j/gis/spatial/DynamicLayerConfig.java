@@ -104,7 +104,12 @@ public class DynamicLayerConfig implements Layer, Constants {
 		throw new SpatialDatabaseException("Cannot add nodes to dynamic layers, add the node to the base layer instead");
 	}
 
-	public void delete(Listener monitor) {
+    public void addAllNodes(Iterable<Node> geomNodes){
+        throw new SpatialDatabaseException("Cannot add nodes to dynamic layers, add the node to the base layer instead");
+    }
+
+
+    public void delete(Listener monitor) {
 		throw new SpatialDatabaseException("Cannot delete dynamic layers, delete the base layer instead");
 	}
 

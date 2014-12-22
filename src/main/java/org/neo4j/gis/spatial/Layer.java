@@ -65,6 +65,15 @@ public interface Layer {
      */
     SpatialDatabaseRecord add(Node geomNode);
 
+    /**
+     * This method adds a group of nodes at once to the layer index.
+     * This provides scope for a scheme to add many and update the RTree only once.
+     * @param geomNodes
+     * @return
+     */
+    void addAllNodes(Iterable<Node> geomNodes);
+
+
     GeometryFactory getGeometryFactory();
 
     /**

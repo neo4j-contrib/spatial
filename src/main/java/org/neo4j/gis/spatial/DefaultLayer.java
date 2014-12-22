@@ -19,10 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
+import java.util.*;
 
 import org.geotools.factory.FactoryRegistryException;
 import org.geotools.referencing.ReferencingFactoryFinder;
@@ -82,6 +79,20 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         index.add(geomNode);
         return new SpatialDatabaseRecord(this, geomNode, geometry);
     }
+
+    public void addAllNodes(Iterable<Node> geomNodes){
+        ArrayList<Node> nodes = new ArrayList<Node>();
+        for(Node n : geomNodes){
+            Geometry geometry = getGeometryEncoder().decodeGeometry(n);
+            // add BBOX to Node if it's missing
+            getGeometryEncoder().encodeGeometry(geometry, n);
+            nodes.add(n);
+        }
+
+        index.add(nodes);
+    }
+
+
 
     public GeometryFactory getGeometryFactory() {
         return geometryFactory;
