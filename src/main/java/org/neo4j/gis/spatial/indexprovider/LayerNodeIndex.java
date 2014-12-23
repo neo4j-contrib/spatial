@@ -23,6 +23,8 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.WKTReader;
+
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.json.simple.parser.JSONParser;
@@ -143,6 +145,31 @@ public class LayerNodeIndex implements Index<Node>
           layer.update(matchingNode.getId(), decodeGeometry);      
         }
 
+    }
+
+    /**
+     * This will efficiently add a large number of nodes to the index at once, because it will
+     * collect all the rTree insertions and only insert them once.
+     * @param nodes
+     */
+    public void add(List<Node> nodes){
+        List<Node> nodesToBeInsertedIntoRtree = new ArrayList<Node>();
+        for(int i=0; i < nodes.size(); i++){
+            Node geomNode = nodes.get(i);
+            Geometry geometry = layer.getGeometryEncoder().decodeGeometry(geomNode);
+            Node matchingNode = findExistingNode(geomNode);
+            if(matchingNode==null){
+                Node rTreeNode = getGraphDatabase().createNode();
+                layer.getGeometryEncoder().encodeGeometry(geometry, rTreeNode);
+                rTreeNode.setProperty("id", geomNode.getId());
+                idLookup.add(rTreeNode, "id", geomNode.getId());
+                nodesToBeInsertedIntoRtree.add(rTreeNode);
+            } else {
+                layer.update(matchingNode.getId(), geometry);
+            }
+
+        }
+        layer.addAllNodes(nodesToBeInsertedIntoRtree);
     }
 
     private Node findExistingNode( Node geometry ) {

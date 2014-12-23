@@ -26,6 +26,9 @@ import java.util.Map;
 import java.util.Random;
 
 import org.junit.Test;
+import org.neo4j.cypher.javacompat.ExecutionEngine;
+import org.neo4j.cypher.javacompat.ExecutionResult;
+import org.neo4j.gis.spatial.indexprovider.LayerNodeIndex;
 import org.neo4j.gis.spatial.indexprovider.SpatialIndexProvider;
 import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;
@@ -39,11 +42,9 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateList;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.LineString;
-import org.neo4j.graphdb.DynamicLabel;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import org.neo4j.graphdb.index.Index;
 
 
 public class LayersTest extends Neo4jTestCase
@@ -64,36 +65,77 @@ public class LayersTest extends Neo4jTestCase
     }
 
     @Test
-    public void testIndexAccess() throws Exception {
-        File dbPath = new File("target/var/BulkTest");
-        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath.getCanonicalPath());
-        try(Transaction tx = db.beginTx()){
-            Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
-            db.index().forNodes("Coordinates", config);
-
-            tx.success();
-        }
+    public void testIndexAccessAfterBulkInsertion() throws Exception {
+        // Use these two lines if you want to examine the output.
+//        File dbPath = new File("target/var/BulkTest");
+//        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath.getCanonicalPath());
+        GraphDatabaseService db = graphDb();
 
         Random rand = new Random();
 
         try(Transaction tx = db.beginTx()){
+            Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
+            Index<Node> index = db.index().forNodes("Coordinate", config);
+            assertNotNull(index);
+            tx.success();
+        }
+
+
+
+        try(Transaction tx = db.beginTx()){
+            List<Node> toBeInsertedIntoIndex = new ArrayList<>();
+            Index<Node> index = db.index().forNodes("Coordinate");
+            assertTrue(index instanceof LayerNodeIndex);
             for(int i=0; i<1000; i++) {
                 Node node = db.createNode();
                 node.addLabel(DynamicLabel.label("Coordinates"));
                 node.setProperty("lat", rand.nextDouble());
                 node.setProperty("lon", rand.nextDouble());
 
-                db.index().forNodes("Coordinates").add(node, "dummy", "variable");
+  //              index.add(node, "dummy", "variable");
+                toBeInsertedIntoIndex.add(node);
             }
+            LayerNodeIndex thing = (LayerNodeIndex) index;
+            thing.add(toBeInsertedIntoIndex);
             tx.success();
         }
+
+        try(Transaction tx=db.beginTx()){
+            ExecutionEngine engine = new ExecutionEngine(db);
+            ExecutionResult result = engine.execute("start malmo=node:Coordinate('withinDistance:[0.5, 0.5,1000.0]') return malmo");
+            int i=0;
+            ResourceIterator thing = result.columnAs("malmo");
+            while(thing.hasNext()){
+                assertNotNull(thing.next());
+                i++;
+            }
+            assertEquals(i, 1000);
+        }
+
+        try(Transaction tx = db.beginTx()){
+            ExecutionEngine engine = new ExecutionEngine(db);
+            String cypher = "MATCH ()-[:RTREE_ROOT]->(n)\n" +
+                    "MATCH (n)-[:RTREE_CHILD]->(m)-[:RTREE_REFERENCE]->(p)\n" +
+                    "RETURN COUNT(p)";
+            ExecutionResult result = engine.execute(cypher);
+//           System.out.println(result.columns().toString());
+            Object obj = result.columnAs("COUNT(p)").next();
+            assertTrue(obj instanceof Long);
+            assertTrue(((Long) obj).equals(1000L));
+            tx.success();
+        }
+
+        db.shutdown();
+
+
     }
 
     @Test
-    public void testBulkInsertion() throws Exception {
-
-        File dbPath = new File("target/var/BulkTest");
-        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath.getCanonicalPath());
+    public void testRTreeBulkInsertion() throws Exception {
+        // Use these two lines if you want to examine the output.
+//        File dbPath = new File("target/var/BulkTest");
+//        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath.getCanonicalPath());
+        GraphDatabaseService db = graphDb();
 
         SpatialDatabaseService sdbs = new SpatialDatabaseService(db);
         int N = 20000;
@@ -118,12 +160,25 @@ public class LayersTest extends Neo4jTestCase
                 long time = System.currentTimeMillis();
 
                 layer.addAllNodes(coords);
-                System.out.println("********************** time taken to load "+N+" records" + (System.currentTimeMillis() - time));
+                System.out.println("********************** time taken to load "+N+" records: " + (System.currentTimeMillis() - time) +"ms");
                 tx.success();
             }
         }
         System.out.println("Total Time for "+(N*Q)+" Nodes in "+Q+" Batches of "+N+" is: ");
         System.out.println(((System.currentTimeMillis() - totalTimeStart)/1000) + " seconds");
+
+        try(Transaction tx = db.beginTx()){
+            ExecutionEngine engine = new ExecutionEngine(db);
+            String cypher = "MATCH ()-[:RTREE_ROOT]->(n)\n" +
+                    "MATCH (n)-[:RTREE_CHILD]->(m)-[:RTREE_CHILD]->(p)-[:RTREE_REFERENCE]->(q)\n" +
+                    "RETURN COUNT(q)";
+            ExecutionResult result = engine.execute(cypher);
+            System.out.println(result.columns().toString());
+            Object obj = result.columnAs("COUNT(q)").next();
+            assertTrue(obj instanceof Long);
+            assertTrue(((Long) obj).equals((long) N*Q));
+            tx.success();
+        }
     }
 
     @Test
