@@ -146,9 +146,7 @@ public class RTreeIndex implements SpatialIndexWriter {
      */
     @Override
     public void add(List<Node> geomNodes){
-        System.out.println("TotalGeomCount = " + totalGeometryCount);
-        System.out.println(geomNodes.size());
-        System.out.println(getRootNode().toString());
+
         //If the insertion is large relative to the size of the tree, simply rebuild the whole tree.
         if(geomNodes.size() > totalGeometryCount*0.4){
             for(Node n : getAllIndexedNodes()){
@@ -161,18 +159,14 @@ public class RTreeIndex implements SpatialIndexWriter {
             buildRtreeFromScratch(getIndexRoot(), geomNodes, 0.7, 10);
             countSaved = false;
             totalGeometryCount = geomNodes.size();
-            System.out.println("TotalGeomCount = " + totalGeometryCount);
             return;
         } else {
-            System.out.println("Attempting Bulk Insertion");
             List<Node> outliers = bulkInsertion(getIndexRoot(), getHeight(getIndexRoot(), 0), geomNodes, 0.7);
-            System.out.println("There are " + outliers.size() + " outliers to be inserted individually");
             countSaved = false;
             totalGeometryCount = totalGeometryCount + (geomNodes.size() - outliers.size());
             for(Node n : outliers){
                 add(n);
             }
-            System.out.println("TotalGeomCount = " + totalGeometryCount);
             return;
         }
     }
@@ -348,9 +342,6 @@ public class RTreeIndex implements SpatialIndexWriter {
         final int numberOfPartitions = (int) Math.ceil((double) nodes.size() / (double) subTreeSize);
 
         if(nodes.size() <= targetLoading){
-            if(nodes.size() < 35){
-                System.out.println("*************HOW IS THIS POSSIBLE!!!!*********** : " + nodes.size());
-            }
             for(Node n : nodes){
                 if(insertInLeaf(rootNode, n)){
                     adjustPathBoundingBox(rootNode);
@@ -734,7 +725,6 @@ public class RTreeIndex implements SpatialIndexWriter {
         if (!countSaved) {
             Transaction tx = database.beginTx();
             try {
-                System.out.println("saving new count: " + totalGeometryCount);
                 getMetadataNode().setProperty("totalGeometryCount", totalGeometryCount);
                 countSaved = true;
                 tx.success();

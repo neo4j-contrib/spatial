@@ -22,9 +22,11 @@ package org.neo4j.gis.spatial;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import org.junit.Test;
+import org.neo4j.gis.spatial.indexprovider.SpatialIndexProvider;
 import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
@@ -59,6 +61,32 @@ public class LayersTest extends Neo4jTestCase
         assertTrue( "Should be a default layer", layer instanceof DefaultLayer );
         spatialService.deleteLayer( layer.getName(), new NullListener() );
         assertNull( spatialService.getLayer( layer.getName() ) );
+    }
+
+    @Test
+    public void testIndexAccess() throws Exception {
+        File dbPath = new File("target/var/BulkTest");
+        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath.getCanonicalPath());
+        try(Transaction tx = db.beginTx()){
+            Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
+            db.index().forNodes("Coordinates", config);
+
+            tx.success();
+        }
+
+        Random rand = new Random();
+
+        try(Transaction tx = db.beginTx()){
+            for(int i=0; i<1000; i++) {
+                Node node = db.createNode();
+                node.addLabel(DynamicLabel.label("Coordinates"));
+                node.setProperty("lat", rand.nextDouble());
+                node.setProperty("lon", rand.nextDouble());
+
+                db.index().forNodes("Coordinates").add(node, "dummy", "variable");
+            }
+            tx.success();
+        }
     }
 
     @Test
