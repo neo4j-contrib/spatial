@@ -23,6 +23,7 @@ import org.neo4j.gis.spatial.EditableLayer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
+import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
 import org.neo4j.graphdb.ResourceIterator;
@@ -44,15 +45,16 @@ import java.util.List;
  */
 public class GeoPipeFlowHits extends CatchingIteratorWrapper<Node, GeoPipeFlow> implements IndexHits<Node> {
 	private final int size;
-	private SpatialDatabaseService spatialDatabase;
 	private EditableLayer layer;
     private GeoPipeFlow current;
+	private GraphDatabaseService database;
 
-    public GeoPipeFlowHits(List<GeoPipeFlow> hits, EditableLayer layer) {
+	public GeoPipeFlowHits(List<GeoPipeFlow> hits, EditableLayer layer) {
 		super(hits.iterator());
 		this.size = hits.size();
-		this.spatialDatabase = layer.getSpatialDatabase();
+		SpatialDatabaseService spatialDatabase = layer.getSpatialDatabase();
 		this.layer = layer;
+		database = spatialDatabase.getDatabase();
 	}
 
 	public int size() {
@@ -97,7 +99,7 @@ public class GeoPipeFlowHits extends CatchingIteratorWrapper<Node, GeoPipeFlow> 
 		Node result = null;
 		
 		if(idString != null){
-			result = spatialDatabase.getDatabase().getNodeById(Long.valueOf(idString.toString()));
+			result = database.getNodeById(Long.valueOf(idString.toString()));
 		}
 		
 		return result;
