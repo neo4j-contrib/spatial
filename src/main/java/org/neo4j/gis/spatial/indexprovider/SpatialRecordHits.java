@@ -25,6 +25,7 @@ import java.util.List;
 import org.neo4j.gis.spatial.EditableLayer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
+import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
 import org.neo4j.graphdb.ResourceIterator;
@@ -32,6 +33,8 @@ import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.helpers.collection.CatchingIteratorWrapper;
 import org.neo4j.helpers.collection.IteratorUtil;
 import org.neo4j.index.impl.lucene.IdToEntityIterator;
+import org.neo4j.kernel.GraphDatabaseAPI;
+import org.neo4j.kernel.impl.core.NodeManager;
 
 /**
  * I've replaced the {@link SpatialRecordHits} class with this one, which is
@@ -47,11 +50,15 @@ public class SpatialRecordHits extends CatchingIteratorWrapper<Node, SpatialData
 	private SpatialDatabaseService spatialDatabase;
 	private EditableLayer layer;
 	private Iterator<SpatialDatabaseRecord> iterator;
+	private GraphDatabaseAPI database;
+	private final NodeManager nodeManager;
 
 	public SpatialRecordHits(List<SpatialDatabaseRecord> hits, EditableLayer layer) {
 		super(hits.iterator());
 		this.size = hits.size();
 		this.spatialDatabase = layer.getSpatialDatabase();
+		database = (GraphDatabaseAPI) spatialDatabase.getDatabase();
+		nodeManager = database.getDependencyResolver().resolveDependency(NodeManager.class);
 		this.layer = layer;
 	}
 
@@ -92,8 +99,11 @@ public class SpatialRecordHits extends CatchingIteratorWrapper<Node, SpatialData
 		Object idString = object.getProperty("id");
 		Node result = null;
 		
-		if(idString != null){
-			result = spatialDatabase.getDatabase().getNodeById(Long.valueOf(idString.toString()));
+		if(idString != null) {
+			Node node = database.getNodeById(Long.valueOf(idString.toString()));
+			if (!nodeManager.isDeleted(node)) {
+				result = node;
+			}
 		}
 		
 		return result;

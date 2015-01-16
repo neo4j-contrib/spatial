@@ -36,6 +36,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.index.IndexManager;
+import org.neo4j.helpers.collection.IteratorUtil;
 import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.kernel.impl.core.NodeProxy;
 import org.neo4j.test.ImpermanentGraphDatabase;
@@ -390,4 +391,37 @@ public class IndexProviderTest {
         tx.close();
 
     }
+
+
+    @Test
+    public void testDontReturnDeletedNodes() {
+        Map<String, String> config = SpatialIndexProvider.SIMPLE_WKT_CONFIG;
+        IndexManager indexMan = db.index();
+        Transaction tx = db.beginTx();
+        Index<Node> index = indexMan.forNodes("layer2", config);
+        Node batman = db.createNode();
+        batman.setProperty("wkt", "POINT(41.14 37.88 )");
+        index.add(batman, "dummy", "value");
+        tx.success();
+        tx.close();
+
+        tx = db.beginTx();
+        batman.delete();
+
+        Map<String, Object> params = new HashMap<String, Object>();
+        Double[] point = {37.87, 41.13};
+        params.put(LayerNodeIndex.POINT_PARAMETER, point);
+        params.put(LayerNodeIndex.DISTANCE_IN_KM_PARAMETER, 2.0);
+        IndexHits<Node> hits = index.query(LayerNodeIndex.WITHIN_DISTANCE_QUERY, params);
+        //nothing found anymore
+        assertFalse("returned deleted node",hits.hasNext());
+
+        hits = index.query(LayerNodeIndex.BBOX_QUERY, "[40.0, 42.0, 37.0, 38.0]");
+        assertFalse("returned deleted node",hits.hasNext());
+
+
+        tx.success();
+        tx.close();
+    }
+
 }

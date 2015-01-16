@@ -23,12 +23,15 @@ import org.neo4j.gis.spatial.EditableLayer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
+import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.helpers.collection.CatchingIteratorWrapper;
 import org.neo4j.helpers.collection.IteratorUtil;
+import org.neo4j.kernel.GraphDatabaseAPI;
+import org.neo4j.kernel.impl.core.NodeManager;
 
 import java.util.Iterator;
 import java.util.List;
@@ -44,15 +47,19 @@ import java.util.List;
  */
 public class GeoPipeFlowHits extends CatchingIteratorWrapper<Node, GeoPipeFlow> implements IndexHits<Node> {
 	private final int size;
+	private final NodeManager nodeManager;
 	private SpatialDatabaseService spatialDatabase;
 	private EditableLayer layer;
     private GeoPipeFlow current;
+	private GraphDatabaseAPI database;
 
-    public GeoPipeFlowHits(List<GeoPipeFlow> hits, EditableLayer layer) {
+	public GeoPipeFlowHits(List<GeoPipeFlow> hits, EditableLayer layer) {
 		super(hits.iterator());
 		this.size = hits.size();
 		this.spatialDatabase = layer.getSpatialDatabase();
 		this.layer = layer;
+		database = (GraphDatabaseAPI) spatialDatabase.getDatabase();
+		nodeManager = database.getDependencyResolver().resolveDependency(NodeManager.class);
 	}
 
 	public int size() {
@@ -97,7 +104,10 @@ public class GeoPipeFlowHits extends CatchingIteratorWrapper<Node, GeoPipeFlow> 
 		Node result = null;
 		
 		if(idString != null){
-			result = spatialDatabase.getDatabase().getNodeById(Long.valueOf(idString.toString()));
+			Node node = database.getNodeById(Long.valueOf(idString.toString()));
+			if (!nodeManager.isDeleted(node)) {
+				result = node;
+			}
 		}
 		
 		return result;
