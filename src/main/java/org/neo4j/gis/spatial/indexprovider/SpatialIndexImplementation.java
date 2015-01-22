@@ -79,7 +79,7 @@ public class SpatialIndexImplementation implements IndexImplementation {
 
     @Override
     public void force() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        
     }
 
     @Override
