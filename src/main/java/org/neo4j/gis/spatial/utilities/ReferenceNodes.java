@@ -20,16 +20,14 @@
 
 package org.neo4j.gis.spatial.utilities;
 
-import org.neo4j.cypher.javacompat.ExecutionEngine;
-import org.neo4j.cypher.javacompat.ExecutionResult;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Result;
 import org.neo4j.helpers.collection.IteratorUtil;
 import static org.neo4j.helpers.collection.MapUtil.map;
 
 public class ReferenceNodes {
 
-    private static ExecutionEngine engine;
     private static GraphDatabaseService dbRef;
 
     public static Node getReferenceNode(GraphDatabaseService db) {
@@ -37,11 +35,12 @@ public class ReferenceNodes {
     }
 
     public static Node getReferenceNode(GraphDatabaseService db, String name) {
-        if (engine == null || db != dbRef) {
-            engine = new ExecutionEngine(db);
+
+        if (db != dbRef) {
             ReferenceNodes.dbRef = db;
         }
-        ExecutionResult result = engine.execute("MERGE (ref:ReferenceNode {name:{name}}) RETURN ref", map("name", name));
+
+	Result result = db.execute("MERGE (ref:ReferenceNode {name:{name}}) RETURN ref", map("name", name));
         return IteratorUtil.single(result.<Node>columnAs("ref"));
     }
 }
