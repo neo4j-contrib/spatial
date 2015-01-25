@@ -25,6 +25,7 @@ import java.util.List;
 import org.neo4j.gis.spatial.EditableLayer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
+import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
 import org.neo4j.graphdb.ResourceIterator;
@@ -44,14 +45,15 @@ import org.neo4j.index.impl.lucene.IdToEntityIterator;
  */
 public class SpatialRecordHits extends CatchingIteratorWrapper<Node, SpatialDatabaseRecord> implements IndexHits<Node> {
 	private final int size;
-	private SpatialDatabaseService spatialDatabase;
 	private EditableLayer layer;
 	private Iterator<SpatialDatabaseRecord> iterator;
+	private GraphDatabaseService database;
 
 	public SpatialRecordHits(List<SpatialDatabaseRecord> hits, EditableLayer layer) {
 		super(hits.iterator());
 		this.size = hits.size();
-		this.spatialDatabase = layer.getSpatialDatabase();
+		SpatialDatabaseService spatialDatabase = layer.getSpatialDatabase();
+		database = spatialDatabase.getDatabase();
 		this.layer = layer;
 	}
 
@@ -92,8 +94,8 @@ public class SpatialRecordHits extends CatchingIteratorWrapper<Node, SpatialData
 		Object idString = object.getProperty("id");
 		Node result = null;
 		
-		if(idString != null){
-			result = spatialDatabase.getDatabase().getNodeById(Long.valueOf(idString.toString()));
+		if(idString != null) {
+			result = database.getNodeById(Long.valueOf(idString.toString()));
 		}
 		
 		return result;

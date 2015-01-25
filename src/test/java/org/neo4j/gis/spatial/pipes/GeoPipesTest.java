@@ -1156,7 +1156,6 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     public void setUp()
     {
         gen.get().setGraph( db );
-        engine = new ExecutionEngine( db );
         try (Transaction tx = db.beginTx())
         {
             StyledImageExporter exporter = new StyledImageExporter( db );
