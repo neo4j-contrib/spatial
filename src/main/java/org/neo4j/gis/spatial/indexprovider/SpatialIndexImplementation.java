@@ -30,6 +30,7 @@ import org.neo4j.graphdb.index.IndexCommandFactory;
 import org.neo4j.graphdb.index.LegacyIndexProviderTransaction;
 import org.neo4j.kernel.api.LegacyIndex;
 import org.neo4j.kernel.impl.transaction.command.NeoCommandHandler;
+import org.neo4j.kernel.impl.util.ResourceIterators;
 
 public class SpatialIndexImplementation implements IndexImplementation {
 
@@ -52,7 +53,7 @@ public class SpatialIndexImplementation implements IndexImplementation {
 
     @Override
     public LegacyIndexProviderTransaction newTransaction(IndexCommandFactory icf) {
-        
+
 	    return new LegacyIndexProviderTransaction() {
 
 		@Override
@@ -67,7 +68,7 @@ public class SpatialIndexImplementation implements IndexImplementation {
 
 		@Override
 		public void close() {
-			
+
 		}
 	};
     }
@@ -79,11 +80,12 @@ public class SpatialIndexImplementation implements IndexImplementation {
 
     @Override
     public void force() {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+	    // this is a graph based index
     }
 
     @Override
     public ResourceIterator<File> listStoreFiles() throws IOException {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+	    // this is a graph based index
+	    return ResourceIterators.EMPTY_ITERATOR;
     }
 }
