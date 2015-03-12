@@ -19,32 +19,29 @@
  */
 package org.neo4j.gis.spatial;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-
-import org.junit.Test;
-import org.neo4j.cypher.javacompat.ExecutionEngine;
-import org.neo4j.cypher.javacompat.ExecutionResult;
-import org.neo4j.gis.spatial.indexprovider.LayerNodeIndex;
-import org.neo4j.gis.spatial.indexprovider.SpatialIndexProvider;
-import org.neo4j.gis.spatial.rtree.NullListener;
-import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;
-import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
-import org.neo4j.gis.spatial.encoders.SimplePropertyEncoder;
-import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
-import org.neo4j.gis.spatial.osm.OSMLayer;
-import org.neo4j.gis.spatial.pipes.GeoPipeline;
-
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateList;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.LineString;
+import org.junit.Test;
+import org.neo4j.cypher.javacompat.ExecutionEngine;
+import org.neo4j.cypher.javacompat.ExecutionResult;
+import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;
+import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
+import org.neo4j.gis.spatial.encoders.SimplePropertyEncoder;
+import org.neo4j.gis.spatial.indexprovider.LayerNodeIndex;
+import org.neo4j.gis.spatial.indexprovider.SpatialIndexProvider;
+import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
+import org.neo4j.gis.spatial.osm.OSMLayer;
+import org.neo4j.gis.spatial.pipes.GeoPipeline;
+import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.graphdb.*;
-import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.index.Index;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 
 public class LayersTest extends Neo4jTestCase

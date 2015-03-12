@@ -343,6 +343,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 
         if(nodes.size() <= targetLoading){
             for(Node n : nodes){
+                //TODO - change this so its only one function call for all thenodes at once
                 if(insertInLeaf(rootNode, n)){
                     adjustPathBoundingBox(rootNode);
                 };
@@ -350,6 +351,7 @@ public class RTreeIndex implements SpatialIndexWriter {
             return;
         }else {
             //quick dirty way to partition a set into equal sized disjoint subsets
+            // - TODO change this to use the sort function above
             List<List<Node>> listOfLists = new ArrayList<List<Node>>(numberOfPartitions);
             for(int i = 0; i < numberOfPartitions; i++){
                 listOfLists.add(new ArrayList<Node>(nodes.size()/numberOfPartitions + 1));

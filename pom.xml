@@ -20,9 +20,9 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>neo4j-spatial</artifactId>
     <groupId>org.neo4j</groupId>
-    <version>0.13-neo4j-2.1.6</version>
+    <version>0.13-neo4j-2.1.6-BulkLoading</version>
     <name>Neo4j - Spatial Components</name>
-    <description>Spatial utilities and components for Neo4j</description>
+    <description>Redesign of RTree to bulk load efficiently</description>
     <url>http://components.neo4j.org/${project.artifactId}/${project.version}</url>
     <inceptionYear>2010</inceptionYear>
     <packaging>jar</packaging>
@@ -153,6 +153,14 @@
             <name>Peter Neubauer</name>
             <email>peter [at] neotechnology.com</email>
             <timezone>+1</timezone>
+            <roles>
+                <role>Developer</role>
+            </roles>
+        </developer>
+        <developer>
+            <id>phil20686</id>
+            <name>Philip Stephens</name>
+            <email>pstephens@bmtmail.com</email>
             <roles>
                 <role>Developer</role>
             </roles>
