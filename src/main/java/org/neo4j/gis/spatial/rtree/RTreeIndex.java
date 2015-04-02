@@ -466,7 +466,9 @@ public class RTreeIndex implements SpatialIndexWriter {
 			SpatialIndexRecordCounter counter = new SpatialIndexRecordCounter();
 			visit(counter, getIndexRoot());
 			totalGeometryCount = counter.getResult();
-			countSaved = false;
+
+			int savedGeometryCount = (int)getMetadataNode().getProperty("totalGeometryCount",0);
+			countSaved = savedGeometryCount == totalGeometryCount;
 		}
 
 		if (!countSaved) {
