@@ -185,11 +185,13 @@ now do
         <dependency>
           <groupId>org.neo4j</groupId>
           <artifactId>neo4j-spatial</artifactId>
-          <version>0.13-neo4j-2.1.2</version>
+          <version>0.14-neo4j-2.2.0</version>
         </dependency>
       </dependencies>
     </profile>
 ~~~
+
+The version specified on the version line can be changed to match the version you wish to work with (based on the version of Neo4j itself you are using). Too see which versions are available see the list at [Neo4j Spatial Releases](https://github.com/neo4j-contrib/m2/tree/master/releases/org/neo4j/neo4j-spatial).
 
 * start the GeoServer webapp again with the added neo4j profile
 
@@ -219,6 +221,7 @@ Precompiled versions of that ZIP file ready for download and use:
 * [for Neo4j 2.0.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.12-neo4j-2.0.3/neo4j-spatial-0.12-neo4j-2.0.3-server-plugin.zip?raw=true)
 * [for Neo4j 2.0.4](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.12-neo4j-2.0.4/neo4j-spatial-0.12-neo4j-2.0.4-server-plugin.zip?raw=true)
 * [for Neo4j 2.1.2](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.13-neo4j-2.1.2/neo4j-spatial-0.13-neo4j-2.1.2-server-plugin.zip?raw=true)
+* [for Neo4j 2.2.0](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.14-neo4j-2.2.0/neo4j-spatial-0.14-neo4j-2.2.0-server-plugin.zip?raw=true)
 
 ~~~bash
     #install the plugin
@@ -280,9 +283,11 @@ Add the following repositories and dependency to your project's pom.xml:
     <dependency>
         <groupId>org.neo4j</groupId>
         <artifactId>neo4j-spatial</artifactId>
-        <version>0.13-neo4j-2.1.2</version>
+        <version>0.14-neo4j-2.2.0</version>
     </dependency>
 ~~~
+
+The version specified on the last version line can be changed to match the version you wish to work with (based on the version of Neo4j itself you are using). Too see which versions are available see the list at [Neo4j Spatial Releases](https://github.com/neo4j-contrib/m2/tree/master/releases/org/neo4j/neo4j-spatial).
 
 ## Running Neo4j spatial code from the command-line ##
 
