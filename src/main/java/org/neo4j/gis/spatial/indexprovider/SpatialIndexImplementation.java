@@ -28,9 +28,9 @@ import java.util.Map;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.index.IndexCommandFactory;
 import org.neo4j.graphdb.index.LegacyIndexProviderTransaction;
+import org.neo4j.helpers.collection.IteratorUtil;
 import org.neo4j.kernel.api.LegacyIndex;
 import org.neo4j.kernel.impl.transaction.command.NeoCommandHandler;
-import org.neo4j.kernel.impl.util.ResourceIterators;
 
 public class SpatialIndexImplementation implements IndexImplementation {
 
@@ -86,6 +86,6 @@ public class SpatialIndexImplementation implements IndexImplementation {
     @Override
     public ResourceIterator<File> listStoreFiles() throws IOException {
 	    // this is a graph based index
-	    return ResourceIterators.EMPTY_ITERATOR;
+	    return IteratorUtil.emptyIterator();
     }
 }

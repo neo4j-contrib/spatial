@@ -32,7 +32,6 @@ import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.helpers.collection.CatchingIteratorWrapper;
 import org.neo4j.helpers.collection.IteratorUtil;
-import org.neo4j.index.impl.lucene.IdToEntityIterator;
 
 /**
  * I've replaced the {@link SpatialRecordHits} class with this one, which is
