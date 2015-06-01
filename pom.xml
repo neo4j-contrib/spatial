@@ -33,6 +33,8 @@
         <developerConnection>scm:git:git@github.com:neo4j/spatial.git</developerConnection>
       <tag>HEAD</tag>
   </scm>
+
+
     <build>
         <plugins>
             <plugin>
@@ -282,13 +284,15 @@
             <groupId>org.geotools</groupId>
             <artifactId>gt-geojson</artifactId>
             <version>${geotools.version}</version>
-            <scope>provided</scope>
+            <!--<scope>provided</scope>-->
+            <scope>compile</scope>
         </dependency>
         <dependency>
             <groupId>org.geotools.xsd</groupId>
             <artifactId>gt-xsd-kml</artifactId>
             <version>${geotools.version}</version>
-            <scope>provided</scope>
+            <!--<scope>provided</scope>-->
+            <scope>compile</scope>
             <exclusions>
                 <exclusion>
                     <groupId>picocontainer</groupId>
@@ -632,16 +636,28 @@
         </plugins>
     </reporting>
 
+    <!--bmt's repositoryies.-->
     <distributionManagement>
         <repository>
-            <id>repo</id>
-            <url>https://raw.github.com/neo4j-contrib/m2/master/releases</url>
+            <id>bmt-releases</id>
+            <url>http://mvn.tagcloud.simplyconnected.eu/artifactory/libs-release-local</url>
         </repository>
         <snapshotRepository>
-            <id>snapshot-repo</id>
-            <url>https://raw.github.com/neo4j-contrib/m2/master/snapshots</url>
+            <id>bmt-snapshots</id>
+            <url>http://mvn.tagcloud.simplyconnected.eu/artifactory/libs-snapshot-local</url>
         </snapshotRepository>
     </distributionManagement>
+
+    <!--<distributionManagement>-->
+        <!--<repository>-->
+            <!--<id>repo</id>-->
+            <!--<url>https://raw.github.com/neo4j-contrib/m2/master/releases</url>-->
+        <!--</repository>-->
+        <!--<snapshotRepository>-->
+            <!--<id>snapshot-repo</id>-->
+            <!--<url>https://raw.github.com/neo4j-contrib/m2/master/snapshots</url>-->
+        <!--</snapshotRepository>-->
+    <!--</distributionManagement>-->
 
 </project>
 
