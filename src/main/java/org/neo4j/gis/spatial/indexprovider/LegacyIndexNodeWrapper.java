@@ -25,13 +25,13 @@ import org.neo4j.kernel.api.LegacyIndex;
 import org.neo4j.kernel.api.LegacyIndexHits;
 
 public class LegacyIndexNodeWrapper implements LegacyIndex {
-	
+
 	private final Index<Node> index;
 
 	public LegacyIndexNodeWrapper(Index<Node> index) {
 		this.index = index;
 	}
-	
+
 	@Override
 	public LegacyIndexHits get(String key, Object value) {
 		return new LegacyIndexHitsWrapper(index.get(key, value));
@@ -49,12 +49,12 @@ public class LegacyIndexNodeWrapper implements LegacyIndex {
 
 	@Override
 	public void addNode(long id, String key, Object value) {
-		index.add(node(id), key, value);
+		index.add( node( id ), key, value );
 	}
 
 	@Override
 	public void remove(long id, String key, Object value) {
-		index.remove(node(id), key, value);
+		index.remove( node( id ), key, value );
 	}
 
 	@Override
@@ -91,7 +91,25 @@ public class LegacyIndexNodeWrapper implements LegacyIndex {
 	public void addRelationship(long entity, String key, Object value, long startNode, long endNode) {
 		throw new UnsupportedOperationException();
 	}
-	
+
+	@Override
+	public void removeRelationship( long l, String s, Object o, long l1, long l2 )
+	{
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public void removeRelationship( long l, String s, long l1, long l2 )
+	{
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public void removeRelationship( long l, long l1, long l2 )
+	{
+		throw new UnsupportedOperationException();
+	}
+
 	private Node node(long id) {
 		return index.getGraphDatabase().getNodeById(id);
 	}
