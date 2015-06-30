@@ -42,7 +42,7 @@ import org.neo4j.graphdb.Traverser.Order;
  */
 public class RTreeIndex implements SpatialIndexWriter {
 
-	public static final String INDEX_PROP_BBOX = "bbox_xx";
+	public static final String INDEX_PROP_BBOX = "bbox";
 
 	// Constructor
 	public RTreeIndex(GraphDatabaseService database, Node rootNode, EnvelopeDecoder envelopeEncoder) {
