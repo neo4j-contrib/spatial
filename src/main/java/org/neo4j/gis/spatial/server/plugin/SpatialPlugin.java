@@ -76,7 +76,20 @@ public class SpatialPlugin extends ServerPlugin {
         SpatialDatabaseService spatialService = getSpatialDatabaseService(db);
         DynamicLayer dynamicLayer = spatialService.asDynamicLayer(spatialService.getLayer(master_layer));
         int gtype = SpatialDatabaseService.convertGeometryNameToType(geometry);
-        return singleton(dynamicLayer.addLayerConfig(name, gtype, query).getLayerNode());
+
+        Iterable<Node> node;
+        Transaction tx = db.beginTx();
+        try {
+            node = singleton(dynamicLayer.addLayerConfig(name, gtype, query).getLayerNode());
+            tx.success();
+            return node;
+        } catch (Exception e) {
+            tx.failure();
+            e.printStackTrace();
+            throw new RuntimeException("Error adding dynamic layer: " + name, e);
+        } finally {
+            tx.close();
+        }
     }
 
     @PluginTarget(GraphDatabaseService.class)
