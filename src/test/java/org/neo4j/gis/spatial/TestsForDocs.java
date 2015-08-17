@@ -107,14 +107,16 @@ public class TestsForDocs extends Neo4jTestCase {
 	}
 
 	private void importMapOSM() throws Exception {
+		reActivateDatabase(false, true, false);
 		// START SNIPPET: importOsm
 		OSMImporter importer = new OSMImporter("map.osm");
 		importer.setCharset(Charset.forName("UTF-8"));
-		BatchInserter batchInserter = BatchInserters.inserter(databasePath);
+		BatchInserter batchInserter = getBatchInserter();
 		importer.importFile(batchInserter, "map.osm", false);
-		batchInserter.shutdown();
-
-		GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath);
+		//batchInserter.shutdown();
+		//GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath);
+		reActivateDatabase(false, false, false);
+		GraphDatabaseService db = graphDb();
 		importer.reIndex(db);
 		db.shutdown();
 		// END SNIPPET: importOsm
@@ -126,14 +128,17 @@ public class TestsForDocs extends Neo4jTestCase {
 	 * @throws Exception
 	 */
 	public void testImportOSM() throws Exception {
-		super.shutdownDatabase(true);
-		deleteDatabase(true);
+		//super.shutdownDatabase(true);
+		//deleteDatabase(true);
+		reActivateDatabase(true, true, false);
 
 		System.out.println("\n=== Simple test map.osm ===");
 		importMapOSM();
-
+		
 		// START SNIPPET: searchBBox
-		GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath);
+		//GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath);
+		reActivateDatabase(false, false, false);
+		GraphDatabaseService database = graphDb();
 		try {
 			SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
 			Layer layer = spatialService.getLayer("map.osm");
@@ -158,13 +163,16 @@ public class TestsForDocs extends Neo4jTestCase {
 	}
 
 	public void testImportShapefile() throws Exception {
-		super.shutdownDatabase(true);
-		deleteDatabase(true);
+		//super.shutdownDatabase(true);
+		//deleteDatabase(true);
+		reActivateDatabase(true, true, false);
 
 		System.out.println("\n=== Test Import Shapefile ===");
 
 		// START SNIPPET: importShapefile
-		GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath);
+		reActivateDatabase(false, false, false);
+		//GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath);
+		GraphDatabaseService database = graphDb();
 		try {
 			ShapefileImporter importer = new ShapefileImporter(database);
 			importer.importFile("shp/highway.shp", "highway", Charset.forName("UTF-8"));
@@ -177,13 +185,15 @@ public class TestsForDocs extends Neo4jTestCase {
 	}
 
 	public void testExportShapefileFromOSM() throws Exception {
-		super.shutdownDatabase(true);
-		deleteDatabase(true);
+		//super.shutdownDatabase(true);
+		//deleteDatabase(true);
+		reActivateDatabase(true, true, false);
 
 		System.out.println("\n=== Test import map.osm, create DynamicLayer and export shapefile ===");
 		importMapOSM();
-
-		GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath);
+		reActivateDatabase(false, false, false);
+		//GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath);
+		GraphDatabaseService database = graphDb();
 		try {
 			// START SNIPPET: exportShapefileFromOSM
             SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
@@ -201,13 +211,16 @@ public class TestsForDocs extends Neo4jTestCase {
 	}
 
 	public void testExportShapefileFromQuery() throws Exception {
-		super.shutdownDatabase(true);
-		deleteDatabase(true);
+		//super.shutdownDatabase(true);
+		//deleteDatabase(true);
+		reActivateDatabase(true, true, false);
 
 		System.out.println("\n=== Test import map.osm, create DynamicLayer and export shapefile ===");
 		importMapOSM();
 
-		GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath);
+		reActivateDatabase(false, false, false);
+		//GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath);
+		GraphDatabaseService database = graphDb();
 		try {
 			// START SNIPPET: exportShapefileFromQuery
 			SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
