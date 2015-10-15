@@ -73,6 +73,7 @@ public class LayerNodeIndex implements Index<Node>
 	public static final String LINE_LOCATE_POINT = "lineLocatePoint";					// Query type
 	public static final String GET_CLOSEST_NODE = "getClosestNode";						// Query type
 	public static final String GET_LAT_LON = "getLatLon";								// Query type
+	public static final String GET_EDGES_IN_RANGE = "getEdgesInRange";					// Query type
 	public static final String GET_NODES_IN_INTERSECTION = "getNodesInIntersection";	// Query type
 	public static final String CQL_QUERY = "CQL";										// Query type (unused)
 
@@ -89,7 +90,7 @@ public class LayerNodeIndex implements Index<Node>
 			+ "AXIS[\"Geodetic longitude\", EAST], "
 			+ "AXIS[\"Geodetic latitude\", NORTH], "
 			+ "AUTHORITY[\"EPSG\",\"4326\"]]";
-	
+
 	private final String wkt3857 = "PROJCS[\"WGS 84 / Pseudo-Mercator\", "
 			+ "GEOGCS[\"WGS 84\", "
 			+ "DATUM[\"World Geodetic System 1984\", "
@@ -111,7 +112,7 @@ public class LayerNodeIndex implements Index<Node>
 			+ "AXIS[\"Easting\", EAST],"
 			+ "AXIS[\"Northing\", NORTH],"
 			+ "AUTHORITY[\"EPSG\",\"3857\"]]";
-	
+
 	private String nodeLookupIndexName;
 
 	private final String layerName;
@@ -298,6 +299,9 @@ public class LayerNodeIndex implements Index<Node>
 			}
 
 			Coordinate start = new Coordinate(point[1], point[0]);
+			if(distance == 0.0){
+				distance = 0.01;
+			}
 			List<GeoPipeFlow> res = GeoPipeline.startNearestNeighborSearch(
 					layer, start, distance).sort(
 							"Distance").toList();
@@ -352,7 +356,7 @@ public class LayerNodeIndex implements Index<Node>
 				final CoordinateReferenceSystem targetCRS = CRS.parseWKT(wkt3857);
 				final MathTransform transform = CRS.findMathTransform(sourceCRS, targetCRS, false);
 				geomPoint = JTS.transform(geomPoint, transform);
-				
+
 				final GeometryEncoder encoder = layer.getGeometryEncoder();
 				List<SpatialDatabaseRecord> list = new ArrayList<SpatialDatabaseRecord>();
 				while(edgeNodes.hasNext()){
@@ -396,65 +400,65 @@ public class LayerNodeIndex implements Index<Node>
 				e.printStackTrace();
 			} 
 		}
-				else if ( key.equals( GET_CLOSEST_NODE ) )
-				{
-					final String node_label;
-					final String pointString;
-					final int mode;
-					try
-					{
-						@SuppressWarnings("unchecked")
-						List<String> args = (List<String>) new JSONParser().parse( (String) params );
-						node_label = (String) args.get(0);
-						pointString = (String) args.get(1);
-						mode = Integer.parseInt(args.get(2));
-						ResourceIterator<Node> nodes;
-						if(mode == -1){
-							nodes = db.findNodes(DynamicLabel.label(node_label));
-						}else{
-							nodes = db.findNodes(DynamicLabel.label(node_label), "mode", mode);
-						}
-						final WKTReader wktReader = new WKTReader(layer.getGeometryFactory());
-						Geometry geomPoint = wktReader.read(pointString);
-						Node closestNode = null;
-						double closestDistance = Double.MAX_VALUE;
-						System.setProperty("org.geotools.referencing.forceXY", "true");
-						final CoordinateReferenceSystem sourceCRS = CRS.parseWKT(wkt4326);
-						final CoordinateReferenceSystem targetCRS = CRS.parseWKT(wkt3857);
-						MathTransform transform = CRS.findMathTransform(sourceCRS, targetCRS, false);
-						geomPoint = JTS.transform(geomPoint, transform);
-						while(nodes.hasNext()){
-							Node node = nodes.next();
-							if(node.hasProperty("geometry")){
-								Geometry geometry = layer.getGeometryEncoder().decodeGeometry( node );
-								double distance = geometry.distance(geomPoint);
-								if(distance < closestDistance){
-									closestNode = node;
-									closestDistance = distance;
-								}
-							}
-						}
-						List<SpatialDatabaseRecord> list = new ArrayList<SpatialDatabaseRecord>();
-						list.add(new SpatialDatabaseRecord(layer, findExistingNode(closestNode)));
-		
-						results = new SpatialRecordHits(list, layer);
-						return results;
-					} catch ( ParseException e ) {
-						e.printStackTrace();
-					} catch ( com.vividsolutions.jts.io.ParseException e ) {
-						e.printStackTrace();
-					} catch (NoSuchAuthorityCodeException e) {
-						e.printStackTrace();
-					} catch (FactoryException e) {
-						e.printStackTrace();
-					} catch (MismatchedDimensionException e) {
-						e.printStackTrace();
-					} catch (TransformException e) {
-						e.printStackTrace();
-					} 
+		else if ( key.equals( GET_CLOSEST_NODE ) )
+		{
+			final String node_label;
+			final String pointString;
+			final int mode;
+			try
+			{
+				@SuppressWarnings("unchecked")
+				List<String> args = (List<String>) new JSONParser().parse( (String) params );
+				node_label = (String) args.get(0);
+				pointString = (String) args.get(1);
+				mode = Integer.parseInt(args.get(2));
+				ResourceIterator<Node> nodes;
+				if(mode == -1){
+					nodes = db.findNodes(DynamicLabel.label(node_label));
+				}else{
+					nodes = db.findNodes(DynamicLabel.label(node_label), "mode", mode);
 				}
+				final WKTReader wktReader = new WKTReader(layer.getGeometryFactory());
+				Geometry geomPoint = wktReader.read(pointString);
+				Node closestNode = null;
+				double closestDistance = Double.MAX_VALUE;
+				System.setProperty("org.geotools.referencing.forceXY", "true");
+				final CoordinateReferenceSystem sourceCRS = CRS.parseWKT(wkt4326);
+				final CoordinateReferenceSystem targetCRS = CRS.parseWKT(wkt3857);
+				MathTransform transform = CRS.findMathTransform(sourceCRS, targetCRS, false);
+				geomPoint = JTS.transform(geomPoint, transform);
+				while(nodes.hasNext()){
+					Node node = nodes.next();
+					if(node.hasProperty("geometry")){
+						Geometry geometry = layer.getGeometryEncoder().decodeGeometry( node );
+						double distance = geometry.distance(geomPoint);
+						if(distance < closestDistance){
+							closestNode = node;
+							closestDistance = distance;
+						}
+					}
+				}
+				List<SpatialDatabaseRecord> list = new ArrayList<SpatialDatabaseRecord>();
+				list.add(new SpatialDatabaseRecord(layer, findExistingNode(closestNode)));
 
-				else if ( key.equals( GET_LAT_LON ) )
+				results = new SpatialRecordHits(list, layer);
+				return results;
+			} catch ( ParseException e ) {
+				e.printStackTrace();
+			} catch ( com.vividsolutions.jts.io.ParseException e ) {
+				e.printStackTrace();
+			} catch (NoSuchAuthorityCodeException e) {
+				e.printStackTrace();
+			} catch (FactoryException e) {
+				e.printStackTrace();
+			} catch (MismatchedDimensionException e) {
+				e.printStackTrace();
+			} catch (TransformException e) {
+				e.printStackTrace();
+			} 
+		}
+
+		else if ( key.equals( GET_LAT_LON ) )
 		{
 
 			final String node_label;
