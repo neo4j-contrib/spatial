@@ -213,16 +213,10 @@ Neo4j Spatial is also packaged as a ZIP file that can be unzipped into the Neo4j
 
 Precompiled versions of that ZIP file ready for download and use:
 
-* [for Neo4j 1.9](http://dist.neo4j.org.s3.amazonaws.com/spatial/neo4j-spatial-0.11-neo4j-1.9-server-plugin.zip)
 * [for Neo4j 1.8.2](http://dist.neo4j.org.s3.amazonaws.com/spatial/neo4j-spatial-0.9.1-neo4j-1.8.2-server-plugin.zip)
-* [for Neo4j 2.0](http://dist.neo4j.org/spatial/neo4j-spatial-0.12-neo4j-2.0.0-server-plugin.zip)
-* [for Neo4j 2.0.1](http://dist.neo4j.org/spatial/neo4j-spatial-0.12-neo4j-2.0.1-server-plugin.zip)
-* [for Neo4j 2.0.2](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.12-neo4j-2.0.2/neo4j-spatial-0.12-neo4j-2.0.2-server-plugin.zip?raw=true)
-* [for Neo4j 2.0.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.12-neo4j-2.0.3/neo4j-spatial-0.12-neo4j-2.0.3-server-plugin.zip?raw=true)
+* [for Neo4j 1.9](http://dist.neo4j.org.s3.amazonaws.com/spatial/neo4j-spatial-0.11-neo4j-1.9-server-plugin.zip)
 * [for Neo4j 2.0.4](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.12-neo4j-2.0.4/neo4j-spatial-0.12-neo4j-2.0.4-server-plugin.zip?raw=true)
 * [for Neo4j 2.1.2](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.13-neo4j-2.1.2/neo4j-spatial-0.13-neo4j-2.1.2-server-plugin.zip?raw=true)
-* [for Neo4j 2.2.0](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.14-neo4j-2.2.0/neo4j-spatial-0.14-neo4j-2.2.0-server-plugin.zip?raw=true)
-* [for Neo4j 2.2.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.15-neo4j-2.2.3/neo4j-spatial-0.15-neo4j-2.2.3-server-plugin.zip?raw=true)
 * [for Neo4j 2.2.6](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.15-neo4j-2.2.6/neo4j-spatial-0.15-neo4j-2.2.6-server-plugin.zip?raw=true)
 
 ~~~bash
@@ -235,7 +229,7 @@ Precompiled versions of that ZIP file ready for download and use:
     curl http://localhost:7474/db/data/
 ~~~
 
-For the REST API, see [Neo4j Spatial Manual REST part](http://neo4j-contrib.github.io/spatial/#spatial-server-plugin)
+For the REST API, see [Neo4j Spatial Manual REST](http://neo4j-contrib.github.io/spatial/#spatial-server-plugin)
 
 ## Building Neo4j spatial ##
 
