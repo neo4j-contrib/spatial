@@ -45,10 +45,9 @@ import org.neo4j.graphdb.factory.GraphDatabaseSettings;
 import org.neo4j.graphdb.mockfs.EphemeralFileSystemAbstraction;
 import org.neo4j.io.fs.FileUtils;
 import org.neo4j.kernel.GraphDatabaseAPI;
-import org.neo4j.kernel.impl.store.NeoStore;
-import org.neo4j.kernel.impl.transaction.state.NeoStoreProvider;
+import org.neo4j.kernel.impl.store.NeoStores;
+import org.neo4j.kernel.impl.transaction.state.NeoStoresSupplier;
 import org.neo4j.test.EphemeralFileSystemRule;
-import org.neo4j.test.TestGraphDatabaseFactory;
 import org.neo4j.unsafe.batchinsert.BatchInserter;
 import org.neo4j.unsafe.batchinsert.BatchInserters;
 
@@ -291,19 +290,19 @@ public abstract class Neo4jTestCase extends TestCase {
 
     protected org.neo4j.kernel.impl.store.PropertyStore propertyStore()
     {
-        NeoStore neoStore = ((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency( NeoStoreProvider.class ).evaluate();
+        NeoStores neoStore = ((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency( NeoStoresSupplier.class ).get();
         return neoStore.getPropertyStore();
     }
 
     protected org.neo4j.kernel.impl.store.NodeStore nodeStore()
     {
-        NeoStore neoStore = ((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency( NeoStoreProvider.class ).evaluate();
+        NeoStores neoStore = ((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency( NeoStoresSupplier.class ).get();
         return neoStore.getNodeStore();
     }
 
     protected org.neo4j.kernel.impl.store.RelationshipStore relationshipStore()
     {
-        NeoStore neoStore = ((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency( NeoStoreProvider.class ).evaluate();
+        NeoStores neoStore = ((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency( NeoStoresSupplier.class ).get();
         return neoStore.getRelationshipStore();
     }
 

@@ -47,7 +47,7 @@ import java.io.*;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.Map.Entry;
-import org.neo4j.kernel.impl.transaction.state.NeoStoreProvider;
+import org.neo4j.kernel.impl.transaction.state.NeoStoresSupplier;
 
 public class TestIntersectsPathQueries extends TestCase {
 
@@ -192,7 +192,7 @@ public class TestIntersectsPathQueries extends TestCase {
 	private void runTestPointSetGeoptimaIntersection(String tracePath, String dbPath, String layerName, boolean testMultiPoint) throws ParseException, IOException, XMLStreamException {
 		GraphDatabaseService graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(dbPath).setConfig( Neo4jTestCase.NORMAL_CONFIG ).newGraphDatabase();
 		SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb);
-                System.out.println("Opened database with node count=" + ((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency( NeoStoreProvider.class ).evaluate().getNodeStore().getNumberOfIdsInUse());
+                System.out.println("Opened database with node count=" + ((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency( NeoStoresSupplier.class ).get().getNodeStore().getNumberOfIdsInUse());
 
 		System.out.println("Searching for '"+layerName+"' in "+spatial.getLayerNames().length+" layers:");
 		for(String name:spatial.getLayerNames()){
