@@ -223,11 +223,11 @@ Precompiled versions of that ZIP file ready for download and use:
 * [for Neo4j 2.1.2](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.13-neo4j-2.1.2/neo4j-spatial-0.13-neo4j-2.1.2-server-plugin.zip?raw=true)
 * [for Neo4j 2.2.0](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.14-neo4j-2.2.0/neo4j-spatial-0.14-neo4j-2.2.0-server-plugin.zip?raw=true)
 * [for Neo4j 2.2.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.15-neo4j-2.2.3/neo4j-spatial-0.15-neo4j-2.2.3-server-plugin.zip?raw=true)
+* [for Neo4j 2.2.6](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.15-neo4j-2.2.6/neo4j-spatial-0.15-neo4j-2.2.6-server-plugin.zip?raw=true)
 
 ~~~bash
     #install the plugin
-    cp $NEO4J_SPATIAL_HOME/target/neo4j-spatial-XXXX-server-plugin.zip $NEO4J_HOME/plugins
-    cd unzip neo4j-spatial-XXXX-server-plugin.zip -d $NEO4J_HOME/plugins
+    unzip neo4j-spatial-XXXX-server-plugin.zip -d $NEO4J_HOME/plugins
     
     #start the server
     $NEO4J_HOME/bin/neo4j start
