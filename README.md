@@ -185,7 +185,7 @@ now do
         <dependency>
           <groupId>org.neo4j</groupId>
           <artifactId>neo4j-spatial</artifactId>
-          <version>0.15-neo4j-2.2.3</version>
+          <version>0.15-neo4j-2.2.6</version>
         </dependency>
       </dependencies>
     </profile>
@@ -278,7 +278,7 @@ Add the following repositories and dependency to your project's pom.xml:
     <dependency>
         <groupId>org.neo4j</groupId>
         <artifactId>neo4j-spatial</artifactId>
-        <version>0.15-neo4j-2.2.3</version>
+        <version>0.15-neo4j-2.2.6</version>
     </dependency>
 ~~~
 
