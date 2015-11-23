@@ -4,7 +4,7 @@
 
 Neo4j Spatial is a library facilitating the import, storage and querying of spatial data in the [Neo4j open source graph database](http://neo4j.org/).
 
-This projects manual is deployed as part of the local build as the [Neo4j Spatial Manual](http://neo4j-contrib.github.io/spatial)
+This projects manual is deployed as part of the local build as the [Neo4j Spatial Manual](http://neo4j-contrib.github.io/spatial).
 
 ![Open Street Map](https://raw.github.com/neo4j-contrib/spatial/master/src/docs/images/one-street.png "Open Street Map")
 
@@ -110,8 +110,7 @@ Refer to the test code in the LayerTest and the SpatialTest classes for more exa
 
 ## Neo4j Spatial Geoserver Plugin ##
 
-*IMPORTANT*
-Tested with: GeoServer 2.1.1
+*IMPORTANT*: Examples in this readme were tested with GeoServer 2.1.1
 
 ### Building ###
 
@@ -150,7 +149,7 @@ now do
 
 * configure a new workspace
 
-* configure a new datasource neo4j in your workspace. Point the "The directory path of the Neo4j database:" parameter to the relative (form the GeoServer working dir) or aboslute path to a Neo4j Spatial database with layers (see [Neo4j Spatial](https://github.com/neo4j/spatial)
+* configure a new datasource neo4j in your workspace. Point the "The directory path of the Neo4j database:" parameter to the relative (form the GeoServer working dir) or aboslute path to a Neo4j Spatial database with layers (see [Neo4j Spatial](https://github.com/neo4j/spatial))
 
 * in Layers, do "Add new resource" and choose your Neo4j datastore to see the exisitng Neo4j Spatial layers and add them.
 
