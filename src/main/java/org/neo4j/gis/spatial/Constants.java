@@ -26,7 +26,7 @@ public interface Constants {
 
 	// Node properties
 	
-	String PROP_BBOX = "bbox_abc";
+	String PROP_BBOX = "bbox";
 	String PROP_LAYER = "layer";
 	String PROP_LAYERNODEEXTRAPROPS = "layerprops";
 	String PROP_CRS = "layercrs";

@@ -42,7 +42,7 @@ import org.neo4j.graphdb.Traverser.Order;
  */
 public class RTreeIndex implements SpatialIndexWriter {
 
-	public static final String INDEX_PROP_BBOX = "bbox_xx";
+	public static final String INDEX_PROP_BBOX = "bbox";
 
 	// Constructor
 	public RTreeIndex(GraphDatabaseService database, Node rootNode, EnvelopeDecoder envelopeEncoder) {
@@ -614,9 +614,11 @@ public class RTreeIndex implements SpatialIndexWriter {
 		Node seed1 = null;
 		Node seed2 = null;
 		double worst = Double.NEGATIVE_INFINITY;
-		for (Node e : entries) {
+		for (int i = 0; i < entries.size(); ++i) {
+			Node e = entries.get(i);
 			Envelope eEnvelope = getChildNodeEnvelope(e, relationshipType);
-			for (Node e1 : entries) {
+			for (int j = i + 1; j < entries.size(); ++j) {
+				Node e1 = entries.get(j);
 				Envelope e1Envelope = getChildNodeEnvelope(e1, relationshipType);
 				double deadSpace = getArea(createEnvelope(eEnvelope, e1Envelope)) - getArea(eEnvelope) - getArea(e1Envelope);
 				if (deadSpace > worst) {
