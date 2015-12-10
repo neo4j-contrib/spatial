@@ -334,20 +334,26 @@ public class LayerNodeIndex implements Index<Node>
 		else if ( key.equals( LINE_LOCATE_POINT ) )
 		{
 
-			final String edge_label;
+			final String prefix;
 			final String pointString;
 			final int edge_mode;
-			final double tolerance;
+			final int databaseSRID;
 			try
 			{
 				@SuppressWarnings("unchecked")
 				List<String> args = (List<String>) new JSONParser().parse( (String) params );
-				edge_label = (String) args.get(0);
+				prefix = (String) args.get(0);
 				pointString = (String) args.get(1);
 				edge_mode = Integer.parseInt(args.get(2));
-				tolerance = Double.parseDouble(args.get(3));
 
-				ResourceIterator<Node> edgeNodes = db.findNodes(DynamicLabel.label(edge_label), "edge_mode", edge_mode);
+				ResourceIterator<Node> SRIDNodes = db.findNodes(DynamicLabel.label(prefix + "_SRID"));
+				if(SRIDNodes.hasNext()){
+					databaseSRID = Integer.parseInt(SRIDNodes.next().getProperty("srid").toString());
+				} else {
+					databaseSRID = 3857;
+				}
+
+				ResourceIterator<Node> edgeNodes = db.findNodes(DynamicLabel.label(prefix + "_Edge"), "edge_mode", edge_mode);
 				final WKTReader wktReader = new WKTReader(layer.getGeometryFactory());
 				Geometry geomPoint = wktReader.read(pointString);
 
@@ -362,37 +368,38 @@ public class LayerNodeIndex implements Index<Node>
 				while(edgeNodes.hasNext()){
 					Node edgeNode = edgeNodes.next();
 					Geometry geometry = encoder.decodeGeometry( edgeNode );
-					double distance = geomPoint.distance(geometry);
-					if(distance <= tolerance){
-						LocationIndexedLine line = new LocationIndexedLine(geometry);        		
-						Coordinate closestPoint = line.extractPoint(line.project(geomPoint.getCoordinate()));
-						Coordinate[] coordinates = geometry.getCoordinates();
-						double offset = 0;
-						for(int i = 0; i < coordinates.length-1; i++ ){
-							double distanceToClosest = coordinates[i].distance(closestPoint);
-							double distanceToNext = coordinates[i].distance(coordinates[i+1]);
-							if(distanceToClosest < distanceToNext){
-								offset += distanceToClosest;
-								edgeNode.setProperty("distance", distance);
-								edgeNode.setProperty("offset", offset);
-								list.add(new SpatialDatabaseRecord(layer, findExistingNode(edgeNode)));
-								break;
-							}else{
-								offset += distanceToNext;
-							}
-						}
+
+					if(databaseSRID == 4326){
+						geometry = JTS.transform(geometry, transform);
 					}
 
+					double distance = geomPoint.distance(geometry);
+					LocationIndexedLine line = new LocationIndexedLine(geometry);        		
+					Coordinate closestPoint = line.extractPoint(line.project(geomPoint.getCoordinate()));
+					Coordinate[] coordinates = geometry.getCoordinates();
+					double offset = 0;
+					for(int i = 0; i < coordinates.length-1; i++ ){
+						double distanceToClosest = coordinates[i].distance(closestPoint);
+						double distanceToNext = coordinates[i].distance(coordinates[i+1]);
+						if(distanceToClosest < distanceToNext){
+							offset += distanceToClosest;
+							edgeNode.setProperty("distance", distance);
+							edgeNode.setProperty("offset", offset);
+							list.add(new SpatialDatabaseRecord(layer, findExistingNode(edgeNode)));
+							break;
+						}else{
+							offset += distanceToNext;
+						}
+					}
 				}
 
 				results = new SpatialRecordHits(list, layer);
 				return results;
-			} catch ( ParseException e ) {
+			} catch (ParseException e ) {
 				e.printStackTrace();
-			} catch ( com.vividsolutions.jts.io.ParseException e ) {
+			} catch (com.vividsolutions.jts.io.ParseException e) {
 				e.printStackTrace();
 			} catch (FactoryException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			} catch (MismatchedDimensionException e) {
 				e.printStackTrace();
@@ -495,7 +502,7 @@ public class LayerNodeIndex implements Index<Node>
 		else if ( key.equals( GET_NODES_IN_INTERSECTION ) )
 		{
 
-			final String node_label;
+			final String prefix;
 			final String pointString;
 			final double distance;
 			final String differencePointString;
@@ -506,17 +513,17 @@ public class LayerNodeIndex implements Index<Node>
 			{
 				@SuppressWarnings("unchecked")
 				List<String> args = (List<String>) new JSONParser().parse( (String) params );
-				node_label = args.get(0);
+				prefix = args.get(0);
 				pointString =  args.get(1);
 				distance = Double.parseDouble(args.get(2));
 				differencePointString = args.get(3);
 				differenceDistance = Double.parseDouble(args.get(4));
 				unionPointString = args.get(5);
 				unionDistance = args.get(6).equals("") ? 0.0 : Double.parseDouble(args.get(6));
-
+				
 				ResourceIterator<Node> nodes;
 
-				nodes = db.findNodes(DynamicLabel.label(node_label));
+				nodes = db.findNodes(DynamicLabel.label(prefix + "_Node"));
 				if(!nodes.hasNext()){
 					return null;
 				}
@@ -560,7 +567,7 @@ public class LayerNodeIndex implements Index<Node>
 		else
 		{
 			throw new UnsupportedOperationException( String.format(
-					"only %s, %s, %s, %s, %s, %s, %s and %s are implemented.", WITHIN_QUERY,
+					"only %s, %s, %s, %s, %s, %s and %s are implemented.", WITHIN_QUERY,
 					WITHIN_DISTANCE_QUERY, BBOX_QUERY, LINE_LOCATE_POINT, GET_CLOSEST_NODE, 
 					GET_LAT_LON, GET_NODES_IN_INTERSECTION ) );
 		}
