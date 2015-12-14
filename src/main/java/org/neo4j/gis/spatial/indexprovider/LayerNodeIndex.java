@@ -73,7 +73,6 @@ public class LayerNodeIndex implements Index<Node>
 	public static final String LINE_LOCATE_POINT = "lineLocatePoint";					// Query type
 	public static final String GET_CLOSEST_NODE = "getClosestNode";						// Query type
 	public static final String GET_LAT_LON = "getLatLon";								// Query type
-	public static final String GET_EDGES_IN_RANGE = "getEdgesInRange";					// Query type
 	public static final String GET_NODES_IN_INTERSECTION = "getNodesInIntersection";	// Query type
 	public static final String CQL_QUERY = "CQL";										// Query type (unused)
 
@@ -463,9 +462,7 @@ public class LayerNodeIndex implements Index<Node>
 			} catch (TransformException e) {
 				e.printStackTrace();
 			} 
-		}
-
-		else if ( key.equals( GET_LAT_LON ) )
+		} else if ( key.equals( GET_LAT_LON ) )
 		{
 
 			final String node_label;
@@ -520,14 +517,14 @@ public class LayerNodeIndex implements Index<Node>
 				differenceDistance = Double.parseDouble(args.get(4));
 				unionPointString = args.get(5);
 				unionDistance = args.get(6).equals("") ? 0.0 : Double.parseDouble(args.get(6));
-				
+								
 				ResourceIterator<Node> nodes;
 
 				nodes = db.findNodes(DynamicLabel.label(prefix + "_Node"));
 				if(!nodes.hasNext()){
 					return null;
 				}
-				System.setProperty("org.geotools.referencing.forceXY", "true");
+				
 				final WKTReader wktReader = new WKTReader(layer.getGeometryFactory());
 				Geometry geomPoint = wktReader.read(pointString);
 				Geometry buffer = geomPoint.buffer(distance);
