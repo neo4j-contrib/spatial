@@ -26,6 +26,7 @@ import com.vividsolutions.jts.io.WKTReader;
 import com.vividsolutions.jts.linearref.LocationIndexedLine;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -80,6 +81,7 @@ public class LayerNodeIndex implements Index<Node>
 	public static final String DISTANCE_IN_KM_PARAMETER = "distanceInKm";		// Query parameter key: distance for withinDistance query
 	public static final String POINT_PARAMETER = "point";						// Query parameter key: relative to this point for withinDistance query
 
+	private final HashMap<Integer, String> wkt = new HashMap<Integer, String>(2);
 	private final String wkt4326 = "GEOGCS[\"WGS 84\", "
 			+ "DATUM[\"World Geodetic System 1984\", "
 			+ "SPHEROID[\"WGS 84\", 6378137.0, 298.257223563, AUTHORITY[\"EPSG\",\"7030\"]], "
@@ -136,6 +138,8 @@ public class LayerNodeIndex implements Index<Node>
 		this.nodeLookupIndexName = indexName + "__neo4j-spatial__LayerNodeIndex__internal__spatialNodeLookup__";
 		this.idLookup = db.index().forNodes(nodeLookupIndexName);
 		spatialDB = new SpatialDatabaseService( this.db );
+		wkt.put(4326, wkt4326);
+		wkt.put(3857, wkt3857);
 		if ( config.containsKey( SpatialIndexProvider.GEOMETRY_TYPE )
 				&& POINT_GEOMETRY_TYPE.equals(config.get( SpatialIndexProvider.GEOMETRY_TYPE ))
 				&& config.containsKey( LayerNodeIndex.LAT_PROPERTY_KEY )
@@ -335,7 +339,8 @@ public class LayerNodeIndex implements Index<Node>
 
 			final String prefix;
 			final String pointString;
-			final int edge_mode;
+			final int pointSRID;
+			final int mode;
 			final int databaseSRID;
 			try
 			{
@@ -343,7 +348,8 @@ public class LayerNodeIndex implements Index<Node>
 				List<String> args = (List<String>) new JSONParser().parse( (String) params );
 				prefix = (String) args.get(0);
 				pointString = (String) args.get(1);
-				edge_mode = Integer.parseInt(args.get(2));
+				pointSRID = Integer.parseInt(args.get(2));
+				mode = Integer.parseInt(args.get(3));
 
 				ResourceIterator<Node> SRIDNodes = db.findNodes(DynamicLabel.label(prefix + "_SRID"));
 				if(SRIDNodes.hasNext()){
@@ -352,15 +358,17 @@ public class LayerNodeIndex implements Index<Node>
 					databaseSRID = 3857;
 				}
 
-				ResourceIterator<Node> edgeNodes = db.findNodes(DynamicLabel.label(prefix + "_Edge"), "edge_mode", edge_mode);
+				ResourceIterator<Node> edgeNodes = db.findNodes(DynamicLabel.label(prefix + "_Edge"), "mode", mode);
 				final WKTReader wktReader = new WKTReader(layer.getGeometryFactory());
 				Geometry geomPoint = wktReader.read(pointString);
 
-				System.setProperty("org.geotools.referencing.forceXY", "true");
-				final CoordinateReferenceSystem sourceCRS = CRS.parseWKT(wkt4326);
-				final CoordinateReferenceSystem targetCRS = CRS.parseWKT(wkt3857);
-				final MathTransform transform = CRS.findMathTransform(sourceCRS, targetCRS, false);
-				geomPoint = JTS.transform(geomPoint, transform);
+				if (databaseSRID != pointSRID)  {
+					System.setProperty("org.geotools.referencing.forceXY", "true");
+					final CoordinateReferenceSystem sourceCRS = CRS.parseWKT(wkt.get(pointSRID));
+					final CoordinateReferenceSystem targetCRS = CRS.parseWKT(wkt.get(databaseSRID));
+					final MathTransform transform = CRS.findMathTransform(sourceCRS, targetCRS, false);
+					geomPoint = JTS.transform(geomPoint, transform);
+				}
 
 				final GeometryEncoder encoder = layer.getGeometryEncoder();
 				List<SpatialDatabaseRecord> list = new ArrayList<SpatialDatabaseRecord>();
@@ -368,12 +376,9 @@ public class LayerNodeIndex implements Index<Node>
 					Node edgeNode = edgeNodes.next();
 					Geometry geometry = encoder.decodeGeometry( edgeNode );
 
-					if(databaseSRID == 4326){
-						geometry = JTS.transform(geometry, transform);
-					}
-
 					double distance = geomPoint.distance(geometry);
 					LocationIndexedLine line = new LocationIndexedLine(geometry);        		
+					double geometryLength = geometry.getLength();
 					Coordinate closestPoint = line.extractPoint(line.project(geomPoint.getCoordinate()));
 					Coordinate[] coordinates = geometry.getCoordinates();
 					double offset = 0;
@@ -382,6 +387,7 @@ public class LayerNodeIndex implements Index<Node>
 						double distanceToNext = coordinates[i].distance(coordinates[i+1]);
 						if(distanceToClosest < distanceToNext){
 							offset += distanceToClosest;
+							offset = offset / geometryLength;
 							edgeNode.setProperty("distance", distance);
 							edgeNode.setProperty("offset", offset);
 							list.add(new SpatialDatabaseRecord(layer, findExistingNode(edgeNode)));
