@@ -21,18 +21,12 @@ package org.neo4j.gis.spatial;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.TestCase.assertFalse;
-import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.util.List;
-import java.util.Map;
-
-import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import junit.framework.Assert;
 import org.codehaus.jackson.JsonNode;
 import org.codehaus.jackson.map.ObjectMapper;
 import org.json.simple.JSONArray;
@@ -86,12 +80,11 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
 	}
 
     /**
-     * The Neo4j Spatial Server plugin, if
-     * installed, will be announced in the root representation
-     * for the Neo4j Server REST API.
+     * The Neo4j Spatial Server plugin, if installed, will be announced in the
+     * root representation for the Neo4j Server REST API.
      */
     @Test
-    @Documented
+    @Documented("finding_the_plugin")
     public void finding_the_plugin() throws UnsupportedEncodingException
     {
         gen.get().expectedStatus( Status.OK.getStatusCode() );
@@ -103,7 +96,7 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
      * This allows cypher querying a bounding box
      */
     @Test
-    @Documented
+    @Documented("querying_with_cypher")
     public void querying_with_cypher() throws UnsupportedEncodingException, ParseException {
         data.get();
         String response = post(Status.OK,"{\"layer\":\"geom\", \"lat\":\"lat\", \"lon\":\"lon\"}", ENDPOINT + "/graphdb/addSimplePointLayer");
@@ -136,7 +129,7 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
      * spatial information.
      */
     @Test
-    @Documented
+    @Documented("create_a_pointlayer")
     public void create_a_pointlayer() throws UnsupportedEncodingException
     {
         data.get();
@@ -144,11 +137,10 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
     }
 
     /**
-     * Find a layer by its name, returning th layer
-     * .
+     * Find a layer by its name, returning the layer.
      */
     @Test
-    @Documented
+    @Documented("find_layer")
     public void find_layer() throws UnsupportedEncodingException
     {
         data.get();
@@ -162,11 +154,10 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
     }
 
     /**
-     * Add that node to the spatial
-     * layer.
+     * Add that node to the spatial layer.
      */
     @Test
-    @Documented
+    @Documented("create_a_spatial_index")
     public void create_a_spatial_index() throws UnsupportedEncodingException
     {
         data.get();
@@ -174,11 +165,10 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
         response = post(Status.CREATED,"{\"name\":\"geom\", \"config\":{\"provider\":\"spatial\", \"geometry_type\":\"point\",\"lat\":\"lat\",\"lon\":\"lon\"}}", "http://localhost:"+PORT+"/db/data/index/node/");
     }
     /**
-     * Create a node with some spatial data like `lon` and `lat` 
-     * attached.
+     * Create a node with some spatial data like `lon` and `lat` attached.
      */
     @Test
-    @Documented
+    @Documented("create_a_node_with_spatial_data")
     public void create_a_node_with_spatial_data() throws UnsupportedEncodingException
     {
         data.get();
@@ -188,11 +178,10 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
     }
 
     /**
-     * Add the node we created to the spatial 
-     * index.
+     * Add the node we created to the spatial index.
      */
     @Test
-    @Documented
+    @Documented("add_a_node_to_the_spatial_index")
     public void add_a_node_to_the_spatial_index() throws Exception {
         data.get();
         String response = post(Status.OK,"{\"layer\":\"geom\", \"lat\":\"lat\", \"lon\":\"lon\"}", ENDPOINT + "/graphdb/addSimplePointLayer");
@@ -206,7 +195,7 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
      * Add multiple nodes to the spatial layer.
      */
     @Test
-    @Documented
+    @Documented("add_many_nodes_to_the_spatial_layer")
     public void add_many_nodes_to_the_spatial_layer() throws Exception {
         data.get();
         String response = post(Status.OK,"{\"layer\":\"geom\", \"lat\":\"lat\", \"lon\":\"lon\"}", ENDPOINT + "/graphdb/addSimplePointLayer");
@@ -221,10 +210,10 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
     }
 
     /**
-     * Add a node to an index created as a WKT
+     * Add a node to an index created as a WKT.
      */
     @Test
-    @Documented
+    @Documented("add_a_wkt_node_to_the_spatial_index")
     public void add_a_wkt_node_to_the_spatial_index() throws Exception {
         data.get();
         String response = post(Status.OK,"{\"layer\":\"geom\", \"lat\":\"lat\", \"lon\":\"lon\"}", ENDPOINT + "/graphdb/addSimplePointLayer");
@@ -244,11 +233,10 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
     }
 
     /**
-     * Find geometries in a bounding 
-     * box.
+     * Find geometries in a bounding box.
      */
     @Test
-    @Documented
+    @Documented("find_geometries_in_a_bounding_box")
     public void find_geometries_in_a_bounding_box() throws Exception
     {
         data.get();
@@ -263,12 +251,11 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
 
     
     /**
-     * Creates a layer with nodes that have a
-     * property containing WKT or WKB, returns the layer node containing the configuration for the newly
-     * created layer.
+     * Creates a layer with nodes that have a property containing WKT or WKB,
+     * returns the layer node containing the configuration for the newly created layer.
      */
     @Test
-    @Documented
+    @Documented("create_a_WKT_layer")
     public void create_a_WKT_layer() throws Exception
     {
         data.get();
@@ -279,11 +266,10 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
     }
 
     /**
-     * Add a geometry, encoded in WKT, to a
-     * layer.
+     * Add a geometry, encoded in WKT, to a layer.
      */
     @Test
-    @Documented
+    @Documented("add_a_WKT_geometry_to_a_layer")
     public void add_a_WKT_geometry_to_a_layer() throws Exception
     {
         data.get();
@@ -296,11 +282,10 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
     }
 
     /**
-     * Update a geometry, encoded in WKT, on an existing geometry in a
-     * layer.
+     * Update a geometry, encoded in WKT, on an existing geometry in a layer.
      */
     @Test
-    @Documented
+    @Documented("update_a_WKT_geometry_in_a_layer")
     public void update_a_WKT_geometry_in_a_layer() throws Exception
     {
         data.get();
@@ -319,11 +304,10 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
     }
 
     /**
-     * Find geometries which clostest edges are less than a certain distance from a 
-     * point.
+     * Find geometries which clostest edges are less than a certain distance from a point.
      */
     @Test
-    @Documented
+    @Documented("find_geometries_close_to_a_point")
     public void find_geometries_close_to_a_point() throws Exception
     {
         data.get();
@@ -349,11 +333,10 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
     }
 
     /**
-     * Find geometries within a 
-     * distance.
+     * Find geometries within a distance.
      */
     @Test
-    @Documented
+    @Documented("find_geometries_within__distance")
     public void find_geometries_within__distance() throws Exception
     {
         data.get();
@@ -367,11 +350,10 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
     }
 
     /**
-     * Find geometries in a bounding 
-     * box.
+     * Find geometries in a bounding box.
      */
     @Test
-    @Documented
+    @Documented("Find geometries in a bounding box.")
     public void find_geometries_in_a_bounding_box_using_cypher() throws Exception
     {
         data.get();
@@ -391,11 +373,10 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
     }
 
     /**
-     * Find geometries within a distance, using 
-     * Cypher.
+     * Find geometries within a distance, using Cypher.
      */
     @Test
-    @Documented
+    @Documented("find_geometries_within__distance_using_cypher")
     public void find_geometries_within__distance_using_cypher() throws Exception
     {
         data.get();
