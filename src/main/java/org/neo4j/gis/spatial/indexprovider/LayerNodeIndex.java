@@ -27,13 +27,11 @@ import com.vividsolutions.jts.linearref.LocationIndexedLine;
 
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
 import org.geotools.geometry.jts.JTS;
 import org.geotools.referencing.CRS;
-import org.geotools.referencing.GeodeticCalculator;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.neo4j.gis.spatial.rtree.NullListener;
@@ -508,10 +506,6 @@ public class LayerNodeIndex implements Index<Node>
 			final String prefix;
 			final String pointString;
 			final double distance;
-			final String differencePointString;
-			final double differenceDistance;
-			final String unionPointString;
-			final double unionDistance;
 			try
 			{
 				@SuppressWarnings("unchecked")
@@ -519,11 +513,13 @@ public class LayerNodeIndex implements Index<Node>
 				prefix = args.get(0);
 				pointString =  args.get(1);
 				distance = Double.parseDouble(args.get(2));
-				differencePointString = args.get(3);
-				differenceDistance = Double.parseDouble(args.get(4));
-				unionPointString = args.get(5);
-				unionDistance = args.get(6).equals("") ? 0.0 : Double.parseDouble(args.get(6));
-								
+				ArrayList<String> pointStrings = new ArrayList<String>((args.size() - 3) / 2);
+				ArrayList<Double> distances = new ArrayList<Double>((args.size() - 3) / 2);
+				for (int i = 3; i < args.size(); i = i + 2) {
+					pointStrings.add(args.get(i));
+					distances.add(Double.parseDouble(args.get(i+1)));
+				}
+				
 				ResourceIterator<Node> nodes;
 
 				nodes = db.findNodes(DynamicLabel.label(prefix + "_Node"));
@@ -534,13 +530,13 @@ public class LayerNodeIndex implements Index<Node>
 				final WKTReader wktReader = new WKTReader(layer.getGeometryFactory());
 				Geometry geomPoint = wktReader.read(pointString);
 				Geometry buffer = geomPoint.buffer(distance);
+				
+				Geometry differencePoint = wktReader.read(pointStrings.get(0));
+				Geometry differenceBuffer = differencePoint.buffer(distances.get(0));
 
-				Geometry differencePoint = wktReader.read(differencePointString);
-				Geometry differenceBuffer = differencePoint.buffer(differenceDistance);
-
-				if(!unionPointString.equals("")){
-					Geometry unionPoint = wktReader.read(unionPointString);
-					Geometry unionBuffer = unionPoint.buffer(unionDistance);
+				for (int i = 1; i < pointStrings.size(); i++){
+					Geometry unionPoint = wktReader.read(pointStrings.get(i));
+					Geometry unionBuffer = unionPoint.buffer(distances.get(i));
 					differenceBuffer= differenceBuffer.union(unionBuffer);
 				}
 				Geometry difference = buffer.difference(differenceBuffer);
