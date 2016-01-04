@@ -30,7 +30,7 @@ import org.neo4j.graphdb.index.IndexCommandFactory;
 import org.neo4j.graphdb.index.LegacyIndexProviderTransaction;
 import org.neo4j.helpers.collection.IteratorUtil;
 import org.neo4j.kernel.api.LegacyIndex;
-import org.neo4j.kernel.impl.transaction.command.NeoCommandHandler;
+import org.neo4j.kernel.impl.transaction.command.CommandHandler;
 
 public class SpatialIndexImplementation implements IndexImplementation {
 
@@ -74,8 +74,8 @@ public class SpatialIndexImplementation implements IndexImplementation {
     }
 
     @Override
-    public NeoCommandHandler newApplier(boolean bln) {
-        return NeoCommandHandler.EMPTY;
+    public CommandHandler newApplier( boolean bln ) {
+        return CommandHandler.EMPTY;
     }
 
     @Override
@@ -88,4 +88,21 @@ public class SpatialIndexImplementation implements IndexImplementation {
 	    // this is a graph based index
 	    return IteratorUtil.emptyIterator();
     }
+
+	@Override
+	public void init() throws Throwable {
+	}
+
+	@Override
+	public void start() throws Throwable {
+	}
+
+	@Override
+	public void stop() throws Throwable {
+	}
+
+	@Override
+	public void shutdown() throws Throwable {
+	}
+
 }

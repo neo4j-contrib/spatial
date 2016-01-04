@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.RTreeIndex;
@@ -79,6 +80,18 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 		}
 
 		public Iterable<String> getPropertyKeys() {
+			return null;
+		}
+
+		@Override
+		public Map<String,Object> getProperties( String... strings )
+		{
+			return null;
+		}
+
+		@Override
+		public Map<String,Object> getAllProperties()
+		{
 			return null;
 		}
 
