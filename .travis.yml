@@ -2,3 +2,12 @@ language: java
 jdk:
   - openjdk7
   - oraclejdk7
+  - oraclejdk8
+
+# Patch for buffer overflow bug, see https://github.com/travis-ci/travis-ci/issues/5227
+before_install:
+  - cat /etc/hosts # optionally check the content *before*
+  - sudo hostname "$(hostname | cut -c1-63)"
+  - sed -e "s/^\\(127\\.0\\.0\\.1.*\\)/\\1 $(hostname | cut -c1-63)/" /etc/hosts | sudo tee /etc/hosts
+  - cat /etc/hosts # optionally check the content *after*
+
