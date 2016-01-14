@@ -43,7 +43,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.neo4j.gis.spatial.rtree.filter.SearchAll;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
-import org.neo4j.cypher.javacompat.ExecutionEngine;
 import org.neo4j.examples.AbstractJavaDocTestBase;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.EditableLayerImpl;
@@ -55,7 +54,6 @@ import org.neo4j.gis.spatial.pipes.filtering.FilterCQL;
 import org.neo4j.gis.spatial.pipes.osm.OSMGeoPipeline;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.impl.annotations.Documented;
-import org.neo4j.test.ImpermanentGraphDatabase;
 import org.neo4j.test.TestData.Title;
 
 import com.vividsolutions.jts.geom.Coordinate;
@@ -130,14 +128,13 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     }
     
     /**
-     * This pipe is filtering according
-     * to a CQL Bounding Box description
+     * This pipe is filtering according to a CQL Bounding Box description.
      * 
      * Example:
      * 
      * @@s_filter_by_cql_using_bbox
      */
-    @Documented
+    @Documented("filter_by_cql_using_bbox")
     @Test
     public void filter_by_cql_using_bbox() throws CQLException
     {
@@ -151,9 +148,8 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     }
     
     /**
-     * This pipe performs a search within a
-     * geometry in this example, both OSM street
-     * geometries should be found in when searching with
+     * This pipe performs a search within a geometry in this example,
+     * both OSM street geometries should be found in when searching with
      * an enclosing rectangle Envelope.
      * 
      * Example:
@@ -161,7 +157,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * @@s_search_within_geometry
      */
     @Test
-    @Documented
+    @Documented("search_within_geometry")
     public void search_within_geometry() throws CQLException
     {
         // START SNIPPET: s_search_within_geometry
@@ -186,15 +182,14 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     }
 
     /**
-     * This filter will apply the
-     * provided CQL expression to the different geometries and only
-     * let the matching ones pass.
+     * This filter will apply the provided CQL expression to the different
+     * geometries and only let the matching ones pass.
      * 
      * Example:
      * 
      * @@s_filter_by_cql_using_complex_cql
      */
-    @Documented
+    @Documented("filter_by_cql_using_complex_cql")
     @Test
     public void filter_by_cql_using_complex_cql() throws CQLException
     {
@@ -227,9 +222,9 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * 
      * @@affine_transformation
      */
-    @Documented     
+    @Documented("translate_geometries")
     @Test
-    public void traslate_geometries()
+    public void translate_geometries()
     {
     	// START SNIPPET: s_affine_transformation
         GeoPipeline pipeline = GeoPipeline.start( boxesLayer )
@@ -310,7 +305,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * 
      * @@buffer
      */
-    @Documented      
+    @Documented("get_buffer")
     @Test
     public void get_buffer()
     {
@@ -339,7 +334,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * 
      * @@centroid
      */
-    @Documented     
+    @Documented("get_centroid")
     @Test
     public void get_centroid()
     {
@@ -358,8 +353,8 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     }
     
     /**
-     * This pipe exports every 
-     * geometry as a http://en.wikipedia.org/wiki/Geography_Markup_Language[GML] snippet.
+     * This pipe exports every geometry as a
+     * http://en.wikipedia.org/wiki/Geography_Markup_Language[GML] snippet.
      * 
      * Example:
      * 
@@ -369,7 +364,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * 
      * @@exportgml
      */
-    @Documented     
+    @Documented("export_to_GML")
     @Test
     public void export_to_GML()
     {
@@ -399,7 +394,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * 
      * @@convex_hull
      */
-    @Documented     
+    @Documented("get_convex_hull")
     @Test
     public void get_convex_hull()
     {
@@ -428,7 +423,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * 
      * @@densify
      */
-    @Documented    
+    @Documented("densify")
     @Test
     public void densify()
     {
@@ -464,7 +459,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * 
      * The Max pipe computes the maximum value of the specified property and
      * discard items with a value less than the maximum.
-	 * 
+     * 
      * Example:
      * 
      * @@s_max
@@ -473,7 +468,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * 
      * @@max
      */
-    @Documented
+    @Documented("get_max_area")
     @Test
     public void get_max_area()
     {
@@ -491,9 +486,8 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     }
 
     /**
-     * The 
-     * boundary pipe calculates boundary of every geometry in the pipeline.
-	 * 
+     * The boundary pipe calculates boundary of every geometry in the pipeline.
+     * 
      * Example:
      * 
      * @@s_boundary
@@ -502,7 +496,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * 
      * @@boundary
      */
-    @Documented    
+    @Documented("boundary")
     @Test
     public void boundary()
     {
@@ -517,9 +511,9 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     /**
      * Difference
      * 
-     * The Difference pipe computes a geometry representing 
-     * the points making up item geometry that do not make up the given geometry.
-	 * 
+     * The Difference pipe computes a geometry representing the points making
+     * up item geometry that do not make up the given geometry.
+     * 
      * Example:
      * 
      * @@s_difference
@@ -528,7 +522,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * 
      * @@difference
      */
-    @Documented    
+    @Documented("difference.")
     @Test
     public void difference() throws Exception 
     {
@@ -545,8 +539,9 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     /**
      * Intersection
      * 
-     * The Intersection pipe computes a geometry representing the intersection between item geometry and the given geometry.
-	 * 
+     * The Intersection pipe computes a geometry representing the intersection
+     * between item geometry and the given geometry.
+     * 
      * Example:
      * 
      * @@s_intersection
@@ -555,7 +550,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * 
      * @@intersection
      */
-    @Documented    
+    @Documented("intersection")
     @Test
     public void intersection() throws Exception 
     {
@@ -573,7 +568,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * Union
      * 
      * The Union pipe unites item geometry with a given geometry.
-	 * 
+     * 
      * Example:
      * 
      * @@s_union
@@ -582,7 +577,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * 
      * @@union
      */
-    @Documented    
+    @Documented("union")
     @Test
     public void union() throws Exception 
     {
@@ -602,7 +597,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * 
      * The Min pipe computes the minimum value of the specified property and
      * discard items with a value greater than the minimum.
-	 * 
+     * 
      * Example:
      * 
      * @@s_min
@@ -611,7 +606,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * 
      * @@min
      */
-    @Documented    
+    @Documented("get_min_area")
     @Test
     public void get_min_area()
     {
@@ -675,7 +670,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * 
      * @@step5_break_up_all_geometries_into_points_and_make_density_islands
      */
-    @Documented  
+    @Documented("break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them")
     @Title("break_up_all_geometries_into_points_and_make_density_islands")
     @Test
     public void break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them()
@@ -715,7 +710,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * 
      * @@extract_points
      */
-    @Documented    
+    @Documented("extract_points")
     @Test
     public void extract_points()
     {
@@ -782,8 +777,8 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * Unite All 
      * 
      * The Union All pipe unites geometries of every item contained in the pipeline.
-	 * This pipe groups every item in the pipeline in a single item containing the geometry output
-	 * of the union.
+     * This pipe groups every item in the pipeline in a single item containing the geometry output
+     * of the union.
      * 
      * Example:
      * 
@@ -793,7 +788,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * 
      * @@unite_all
      */
-    @Documented
+    @Documented("unite_all")
     @Test
     public void unite_all()
     {
@@ -835,7 +830,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * 
      * @@intersect_all
      */
-    @Documented    
+    @Documented("intersect_all")    
     @Test
     public void intersect_all()
     {
@@ -873,7 +868,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * 
      * @@intersecting_windows
      */
-    @Documented
+    @Documented("intersecting_windows")
     @Test
     public void intersecting_windows()
     {
@@ -891,6 +886,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * Start Point
      * 
      * The StartPoint pipe finds the starting point of item geometry.
+     * 
      * Example:
      * 
      * @@s_start_point
@@ -899,7 +895,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * 
      * @@start_point
      */
-    @Documented
+    @Documented("start_point")
     @Test
     public void start_point()
     {
@@ -922,6 +918,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * End Point
      * 
      * The EndPoint pipe finds the ending point of item geometry.
+     * 
      * Example:
      * 
      * @@s_end_point
@@ -930,7 +927,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * 
      * @@end_point
      */
-    @Documented
+    @Documented("end_point")
     @Test
     public void end_point()
     {
@@ -953,6 +950,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * Envelope
      * 
      * The Envelope pipe computes the minimum bounding box of item geometry.
+     * 
      * Example:
      * 
      * @@s_envelope
@@ -961,7 +959,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
      * 
      * @@envelope
      */
-    @Documented
+    @Documented("envelope")
     @Test
     public void envelope()
     {
