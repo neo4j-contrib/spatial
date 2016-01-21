@@ -32,6 +32,7 @@ import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Collections;
 
 import javax.imageio.ImageIO;
 
@@ -57,10 +58,18 @@ import org.geotools.styling.SLDParser;
 import org.geotools.styling.Stroke;
 import org.geotools.styling.Style;
 import org.geotools.styling.StyleFactory;
+import org.neo4j.gis.spatial.Layer;
+import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.SpatialTopologyUtils;
+import org.neo4j.gis.spatial.indexprovider.LayerNodeIndex;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import org.neo4j.graphdb.index.IndexHits;
+import org.neo4j.graphdb.index.IndexManager;
+import org.neo4j.helpers.collection.MapUtil;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.FeatureType;
@@ -429,28 +438,53 @@ public class StyledImageExporter {
     }
 
     public static void main(String[] args) {
-		if (args.length < 4) {
-			System.err.println("Too few arguments. Provide: 'database' 'exportdir' 'stylefile' zoom layer <layers..>");
-			return;
-		}
-		String database = args[0];
-		String exportdir = args[1];
-		String stylefile = args[2];
-		double zoom = new Double(args[3]);
-		GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(database);
-		try {
-			StyledImageExporter imageExporter = new StyledImageExporter(db);
-			imageExporter.setExportDir(exportdir);
-			imageExporter.setZoom(zoom);
-			imageExporter.setSize(800, 600);
-			for (int i = 4; i < args.length; i++) {
-				imageExporter.saveLayerImage(args[i], stylefile);
-			}
-
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		} finally {
-			db.shutdown();
-		}
+//		if (args.length < 4) {
+//			System.err.println("Too few arguments. Provide: 'database' 'exportdir' 'stylefile' zoom layer <layers..>");
+//			return;
+//		}
+//		String database = args[0];
+//		String exportdir = args[1];
+//		String stylefile = args[2];
+//		double zoom = new Double(args[3]);
+//		GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(database);
+//		try {
+//			StyledImageExporter imageExporter = new StyledImageExporter(db);
+//			imageExporter.setExportDir(exportdir);
+//			imageExporter.setZoom(zoom);
+//			imageExporter.setSize(800, 600);
+//			for (int i = 4; i < args.length; i++) {
+//				imageExporter.saveLayerImage(args[i], stylefile);
+//			}
+//
+//		} catch (Exception e) {
+//			throw new RuntimeException(e);
+//		} finally {
+//			db.shutdown();
+//		}
+    	GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase("C:/Users/Robert Bierbauer/Downloads/neo4j-community-2.2.3/data/NewSchema1");
+		SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
+    	Layer layer = spatialService.getLayer("Spatial_Layer_Nodes");
+    	System.out.println(layer.getName());
+    	try (Transaction tx = db.beginTx()) {
+    		LayerNodeIndex lni = new LayerNodeIndex(layer.getName(), db, Collections.unmodifiableMap( MapUtil.stringMap(
+                    IndexManager.PROVIDER, "spatial", LayerNodeIndex.WKB_PROPERTY_KEY, "geometry") ));
+	    		long l0 = System.currentTimeMillis();
+	//    		IndexHits<Node> h =  lni.query("getLatLon", "[\"bolzano_Node\", \"149\"]");
+	    		IndexHits<Node> h =  lni.query("lineLocatePoint", "[\"bolzano\", \"POINT(11.3525539631585 46.4975205)\", \"0\", \"200\"]");
+	//    		IndexHits<Node> h =  lni.query("getClosestNode", "[\"bolzano_Node\", \"POINT (11.351924 46.497778)\", \"1\"]");
+//	    		IndexHits<Node> h =  lni.query("getEdgesInRange", "[\"bolzano_Node\", \"POINT(1260729.1894293493 5861355.5645414395)\", \"0.0\"]");
+//	    		IndexHits<Node> h =  lni.query("withinDistance", "[5861355.5645414395, 1260729.1894293493  , 0.0]");
+	//    		IndexHits<Node> h =  lni.query("getNodesInIntersection", "[\"bolzano_Node\", \"POINT(11.342583560423838 46.501191901577634)\", \"750.0\", \"POINT(11.352371048056492 46.49782943162497)\", \"1092.1345310490713\", \"\", \"\"]");
+    		System.out.println("time: " + (System.currentTimeMillis() - l0));
+	    	System.out.println("size: " + h.size());
+	    	System.out.println(h.iterator().hasNext());
+    		while (h.hasNext()){
+    			Node n = h.next();
+    			System.out.println(n.getId() + " " + n.getLabels() + " " + n.getProperty("id") + " " + n.getProperty("distance") + " " + n.getProperty("offset"));
+//    			System.out.println(n.getId() + " " + n.getLabels() + " " + n.getProperty("id") + " " + n.getProperty("geometry"));
+    		}
+    		tx.success();
+    	}
+    	db.shutdown();
 	}
 }

@@ -21,16 +21,28 @@ package org.neo4j.gis.spatial.server.plugin;
 
 import com.vividsolutions.jts.geom.*;
 import com.vividsolutions.jts.io.ParseException;
+import com.vividsolutions.jts.io.WKBReader;
 import com.vividsolutions.jts.io.WKTReader;
+
 import org.neo4j.gis.spatial.*;
+import org.neo4j.gis.spatial.indexprovider.LayerNodeIndex;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.index.IndexManager;
+import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.server.plugins.*;
+import org.neo4j.tooling.GlobalGraphOperations;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedList;
 import java.util.List;
+
+import javax.xml.bind.annotation.adapters.HexBinaryAdapter;
 
 import static java.util.Collections.singleton;
 
@@ -276,5 +288,57 @@ public class SpatialPlugin extends ServerPlugin {
             tx.success();
             return result;
         }
+    }
+
+    @PluginTarget(GraphDatabaseService.class)
+    @Description("encode the geometry property of all nodes and add the nodes to the spatial index.")
+    public Iterable<Node> encodeAndIndexGeometryNodes(@Source GraphDatabaseService db,
+                                                @Description("The layer to add the node to.") @Parameter(name = "layer") final String layer,
+                                                @Description("The name of the node label.") @Parameter(name = "label") final String nodeLabel) {
+        SpatialDatabaseService spatialService = getSpatialDatabaseService(db);
+
+        EditableLayer spatialLayer = spatialService.getOrCreateEditableLayer(layer);
+        List<Node> nodes = new LinkedList<Node>();
+        try (Transaction tx = db.beginTx()){
+    		LayerNodeIndex lni = new LayerNodeIndex(layer, db, Collections.unmodifiableMap( MapUtil.stringMap(
+    				IndexManager.PROVIDER, "spatial", LayerNodeIndex.WKB_PROPERTY_KEY, "geometry") ));
+
+    		ResourceIterator<Node> riNodes = db.findNodes(new Label() {
+    			@Override
+    			public String name() {
+    				return nodeLabel;
+    			}
+    		});
+
+    		WKBReader wkbReader = new WKBReader(spatialLayer.getGeometryFactory());
+    		while(riNodes.hasNext()){
+    			Node node = riNodes.next();
+    			if(node.hasProperty("geometry")){
+    				Object geometryProperty = node.getProperty("geometry");
+    				if(!geometryProperty.getClass().toString().equals("class [B") ){
+    					Geometry geometry = wkbReader.read(hexToBytes((String) node.getProperty("geometry")));
+    					spatialLayer.getGeometryEncoder().encodeGeometry( geometry, node );
+    					lni.add(node, "", "");
+    					nodes.add(node);
+    				}
+    				else{
+    					break;
+    				}
+    			}
+    		}
+        	
+    		tx.success();
+     		return nodes;
+        } catch (ParseException e) {
+			e.printStackTrace();
+		} 
+        return null;
+    }
+
+    //to transform a WKB string to a byte[]
+    private byte[] hexToBytes(String hexString) {
+        HexBinaryAdapter adapter = new HexBinaryAdapter();
+        byte[] bytes = adapter.unmarshal(hexString);
+        return bytes;
     }
 }
