@@ -293,51 +293,45 @@ public class SpatialPlugin extends ServerPlugin {
     @PluginTarget(GraphDatabaseService.class)
     @Description("encode the geometry property of all nodes and add the nodes to the spatial index.")
     public Iterable<Node> encodeAndIndexGeometryNodes(@Source GraphDatabaseService db,
-                                                @Description("The layer to add the node to.") @Parameter(name = "layer") String layer,
-                                                @Description("The name of the node label.") @Parameter(name = "label") String nodeLabel) {
+                                                @Description("The layer to add the node to.") @Parameter(name = "layer") final String layer,
+                                                @Description("The name of the node label.") @Parameter(name = "label") final String nodeLabel) {
         SpatialDatabaseService spatialService = getSpatialDatabaseService(db);
 
         EditableLayer spatialLayer = spatialService.getOrCreateEditableLayer(layer);
         List<Node> nodes = new LinkedList<Node>();
         try (Transaction tx = db.beginTx()){
     		LayerNodeIndex lni = new LayerNodeIndex(layer, db, Collections.unmodifiableMap( MapUtil.stringMap(
-                    IndexManager.PROVIDER, "spatial", LayerNodeIndex.WKB_PROPERTY_KEY, "geometry") ));
-    		
-        	ResourceIterator<Label> labels = GlobalGraphOperations.at(db).getAllLabels().iterator();
-        	while(labels.hasNext()){
-        		final String label = labels.next().name();
-        		if(label.contains(nodeLabel)){
-	        		ResourceIterator<Node> riNodes = db.findNodes(new Label() {
-	    				@Override
-	    				public String name() {
-	    					return label;
-	    				}
-	    			});
-	        		
-	        		WKBReader wkbReader = new WKBReader(spatialLayer.getGeometryFactory());
-	        		while(riNodes.hasNext()){
-	        			Node node = riNodes.next();
-	        			if(node.hasProperty("geometry")){
-	        				Object geometryProperty = node.getProperty("geometry");
-	        				if(!geometryProperty.getClass().toString().equals("class [B") ){
-	        					Geometry geometry = wkbReader.read(hexToBytes((String) node.getProperty("geometry")));
-	        					spatialLayer.getGeometryEncoder().encodeGeometry( geometry, node );
-	        					lni.add(node, "", "");
-	                			nodes.add(node);
-	        				}
-	        				else{
-	        					break;
-	        				}
-	        			}
-	        		}
-        		}
-        	}
+    				IndexManager.PROVIDER, "spatial", LayerNodeIndex.WKB_PROPERTY_KEY, "geometry") ));
+
+    		ResourceIterator<Node> riNodes = db.findNodes(new Label() {
+    			@Override
+    			public String name() {
+    				return nodeLabel;
+    			}
+    		});
+
+    		WKBReader wkbReader = new WKBReader(spatialLayer.getGeometryFactory());
+    		while(riNodes.hasNext()){
+    			Node node = riNodes.next();
+    			if(node.hasProperty("geometry")){
+    				Object geometryProperty = node.getProperty("geometry");
+    				if(!geometryProperty.getClass().toString().equals("class [B") ){
+    					Geometry geometry = wkbReader.read(hexToBytes((String) node.getProperty("geometry")));
+    					spatialLayer.getGeometryEncoder().encodeGeometry( geometry, node );
+    					lni.add(node, "", "");
+    					nodes.add(node);
+    				}
+    				else{
+    					break;
+    				}
+    			}
+    		}
         	
     		tx.success();
      		return nodes;
         } catch (ParseException e) {
 			e.printStackTrace();
-		}
+		} 
         return null;
     }
 

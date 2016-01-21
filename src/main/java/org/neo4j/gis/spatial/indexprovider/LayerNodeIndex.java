@@ -27,6 +27,7 @@ import com.vividsolutions.jts.linearref.LocationIndexedLine;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -71,7 +72,6 @@ public class LayerNodeIndex implements Index<Node>
 	public static final String BBOX_QUERY = "bbox";										// Query type
 	public static final String LINE_LOCATE_POINT = "lineLocatePoint";					// Query type
 	public static final String GET_CLOSEST_NODE = "getClosestNode";						// Query type
-	public static final String GET_LAT_LON = "getLatLon";								// Query type
 	public static final String GET_NODES_IN_INTERSECTION = "getNodesInIntersection";	// Query type
 	public static final String CQL_QUERY = "CQL";										// Query type (unused)
 
@@ -334,29 +334,26 @@ public class LayerNodeIndex implements Index<Node>
 		}
 		else if ( key.equals( LINE_LOCATE_POINT ) )
 		{
-
-			final String prefix;
 			final String pointString;
 			final int pointSRID;
-			final int mode;
+			final Long mode;
 			final int databaseSRID;
 			try
 			{
 				@SuppressWarnings("unchecked")
 				List<String> args = (List<String>) new JSONParser().parse( (String) params );
-				prefix = (String) args.get(0);
-				pointString = (String) args.get(1);
-				pointSRID = Integer.parseInt(args.get(2));
-				mode = Integer.parseInt(args.get(3));
+				pointString = (String) args.get(0);
+				pointSRID = Integer.parseInt(args.get(1));
+				mode = Long.parseLong(args.get(2));
 
-				ResourceIterator<Node> SRIDNodes = db.findNodes(DynamicLabel.label(prefix + "_SRID"));
+				ResourceIterator<Node> SRIDNodes = db.findNodes(DynamicLabel.label("SRID"));
 				if(SRIDNodes.hasNext()){
 					databaseSRID = Integer.parseInt(SRIDNodes.next().getProperty("srid").toString());
 				} else {
 					databaseSRID = 3857;
 				}
 
-				ResourceIterator<Node> edgeNodes = db.findNodes(DynamicLabel.label(prefix + "_Edge"), "mode", mode);
+				Iterator<Node> nodes = layer.getIndex().getAllIndexedNodes().iterator();
 				final WKTReader wktReader = new WKTReader(layer.getGeometryFactory());
 				Geometry geomPoint = wktReader.read(pointString);
 
@@ -370,28 +367,30 @@ public class LayerNodeIndex implements Index<Node>
 
 				final GeometryEncoder encoder = layer.getGeometryEncoder();
 				List<SpatialDatabaseRecord> list = new ArrayList<SpatialDatabaseRecord>();
-				while(edgeNodes.hasNext()){
-					Node edgeNode = edgeNodes.next();
-					Geometry geometry = encoder.decodeGeometry( edgeNode );
-
-					double distance = geomPoint.distance(geometry);
-					LocationIndexedLine line = new LocationIndexedLine(geometry);        		
-					double geometryLength = geometry.getLength();
-					Coordinate closestPoint = line.extractPoint(line.project(geomPoint.getCoordinate()));
-					Coordinate[] coordinates = geometry.getCoordinates();
-					double offset = 0;
-					for(int i = 0; i < coordinates.length-1; i++ ){
-						double distanceToClosest = coordinates[i].distance(closestPoint);
-						double distanceToNext = coordinates[i].distance(coordinates[i+1]);
-						if(distanceToClosest < distanceToNext){
-							offset += distanceToClosest;
-							offset = offset / geometryLength;
-							edgeNode.setProperty("distance", distance);
-							edgeNode.setProperty("offset", offset);
-							list.add(new SpatialDatabaseRecord(layer, findExistingNode(edgeNode)));
-							break;
-						}else{
-							offset += distanceToNext;
+				while(nodes.hasNext()){
+					Node node = nodes.next();
+					node = db.getNodeById((long) node.getProperty("id")); 
+					if(node.getProperty("mode").equals(mode)){
+						Geometry geometry = encoder.decodeGeometry( node );
+						double distance = geomPoint.distance(geometry);
+						LocationIndexedLine line = new LocationIndexedLine(geometry);        		
+						double geometryLength = geometry.getLength();
+						Coordinate closestPoint = line.extractPoint(line.project(geomPoint.getCoordinate()));
+						Coordinate[] coordinates = geometry.getCoordinates();
+						double offset = 0;
+						for(int i = 0; i < coordinates.length-1; i++ ){
+							double distanceToClosest = coordinates[i].distance(closestPoint);
+							double distanceToNext = coordinates[i].distance(coordinates[i+1]);
+							if(distanceToClosest < distanceToNext){
+								offset += distanceToClosest;
+								offset = offset / geometryLength;
+								node.setProperty("distance", distance);
+								node.setProperty("offset", offset);
+								list.add(new SpatialDatabaseRecord(layer, findExistingNode(node)));
+								break;
+							}else{
+								offset += distanceToNext;
+							}
 						}
 					}
 				}
@@ -412,34 +411,39 @@ public class LayerNodeIndex implements Index<Node>
 		}
 		else if ( key.equals( GET_CLOSEST_NODE ) )
 		{
-			final String node_label;
 			final String pointString;
-			final int mode;
+			final long mode;
+			final int pointSRID;
+			final int databaseSRID;
 			try
 			{
 				@SuppressWarnings("unchecked")
 				List<String> args = (List<String>) new JSONParser().parse( (String) params );
-				node_label = (String) args.get(0);
-				pointString = (String) args.get(1);
-				mode = Integer.parseInt(args.get(2));
-				ResourceIterator<Node> nodes;
-				if(mode == -1){
-					nodes = db.findNodes(DynamicLabel.label(node_label));
-				}else{
-					nodes = db.findNodes(DynamicLabel.label(node_label), "mode", mode);
+				pointString = (String) args.get(0);
+				pointSRID = Integer.parseInt(args.get(1));
+				mode = Long.parseLong(args.get(2));
+				ResourceIterator<Node> SRIDNodes = db.findNodes(DynamicLabel.label("SRID"));
+				if(SRIDNodes.hasNext()){
+					databaseSRID = Integer.parseInt(SRIDNodes.next().getProperty("srid").toString());
+				} else {
+					databaseSRID = 3857;
 				}
+				Iterator<Node> nodes = layer.getIndex().getAllIndexedNodes().iterator();
 				final WKTReader wktReader = new WKTReader(layer.getGeometryFactory());
 				Geometry geomPoint = wktReader.read(pointString);
+				if (databaseSRID != pointSRID)  {
+					System.setProperty("org.geotools.referencing.forceXY", "true");
+					final CoordinateReferenceSystem sourceCRS = CRS.parseWKT(wkt.get(pointSRID));
+					final CoordinateReferenceSystem targetCRS = CRS.parseWKT(wkt.get(databaseSRID));
+					final MathTransform transform = CRS.findMathTransform(sourceCRS, targetCRS, false);
+					geomPoint = JTS.transform(geomPoint, transform);
+				}
 				Node closestNode = null;
 				double closestDistance = Double.MAX_VALUE;
-				System.setProperty("org.geotools.referencing.forceXY", "true");
-				final CoordinateReferenceSystem sourceCRS = CRS.parseWKT(wkt4326);
-				final CoordinateReferenceSystem targetCRS = CRS.parseWKT(wkt3857);
-				MathTransform transform = CRS.findMathTransform(sourceCRS, targetCRS, false);
-				geomPoint = JTS.transform(geomPoint, transform);
 				while(nodes.hasNext()){
 					Node node = nodes.next();
-					if(node.hasProperty("geometry")){
+					node = db.getNodeById((long) node.getProperty("id")); 
+					if(node.getProperty("mode").equals(mode) || mode == -1){
 						Geometry geometry = layer.getGeometryEncoder().decodeGeometry( node );
 						double distance = geometry.distance(geomPoint);
 						if(distance < closestDistance){
@@ -466,67 +470,25 @@ public class LayerNodeIndex implements Index<Node>
 			} catch (TransformException e) {
 				e.printStackTrace();
 			} 
-		} else if ( key.equals( GET_LAT_LON ) )
+		} else if ( key.equals( GET_NODES_IN_INTERSECTION ) )
 		{
-
-			final String node_label;
-			final int nodeId;
-			try
-			{
-				@SuppressWarnings("unchecked")
-				List<String> args = (List<String>) new JSONParser().parse( (String) params );
-				node_label = (String) args.get(0);
-				nodeId =  Integer.parseInt(args.get(1));
-
-				ResourceIterator<Node> nodes;
-
-				nodes = db.findNodes(DynamicLabel.label(node_label), "id", nodeId);
-				if(!nodes.hasNext()){
-					return null;
-				}
-				Node node = nodes.next();
-				Geometry geometry = layer.getGeometryEncoder().decodeGeometry( node );
-
-				Coordinate coords = geometry.getCoordinate();
-				node.setProperty("lat", coords.x);
-				node.setProperty("lon", coords.y);
-				List<SpatialDatabaseRecord> list = new ArrayList<SpatialDatabaseRecord>();
-				list.add(new SpatialDatabaseRecord(layer, findExistingNode(node)));
-				results = new SpatialRecordHits(list, layer);
-				return results;
-			}
-			catch ( ParseException e )
-			{
-				e.printStackTrace();
-			}
-		}
-		else if ( key.equals( GET_NODES_IN_INTERSECTION ) )
-		{
-
-			final String prefix;
 			final String pointString;
 			final double distance;
 			try
 			{
 				@SuppressWarnings("unchecked")
 				List<String> args = (List<String>) new JSONParser().parse( (String) params );
-				prefix = args.get(0);
-				pointString =  args.get(1);
-				distance = Double.parseDouble(args.get(2));
-				ArrayList<String> pointStrings = new ArrayList<String>((args.size() - 3) / 2);
-				ArrayList<Double> distances = new ArrayList<Double>((args.size() - 3) / 2);
-				for (int i = 3; i < args.size(); i = i + 2) {
+				pointString =  args.get(0);
+				distance = Double.parseDouble(args.get(1));
+				ArrayList<String> pointStrings = new ArrayList<String>((args.size() - 2) / 2);
+				ArrayList<Double> distances = new ArrayList<Double>((args.size() - 2) / 2);
+				for (int i = 2; i < args.size(); i = i + 2) {
 					pointStrings.add(args.get(i));
 					distances.add(Double.parseDouble(args.get(i+1)));
 				}
 				
-				ResourceIterator<Node> nodes;
+				Iterator<Node> nodes = layer.getIndex().getAllIndexedNodes().iterator();
 
-				nodes = db.findNodes(DynamicLabel.label(prefix + "_Node"));
-				if(!nodes.hasNext()){
-					return null;
-				}
-				
 				final WKTReader wktReader = new WKTReader(layer.getGeometryFactory());
 				Geometry geomPoint = wktReader.read(pointString);
 				Geometry buffer = geomPoint.buffer(distance);
@@ -544,11 +506,10 @@ public class LayerNodeIndex implements Index<Node>
 				List<SpatialDatabaseRecord> list = new ArrayList<SpatialDatabaseRecord>();
 				while(nodes.hasNext()){
 					Node node = nodes.next();
-					if(node.hasProperty("geometry")){
-						Geometry geometry = layer.getGeometryEncoder().decodeGeometry( node );
-						if(difference.intersects(geometry)){
-							list.add(new SpatialDatabaseRecord(layer, findExistingNode(node)));
-						}
+					node = db.getNodeById((long) node.getProperty("id"));
+					Geometry geometry = layer.getGeometryEncoder().decodeGeometry( node );
+					if(difference.intersects(geometry)){
+						list.add(new SpatialDatabaseRecord(layer, findExistingNode(node)));
 					}
 				}
 				results = new SpatialRecordHits(list, layer);
@@ -566,9 +527,9 @@ public class LayerNodeIndex implements Index<Node>
 		else
 		{
 			throw new UnsupportedOperationException( String.format(
-					"only %s, %s, %s, %s, %s, %s and %s are implemented.", WITHIN_QUERY,
+					"only %s, %s, %s, %s, %s and %s are implemented.", WITHIN_QUERY,
 					WITHIN_DISTANCE_QUERY, BBOX_QUERY, LINE_LOCATE_POINT, GET_CLOSEST_NODE, 
-					GET_LAT_LON, GET_NODES_IN_INTERSECTION ) );
+					GET_NODES_IN_INTERSECTION ) );
 		}
 		return null;
 	}
