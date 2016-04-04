@@ -217,9 +217,9 @@ public class IndexProviderTest {
                 params);
         assertTrue(hits.hasNext());
 
-        ExecutionResult result = engine.execute("start malmo=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') match p=malmo--other return malmo, other");
+        ExecutionResult result = engine.execute("start malmo=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') match p=(malmo)--(other) return malmo, other");
         assertTrue(result.iterator().hasNext());
-        result = engine.execute("start malmo=node:layer1('withinDistance:[56.0, 15.0,1000.0]') match p=malmo--other return malmo, other");
+        result = engine.execute("start malmo=node:layer1('withinDistance:[56.0, 15.0,1000.0]') match p=(malmo)--(other) return malmo, other");
         assertTrue(result.iterator().hasNext());
         System.out.println(result.dumpToString());
     }
