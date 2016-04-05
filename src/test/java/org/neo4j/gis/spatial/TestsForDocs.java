@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.HashMap;
@@ -37,12 +38,10 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-import org.neo4j.kernel.EmbeddedGraphDatabase;
 
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import org.neo4j.unsafe.batchinsert.BatchInserter;
-import org.neo4j.unsafe.batchinsert.BatchInserters;
 
 /**
  * Some test code written specifically for the user manual. This normally means
@@ -63,7 +62,7 @@ public class TestsForDocs extends Neo4jTestCase {
 	}
 
 	private void checkIndexAndFeatureCount(String layerName) throws IOException {
-		GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath);
+		GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(new File(databasePath));
 		try (Transaction tx = database.beginTx()) {
 			SpatialDatabaseService spatial = new SpatialDatabaseService(database);
 			Layer layer = spatial.getLayer(layerName);
@@ -101,7 +100,14 @@ public class TestsForDocs extends Neo4jTestCase {
 			waysFound.put(wayId, waysFound.get(wayId) + 1);
 			if (waysFound.get(wayId) > mostCount) {
 				mostCommon = wayId;
+				mostCount = waysFound.get(wayId);
 			}
+		}
+		System.out.println("Found " + waysFound.size() + " ways overlapping '" + way.toString() + "'");
+		for ( long wayId : waysFound.keySet() )
+		{
+			System.out.println( "\t" + wayId + ":\t" + waysFound.get( wayId ) +
+								((wayId == way.getNode().getId()) ? "\t(original way)" : "") );
 		}
 		assertTrue("Start way should be most found way", way.equals(osm.getWayFromId(mostCommon)));
 	}

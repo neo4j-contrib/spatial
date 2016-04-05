@@ -29,13 +29,15 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
+import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
-import org.neo4j.graphdb.ReturnableEvaluator;
-import org.neo4j.graphdb.StopEvaluator;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.TraversalPosition;
-import org.neo4j.graphdb.Traverser.Order;
+import org.neo4j.graphdb.traversal.Evaluation;
+import org.neo4j.graphdb.traversal.Evaluator;
+import org.neo4j.graphdb.traversal.Evaluators;
+import org.neo4j.graphdb.traversal.TraversalDescription;
+import org.neo4j.graphdb.traversal.Traverser;
 
 /**
  *
@@ -188,8 +190,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 			monitor.done();
 		}
 
-		Transaction tx = database.beginTx();
-		try {
+		try (Transaction tx = database.beginTx()) {
 			// delete index root relationship
 			indexRoot.getSingleRelationship(RTreeRelationshipTypes.RTREE_ROOT, Direction.INCOMING).delete();
 
@@ -203,8 +204,6 @@ public class RTreeIndex implements SpatialIndexWriter {
 			metadataNode.delete();
 
 			tx.success();
-		} finally {
-			tx.finish();
 		}
 
 		countSaved = false;
@@ -253,9 +252,13 @@ public class RTreeIndex implements SpatialIndexWriter {
 		visit(new WarmUpVisitor(), getIndexRoot());
 	}
 
-	public Iterable<Node> getAllIndexInternalNodes() {
-		return getIndexRoot().traverse(Order.BREADTH_FIRST, StopEvaluator.END_OF_GRAPH, ReturnableEvaluator.ALL_BUT_START_NODE,
-			RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING);
+	public Iterable<Node> getAllIndexInternalNodes()
+	{
+		TraversalDescription td = database.traversalDescription()
+				.breadthFirst()
+				.relationships( RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING )
+				.evaluator( Evaluators.excludeStartPosition() );
+        return td.traverse( getIndexRoot() ).nodes();
 	}
 
 	@Override
@@ -263,53 +266,51 @@ public class RTreeIndex implements SpatialIndexWriter {
 		return new IndexNodeToGeometryNodeIterable(getAllIndexInternalNodes());
 	}
 
-	private class SearchEvaluator implements ReturnableEvaluator, StopEvaluator {
-
+	private class SearchEvaluator implements Evaluator
+	{
 		private SearchFilter filter;
-		private boolean isReturnableNode;
-		private boolean isStopNode;
 
 		public SearchEvaluator(SearchFilter filter) {
 			this.filter = filter;
 		}
 
-		void checkPosition(TraversalPosition position) {
-			Relationship rel = position.lastRelationshipTraversed();
-			Node node = position.currentNode();
-			if (rel == null) {
-				isStopNode = false;
-				isReturnableNode = false;
-			} else if (rel.isType(RTreeRelationshipTypes.RTREE_CHILD)) {
-				isReturnableNode = false;
-				isStopNode = !filter.needsToVisit(getIndexNodeEnvelope(node));
-			} else if (rel.isType(RTreeRelationshipTypes.RTREE_REFERENCE)) {
-				isReturnableNode = filter.geometryMatches(node);
-				isStopNode = true;
-			}
-		}
-
 		@Override
-		public boolean isReturnableNode(TraversalPosition position) {
-			checkPosition(position);
-			return isReturnableNode;
-		}
-
-		@Override
-		public boolean isStopNode(TraversalPosition position) {
-			checkPosition(position);
-			return isStopNode;
-		}
-	}
+        public Evaluation evaluate( Path path )
+        {
+            Relationship rel = path.lastRelationship();
+            Node node = path.endNode();
+            if ( rel == null )
+            {
+                return Evaluation.EXCLUDE_AND_CONTINUE;
+            }
+            else if ( rel.isType( RTreeRelationshipTypes.RTREE_CHILD ) )
+            {
+                return filter.needsToVisit( getIndexNodeEnvelope( node ) ) ?
+                       Evaluation.EXCLUDE_AND_CONTINUE :
+                       Evaluation.EXCLUDE_AND_PRUNE;
+            }
+            else if ( rel.isType( RTreeRelationshipTypes.RTREE_REFERENCE ) )
+            {
+                return filter.geometryMatches( node ) ?
+                       Evaluation.INCLUDE_AND_PRUNE :
+                       Evaluation.EXCLUDE_AND_PRUNE;
+            }
+            return null;
+        }
+    }
 
 	public SearchResults searchIndex(SearchFilter filter) {
-		// TODO: Refactor to new traversal API
 		try (Transaction tx = database.beginTx()) {
 			SearchEvaluator searchEvaluator = new SearchEvaluator(filter);
-			SearchResults results = new SearchResults(getIndexRoot().traverse(Order.DEPTH_FIRST, searchEvaluator,
-				searchEvaluator, RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING,
-				RTreeRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING));
-			tx.success();
-			return results;
+			TraversalDescription td = database.traversalDescription()
+					.depthFirst()
+					.relationships( RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING )
+					.relationships( RTreeRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING )
+					.evaluator( searchEvaluator );
+            Traverser traverser = td.traverse( getIndexRoot() );
+            SearchResults results = new SearchResults( traverser.nodes() );
+            tx.success();
+            return results;
 		}
 	}
 
@@ -408,15 +409,12 @@ public class RTreeIndex implements SpatialIndexWriter {
 			}
 		} else if (indexNode.hasRelationship(RTreeRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)) {
 			// Node is a leaf
-			Transaction tx = database.beginTx();
-			try {
+			try (Transaction tx = database.beginTx()) {
 				for (Relationship rel : indexNode.getRelationships(RTreeRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)) {
 					visitor.onIndexReference(rel.getEndNode());
 				}
 
 				tx.success();
-			} finally {
-				tx.finish();
 			}
 		}
 	}
@@ -472,13 +470,10 @@ public class RTreeIndex implements SpatialIndexWriter {
 		}
 
 		if (!countSaved) {
-			Transaction tx = database.beginTx();
-			try {
+			try (Transaction tx = database.beginTx()) {
 				getMetadataNode().setProperty("totalGeometryCount", totalGeometryCount);
 				countSaved = true;
 				tx.success();
-			} finally {
-				tx.finish();
 			}
 		}
 	}
@@ -943,13 +938,19 @@ public class RTreeIndex implements SpatialIndexWriter {
 				return geometryNodeIterator == null ? null : geometryNodeIterator.next();
 			}
 
-			private void checkGeometryNodeIterator() {
-				while ((geometryNodeIterator == null || !geometryNodeIterator.hasNext()) && allIndexNodeIterator.hasNext()) {
-					geometryNodeIterator = allIndexNodeIterator.next().traverse(Order.DEPTH_FIRST, StopEvaluator.DEPTH_ONE,
-						ReturnableEvaluator.ALL_BUT_START_NODE, RTreeRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)
-						.iterator();
-				}
-			}
+            private void checkGeometryNodeIterator()
+            {
+                TraversalDescription td = database.traversalDescription()
+                        .depthFirst()
+                        .relationships( RTreeRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING )
+                        .evaluator( Evaluators.excludeStartPosition() )
+                        .evaluator( Evaluators.toDepth( 1 ) );
+                while ( (geometryNodeIterator == null || !geometryNodeIterator.hasNext()) &&
+                        allIndexNodeIterator.hasNext() )
+                {
+                    geometryNodeIterator = td.traverse( allIndexNodeIterator.next() ).nodes().iterator();
+                }
+            }
 
 			public void remove() {
 			}

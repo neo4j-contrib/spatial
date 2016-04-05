@@ -22,15 +22,15 @@ package org.neo4j.gis.spatial.indexprovider;
 import java.io.File;
 import java.io.IOException;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.index.IndexImplementation;
 
 import java.util.Map;
 import org.neo4j.graphdb.ResourceIterator;
-import org.neo4j.graphdb.index.IndexCommandFactory;
-import org.neo4j.graphdb.index.LegacyIndexProviderTransaction;
-import org.neo4j.helpers.collection.IteratorUtil;
+import org.neo4j.helpers.collection.Iterators;
 import org.neo4j.kernel.api.LegacyIndex;
-import org.neo4j.kernel.impl.transaction.command.CommandHandler;
+import org.neo4j.kernel.impl.api.TransactionApplier;
+import org.neo4j.kernel.spi.legacyindex.IndexCommandFactory;
+import org.neo4j.kernel.spi.legacyindex.IndexImplementation;
+import org.neo4j.kernel.spi.legacyindex.LegacyIndexProviderTransaction;
 
 public class SpatialIndexImplementation implements IndexImplementation {
 
@@ -51,7 +51,13 @@ public class SpatialIndexImplementation implements IndexImplementation {
         return storedConfig.equals(config);
     }
 
-    @Override
+	@Override
+	public File getIndexImplementationDirectory( File storeDir )
+	{
+		return null;
+	}
+
+	@Override
     public LegacyIndexProviderTransaction newTransaction(IndexCommandFactory icf) {
 
 	    return new LegacyIndexProviderTransaction() {
@@ -74,8 +80,8 @@ public class SpatialIndexImplementation implements IndexImplementation {
     }
 
     @Override
-    public CommandHandler newApplier( boolean bln ) {
-        return CommandHandler.EMPTY;
+    public TransactionApplier newApplier( boolean bln ) {
+        return TransactionApplier.EMPTY;
     }
 
     @Override
@@ -86,7 +92,7 @@ public class SpatialIndexImplementation implements IndexImplementation {
     @Override
     public ResourceIterator<File> listStoreFiles() throws IOException {
 	    // this is a graph based index
-	    return IteratorUtil.emptyIterator();
+	    return Iterators.emptyIterator();
     }
 
 	@Override

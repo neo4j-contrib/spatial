@@ -75,7 +75,7 @@ public class Neo4jSpatialDataStoreFactory extends AbstractDataStoreFactory
 		
 	    File neodir = (File) DIRECTORY.lookUp(params);
 
-		GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(neodir.getAbsolutePath());
+		GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(neodir);
 		Neo4jSpatialDataStore dataStore = new Neo4jSpatialDataStore(db);
 
 		return dataStore;

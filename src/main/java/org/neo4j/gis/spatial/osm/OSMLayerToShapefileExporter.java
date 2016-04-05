@@ -44,7 +44,7 @@ public class OSMLayerToShapefileExporter {
 		if (args.length < 4) {
 			System.out.println("Usage: osmtoshp databasedir exportdir osmdataset layerspec <..layerspecs..>");
 		} else {
-			GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase((new File(args[0])).getAbsolutePath());
+			GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase((new File(args[0])));
 			SpatialDatabaseService spatial = new SpatialDatabaseService(db);
 			OSMLayer layer = (OSMLayer) spatial.getLayer(args[2]);
 			if (layer != null) {

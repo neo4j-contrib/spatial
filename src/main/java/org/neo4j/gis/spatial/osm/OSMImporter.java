@@ -52,17 +52,12 @@ import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.graphdb.*;
-import org.neo4j.graphdb.Traverser.Order;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
-import org.neo4j.graphdb.mockfs.EphemeralFileSystemAbstraction;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.helpers.collection.MapUtil;
-import org.neo4j.index.impl.lucene.LuceneBatchInserterIndexProviderNewImpl;
-import org.neo4j.kernel.Traversal;
-import org.neo4j.test.EphemeralFileSystemRule;
-import org.neo4j.test.TestGraphDatabaseFactory;
+import org.neo4j.index.impl.lucene.legacy.LuceneBatchInserterIndexProviderNewImpl;
 import org.neo4j.unsafe.batchinsert.*;
 
 public class OSMImporter implements Constants
@@ -264,9 +259,13 @@ public class OSMImporter implements Constants
         layer.clear(); // clear the index without destroying underlying data
 
         long startTime = System.currentTimeMillis();
-        org.neo4j.graphdb.traversal.TraversalDescription traversal = Traversal.description().depthFirst()
+        org.neo4j.graphdb.traversal.TraversalDescription findWays = database.traversalDescription().depthFirst()
                 .evaluator(Evaluators.excludeStartPosition())
                 .relationships(OSMRelation.WAYS, Direction.OUTGOING)
+                .relationships(OSMRelation.NEXT, Direction.OUTGOING);
+        org.neo4j.graphdb.traversal.TraversalDescription findNodes = database.traversalDescription().depthFirst()
+                .evaluator(Evaluators.excludeStartPosition())
+                .relationships(OSMRelation.FIRST_NODE, Direction.OUTGOING)
                 .relationships(OSMRelation.NEXT, Direction.OUTGOING);
 
         Transaction tx = database.beginTx();
@@ -278,19 +277,14 @@ public class OSMImporter implements Constants
             if ( useWays )
             {
                 beginProgressMonitor( dataset.getWayCount() );
-                for ( Node way : traversal.traverse(database.getNodeById( osm_dataset )).nodes() )
+                for ( Node way : findWays.traverse(database.getNodeById( osm_dataset )).nodes() )
                 {
                     updateProgressMonitor( count );
                     incrLogContext();
                     stats.addGeomStats( layer.addWay( way, true ) );
                     if ( includePoints )
                     {
-                        Node first = way.getSingleRelationship(
-                                OSMRelation.FIRST_NODE, Direction.OUTGOING ).getEndNode();
-                        for ( Node proxy : first.traverse( Order.DEPTH_FIRST,
-                                StopEvaluator.END_OF_GRAPH,
-                                ReturnableEvaluator.ALL, OSMRelation.NEXT,
-                                Direction.OUTGOING ) )
+                        for ( Node proxy : findNodes.traverse( way ).nodes() )
                         {
                             Node node = proxy.getSingleRelationship(
                                     OSMRelation.NODE, Direction.OUTGOING ).getEndNode();
@@ -2295,15 +2289,14 @@ public class OSMImporter implements Constants
         private void switchToEmbeddedGraphDatabase()
         {
             shutdown();
-            graphDb = new GraphDatabaseFactory().newEmbeddedDatabase( dbPath.getAbsolutePath() );
+            graphDb = new GraphDatabaseFactory().newEmbeddedDatabase( dbPath );
         }
 
-        private void switchToBatchInserter()
+        private void switchToBatchInserter() throws IOException
         {
             shutdown();
-            batchInserter = BatchInserters.inserter(dbPath.getAbsolutePath());
-	    //graphDb = new TestGraphDatabaseFactory().setFileSystem(Default)newImpermanentDatabase( dbPath.getAbsolutePath() );
-	    graphDb = new GraphDatabaseFactory().newEmbeddedDatabase( dbPath.getAbsolutePath() );
+            batchInserter = BatchInserters.inserter( dbPath );
+            graphDb = new GraphDatabaseFactory().newEmbeddedDatabase( dbPath );
         }
 
         protected void shutdown()

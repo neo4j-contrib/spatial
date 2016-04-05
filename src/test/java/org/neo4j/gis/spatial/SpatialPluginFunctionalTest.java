@@ -24,6 +24,7 @@ import static junit.framework.TestCase.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import javax.ws.rs.core.Response.Status;
 
@@ -37,9 +38,10 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
-import org.neo4j.cypher.javacompat.ExecutionEngine;
-import org.neo4j.cypher.javacompat.ExecutionResult;
+
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Result;
+import org.neo4j.helpers.HostnamePort;
 import org.neo4j.kernel.impl.annotations.Documented;
 import org.neo4j.server.NeoServer;
 import org.neo4j.server.helpers.CommunityServerBuilder;
@@ -62,7 +64,7 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
      */
     @BeforeClass
     public static void allocateServer() throws IOException {
-        altServer = CommunityServerBuilder.server().onPort( PORT ).build();
+        altServer = CommunityServerBuilder.server().onAddress( new HostnamePort( "localhost", PORT ) ).build();
         altServer.start();
     }
 
@@ -322,8 +324,8 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
 
 
     private void dumpDB() {
-        ExecutionResult cypher = new ExecutionEngine(graphdb()).execute("MATCH (n)-[r]->() return n,type(r),r");
-        System.out.println(cypher.dumpToString());
+        Result result = graphdb().execute( "MATCH (n)-[r]->() return n,type(r),r" );
+        result.writeAsStringTo( new PrintWriter( System.out ) );
     }
 
     private String findNodeInBox(String layer_name, double lon1, double lon2, double lat1, double lat2) {

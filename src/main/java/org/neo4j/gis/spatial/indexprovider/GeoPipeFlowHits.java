@@ -29,7 +29,7 @@ import org.neo4j.graphdb.NotFoundException;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.helpers.collection.CatchingIteratorWrapper;
-import org.neo4j.helpers.collection.IteratorUtil;
+import org.neo4j.helpers.collection.Iterators;
 
 import java.util.Iterator;
 import java.util.List;
@@ -80,7 +80,7 @@ public class GeoPipeFlowHits extends CatchingIteratorWrapper<Node, GeoPipeFlow> 
 	@Override
 	public Node getSingle() {
 		try {
-			return IteratorUtil.singleOrNull((Iterator<Node>) this);
+			return Iterators.singleOrNull((Iterator<Node>) this);
 		} finally {
 			close();
 		}

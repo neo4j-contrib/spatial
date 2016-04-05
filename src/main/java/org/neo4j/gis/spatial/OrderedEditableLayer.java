@@ -24,12 +24,10 @@ import static org.neo4j.gis.spatial.utilities.TraverserFactory.createTraverserIn
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.RelationshipType;
-import org.neo4j.graphdb.ReturnableEvaluator;
-import org.neo4j.graphdb.StopEvaluator;
-import org.neo4j.graphdb.Traverser.Order;
+import org.neo4j.graphdb.traversal.BranchOrderingPolicies;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
-import org.neo4j.kernel.Traversal;
+import org.neo4j.shell.kernel.apps.Trav;
 
 import com.vividsolutions.jts.geom.Geometry;
 
@@ -55,7 +53,8 @@ public class OrderedEditableLayer extends EditableLayerImpl {
 	protected Node addGeomNode(Geometry geom, String[] fieldsName, Object[] fields) {
 		Node geomNode = super.addGeomNode(geom, fieldsName, fields);
 		if (previousGeomNode == null) {
-			TraversalDescription traversalDescription = Traversal.description().order(Traversal.postorderBreadthFirst())
+			TraversalDescription traversalDescription = getDatabase().traversalDescription()
+					.order( BranchOrderingPolicies.POSTORDER_BREADTH_FIRST )
 					.relationships(OrderedRelationshipTypes.GEOMETRIES, Direction.INCOMING)
 					.relationships(OrderedRelationshipTypes.NEXT_GEOM, Direction.INCOMING)
 					.evaluator(Evaluators.excludeStartPosition());
@@ -81,9 +80,12 @@ public class OrderedEditableLayer extends EditableLayerImpl {
      * 
      * @return iterable over geometry nodes in the dataset
      */
-    public Iterable<Node> getAllGeometryNodes() {
-        return layerNode.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH, ReturnableEvaluator.ALL_BUT_START_NODE,
-                OrderedRelationshipTypes.GEOMETRIES, Direction.OUTGOING, OrderedRelationshipTypes.NEXT_GEOM, Direction.OUTGOING);
-    }
+	public Iterable<Node> getAllGeometryNodes() {
+		TraversalDescription td = getDatabase().traversalDescription().depthFirst()
+				.evaluator( Evaluators.excludeStartPosition() )
+				.relationships( OrderedRelationshipTypes.GEOMETRIES, Direction.OUTGOING )
+				.relationships( OrderedRelationshipTypes.NEXT_GEOM, Direction.OUTGOING );
+		return td.traverse( layerNode ).nodes();
+	}
 
 }

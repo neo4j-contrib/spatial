@@ -63,12 +63,14 @@ public class ServerPluginTest extends Neo4jTestCase {
 
 	@Test
 	public void testSearchPoints() {
-	    Transaction tx2 = graphDb().beginTx();
-        Node point = graphDb().createNode();
-        point.setProperty(LAT, 60.1);
-        point.setProperty(LON, 15.2);
-        tx2.success();
-        tx2.finish();
+        Node point;
+        try ( Transaction tx2 = graphDb().beginTx() )
+        {
+            point = graphDb().createNode();
+            point.setProperty( LAT, 60.1 );
+            point.setProperty( LON, 15.2 );
+            tx2.success();
+        }
         plugin.addSimplePointLayer( graphDb(), LAYER, LAT, LON );
         
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());

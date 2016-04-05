@@ -20,9 +20,10 @@
 package org.neo4j.gis.spatial.indexprovider;
 
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.index.IndexProviders;
 import org.neo4j.kernel.extension.KernelExtensionFactory;
+import org.neo4j.kernel.impl.spi.KernelContext;
 import org.neo4j.kernel.lifecycle.Lifecycle;
+import org.neo4j.kernel.spi.legacyindex.IndexProviders;
 
 public class SpatialKernelExtensionFactory extends KernelExtensionFactory<SpatialKernelExtensionFactory.Dependencies> {
     public SpatialKernelExtensionFactory() {
@@ -35,7 +36,7 @@ public class SpatialKernelExtensionFactory extends KernelExtensionFactory<Spatia
     }
 
     @Override
-    public Lifecycle newKernelExtension(Dependencies dependencies) throws Throwable {
+    public Lifecycle newInstance( KernelContext context, Dependencies dependencies ) {
         return new SpatialKernelExtension(dependencies.getIndexProviders(), dependencies.getGraphDatabaseService());
     }
 

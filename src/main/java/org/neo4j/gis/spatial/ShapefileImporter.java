@@ -106,7 +106,7 @@ public class ShapefileImporter implements Constants {
 			commitInterval = Integer.parseInt(args[3]);
 		}
 		
-		GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(neoPath);
+		GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(new File(neoPath));
 		try {
 	        ShapefileImporter importer = new ShapefileImporter(database, new NullListener(), commitInterval);
 	        importer.importFile(shpPath, layerName);

@@ -26,20 +26,19 @@ import com.vividsolutions.jts.operation.distance.DistanceOp;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.neo4j.cypher.javacompat.ExecutionEngine;
-import org.neo4j.cypher.javacompat.ExecutionResult;
 import org.neo4j.gis.spatial.indexprovider.LayerNodeIndex;
 import org.neo4j.gis.spatial.indexprovider.SpatialIndexProvider;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.index.IndexManager;
-import org.neo4j.helpers.collection.IteratorUtil;
 import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.kernel.impl.core.NodeProxy;
 import org.neo4j.test.ImpermanentGraphDatabase;
 
+import java.io.PrintWriter;
 import java.util.*;
 
 import static org.junit.Assert.*;
@@ -142,25 +141,21 @@ public class IndexProviderTest {
         IndexManager indexMan = db.index();
         Index<Node> index = indexMan.forNodes("layer1", config);
         assertNotNull(index);
-        Transaction transaction = db.beginTx();
 
         Node node = null;
-        try {
+        try (Transaction transaction = db.beginTx()) {
             node = db.createNode();
             node.setProperty("lat", 56.2);
             node.setProperty("lon", 15.3);
             transaction.success();
-            transaction.finish();
         } catch (Exception e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
         }
 
 
-        try {
-            transaction = db.beginTx();
+        try (Transaction transaction = db.beginTx()) {
             index.add(node, "", "");
             transaction.success();
-            transaction.finish();
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -179,9 +174,8 @@ public class IndexProviderTest {
         Transaction tx = db.beginTx();
         index = indexMan.forNodes("layer1", config);
         assertNotNull(index);
-        ExecutionEngine engine = new ExecutionEngine(db);
-        ExecutionResult result1 = engine.execute("create (malmo{name:'Malmö',lat:56.2, lon:15.3})-[:TRAIN]->(stockholm{name:'Stockholm',lat:59.3,lon:18.0}) return malmo");
-        Node malmo = (Node) result1.iterator().next().get("malmo");
+        Result result1 = db.execute("create (malmo{name:'Malmö',lat:56.2, lon:15.3})-[:TRAIN]->(stockholm{name:'Stockholm',lat:59.3,lon:18.0}) return malmo");
+        Node malmo = (Node) result1.columnAs( "malmo" ).next();
         index.add(malmo, "dummy", "value");
         tx.success();
         tx.close();
@@ -217,11 +211,11 @@ public class IndexProviderTest {
                 params);
         assertTrue(hits.hasNext());
 
-        ExecutionResult result = engine.execute("start malmo=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') match p=(malmo)--(other) return malmo, other");
-        assertTrue(result.iterator().hasNext());
-        result = engine.execute("start malmo=node:layer1('withinDistance:[56.0, 15.0,1000.0]') match p=(malmo)--(other) return malmo, other");
-        assertTrue(result.iterator().hasNext());
-        System.out.println(result.dumpToString());
+        Result result = db.execute("start malmo=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') match p=(malmo)--(other) return malmo, other");
+        assertTrue(result.hasNext());
+        result = db.execute("start malmo=node:layer1('withinDistance:[56.0, 15.0,1000.0]') match p=(malmo)--(other) return malmo, other");
+        assertTrue(result.hasNext());
+        result.writeAsStringTo( new PrintWriter(System.out) );
     }
 
     @Test
@@ -278,18 +272,17 @@ public class IndexProviderTest {
             robin.setProperty("name", "robin");
             index.add(robin, "dummy", "value");
 
-            ExecutionEngine engine = new ExecutionEngine(db);
-            assertTrue(engine.execute("start n=node:layer3('withinDistance:[33.32, 44.44, 5.0]') return n").columnAs("n").hasNext());
+            assertTrue(db.execute("start n=node:layer3('withinDistance:[33.32, 44.44, 5.0]') return n").columnAs("n").hasNext());
 
-            NodeProxy row = (org.neo4j.kernel.impl.core.NodeProxy) engine.execute("start n=node:layer3('withinDistance:[33.32, 44.44, 5.0]') return n").columnAs("n").next();
+            NodeProxy row = (org.neo4j.kernel.impl.core.NodeProxy) db.execute("start n=node:layer3('withinDistance:[33.32, 44.44, 5.0]') return n").columnAs("n").next();
             assertEquals("robin", row.getProperty("name"));
             assertEquals("POINT(44.44 33.33)", row.getProperty("wkt"));
 
             //update the node
             robin.setProperty("wkt", "POINT(55.55 33.33)");
             index.add(robin, "dummy", "value");
-            assertFalse(engine.execute("start n=node:layer3('withinDistance:[33.32, 44.44, 5.0]') return n").columnAs("n").hasNext());
-            assertTrue(engine.execute("start n=node:layer3('withinDistance:[33.32, 55.55, 5.0]') return n").columnAs("n").hasNext());
+            assertFalse(db.execute("start n=node:layer3('withinDistance:[33.32, 44.44, 5.0]') return n").columnAs("n").hasNext());
+            assertTrue(db.execute("start n=node:layer3('withinDistance:[33.32, 55.55, 5.0]') return n").columnAs("n").hasNext());
             tx.success();
         }
 

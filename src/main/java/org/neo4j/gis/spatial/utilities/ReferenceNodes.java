@@ -23,7 +23,7 @@ package org.neo4j.gis.spatial.utilities;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Result;
-import org.neo4j.helpers.collection.IteratorUtil;
+import org.neo4j.helpers.collection.Iterators;
 import static org.neo4j.helpers.collection.MapUtil.map;
 
 public class ReferenceNodes {
@@ -41,6 +41,6 @@ public class ReferenceNodes {
         }
 
 	Result result = db.execute("MERGE (ref:ReferenceNode {name:{name}}) RETURN ref", map("name", name));
-        return IteratorUtil.single(result.<Node>columnAs("ref"));
+        return Iterators.single(result.<Node>columnAs("ref"));
     }
 }

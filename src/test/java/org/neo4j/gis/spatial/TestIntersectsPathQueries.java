@@ -37,7 +37,7 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-import org.neo4j.kernel.GraphDatabaseAPI;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.unsafe.batchinsert.BatchInserter;
 import org.neo4j.unsafe.batchinsert.BatchInserters;
 
@@ -47,7 +47,6 @@ import java.io.*;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.Map.Entry;
-import org.neo4j.kernel.impl.transaction.state.NeoStoresSupplier;
 
 public class TestIntersectsPathQueries extends TestCase {
 
@@ -96,7 +95,7 @@ public class TestIntersectsPathQueries extends TestCase {
 	}
 	
 	private void importShapefileDatabase(String shpPath, String dbPath, String layerName) throws ShapefileException, FileNotFoundException, IOException {
-		GraphDatabaseService graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(dbPath).setConfig(Neo4jTestCase.LARGE_CONFIG ).newGraphDatabase();
+		GraphDatabaseService graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(new File(dbPath)).setConfig(Neo4jTestCase.LARGE_CONFIG ).newGraphDatabase();
         ShapefileImporter importer = new ShapefileImporter(graphDb, new ConsoleListener(), 10000, true);
         importer.setFilterEnvelope(makeFilterEnvelope());
         importer.importFile(shpPath, layerName, Charset.forName("UTF-8"));
@@ -113,7 +112,7 @@ public class TestIntersectsPathQueries extends TestCase {
 	private void importOSMDatabase(String osmPath, String dbPath, String layerName) throws ParseException, IOException, XMLStreamException, InterruptedException {
 		OSMImporter importer = new OSMImporter(layerName, new ConsoleListener(), makeFilterEnvelope());
 		importer.setCharset(Charset.forName("UTF-8"));
-        BatchInserter batchInserter = BatchInserters.inserter(dbPath, Neo4jTestCase.LARGE_CONFIG);
+        BatchInserter batchInserter = BatchInserters.inserter(new File(dbPath), Neo4jTestCase.LARGE_CONFIG);
         //GraphDatabaseService graphDb = batchInserter.getGraphDbService();
 		//importer.importFile(graphDb, osmPath, false, 10000, true);
 		importer.importFile(batchInserter, osmPath, false);
@@ -127,7 +126,7 @@ public class TestIntersectsPathQueries extends TestCase {
 				Thread.sleep(1000);
 			}
 		}
-		GraphDatabaseService graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(dbPath).setConfig(Neo4jTestCase.LARGE_CONFIG ).newGraphDatabase();
+		GraphDatabaseService graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(new File(dbPath)).setConfig(Neo4jTestCase.LARGE_CONFIG ).newGraphDatabase();
 		importer.reIndex(graphDb, 10000, false, false);
 		TestOSMImport.checkOSMLayer(graphDb, layerName);
 		graphDb.shutdown();
@@ -190,9 +189,13 @@ public class TestIntersectsPathQueries extends TestCase {
 	}
 
 	private void runTestPointSetGeoptimaIntersection(String tracePath, String dbPath, String layerName, boolean testMultiPoint) throws ParseException, IOException, XMLStreamException {
-		GraphDatabaseService graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(dbPath).setConfig( Neo4jTestCase.NORMAL_CONFIG ).newGraphDatabase();
-		SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb);
-                System.out.println("Opened database with node count=" + ((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency( NeoStoresSupplier.class ).get().getNodeStore().getNumberOfIdsInUse());
+		GraphDatabaseService graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder( new File( dbPath ) )
+				.setConfig( Neo4jTestCase.NORMAL_CONFIG ).newGraphDatabase();
+		long numberOfNodes = (Long) graphDb.execute( "MATCH (n) RETURN count(n)" ).columnAs( "count(n)" ).next();
+		long numberOfRelationships =
+				(Long) graphDb.execute( "MATCH ()-[r]->() RETURN count(r)" ).columnAs( "count(r)" ).next();
+		SpatialDatabaseService spatial = new SpatialDatabaseService( graphDb );
+		System.out.println( "Opened database with " + numberOfNodes + " nodes and " + numberOfRelationships + " relationships" );
 
 		System.out.println("Searching for '"+layerName+"' in "+spatial.getLayerNames().length+" layers:");
 		for(String name:spatial.getLayerNames()){

@@ -52,10 +52,15 @@ public class PropertyMappingManager {
 
 	private Map<Node, PropertyMapper> loadMappers() {
 		HashMap<Node, PropertyMapper> mappers = new HashMap<Node, PropertyMapper>();
-		for (Relationship rel : layer.getLayerNode()
-				.getRelationships(SpatialRelationshipTypes.PROPERTY_MAPPING, Direction.OUTGOING)) {
-			Node node = rel.getEndNode();
-			mappers.put(node, PropertyMapper.fromNode(node));
+		try (Transaction tx = layer.getLayerNode().getGraphDatabase().beginTx())
+		{
+			for ( Relationship rel : layer.getLayerNode()
+					.getRelationships( SpatialRelationshipTypes.PROPERTY_MAPPING, Direction.OUTGOING ) )
+			{
+				Node node = rel.getEndNode();
+				mappers.put( node, PropertyMapper.fromNode( node ) );
+			}
+			tx.success();
 		}
 		return mappers;
 	}
@@ -69,8 +74,7 @@ public class PropertyMappingManager {
 			}
 		}
 		GraphDatabaseService db = layer.getLayerNode().getGraphDatabase();
-		Transaction tx = db.beginTx();
-		try {
+		try (Transaction tx = db.beginTx()) {
 			for (Node node : toDelete) {
 				for (Relationship rel : node.getRelationships()) {
 					rel.delete();
@@ -83,8 +87,6 @@ public class PropertyMappingManager {
 				layer.getLayerNode().createRelationshipTo(node, SpatialRelationshipTypes.PROPERTY_MAPPING);
 			}
 			tx.success();
-		} finally {
-			tx.close();
 		}
 	}
 

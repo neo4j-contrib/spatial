@@ -437,7 +437,7 @@ public class StyledImageExporter {
 		String exportdir = args[1];
 		String stylefile = args[2];
 		double zoom = new Double(args[3]);
-		GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(database);
+		GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(new File(database));
 		try {
 			StyledImageExporter imageExporter = new StyledImageExporter(db);
 			imageExporter.setExportDir(exportdir);

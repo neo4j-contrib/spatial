@@ -55,7 +55,6 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-import org.neo4j.kernel.EmbeddedGraphDatabase;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Coordinate;
@@ -79,7 +78,7 @@ public class OsmAnalysisTest extends TestOSMImport {
 
 		// Setup default test cases (short or medium only, no long cases)
 		ArrayList<String> layersToTest = new ArrayList<String>();
-//		layersToTest.addAll(Arrays.asList(smallModels));
+		layersToTest.addAll(Arrays.asList(smallModels));
 //		layersToTest.addAll(Arrays.asList(mediumModels));
 
 		// Now modify the test cases based on the spatial.test.mode setting
@@ -147,7 +146,7 @@ public class OsmAnalysisTest extends TestOSMImport {
 		if (db != null) {
 			shutdownDatabase();
 		}
-		db = new GraphDatabaseFactory().newEmbeddedDatabase("var/" + dataset);
+		db = new GraphDatabaseFactory().newEmbeddedDatabase(new File("var/" + dataset));
 		return new SpatialDatabaseService(db);
 	}
 	
@@ -167,21 +166,27 @@ public class OsmAnalysisTest extends TestOSMImport {
 		long latestTimestamp = 0L;
 		long firstTimestamp = Long.MAX_VALUE;
 
-		for (Node cNode : dataset.getAllChangesetNodes()) {
-			long timestamp = (Long) cNode.getProperty("timestamp", 0L);
-			Node userNode = dataset.getUser(cNode);
-			String name = (String) userNode.getProperty("name");
+		try(Transaction tx = spatial.getDatabase().beginTx())
+		{
+			for ( Node cNode : dataset.getAllChangesetNodes() )
+			{
+				long timestamp = (Long) cNode.getProperty( "timestamp", 0L );
+				Node userNode = dataset.getUser( cNode );
+				String name = (String) userNode.getProperty( "name" );
 
-			User user = userIndex.get(name);
-			if (user == null) {
-				user = new User(userNode.getId(), name);
-				userIndex.put(name, user);
+				User user = userIndex.get( name );
+				if ( user == null )
+				{
+					user = new User( userNode.getId(), name );
+					userIndex.put( name, user );
+				}
+				user.addChangeset( cNode, timestamp );
+				if ( latestTimestamp < timestamp )
+					latestTimestamp = timestamp;
+				if ( firstTimestamp > timestamp )
+					firstTimestamp = timestamp;
 			}
-			user.addChangeset(cNode, timestamp);
-			if (latestTimestamp < timestamp)
-				latestTimestamp = timestamp;
-			if (firstTimestamp > timestamp)
-				firstTimestamp = timestamp;
+			tx.success();
 		}
 		SortedSet<User> topTen = getTopTen(userIndex);
 		
@@ -245,15 +250,21 @@ public class OsmAnalysisTest extends TestOSMImport {
 			if (!checkedOne) {
 				int i = 0;
 				System.out.println("Checking layer '" + layerToExport + "' in detail");
-				SearchRecords records = layerToExport.getIndex().search(new SearchAll());
-				for (SpatialRecord record : records) {
-					System.out.println("Got record " + i + ": " + record);
-					for (String name : record.getPropertyNames()) {
-						System.out.println("\t" + name + ":\t" + record.getProperty(name));
-						checkedOne = true;
+				try (Transaction tx = db.beginTx())
+				{
+					SearchRecords records = layerToExport.getIndex().search( new SearchAll() );
+					for ( SpatialRecord record : records )
+					{
+						System.out.println( "Got record " + i + ": " + record );
+						for ( String name : record.getPropertyNames() )
+						{
+							System.out.println( "\t" + name + ":\t" + record.getProperty( name ) );
+							checkedOne = true;
+						}
+						if ( i++ > 10 )
+							break;
 					}
-					if (i++ > 10)
-						break;
+					tx.success();
 				}
 			}
 			
@@ -368,8 +379,7 @@ public class OsmAnalysisTest extends TestOSMImport {
 				Node changeset = r.getStartNode();
 				if (changeset.hasProperty("changeset")) {
 					System.out.println("analyzing changeset: " + changeset.getProperty("changeset"));
-					Transaction tx = graphDb().beginTx();
-					try {
+					try (Transaction tx = graphDb().beginTx()) {
 						for (Relationship nr : changeset.getRelationships(Direction.INCOMING, OSMRelation.CHANGESET)) {
 							Node changedNode = nr.getStartNode();
 							if (changedNode.hasProperty("node_osm_id") && changedNode.hasProperty("timestamp")) {
@@ -391,10 +401,7 @@ public class OsmAnalysisTest extends TestOSMImport {
 								}
 							}
 						}
-
 						tx.success();
-					} finally {
-						tx.close();
 					}
 				}
 			}

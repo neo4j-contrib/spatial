@@ -25,9 +25,8 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.PropertyContainer;
 import org.neo4j.graphdb.RelationshipType;
-import org.neo4j.graphdb.ReturnableEvaluator;
-import org.neo4j.graphdb.StopEvaluator;
-import org.neo4j.graphdb.Traverser.Order;
+import org.neo4j.graphdb.traversal.Evaluators;
+import org.neo4j.graphdb.traversal.TraversalDescription;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateList;
@@ -82,8 +81,11 @@ public class SimpleGraphEncoder extends AbstractGeometryEncoder {
 	public Geometry decodeGeometry(PropertyContainer container) {
 		Node node = testIsNode(container);
 		CoordinateList coordinates = new CoordinateList();
-		for (Node point : node.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH, ReturnableEvaluator.ALL_BUT_START_NODE,
-		        SimpleRelationshipTypes.FIRST, Direction.OUTGOING, SimpleRelationshipTypes.NEXT, Direction.OUTGOING)) {
+		TraversalDescription td = node.getGraphDatabase().traversalDescription().depthFirst()
+				.relationships( SimpleRelationshipTypes.FIRST, Direction.OUTGOING )
+				.relationships( SimpleRelationshipTypes.NEXT, Direction.OUTGOING ).breadthFirst()
+				.evaluator( Evaluators.excludeStartPosition() );
+		for (Node point : td.traverse( node ).nodes()) {
 			coordinates.add(new Coordinate((Double) point.getProperty("x"), (Double) point.getProperty("y"), (Double) point.getProperty("z")), false);
 		}
 		return getGeometryFactory().createLineString(coordinates.toCoordinateArray());

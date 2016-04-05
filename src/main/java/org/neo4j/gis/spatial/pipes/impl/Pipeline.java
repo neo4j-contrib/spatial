@@ -1,6 +1,6 @@
 package org.neo4j.gis.spatial.pipes.impl;
 
-import org.neo4j.helpers.collection.IteratorUtil;
+import org.neo4j.helpers.collection.Iterators;
 
 import java.util.*;
 
@@ -178,7 +178,7 @@ public class Pipeline<S, E> implements Pipe<S, E> {
 
 
     public long count() {
-       return IteratorUtil.count((Iterator<E>) this);
+       return Iterators.count((Iterator<E>) this);
     }
 
     public void iterate() {
@@ -202,10 +202,10 @@ public class Pipeline<S, E> implements Pipe<S, E> {
     }
 
     public List<E> toList() {
-        return IteratorUtil.addToCollection((Iterator<E>) this,new ArrayList<E>());
+        return Iterators.addToCollection((Iterator<E>) this,new ArrayList<E>());
     }
 
     public Collection<E> fill(final Collection<E> collection) {
-        return IteratorUtil.addToCollection((Iterator<E>) this,collection);
+        return Iterators.addToCollection((Iterator<E>) this,collection);
     }
 }

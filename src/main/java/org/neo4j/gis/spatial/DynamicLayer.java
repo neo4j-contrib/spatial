@@ -61,9 +61,15 @@ public class DynamicLayer extends EditableLayerImpl {
 		if (layers == null) {
 			layers = new LinkedHashMap<String, Layer>();
 			layers.put(getName(), this);
-			for (Relationship rel : layerNode.getRelationships(SpatialRelationshipTypes.LAYER_CONFIG, Direction.OUTGOING)) {
-				DynamicLayerConfig config = new DynamicLayerConfig(this, rel.getEndNode());
-				layers.put(config.getName(), config);
+			try (Transaction tx = getDatabase().beginTx())
+			{
+				for ( Relationship rel : layerNode
+						.getRelationships( SpatialRelationshipTypes.LAYER_CONFIG, Direction.OUTGOING ) )
+				{
+					DynamicLayerConfig config = new DynamicLayerConfig( this, rel.getEndNode() );
+					layers.put( config.getName(), config );
+				}
+				tx.success();
 			}
 		}
 		return layers;
@@ -75,13 +81,11 @@ public class DynamicLayer extends EditableLayerImpl {
 			synchronized (this) {
 				DynamicLayerConfig config = (DynamicLayerConfig) layer;
 				layers = null; // force recalculation of layers cache
-				Transaction tx = config.configNode.getGraphDatabase().beginTx();
-				try {
-					config.configNode.getSingleRelationship(SpatialRelationshipTypes.LAYER_CONFIG, Direction.INCOMING).delete();
+				try ( Transaction tx = getDatabase().beginTx() )
+				{
+					config.configNode.getSingleRelationship( SpatialRelationshipTypes.LAYER_CONFIG, Direction.INCOMING ).delete();
 					config.configNode.delete();
 					tx.success();
-				} finally {
-					tx.close();
 				}
 				return true;
 			}

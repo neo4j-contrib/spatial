@@ -28,7 +28,7 @@ public class TestReadOnlyTransactions {
     @Before
     public void setUp() throws Exception {
         storePrefix++;
-    	graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(getNeoPath().getAbsolutePath()).newGraphDatabase();
+    	graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(getNeoPath()).newGraphDatabase();
     	buildDataModel();
     }
 

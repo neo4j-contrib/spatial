@@ -30,12 +30,13 @@ import org.neo4j.gis.spatial.SpatialDataset;
 import org.neo4j.gis.spatial.SpatialRelationshipTypes;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.ReturnableEvaluator;
-import org.neo4j.graphdb.StopEvaluator;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.TraversalPosition;
-import org.neo4j.graphdb.Traverser.Order;
+import org.neo4j.graphdb.traversal.Evaluation;
+import org.neo4j.graphdb.traversal.Evaluator;
+import org.neo4j.graphdb.traversal.Evaluators;
+import org.neo4j.graphdb.traversal.TraversalDescription;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
@@ -78,65 +79,76 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
      * This method is used to construct the dataset when only the layer node is known, and the
      * dataset node needs to be searched for.
      * 
-     * @param spatialDatabase2
+     * @param spatialDatabase
      * @param osmLayer
      * @param layerNode
      */
     public OSMDataset(SpatialDatabaseService spatialDatabase, OSMLayer osmLayer, Node layerNode) {
-        this.layer = osmLayer;
-        Relationship rel = layerNode.getSingleRelationship(SpatialRelationshipTypes.LAYERS, Direction.INCOMING);
-        if (rel == null) {
-            throw new SpatialDatabaseException("Layer '" + osmLayer + "' does not have an associated dataset");
-        } else {
-            datasetNode = rel.getStartNode();
+        try (Transaction tx = layerNode.getGraphDatabase().beginTx())
+        {
+            this.layer = osmLayer;
+            Relationship rel = layerNode.getSingleRelationship( SpatialRelationshipTypes.LAYERS, Direction.INCOMING );
+            if ( rel == null )
+            {
+                throw new SpatialDatabaseException( "Layer '" + osmLayer + "' does not have an associated dataset" );
+            }
+            else
+            {
+                datasetNode = rel.getStartNode();
+            }
+            tx.success();
         }
     }
     
 	public Iterable<Node> getAllUserNodes() {
-		return datasetNode.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH, new ReturnableEvaluator(){
-
-			public boolean isReturnableNode(TraversalPosition current) {
-				Relationship rel = current.lastRelationshipTraversed();
-				return rel != null && rel.isType(OSMRelation.OSM_USER);
-			}},
-				OSMRelation.USERS, Direction.OUTGOING, OSMRelation.OSM_USER, Direction.OUTGOING);
+		TraversalDescription td = datasetNode.getGraphDatabase().traversalDescription()
+				.depthFirst()
+				.relationships( OSMRelation.USERS, Direction.OUTGOING )
+				.relationships( OSMRelation.OSM_USER, Direction.OUTGOING )
+				.evaluator( Evaluators.includeWhereLastRelationshipTypeIs( OSMRelation.OSM_USER ) );
+		return td.traverse( datasetNode ).nodes();
 	}
 
 	public Iterable<Node> getAllChangesetNodes() {
-		return datasetNode.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH, new ReturnableEvaluator(){
-
-			public boolean isReturnableNode(TraversalPosition current) {
-				Relationship rel = current.lastRelationshipTraversed();
-				return rel != null && rel.isType(OSMRelation.USER);
-			}},
-				OSMRelation.USERS, Direction.OUTGOING, OSMRelation.OSM_USER, Direction.OUTGOING, OSMRelation.USER, Direction.INCOMING);
+		TraversalDescription td = datasetNode.getGraphDatabase().traversalDescription()
+				.depthFirst()
+				.relationships( OSMRelation.USERS, Direction.OUTGOING )
+				.relationships( OSMRelation.OSM_USER, Direction.OUTGOING )
+				.relationships( OSMRelation.USER, Direction.INCOMING )
+				.evaluator( Evaluators.includeWhereLastRelationshipTypeIs( OSMRelation.USER ) );
+		return td.traverse( datasetNode ).nodes();
 	}
 
 	public Iterable<Node> getAllWayNodes() {
-		return datasetNode.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH, ReturnableEvaluator.ALL_BUT_START_NODE,
-				OSMRelation.WAYS, Direction.OUTGOING, OSMRelation.NEXT, Direction.OUTGOING);
+		TraversalDescription td = datasetNode.getGraphDatabase().traversalDescription()
+				.depthFirst()
+				.relationships( OSMRelation.WAYS, Direction.OUTGOING )
+				.relationships( OSMRelation.NEXT, Direction.OUTGOING )
+				.evaluator( Evaluators.excludeStartPosition() );
+		return td.traverse( datasetNode ).nodes();
 	}
 
 	public Iterable<Node> getAllPointNodes() {
-		return datasetNode.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH, new ReturnableEvaluator() {
-
-			public boolean isReturnableNode(TraversalPosition current) {
-				return current.lastRelationshipTraversed().isType(OSMRelation.NODE);
-			}
-		}, OSMRelation.WAYS, Direction.OUTGOING, OSMRelation.NEXT, Direction.OUTGOING, OSMRelation.FIRST_NODE, Direction.OUTGOING,
-				OSMRelation.NODE, Direction.OUTGOING);
+		TraversalDescription td = datasetNode.getGraphDatabase().traversalDescription()
+				.depthFirst()
+				.relationships( OSMRelation.WAYS, Direction.OUTGOING )
+				.relationships( OSMRelation.NEXT, Direction.OUTGOING )
+				.relationships( OSMRelation.FIRST_NODE, Direction.OUTGOING )
+				.relationships( OSMRelation.NODE, Direction.OUTGOING )
+				.evaluator( Evaluators.includeWhereLastRelationshipTypeIs( OSMRelation.NODE ) );
+		return td.traverse( datasetNode ).nodes();
 	}
 
 	public Iterable<Node> getWayNodes(Node way) {
-		return way.getSingleRelationship(OSMRelation.FIRST_NODE, Direction.OUTGOING).getEndNode()
-				.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH, new ReturnableEvaluator() {
-
-					public boolean isReturnableNode(TraversalPosition current) {
-						Relationship lastRelationship = current.lastRelationshipTraversed();
-						return lastRelationship != null && lastRelationship.isType(OSMRelation.NODE);
-					}
-				}, OSMRelation.NEXT, Direction.OUTGOING, OSMRelation.NODE, Direction.OUTGOING);
-	}
+        TraversalDescription td = datasetNode.getGraphDatabase().traversalDescription()
+                .depthFirst()
+                .relationships( OSMRelation.NEXT, Direction.OUTGOING )
+                .relationships( OSMRelation.NODE, Direction.OUTGOING )
+                .evaluator( Evaluators.includeWhereLastRelationshipTypeIs( OSMRelation.NODE ) );
+        return td.traverse(
+                way.getSingleRelationship( OSMRelation.FIRST_NODE, Direction.OUTGOING ).getEndNode()
+        ).nodes();
+    }
 
 	public Node getChangeset(Node way) {
 		try {
@@ -148,14 +160,12 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
 	}
 
 	public Node getUser(Node nodeWayOrChangeset) {
-		Iterator<Node> results = nodeWayOrChangeset.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH,
-				new ReturnableEvaluator() {
-
-					public boolean isReturnableNode(TraversalPosition current) {
-						Relationship lastRelationship = current.lastRelationshipTraversed();
-						return lastRelationship != null && lastRelationship.isType(OSMRelation.USER);
-					}
-				}, OSMRelation.CHANGESET, Direction.OUTGOING, OSMRelation.USER, Direction.OUTGOING).iterator();
+		TraversalDescription td = datasetNode.getGraphDatabase().traversalDescription()
+				.depthFirst()
+				.relationships( OSMRelation.CHANGESET, Direction.OUTGOING )
+				.relationships( OSMRelation.USER, Direction.OUTGOING )
+				.evaluator( Evaluators.includeWhereLastRelationshipTypeIs( OSMRelation.USER ) );
+		Iterator<Node> results = td.traverse( nodeWayOrChangeset ).nodes().iterator();
 		return results.hasNext() ? results.next() : null;
 	}
 
@@ -164,14 +174,22 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
 	}
 
 	public Way getWayFrom(Node osmNodeOrWayNodeOrGeomNode) {
-		Iterator<Node> results = osmNodeOrWayNodeOrGeomNode.traverse(Order.DEPTH_FIRST, StopEvaluator.END_OF_GRAPH,
-				new ReturnableEvaluator() {
-
-					public boolean isReturnableNode(TraversalPosition current) {
-						return current.currentNode().hasProperty("way_osm_id");
+		TraversalDescription td = datasetNode.getGraphDatabase().traversalDescription()
+				.depthFirst()
+				.relationships( OSMRelation.NODE, Direction.INCOMING )
+				.relationships( OSMRelation.NEXT, Direction.INCOMING )
+				.relationships( OSMRelation.FIRST_NODE, Direction.INCOMING )
+				.relationships( OSMRelation.GEOM, Direction.INCOMING )
+				.evaluator( new Evaluator()
+				{
+					@Override
+					public Evaluation evaluate( Path path )
+					{
+						return path.endNode().hasProperty( "way_osm_id" ) ? Evaluation.INCLUDE_AND_PRUNE
+																		  : Evaluation.EXCLUDE_AND_CONTINUE;
 					}
-				}, OSMRelation.NODE, Direction.INCOMING, OSMRelation.NEXT, Direction.INCOMING, OSMRelation.FIRST_NODE,
-				Direction.INCOMING, OSMRelation.GEOM, Direction.INCOMING).iterator();
+				} );
+		Iterator<Node> results = td.traverse( osmNodeOrWayNodeOrGeomNode ).nodes().iterator();
 		return results.hasNext() ? new Way(results.next()) : null;
 	}
 
