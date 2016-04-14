@@ -29,6 +29,7 @@ import org.neo4j.gis.spatial.SpatialRecord;
 
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
+import org.neo4j.graphdb.Node;
 
 
 public class GeoPipeFlow implements SpatialRecord {
@@ -52,7 +53,12 @@ public class GeoPipeFlow implements SpatialRecord {
 	public SpatialDatabaseRecord getRecord() {
 		return records.get(0);
 	}
-	
+
+	@Override
+	public Node getGeomNode() {
+		return getRecord().getGeomNode();
+	}
+
 	public int countRecords() {
 		return records.size();
 	}

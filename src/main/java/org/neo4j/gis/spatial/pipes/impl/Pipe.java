@@ -2,6 +2,8 @@ package org.neo4j.gis.spatial.pipes.impl;
 
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
 /**
  * The generic interface for any Pipe implementation.
@@ -39,4 +41,8 @@ public interface Pipe<S, E> extends Iterator<E>, Iterable<E> {
      * The general use case for reset() is to reuse a pipe in another computation without having to create a new Pipe object.
      */
     public void reset();
+
+    public default Stream<E> stream() {
+        return StreamSupport.stream(spliterator(),false);
+    }
 }
