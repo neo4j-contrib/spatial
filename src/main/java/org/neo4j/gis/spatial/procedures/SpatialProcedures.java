@@ -22,11 +22,13 @@ package org.neo4j.gis.spatial.procedures;
 import com.vividsolutions.jts.geom.*;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
+import org.neo4j.cypher.internal.compiler.v3_0.commands.expressions.GeographicPoint;
 import org.neo4j.gis.spatial.*;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.PropertyContainer;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.procedure.Context;
 import org.neo4j.procedure.Name;
@@ -34,10 +36,18 @@ import org.neo4j.procedure.PerformsWrites;
 import org.neo4j.procedure.Procedure;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
+
+/*
+TODO:
+* don't pass raw coordinates, take an object which can be a property-container, geometry-point or a map
+* optional default simplePointLayer should use the long form of "latitude and longitude" like the spatial functions do
+*/
 
 public class SpatialProcedures {
 
+    public static final String DISTANCE = "OrthodromicDistance";
     @Context
     public GraphDatabaseService db;
 
@@ -48,8 +58,23 @@ public class SpatialProcedures {
             this.node = node;
         }
     }
+    public static class NodeDistanceResult {
+        public final Node node;
+        public final double distance;
+
+        public NodeDistanceResult(Node node, double distance) {
+            this.node = node;
+            this.distance = distance;
+        }
+    }
 
     @Procedure("spatial.addPointLayer")
+    @PerformsWrites
+    public Stream<NodeResult> addSimplePointLayer(@Name("layer") String layer) {
+        return streamNode(wrap(db).getOrCreatePointLayer(layer, "longitude", "latitude").getLayerNode());
+    }
+
+    @Procedure("spatial.addPointLayerNamed")
     @PerformsWrites
     public Stream<NodeResult> addSimplePointLayer(
             @Name("layer") String layer,
@@ -62,7 +87,14 @@ public class SpatialProcedures {
         return Stream.of(new NodeResult(node));
     }
 
-    @Procedure("spatial.addLayer")
+    @Procedure("spatial.addWKTLayer")
+    @PerformsWrites
+    public Stream<NodeResult> addWKTLayer(@Name("layer") String layer,
+                                               @Name("nodePropertyName") String nodePropertyName) {
+        return streamNode(wrap(db).getOrCreateEditableLayer(layer, "WKT", nodePropertyName).getLayerNode());
+    }
+
+    @Procedure("spatial.addConfiguredLayer")
     @PerformsWrites
     public Stream<NodeResult> addEditableLayer(@Name("layer") String layer,
                                                @Name("format") String format,
@@ -146,13 +178,12 @@ public class SpatialProcedures {
     @Procedure("spatial.bbox")
     @PerformsWrites // TODO FIX
     public Stream<NodeResult> findGeometriesInBBox(
-            @Name("layer") String layerName, @Name("minx") double minx,
-            @Name("maxx") double maxx,
-            @Name("miny") double miny,
-            @Name("maxy") double maxy) {
+            @Name("layer") String layerName,
+            @Name("min") Object min,
+            @Name("max") Object max) {
         Layer layer = getLayer(wrap(db), layerName);
         // TODO why a SearchWithin and not a SearchIntersectWindow?
-        Envelope envelope = new Envelope(minx, maxx, miny, maxy);
+        Envelope envelope = new Envelope(toCoordinate(min),toCoordinate(max));
         return GeoPipeline
                 .startWithinSearch(layer, layer.getGeometryFactory().toGeometry(envelope))
                 .stream().map(GeoPipeFlow::getGeomNode).map(NodeResult::new);
@@ -162,12 +193,12 @@ public class SpatialProcedures {
     @Procedure("spatial.closest")
     @PerformsWrites // TODO FIX
     public Stream<NodeResult> findClosestGeometries(
-            @Name("layer") String layerName, @Name("pointX") double pointX,
-            @Name("pointY") double pointY,
+            @Name("layer") String layerName,
+            @Name("coordinate") Object coordinate,
             @Name("distanceInKm") double distanceInKm) {
         Layer layer = getLayer(wrap(db), layerName);
         GeometryFactory factory = layer.getGeometryFactory();
-        Point point = factory.createPoint(new Coordinate(pointX, pointY));
+        Point point = factory.createPoint(toCoordinate(coordinate));
         List<SpatialTopologyUtils.PointResult> edgeResults = SpatialTopologyUtils.findClosestEdges(point, layer, distanceInKm);
         return edgeResults.stream().map(e -> e.getValue().getGeomNode()).map(NodeResult::new);
     }
@@ -175,22 +206,56 @@ public class SpatialProcedures {
 
     @Procedure("spatial.distance")
     @PerformsWrites // TODO FIX
-    public Stream<NodeResult> findGeometriesWithinDistance(
+    public Stream<NodeDistanceResult> findGeometriesWithinDistance(
             @Name("layer") String layerName,
-            @Name("pointX") double pointX, @Name("pointY") double pointY,
+            @Name("coordinate") Object coordinate,
             @Name("distanceInKm") double distanceInKm) {
 
         Layer layer = getLayer(wrap(db), layerName);
 
         return GeoPipeline
-                .startNearestNeighborLatLonSearch(layer, new Coordinate(pointX, pointY), distanceInKm)
-                .sort("OrthodromicDistance").stream().map(GeoPipeFlow::getGeomNode).map(NodeResult::new);
+                .startNearestNeighborLatLonSearch(layer, toCoordinate(coordinate), distanceInKm)
+                .sort(DISTANCE)
+                .stream().map(r -> {
+                    double distance = r.hasProperty(DISTANCE) ? ((Number) r.getProperty(DISTANCE)).doubleValue() : -1;
+                    return new NodeDistanceResult(r.getGeomNode(), distance);
+                });
     }
 
     private Layer getLayer(SpatialDatabaseService spatialService, String layerName) {
         Layer layer = spatialService.getDynamicLayer(layerName);
         if (layer != null) return layer;
-        return spatialService.getLayer(layerName);
+        layer = spatialService.getLayer(layerName);
+        if (layer != null) return layer;
+        throw new RuntimeException("Can't find layer named '"+layerName+"' please create with spatial.addPointLayer('"+layerName+"')");
+    }
+
+    private Coordinate toCoordinate(Object value) {
+        if (value instanceof GeographicPoint) {
+            GeographicPoint point = (GeographicPoint) value;
+            return new Coordinate(point.x(), point.y());
+        }
+        Map<String, Object> latLon = null;
+        if (value instanceof PropertyContainer) {
+            latLon = ((PropertyContainer) value).getProperties("latitude", "longitude","lat","lon");
+        }
+        if (value instanceof Map) latLon = (Map<String, Object>) value;
+        Coordinate coord = toCoordinate(latLon);
+        if (coord != null) return coord;
+        throw new RuntimeException("Can't convert "+value+" to a coordinate");
+    }
+
+    private Coordinate toCoordinate(Map<String, Object> map) {
+        if (map==null) return null;
+        Coordinate coord = toCoordinate(map, "longitude", "latitude");
+        if (coord == null) return toCoordinate(map, "lon", "lat");
+        return coord;
+    }
+
+    private Coordinate toCoordinate(Map map, String xName, String yName) {
+        if (map.containsKey(xName) && map.containsKey(yName))
+            return new Coordinate(((Number) map.get(xName)).doubleValue(), ((Number) map.get(yName)).doubleValue());
+        return null;
     }
 
     private SpatialDatabaseService wrap(GraphDatabaseService db) {
