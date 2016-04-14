@@ -131,12 +131,9 @@ public class Neo4jSpatialFeatureWriter implements
 		if (live != null) {
 			LOGGER.fine("Removing " + live);
 
-			Transaction tx = layer.getSpatialDatabase().getDatabase().beginTx();
-			try {
+			try (Transaction tx = layer.getSpatialDatabase().getDatabase().beginTx()) {
 				layer.delete(Long.parseLong(live.getID()));
 				tx.success();
-			} finally {
-				tx.close();
 			}
 
 			listener.fireFeaturesRemoved(featureType.getTypeName(),
@@ -164,14 +161,10 @@ public class Neo4jSpatialFeatureWriter implements
 		if (live != null) {
 			if (!live.equals(current)) {
 				LOGGER.fine("Updating " + current);
-				Transaction tx = layer.getSpatialDatabase().getDatabase()
-						.beginTx();
-				try {
+				try (Transaction tx = layer.getSpatialDatabase().getDatabase().beginTx()) {
 					layer.update(Long.parseLong(current.getID()),
 							(Geometry) current.getDefaultGeometry());
 					tx.success();
-				} finally {
-					tx.close();
 				}
 
 				listener.fireFeaturesChanged(featureType.getTypeName(),
@@ -181,12 +174,9 @@ public class Neo4jSpatialFeatureWriter implements
 			}
 		} else {
 			LOGGER.fine("Inserting " + current);
-			Transaction tx = layer.getSpatialDatabase().getDatabase().beginTx();
-			try {
+			try (Transaction tx = layer.getSpatialDatabase().getDatabase().beginTx()) {
 				layer.add((Geometry) current.getDefaultGeometry());
 				tx.success();
-			} finally {
-				tx.close();
 			}
 
 			listener.fireFeaturesAdded(featureType.getTypeName(), transaction,
