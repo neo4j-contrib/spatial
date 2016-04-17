@@ -312,6 +312,8 @@ other using the 'exec:java' target in maven. In both cases we use maven to setup
     java -cp target/classes:target/dependency/* org.neo4j.gis.spatial.osm.OSMImporter osm-db two-street.osm 
 ~~~
 
+_Note: On windows remember to separate the classpath with ';' instead of ':'._
+
 The first command above only needs to be run once, to get a copy of all required JAR files into the directory target/dependency.
 Once this is done, all further java commands with the -cp specifying that directory will load all dependencies.
 It is likely that the specific command being run does not require all dependencies copied, since it will only be using
