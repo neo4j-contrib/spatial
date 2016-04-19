@@ -95,7 +95,7 @@ public class SpatialProceduresTest {
         Node node = (Node) nodes.next();
         nodes.close();
         testCall(db, "CALL spatial.bbox('geom',{lon:15.0,lat:60.0},{lon:15.3, lat:60.2})", r -> assertEquals(node, r.get("node")));
-        testCall(db, "CALL spatial.distance('geom',{lon:15.0,lat:60.0},100)", r -> assertEquals(node, r.get("node")));
+        testCall(db, "CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)", r -> assertEquals(node, r.get("node")));
     }
 
     private void execute(String statement) {
@@ -109,9 +109,19 @@ public class SpatialProceduresTest {
     public void create_a_pointlayer_named() {
         testCall(db, "CALL spatial.addPointLayerNamed('geom','lat','lon')", (r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
     }
+
     @Test
     public void create_a_pointlayer() {
         testCall(db, "CALL spatial.addPointLayer('geom')", (r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
+    }
+
+    @Test
+    public void list_layer_names() {
+        String wkt = "LINESTRING (15.2 60.1, 15.3 60.1)";
+        execute( "CALL spatial.addWKTLayer('geom','wkt')" );
+        execute( "CALL spatial.addWKT('geom',{wkt})", map( "wkt", wkt ) );
+
+        testCall( db, "CALL spatial.layers()", ( r ) -> assertEquals( "geom", (String) r.get( "name" ) ) );
     }
 
     @Test
@@ -138,7 +148,7 @@ public class SpatialProceduresTest {
         ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node").columnAs("node");
         Node node = (Node) nodes.next();
         nodes.close();
-        testCall(db, "CALL spatial.distance('geom',{lon:15.0,lat:60.0},100)", r -> assertEquals(node, r.get("node")));
+        testCall(db, "CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)", r -> assertEquals(node, r.get("node")));
     }
 
     @Test
@@ -157,7 +167,7 @@ public class SpatialProceduresTest {
         Node node1 = nodes.next();
         Node node2 = nodes.next();
         nodes.close();
-        testResult(db, "CALL spatial.distance('geom',{lon:15.0,lat:60.0},100)", res -> {
+        testResult(db, "CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)", res -> {
                     assertEquals(true, res.hasNext());
                     assertEquals(node1, res.next().get("node"));
                     assertEquals(true, res.hasNext());

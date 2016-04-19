@@ -58,6 +58,14 @@ public class SpatialProcedures {
             this.node = node;
         }
     }
+    public static class NameResult
+    {
+        public final String name;
+
+        public NameResult(String name) {
+            this.name = name;
+        }
+    }
     public static class NodeDistanceResult {
         public final Node node;
         public final double distance;
@@ -66,6 +74,18 @@ public class SpatialProcedures {
             this.node = node;
             this.distance = distance;
         }
+    }
+
+    @Procedure("spatial.layers")
+    @PerformsWrites
+    public Stream<NameResult> getAllLayers()
+    {
+        Stream.Builder<NameResult> builder = Stream.builder();
+        for ( String name : wrap( db ).getLayerNames() )
+        {
+            builder.accept( new NameResult(name) );
+        }
+        return builder.build();
     }
 
     @Procedure("spatial.addPointLayer")
@@ -204,7 +224,7 @@ public class SpatialProcedures {
     }
 
 
-    @Procedure("spatial.distance")
+    @Procedure("spatial.withinDistance")
     @PerformsWrites // TODO FIX
     public Stream<NodeDistanceResult> findGeometriesWithinDistance(
             @Name("layer") String layerName,
