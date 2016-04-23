@@ -30,6 +30,9 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.PropertyContainer;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.kernel.api.proc.ProcedureSignature;
+import org.neo4j.kernel.impl.proc.Procedures;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.procedure.Context;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.PerformsWrites;
@@ -74,6 +77,17 @@ public class SpatialProcedures {
             this.node = node;
             this.distance = distance;
         }
+    }
+
+    @Procedure("spatial.procs")
+    public Stream<NameResult> listProcedures() {
+        Procedures procedures = ((GraphDatabaseAPI)db).getDependencyResolver().resolveDependency( Procedures.class );
+        Stream.Builder<NameResult> builder = Stream.builder();
+        for ( ProcedureSignature proc : procedures.getAll() )
+        {
+            builder.accept( new NameResult(proc.toString()) );
+        }
+        return builder.build();
     }
 
     @Procedure("spatial.layers")

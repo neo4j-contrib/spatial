@@ -63,12 +63,18 @@ public class SpatialProceduresTest {
     }
 
     public static void testCall(GraphDatabaseService db, String call, Map<String, Object> params, Consumer<Map<String, Object>> consumer) {
+        testCall(db, call, params, consumer, true);
+    }
+
+    public static void testCall(GraphDatabaseService db, String call, Map<String, Object> params, Consumer<Map<String, Object>> consumer, boolean onlyOne) {
         testResult(db, call, params, (res) -> {
             if (res.hasNext()) {
                 Map<String, Object> row = res.next();
                 consumer.accept(row);
             }
-            Assert.assertFalse(res.hasNext());
+            if ( onlyOne ) {
+                Assert.assertFalse( res.hasNext() );
+            }
         });
     }
 
@@ -122,6 +128,11 @@ public class SpatialProceduresTest {
         execute( "CALL spatial.addWKT('geom',{wkt})", map( "wkt", wkt ) );
 
         testCall( db, "CALL spatial.layers()", ( r ) -> assertEquals( "geom", (String) r.get( "name" ) ) );
+    }
+
+    @Test
+    public void list_spatial_procedures() {
+        testCall( db, "CALL spatial.procs()", null, ( r ) -> assertEquals( "spatial.procs() :: (name :: STRING?)", (String) r.get( "name" ) ), false );
     }
 
     @Test
