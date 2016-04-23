@@ -228,6 +228,33 @@ public class SpatialPlugin extends ServerPlugin {
     }
 
     @PluginTarget(GraphDatabaseService.class)
+    @Description("search a layer for geometries intersecting a bounding box. To achieve more complex CQL searches, pre-define the dynamic layer with addCQLDynamicLayer.")
+    public Iterable<Node> findGeometriesIntersectingBBox(
+            @Source GraphDatabaseService db,
+            @Description("The minimum x value of the bounding box") @Parameter(name = "minx") double minx,
+            @Description("The maximum x value of the bounding box") @Parameter(name = "maxx") double maxx,
+            @Description("The minimum y value of the bounding box") @Parameter(name = "miny") double miny,
+            @Description("The maximum y value of the bounding box") @Parameter(name = "maxy") double maxy,
+            @Description("The layer to search. Can be a dynamic layer with pre-defined CQL filter.") @Parameter(name = "layer") String layerName) {
+//        System.out.println("Finding Geometries intersecting layer '" + layerName + "'");
+        SpatialDatabaseService spatialService = getSpatialDatabaseService(db);
+
+        try (Transaction tx = db.beginTx()) {
+
+            Layer layer = spatialService.getDynamicLayer(layerName);
+            if (layer == null) {
+                layer = spatialService.getLayer(layerName);
+            }
+
+            List<Node> result = GeoPipeline
+                    .startIntersectWindowSearch(layer, new Envelope(minx, maxx, miny, maxy))
+                    .toNodeList();
+            tx.success();
+            return result;
+        }
+    }
+
+    @PluginTarget(GraphDatabaseService.class)
     @Description("search a layer for the closest geometries and return them.")
     public Iterable<Node> findClosestGeometries(
             @Source GraphDatabaseService db,

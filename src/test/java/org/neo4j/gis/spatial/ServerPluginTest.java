@@ -144,6 +144,7 @@ public class ServerPluginTest extends Neo4jTestCase {
             assertNotNull(spatialService.getLayer("CQL2"));
             checkResults(plugin.findGeometriesInBBox(graphDb(), 15.0, 15.3, 60.0, 60.2, LAYER), 4, layer);
             checkResults(plugin.findGeometriesInBBox(graphDb(), 15.1, 15.2, 60.0, 60.2, LAYER), 2, layer);
+            checkResults(plugin.findGeometriesIntersectingBBox(graphDb(), 15.1, 15.2, 60.0, 60.2, LAYER), 4, layer);
             checkResults(plugin.findGeometriesInBBox(graphDb(), 15.0, 15.3, 60.0, 60.2, "CQL1"), 2, layer);
             checkResults(plugin.findGeometriesInBBox(graphDb(), 15.0, 15.3, 60.0, 60.2, "CQL2"), 1, layer);
             tx.success();
