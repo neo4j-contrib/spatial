@@ -4,7 +4,7 @@ import org.neo4j.gis.spatial.AbstractGeometryEncoder;
 
 public abstract class AbstractSinglePropertyEncoder extends AbstractGeometryEncoder implements Configurable {
 
-	protected String geomProperty = PROP_WKT;
+	protected String geomProperty = PROP_GEOM;
 
 	@Override
 	public void setConfiguration(String configuration) {
