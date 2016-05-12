@@ -43,7 +43,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 import org.neo4j.gis.spatial.rtree.filter.SearchAll;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
-import org.neo4j.examples.AbstractJavaDocTestBase;
+import org.neo4j.gis.spatial.AbstractJavaDocTestBase;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.EditableLayerImpl;
 import org.neo4j.gis.spatial.Layer;
