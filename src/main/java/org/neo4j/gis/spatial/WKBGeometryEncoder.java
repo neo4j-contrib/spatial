@@ -51,4 +51,8 @@ public class WKBGeometryEncoder extends AbstractSinglePropertyEncoder implements
         container.setProperty(geomProperty, writer.write(geometry));
 	}
 
+	@Override
+	public String getSignature() {
+		return "WKB" + super.getSignature();
+	}
 }

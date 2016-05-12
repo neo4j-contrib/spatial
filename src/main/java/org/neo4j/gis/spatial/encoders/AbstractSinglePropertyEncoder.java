@@ -21,4 +21,9 @@ public abstract class AbstractSinglePropertyEncoder extends AbstractGeometryEnco
 	public String getConfiguration() {
 		return geomProperty + ":" + bboxProperty;
 	}
+
+	@Override
+	public String getSignature() {
+		return "GeometryEncoder(geom='" + geomProperty + "', bbox='" + bboxProperty + "')";
+	}
 }

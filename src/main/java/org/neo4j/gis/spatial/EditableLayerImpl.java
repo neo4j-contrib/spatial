@@ -90,4 +90,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 		return geomNode;
 	}
 
+	public String getSignature() {
+		return "Editable" + super.getSignature();
+	}
 }

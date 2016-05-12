@@ -126,7 +126,14 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 		return geomNode.getProperty(name, null);
 	}
 
-	
+	/**
+	 * For external expression of the configuration of this geometry encoder
+	 * @return descriptive signature of encoder, type and configuration
+	 */
+	public String getSignature() {
+		return "GeometryEncoder(bbox='" + bboxProperty + "')";
+	}
+
 	// Attributes
 
 	protected Layer layer;

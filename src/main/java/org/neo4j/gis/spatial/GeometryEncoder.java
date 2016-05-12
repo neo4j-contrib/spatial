@@ -104,4 +104,9 @@ public interface GeometryEncoder extends EnvelopeDecoder {
 	 */
 	Object getAttribute(Node geomNode, String name);
 
+	/**
+	 * For external expression of the configuration of this geometry encoder
+	 * @return descriptive signature of encoder, type and configuration
+     */
+	String getSignature();
 }

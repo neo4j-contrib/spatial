@@ -127,12 +127,15 @@ public class SpatialProceduresTest {
         execute( "CALL spatial.addWKTLayer('geom','wkt')" );
         execute( "CALL spatial.addWKT('geom',{wkt})", map( "wkt", wkt ) );
 
-        testCall( db, "CALL spatial.layers()", ( r ) -> assertEquals( "geom", (String) r.get( "name" ) ) );
+        testCall(db, "CALL spatial.layers()", (r) -> {
+            assertEquals("geom", (String) r.get("name"));
+            assertEquals("EditableLayer(name='geom', encoder=WKTGeometryEncoder(geom='wkt', bbox='bbox'))", (String) r.get("signature"));
+        });
     }
 
     @Test
     public void list_spatial_procedures() {
-        testCall( db, "CALL spatial.procs()", null, ( r ) -> assertEquals( "spatial.procs() :: (name :: STRING?)", (String) r.get( "name" ) ), false );
+        testCall(db, "CALL spatial.procs()", null, (r) -> assertEquals("spatial.procs() :: (name :: STRING?, signature :: STRING?)", (String) r.get("signature")), false);
     }
 
     @Test

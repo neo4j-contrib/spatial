@@ -83,4 +83,9 @@ public class SimplePointEncoder extends AbstractGeometryEncoder implements
             if ( fields.length > 2 ) bboxProperty = fields[2];
         }
     }
+
+    @Override
+    public String getSignature() {
+        return "SimplePointEncoder(x='" + xProperty + "', y='" + yProperty + "', bbox='" + bboxProperty + "')";
+    }
 }

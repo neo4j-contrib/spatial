@@ -70,6 +70,10 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         return index;
     }
 
+    public String getSignature() {
+        return "Layer(name='" + getName() + "', encoder=" + getGeometryEncoder().getSignature() + ")";
+    }
+
     /**
      * Add the geometry encoded in the given Node. This causes the geometry to appear in the index.
      */

@@ -152,4 +152,10 @@ public interface Layer {
 	Object getStyle();
 
     PropertyMappingManager getPropertyMappingManager();
+
+    /**
+     * For external expression of the configuration of this layer
+     * @return descriptive signature of layer, name, type and encoder
+     */
+    String getSignature();
 }

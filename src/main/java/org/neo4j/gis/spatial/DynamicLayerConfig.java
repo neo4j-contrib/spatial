@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial;
 import java.io.File;
 import java.io.PrintStream;
 import java.util.LinkedHashMap;
+import java.util.Map;
 
 import org.geotools.filter.text.cql2.CQLException;
 import org.neo4j.gis.spatial.rtree.Envelope;
@@ -281,5 +282,22 @@ public class DynamicLayerConfig implements Layer, Constants {
 			propertyMappingManager = new PropertyMappingManager(this);
 		}
 		return propertyMappingManager;
+	}
+
+	protected Map<String, String> getConfig() {
+		Map<String, String> config = new LinkedHashMap<>();
+		try (Transaction tx = configNode.getGraphDatabase().beginTx()) {
+			config.put("layer", configNode.getProperty(PROP_LAYER).toString());
+			config.put("type", configNode.getProperty(PROP_TYPE).toString());
+			config.put("query", configNode.getProperty(PROP_QUERY).toString());
+			tx.success();
+		}
+		return config;
+	}
+
+	@Override
+	public String getSignature() {
+		Map<String, String> config = getConfig();
+		return "DynamicLayer(name='" + getName() + "', config={layer='" + config.get("layer") + "', query=\"" + config.get("query") + "\"})";
 	}
 }

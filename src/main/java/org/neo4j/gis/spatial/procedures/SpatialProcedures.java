@@ -61,14 +61,17 @@ public class SpatialProcedures {
             this.node = node;
         }
     }
-    public static class NameResult
-    {
-        public final String name;
 
-        public NameResult(String name) {
+    public static class NameResult {
+        public final String name;
+        public final String signature;
+
+        public NameResult(String name, String signature) {
             this.name = name;
+            this.signature = signature;
         }
     }
+
     public static class NodeDistanceResult {
         public final Node node;
         public final double distance;
@@ -83,21 +86,21 @@ public class SpatialProcedures {
     public Stream<NameResult> listProcedures() {
         Procedures procedures = ((GraphDatabaseAPI)db).getDependencyResolver().resolveDependency( Procedures.class );
         Stream.Builder<NameResult> builder = Stream.builder();
-        for ( ProcedureSignature proc : procedures.getAll() )
-        {
-            builder.accept( new NameResult(proc.toString()) );
+        for (ProcedureSignature proc : procedures.getAll()) {
+            if (proc.name().namespace()[0].equals("spatial")) {
+                builder.accept(new NameResult(proc.name().toString(), proc.toString()));
+            }
         }
         return builder.build();
     }
 
     @Procedure("spatial.layers")
     @PerformsWrites
-    public Stream<NameResult> getAllLayers()
-    {
+    public Stream<NameResult> getAllLayers() {
         Stream.Builder<NameResult> builder = Stream.builder();
-        for ( String name : wrap( db ).getLayerNames() )
-        {
-            builder.accept( new NameResult(name) );
+        for (String name : wrap(db).getLayerNames()) {
+            Layer layer = wrap(db).getLayer(name);
+            builder.accept(new NameResult(name, layer.getSignature()));
         }
         return builder.build();
     }
