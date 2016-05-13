@@ -19,9 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.neo4j.gis.spatial.utilities.ReferenceNodes;
@@ -38,6 +36,8 @@ import com.vividsolutions.jts.geom.MultiPoint;
 import com.vividsolutions.jts.geom.MultiPolygon;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
+
+import static org.neo4j.helpers.collection.MapUtil.map;
 
 /**
  * @author Davide Savazzi
@@ -195,7 +195,7 @@ public class SpatialDatabaseService implements Constants {
 			String encoderConfig = null;
 			if (xProperty != null && yProperty != null)
 				encoderConfig = xProperty + ":" + yProperty;
-			return (EditableLayer) createLayer(name, SimplePointEncoder.class, EditableLayerImpl.class, encoderConfig);
+			return (EditableLayer) createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, encoderConfig);
 		} else if (layer instanceof EditableLayer) {
 			return (EditableLayer) layer;
 		} else {
@@ -421,7 +421,7 @@ public class SpatialDatabaseService implements Constants {
      * to allow for more streamlined method for creating Layers
      * This was added to help support Spatial Cypher project.
      */
-    static class RegisteredLayerType {
+    public static class RegisteredLayerType {
         String typeName;
         Class< ? extends GeometryEncoder> geometryEncoder;
         Class< ? extends Layer> layerClass;
@@ -436,16 +436,26 @@ public class SpatialDatabaseService implements Constants {
             this.crs = crs;
             this.defaultConfig = defaultConfig;
         }
-    }
+		/**
+		 * For external expression of the configuration of this geometry encoder
+		 * @return descriptive signature of encoder, type and configuration
+		 */
+		String getSignature() {
+			return "RegisteredLayerType(name='" + typeName + "', geometryEncoder=" +
+					geometryEncoder.getSimpleName() + ", layerClass=" + layerClass.getSimpleName() +
+					", crs='" + crs.getName(null) + "', defaultConfig='" + defaultConfig + "')";
+		}
+	}
 
 
-    static HashMap<String, RegisteredLayerType> registeredLayerTypes = new HashMap<String, RegisteredLayerType>();
+    static Map<String, RegisteredLayerType> registeredLayerTypes = new LinkedHashMap<>();
     static {
         registeredLayerTypes.put("SimplePoint", new RegisteredLayerType("SimplePoint", SimplePointEncoder.class,
-                EditableLayerImpl.class, org.geotools.referencing.crs.DefaultGeographicCRS.WGS84, "lon:lat"));
-        registeredLayerTypes.put("WKT", new RegisteredLayerType("WKT", WKTGeometryEncoder.class, EditableLayerImpl.class,
-                DefaultGeographicCRS.WGS84, "geom"));
-
+                SimplePointLayer.class, org.geotools.referencing.crs.DefaultGeographicCRS.WGS84, "longitude:latitude"));
+		registeredLayerTypes.put("WKT", new RegisteredLayerType("WKT", WKTGeometryEncoder.class, EditableLayerImpl.class,
+				DefaultGeographicCRS.WGS84, "geometry"));
+		registeredLayerTypes.put("WKB", new RegisteredLayerType("WKB", WKBGeometryEncoder.class, EditableLayerImpl.class,
+				DefaultGeographicCRS.WGS84, "geometry"));
     }
 
     /**
@@ -472,4 +482,18 @@ public class SpatialDatabaseService implements Constants {
                 (config == null) ? registeredLayerType.defaultConfig : config);
     }
 
+	public Map<String, String> getRegisteredLayerTypes() {
+		Map<String, String> results = new LinkedHashMap<>();
+		registeredLayerTypes.forEach((s, definition) -> results.put(s, definition.getSignature()));
+		return results;
+	}
+
+	public Class suggestLayerClassForEncoder(Class encoderClass) {
+		for (RegisteredLayerType type : registeredLayerTypes.values()) {
+			if (type.geometryEncoder == encoderClass) {
+				return type.layerClass;
+			}
+		}
+		return EditableLayerImpl.class;
+	}
 }
