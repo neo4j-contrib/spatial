@@ -2132,6 +2132,15 @@ public class OSMImporter implements Constants
         }
         return RoadDirection.BOTH;
     }
+    
+    /**
+     * Legacy version of {@link #getRoadDirection(Map)}, for code using it under the old name.
+     * @param wayProperties the property map of the road
+     * @return same as {@link #getRoadDirection(Map)}
+     */
+    public static RoadDirection isOneway(Map<String, Object> wayProperties) {
+    	return getRoadDirection(wayProperties);
+    }
 
     /**
      * Calculate correct distance between 2 points on Earth.
