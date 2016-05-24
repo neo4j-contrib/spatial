@@ -79,6 +79,18 @@ public class SpatialProceduresTest {
         });
     }
 
+    public static void testCallCount(GraphDatabaseService db, String call, Map<String, Object> params, int count) {
+        testResult(db, call, params, (res) -> {
+            int numLeft = count;
+            while (numLeft > 0) {
+                Assert.assertTrue("Expected " + count + " results but found only " + numLeft, res.hasNext());
+                res.next();
+                numLeft--;
+            }
+            Assert.assertFalse("Expected " + count + " results but there are more " + numLeft, res.hasNext());
+        });
+    }
+
     public static void testResult(GraphDatabaseService db, String call, Consumer<Result> resultConsumer) {
         testResult(db, call, null, resultConsumer);
     }
@@ -147,6 +159,34 @@ public class SpatialProceduresTest {
             assertEquals("geom", (String) r.get("name"));
             assertEquals("EditableLayer(name='geom', encoder=WKTGeometryEncoder(geom='wkt', bbox='bbox'))", (String) r.get("signature"));
         });
+    }
+
+    @Test
+    public void add_and_remove_layer() {
+        execute("CALL spatial.addWKTLayer('geom','wkt')");
+        testCallCount(db, "CALL spatial.layers()", null, 1);
+        execute("CALL spatial.removeLayer('geom')");
+        testCallCount(db, "CALL spatial.layers()", null, 0);
+    }
+
+    @Test
+    public void add_and_remove_multiple_layers() {
+        int NUM_LAYERS = 100;
+        String wkt = "LINESTRING (15.2 60.1, 15.3 60.1)";
+        for (int i = 0; i < NUM_LAYERS; i++) {
+            String name = "wktLayer_" + i;
+            testCallCount(db, "CALL spatial.layers()", null, i);
+            execute("CALL spatial.addWKTLayer({layerName},'wkt')", map("layerName", name));
+            execute("CALL spatial.addWKT({layerName},{wkt})", map("wkt", wkt, "layerName", name));
+            testCallCount(db, "CALL spatial.layers()", null, i + 1);
+        }
+        for (int i = 0; i < NUM_LAYERS; i++) {
+            String name = "wktLayer_" + i;
+            testCallCount(db, "CALL spatial.layers()", null, NUM_LAYERS - i);
+            execute("CALL spatial.removeLayer({layerName})", map("layerName", name));
+            testCallCount(db, "CALL spatial.layers()", null, NUM_LAYERS - i - 1);
+        }
+        testCallCount(db, "CALL spatial.layers()", null, 0);
     }
 
     @Test

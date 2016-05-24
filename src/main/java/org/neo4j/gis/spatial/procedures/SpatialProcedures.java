@@ -30,6 +30,7 @@ import org.neo4j.gis.spatial.encoders.SimplePropertyEncoder;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
+import org.neo4j.gis.spatial.rtree.ProgressLoggingListener;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.PropertyContainer;
@@ -253,6 +254,11 @@ public class SpatialProcedures {
         return streamNode(wrap(db).getLayer(name).getLayerNode());
     }
 
+    @Procedure("spatial.removeLayer")
+    @PerformsWrites
+    public void removeLayer(@Name("name") String name) {
+        wrap(db).deleteLayer(name, new ProgressLoggingListener("Deleting layer '" + name + "'", log.infoLogger()));
+    }
 
     // todo do we want to return anything ? or just a count?
     @Procedure("spatial.addNode")

@@ -35,6 +35,7 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateList;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.LineString;
+import org.neo4j.gis.spatial.rtree.ProgressLoggingListener;
 import org.neo4j.graphdb.Transaction;
 
 
@@ -51,7 +52,7 @@ public class LayersTest extends Neo4jTestCase
         layer = spatialService.createWKBLayer( "test" );
         assertNotNull( layer );
         assertTrue( "Should be a default layer", layer instanceof DefaultLayer );
-        spatialService.deleteLayer( layer.getName(), new NullListener() );
+        spatialService.deleteLayer(layer.getName(), new ProgressLoggingListener("deleting layer '" + layer.getName() + "'", System.out));
         assertNull( spatialService.getLayer( layer.getName() ) );
     }
 
@@ -80,6 +81,8 @@ public class LayersTest extends Neo4jTestCase
             assertEquals( 1, results.size() );
             tx.success();
         }
+        db.deleteLayer(layer.getName(), new ProgressLoggingListener("deleting layer '" + layer.getName() + "'", System.out));
+        assertNull( db.getLayer( layer.getName() ) );
     }
 
     @Test
