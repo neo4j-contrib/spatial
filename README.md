@@ -184,7 +184,7 @@ now do
         <dependency>
           <groupId>org.neo4j</groupId>
           <artifactId>neo4j-spatial</artifactId>
-          <version>0.15-neo4j-2.3.3</version>
+          <version>0.16-neo4j-3.0.1</version>
         </dependency>
       </dependencies>
     </profile>
@@ -222,6 +222,7 @@ Precompiled versions of that ZIP file ready for download and use:
 * [for Neo4j 2.3.1](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.15-neo4j-2.3.1/neo4j-spatial-0.15-neo4j-2.3.1-server-plugin.zip?raw=true)
 * [for Neo4j 2.3.2](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.15-neo4j-2.3.2/neo4j-spatial-0.15-neo4j-2.3.2-server-plugin.zip?raw=true)
 * [for Neo4j 2.3.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.15-neo4j-2.3.3/neo4j-spatial-0.15-neo4j-2.3.3-server-plugin.zip?raw=true)
+* [for Neo4j 3.0.1](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.16-neo4j-3.0.1/neo4j-spatial-0.16-neo4j-3.0.1-server-plugin.zip?raw=true)
 
 ~~~bash
     #install the plugin
@@ -282,7 +283,7 @@ Add the following repositories and dependency to your project's pom.xml:
     <dependency>
         <groupId>org.neo4j</groupId>
         <artifactId>neo4j-spatial</artifactId>
-        <version>0.15-neo4j-2.3.3</version>
+        <version>0.16-neo4j-3.0.1</version>
     </dependency>
 ~~~
 
