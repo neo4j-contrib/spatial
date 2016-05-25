@@ -36,6 +36,8 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import static junit.framework.Assert.assertEquals;
+import static junit.framework.TestCase.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class SpatialProceduresTest {
     private GraphDatabaseService db;
@@ -83,7 +85,7 @@ public class SpatialProceduresTest {
         testResult(db, call, params, (res) -> {
             int numLeft = count;
             while (numLeft > 0) {
-                Assert.assertTrue("Expected " + count + " results but found only " + numLeft, res.hasNext());
+                assertTrue("Expected " + count + " results but found only " + numLeft, res.hasNext());
                 res.next();
                 numLeft--;
             }
@@ -264,7 +266,7 @@ public class SpatialProceduresTest {
     }
 
     @Test
-    public void add_many_nodes_to_the_spatial_layer() throws Exception {
+    public void add_two_nodes_to_the_spatial_layer() throws Exception {
         execute("CALL spatial.addPointLayerXY('geom','lon','lat')");
         ResourceIterator<Node> nodes = db.execute("CREATE (n1:Node {lat:60.1,lon:15.2}),(n2:Node {lat:60.1,lon:15.3}) WITH n1,n2 CALL spatial.addNodes('geom',[n1,n2]) YIELD node RETURN node").columnAs("node");
         Node node1 = nodes.next();
@@ -278,6 +280,46 @@ public class SpatialProceduresTest {
                     assertEquals(false, res.hasNext());
                 }
         );
+    }
+
+    @Test
+    public void add_many_nodes_to_the_spatial_layer_using_addNodes() throws Exception {
+        // Playing with this number in both tests leads to rough benchmarking of the addNode/addNodes comparison
+        int count = 1000;
+        execute("CALL spatial.addLayer('poi','SimplePoint','')");
+        String query = "UNWIND range(1,{count}) as i\n" +
+                "CREATE (n:Point {latitude:(56.0+toFloat(i)/100.0),longitude:(12.0+toFloat(i)/100.0)})\n" +
+                "WITH collect(n) as points\n" +
+                "CALL spatial.addNodes('poi',points) YIELD node\n" +
+                "RETURN count(node)";
+        testCountQuery("addNodes", query, count, "count(node)", map("count", count));
+    }
+
+    @Test
+    public void add_many_nodes_to_the_spatial_layer_using_addNode() throws Exception {
+        // Playing with this number in both tests leads to rough benchmarking of the addNode/addNodes comparison
+        int count = 1000;
+        execute("CALL spatial.addLayer('poi','SimplePoint','')");
+        String query = "UNWIND range(1,{count}) as i\n" +
+                "CREATE (n:Point {latitude:(56.0+toFloat(i)/100.0),longitude:(12.0+toFloat(i)/100.0)})\n" +
+                "WITH n\n" +
+                "CALL spatial.addNode('poi',n) YIELD node\n" +
+                "RETURN count(node)";
+        testCountQuery("addNode", query, count, "count(node)", map("count", count));
+    }
+
+    private void testCountQuery(String name, String query, long count, String column, Map<String,Object> params) {
+        Result results = db.execute("EXPLAIN " + query);
+        results.close();
+        long start = System.currentTimeMillis();
+        testResult(db, query, params, res -> {
+                    assertTrue("Expected a single result", res.hasNext());
+                    long c = (Long) res.next().get(column);
+                    assertFalse("Expected a single result", res.hasNext());
+                    Assert.assertEquals("Expected count of " + count + " nodes but got " + c, count, c);
+                }
+        );
+        System.out.println(name + " query took " + (System.currentTimeMillis() - start) + "ms - " + params);
     }
 
     @Test
