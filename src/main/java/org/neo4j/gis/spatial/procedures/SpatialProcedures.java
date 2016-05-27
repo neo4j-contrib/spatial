@@ -125,7 +125,7 @@ public class SpatialProcedures {
     }
 
     @Procedure("spatial.layers")
-    @PerformsWrites
+    @PerformsWrites // TODO FIX - due to lazy evaluation of index count, updated during later reads, not during writes
     public Stream<NameResult> getAllLayers() {
         Stream.Builder<NameResult> builder = Stream.builder();
         for (String name : wrap(db).getLayerNames()) {
@@ -136,7 +136,6 @@ public class SpatialProcedures {
     }
 
     @Procedure("spatial.layerTypes")
-    @PerformsWrites
     public Stream<NameResult> getAllLayerTypes() {
         Stream.Builder<NameResult> builder = Stream.builder();
         for (Map.Entry<String, String> entry : wrap(db).getRegisteredLayerTypes().entrySet()) {
@@ -249,7 +248,7 @@ public class SpatialProcedures {
 
     // todo do we need this?
     @Procedure("spatial.layer")
-    @PerformsWrites // TODO FIX
+    @PerformsWrites // TODO FIX - due to lazy evaluation of index count, updated during later reads, not during writes
     public Stream<NodeResult> getLayer(@Name("name") String name) {
         return streamNode(wrap(db).getLayer(name).getLayerNode());
     }
