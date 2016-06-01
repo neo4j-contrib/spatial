@@ -222,7 +222,9 @@ Precompiled versions of that ZIP file ready for download and use:
 * [for Neo4j 2.3.1](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.15-neo4j-2.3.1/neo4j-spatial-0.15-neo4j-2.3.1-server-plugin.zip?raw=true)
 * [for Neo4j 2.3.2](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.15-neo4j-2.3.2/neo4j-spatial-0.15-neo4j-2.3.2-server-plugin.zip?raw=true)
 * [for Neo4j 2.3.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.15-neo4j-2.3.3/neo4j-spatial-0.15-neo4j-2.3.3-server-plugin.zip?raw=true)
-* [for Neo4j 3.0.1](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.16-neo4j-3.0.1/neo4j-spatial-0.16-neo4j-3.0.1-server-plugin.zip?raw=true)
+* [for Neo4j 3.0.1](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.16-neo4j-3.0.1/neo4j-spatial-0.16-neo4j-3.0.1-server-plugin.jar?raw=true)
+
+For versions up to 0.15-neo4j-2.3.3:
 
 ~~~bash
     #install the plugin
@@ -233,6 +235,19 @@ Precompiled versions of that ZIP file ready for download and use:
 
     curl http://localhost:7474/db/data/
 ~~~
+
+For versions for neo4j 3.0 and later:
+
+~~~bash
+    #install the plugin
+    cp neo4j-spatial-XXXX-server-plugin.jar $NEO4J_HOME/plugins/
+    
+    #start the server
+    $NEO4J_HOME/bin/neo4j start
+
+    curl http://localhost:7474/db/data/
+~~~
+
 
 For the REST API, see [Neo4j Spatial Manual REST](http://neo4j-contrib.github.io/spatial/#spatial-server-plugin)
 
