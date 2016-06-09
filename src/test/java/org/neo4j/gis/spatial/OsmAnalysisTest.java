@@ -79,7 +79,7 @@ public class OsmAnalysisTest extends TestOSMImport {
 
 		// Setup default test cases (short or medium only, no long cases)
 		ArrayList<String> layersToTest = new ArrayList<String>();
-//		layersToTest.addAll(Arrays.asList(smallModels));
+		layersToTest.addAll(Arrays.asList(smallModels));
 //		layersToTest.addAll(Arrays.asList(mediumModels));
 
 		// Now modify the test cases based on the spatial.test.mode setting
@@ -155,7 +155,10 @@ public class OsmAnalysisTest extends TestOSMImport {
 		if(setDataset(osm).getLayer(osm)==null){
 			runImport(osm, usePoints, useBatchInserter);
 		}
-		testAnalysis2(osm, years, days);
+		try (Transaction tx = graphDb().beginTx()) {
+			testAnalysis2(osm, years, days);
+			tx.success();
+		}
 		shutdownDatabase();
 	}
 
