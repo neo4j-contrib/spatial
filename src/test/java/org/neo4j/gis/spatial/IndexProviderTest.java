@@ -98,35 +98,48 @@ public class IndexProviderTest {
     }
 
     /**
-     * Test that invalid configurations do not leave configurations in the index manager
+     * Test that invalid configurations can be repaired
      */
     @Test
-    @Ignore
-    //TODO: fix this, issue #71
-    public void testInvalidConfig() {
+    public void testInvalidButRepairableConfig() {
         // An invalid configuration
         Map<String, String> config =
                 Collections.unmodifiableMap(MapUtil.stringMap(
                         IndexManager.PROVIDER, SpatialIndexProvider.SERVICE_NAME, SpatialIndexProvider.GEOMETRY_TYPE, LayerNodeIndex.POINT_PARAMETER));
-        // Use transaction just in case it matters (not that I can tell)
-        Transaction tx = db.beginTx();
-        System.out.println("testInvalidConfig: Begun transaction");
-
-        // Try to create the index, ignore IllegalArgumentException to continue
         IndexManager indexMan = db.index();
-        try {
-            Index<Node> index = indexMan.forNodes("layer1", config);
-            System.out.println("testInvalidConfig: invalid index requested, did not throw exception.");
-            tx.success();    // Won't happen currently
-        } catch (IllegalArgumentException e) {
-            // Bail out
-            tx.failure();
-            System.out.println("testInvalidConfig: invalid index creation failed, good, let the tx rollback");
+        try (Transaction tx = db.beginTx()) {
+            indexMan.forNodes("layer1", config);
+            tx.success();
         }
-        tx.close();
+        // Assert index is found in the manager
+        try (Transaction tx = db.beginTx()) {
+            assertTrue("Index should exist, having been repaired", indexMan.existsForNodes("layer1"));
+            tx.success();
+        }
+    }
+
+    /**
+     * Test that invalid configurations do not leave configurations in the index manager
+     */
+    @Test
+    public void testInvalidConfig() {
+        // An invalid configuration
+        Map<String, String> config =
+                Collections.unmodifiableMap(MapUtil.stringMap(IndexManager.PROVIDER, SpatialIndexProvider.SERVICE_NAME));
+        IndexManager indexMan = db.index();
+        try (Transaction tx = db.beginTx()) {
+            indexMan.forNodes("layer1", config);
+            tx.success();
+            fail("Should not have been able to make this index");
+        } catch (IllegalArgumentException e) {
+            System.out.println("Expected index failure due to invalid config");
+        }
         System.out.println("testInvalidConfig: tx done.");
         // Assert index isn't referenced in the manager
-        assertFalse("Index should not exist", indexMan.existsForNodes("layer1"));
+        try (Transaction tx = db.beginTx()) {
+            assertFalse("Index should not exist", indexMan.existsForNodes("layer1"));
+            tx.success();
+        }
     }
 
     /*
@@ -139,31 +152,31 @@ public class IndexProviderTest {
         // Create an index
         Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
         IndexManager indexMan = db.index();
-        Index<Node> index = indexMan.forNodes("layer1", config);
-        assertNotNull(index);
-
-        Node node = null;
-        try (Transaction transaction = db.beginTx()) {
-            node = db.createNode();
+        try (Transaction tx = db.beginTx()) {
+            indexMan.forNodes("layer1", config);
+            tx.success();
+        }
+        // create geometry node and add to index
+        try (Transaction tx = db.beginTx()) {
+            Node node = db.createNode();
             node.setProperty("lat", 56.2);
             node.setProperty("lon", 15.3);
-            transaction.success();
-        } catch (Exception e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        }
-
-
-        try (Transaction transaction = db.beginTx()) {
+            Index<Node> index = indexMan.forNodes("layer1");
             index.add(node, "", "");
-            transaction.success();
-        } catch (Exception e) {
-            e.printStackTrace();
+            tx.success();
         }
         // Request deletion
-        index.delete();
+        try (Transaction tx = db.beginTx()) {
+            assertTrue("Index should not yet have been deleted", indexMan.existsForNodes("layer1"));
+            Index<Node> index = indexMan.forNodes("layer1");
+            index.delete();
+            tx.success();
+        }
         // Assert deletion
-        assertFalse(indexMan.existsForNodes("layer1"));
-        // TODO: we should probably check the internal structure was also cleanly deleted 
+        try (Transaction tx = db.beginTx()) {
+            assertFalse("Index should have been deleted", indexMan.existsForNodes("layer1"));
+            tx.success();
+        }
     }
 
     @Test
@@ -171,51 +184,94 @@ public class IndexProviderTest {
         Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
         IndexManager indexMan = db.index();
         Index<Node> index;
-        Transaction tx = db.beginTx();
-        index = indexMan.forNodes("layer1", config);
-        assertNotNull(index);
-        Result result1 = db.execute("create (malmo{name:'Malmö',lat:56.2, lon:15.3})-[:TRAIN]->(stockholm{name:'Stockholm',lat:59.3,lon:18.0}) return malmo");
-        Node malmo = (Node) result1.columnAs( "malmo" ).next();
-        index.add(malmo, "dummy", "value");
-        tx.success();
-        tx.close();
-        tx = db.beginTx();
-        Map<String, Object> params = new HashMap<String, Object>();
-        //within Envelope
-        params.put(LayerNodeIndex.ENVELOPE_PARAMETER, new Double[]{15.0,
-                16.0, 56.0, 57.0});
-        IndexHits<Node> hits = index.query(LayerNodeIndex.WITHIN_QUERY, params);
-        assertTrue(hits.hasNext());
+        try (Transaction tx = db.beginTx()) {
+            index = indexMan.forNodes("layer1", config);
+            assertNotNull(index);
+            tx.success();
+        }
+        try(Transaction tx = db.beginTx()) {
+            Result result1 = db.execute("create (malmo{name:'Malmö',lat:56.2, lon:15.3})-[:TRAIN]->(stockholm{name:'Stockholm',lat:59.3,lon:18.0}) return malmo");
+            Node malmo = (Node) result1.columnAs("malmo").next();
+            index.add(malmo, "dummy", "value");
+            tx.success();
+        }
+        try(Transaction tx = db.beginTx()) {
+            Map<String, Object> params = new HashMap<String, Object>();
+            //within Envelope
+            params.put(LayerNodeIndex.ENVELOPE_PARAMETER, new Double[]{15.0,
+                    16.0, 56.0, 57.0});
+            IndexHits<Node> hits = index.query(LayerNodeIndex.WITHIN_QUERY, params);
+            assertTrue(hits.hasNext());
 
-        // within BBOX
-        hits = index.query(LayerNodeIndex.BBOX_QUERY,
-                "[15.0, 16.0, 56.0, 57.0]");
-        assertTrue(hits.hasNext());
+            // within BBOX
+            hits = index.query(LayerNodeIndex.BBOX_QUERY,
+                    "[15.0, 16.0, 56.0, 57.0]");
+            assertTrue(hits.hasNext());
 
-        //within any WKT geometry
-        hits = index.query(LayerNodeIndex.WITHIN_WKT_GEOMETRY_QUERY,
-                "POLYGON ((15 56, 15 57, 16 57, 16 56, 15 56))");
-        assertTrue(hits.hasNext());
-        //polygon with hole, excluding n1
-        hits = index.query(LayerNodeIndex.WITHIN_WKT_GEOMETRY_QUERY,
-                "POLYGON ((15 56, 15 57, 16 57, 16 56, 15 56)," +
-                        "(15.1 56.1, 15.1 56.3, 15.4 56.3, 15.4 56.1, 15.1 56.1))");
-        assertFalse(hits.hasNext());
+            //within any WKT geometry
+            hits = index.query(LayerNodeIndex.WITHIN_WKT_GEOMETRY_QUERY,
+                    "POLYGON ((15 56, 15 57, 16 57, 16 56, 15 56))");
+            assertTrue(hits.hasNext());
+            //polygon with hole, excluding n1
+            hits = index.query(LayerNodeIndex.WITHIN_WKT_GEOMETRY_QUERY,
+                    "POLYGON ((15 56, 15 57, 16 57, 16 56, 15 56)," +
+                            "(15.1 56.1, 15.1 56.3, 15.4 56.3, 15.4 56.1, 15.1 56.1))");
+            assertFalse(hits.hasNext());
 
 
-        //within distance
-        params.clear();
-        params.put(LayerNodeIndex.POINT_PARAMETER, new Double[]{56.5, 15.5});
-        params.put(LayerNodeIndex.DISTANCE_IN_KM_PARAMETER, 100.0);
-        hits = index.query(LayerNodeIndex.WITHIN_DISTANCE_QUERY,
-                params);
-        assertTrue(hits.hasNext());
+            //within distance
+            params.clear();
+            params.put(LayerNodeIndex.POINT_PARAMETER, new Double[]{56.5, 15.5});
+            params.put(LayerNodeIndex.DISTANCE_IN_KM_PARAMETER, 100.0);
+            hits = index.query(LayerNodeIndex.WITHIN_DISTANCE_QUERY,
+                    params);
+            assertTrue(hits.hasNext());
 
-        Result result = db.execute("start malmo=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') match p=(malmo)--(other) return malmo, other");
-        assertTrue(result.hasNext());
-        result = db.execute("start malmo=node:layer1('withinDistance:[56.0, 15.0,1000.0]') match p=(malmo)--(other) return malmo, other");
-        assertTrue(result.hasNext());
-        result.writeAsStringTo( new PrintWriter(System.out) );
+            Result result = db.execute("start malmo=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') match p=(malmo)--(other) return malmo, other");
+            assertTrue("Should have at least one result", result.hasNext());
+            result = db.execute("start malmo=node:layer1('withinDistance:[56.0, 15.0,1000.0]') match p=(malmo)--(other) return malmo, other");
+            assertTrue("Should have at least one result", result.hasNext());
+            System.out.println(result.resultAsString());
+            tx.success();
+        }
+    }
+
+    @Test
+    public void testNodeRemovalFromIndex() {
+        Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
+        IndexManager indexMan = db.index();
+        Index<Node> index;
+        try (Transaction tx = db.beginTx()) {
+            index = indexMan.forNodes("layer1", config);
+            assertNotNull(index);
+            tx.success();
+        }
+        try (Transaction tx = db.beginTx()) {
+            Result result1 = db.execute("create (malmo{name:'Malmö',lat:56.2, lon:15.3}) return malmo");
+            Node malmo = (Node) result1.columnAs("malmo").next();
+            index.add(malmo, "dummy", "value");
+            tx.success();
+        }
+        try (Transaction tx = db.beginTx()) {
+            Map<String, Object> params = new HashMap<String, Object>();
+            //within Envelope
+            params.put(LayerNodeIndex.ENVELOPE_PARAMETER, new Double[]{15.0,
+                    16.0, 56.0, 57.0});
+            IndexHits<Node> hits = index.query(LayerNodeIndex.WITHIN_QUERY, params);
+            assertTrue("Index should have at least one entry", hits.hasNext());
+            Node node = hits.getSingle();
+            index.remove(node);
+            tx.success();
+        }
+        try (Transaction tx = db.beginTx()) {
+            Map<String, Object> params = new HashMap<String, Object>();
+            //within Envelope
+            params.put(LayerNodeIndex.ENVELOPE_PARAMETER, new Double[]{15.0,
+                    16.0, 56.0, 57.0});
+            IndexHits<Node> hits = index.query(LayerNodeIndex.WITHIN_QUERY, params);
+            assertFalse("Index should not have even one entry", hits.hasNext());
+            tx.success();
+        }
     }
 
     @Test

@@ -35,6 +35,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 
@@ -121,26 +122,20 @@ public class LayerNodeIndex implements Index<Node>
     }
 
     @Override
-    public void add( Node geometry, String key, Object value )
-    {
-        Geometry decodeGeometry = layer.getGeometryEncoder().decodeGeometry( geometry );
+    public void add( Node geometry, String key, Object value ) {
+        Geometry decodeGeometry = layer.getGeometryEncoder().decodeGeometry(geometry);
 
         // check if node already exists in layer
-        Node matchingNode = findExistingNode( geometry );
+        Node indexNode = findExistingNode(geometry);
 
-        if (matchingNode == null)
-        {
-          SpatialDatabaseRecord newNode = layer.add(
-                decodeGeometry, new String[] { "id" },
-                new Object[] { geometry.getId() } );
+        if (indexNode == null) {
+            SpatialDatabaseRecord newNode = layer.add(decodeGeometry, new String[]{"id"}, new Object[]{geometry.getId()});
 
-	  // index geomNode with node of geometry
-	  idLookup.add(newNode.getGeomNode(), "id", geometry.getId());
-	}
-        else
-        {
-          // update existing geoNode
-          layer.update(matchingNode.getId(), decodeGeometry);      
+            // index geomNode with node of geometry
+            idLookup.add(newNode.getGeomNode(), "id", geometry.getId());
+        } else {
+            // update existing geoNode
+            layer.update(indexNode.getId(), decodeGeometry);
         }
 
     }
@@ -299,13 +294,18 @@ public class LayerNodeIndex implements Index<Node>
     }
 
     @Override
-    public void remove( Node node )
-    {
+    public void remove(Node node) {
         try {
-            layer.removeFromIndex( node.getId() );
-	    idLookup.remove(((SpatialDatabaseRecord) node).getGeomNode());
+            Node indexNode = findExistingNode(node);
+            layer.removeFromIndex(indexNode.getId());
+            idLookup.remove(indexNode);
+            for (Relationship r : indexNode.getRelationships()) {
+                r.delete();
+            }
+            indexNode.delete();
         } catch (Exception e) {
             //could not remove
+            System.err.println("Failed to remove node from index: " + e.getMessage());
         }
     }
 

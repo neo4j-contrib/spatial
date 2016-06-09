@@ -154,7 +154,10 @@ public class OsmAnalysisTest extends TestOSMImport {
 		if(setDataset(osm).getLayer(osm)==null){
 			runImport(osm, usePoints, useBatchInserter);
 		}
-		testAnalysis2(osm, years, days);
+		try (Transaction tx = graphDb().beginTx()) {
+			testAnalysis2(osm, years, days);
+			tx.success();
+		}
 		shutdownDatabase();
 	}
 
