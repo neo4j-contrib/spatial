@@ -27,15 +27,14 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.neo4j.cypher.javacompat.ExecutionEngine;
-import org.neo4j.cypher.javacompat.ExecutionResult;
 import org.neo4j.gis.spatial.indexprovider.LayerNodeIndex;
 import org.neo4j.gis.spatial.indexprovider.SpatialIndexProvider;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.graphdb.index.IndexManager;
-import org.neo4j.helpers.collection.IteratorUtil;
 import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.kernel.impl.core.NodeProxy;
 import org.neo4j.test.ImpermanentGraphDatabase;
@@ -188,9 +187,8 @@ public class IndexProviderTest {
         Transaction tx = db.beginTx();
         index = indexMan.forNodes("layer1", config);
         assertNotNull(index);
-        ExecutionEngine engine = new ExecutionEngine(db);
-        ExecutionResult result1 = engine.execute("create (malmo{name:'Malmö',lat:56.2, lon:15.3})-[:TRAIN]->(stockholm{name:'Stockholm',lat:59.3,lon:18.0}) return malmo");
-        Node malmo = (Node) result1.iterator().next().get("malmo");
+        Result result1 = db.execute("create (malmo{name:'Malmö',lat:56.2, lon:15.3})-[:TRAIN]->(stockholm{name:'Stockholm',lat:59.3,lon:18.0}) return malmo");
+        Node malmo = (Node) result1.columnAs("malmo").next();
         index.add(malmo, "dummy", "value");
         tx.success();
         tx.close();
@@ -226,11 +224,11 @@ public class IndexProviderTest {
                 params);
         assertTrue(hits.hasNext());
 
-        ExecutionResult result = engine.execute("start malmo=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') match p=(malmo)--(other) return malmo, other");
-        assertTrue(result.iterator().hasNext());
-        result = engine.execute("start malmo=node:layer1('withinDistance:[56.0, 15.0,1000.0]') match p=(malmo)--(other) return malmo, other");
-        assertTrue(result.iterator().hasNext());
-        System.out.println(result.dumpToString());
+        Result result = db.execute("start malmo=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') match p=(malmo)--(other) return malmo, other");
+        assertTrue("Should have at least one result", result.hasNext());
+        result = db.execute("start malmo=node:layer1('withinDistance:[56.0, 15.0,1000.0]') match p=(malmo)--(other) return malmo, other");
+        assertTrue("Should have at least one result", result.hasNext());
+        System.out.println(result.resultAsString());
     }
 
     @Test
