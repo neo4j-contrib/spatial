@@ -184,51 +184,94 @@ public class IndexProviderTest {
         Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
         IndexManager indexMan = db.index();
         Index<Node> index;
-        Transaction tx = db.beginTx();
-        index = indexMan.forNodes("layer1", config);
-        assertNotNull(index);
-        Result result1 = db.execute("create (malmo{name:'Malmö',lat:56.2, lon:15.3})-[:TRAIN]->(stockholm{name:'Stockholm',lat:59.3,lon:18.0}) return malmo");
-        Node malmo = (Node) result1.columnAs("malmo").next();
-        index.add(malmo, "dummy", "value");
-        tx.success();
-        tx.close();
-        tx = db.beginTx();
-        Map<String, Object> params = new HashMap<String, Object>();
-        //within Envelope
-        params.put(LayerNodeIndex.ENVELOPE_PARAMETER, new Double[]{15.0,
-                16.0, 56.0, 57.0});
-        IndexHits<Node> hits = index.query(LayerNodeIndex.WITHIN_QUERY, params);
-        assertTrue(hits.hasNext());
+        try (Transaction tx = db.beginTx()) {
+            index = indexMan.forNodes("layer1", config);
+            assertNotNull(index);
+            tx.success();
+        }
+        try(Transaction tx = db.beginTx()) {
+            Result result1 = db.execute("create (malmo{name:'Malmö',lat:56.2, lon:15.3})-[:TRAIN]->(stockholm{name:'Stockholm',lat:59.3,lon:18.0}) return malmo");
+            Node malmo = (Node) result1.columnAs("malmo").next();
+            index.add(malmo, "dummy", "value");
+            tx.success();
+        }
+        try(Transaction tx = db.beginTx()) {
+            Map<String, Object> params = new HashMap<String, Object>();
+            //within Envelope
+            params.put(LayerNodeIndex.ENVELOPE_PARAMETER, new Double[]{15.0,
+                    16.0, 56.0, 57.0});
+            IndexHits<Node> hits = index.query(LayerNodeIndex.WITHIN_QUERY, params);
+            assertTrue(hits.hasNext());
 
-        // within BBOX
-        hits = index.query(LayerNodeIndex.BBOX_QUERY,
-                "[15.0, 16.0, 56.0, 57.0]");
-        assertTrue(hits.hasNext());
+            // within BBOX
+            hits = index.query(LayerNodeIndex.BBOX_QUERY,
+                    "[15.0, 16.0, 56.0, 57.0]");
+            assertTrue(hits.hasNext());
 
-        //within any WKT geometry
-        hits = index.query(LayerNodeIndex.WITHIN_WKT_GEOMETRY_QUERY,
-                "POLYGON ((15 56, 15 57, 16 57, 16 56, 15 56))");
-        assertTrue(hits.hasNext());
-        //polygon with hole, excluding n1
-        hits = index.query(LayerNodeIndex.WITHIN_WKT_GEOMETRY_QUERY,
-                "POLYGON ((15 56, 15 57, 16 57, 16 56, 15 56)," +
-                        "(15.1 56.1, 15.1 56.3, 15.4 56.3, 15.4 56.1, 15.1 56.1))");
-        assertFalse(hits.hasNext());
+            //within any WKT geometry
+            hits = index.query(LayerNodeIndex.WITHIN_WKT_GEOMETRY_QUERY,
+                    "POLYGON ((15 56, 15 57, 16 57, 16 56, 15 56))");
+            assertTrue(hits.hasNext());
+            //polygon with hole, excluding n1
+            hits = index.query(LayerNodeIndex.WITHIN_WKT_GEOMETRY_QUERY,
+                    "POLYGON ((15 56, 15 57, 16 57, 16 56, 15 56)," +
+                            "(15.1 56.1, 15.1 56.3, 15.4 56.3, 15.4 56.1, 15.1 56.1))");
+            assertFalse(hits.hasNext());
 
 
-        //within distance
-        params.clear();
-        params.put(LayerNodeIndex.POINT_PARAMETER, new Double[]{56.5, 15.5});
-        params.put(LayerNodeIndex.DISTANCE_IN_KM_PARAMETER, 100.0);
-        hits = index.query(LayerNodeIndex.WITHIN_DISTANCE_QUERY,
-                params);
-        assertTrue(hits.hasNext());
+            //within distance
+            params.clear();
+            params.put(LayerNodeIndex.POINT_PARAMETER, new Double[]{56.5, 15.5});
+            params.put(LayerNodeIndex.DISTANCE_IN_KM_PARAMETER, 100.0);
+            hits = index.query(LayerNodeIndex.WITHIN_DISTANCE_QUERY,
+                    params);
+            assertTrue(hits.hasNext());
 
-        Result result = db.execute("start malmo=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') match p=(malmo)--(other) return malmo, other");
-        assertTrue("Should have at least one result", result.hasNext());
-        result = db.execute("start malmo=node:layer1('withinDistance:[56.0, 15.0,1000.0]') match p=(malmo)--(other) return malmo, other");
-        assertTrue("Should have at least one result", result.hasNext());
-        System.out.println(result.resultAsString());
+            Result result = db.execute("start malmo=node:layer1('bbox:[15.0, 16.0, 56.0, 57.0]') match p=(malmo)--(other) return malmo, other");
+            assertTrue("Should have at least one result", result.hasNext());
+            result = db.execute("start malmo=node:layer1('withinDistance:[56.0, 15.0,1000.0]') match p=(malmo)--(other) return malmo, other");
+            assertTrue("Should have at least one result", result.hasNext());
+            System.out.println(result.resultAsString());
+            tx.success();
+        }
+    }
+
+    @Test
+    public void testNodeRemovalFromIndex() {
+        Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
+        IndexManager indexMan = db.index();
+        Index<Node> index;
+        try (Transaction tx = db.beginTx()) {
+            index = indexMan.forNodes("layer1", config);
+            assertNotNull(index);
+            tx.success();
+        }
+        try (Transaction tx = db.beginTx()) {
+            Result result1 = db.execute("create (malmo{name:'Malmö',lat:56.2, lon:15.3}) return malmo");
+            Node malmo = (Node) result1.columnAs("malmo").next();
+            index.add(malmo, "dummy", "value");
+            tx.success();
+        }
+        try (Transaction tx = db.beginTx()) {
+            Map<String, Object> params = new HashMap<String, Object>();
+            //within Envelope
+            params.put(LayerNodeIndex.ENVELOPE_PARAMETER, new Double[]{15.0,
+                    16.0, 56.0, 57.0});
+            IndexHits<Node> hits = index.query(LayerNodeIndex.WITHIN_QUERY, params);
+            assertTrue("Index should have at least one entry", hits.hasNext());
+            Node node = hits.getSingle();
+            index.remove(node);
+            tx.success();
+        }
+        try (Transaction tx = db.beginTx()) {
+            Map<String, Object> params = new HashMap<String, Object>();
+            //within Envelope
+            params.put(LayerNodeIndex.ENVELOPE_PARAMETER, new Double[]{15.0,
+                    16.0, 56.0, 57.0});
+            IndexHits<Node> hits = index.query(LayerNodeIndex.WITHIN_QUERY, params);
+            assertFalse("Index should not have even one entry", hits.hasNext());
+            tx.success();
+        }
     }
 
     @Test
