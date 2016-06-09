@@ -35,9 +35,11 @@ import com.vividsolutions.jts.geom.GeometryFactory;
 public class SimplePointEncoder extends AbstractGeometryEncoder implements
         Configurable
 {
+    public static final String DEFAULT_X = "longitude";
+    public static final String DEFAULT_Y = "latitude";
     protected GeometryFactory geometryFactory;
-    protected String xProperty = "longitude";
-    protected String yProperty = "latitude";
+    protected String xProperty = DEFAULT_X;
+    protected String yProperty = DEFAULT_Y;
 
     protected GeometryFactory getGeometryFactory()
     {

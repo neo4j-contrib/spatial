@@ -21,16 +21,22 @@ package org.neo4j.gis.spatial.indexprovider;
 
 import java.io.File;
 import java.io.IOException;
+
+import org.neo4j.gis.spatial.Constants;
+import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.index.IndexImplementation;
 
 import java.util.Map;
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.index.IndexCommandFactory;
+import org.neo4j.graphdb.index.IndexManager;
 import org.neo4j.graphdb.index.LegacyIndexProviderTransaction;
 import org.neo4j.helpers.collection.IteratorUtil;
 import org.neo4j.kernel.api.LegacyIndex;
 import org.neo4j.kernel.impl.transaction.command.CommandHandler;
+
+import static org.neo4j.helpers.collection.MapUtil.stringMap;
 
 public class SpatialIndexImplementation implements IndexImplementation {
 
@@ -42,9 +48,27 @@ public class SpatialIndexImplementation implements IndexImplementation {
     }
 
     @Override
-    public Map<String, String> fillInDefaults(Map<String, String> config) {
-        return config;
-    }
+	public Map<String, String> fillInDefaults(Map<String, String> config) {
+		if (config.containsKey(SpatialIndexProvider.GEOMETRY_TYPE)
+				&& LayerNodeIndex.POINT_GEOMETRY_TYPE.equals(config.get(SpatialIndexProvider.GEOMETRY_TYPE))) {
+			return stringMap(
+					IndexManager.PROVIDER, config.get(IndexManager.PROVIDER),
+					SpatialIndexProvider.GEOMETRY_TYPE, LayerNodeIndex.POINT_GEOMETRY_TYPE,
+					LayerNodeIndex.LON_PROPERTY_KEY, config.getOrDefault(LayerNodeIndex.LON_PROPERTY_KEY, SimplePointEncoder.DEFAULT_X),
+					LayerNodeIndex.LAT_PROPERTY_KEY, config.getOrDefault(LayerNodeIndex.LAT_PROPERTY_KEY, SimplePointEncoder.DEFAULT_Y)
+			);
+		} else if (config.containsKey(LayerNodeIndex.WKT_PROPERTY_KEY)) {
+			return makeSinglePropertyConfig(config, LayerNodeIndex.WKT_PROPERTY_KEY, Constants.PROP_WKT);
+		} else if (config.containsKey(LayerNodeIndex.WKB_PROPERTY_KEY)) {
+			return makeSinglePropertyConfig(config, LayerNodeIndex.WKT_PROPERTY_KEY, Constants.PROP_WKT);
+		} else {
+			throw new IllegalArgumentException("Invalid spatial index config: " + config);
+		}
+	}
+
+	private Map<String, String> makeSinglePropertyConfig(Map<String, String> config, String key, String defaultValue) {
+		return stringMap(IndexManager.PROVIDER, config.get(IndexManager.PROVIDER), key, config.getOrDefault(key, defaultValue));
+	}
 
     @Override
     public boolean configMatches(Map<String, String> storedConfig, Map<String, String> config ) {

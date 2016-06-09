@@ -99,35 +99,48 @@ public class IndexProviderTest {
     }
 
     /**
-     * Test that invalid configurations do not leave configurations in the index manager
+     * Test that invalid configurations can be repaired
      */
     @Test
-    @Ignore
-    //TODO: fix this, issue #71
-    public void testInvalidConfig() {
+    public void testInvalidButRepairableConfig() {
         // An invalid configuration
         Map<String, String> config =
                 Collections.unmodifiableMap(MapUtil.stringMap(
                         IndexManager.PROVIDER, SpatialIndexProvider.SERVICE_NAME, SpatialIndexProvider.GEOMETRY_TYPE, LayerNodeIndex.POINT_PARAMETER));
-        // Use transaction just in case it matters (not that I can tell)
-        Transaction tx = db.beginTx();
-        System.out.println("testInvalidConfig: Begun transaction");
-
-        // Try to create the index, ignore IllegalArgumentException to continue
         IndexManager indexMan = db.index();
-        try {
-            Index<Node> index = indexMan.forNodes("layer1", config);
-            System.out.println("testInvalidConfig: invalid index requested, did not throw exception.");
-            tx.success();    // Won't happen currently
-        } catch (IllegalArgumentException e) {
-            // Bail out
-            tx.failure();
-            System.out.println("testInvalidConfig: invalid index creation failed, good, let the tx rollback");
+        try (Transaction tx = db.beginTx()) {
+            indexMan.forNodes("layer1", config);
+            tx.success();
         }
-        tx.close();
+        // Assert index is found in the manager
+        try (Transaction tx = db.beginTx()) {
+            assertTrue("Index should exist, having been repaired", indexMan.existsForNodes("layer1"));
+            tx.success();
+        }
+    }
+
+    /**
+     * Test that invalid configurations do not leave configurations in the index manager
+     */
+    @Test
+    public void testInvalidConfig() {
+        // An invalid configuration
+        Map<String, String> config =
+                Collections.unmodifiableMap(MapUtil.stringMap(IndexManager.PROVIDER, SpatialIndexProvider.SERVICE_NAME));
+        IndexManager indexMan = db.index();
+        try (Transaction tx = db.beginTx()) {
+            indexMan.forNodes("layer1", config);
+            tx.success();
+            fail("Should not have been able to make this index");
+        } catch (IllegalArgumentException e) {
+            System.out.println("Expected index failure due to invalid config");
+        }
         System.out.println("testInvalidConfig: tx done.");
         // Assert index isn't referenced in the manager
-        assertFalse("Index should not exist", indexMan.existsForNodes("layer1"));
+        try (Transaction tx = db.beginTx()) {
+            assertFalse("Index should not exist", indexMan.existsForNodes("layer1"));
+            tx.success();
+        }
     }
 
     /*
