@@ -153,35 +153,31 @@ public class IndexProviderTest {
         // Create an index
         Map<String, String> config = SpatialIndexProvider.SIMPLE_POINT_CONFIG;
         IndexManager indexMan = db.index();
-        Index<Node> index = indexMan.forNodes("layer1", config);
-        assertNotNull(index);
-        Transaction transaction = db.beginTx();
-
-        Node node = null;
-        try {
-            node = db.createNode();
+        try (Transaction tx = db.beginTx()) {
+            indexMan.forNodes("layer1", config);
+            tx.success();
+        }
+        // create geometry node and add to index
+        try (Transaction tx = db.beginTx()) {
+            Node node = db.createNode();
             node.setProperty("lat", 56.2);
             node.setProperty("lon", 15.3);
-            transaction.success();
-            transaction.finish();
-        } catch (Exception e) {
-            e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
-        }
-
-
-        try {
-            transaction = db.beginTx();
+            Index<Node> index = indexMan.forNodes("layer1");
             index.add(node, "", "");
-            transaction.success();
-            transaction.finish();
-        } catch (Exception e) {
-            e.printStackTrace();
+            tx.success();
         }
         // Request deletion
-        index.delete();
+        try (Transaction tx = db.beginTx()) {
+            assertTrue("Index should not yet have been deleted", indexMan.existsForNodes("layer1"));
+            Index<Node> index = indexMan.forNodes("layer1");
+            index.delete();
+            tx.success();
+        }
         // Assert deletion
-        assertFalse(indexMan.existsForNodes("layer1"));
-        // TODO: we should probably check the internal structure was also cleanly deleted 
+        try (Transaction tx = db.beginTx()) {
+            assertFalse("Index should have been deleted", indexMan.existsForNodes("layer1"));
+            tx.success();
+        }
     }
 
     @Test

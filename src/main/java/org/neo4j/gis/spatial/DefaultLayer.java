@@ -305,7 +305,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
             Node layerNode = getLayerNode();
             layerNode.getSingleRelationship(SpatialRelationshipTypes.LAYER, Direction.INCOMING).delete();
             layerNode.delete();
-            
+
             tx.success();
         } finally {
             tx.close();
