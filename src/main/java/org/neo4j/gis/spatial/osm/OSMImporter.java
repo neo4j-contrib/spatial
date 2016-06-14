@@ -690,7 +690,7 @@ public class OSMImporter implements Constants
         protected void createOSMWay( Map<String, Object> wayProperties,
                 ArrayList<Long> wayNodes, LinkedHashMap<String, Object> wayTags )
         {
-            RoadDirection direction = isOneway( wayTags );
+            RoadDirection direction = getRoadDirection( wayTags );
             String name = (String) wayTags.get( "name" );
             int geometry = GTYPE_LINESTRING;
             boolean isRoad = wayTags.containsKey( "highway" );
@@ -2120,12 +2120,13 @@ public class OSMImporter implements Constants
     }
 
     /**
-     * Detects if road has the only direction
-     * 
-     * @param wayProperties
-     * @return RoadDirection
+     * Retrieves the direction of the given road, i.e. whether it is a one-way road from its start node,
+     * a one-way road to its start node or a two-way road.
+     * @param wayProperties the property map of the road
+     * @return BOTH if it's a two-way road, FORWARD if it's a one-way road from the start node,
+     * or BACKWARD if it's a one-way road to the start node
      */
-    public static RoadDirection isOneway( Map<String, Object> wayProperties )
+    public static RoadDirection getRoadDirection( Map<String, Object> wayProperties )
     {
         String oneway = (String) wayProperties.get( "oneway" );
         if ( null != oneway )
