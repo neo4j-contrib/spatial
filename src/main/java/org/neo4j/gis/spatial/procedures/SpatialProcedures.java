@@ -128,9 +128,12 @@ public class SpatialProcedures {
     @PerformsWrites // TODO FIX - due to lazy evaluation of index count, updated during later reads, not during writes
     public Stream<NameResult> getAllLayers() {
         Stream.Builder<NameResult> builder = Stream.builder();
-        for (String name : wrap(db).getLayerNames()) {
-            Layer layer = wrap(db).getLayer(name);
-            builder.accept(new NameResult(name, layer.getSignature()));
+        SpatialDatabaseService spatial = wrap(db);
+        for (String name : spatial.getLayerNames()) {
+            Layer layer = spatial.getLayer(name);
+            if (layer != null) {
+                builder.accept(new NameResult(name, layer.getSignature()));
+            }
         }
         return builder.build();
     }
@@ -250,7 +253,7 @@ public class SpatialProcedures {
     @Procedure("spatial.layer")
     @PerformsWrites // TODO FIX - due to lazy evaluation of index count, updated during later reads, not during writes
     public Stream<NodeResult> getLayer(@Name("name") String name) {
-        return streamNode(wrap(db).getLayer(name).getLayerNode());
+        return streamNode(getLayerOrThrow(name).getLayerNode());
     }
 
     @Procedure("spatial.removeLayer")
@@ -263,8 +266,7 @@ public class SpatialProcedures {
     @Procedure("spatial.addNode")
     @PerformsWrites
     public Stream<NodeResult> addNodeToLayer(@Name("layerName") String name, @Name("node") Node node) {
-        SpatialDatabaseService spatialService = wrap(db);
-        EditableLayer layer = (EditableLayer) spatialService.getLayer(name);
+        EditableLayer layer = getEditableLayerOrThrow(name);
         return streamNode(layer.add(node).getGeomNode());
     }
 
@@ -272,8 +274,7 @@ public class SpatialProcedures {
     @Procedure("spatial.addNodes")
     @PerformsWrites
     public Stream<NodeResult> addNodesToLayer(@Name("layerName") String name, @Name("nodes") List<Node> nodes) {
-        SpatialDatabaseService spatialService = wrap(db);
-        EditableLayer layer = (EditableLayer) spatialService.getLayer(name);
+        EditableLayer layer = getEditableLayerOrThrow(name);
         return nodes.stream().map(layer::add).map(SpatialDatabaseRecord::getGeomNode).map(NodeResult::new);
     }
 
@@ -281,7 +282,7 @@ public class SpatialProcedures {
     @Procedure("spatial.addWKT")
     @PerformsWrites
     public Stream<NodeResult> addGeometryWKTToLayer(@Name("layerName") String name, @Name("geometry") String geometryWKT) throws ParseException {
-        EditableLayer layer = (EditableLayer) wrap(db).getLayer(name);
+        EditableLayer layer = getEditableLayerOrThrow(name);
         WKTReader reader = new WKTReader(layer.getGeometryFactory());
         return streamNode(addGeometryWkt(layer,reader,geometryWKT));
     }
@@ -290,7 +291,7 @@ public class SpatialProcedures {
     @Procedure("spatial.addWKTs")
     @PerformsWrites
     public Stream<NodeResult> addGeometryWKTsToLayer(@Name("layerName") String name, @Name("geometry") List<String> geometryWKTs) throws ParseException {
-        EditableLayer layer = (EditableLayer) wrap(db).getLayer(name);
+        EditableLayer layer = getEditableLayerOrThrow(name);
         WKTReader reader = new WKTReader(layer.getGeometryFactory());
         return geometryWKTs.stream().map( geometryWKT -> addGeometryWkt(layer, reader, geometryWKT)).map(NodeResult::new);
     }
@@ -309,9 +310,8 @@ public class SpatialProcedures {
     @PerformsWrites
     public Stream<NodeResult> updateGeometryFromWKT(@Name("layerName") String name, @Name("geometry") String geometryWKT,
                                                     @Name("geometryNodeId") long geometryNodeId) {
-        SpatialDatabaseService spatialService = wrap(db);
         try (Transaction tx = db.beginTx()) {
-            EditableLayer layer = (EditableLayer) spatialService.getLayer(name);
+            EditableLayer layer = getEditableLayerOrThrow(name);
             WKTReader reader = new WKTReader(layer.getGeometryFactory());
             Geometry geometry = reader.read(geometryWKT);
             SpatialDatabaseRecord record = layer.getIndex().get(geometryNodeId);
@@ -330,7 +330,7 @@ public class SpatialProcedures {
             @Name("layerName") String name,
             @Name("min") Object min,
             @Name("max") Object max) {
-        Layer layer = wrap(db).getLayer(name);
+        Layer layer = getLayerOrThrow(name);
         // TODO why a SearchWithin and not a SearchIntersectWindow?
         Envelope envelope = new Envelope(toCoordinate(min),toCoordinate(max));
         return GeoPipeline
@@ -345,7 +345,7 @@ public class SpatialProcedures {
             @Name("layerName") String name,
             @Name("coordinate") Object coordinate,
             @Name("distanceInKm") double distanceInKm) {
-        Layer layer = wrap(db).getLayer(name);
+        Layer layer = getLayerOrThrow(name);
         GeometryFactory factory = layer.getGeometryFactory();
         Point point = factory.createPoint(toCoordinate(coordinate));
         List<SpatialTopologyUtils.PointResult> edgeResults = SpatialTopologyUtils.findClosestEdges(point, layer, distanceInKm);
@@ -360,7 +360,7 @@ public class SpatialProcedures {
             @Name("coordinate") Object coordinate,
             @Name("distanceInKm") double distanceInKm) {
 
-        Layer layer = wrap(db).getLayer(name);
+        Layer layer = getLayerOrThrow(name);
         return GeoPipeline
                 .startNearestNeighborLatLonSearch(layer, toCoordinate(coordinate), distanceInKm)
                 .sort(DISTANCE)
@@ -377,7 +377,7 @@ public class SpatialProcedures {
             @Name("layerName") String name,
             @Name("geometry") Object geometry) {
 
-        Layer layer = wrap(db).getLayer(name);
+        Layer layer = getLayerOrThrow(name);
         return GeoPipeline
                 .startIntersectSearch(layer, toGeometry(layer, geometry))
                 .stream().map(GeoPipeFlow::getGeomNode).map(NodeResult::new);
@@ -433,6 +433,23 @@ public class SpatialProcedures {
         if (map.containsKey(xName) && map.containsKey(yName))
             return new Coordinate(((Number) map.get(xName)).doubleValue(), ((Number) map.get(yName)).doubleValue());
         return null;
+    }
+
+    private EditableLayer getEditableLayerOrThrow(String name) {
+        return (EditableLayer) getLayerOrThrow(wrap(db), name);
+    }
+
+    private Layer getLayerOrThrow(String name) {
+        return getLayerOrThrow(wrap(db), name);
+    }
+
+    private Layer getLayerOrThrow(SpatialDatabaseService spatialService, String name) {
+        EditableLayer layer = (EditableLayer) spatialService.getLayer(name);
+        if (layer != null) {
+            return layer;
+        } else {
+            throw new IllegalArgumentException("No such layer '" + name + "'");
+        }
     }
 
     private SpatialDatabaseService wrap(GraphDatabaseService db) {

@@ -30,14 +30,16 @@ import org.neo4j.kernel.impl.proc.Procedures;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestGraphDatabaseFactory;
 
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
 
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.TestCase.assertFalse;
+import static org.hamcrest.CoreMatchers.containsString;
+import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 public class SpatialProceduresTest {
     private GraphDatabaseService db;
@@ -67,6 +69,19 @@ public class SpatialProceduresTest {
 
     public static void testCall(GraphDatabaseService db, String call, Map<String, Object> params, Consumer<Map<String, Object>> consumer) {
         testCall(db, call, params, consumer, true);
+    }
+
+    public static void testCallFails(GraphDatabaseService db, String call, Map<String, Object> params, String error) {
+        try {
+            testResult(db, call, params, (res) -> {
+                while (res.hasNext()) {
+                    res.next();
+                }
+            });
+            fail("Expected an exception containing '" + error + "', but no exception was thrown");
+        } catch (Exception e) {
+            assertThat(e.getMessage(), containsString(error));
+        }
     }
 
     public static void testCall(GraphDatabaseService db, String call, Map<String, Object> params, Consumer<Map<String, Object>> consumer, boolean onlyOne) {
@@ -110,7 +125,27 @@ public class SpatialProceduresTest {
     }
 
     @Test
-    public void querying_with_cypher() {
+    public void add_node_to_non_existing_layer() {
+        execute("CALL spatial.addPointLayer('some_name')");
+        ResourceIterator<Object> nodes = db.execute("CREATE (n:Point {latitude:60.1,longitude:15.2}) RETURN n").columnAs("n");
+        Node node = (Node) nodes.next();
+        nodes.close();
+        testCallFails(db, "CALL spatial.addNode('wrong_name',{node})", map("node", node), "No such layer 'wrong_name'");
+    }
+
+    @Test
+    public void add_node_point_layer() {
+        execute("CALL spatial.addPointLayer('points')");
+        db.execute("CREATE (n:Point {latitude:60.1,longitude:15.2})");
+        ResourceIterator<Object> nodes = db.execute("MATCH (n:Point) WITH n CALL spatial.addNode('points',n) YIELD node RETURN node").columnAs("node");
+        Node node = (Node) nodes.next();
+        nodes.close();
+        testCall(db, "CALL spatial.bbox('points',{longitude:15.0,latitude:60.0},{longitude:15.3, latitude:60.2})", r -> assertEquals(node, r.get("node")));
+        testCall(db, "CALL spatial.withinDistance('points',{longitude:15.0,latitude:60.0},100)", r -> assertEquals(node, r.get("node")));
+    }
+
+    @Test
+    public void add_node_and_search_bbox_and_distance() {
         execute("CALL spatial.addPointLayerXY('geom','lon','lat')");
         ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {lat:60.1,lon:15.2}) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node").columnAs("node");
         Node node = (Node) nodes.next();
@@ -236,6 +271,7 @@ public class SpatialProceduresTest {
         execute("CALL spatial.addWKT('geom',{wkt})", map("wkt", wkt));
 
         testCall(db, "CALL spatial.layer('geom')", (r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
+        testCallFails(db, "CALL spatial.layer('badname')", null, "No such layer 'badname'");
     }
 
     @Test
