@@ -35,7 +35,6 @@
       <excludes>
         <exclude>org.geotools:gt-process</exclude>
         <exclude>org.geotools:gt-render</exclude>
-        <exclude>org.geotools:gt-shapefile</exclude>
         <exclude>org.geotools:gt-coverage</exclude>
         <exclude>org.geotools:gt-cql</exclude>
         <exclude>javax.media:jai_imageio</exclude>

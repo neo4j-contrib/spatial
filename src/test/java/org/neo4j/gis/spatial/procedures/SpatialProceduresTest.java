@@ -100,11 +100,11 @@ public class SpatialProceduresTest {
         testResult(db, call, params, (res) -> {
             int numLeft = count;
             while (numLeft > 0) {
-                assertTrue("Expected " + count + " results but found only " + numLeft, res.hasNext());
+                assertTrue("Expected " + count + " results but found only " + (count - numLeft), res.hasNext());
                 res.next();
                 numLeft--;
             }
-            Assert.assertFalse("Expected " + count + " results but there are more " + numLeft, res.hasNext());
+            Assert.assertFalse("Expected " + count + " results but there are more", res.hasNext());
         });
     }
 
@@ -342,6 +342,25 @@ public class SpatialProceduresTest {
                 "CALL spatial.addNode('poi',n) YIELD node\n" +
                 "RETURN count(node)";
         testCountQuery("addNode", query, count, "count(node)", map("count", count));
+    }
+
+    @Test
+    public void import_shapefile() throws Exception {
+        testCallCount(db, "CALL spatial.importShapefile('shp/highway.shp')", null, 143);
+        testCallCount(db, "CALL spatial.layers()", null, 1);
+    }
+
+    @Test
+    public void import_shapefile_without_extension() throws Exception {
+        testCallCount(db, "CALL spatial.importShapefile('shp/highway')", null, 143);
+        testCallCount(db, "CALL spatial.layers()", null, 1);
+    }
+
+    @Test
+    public void import_shapefile_to_layer() throws Exception {
+        execute("CALL spatial.addWKTLayer('geom','wkt')");
+        testCallCount(db, "CALL spatial.importShapefileToLayer('geom','shp/highway.shp')", null, 143);
+        testCallCount(db, "CALL spatial.layers()", null, 1);
     }
 
     private void testCountQuery(String name, String query, long count, String column, Map<String,Object> params) {

@@ -44,6 +44,9 @@ import org.neo4j.procedure.Name;
 import org.neo4j.procedure.PerformsWrites;
 import org.neo4j.procedure.Procedure;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -324,6 +327,37 @@ public class SpatialProcedures {
         return null;
     }
 
+    @Procedure("spatial.importShapefileToLayer")
+    @PerformsWrites
+    public Stream<NodeResult> importShapefile(
+            @Name("layerName") String name,
+            @Name("uri") String uri) throws IOException {
+        EditableLayerImpl layer = getEditableLayerOrThrow(name);
+        return importShapefileToLayer(uri, layer, 1000).stream().map(node -> new NodeResult(node));
+    }
+
+    @Procedure("spatial.importShapefile")
+    @PerformsWrites
+    public Stream<NodeResult> importShapefile(
+            @Name("uri") String uri) throws IOException {
+        return importShapefileToLayer(uri, null, 1000).stream().map(node -> new NodeResult(node));
+    }
+
+    private List<Node> importShapefileToLayer(String shpPath, EditableLayerImpl layer, int commitInterval) throws IOException {
+        if (shpPath.toLowerCase().endsWith(".shp")) {
+            // remove extension
+            shpPath = shpPath.substring(0, shpPath.lastIndexOf("."));
+        }
+
+        ShapefileImporter importer = new ShapefileImporter(db, new ProgressLoggingListener("Importing " + shpPath, log.debugLogger()), commitInterval);
+        if (layer == null) {
+            String layerName = shpPath.substring(shpPath.lastIndexOf(File.separator) + 1);
+            return importer.importFile(shpPath, layerName);
+        } else {
+            return importer.importFile(shpPath, layer, Charset.defaultCharset());
+        }
+    }
+
     @Procedure("spatial.bbox")
     @PerformsWrites // TODO FIX
     public Stream<NodeResult> findGeometriesInBBox(
@@ -435,8 +469,8 @@ public class SpatialProcedures {
         return null;
     }
 
-    private EditableLayer getEditableLayerOrThrow(String name) {
-        return (EditableLayer) getLayerOrThrow(wrap(db), name);
+    private EditableLayerImpl getEditableLayerOrThrow(String name) {
+        return (EditableLayerImpl) getLayerOrThrow(wrap(db), name);
     }
 
     private Layer getLayerOrThrow(String name) {

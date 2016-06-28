@@ -20,23 +20,23 @@
 package org.neo4j.gis.spatial;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 
 import org.geotools.data.shapefile.ShpFiles;
 import org.geotools.data.shapefile.dbf.DbaseFileHeader;
 import org.geotools.data.shapefile.dbf.DbaseFileReader;
 import org.geotools.data.shapefile.prj.PrjFileReader;
 import org.geotools.data.shapefile.shp.JTSUtilities;
-import org.geotools.data.shapefile.shp.ShapefileException;
 import org.geotools.data.shapefile.shp.ShapefileReader;
 import org.geotools.data.shapefile.shp.ShapefileReader.Record;
 import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -117,15 +117,20 @@ public class ShapefileImporter implements Constants {
 
 	
 	// Public methods
-	
-	public void importFile(String dataset, String layerName) throws ShapefileException, FileNotFoundException, IOException {
-		importFile(dataset, layerName, Charset.defaultCharset());
-	}
-	
-	public void importFile(String dataset, String layerName, Charset charset) throws ShapefileException, FileNotFoundException, IOException {
-		Class<? extends Layer> layerClass = maintainGeometryOrder ? OrderedEditableLayer.class : EditableLayerImpl.class;
-		EditableLayerImpl layer = (EditableLayerImpl)spatialDatabase.getOrCreateLayer(layerName, WKBGeometryEncoder.class, layerClass);
-		GeometryFactory geomFactory = layer.getGeometryFactory();
+
+    public List<Node> importFile(String dataset, String layerName) throws IOException {
+        return importFile(dataset, layerName, Charset.defaultCharset());
+    }
+
+    public List<Node> importFile(String dataset, String layerName, Charset charset) throws IOException {
+        Class<? extends Layer> layerClass = maintainGeometryOrder ? OrderedEditableLayer.class : EditableLayerImpl.class;
+        EditableLayerImpl layer = (EditableLayerImpl) spatialDatabase.getOrCreateLayer(layerName, WKBGeometryEncoder.class, layerClass);
+        return importFile(dataset, layer, charset);
+    }
+
+    public List<Node> importFile(String dataset, EditableLayerImpl layer, Charset charset) throws IOException {
+        GeometryFactory geomFactory = layer.getGeometryFactory();
+		ArrayList<Node> added = new ArrayList<>();
 		
 		boolean strict = false;
 		boolean shpMemoryMapped = true;
@@ -206,7 +211,8 @@ public class ShapefileImporter implements Constants {
 											} else {
 												// TODO check geometry.isValid()
 												// ?
-												layer.add(geometry, fieldsName, fields.toArray(values));
+												SpatialDatabaseRecord spatial_record = layer.add(geometry, fieldsName, fields.toArray(values));
+												added.add(spatial_record.getGeomNode());
 											}
 										} else {
 											filterCounter ++;
@@ -242,6 +248,7 @@ public class ShapefileImporter implements Constants {
 
 		long stopTime = System.currentTimeMillis();
 		log("info | elapsed time in seconds: " + (1.0 * (stopTime - startTime) / 1000));
+		return added;
 	}
 	
 	
