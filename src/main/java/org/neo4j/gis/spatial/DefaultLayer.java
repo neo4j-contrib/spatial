@@ -24,7 +24,9 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Set;
 
+import com.vividsolutions.jts.geom.PrecisionModel;
 import org.geotools.factory.FactoryRegistryException;
+import org.geotools.referencing.CRS;
 import org.geotools.referencing.ReferencingFactoryFinder;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.Listener;
@@ -266,8 +268,19 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         this.name = name;
         this.layerNode = layerNode;
         
-        // TODO read Precision Model and SRID from layer properties and use them to construct GeometryFactory
         this.geometryFactory = new GeometryFactory();
+        CoordinateReferenceSystem crs = getCoordinateReferenceSystem();
+        if (crs != null) {
+            // TODO: Verify this code works for general cases to read SRID from layer properties and use them to construct GeometryFactory
+            try {
+                Integer code = CRS.lookupEpsgCode(crs, true);
+                if (code != null) {
+                    this.geometryFactory = new GeometryFactory(new PrecisionModel(), code);
+                }
+            } catch (FactoryException e) {
+                System.err.println("Failed to lookup CRS: " + e.getMessage());
+            }
+        }
         
         if (layerNode.hasProperty(PROP_GEOMENCODER)) {
             String encoderClassName = (String) layerNode.getProperty(PROP_GEOMENCODER);

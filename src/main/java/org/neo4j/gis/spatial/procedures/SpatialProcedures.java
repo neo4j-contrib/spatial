@@ -20,9 +20,12 @@
 package org.neo4j.gis.spatial.procedures;
 
 import com.vividsolutions.jts.geom.*;
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
-import org.neo4j.cypher.internal.compiler.v3_0.commands.expressions.GeographicPoint;
+import org.neo4j.cypher.internal.compiler.v3_0.GeographicPoint;
 import org.neo4j.gis.spatial.*;
 import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
@@ -35,6 +38,7 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.PropertyContainer;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.spatial.CRS;
 import org.neo4j.kernel.api.proc.ProcedureSignature;
 import org.neo4j.kernel.impl.proc.Procedures;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
@@ -43,13 +47,14 @@ import org.neo4j.procedure.Context;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.PerformsWrites;
 import org.neo4j.procedure.Procedure;
+import org.opengis.referencing.ReferenceIdentifier;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /*
@@ -92,6 +97,14 @@ public class SpatialProcedures {
         public NodeDistanceResult(Node node, double distance) {
             this.node = node;
             this.distance = distance;
+        }
+    }
+
+    public static class GeometryResult {
+        public final Object geometry;
+
+        public GeometryResult(Object geometry) {
+            this.geometry = geometry;
         }
     }
 
@@ -404,6 +417,37 @@ public class SpatialProcedures {
                 });
     }
 
+    @Procedure("spatial.decodeGeometry")
+    // TODO: This currently returns an internal Cypher type, in order to be able to pass back into
+    // other procedures that only accept internal cypher types due to a bug in Neo4j 3.0
+    // If you need to return Geometries outside (eg. RETURN geometry), then consider spatial.asExternalGeometry(geometry)
+    public Stream<GeometryResult> decodeGeometry(
+            @Name("layerName") String name,
+            @Name("coordinate") Node node) {
+
+        Layer layer = getLayerOrThrow(name);
+        return Stream.of(layer.getGeometryEncoder().decodeGeometry(node)).map(geom -> new GeometryResult(toCypherGeometry(layer, geom)));
+    }
+
+    @Procedure("spatial.asGeometry")
+    // TODO: This currently returns an internal Cypher type, in order to be able to pass back into
+    // other procedures that only accept internal cypher types due to a bug in Neo4j 3.0
+    // If you need to return Geometries outside (eg. RETURN geometry), then consider spatial.asExternalGeometry(geometry)
+    public Stream<GeometryResult> asGeometry(
+            @Name("geometry") Object geometry) {
+
+        return Stream.of(geometry).map(geom -> new GeometryResult(toCypherGeometry(null, geom)));
+    }
+
+    @Procedure("spatial.asExternalGeometry")
+    // TODO: This method only exists (and differs from spatial.asGeometry()) because of a bug in Cypher 3.0
+    // Cypher will emit external geometry types but can only consume internal types. Once that bug is fixed,
+    // We can make both asGeometry() and asExternalGeometry() return the same public type, and deprecate this procedure.
+    public Stream<GeometryResult> asExternalGeometry(
+            @Name("geometry") Object geometry) {
+
+        return Stream.of(geometry).map(geom -> new GeometryResult(toNeo4jGeometry(null, geom)));
+    }
 
     @Procedure("spatial.intersects")
     @PerformsWrites // TODO FIX
@@ -413,15 +457,16 @@ public class SpatialProcedures {
 
         Layer layer = getLayerOrThrow(name);
         return GeoPipeline
-                .startIntersectSearch(layer, toGeometry(layer, geometry))
+                .startIntersectSearch(layer, toJTSGeometry(layer, geometry))
                 .stream().map(GeoPipeFlow::getGeomNode).map(NodeResult::new);
     }
 
-    private Geometry toGeometry(Layer layer, Object value) {
+    private Geometry toJTSGeometry(Layer layer, Object value) {
         GeometryFactory factory = layer.getGeometryFactory();
-        if (value instanceof org.neo4j.cypher.internal.compiler.v3_0.commands.expressions.Point) {
-            org.neo4j.cypher.internal.compiler.v3_0.commands.expressions.Point point = (org.neo4j.cypher.internal.compiler.v3_0.commands.expressions.Point) value;
-            return factory.createPoint(new Coordinate(point.x(), point.y()));
+        if (value instanceof org.neo4j.graphdb.spatial.Point) {
+            org.neo4j.graphdb.spatial.Point point = (org.neo4j.graphdb.spatial.Point) value;
+            List<Double> coord = point.getCoordinate().getCoordinate();
+            return factory.createPoint(new Coordinate(coord.get(0), coord.get(1)));
         }
         if (value instanceof String) {
             WKTReader reader = new WKTReader(factory);
@@ -439,6 +484,199 @@ public class SpatialProcedures {
         Coordinate coord = toCoordinate(latLon);
         if (coord != null) return factory.createPoint(coord);
         throw new RuntimeException("Can't convert " + value + " to a geometry");
+    }
+
+    public static class Neo4jGeometry implements org.neo4j.graphdb.spatial.Geometry {
+        protected final String geometryType;
+        protected final CRS crs;
+        protected final List<org.neo4j.graphdb.spatial.Coordinate> coordinates;
+
+        public Neo4jGeometry(String geometryType, List<org.neo4j.graphdb.spatial.Coordinate> coordinates, CRS crs) {
+            this.geometryType = geometryType;
+            this.coordinates = coordinates;
+            this.crs = crs;
+        }
+
+        public String getGeometryType() {
+            return this.geometryType;
+        }
+
+        public List<org.neo4j.graphdb.spatial.Coordinate> getCoordinates() {
+            return this.coordinates;
+        }
+
+        public CRS getCRS() {
+            return this.crs;
+        }
+
+        public static String coordinateString(List<org.neo4j.graphdb.spatial.Coordinate> coordinates) {
+            return coordinates.stream().map(c -> c.getCoordinate().stream().map(v -> v.toString()).collect(Collectors.joining(", "))).collect(Collectors.joining(", "));
+        }
+
+        public String toString() {
+            return geometryType + "(" + coordinateString(coordinates) + ")[" + crs + "]";
+        }
+    }
+
+    public static class Neo4jPoint extends Neo4jGeometry implements org.neo4j.graphdb.spatial.Point {
+        private final org.neo4j.graphdb.spatial.Coordinate coordinate;
+
+        public Neo4jPoint(double x, double y, CRS crs) {
+            super("Point", new ArrayList(), crs);
+            this.coordinate = new org.neo4j.graphdb.spatial.Coordinate(new double[]{x, y});
+            this.coordinates.add(this.coordinate);
+        }
+    }
+
+    private org.neo4j.graphdb.spatial.Coordinate toNeo4jCoordinate(Coordinate coordinate) {
+        if (coordinate.z == Coordinate.NULL_ORDINATE) {
+            return new org.neo4j.graphdb.spatial.Coordinate(coordinate.x, coordinate.y);
+        } else {
+            return new org.neo4j.graphdb.spatial.Coordinate(coordinate.x, coordinate.y, coordinate.z);
+        }
+    }
+
+    private List<org.neo4j.graphdb.spatial.Coordinate> toNeo4jCoordinates(Coordinate[] coordinates) {
+        ArrayList<org.neo4j.graphdb.spatial.Coordinate> converted = new ArrayList<>();
+        for (Coordinate coordinate : coordinates) {
+            converted.add(toNeo4jCoordinate(coordinate));
+        }
+        return converted;
+    }
+
+    private org.neo4j.graphdb.spatial.Geometry toNeo4jGeometry(Layer layer, Object value) {
+        if (value instanceof org.neo4j.graphdb.spatial.Geometry) {
+            return (org.neo4j.graphdb.spatial.Geometry) value;
+        }
+        CRS crs = findCRS("Cartesian");
+        if (layer != null) {
+            CoordinateReferenceSystem layerCRS = layer.getCoordinateReferenceSystem();
+            if (layerCRS != null) {
+                ReferenceIdentifier crsRef = layer.getCoordinateReferenceSystem().getName();
+                crs = findCRS(crsRef.toString());
+            }
+        }
+        if (value instanceof Point) {
+            Point point = (Point) value;
+            return new Neo4jPoint(point.getX(), point.getY(), crs);
+        }
+        if (value instanceof Geometry) {
+            Geometry geometry = (Geometry) value;
+            return new Neo4jGeometry(geometry.getGeometryType(), toNeo4jCoordinates(geometry.getCoordinates()), crs);
+        }
+        if (value instanceof String && layer != null) {
+            GeometryFactory factory = layer.getGeometryFactory();
+            WKTReader reader = new WKTReader(factory);
+            try {
+                Geometry geometry = reader.read((String) value);
+                return new Neo4jGeometry(geometry.getGeometryType(), toNeo4jCoordinates(geometry.getCoordinates()), crs);
+            } catch (ParseException e) {
+                throw new IllegalArgumentException("Invalid WKT: " + e.getMessage());
+            }
+        }
+        Map<String, Object> latLon = null;
+        if (value instanceof PropertyContainer) {
+            latLon = ((PropertyContainer) value).getProperties("latitude", "longitude", "lat", "lon");
+        }
+        if (value instanceof Map) latLon = (Map<String, Object>) value;
+        Coordinate coord = toCoordinate(latLon);
+        if (coord != null) return new Neo4jPoint(coord.x, coord.y, crs);
+        throw new RuntimeException("Can't convert " + value + " to a geometry");
+    }
+
+    private org.neo4j.cypher.internal.compiler.v3_0.Geometry makeCypherGeometry(double x, double y, org.neo4j.cypher.internal.compiler.v3_0.CRS crs) {
+        if (crs.equals(org.neo4j.cypher.internal.compiler.v3_0.CRS.Cartesian())) {
+            return new org.neo4j.cypher.internal.compiler.v3_0.CartesianPoint(x, y, crs);
+        } else {
+            return new org.neo4j.cypher.internal.compiler.v3_0.GeographicPoint(x, y, crs);
+        }
+    }
+
+    private org.neo4j.cypher.internal.compiler.v3_0.Geometry makeCypherGeometry(Geometry geometry, org.neo4j.cypher.internal.compiler.v3_0.CRS crs) {
+        if (geometry.getGeometryType().toLowerCase().equals("point")) {
+            Coordinate coordinate = geometry.getCoordinates()[0];
+            return makeCypherGeometry(coordinate.getOrdinate(0), coordinate.getOrdinate(1), crs);
+        } else {
+            throw new RuntimeException("Cypher only accepts POINT geometries, not " + geometry.getGeometryType());
+        }
+    }
+
+    private org.neo4j.cypher.internal.compiler.v3_0.Geometry toCypherGeometry(Layer layer, Object value) {
+        if (value instanceof org.neo4j.cypher.internal.compiler.v3_0.Geometry) {
+            return (org.neo4j.cypher.internal.compiler.v3_0.Geometry) value;
+        }
+        if ( value instanceof org.neo4j.graphdb.spatial.Point) {
+            org.neo4j.graphdb.spatial.Point point = (org.neo4j.graphdb.spatial.Point) value;
+            List<Double> coord = point.getCoordinate().getCoordinate();
+            return makeCypherGeometry(coord.get(0), coord.get(1), org.neo4j.cypher.internal.compiler.v3_0.CRS.fromSRID(point.getCRS().getCode()));
+        }
+        org.neo4j.cypher.internal.compiler.v3_0.CRS crs = org.neo4j.cypher.internal.compiler.v3_0.CRS.Cartesian();
+        if (layer != null) {
+            CoordinateReferenceSystem layerCRS = layer.getCoordinateReferenceSystem();
+            if (layerCRS != null) {
+                ReferenceIdentifier crsRef = layer.getCoordinateReferenceSystem().getName();
+                crs = org.neo4j.cypher.internal.compiler.v3_0.CRS.fromName(crsRef.toString());
+            }
+        }
+        if (value instanceof Geometry) {
+            Geometry geometry = (Geometry) value;
+            if (geometry.getSRID() > 0) {
+                crs = org.neo4j.cypher.internal.compiler.v3_0.CRS.fromSRID(geometry.getSRID());
+            }
+            if (geometry instanceof Point) {
+                Point point = (Point) geometry;
+                return makeCypherGeometry(point.getX(), point.getY(), crs);
+            }
+            return makeCypherGeometry(geometry, crs);
+        }
+        if (value instanceof String) {
+            GeometryFactory factory = (layer == null) ? new GeometryFactory() : layer.getGeometryFactory();
+            WKTReader reader = new WKTReader(factory);
+            try {
+                Geometry geometry = reader.read((String) value);
+                return makeCypherGeometry(geometry, crs);
+            } catch (ParseException e) {
+                throw new IllegalArgumentException("Invalid WKT: " + e.getMessage());
+            }
+        }
+        Map<String, Object> latLon = null;
+        if (value instanceof PropertyContainer) {
+            latLon = ((PropertyContainer) value).getProperties("latitude", "longitude", "lat", "lon");
+            if (layer == null) {
+                crs = org.neo4j.cypher.internal.compiler.v3_0.CRS.WGS84();
+            }
+        }
+        if (value instanceof Map) latLon = (Map<String, Object>) value;
+        Coordinate coord = toCoordinate(latLon);
+        if (coord != null) return makeCypherGeometry(coord.x, coord.y, crs);
+        throw new RuntimeException("Can't convert " + value + " to a geometry");
+    }
+
+    private static CRS findCRS(String crs) {
+        switch (crs) {
+            case "WGS-84":
+                return makeCRS(4326, "WGS-84", "http://spatialreference.org/ref/epsg/4326/");
+            case "Cartesian":
+                return makeCRS(7203, "cartesian", "http://spatialreference.org/ref/sr-org/7203/");
+            default:
+                throw new IllegalArgumentException("Cypher type system does not support CRS: " + crs);
+        }
+    }
+
+    private static CRS makeCRS(final int code, final String type, final String href) {
+        return new CRS() {
+            public int getCode() {
+                return code;
+            }
+
+            public String getType() {
+                return type;
+            }
+
+            public String getHref() {
+                return href;
+            }
+        };
     }
 
     private Coordinate toCoordinate(Object value) {

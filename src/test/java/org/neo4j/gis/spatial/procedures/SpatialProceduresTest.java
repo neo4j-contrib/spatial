@@ -19,11 +19,9 @@
  */
 package org.neo4j.gis.spatial.procedures;
 
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 import org.neo4j.graphdb.*;
+import org.neo4j.graphdb.spatial.Geometry;
 import org.neo4j.helpers.collection.Iterators;
 import org.neo4j.kernel.api.exceptions.KernelException;
 import org.neo4j.kernel.impl.proc.Procedures;
@@ -37,6 +35,7 @@ import java.util.function.Consumer;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.TestCase.assertFalse;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
@@ -152,6 +151,95 @@ public class SpatialProceduresTest {
         nodes.close();
         testCall(db, "CALL spatial.bbox('geom',{lon:15.0,lat:60.0},{lon:15.3, lat:60.2})", r -> assertEquals(node, r.get("node")));
         testCall(db, "CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)", r -> assertEquals(node, r.get("node")));
+    }
+
+    //
+    // Testing interaction between Neo4j Spatial and the Neo4j 3.0 Point type (point() and distance() functions)
+    //
+
+    @Test
+    public void create_point_and_distance() {
+        ResourceIterator<Object> results = db.execute("WITH point({latitude: 5.0, longitude: 4.0}) as geometry RETURN distance(geometry, point({latitude: 5.0, longitude: 4.0})) as distance").columnAs("distance");
+        Double distance = (Double) results.next();
+        results.close();
+        System.out.println(distance);
+    }
+
+    @Ignore
+    // TODO: Support this once procedures are able to return Geometry types
+    public void create_point_geometry_and_distance() {
+        ResourceIterator<Object> results = db.execute("WITH point({latitude: 5.0, longitude: 4.0}) as geom CALL spatial.asGeometry(geom) YIELD geometry RETURN distance(geometry, point({latitude: 5.0, longitude: 4.0})) as distance").columnAs("distance");
+        Double distance = (Double) results.next();
+        results.close();
+        System.out.println(distance);
+    }
+
+    @Test
+    public void create_point_and_return() {
+        ResourceIterator<Object> results = db.execute("RETURN point({latitude: 5.0, longitude: 4.0}) as geometry").columnAs("geometry");
+        assertThat("Should be Geometry type", results.next(), instanceOf(Geometry.class));
+        results.close();
+    }
+
+    @Test
+    public void create_point_geometry_return() {
+        ResourceIterator<Object> results = db.execute("WITH point({latitude: 5.0, longitude: 4.0}) as geom CALL spatial.asGeometry(geom) YIELD geometry RETURN geometry").columnAs("geometry");
+        assertThat("Should be Geometry type", results.next(), instanceOf(Geometry.class));
+        results.close();
+    }
+
+    @Test
+    public void create_point_geometry_return_public_type() {
+        ResourceIterator<Object> results = db.execute("WITH point({latitude: 5.0, longitude: 4.0}) as geom CALL spatial.asExternalGeometry(geom) YIELD geometry RETURN geometry").columnAs("geometry");
+        assertThat("Should be Geometry type", results.next(), instanceOf(Geometry.class));
+        results.close();
+    }
+
+    @Test
+    public void literal_geometry_return() {
+        ResourceIterator<Object> results = db.execute("CALL spatial.asGeometry({latitude: 5.0, longitude: 4.0}) YIELD geometry RETURN geometry").columnAs("geometry");
+        assertThat("Should be Geometry type", results.next(), instanceOf(Geometry.class));
+        results.close();
+    }
+
+    @Test
+    public void create_node_decode_to_geometry() {
+        execute("CALL spatial.addWKTLayer('geom','geom')");
+        ResourceIterator<Object> results = db.execute("CREATE (n:Node {geom:'POINT(4.0 5.0)'}) WITH n CALL spatial.decodeGeometry('geom',n) YIELD geometry RETURN geometry").columnAs("geometry");
+        assertThat("Should be Geometry type", results.next(), instanceOf(Geometry.class));
+        results.close();
+    }
+
+    @Ignore
+    // TODO: Currently this does not work because 3.0.3 converts RETURN types to public,
+    // While distance() cannot take a public type, and requires a cypher type
+    public void create_node_and_convert_to_geometry() {
+        execute("CALL spatial.addWKTLayer('geom','geom')");
+        ResourceIterator<Object> geometries = db.execute("CREATE (n:Node {geom:'POINT(4.0 5.0)'}) WITH n CALL spatial.decodeGeometry('geom',n) YIELD geometry RETURN geometry").columnAs("geometry");
+        Geometry geom = (Geometry) geometries.next();
+        geometries.close();
+        System.out.println(geom);
+        ResourceIterator<Object> results = db.execute("RETURN distance({geom}, point({latitude: 5.0, longitude: 4.0})) as distance", map("geom", geom)).columnAs("distance");
+        Double distance = (Double) results.next();
+        results.close();
+        System.out.println(distance);
+
+    }
+
+    @Ignore
+    // TODO: Currently this does not work because 3.0.3 converts RETURN types to public,
+    // While distance() cannot take a public type, and requires a cypher type
+    // The attempt to make a Cypher type with spatial.asGeometry does not work because the procedure casts
+    // the type back to Object, which the Cypher parser rejects (even though distance would have accepted).
+    public void create_point_and_pass_as_param() {
+        ResourceIterator<Object> geometries = db.execute("RETURN point({latitude: 5.0, longitude: 4.0}) as geometry").columnAs("geometry");
+        Geometry geom = (Geometry) geometries.next();
+        geometries.close();
+        System.out.println(geom);
+        ResourceIterator<Object> results = db.execute("CALL spatial.asGeometry({geom}) YIELD geometry RETURN distance(geometry, point({latitude: 5.0, longitude: 4.0})) as distance", map("geom", geom)).columnAs("distance");
+        Double distance = (Double) results.next();
+        results.close();
+        System.out.println(distance);
     }
 
     private void execute(String statement) {
