@@ -17,6 +17,10 @@ Some key features include:
 * Support for topology operations during the search (contains, within, intersects, covers, disjoint, etc.) 
 * The possibility to enable spatial operations on any graph of data, regardless of the way the spatial data is stored, as long as an adapter is provided to map from the graph to the geometries.
 * Ability to split a single layer or dataset into multiple sub-layers or views with pre-configured filters
+* Server Plugin for Neo4j Server 2.x amd 3.x
+  * REST API for creating layers and adding nodes or geometries to layers
+  * IndexProvider API (2.x only) for Cypher access using START node=node:geom({query}) _2.x only_
+  * Procedures for much more comprehensive access to spatial from Cypher _3.x only_
 
 ## Index and Querying ##
 
@@ -45,6 +49,7 @@ The simplest way to build Neo4j Spatial is by using maven. Just clone the git re
 ~~~
 
 This will download all dependencies, compiled the library, run the tests and install the artifact in your local repository.
+The spatial plugin will also be created, and can be copied to your local server using instructions on the spatial server plugin below.
 
 ## Layers and GeometryEncoders ##
 
@@ -208,12 +213,10 @@ For more info head over to [Neo4j Wiki on uDig](http://wiki.neo4j.org/content/Ne
 
 ## Using the Neo4j Spatial Server plugin ##
 
-Neo4j Spatial is also packaged as a ZIP file that can be unzipped into the Neo4j Server /plugin directory. After restarting the server, you should be able to do things like the following REST calls (here illustrated using `curl`)
+The Neo4j Spatial Plugin is available for inclusion in the server version of Neo4j 2.x and Neo4j 3.x.
 
 Precompiled versions of that ZIP file ready for download and use:
 
-* [for Neo4j 1.8.2](http://dist.neo4j.org.s3.amazonaws.com/spatial/neo4j-spatial-0.9.1-neo4j-1.8.2-server-plugin.zip)
-* [for Neo4j 1.9](http://dist.neo4j.org.s3.amazonaws.com/spatial/neo4j-spatial-0.11-neo4j-1.9-server-plugin.zip)
 * [for Neo4j 2.0.4](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.12-neo4j-2.0.4/neo4j-spatial-0.12-neo4j-2.0.4-server-plugin.zip?raw=true)
 * [for Neo4j 2.1.8](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.13-neo4j-2.1.8/neo4j-spatial-0.13-neo4j-2.1.8-server-plugin.zip?raw=true)
 * [for Neo4j 2.2.6](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.14-neo4j-2.2.6/neo4j-spatial-0.14-neo4j-2.2.6-server-plugin.zip?raw=true)
@@ -250,8 +253,27 @@ For versions for neo4j 3.0 and later:
     curl http://localhost:7474/db/data/
 ~~~
 
+The server plugin provides access to the internal spatial capabilities using three APIs:
+* A REST API for creating layers and adding nodes or geometries to layers.
+  * For usage information see [Neo4j Spatial Manual REST](http://neo4j-contrib.github.io/spatial/#spatial-server-plugin)
+  * Note that this API provides only limited access to Spatial, with no access the the GeoPipes or import utilities
+* An IndexProvider API (2.x only) for Cypher access using START node=node:geom({query})
+  * It is only possible to add nodes and query for nodes, and the resulting graph structure is not compatible with any other spatial API (not compatible with Java API, REST or Procedures), so if you use this approach, do not blend it with the other approaches.
+  * There is some brief documentation at [Finding geometries within distance using cypher](http://neo4j-contrib.github.io/spatial/#rest-api-find-geometries-within--distance-using-cypher)
+  * This API was removed for 3.0 releases, and so is only available for Neo4j 2.x
+* Procedures for much more comprehensive access to spatial from Cypher
+  * Documentation is not yet available, but you can list the available procedures within Neo4j using the query `CALL spatial.procedures`
+  * This API uses the _Procedures_ capabilities released in Neo4j 3.0, and is therefor not available for Neo4j 2.x
 
-For the REST API, see [Neo4j Spatial Manual REST](http://neo4j-contrib.github.io/spatial/#spatial-server-plugin)
+At the time of writing the procedures were still being developed and changing.
+However, they are already more extensive than the REST API, making them by far
+the best option for accessing Neo4j remotely or through Cypher.
+The IndexProvider approach has already been removed, and it is anticipated the REST API might follow suite.
+
+The Java API (the original API for Neo4j Spatial), will, however, remain the most feature rich for some time,
+and therefor we recommend that if you need to access Neo4j server remotely, and want deeper access to Spatial functions,
+consider writing your own Procedures. The Neo4j 3.0 documentation provides some good information on how to do this,
+and you can also refer to the [Neo4j Spatial procedures source code](https://github.com/neo4j-contrib/spatial/blob/master/src/main/java/org/neo4j/gis/spatial/procedures/SpatialProcedures.java) for examples.
 
 ## Building Neo4j spatial ##
 
