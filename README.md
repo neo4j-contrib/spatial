@@ -17,10 +17,10 @@ Some key features include:
 * Support for topology operations during the search (contains, within, intersects, covers, disjoint, etc.) 
 * The possibility to enable spatial operations on any graph of data, regardless of the way the spatial data is stored, as long as an adapter is provided to map from the graph to the geometries.
 * Ability to split a single layer or dataset into multiple sub-layers or views with pre-configured filters
-* Server Plugin for Neo4j Server 2.x amd 3.x
+* Server Plugin for Neo4j Server 2.x and 3.x
   * REST API for creating layers and adding nodes or geometries to layers
-  * IndexProvider API (2.x only) for Cypher access using START node=node:geom({query}) _2.x only_
-  * Procedures for much more comprehensive access to spatial from Cypher _3.x only_
+  * IndexProvider API (2.x only) for Cypher access using `START node=node:geom({query})`
+  * Procedures (3.x only) for much more comprehensive access to spatial from Cypher
 
 ## Index and Querying ##
 
@@ -49,7 +49,7 @@ The simplest way to build Neo4j Spatial is by using maven. Just clone the git re
 ~~~
 
 This will download all dependencies, compiled the library, run the tests and install the artifact in your local repository.
-The spatial plugin will also be created, and can be copied to your local server using instructions on the spatial server plugin below.
+The spatial plugin will also be created in the `target` directory, and can be copied to your local server using instructions on the spatial server plugin below.
 
 ## Layers and GeometryEncoders ##
 
@@ -73,6 +73,13 @@ Spatial data is divided in Layers and indexed by a RTree.
     } finally {
         database.shutdown();
     }
+~~~
+
+If using the server, the same can be achieved with spatial procedures (3.x only):
+
+~~~cypher
+CALL spatial.addWKTLayer('layer_roads','geometry')
+CALL spatial.importShapefileToLayer('layer_roads','roads.shp')
 ~~~
 
 ### Importing an Open Street Map file ###
@@ -111,11 +118,26 @@ This is more complex because the current OSMImporter class runs in two phases, t
     }
 ~~~
 
-Refer to the test code in the LayerTest and the SpatialTest classes for more examples of query code. Also review the classes in the org.neo4j.gis.spatial.query package for the full range or search queries currently implemented.
+If using the server, the same can be achieved with spatial procedures (3.x only):
+
+~~~cypher
+CALL spatial.bbox('layer_roads', {lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})
+~~~
+
+Or using a polygon:
+
+~~~cypher
+WITH "POLYGON((15.3 60.2, 15.3 60.4, 15.7 60.4, 15.7 60.2, 15.3 60.2))" as polygon
+CALL spatial.intersects('layer_roads',polygon) YIELD node RETURN node.name as name
+~~~
+
+For further Java examples, refer to the test code in the [LayersTest](https://github.com/neo4j-contrib/spatial/blob/master/src/test/java/org/neo4j/gis/spatial/LayersTest.java) and the [TestSpatial](https://github.com/neo4j-contrib/spatial/blob/master/src/test/java/org/neo4j/gis/spatial/TestSpatial.java) classes.
+
+For further Procedures examples, refer to the code in the [SpatialProceduresTest](https://github.com/neo4j-contrib/spatial/blob/master/src/test/java/org/neo4j/gis/spatial/procedures/SpatialProceduresTest.java) class.
 
 ## Neo4j Spatial Geoserver Plugin ##
 
-*IMPORTANT*: Examples in this readme were tested with GeoServer 2.1.1
+*IMPORTANT*: Examples in this readme were tested with GeoServer 2.1.1. However, regular testing of new releases of Neo4j Spatial against GeoServer is not done, and so we welcome feedback on which versions are known to work, and which ones do not, and perhaps some hints as to the errors or problems encountered.
 
 ### Building ###
 
@@ -123,39 +145,12 @@ Refer to the test code in the LayerTest and the SpatialTest classes for more exa
     mvn clean install
 ~~~
 
-
-### Building and deploying the docs###
-
-Add your Github credentials in your `~/.m2/settings.xml`
-
-~~~xml
-<settings>
-    <servers>
-      <server>
-        <id>github</id>
-        <username>xxx@xxx.xx</username>
-        <password>secret</password>
-      </server>
-    </servers>
-</settings>
-~~~
-
-now do
-
-~~~bash
-    mvn clean install site -Pneo-docs-build -
-~~~
-
 ### Deployment into Geoserver ###
 
 * unzip the `target/xxxx-server-plugin.zip` and the Neo4j libraries from your Neo4j download under `$NEO4J_HOME/lib` into `$GEOSERVER_HOME/webapps/geoserver/WEB-INF/lib`
-
 * restart geoserver
-
 * configure a new workspace
-
 * configure a new datasource neo4j in your workspace. Point the "The directory path of the Neo4j database:" parameter to the relative (form the GeoServer working dir) or aboslute path to a Neo4j Spatial database with layers (see [Neo4j Spatial](https://github.com/neo4j/spatial))
-
 * in Layers, do "Add new resource" and choose your Neo4j datastore to see the exisitng Neo4j Spatial layers and add them.
 
 ### Testing in GeoServer trunk ###
@@ -209,13 +204,13 @@ The version specified on the version line can be changed to match the version yo
 
 ## Using Neo4j Spatial with uDig ##
 
-For more info head over to [Neo4j Wiki on uDig](http://wiki.neo4j.org/content/Neo4j_Spatial_in_uDig)
+For more info head over to [Neo4j Wiki on uDig](http://wiki.neo4j.org/content/Neo4j_Spatial_in_uDig) (This wiki is currently dead, but there appears to be a working mirror in Japan at http://oss.infoscience.co.jp/neo4j/wiki.neo4j.org/content/Neo4j_Spatial_in_uDig.html).
 
 ## Using the Neo4j Spatial Server plugin ##
 
 The Neo4j Spatial Plugin is available for inclusion in the server version of Neo4j 2.x and Neo4j 3.x.
 
-Precompiled versions of that ZIP file ready for download and use:
+Precompiled versions of the plugin file ready for download and use:
 
 * [for Neo4j 2.0.4](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.12-neo4j-2.0.4/neo4j-spatial-0.12-neo4j-2.0.4-server-plugin.zip?raw=true)
 * [for Neo4j 2.1.8](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.13-neo4j-2.1.8/neo4j-spatial-0.13-neo4j-2.1.8-server-plugin.zip?raw=true)
@@ -238,7 +233,8 @@ For versions up to 0.15-neo4j-2.3.4:
     #start the server
     $NEO4J_HOME/bin/neo4j start
 
-    curl http://localhost:7474/db/data/
+    #list REST API (edit to correct password)
+    curl -u neo4j:neo4j http://localhost:7474/db/data/
 ~~~
 
 For versions for neo4j 3.0 and later:
@@ -250,7 +246,11 @@ For versions for neo4j 3.0 and later:
     #start the server
     $NEO4J_HOME/bin/neo4j start
 
-    curl http://localhost:7474/db/data/
+    #list REST API (edit to correct password)
+    curl -u neo4j:neo4j http://localhost:7474/db/data/
+
+    #list spatial procedures (edit to correct password)
+    curl -u neo4j:neo4j -H "Content-Type: application/json" -X POST -d '{"query":"CALL spatial.procedures"}' http://localhost:7474/db/data/cypher
 ~~~
 
 The server plugin provides access to the internal spatial capabilities using three APIs:
@@ -285,7 +285,23 @@ and you can also refer to the [Neo4j Spatial procedures source code](https://git
 
 ### Building Neo4j Spatial Documentation ###
 
-~~~bash  
+Add your Github credentials in your `~/.m2/settings.xml`
+
+~~~xml
+<settings>
+    <servers>
+      <server>
+        <id>github</id>
+        <username>xxx@xxx.xx</username>
+        <password>secret</password>
+      </server>
+    </servers>
+</settings>
+~~~
+
+To build and deploy:
+
+~~~bash
     git clone https://github.com/neo4j/spatial.git
     cd spatial
     mvn clean install site -Pneo-docs-build  
