@@ -54,8 +54,8 @@ public class SpatialIndexImplementation implements IndexImplementation {
 			return stringMap(
 					IndexManager.PROVIDER, config.get(IndexManager.PROVIDER),
 					SpatialIndexProvider.GEOMETRY_TYPE, LayerNodeIndex.POINT_GEOMETRY_TYPE,
-					LayerNodeIndex.LON_PROPERTY_KEY, config.getOrDefault(LayerNodeIndex.LON_PROPERTY_KEY, SimplePointEncoder.DEFAULT_X),
-					LayerNodeIndex.LAT_PROPERTY_KEY, config.getOrDefault(LayerNodeIndex.LAT_PROPERTY_KEY, SimplePointEncoder.DEFAULT_Y)
+					LayerNodeIndex.LON_PROPERTY_KEY, config.containsKey(LayerNodeIndex.LON_PROPERTY_KEY) ?  config.get(LayerNodeIndex.LON_PROPERTY_KEY) : SimplePointEncoder.DEFAULT_X,
+					LayerNodeIndex.LAT_PROPERTY_KEY, config.containsKey(LayerNodeIndex.LAT_PROPERTY_KEY) ?  config.get(LayerNodeIndex.LAT_PROPERTY_KEY) : SimplePointEncoder.DEFAULT_Y
 			);
 		} else if (config.containsKey(LayerNodeIndex.WKT_PROPERTY_KEY)) {
 			return makeSinglePropertyConfig(config, LayerNodeIndex.WKT_PROPERTY_KEY, Constants.PROP_WKT);
@@ -67,7 +67,7 @@ public class SpatialIndexImplementation implements IndexImplementation {
 	}
 
 	private Map<String, String> makeSinglePropertyConfig(Map<String, String> config, String key, String defaultValue) {
-		return stringMap(IndexManager.PROVIDER, config.get(IndexManager.PROVIDER), key, config.getOrDefault(key, defaultValue));
+		return stringMap(IndexManager.PROVIDER, config.get(IndexManager.PROVIDER), key, config.containsKey(key) ? config.get(key) : defaultValue);
 	}
 
     @Override
