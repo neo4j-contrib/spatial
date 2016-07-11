@@ -49,7 +49,11 @@ public class SpatialIndexImplementation implements IndexImplementation {
 
     @Override
 	public Map<String, String> fillInDefaults(Map<String, String> config) {
-		if (config.containsKey(SpatialIndexProvider.GEOMETRY_TYPE)
+		if (config.containsKey(LayerNodeIndex.WKT_PROPERTY_KEY)) {
+			return makeSinglePropertyConfig(config, LayerNodeIndex.WKT_PROPERTY_KEY, Constants.PROP_WKT);
+		} else if (config.containsKey(LayerNodeIndex.WKB_PROPERTY_KEY)) {
+			return makeSinglePropertyConfig(config, LayerNodeIndex.WKT_PROPERTY_KEY, Constants.PROP_WKT);
+		} else if (config.containsKey(SpatialIndexProvider.GEOMETRY_TYPE)
 				&& LayerNodeIndex.POINT_GEOMETRY_TYPE.equals(config.get(SpatialIndexProvider.GEOMETRY_TYPE))) {
 			return stringMap(
 					IndexManager.PROVIDER, config.get(IndexManager.PROVIDER),
@@ -57,10 +61,6 @@ public class SpatialIndexImplementation implements IndexImplementation {
 					LayerNodeIndex.LON_PROPERTY_KEY, config.containsKey(LayerNodeIndex.LON_PROPERTY_KEY) ?  config.get(LayerNodeIndex.LON_PROPERTY_KEY) : SimplePointEncoder.DEFAULT_X,
 					LayerNodeIndex.LAT_PROPERTY_KEY, config.containsKey(LayerNodeIndex.LAT_PROPERTY_KEY) ?  config.get(LayerNodeIndex.LAT_PROPERTY_KEY) : SimplePointEncoder.DEFAULT_Y
 			);
-		} else if (config.containsKey(LayerNodeIndex.WKT_PROPERTY_KEY)) {
-			return makeSinglePropertyConfig(config, LayerNodeIndex.WKT_PROPERTY_KEY, Constants.PROP_WKT);
-		} else if (config.containsKey(LayerNodeIndex.WKB_PROPERTY_KEY)) {
-			return makeSinglePropertyConfig(config, LayerNodeIndex.WKT_PROPERTY_KEY, Constants.PROP_WKT);
 		} else {
 			throw new IllegalArgumentException("Invalid spatial index config: " + config);
 		}
