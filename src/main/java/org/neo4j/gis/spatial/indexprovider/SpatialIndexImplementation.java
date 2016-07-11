@@ -52,7 +52,7 @@ public class SpatialIndexImplementation implements IndexImplementation {
 		if (config.containsKey(LayerNodeIndex.WKT_PROPERTY_KEY)) {
 			return makeSinglePropertyConfig(config, LayerNodeIndex.WKT_PROPERTY_KEY, Constants.PROP_WKT);
 		} else if (config.containsKey(LayerNodeIndex.WKB_PROPERTY_KEY)) {
-			return makeSinglePropertyConfig(config, LayerNodeIndex.WKT_PROPERTY_KEY, Constants.PROP_WKT);
+			return makeSinglePropertyConfig(config, LayerNodeIndex.WKB_PROPERTY_KEY, Constants.PROP_WKB);
 		} else if (config.containsKey(SpatialIndexProvider.GEOMETRY_TYPE)
 				&& LayerNodeIndex.POINT_GEOMETRY_TYPE.equals(config.get(SpatialIndexProvider.GEOMETRY_TYPE))) {
 			return stringMap(
