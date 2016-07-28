@@ -40,6 +40,7 @@ import java.util.TreeSet;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
+import org.apache.commons.io.FileUtils;
 import org.geotools.data.neo4j.StyledImageExporter;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.neo4j.gis.spatial.utilities.ReferenceNodes;
@@ -147,7 +148,15 @@ public class OsmAnalysisTest extends TestOSMImport {
 		if (db != null) {
 			shutdownDatabase();
 		}
-		db = new GraphDatabaseFactory().newEmbeddedDatabase("var/" + dataset);
+		File dbDir = new File("var");
+		if (dbDir.exists()) {
+			try {
+				FileUtils.deleteDirectory(dbDir);
+			} catch (IOException e) {
+				System.out.println("Failed to delete previous database directory '" + dbDir + "': " + e.getMessage());
+			}
+		}
+		db = new GraphDatabaseFactory().newEmbeddedDatabase(new File(dbDir, dataset));
 		return new SpatialDatabaseService(db);
 	}
 	
