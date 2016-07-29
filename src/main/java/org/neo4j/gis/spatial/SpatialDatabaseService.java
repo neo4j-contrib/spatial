@@ -305,7 +305,7 @@ public class SpatialDatabaseService implements Constants {
 
             Layer layer = DefaultLayer.makeLayerAndNode(this, name, geometryEncoderClass, layerClass);
             getSpatialRoot().createRelationshipTo(layer.getLayerNode(), SpatialRelationshipTypes.LAYER);
-			if (encoderConfig != null) {
+			if (encoderConfig != null && encoderConfig.length() > 0) {
 				GeometryEncoder encoder = layer.getGeometryEncoder();
 				if (encoder instanceof Configurable) {
 					((Configurable) encoder).setConfiguration(encoderConfig);

@@ -97,20 +97,23 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 	 * @return layer names
 	 */
     public String[] getTypeNames() throws IOException {
-        if (typeNames == null) {
-            List<String> notEmptyTypes = new ArrayList<String>();
-            String[] allTypeNames = spatialDatabase.getLayerNames();
-            for (int i = 0; i < allTypeNames.length; i++) {
-                // discard empty layers
-                System.out.print( "loading layer " + allTypeNames[i] );
-                Layer layer = spatialDatabase.getLayer(allTypeNames[i]);
-                if (!layer.getIndex().isEmpty()) {
-                    notEmptyTypes.add(allTypeNames[i]);
-                }
-            }
-            typeNames = notEmptyTypes.toArray(new String[] {});
-        }
-        return typeNames;
+		if (typeNames == null) {
+			try (Transaction tx = database.beginTx()) {
+				List<String> notEmptyTypes = new ArrayList<String>();
+				String[] allTypeNames = spatialDatabase.getLayerNames();
+				for (int i = 0; i < allTypeNames.length; i++) {
+					// discard empty layers
+					System.out.print("loading layer " + allTypeNames[i]);
+					Layer layer = spatialDatabase.getLayer(allTypeNames[i]);
+					if (!layer.getIndex().isEmpty()) {
+						notEmptyTypes.add(allTypeNames[i]);
+					}
+				}
+				typeNames = notEmptyTypes.toArray(new String[]{});
+				tx.success();
+			}
+		}
+		return typeNames;
     }
 	
     /**
@@ -260,13 +263,15 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
     
 	public ReferencedEnvelope getBounds(String typeName) {
     	ReferencedEnvelope result = boundsIndex.get(typeName);
-    	if (result == null) {
-			Envelope bbox = Utilities.fromNeo4jToJts(
-					spatialDatabase.getLayer(typeName).getIndex().getBoundingBox());
-			result = convertEnvelopeToRefEnvelope(typeName, bbox);
-			boundsIndex.put(typeName, result);		
-    	}
-    	return result;
+		if (result == null) {
+			Layer layer = spatialDatabase.getLayer(typeName);
+			if (layer != null) {
+				Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox());
+				result = convertEnvelopeToRefEnvelope(typeName, bbox);
+				boundsIndex.put(typeName, result);
+			}
+		}
+		return result;
     }
     
 	public SpatialDatabaseService getSpatialDatabaseService() {
