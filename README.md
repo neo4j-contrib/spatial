@@ -184,7 +184,7 @@ now do
         <dependency>
           <groupId>org.neo4j</groupId>
           <artifactId>neo4j-spatial</artifactId>
-          <version>0.15-neo4j-2.3.4</version>
+          <version>0.15.2-neo4j-2.3.4</version>
         </dependency>
       </dependencies>
     </profile>
@@ -216,13 +216,8 @@ Precompiled versions of that ZIP file ready for download and use:
 * [for Neo4j 1.9](http://dist.neo4j.org.s3.amazonaws.com/spatial/neo4j-spatial-0.11-neo4j-1.9-server-plugin.zip)
 * [for Neo4j 2.0.4](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.12-neo4j-2.0.4/neo4j-spatial-0.12-neo4j-2.0.4-server-plugin.zip?raw=true)
 * [for Neo4j 2.1.8](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.13-neo4j-2.1.8/neo4j-spatial-0.13-neo4j-2.1.8-server-plugin.zip?raw=true)
-* [for Neo4j 2.2.6](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.14-neo4j-2.2.6/neo4j-spatial-0.14-neo4j-2.2.6-server-plugin.zip?raw=true)
 * [for Neo4j 2.2.7](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.14-neo4j-2.2.7/neo4j-spatial-0.14-neo4j-2.2.7-server-plugin.zip?raw=true)
-* [for Neo4j 2.3.0](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.15-neo4j-2.3.0/neo4j-spatial-0.15-neo4j-2.3.0-server-plugin.zip?raw=true)
-* [for Neo4j 2.3.1](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.15-neo4j-2.3.1/neo4j-spatial-0.15-neo4j-2.3.1-server-plugin.zip?raw=true)
-* [for Neo4j 2.3.2](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.15-neo4j-2.3.2/neo4j-spatial-0.15-neo4j-2.3.2-server-plugin.zip?raw=true)
-* [for Neo4j 2.3.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.15-neo4j-2.3.3/neo4j-spatial-0.15-neo4j-2.3.3-server-plugin.zip?raw=true)
-* [for Neo4j 2.3.4](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.15-neo4j-2.3.4/neo4j-spatial-0.15-neo4j-2.3.4-server-plugin.zip?raw=true)
+* [for Neo4j 2.3.4](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.15.2-neo4j-2.3.4/neo4j-spatial-0.15.2-neo4j-2.3.4-server-plugin.zip?raw=true)
 
 ~~~bash
     #install the plugin
@@ -283,7 +278,7 @@ Add the following repositories and dependency to your project's pom.xml:
     <dependency>
         <groupId>org.neo4j</groupId>
         <artifactId>neo4j-spatial</artifactId>
-        <version>0.15-neo4j-2.3.4</version>
+        <version>0.15.2-neo4j-2.3.4</version>
     </dependency>
 ~~~
 
