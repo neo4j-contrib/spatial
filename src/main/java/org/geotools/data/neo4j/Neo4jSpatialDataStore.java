@@ -322,23 +322,26 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 	 * Create an optimized FeatureReader for most of the uDig operations.
 	 */
     protected FeatureReader<SimpleFeatureType, SimpleFeature> getFeatureReader(String typeName, Filter filter) throws IOException {
-    	Layer layer = spatialDatabase.getLayer(typeName);
-    	
-    	Iterator<SpatialDatabaseRecord> records;
-    	if (filter.equals(Filter.EXCLUDE)) {
-    		// filter that excludes everything: create an empty FeatureReader
-			records = null;
-		} else if (filter instanceof FidFilterImpl) {
-			// filter by Feature unique id
-			List<SpatialDatabaseRecord> results = layer.getIndex().get(convertToGeomNodeIds((FidFilterImpl) filter));
-			System.out.println("found results for FidFilter: " + results.size());
-			records = results.iterator();
-		} else {
-			records = layer.getIndex().search(new SearchCQL(layer, filter));
+		Layer layer = spatialDatabase.getLayer(typeName);
+
+		try (Transaction tx = database.beginTx()) {
+			Iterator<SpatialDatabaseRecord> records;
+			if (filter.equals(Filter.EXCLUDE)) {
+				// filter that excludes everything: create an empty FeatureReader
+				records = null;
+			} else if (filter instanceof FidFilterImpl) {
+				// filter by Feature unique id
+				List<SpatialDatabaseRecord> results = layer.getIndex().get(convertToGeomNodeIds((FidFilterImpl) filter));
+				System.out.println("found results for FidFilter: " + results.size());
+				records = results.iterator();
+			} else {
+				records = layer.getIndex().search(new SearchCQL(layer, filter));
+			}
+
+			tx.success();
+			return new Neo4jSpatialFeatureReader(layer, getSchema(typeName), records);
 		}
-    	
-		return new Neo4jSpatialFeatureReader(layer, getSchema(typeName), records);
-    }
+	}
     
     protected ResourceInfo getInfo(String typeName) {
     	return new DefaultResourceInfo(typeName, getCRS(typeName), getBounds(typeName));
