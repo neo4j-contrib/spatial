@@ -28,6 +28,7 @@ import org.geotools.data.FeatureReader;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import org.neo4j.graphdb.Transaction;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 
@@ -76,7 +77,12 @@ public class Neo4jSpatialFeatureReader implements FeatureReader<SimpleFeatureTyp
 	 * 
 	 */
 	public boolean hasNext() throws IOException {
-		return results != null && results.hasNext();
+		if (results == null) return false;
+		try (Transaction tx = layer.getSpatialDatabase().getDatabase().beginTx()) {
+			boolean ans = results.hasNext();
+			tx.success();
+			return ans;
+		}
 	}
 
 	/**
@@ -84,22 +90,26 @@ public class Neo4jSpatialFeatureReader implements FeatureReader<SimpleFeatureTyp
 	 */
 	public SimpleFeature next() throws IOException, IllegalArgumentException, NoSuchElementException {
 		if (results == null) return null;
-		
-		SpatialDatabaseRecord record = results.next();
-		if (record == null) return null;
-		
-		builder.reset();
-	    builder.set(FEATURE_PROP_GEOM, record.getGeometry());
-	        
-	    if (extraPropertyNames != null) {
-	    	for (int i = 0; i < extraPropertyNames.length; i++) {
-	    		if (record.hasProperty(extraPropertyNames[i])) {
-	    			builder.set(extraPropertyNames[i], record.getProperty(extraPropertyNames[i]));
-		        }
-	    	}
-	    }
-	        
-	    return builder.buildFeature(record.getId());						
+
+		try (Transaction tx = layer.getSpatialDatabase().getDatabase().beginTx()) {
+			SpatialDatabaseRecord record = results.next();
+			if (record == null) return null;
+
+			builder.reset();
+
+			builder.set(FEATURE_PROP_GEOM, record.getGeometry());
+
+			if (extraPropertyNames != null) {
+				for (int i = 0; i < extraPropertyNames.length; i++) {
+					if (record.hasProperty(extraPropertyNames[i])) {
+						builder.set(extraPropertyNames[i], record.getProperty(extraPropertyNames[i]));
+					}
+				}
+			}
+			tx.success();
+
+			return builder.buildFeature(record.getId());
+		}
 	}
 	
 	/**
