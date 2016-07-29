@@ -122,11 +122,6 @@ public class OSMImporter implements Constants
                 ArrayList<String> tags = new ArrayList<String>();
                 for ( String key : stats.keySet() )
                 {
-                    if ( key.equals( "waterway" ) )
-                    {
-                        System.out.println( "debug[" + key + "]: "
-                                            + stats.get( key ) );
-                    }
                     if ( stats.get( key ) > threshold ) tags.add( key );
                 }
                 Collections.sort( tags );
@@ -248,9 +243,9 @@ public class OSMImporter implements Constants
     {
         if ( commitInterval < 1 )
             throw new IllegalArgumentException( "commitInterval must be >= 1" );
-        System.out.println( "Re-indexing with GraphDatabaseService: "
-                            + database + " (class: " + database.getClass()
-                            + ")" );
+        log("Re-indexing with GraphDatabaseService: "
+                + database + " (class: " + database.getClass()
+                + ")");
 
         setLogContext( "Index" );
         SpatialDatabaseService spatialDatabase = new SpatialDatabaseService(
@@ -334,10 +329,12 @@ public class OSMImporter implements Constants
             tx.close();
         }
 
-        long stopTime = System.currentTimeMillis();
-        log( "info | Re-indexing elapsed time in seconds: "
-             + ( 1.0 * ( stopTime - startTime ) / 1000.0 ) );
-        stats.dumpGeomStats();
+        if (verboseLog) {
+            long stopTime = System.currentTimeMillis();
+            log("info | Re-indexing elapsed time in seconds: "
+                    + (1.0 * (stopTime - startTime) / 1000.0));
+            stats.dumpGeomStats();
+        }
     }
 
     private static class GeometryMetaData
@@ -651,8 +648,6 @@ public class OSMImporter implements Constants
             createRelationship( currentNode, changesetNode,
                     OSMRelation.CHANGESET );
             nodeCount++;
-            debugNodeWithId( currentNode, "node_osm_id", new long[] { 8090260,
-                    273534207 } );
         }
 
         private void addOSMNodeTags( boolean allPoints,
@@ -707,10 +702,6 @@ public class OSMImporter implements Constants
                 wayProperties.put( "name", name );
             }
             String way_osm_id = (String) wayProperties.get( "way_osm_id" );
-            if ( way_osm_id.equals( "28338132" ) )
-            {
-                System.out.println( "Debug way: " + way_osm_id );
-            }
             T changesetNode = getChangesetNode( wayProperties );
             T way = addNode( INDEX_NAME_WAY, wayProperties, "way_osm_id" );
             createRelationship( way, changesetNode, OSMRelation.CHANGESET );
@@ -1868,7 +1859,7 @@ public class OSMImporter implements Constants
             boolean allPoints, Charset charset ) throws IOException,
             XMLStreamException
     {
-        System.out.println( "Importing with osm-writer: " + osmWriter );
+        log( "Importing with osm-writer: " + osmWriter );
         osmWriter.getOrCreateOSMDataset( layerName );
         osm_dataset = osmWriter.getDatasetId();
 
@@ -1978,12 +1969,12 @@ public class OSMImporter implements Constants
                     {
                         if ( countXMLTags < 10 )
                         {
-                            log( "Starting tag at depth " + depth + ": "
+                            debug( "Starting tag at depth " + depth + ": "
                                  + currentXMLTags.get( depth ) + " - "
                                  + currentXMLTags.toString() );
                             for ( int i = 0; i < parser.getAttributeCount(); i++ )
                             {
-                                log( "\t" + currentXMLTags.toString() + ": "
+                                debug( "\t" + currentXMLTags.toString() + ": "
                                      + parser.getAttributeLocalName( i ) + "["
                                      + parser.getAttributeNamespace( i ) + ","
                                      + parser.getAttributePrefix( i ) + ","
@@ -2027,15 +2018,17 @@ public class OSMImporter implements Constants
             osmWriter.finish();
             this.osm_dataset = osmWriter.getDatasetId();
         }
-        describeTimes( startTime, times );
-        osmWriter.describeMissing();
-        osmWriter.describeLoaded();
+        if (verboseLog) {
+            describeTimes(startTime, times);
+            osmWriter.describeMissing();
+            osmWriter.describeLoaded();
 
-        long stopTime = System.currentTimeMillis();
-        log( "info | Elapsed time in seconds: "
+            long stopTime = System.currentTimeMillis();
+            log("info | Elapsed time in seconds: "
              + ( 1.0 * ( stopTime - startTime ) / 1000.0 ) );
-        stats.dumpGeomStats();
-        stats.printTagStats();
+            stats.dumpGeomStats();
+            stats.printTagStats();
+        }
     }
 
     private void describeTimes( long startTime, long[] times )
@@ -2154,49 +2147,59 @@ public class OSMImporter implements Constants
         return WGS84.orthodromicDistance( lonA, latA, lonB, latB );
     }
 
-    private void log( PrintStream out, String message, Exception e )
-    {
-        if ( logContext != null )
-        {
+    private void log(PrintStream out, String message) {
+        if (logContext != null) {
             message = logContext + "[" + contextLine + "]: " + message;
         }
-        out.println( message );
-        if ( e != null )
-        {
-            e.printStackTrace( out );
+        out.println(message);
+    }
+
+    private void log(String message) {
+        if (verboseLog) {
+            log(System.out, message);
         }
     }
 
-    private void log( String message )
-    {
-        log( System.out, message, null );
+    private void debug(String message) {
+        if (debugLog) {
+            log(System.out, message);
+        }
     }
 
-    private void error( String message )
-    {
-        log( System.err, message, null );
+    private void error(String message) {
+        log(System.err, message);
     }
 
-    private void error( String message, Exception e )
-    {
-        log( System.err, message, e );
+    private void error(String message, Exception e) {
+        log(System.err, message);
+        e.printStackTrace(System.err);
     }
 
     private String logContext = null;
     private int contextLine = 0;
+    private boolean debugLog = false;
+    private boolean verboseLog = true;
 
     // "2008-06-11T12:36:28Z"
     private DateFormat timestampFormat = new SimpleDateFormat(
-            "yyyy-MM-dd'T'HH:mm:ss'Z'" );
+            "yyyy-MM-dd'T'HH:mm:ss'Z'");
 
-    private void setLogContext( String context )
-    {
+    public void setDebug(boolean verbose) {
+        this.debugLog = verbose;
+        this.verboseLog |= verbose;
+    }
+
+    public void setVerbose(boolean verbose) {
+        this.verboseLog = verbose;
+        this.debugLog &= verbose;
+    }
+
+    private void setLogContext(String context) {
         logContext = context;
         contextLine = 0;
     }
 
-    private void incrLogContext()
-    {
+    private void incrLogContext() {
         contextLine++;
     }
 
