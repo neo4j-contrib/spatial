@@ -22,7 +22,7 @@ package org.neo4j.gis.spatial;
 import java.util.Iterator;
 
 import org.geotools.filter.AndImpl;
-import org.geotools.filter.GeometryFilter;
+import org.geotools.filter.GeometryFilterImpl;
 import org.geotools.filter.LiteralExpressionImpl;
 import org.geotools.filter.spatial.BBOXImpl;
 import org.geotools.filter.spatial.ContainsImpl;
@@ -76,7 +76,7 @@ public class Utilities {
 				   filter instanceof OverlapsImpl ||
 				   filter instanceof TouchesImpl ||
 				   filter instanceof WithinImpl) {			
-			return extractEnvelopeFromGeometryFilter((GeometryFilter) filter);
+			return extractEnvelopeFromGeometryFilter((GeometryFilterImpl) filter);
 		} else if (filter instanceof AndImpl && inspectAndFilters) {
 			AndImpl andFilter = (AndImpl) filter;
 			Iterator children = andFilter.getFilterIterator();
@@ -93,11 +93,11 @@ public class Utilities {
 	}
 		
 	@SuppressWarnings("deprecation")
-	private static Envelope extractEnvelopeFromGeometryFilter(GeometryFilter intersectFilter) {
-		if (intersectFilter.getLeftGeometry() instanceof LiteralExpressionImpl) {
-			return extractEnvelopeFromLiteralExpression((LiteralExpressionImpl) intersectFilter.getLeftGeometry());
-		} else if (intersectFilter.getRightGeometry() instanceof LiteralExpressionImpl) {
-			return extractEnvelopeFromLiteralExpression((LiteralExpressionImpl) intersectFilter.getRightGeometry());
+	private static Envelope extractEnvelopeFromGeometryFilter(GeometryFilterImpl intersectFilter) {
+		if (intersectFilter.getExpression1() instanceof LiteralExpressionImpl) {
+			return extractEnvelopeFromLiteralExpression((LiteralExpressionImpl) intersectFilter.getExpression1());
+		} else if (intersectFilter.getExpression2() instanceof LiteralExpressionImpl) {
+			return extractEnvelopeFromLiteralExpression((LiteralExpressionImpl) intersectFilter.getExpression2());
 		}
 	
 		return null;

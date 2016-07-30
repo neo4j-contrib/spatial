@@ -26,10 +26,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.geotools.data.shapefile.ShpFiles;
+import org.geotools.data.PrjFileReader;
+import org.geotools.data.shapefile.files.ShpFileType;
+import org.geotools.data.shapefile.files.ShpFiles;
 import org.geotools.data.shapefile.dbf.DbaseFileHeader;
 import org.geotools.data.shapefile.dbf.DbaseFileReader;
-import org.geotools.data.shapefile.prj.PrjFileReader;
 import org.geotools.data.shapefile.shp.JTSUtilities;
 import org.geotools.data.shapefile.shp.ShapefileReader;
 import org.geotools.data.shapefile.shp.ShapefileReader.Record;
@@ -39,6 +40,7 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Envelope;
@@ -148,8 +150,6 @@ public class ShapefileImporter implements Constants {
 			}
 		}
 		
-		CoordinateReferenceSystem crs = readCRS(shpFiles);
-		
 		ShapefileReader shpReader = new ShapefileReader(shpFiles, strict, shpMemoryMapped, geomFactory);
 		try {
             Class geometryClass = JTSUtilities.findBestGeometryClass(shpReader.getHeader().getShapeType());
@@ -168,7 +168,8 @@ public class ShapefileImporter implements Constants {
 				
 				Transaction tx = database.beginTx();
 				try {
-					if (crs != null) {
+                    CoordinateReferenceSystem crs = readCRS(shpFiles, shpReader);
+                    if (crs != null) {
 						layer.setCoordinateReferenceSystem(crs);
 					}
 
@@ -254,10 +255,10 @@ public class ShapefileImporter implements Constants {
 	
 	// Private methods
 	
-	private CoordinateReferenceSystem readCRS(ShpFiles shpFiles) {
+	private CoordinateReferenceSystem readCRS(ShpFiles shpFiles, ShapefileReader shpReader) {
 		try {
-			PrjFileReader prjReader = new PrjFileReader(shpFiles);
-			try {
+            PrjFileReader prjReader = new PrjFileReader(shpFiles.getReadChannel(ShpFileType.PRJ, shpReader));
+            try {
 				return prjReader.getCoodinateSystem();
 			} finally {
 				prjReader.close();
@@ -265,7 +266,10 @@ public class ShapefileImporter implements Constants {
 		} catch (IOException e) {
 			e.printStackTrace();
 			return null;
-		}		
+		} catch (FactoryException e) {
+			e.printStackTrace();
+			return null;
+		}
 	}
 	
 	private void log(String message) {
