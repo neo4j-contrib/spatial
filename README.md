@@ -210,13 +210,14 @@ For more info head over to [Neo4j Wiki on uDig](http://wiki.neo4j.org/content/Ne
 
 The Neo4j Spatial Plugin is available for inclusion in the server version of Neo4j 2.x and Neo4j 3.x.
 
-Precompiled versions of the plugin file ready for download and use:
+Precompiled versions of the plugin file ready for download and use (all use GeoTools 9.0 for GeoServer 2.3.2):
 
 * [for Neo4j 2.0.4](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.12-neo4j-2.0.4/neo4j-spatial-0.12-neo4j-2.0.4-server-plugin.zip?raw=true)
 * [for Neo4j 2.1.8](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.13-neo4j-2.1.8/neo4j-spatial-0.13-neo4j-2.1.8-server-plugin.zip?raw=true)
 * [for Neo4j 2.2.7](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.14-neo4j-2.2.7/neo4j-spatial-0.14-neo4j-2.2.7-server-plugin.zip?raw=true)
 * [for Neo4j 2.3.4](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.15.2-neo4j-2.3.4/neo4j-spatial-0.15.2-neo4j-2.3.4-server-plugin.zip?raw=true)
 * [for Neo4j 3.0.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.19-neo4j-3.0.3/neo4j-spatial-0.19-neo4j-3.0.3-server-plugin.jar?raw=true)
+* [for Neo4j 3.0.3 using GeoTools 14.4](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.20-neo4j-3.0.3/neo4j-spatial-0.20-neo4j-3.0.3-server-plugin.jar?raw=true)
 
 For versions up to 0.15-neo4j-2.3.4:
 
