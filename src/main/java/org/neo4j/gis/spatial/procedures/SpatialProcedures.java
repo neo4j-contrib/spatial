@@ -423,7 +423,7 @@ public class SpatialProcedures {
     // If you need to return Geometries outside (eg. RETURN geometry), then consider spatial.asExternalGeometry(geometry)
     public Stream<GeometryResult> decodeGeometry(
             @Name("layerName") String name,
-            @Name("coordinate") Node node) {
+            @Name("node") Node node) {
 
         Layer layer = getLayerOrThrow(name);
         return Stream.of(layer.getGeometryEncoder().decodeGeometry(node)).map(geom -> new GeometryResult(toCypherGeometry(layer, geom)));
