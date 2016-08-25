@@ -1,5 +1,6 @@
 package org.neo4j.gis.spatial;
 
+import org.geotools.data.ResourceInfo;
 import org.geotools.data.neo4j.Neo4jSpatialDataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.geotools.data.simple.SimpleFeatureSource;
@@ -76,5 +77,17 @@ public class Neo4jSpatialDataStoreTest {
         assertThat("Expected first feature to have name 'Nybrodalsvägen'", feature.getAttribute("name").toString(), equalTo("Nybrodalsvägen"));
     }
 
+    @Test
+    public void shouldBeAbleToGetInfoForLayer() throws IOException {
+        Neo4jSpatialDataStore store = new Neo4jSpatialDataStore(graph);
+        SimpleFeatureSource source = store.getFeatureSource("map");
+        ResourceInfo info = source.getInfo();
+        ReferencedEnvelope bounds = info.getBounds();
+        assertThat(bounds, equalTo(new ReferencedEnvelope(12.7856667, 13.2873561, 55.9254241, 56.2179056, DefaultGeographicCRS.WGS84)));
+        SimpleFeatureCollection features = source.getFeatures();
+        assertThat("Expected 217 features", features.size(), equalTo(217));
+        SimpleFeature feature = features.features().next();
+        assertThat("Expected first feature to have name 'Nybrodalsvägen'", feature.getAttribute("name").toString(), equalTo("Nybrodalsvägen"));
+    }
 
 }

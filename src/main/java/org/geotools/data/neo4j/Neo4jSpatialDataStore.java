@@ -128,8 +128,11 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
                 throw new IOException("Layer not found: " + typeName);
             }
 
-            result = Neo4jFeatureBuilder.getTypeFromLayer(layer);
-            simpleFeatureTypeIndex.put(typeName, result);
+            try (Transaction tx = database.beginTx()) {
+                result = Neo4jFeatureBuilder.getTypeFromLayer(layer);
+                simpleFeatureTypeIndex.put(typeName, result);
+                tx.success();
+            }
         }
 
         return result;
@@ -266,9 +269,12 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 		if (result == null) {
 			Layer layer = spatialDatabase.getLayer(typeName);
 			if (layer != null) {
-				Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox());
-				result = convertEnvelopeToRefEnvelope(typeName, bbox);
-				boundsIndex.put(typeName, result);
+                try (Transaction tx = database.beginTx()) {
+                    Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox());
+                    result = convertEnvelopeToRefEnvelope(typeName, bbox);
+                    boundsIndex.put(typeName, result);
+                    tx.success();
+                }
 			}
 		}
 		return result;
@@ -356,9 +362,12 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 	}
 	
     private FeatureReader<SimpleFeatureType, SimpleFeature> getFeatureReader(String typeName, SearchFilter search) throws IOException {
-    	Layer layer = spatialDatabase.getLayer(typeName);		
-    	SearchRecords results = layer.getIndex().search(search);
-    	return new Neo4jSpatialFeatureReader(layer, getSchema(typeName), results);
+        try (Transaction tx = database.beginTx()) {
+            Layer layer = spatialDatabase.getLayer(typeName);
+            SearchRecords results = layer.getIndex().search(search);
+            tx.success();
+            return new Neo4jSpatialFeatureReader(layer, getSchema(typeName), results);
+        }
     }
 		
     private ReferencedEnvelope convertEnvelopeToRefEnvelope(String typeName, Envelope bbox) {
@@ -368,9 +377,12 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
     private CoordinateReferenceSystem getCRS(String typeName) {
     	CoordinateReferenceSystem result = crsIndex.get(typeName);
         if (result == null) {
-            Layer layer = spatialDatabase.getLayer(typeName);
-            result = layer.getCoordinateReferenceSystem();
-            crsIndex.put(typeName, result);
+            try (Transaction tx = database.beginTx()) {
+                Layer layer = spatialDatabase.getLayer(typeName);
+                result = layer.getCoordinateReferenceSystem();
+                crsIndex.put(typeName, result);
+                tx.success();
+            }
         }
     	
     	return result;
@@ -407,8 +419,11 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
     }
 
     private Integer getGeometryType(String typeName) {
-        Layer layer = spatialDatabase.getLayer(typeName);
-        return layer.getGeometryType();
+        try (Transaction tx = database.beginTx()) {
+            Layer layer = spatialDatabase.getLayer(typeName);
+            tx.success();
+            return layer.getGeometryType();
+        }
     }
 
 	private EditableLayer getEditableLayer(String typeName) throws IOException {
