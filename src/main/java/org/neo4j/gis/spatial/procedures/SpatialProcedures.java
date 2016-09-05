@@ -90,6 +90,14 @@ public class SpatialProcedures {
         }
     }
 
+    public static class StringResult {
+        public final String name;
+
+        public StringResult(String name) {
+            this.name = name;
+        }
+    }
+
     public static class NodeDistanceResult {
         public final Node node;
         public final double distance;
@@ -272,6 +280,22 @@ public class SpatialProcedures {
         return streamNode(getLayerOrThrow(name).getLayerNode());
     }
 
+    @Procedure("spatial.getFeatureAttributes")
+    @PerformsWrites
+    public Stream<StringResult> getFeatureAttributes(@Name("name") String name) {
+        Layer layer = this.getLayerOrThrow(name);
+        return Arrays.asList(layer.getExtraPropertyNames()).stream().map(StringResult::new);
+    }
+
+    @Procedure("spatial.setFeatureAttributes")
+    @PerformsWrites
+    public Stream<NodeResult> setFeatureAttributes(@Name("name") String name,
+                                                   @Name("attributeNames") List<String> attributeNames) {
+        EditableLayerImpl layer = this.getEditableLayerOrThrow(name);
+        layer.setExtraPropertyNames(attributeNames.toArray(new String[attributeNames.size()]));
+        return streamNode(layer.getLayerNode());
+    }
+
     @Procedure("spatial.removeLayer")
     @PerformsWrites
     public void removeLayer(@Name("name") String name) {
@@ -346,14 +370,14 @@ public class SpatialProcedures {
             @Name("layerName") String name,
             @Name("uri") String uri) throws IOException {
         EditableLayerImpl layer = getEditableLayerOrThrow(name);
-        return importShapefileToLayer(uri, layer, 1000).stream().map(node -> new NodeResult(node));
+        return importShapefileToLayer(uri, layer, 1000).stream().map(NodeResult::new);
     }
 
     @Procedure("spatial.importShapefile")
     @PerformsWrites
     public Stream<NodeResult> importShapefile(
             @Name("uri") String uri) throws IOException {
-        return importShapefileToLayer(uri, null, 1000).stream().map(node -> new NodeResult(node));
+        return importShapefileToLayer(uri, null, 1000).stream().map(NodeResult::new);
     }
 
     private List<Node> importShapefileToLayer(String shpPath, EditableLayerImpl layer, int commitInterval) throws IOException {

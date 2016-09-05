@@ -315,6 +315,15 @@ public class SpatialProceduresTest {
     }
 
     @Test
+    public void get_and_set_feature_attributes() {
+        execute("CALL spatial.addWKTLayer('geom','wkt')");
+        testCallCount(db, "CALL spatial.layers()", null, 1);
+        testCallCount(db, "CALL spatial.getFeatureAttributes('geom')", null, 0);
+        execute("CALL spatial.setFeatureAttributes('geom',['name','type','color'])");
+        testCallCount(db, "CALL spatial.getFeatureAttributes('geom')", null, 3);
+    }
+
+    @Test
     public void list_spatial_procedures() {
         testResult(db, "CALL spatial.procedures()", (res) -> {
             Map<String,String> procs = new LinkedHashMap<>();
