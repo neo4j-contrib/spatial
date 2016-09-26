@@ -129,7 +129,7 @@
                     <threadCount>1</threadCount>
                     <forkCount>1</forkCount>
                     <reuseForks>false</reuseForks>
-                    <argLine>-server -Xms512m -Xmx1024m</argLine>
+                    <argLine>-server -Xms512m -Xmx1024m -Duser.language=en -Duser.country=US</argLine>
                 </configuration>
             </plugin>
         </plugins>
@@ -650,7 +650,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.18.1</version>
                 <configuration>
-                    <argLine>-server -Xms512m -Xmx2G -XX:+UseConcMarkSweepGC</argLine>
+                    <argLine>-server -Xms512m -Xmx2G -XX:+UseConcMarkSweepGC -Duser.language=en -Duser.country=US</argLine>
                 </configuration>
             </plugin>
         </plugins>
