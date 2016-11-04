@@ -30,32 +30,4 @@ include::dev/rest-api/update-a-wkt-geometry-in-a-layer.asciidoc[]
 
 :leveloffset: 0
 
-include::dev/rest-api/create-a-spatial-index.asciidoc[]
-
-:leveloffset: 0
-
-include::dev/rest-api/create-a-node-with-spatial-data.asciidoc[]
-
-:leveloffset: 0
-
-include::dev/rest-api/add-a-node-to-the-spatial-index.asciidoc[]
-
-:leveloffset: 0
-
-include::dev/rest-api/find-geometries-in-a-bounding-box.asciidoc[]
-
-:leveloffset: 0
-
-include::dev/rest-api/find-geometries-within--distance.asciidoc[]
-
-:leveloffset: 0
-
-include::dev/rest-api/find-geometries-in-a-bounding-box-using-cypher.asciidoc[]
-
-:leveloffset: 0
-
-include::dev/rest-api/find-geometries-within--distance-using-cypher.asciidoc[]
-
-:leveloffset: 0
-
 include::dev/rest-api/find-geometries-close-to-a-point.asciidoc

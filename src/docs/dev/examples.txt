@@ -134,9 +134,9 @@ include::examples/filter-by-cql-using-complex-cql.asciidoc[]
 
 include::examples/boundary.asciidoc[]
 
-include::examples/centroid.asciidoc[]
+include::examples/get-centroid.asciidoc[]
 
-include::examples/convex-hull.asciidoc[]
+include::examples/get-convex-hull.asciidoc[]
 
 include::examples/densify.asciidoc[]
 
@@ -151,8 +151,8 @@ include::examples/union.asciidoc[]
 include::examples/start-point.asciidoc[]
 include::examples/end-point.asciidoc[]
 
-include::examples/max.asciidoc[]
-include::examples/min.asciidoc[]
+include::examples/get-max-area.asciidoc[]
+include::examples/get-min-area.asciidoc[]
 
 include::examples/break-up-all-geometries-into-points-and-make-density-islands.asciidoc[]
 
