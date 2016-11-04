@@ -137,7 +137,9 @@ For further Procedures examples, refer to the code in the [SpatialProceduresTest
 
 ## Neo4j Spatial Geoserver Plugin ##
 
-*IMPORTANT*: Examples in this readme were tested with GeoServer 2.1.1. However, regular testing of new releases of Neo4j Spatial against GeoServer is not done, and so we welcome feedback on which versions are known to work, and which ones do not, and perhaps some hints as to the errors or problems encountered.
+*IMPORTANT*: Examples in this readme were originally tested with GeoServer 2.1.1. However, regular testing of new releases of Neo4j Spatial against GeoServer is not done, and so we welcome feedback on which versions are known to work, and which ones do not, and perhaps some hints as to the errors or problems encountered.
+
+Each release of Neo4j Spatial builds against a specific version of GeoTools and should then be used in the version of GeoServer that corresponds to that. The list of releases below starting at Neo4j 2.0.8 were built with GeoTools 9.0 for GeoServer 2.3.2, but recent releases have been ported to GeoTools 14.4 for GeoServer 2.8.4.
 
 ### Building ###
 
@@ -210,14 +212,14 @@ For more info head over to [Neo4j Wiki on uDig](http://wiki.neo4j.org/content/Ne
 
 The Neo4j Spatial Plugin is available for inclusion in the server version of Neo4j 2.x and Neo4j 3.x.
 
-Precompiled versions of the plugin file ready for download and use (all use GeoTools 9.0 for GeoServer 2.3.2):
+Precompiled versions of the plugin file ready for download and use. Most use GeoTools 9.0 for GeoServer 2.3.2, but recent versions have been ported to GeoTools 14.4 for GeoServer 2.8.4:
 
 * [for Neo4j 2.0.4](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.12-neo4j-2.0.4/neo4j-spatial-0.12-neo4j-2.0.4-server-plugin.zip?raw=true)
 * [for Neo4j 2.1.8](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.13-neo4j-2.1.8/neo4j-spatial-0.13-neo4j-2.1.8-server-plugin.zip?raw=true)
 * [for Neo4j 2.2.7](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.14-neo4j-2.2.7/neo4j-spatial-0.14-neo4j-2.2.7-server-plugin.zip?raw=true)
 * [for Neo4j 2.3.4](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.15.2-neo4j-2.3.4/neo4j-spatial-0.15.2-neo4j-2.3.4-server-plugin.zip?raw=true)
 * [for Neo4j 3.0.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.19-neo4j-3.0.3/neo4j-spatial-0.19-neo4j-3.0.3-server-plugin.jar?raw=true)
-* [for Neo4j 3.0.4 using GeoTools 14.4](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.23-neo4j-3.0.4/neo4j-spatial-0.23-neo4j-3.0.4-server-plugin.jar?raw=true)
+* [for Neo4j 3.0.4 using GeoTools 14.4 for GeoServer 2.8.4](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.23-neo4j-3.0.4/neo4j-spatial-0.23-neo4j-3.0.4-server-plugin.jar?raw=true)
 
 For versions up to 0.15-neo4j-2.3.4:
 
