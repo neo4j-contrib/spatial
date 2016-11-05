@@ -21,6 +21,7 @@ package org.neo4j.gis.spatial.rtree;
 
 import org.neo4j.logging.Logger;
 import java.io.PrintStream;
+import java.util.Locale;
 
 /**
  * This listener logs percentage progress to the specified PrintStream or Logger based on a timer,
@@ -96,7 +97,7 @@ public class ProgressLoggingListener implements Listener {
 
     private String percText() {
         if (totalUnits > 0) {
-            return String.format("%.2f", 100.0 * workedSoFar / totalUnits);
+            return String.format(Locale.ENGLISH,"%.2f", 100.0 * workedSoFar / totalUnits);
         } else {
             return "NaN";
         }

@@ -401,10 +401,13 @@ public class SpatialProceduresTest {
     @Test
     public void add_two_nodes_to_the_spatial_layer() throws Exception {
         execute("CALL spatial.addPointLayerXY('geom','lon','lat')");
-        ResourceIterator<Node> nodes = db.execute("CREATE (n1:Node {lat:60.1,lon:15.2}),(n2:Node {lat:60.1,lon:15.3}) WITH n1,n2 CALL spatial.addNodes('geom',[n1,n2]) YIELD node RETURN node").columnAs("node");
-        Node node1 = nodes.next();
-        Node node2 = nodes.next();
-        nodes.close();
+        Result result = db.execute("CREATE (n1:Node {lat:60.1,lon:15.2}),(n2:Node {lat:60.1,lon:15.3}) WITH n1,n2 CALL spatial.addNodes('geom',[n1,n2]) YIELD count RETURN n1,n2,count");
+        Map<String, Object> row = result.next();
+        Node node1 = (Node) row.get("n1");
+        Node node2 = (Node) row.get("n2");
+        long count = (Long) row.get("count");
+        Assert.assertEquals(2L,count);
+        result.close();
         testResult(db, "CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)", res -> {
                     assertEquals(true, res.hasNext());
                     assertEquals(node1, res.next().get("node"));
@@ -423,9 +426,9 @@ public class SpatialProceduresTest {
         String query = "UNWIND range(1,{count}) as i\n" +
                 "CREATE (n:Point {latitude:(56.0+toFloat(i)/100.0),longitude:(12.0+toFloat(i)/100.0)})\n" +
                 "WITH collect(n) as points\n" +
-                "CALL spatial.addNodes('poi',points) YIELD node\n" +
-                "RETURN count(node)";
-        testCountQuery("addNodes", query, count, "count(node)", map("count", count));
+                "CALL spatial.addNodes('poi',points) YIELD count\n" +
+                "RETURN count";
+        testCountQuery("addNodes", query, count, "count", map("count", count));
     }
 
     @Test

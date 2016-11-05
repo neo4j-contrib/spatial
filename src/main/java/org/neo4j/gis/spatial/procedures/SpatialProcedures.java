@@ -79,6 +79,13 @@ public class SpatialProcedures {
             this.node = node;
         }
     }
+    public static class CountResult {
+        public final long count;
+
+        public CountResult(long count) {
+            this.count = count;
+        }
+    }
 
     public static class NameResult {
         public final String name;
@@ -313,9 +320,9 @@ public class SpatialProcedures {
     // todo do we want to return anything ? or just a count?
     @Procedure("spatial.addNodes")
     @PerformsWrites
-    public Stream<NodeResult> addNodesToLayer(@Name("layerName") String name, @Name("nodes") List<Node> nodes) {
+    public Stream<CountResult> addNodesToLayer(@Name("layerName") String name, @Name("nodes") List<Node> nodes) {
         EditableLayer layer = getEditableLayerOrThrow(name);
-        return nodes.stream().map(layer::add).map(SpatialDatabaseRecord::getGeomNode).map(NodeResult::new);
+        return Stream.of(new CountResult(layer.addAll(nodes)));
     }
 
     // todo do we want to return anything ? or just a count?

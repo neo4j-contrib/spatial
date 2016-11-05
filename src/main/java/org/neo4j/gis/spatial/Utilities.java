@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.util.Comparator;
 import java.util.Iterator;
 
 import org.geotools.filter.AndImpl;
@@ -33,6 +34,8 @@ import org.geotools.filter.spatial.OverlapsImpl;
 import org.geotools.filter.spatial.TouchesImpl;
 import org.geotools.filter.spatial.WithinImpl;
 import org.neo4j.gis.spatial.rtree.Envelope;
+import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
+import org.neo4j.graphdb.Node;
 import org.opengis.filter.Filter;
 
 import com.vividsolutions.jts.geom.Geometry;
@@ -114,4 +117,38 @@ public class Utilities {
     private static Envelope extractEnvelopeFromBBox(BBOXImpl bbox) {
     	return new Envelope(bbox.getMinX(), bbox.getMaxX(), bbox.getMinY(), bbox.getMaxY());
     }
+
+
+	/**
+	 * Comparator for comparing nodes by compaing the xMin on their evelopes.
+	 */
+	public static class ComparatorOnXMin implements Comparator<Node> {
+		final private EnvelopeDecoder decoder;
+
+		public ComparatorOnXMin(EnvelopeDecoder decoder){
+			this.decoder = decoder;
+		}
+
+		@Override
+		public int compare(Node o1, Node o2) {
+			return Double.compare(decoder.decodeEnvelope(o1).getMinX(), decoder.decodeEnvelope(o2).getMinX());
+		}
+	}
+
+	/**
+	 * Comparator or comparing nodes by coparing the yMin on their envelopes.
+	 */
+	public static class ComparatorOnYMin implements Comparator<Node> {
+		final private EnvelopeDecoder decoder;
+
+		public ComparatorOnYMin(EnvelopeDecoder decoder){
+			this.decoder = decoder;
+		}
+
+		@Override
+		public int compare(Node o1, Node o2) {
+			return Double.compare(decoder.decodeEnvelope(o1).getMinY(), decoder.decodeEnvelope(o2).getMinY());
+		}
+	}
+
 }

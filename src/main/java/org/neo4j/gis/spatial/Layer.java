@@ -26,6 +26,9 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.GeometryFactory;
 
+import java.util.Collection;
+import java.util.List;
+
 
 /**
  * Instances of Layer provide the ability for developers to add/remove and edit geometries
@@ -64,6 +67,14 @@ public interface Layer {
      * @return SpatialDatabaseRecord representation of the geometry added to the database
      */
     SpatialDatabaseRecord add(Node geomNode);
+
+    /**
+     * This method adds existing geometries to the layer for indexing in bulk. After this method is called the geometry should be searchable.
+     *
+     * @param geomNodes
+     * @return the number of geometries added to the database
+     */
+    int addAll(List<Node> geomNodes);
 
     GeometryFactory getGeometryFactory();
 

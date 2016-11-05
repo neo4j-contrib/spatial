@@ -21,11 +21,14 @@ package org.neo4j.gis.spatial.rtree;
 
 import org.neo4j.graphdb.Node;
 
+import java.util.List;
+
 
 public interface SpatialIndexWriter extends SpatialIndexReader {
 
 	void add(Node geomNode);
-	
+	void add(List<Node> geomNodes);
+
 	void remove(long geomNodeId, boolean deleteGeomNode);
 	
 	void removeAll(boolean deleteGeomNodes, Listener monitor);

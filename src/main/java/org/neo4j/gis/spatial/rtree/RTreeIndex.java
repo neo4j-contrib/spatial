@@ -19,10 +19,10 @@
  */
 package org.neo4j.gis.spatial.rtree;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
+import java.util.concurrent.Callable;
 
+import org.neo4j.gis.spatial.Utilities;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.graphdb.Direction;
@@ -76,6 +76,18 @@ public class RTreeIndex implements SpatialIndexWriter {
 		// initialize the search with root
 		Node parent = getIndexRoot();
 
+		addBelow(parent, geomNode);
+
+		countSaved = false;
+		totalGeometryCount++;
+	}
+
+	/**
+	 * This method will add the node somewhere below the parent.
+	 * @param parent
+	 * @param geomNode
+	 */
+	private void addBelow(Node parent, Node geomNode){
 		// choose a path down to a leaf
 		while (!nodeIsLeaf(parent)) {
 			parent = chooseSubTree(parent, geomNode);
@@ -90,9 +102,298 @@ public class RTreeIndex implements SpatialIndexWriter {
 				adjustPathBoundingBox(parent);
 			}
 		}
+	}
 
-		countSaved = false;
-		totalGeometryCount++;
+
+	/**
+	 * Use this method if you want to insert an index node as a child of a given index node. This will recursively
+	 * update the bounding boxes above the parent to keep the tree consistent.
+	 * @param parent
+	 * @param child
+	 * @return true if parent bounding box was / has to be expanded
+	 */
+	private boolean insertIndexNodeOnParent(Node parent, Node child) {
+		int numChildren = countChildren(parent, RTreeRelationshipTypes.RTREE_CHILD);
+		boolean needExpansion = addChild(parent, RTreeRelationshipTypes.RTREE_CHILD, child);
+		if (numChildren < maxNodeReferences) {
+			if (needExpansion) {
+				adjustPathBoundingBox(parent);
+			}
+		} else {
+			splitAndAdjustPathBoundingBox(parent);
+		}
+		return needExpansion;
+	}
+
+
+	/**
+	 * Depending on the size of the incumbent tree, this will either attempt to rebuild the entire index from scratch
+	 * (strategy used if the insert larger than 40% of the current tree size - may give heap out of memory errors for
+	 * large inserts as has O(n) space complexity in the total tree size. It has nlog(n) time complexity. See fuction
+	 * partition for more details.) or it will insert using the method of seeded clustering, where you attempt to use the
+	 * existing tree structure to partition your data.
+	 * <p>
+	 * This is based on the Paper "Bulk Insertion for R-trees by seeded clustering" by T.Lee, S.Lee & B Moon.
+	 * Repeated use of this strategy will lead to degraded query performance, especially if used for
+	 * many relatively small insertions compared to tree size. Though not worse than one by one insertion.
+	 * In practice, it should be fine for most uses.
+	 *
+	 * @param geomNodes
+	 */
+	@Override
+	public void add(List<Node> geomNodes) {
+
+		//If the insertion is large relative to the size of the tree, simply rebuild the whole tree.
+		if (geomNodes.size() > totalGeometryCount * 0.4) {
+			List<Node> nodesToAdd = new ArrayList<>(geomNodes.size() + totalGeometryCount);
+			for (Node n : getAllIndexedNodes()) {
+				nodesToAdd.add(n);
+			}
+			nodesToAdd.addAll(geomNodes);
+			for (Node n : getAllIndexInternalNodes()) {
+				deleteNode(n);
+			}
+
+			buildRtreeFromScratch(getIndexRoot(), nodesToAdd, 0.7, 10);
+			countSaved = false;
+			totalGeometryCount = nodesToAdd.size();
+		} else {
+			List<Node> outliers = bulkInsertion(getIndexRoot(), getHeight(getIndexRoot(), 0), geomNodes, 0.7);
+			countSaved = false;
+			totalGeometryCount = totalGeometryCount + (geomNodes.size() - outliers.size());
+			for (Node n : outliers) {
+				add(n);
+			}
+		}
+	}
+
+
+	/**
+	 * Returns the height of the tree, starting with the rootNode and adding one for each subsequent level. Relies on the
+	 * balanced property of the RTree that all leaves are on the same level and no index nodes are empty.
+	 *
+	 * @param rootNode
+	 * @param height
+	 * @return
+	 */
+	private int getHeight(Node rootNode, int height) {
+		Iterator<Relationship> rels = rootNode.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD).iterator();
+		if (rels.hasNext()) {
+			return getHeight(rels.next().getEndNode(), height + 1);
+		} else {
+			return height + 1; // todo should this really be +1 ?
+		}
+	}
+
+	private List<Node> getIndexChildren(Node rootNode) {
+		List<Node> result = new ArrayList<>();
+		for (Relationship r : rootNode.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD)) {
+			result.add(r.getEndNode());
+		}
+		return result;
+	}
+
+	private List<Node> getIndexChildren(Node rootNode, int depth) {
+		if (depth < 1) {
+			throw new IllegalArgumentException("Depths must be at least one");
+		}
+		List<Node> rootChildren = getIndexChildren(rootNode);
+		if (depth == 1) {
+			return rootChildren;
+		} else {
+			List<Node> result = new ArrayList<>(rootChildren.size() * 5);
+			for (Node child : rootChildren) {
+				result.addAll(getIndexChildren(child, depth - 1));
+			}
+			return result;
+		}
+	}
+
+	private List<Node> bulkInsertion(Node rootNode, int rootNodeHeight, final List<Node> geomNodes, final double loadingFactor) {
+		List<Node> children = getIndexChildren(rootNode);
+		children.sort(new IndexNodeAreaComparator());
+
+		Map<Node, List<Node>> map = new HashMap<>(children.size());
+		Map<Node, Envelope> envelopes = new HashMap<>(children.size());
+		int nodesPerRootSubTree = Math.max(16, geomNodes.size() / children.size());
+		for (Node n : children) {
+			map.put(n, new ArrayList<>(nodesPerRootSubTree));
+			envelopes.put(n, getIndexNodeEnvelope(n));
+		}
+
+		List<Node> outliers = new ArrayList<>(geomNodes.size() / 10); // 10% outliers
+		for (Node n : geomNodes) {
+			Envelope env = envelopeDecoder.decodeEnvelope(n);
+			boolean flag = true;
+
+			//exploits that the iterator returns the list inorder, which is sorted by size, as above. Thus child
+			//is always added to the smallest existing envelope which contains it.
+			for (Node c : children) {
+				if (envelopes.get(c).contains(env)) {
+					map.get(c).add(n); //add to smallest area envelope which contains the child;
+					flag = false;
+					break;
+				}
+			}
+			// else add to outliers.
+			if (flag) {
+				outliers.add(n);
+			}
+		}
+
+		for (Node child : children) {
+			List<Node> cluster = map.get(child);
+
+			if (cluster.isEmpty()) continue;
+
+			// todo move each branch into a named method
+			int expectedHeight = expectedHeight(loadingFactor, cluster.size());
+			int currentRTreeHeight = rootNodeHeight - 2;
+			if (expectedHeight < currentRTreeHeight) {
+				outliers.addAll(bulkInsertion(child, rootNodeHeight - 1, cluster, loadingFactor));
+			} //if constructed tree is the correct size insert it here.
+			else if (expectedHeight == currentRTreeHeight) {
+				//Do not create underfull nodes, instead use the add logic, except we know the root not to add them too.
+				if (cluster.size() < maxNodeReferences * loadingFactor / 2) {
+					// getParent because addition might cause a split. This strategy not ideal,
+					// but does tend to limit overlap more than adding to the child exclusively.
+					Node childParent = getIndexNodeParent(child);
+					for (Node n : cluster) {
+						addBelow(childParent, n);
+					}
+				} else {
+					Node newRootNode = database.createNode();
+					buildRtreeFromScratch(newRootNode, cluster, loadingFactor, 4);
+					insertIndexNodeOnParent(child, newRootNode);
+				}
+
+			} else {
+				Node newRootNode = database.createNode();
+				buildRtreeFromScratch(newRootNode, cluster, loadingFactor, 4);
+				int insertDepth = getHeight(newRootNode, 0) - (currentRTreeHeight);
+				List<Node> childrenToBeInserted = getIndexChildren(newRootNode, insertDepth);
+				for (Node n : childrenToBeInserted) {
+					Relationship relationship = n.getSingleRelationship(RTreeRelationshipTypes.RTREE_CHILD, Direction.INCOMING);
+					relationship.delete();
+					insertIndexNodeOnParent(child, n);
+				}
+				// todo wouldn't it be better for this temporary tree to only live in memory?
+				deleteRecursivelySubtree(newRootNode, null); // remove the buffer tree remnants
+			}
+		}
+
+		return outliers;
+	}
+
+
+	private int expectedHeight(double loadingFactor, int size) {
+		final int targetLoading = (int) Math.round(maxNodeReferences * loadingFactor);
+		return (int) Math.ceil(Math.log(size) / Math.log(targetLoading)); //exploit change of base formula
+	}
+
+	/**
+	 * This algorithm is based on Overlap Minimizing Top-down Bulk Loading Algorithm for R-tree by T Lee and S Lee.
+	 * This is effectively a wrapper function around the function Partition which will attempt to parallelise the task.
+	 * This can work better or worse since the top level may have as few as two nodes, in which case it fails is not optimal.
+	 * //TODO - Better parallelisation strategy.
+	 *
+	 * @param rootNode
+	 * @param geomNodes
+	 * @param loadingFactor - Must be between 0.1 and 1, this is how full each node will be, approximately.
+	 *                      Use 1 for static trees, lower numbers if there are to be many subsequent updates.
+	 * @param NThreads      - This will attempt to paralellise the task if N >1;
+	 */
+	private void buildRtreeFromScratch(Node rootNode, final List<Node> geomNodes, double loadingFactor, int NThreads) {
+
+		int depth = 0;
+		partition(rootNode, geomNodes, depth, 0.7);
+
+		//will at some point contain the logic for paralellisation.
+		/*
+		long shouldExpandRoot = getIndexChildren(rootNode).stream()
+		  .map(child -> partition(child, geomNodes, depth + 1, loadingFactor))
+		  .filter(expand -> expand).count();
+		// if paralellized has to return true if the root node bounding box has to be expanded
+		if (shouldExpandRoot > 0 ) {
+			adjustPathBoundingBox(rootNode);
+		}
+		*/
+	}
+
+	private class PartitionRunnable implements Callable<Boolean> {
+		final Node root;
+		final List<Node> geomNodes;
+		final int depth;
+		final double loadingFactor;
+
+		PartitionRunnable(Node newIndexNode, List<Node> geomNodes, int depth, double loadingFactor) {
+			this.root = newIndexNode;
+			this.geomNodes = geomNodes;
+			this.depth = depth;
+			this.loadingFactor = loadingFactor;
+		}
+
+
+		@Override
+		public Boolean call() throws Exception {
+			return partition(root, geomNodes, depth, loadingFactor);
+		}
+	}
+
+	/**
+	 * This will partition a node into
+	 *
+	 * @param rootNode
+	 * @param nodes
+	 * @param depth
+	 * @param loadingFactor - what fraction of the max references will be filled.
+	 * @return
+	 */
+	private boolean partition(Node rootNode, List<Node> nodes, int depth, final double loadingFactor) {
+		Comparator<Node> comparator = (depth % 2 == 0) ?
+				new Utilities.ComparatorOnXMin(this.envelopeDecoder) :
+				new Utilities.ComparatorOnYMin(this.envelopeDecoder);
+		nodes.sort(comparator);
+
+		//work out the number of times to partition it:
+		final int targetLoading = (int) Math.round(maxNodeReferences * loadingFactor);
+		int nodeCount = nodes.size();
+		final int height = (int) Math.ceil(Math.log(nodeCount) / Math.log(targetLoading)); //exploit change of base formula
+		final int subTreeSize = (int) Math.round(Math.pow(targetLoading, height - 1));
+		final int numberOfPartitions = (int) Math.ceil((double) nodeCount / (double) subTreeSize);
+
+		boolean expandRootNodeBoundingBox = false;
+		if (nodeCount <= targetLoading) {
+			for (Node n : nodes) {
+				expandRootNodeBoundingBox |= insertInLeaf(rootNode, n);
+			}
+			if (expandRootNodeBoundingBox) {
+				adjustPathBoundingBox(rootNode);
+			}
+		} else {
+			// - TODO change this to use the sort function above
+			List<List<Node>> partitions = partitionList(nodes, numberOfPartitions);
+			//recurse on each partition
+			for (List<Node> partition : partitions) {
+				Node newIndexNode = database.createNode();
+				expandRootNodeBoundingBox |= partition(newIndexNode, partition, depth + 1, loadingFactor);
+				expandRootNodeBoundingBox |= insertIndexNodeOnParent(rootNode, newIndexNode);
+			}
+		}
+		return expandRootNodeBoundingBox;
+	}
+
+	// quick dirty way to partition a set into equal sized disjoint subsets
+	// - TODO why not use list.sublist() without copying ?
+	private List<List<Node>> partitionList(List<Node> nodes, int numberOfPartitions) {
+		int nodeCount = nodes.size();
+		List<List<Node>> partitions = new ArrayList<>(numberOfPartitions);
+
+		int partitionSize = nodeCount / numberOfPartitions + 1;
+		for (int i = 0; i < numberOfPartitions; i++) {
+			partitions.add(nodes.subList(i*partitionSize,Math.min((i+1)*partitionSize,nodeCount)));
+        }
+		return partitions;
 	}
 
 	@Override
@@ -195,7 +496,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 			indexRoot.getSingleRelationship(RTreeRelationshipTypes.RTREE_ROOT, Direction.INCOMING).delete();
 
 			// delete tree
-			deleteRecursivelySubtree(indexRoot);
+			deleteRecursivelySubtree(indexRoot,null);
 
 			// delete tree metadata
 			Relationship metadataNodeRelationship = getRootNode().getSingleRelationship(RTreeRelationshipTypes.RTREE_METADATA, Direction.OUTGOING);
@@ -398,7 +699,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 			// Node is not a leaf
 
 			// collect children
-			List<Long> children = new ArrayList<Long>();
+			List<Long> children = new ArrayList<>();
 			for (Relationship rel : indexNode.getRelationships(RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
 				children.add(rel.getEndNode().getId());
 			}
@@ -484,7 +785,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 
 	private Node chooseSubTree(Node parentIndexNode, Node geomRootNode) {
 		// children that can contain the new geometry
-		List<Node> indexNodes = new ArrayList<Node>();
+		List<Node> indexNodes = new ArrayList<>();
 
 		// pick the child that contains the new geometry bounding box		
 		Iterable<Relationship> relationships = parentIndexNode.getRelationships(RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING);
@@ -597,7 +898,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 	}
 
 	private Node quadraticSplit(Node indexNode, RelationshipType relationshipType) {
-		List<Node> entries = new ArrayList<Node>();
+		List<Node> entries = new ArrayList<>();
 
 		Iterable<Relationship> relationships = indexNode.getRelationships(relationshipType, Direction.OUTGOING);
 		for (Relationship relationship : relationships) {
@@ -624,11 +925,11 @@ public class RTreeIndex implements SpatialIndexWriter {
 			}
 		}
 
-		List<Node> group1 = new ArrayList<Node>();
+		List<Node> group1 = new ArrayList<>();
 		group1.add(seed1);
 		Envelope group1envelope = getChildNodeEnvelope(seed1, relationshipType);
 
-		List<Node> group2 = new ArrayList<Node>();
+		List<Node> group2 = new ArrayList<>();
 		group2.add(seed2);
 		Envelope group2envelope = getChildNodeEnvelope(seed2, relationshipType);
 
@@ -710,8 +1011,8 @@ public class RTreeIndex implements SpatialIndexWriter {
 		return expandParentBoundingBoxAfterNewChild(parent, childBBox);
 	}
 
-	private void adjustPathBoundingBox(Node indexNode) {
-		Node parent = getIndexNodeParent(indexNode);
+	private void adjustPathBoundingBox(Node node) {
+		Node parent = getIndexNodeParent(node);
 		if (parent != null) {
 			if (adjustParentBoundingBox(parent, RTreeRelationshipTypes.RTREE_CHILD)) {
 				// entry has been modified: adjust the path for the parent
@@ -750,7 +1051,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 			bbox = new Envelope(0, 0, 0, 0);
 		}
 
-		if (old.length != 4
+		if (old == null || old.length != 4
 			|| bbox.getMinX() != old[0]
 			|| bbox.getMinY() != old[1]
 			|| bbox.getMaxX() != old[2]
@@ -818,20 +1119,17 @@ public class RTreeIndex implements SpatialIndexWriter {
 
 	private double getArea(Envelope e) {
 		return e.getWidth() * e.getHeight();
+		// TODO why not e.getArea(); ?
 	}
 
-	private void deleteRecursivelySubtree(Node indexNode) {
-		for (Relationship relationship : indexNode.getRelationships(RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
-			deleteRecursivelySubtree(relationship.getEndNode());
+	private void deleteRecursivelySubtree(Node node, Relationship incoming) {
+		for (Relationship relationship : node.getRelationships(RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
+			deleteRecursivelySubtree(relationship.getEndNode(),relationship);
 		}
-
-		Relationship relationshipWithFather = indexNode.getSingleRelationship(RTreeRelationshipTypes.RTREE_CHILD, Direction.INCOMING);
-		// the following check is needed because rootNode doesn't have this relationship
-		if (relationshipWithFather != null) {
-			relationshipWithFather.delete();
+		if (incoming!=null) {
+			incoming.delete();
 		}
-
-		indexNode.delete();
+		node.delete();
 	}
 
 	protected Node findLeafContainingGeometryNode(Node geomNode, boolean throwExceptionIfNotFound) {
@@ -962,6 +1260,14 @@ public class RTreeIndex implements SpatialIndexWriter {
 
 		public Iterator<Node> iterator() {
 			return new GeometryNodeIterator();
+		}
+	}
+
+	private class IndexNodeAreaComparator implements Comparator<Node> {
+
+		@Override
+		public int compare(Node o1, Node o2) {
+			return Double.compare(getIndexNodeEnvelope(o1).getArea(), getIndexNodeEnvelope(o2).getArea());
 		}
 	}
 }
