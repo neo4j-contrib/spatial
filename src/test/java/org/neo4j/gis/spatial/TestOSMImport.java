@@ -337,7 +337,7 @@ public class TestOSMImport extends Neo4jTestCase {
             reActivateDatabase(false, true, false);
         }
         long start = System.currentTimeMillis();
-        // START SNIPPET: importOsm
+        // tag::importOsm[] START SNIPPET: importOsm
         OSMImporter importer = new OSMImporter(layerName, new ConsoleListener());
         importer.setCharset(Charset.forName("UTF-8"));
         if (useBatchInserter) {
@@ -346,7 +346,7 @@ public class TestOSMImport extends Neo4jTestCase {
         } else {
             importer.importFile(graphDb(), osmPath, includePoints, 5000, true);
         }
-        // END SNIPPET: importOsm
+        // end::importOsm[] END SNIPPET: importOsm
         // Weird hack to force GC on large loads
         if (System.currentTimeMillis() - start > 300000) {
             for (int i = 0; i < 3; i++) {

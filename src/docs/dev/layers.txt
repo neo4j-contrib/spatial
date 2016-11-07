@@ -1,6 +1,6 @@
 [[spatial-layers]]
-Layers and GeometryEncoders
-===========================
+= Layers and GeometryEncoders
+
 
 The primary type that defines a collection of geometries is the +Layer+.
 A layer contains an index for querying.
