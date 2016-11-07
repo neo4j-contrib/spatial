@@ -1,7 +1,5 @@
 language: java
 jdk:
-  - openjdk7
-  - oraclejdk7
   - oraclejdk8
 
 # Patch for buffer overflow bug, see https://github.com/travis-ci/travis-ci/issues/5227
