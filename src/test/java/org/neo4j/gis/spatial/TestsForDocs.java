@@ -114,7 +114,7 @@ public class TestsForDocs extends Neo4jTestCase {
 
 	private void importMapOSM() throws Exception {
 		reActivateDatabase(false, true, false);
-		// START SNIPPET: importOsm
+		// START SNIPPET: importOsm tag::importOsm[]
 		OSMImporter importer = new OSMImporter("map.osm");
 		importer.setCharset(Charset.forName("UTF-8"));
 		BatchInserter batchInserter = getBatchInserter();
@@ -125,7 +125,7 @@ public class TestsForDocs extends Neo4jTestCase {
 		GraphDatabaseService db = graphDb();
 		importer.reIndex(db);
 		db.shutdown();
-		// END SNIPPET: importOsm
+		// END SNIPPET: importOsm end::importOsm[]
 	}
 
 	/**
@@ -141,9 +141,9 @@ public class TestsForDocs extends Neo4jTestCase {
 		System.out.println("\n=== Simple test map.osm ===");
 		importMapOSM();
 		
-		// START SNIPPET: searchBBox
 		//GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath);
 		reActivateDatabase(false, false, false);
+		// START SNIPPET: searchBBox tag::searchBBox[]
 		GraphDatabaseService database = graphDb();
 		try {
 			SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
@@ -163,7 +163,7 @@ public class TestsForDocs extends Neo4jTestCase {
 		} finally {
 			database.shutdown();
 		}
-		// END SNIPPET: searchBBox
+		// END SNIPPET: searchBBox end::searchBBox[]
 
 		checkIndexAndFeatureCount("map.osm");
 	}
@@ -175,9 +175,9 @@ public class TestsForDocs extends Neo4jTestCase {
 
 		System.out.println("\n=== Test Import Shapefile ===");
 
-		// START SNIPPET: importShapefile
 		reActivateDatabase(false, false, false);
 		//GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath);
+		// START SNIPPET: importShapefile tag::importShapefile[]
 		GraphDatabaseService database = graphDb();
 		try {
 			ShapefileImporter importer = new ShapefileImporter(database);
@@ -185,7 +185,7 @@ public class TestsForDocs extends Neo4jTestCase {
 		} finally {
 			database.shutdown();
 		}
-		// END SNIPPET: importShapefile
+		// END SNIPPET: importShapefile end::importShapefile[]
 
 		checkIndexAndFeatureCount("highway");
 	}
@@ -201,7 +201,7 @@ public class TestsForDocs extends Neo4jTestCase {
 		//GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath);
 		GraphDatabaseService database = graphDb();
 		try {
-			// START SNIPPET: exportShapefileFromOSM
+			// START SNIPPET: exportShapefileFromOSM tag::exportShapefileFromOSM[]
             SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
             try (Transaction tx = database.beginTx()) {
     			OSMLayer layer = (OSMLayer) spatialService.getLayer("map.osm");
@@ -210,7 +210,7 @@ public class TestsForDocs extends Neo4jTestCase {
 			    shpExporter.exportLayer(wayLayer.getName());
                 tx.success();
             }
-			// END SNIPPET: exportShapefileFromOSM
+			// END SNIPPET: exportShapefileFromOSM end::exportShapefileFromOSM[]
 		} finally {
 			database.shutdown();
 		}
@@ -228,7 +228,7 @@ public class TestsForDocs extends Neo4jTestCase {
 		//GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath);
 		GraphDatabaseService database = graphDb();
 		try {
-			// START SNIPPET: exportShapefileFromQuery
+			// START SNIPPET: exportShapefileFromQuery tag::exportShapefileFromQuery[]
 			SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
 			Layer layer = spatialService.getLayer("map.osm");
 			LayerIndexReader spatialIndex = layer.getIndex();
@@ -244,7 +244,7 @@ public class TestsForDocs extends Neo4jTestCase {
                 ShapefileExporter shpExporter = new ShapefileExporter(database);
                 shpExporter.exportLayer("results");
                 tx.success();
-			// END SNIPPET: exportShapefileFromQuery
+			// END SNIPPET: exportShapefileFromQuery end::exportShapefileFromQuery[]
 
     			doGeometryTestsOnResults(bbox, results);
             }
