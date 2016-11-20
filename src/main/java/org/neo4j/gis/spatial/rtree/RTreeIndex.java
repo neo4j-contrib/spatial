@@ -153,11 +153,12 @@ public class RTreeIndex implements SpatialIndexWriter {
 			for (Node n : getAllIndexInternalNodes()) {
 				deleteNode(n);
 			}
-
+			System.out.println("About to build tree from scratch");
 			buildRtreeFromScratch(getIndexRoot(), nodesToAdd, 0.7, 10);
 			countSaved = false;
 			totalGeometryCount = nodesToAdd.size();
 		} else {
+
 			List<Node> outliers = bulkInsertion(getIndexRoot(), getHeight(getIndexRoot(), 0), geomNodes, 0.7);
 			countSaved = false;
 			totalGeometryCount = totalGeometryCount + (geomNodes.size() - outliers.size());
@@ -170,7 +171,9 @@ public class RTreeIndex implements SpatialIndexWriter {
 
 	/**
 	 * Returns the height of the tree, starting with the rootNode and adding one for each subsequent level. Relies on the
-	 * balanced property of the RTree that all leaves are on the same level and no index nodes are empty.
+	 * balanced property of the RTree that all leaves are on the same level and no index nodes are empty. In the convention
+     * the index is level 0, so if there is just the index and the leaf nodes, the leaf nodes are level one and the height is one.
+     * Thus the lowest level is 1.
 	 *
 	 * @param rootNode
 	 * @param height
@@ -181,6 +184,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 		if (rels.hasNext()) {
 			return getHeight(rels.next().getEndNode(), height + 1);
 		} else {
+            // Add one to account for the step to leaf nodes.
 			return height + 1; // todo should this really be +1 ?
 		}
 	}
@@ -221,6 +225,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 			envelopes.put(n, getIndexNodeEnvelope(n));
 		}
 
+		// The outliers are those nodes which do not fit into the existing tree hierarchy.
 		List<Node> outliers = new ArrayList<>(geomNodes.size() / 10); // 10% outliers
 		for (Node n : geomNodes) {
 			Envelope env = envelopeDecoder.decodeEnvelope(n);
@@ -248,6 +253,8 @@ public class RTreeIndex implements SpatialIndexWriter {
 
 			// todo move each branch into a named method
 			int expectedHeight = expectedHeight(loadingFactor, cluster.size());
+
+
 			int currentRTreeHeight = rootNodeHeight - 2;
 			if (expectedHeight < currentRTreeHeight) {
 				outliers.addAll(bulkInsertion(child, rootNodeHeight - 1, cluster, loadingFactor));
@@ -454,6 +461,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 			Node parent = getIndexNodeParent(indexNode);
 			if (parent != null) {
 				indexNode.getSingleRelationship(RTreeRelationshipTypes.RTREE_CHILD, Direction.INCOMING).delete();
+				
 				indexNode.delete();
 				return deleteEmptyTreeNodes(parent, RTreeRelationshipTypes.RTREE_CHILD);
 			} else {
@@ -649,6 +657,14 @@ public class RTreeIndex implements SpatialIndexWriter {
 	}
 
 	// Private methods
+
+	/***
+	 * This will get the envelope of the child. The relationshipType acts as as flag to allow the function to
+	 * know whether the child is a leaf or an index node.
+	 * @param child
+	 * @param relType
+     * @return
+     */
 	private Envelope getChildNodeEnvelope(Node child, RelationshipType relType) {
 		if (relType.name().equals(RTreeRelationshipTypes.RTREE_REFERENCE.name())) {
 			return getLeafNodeEnvelope(child);
@@ -670,7 +686,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 	 * to use the indexes internal knowledge of the index tree and node
 	 * structure for decoding the envelope.
 	 */
-	protected Envelope getIndexNodeEnvelope(Node indexNode) {
+	public Envelope getIndexNodeEnvelope(Node indexNode) {
 		if (indexNode == null) {
 			indexNode = getIndexRoot();
 		}
@@ -702,6 +718,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 			for (Relationship rel : indexNode.getRelationships(RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
 				children.add(rel.getEndNode().getId());
 			}
+
 
 			// visit children
 			for (Long child : children) {

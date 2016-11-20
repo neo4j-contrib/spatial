@@ -19,9 +19,11 @@
  */
 package org.neo4j.gis.spatial;
 
-import java.util.ArrayList;
-import java.util.List;
-
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.CoordinateList;
+import com.vividsolutions.jts.geom.Envelope;
+import com.vividsolutions.jts.geom.LineString;
+import org.apache.commons.io.FileUtils;
 import org.junit.Test;
 import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
@@ -29,14 +31,16 @@ import org.neo4j.gis.spatial.encoders.SimplePropertyEncoder;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
-
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.CoordinateList;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.LineString;
 import org.neo4j.gis.spatial.rtree.ProgressLoggingListener;
-import org.neo4j.graphdb.Transaction;
+import org.neo4j.gis.spatial.rtree.RTreeIndex;
+import org.neo4j.gis.spatial.rtree.RTreeRelationshipTypes;
+import org.neo4j.graphdb.*;
+import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
 
 public class LayersTest extends Neo4jTestCase
 {
@@ -284,4 +288,143 @@ public class LayersTest extends Neo4jTestCase
                 osmExportException );
     }
 
+
+    @Test
+    public void testIndexAccessAfterBulkInsertion() throws Exception {
+        // Use these two lines if you want to examine the output.
+//        File dbPath = new File("target/var/BulkTest");
+//        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath.getCanonicalPath());
+        GraphDatabaseService db = graphDb();
+        SpatialDatabaseService sdbs = new SpatialDatabaseService(db);
+        EditableLayer layer = sdbs.getOrCreatePointLayer("Coordinates", "lat", "lon");
+
+        Random rand = new Random();
+
+        try(Transaction tx = db.beginTx()){
+            List<Node> coordinateNodes = new ArrayList<>();
+            for(int i=0; i<1000; i++) {
+                Node node = db.createNode();
+                node.addLabel(Label.label("Coordinates"));
+                node.setProperty("lat", rand.nextDouble());
+                node.setProperty("lon", rand.nextDouble());
+                coordinateNodes.add(node);
+            }
+            layer.addAll(coordinateNodes);
+            tx.success();
+        }
+
+        try(Transaction tx=db.beginTx()){ // 'points',{longitude:15.0,latitude:60.0},100
+            Result result = db.execute("CALL spatial.withinDistance('Coordinates',{longitude:0.5, latitude:0.5},1000.0) yield node as malmo");
+            int i=0;
+            ResourceIterator thing = result.columnAs("malmo");
+            while(thing.hasNext()){
+                assertNotNull(thing.next());
+                i++;
+            }
+            assertEquals(i, 1000);
+            tx.success();
+        }
+
+        try(Transaction tx = db.beginTx()){
+            String cypher = "MATCH ()-[:RTREE_ROOT]->(n)\n" +
+                    "MATCH (n)-[:RTREE_CHILD]->(m)-[:RTREE_REFERENCE]->(p)\n" +
+                    "RETURN COUNT(p)";
+            Result result = db.execute(cypher);
+//           System.out.println(result.columns().toString());
+            Object obj = result.columnAs("COUNT(p)").next();
+            assertTrue(obj instanceof Long);
+            assertTrue(((Long) obj).equals(1000L));
+            tx.success();
+        }
+
+        db.shutdown();
+
+
+    }
+
+    @Test
+    public void testRTreeBulkInsertion() throws Exception {
+        // Use these two lines if you want to examine the output.
+        File dbPath = new File("target/var/BulkTest");
+        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath);
+//        GraphDatabaseService db = graphDb();
+
+        SpatialDatabaseService sdbs = new SpatialDatabaseService(db);
+        try {
+            int N = 10000;
+            int Q = 40;
+            Random random = new Random();
+            random.setSeed(42);
+            //        random.setSeed(42);
+            // leads to: Caused by: org.neo4j.kernel.impl.store.InvalidRecordException: Node[142794,used=false,rel=-1,prop=-1,labels=Inline(0x0:[]),light,secondaryUnitId=-1] not in use
+
+            long totalTimeStart = System.currentTimeMillis();
+            for (int j = 1; j < Q+1; j++) {
+                System.out.println("BulkLoadingTestRun " + j);
+                try (Transaction tx = db.beginTx()) {
+                    List<Node> coords = new ArrayList<>(N);
+
+                    EditableLayer layer = sdbs.getOrCreatePointLayer("BulkLoader", "lat", "lon");
+
+                    for (int i = 0; i < N; i++) {
+                        Node n = db.createNode(Label.label("Coordinate"));
+                        n.setProperty("lat", random.nextDouble() * 90.0);
+                        n.setProperty("lon", random.nextDouble() * 90.0);
+                        coords.add(n);
+                        //                   layer.add(n);
+                    }
+                    long time = System.currentTimeMillis();
+
+                    layer.addAll(coords);
+                    System.out.println("********************** time taken to load " + N + " records: " + (System.currentTimeMillis() - time) + "ms");
+
+                    RTreeIndex rtree = (RTreeIndex) layer.getIndex();
+                    RTreeTestUtils utils = new RTreeTestUtils(rtree);
+                    assertTrue(utils.check_balance(db, rtree.getIndexRoot()));
+
+
+                    tx.success();
+                }
+            }
+            System.out.println("Total Time for " + (N * Q) + " Nodes in " + Q + " Batches of " + N + " is: ");
+            System.out.println(((System.currentTimeMillis() - totalTimeStart) / 1000) + " seconds");
+
+            try (Transaction tx = db.beginTx()) {
+                String cypher = "MATCH ()-[:RTREE_ROOT]->(n)\n" +
+                        "MATCH (n)-[:RTREE_CHILD]->(m)-[:RTREE_CHILD]->(p)-[:RTREE_REFERENCE]->(q)\n" +
+                        "RETURN COUNT(q) as count";
+                Result result = db.execute(cypher);
+                System.out.println(result.columns().toString());
+                long count = result.<Long>columnAs("count").next();
+                assertEquals(N * Q, count);
+                tx.success();
+            }
+
+            try (Transaction tx = db.beginTx()) {
+                Layer layer = sdbs.getLayer("BulkLoader");
+                RTreeIndex rtree = (RTreeIndex) layer.getIndex();
+
+                Node root = rtree.getIndexRoot();
+                List<Node> children = new ArrayList<>(100);
+                for (Relationship r : root.getRelationships(RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
+                    children.add(r.getEndNode());
+                }
+                RTreeTestUtils utils = new RTreeTestUtils(rtree);
+                double root_overlap = utils.calculate_overlap(root);
+                assertTrue(root_overlap < 0.01); //less than one percent
+                System.out.println("********* Bulk Overlap Percentage" + Double.toString(root_overlap));
+
+                double average_child_overlap = children.stream().mapToDouble(utils::calculate_overlap).average().getAsDouble();
+                assertTrue(average_child_overlap < 0.02);
+                System.out.println("*********** Bulk Average Child Overlap Percentage" + Double.toString(average_child_overlap));
+                tx.success();
+
+
+            }
+        }
+        finally {
+                sdbs.getDatabase().shutdown();
+                FileUtils.deleteDirectory(dbPath);
+            }
+    }
 }
