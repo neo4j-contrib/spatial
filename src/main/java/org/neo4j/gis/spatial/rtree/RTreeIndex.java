@@ -301,14 +301,13 @@ public class RTreeIndex implements SpatialIndexWriter {
 	 * @param geomNodes
 	 * @param loadingFactor - Must be between 0.1 and 1, this is how full each node will be, approximately.
 	 *                      Use 1 for static trees, lower numbers if there are to be many subsequent updates.
-	 * @param NThreads      - This will attempt to paralellise the task if N >1;
+	 * @param NThreads      - This will attempt to parallelise the task if N >1;
 	 */
 	private void buildRtreeFromScratch(Node rootNode, final List<Node> geomNodes, double loadingFactor, int NThreads) {
 
-		int depth = 0;
-		partition(rootNode, geomNodes, depth, 0.7);
+		partition(rootNode, geomNodes, 0, loadingFactor);
 
-		//will at some point contain the logic for paralellisation.
+		//will at some point contain the logic for parallelisation.
 		/*
 		long shouldExpandRoot = getIndexChildren(rootNode).stream()
 		  .map(child -> partition(child, geomNodes, depth + 1, loadingFactor))
@@ -358,9 +357,6 @@ public class RTreeIndex implements SpatialIndexWriter {
 		//work out the number of times to partition it:
 		final int targetLoading = (int) Math.round(maxNodeReferences * loadingFactor);
 		int nodeCount = nodes.size();
-		final int height = (int) Math.ceil(Math.log(nodeCount) / Math.log(targetLoading)); //exploit change of base formula
-		final int subTreeSize = (int) Math.round(Math.pow(targetLoading, height - 1));
-		final int numberOfPartitions = (int) Math.ceil((double) nodeCount / (double) subTreeSize);
 
 		boolean expandRootNodeBoundingBox = false;
 		if (nodeCount <= targetLoading) {
@@ -371,6 +367,9 @@ public class RTreeIndex implements SpatialIndexWriter {
 				adjustPathBoundingBox(rootNode);
 			}
 		} else {
+			final int height = (int) Math.ceil(Math.log(nodeCount) / Math.log(targetLoading)); //exploit change of base formula
+			final int subTreeSize = (int) Math.round(Math.pow(targetLoading, height - 1));
+			final int numberOfPartitions = (int) Math.ceil((double) nodeCount / (double) subTreeSize);
 			// - TODO change this to use the sort function above
 			List<List<Node>> partitions = partitionList(nodes, numberOfPartitions);
 			//recurse on each partition
