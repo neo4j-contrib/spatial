@@ -19,10 +19,22 @@
  */
 package org.neo4j.gis.spatial;
 
+
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateList;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.LineString;
+
+import java.io.File;
+import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+
+import com.vividsolutions.jts.geom.*;
 import org.apache.commons.io.FileUtils;
 import org.junit.Test;
 import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;
@@ -31,16 +43,19 @@ import org.neo4j.gis.spatial.encoders.SimplePropertyEncoder;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
+
 import org.neo4j.gis.spatial.rtree.ProgressLoggingListener;
 import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.gis.spatial.rtree.RTreeRelationshipTypes;
 import org.neo4j.graphdb.*;
+import org.neo4j.graphdb.event.TransactionData;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
+import javax.measure.unit.SI;
 
 public class LayersTest extends Neo4jTestCase
 {
@@ -343,6 +358,67 @@ public class LayersTest extends Neo4jTestCase
     }
 
     @Test
+    public void testTreeBuildFromScratch() throws Exception {
+        File dbPath = new File("target/var/BulkTest2");
+        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath);
+//        GraphDatabaseService db = graphDb();
+
+        SpatialDatabaseService sdbs = new SpatialDatabaseService(db);
+        try {
+            GeometryEncoder encoder = new SimplePointEncoder();
+
+            Method buildRTreeFromScratch = RTreeIndex.class.getDeclaredMethod("buildRtreeFromScratch", Node.class, List.class, double.class, int.class);
+            buildRTreeFromScratch.setAccessible(true);
+
+            Method expectedHeight = RTreeIndex.class.getDeclaredMethod("expectedHeight", double.class, int.class);
+            expectedHeight.setAccessible(true);
+
+            Random random = new Random();
+            random.setSeed(42);
+
+            List<Integer> range = IntStream.rangeClosed(1, 300).boxed().collect(Collectors.toList());
+            //test over the transiton from two to three deep trees
+            range.addAll(IntStream.rangeClosed(4700, 5000).boxed().collect(Collectors.toList()));
+
+            for (int i : range) {
+                System.out.println("Building a Tree with " + Integer.toString(i)+ " nodes");
+                try (Transaction tx = db.beginTx()) {
+
+                    RTreeIndex rtree = new RTreeIndex(
+                            sdbs.getDatabase(),
+                            sdbs.getDatabase().createNode(),
+                            encoder
+                    );
+                    List<Node> coords = new ArrayList<>(i);
+                    for (int j = 0; j < i; j++) {
+                        Node n = db.createNode(Label.label("Coordinate"));
+                        n.setProperty(SimplePointEncoder.DEFAULT_X, random.nextDouble() * 90.0);
+                        n.setProperty(SimplePointEncoder.DEFAULT_Y, random.nextDouble() * 90.0);
+                        Geometry geometry = encoder.decodeGeometry(n);
+                        // add BBOX to Node if it's missing
+                        encoder.encodeGeometry(geometry, n);
+                        coords.add(n);
+                        //                   layer.add(n);
+                    }
+
+                    buildRTreeFromScratch.invoke(rtree, rtree.getIndexRoot(), coords, 0.7, 4);
+                    RTreeTestUtils testUtils = new RTreeTestUtils(rtree);
+
+                    Map<Long, Long> results = testUtils.get_height_map(db, rtree.getIndexRoot());
+                    assertEquals(1, results.size());
+                    assertEquals((int) expectedHeight.invoke(rtree, 0.7, coords.size()), results.keySet().iterator().next().intValue());
+                    assertTrue(results.values().iterator().next().intValue() == coords.size());
+                    tx.success();
+                }
+            }
+        }
+        finally {
+            sdbs.getDatabase().shutdown();
+            FileUtils.deleteDirectory(dbPath);
+        }
+    }
+
+    @Test
     public void testRTreeBulkInsertion() throws Exception {
         // Use these two lines if you want to examine the output.
         File dbPath = new File("target/var/BulkTest");
@@ -362,10 +438,10 @@ public class LayersTest extends Neo4jTestCase
             for (int j = 1; j < Q+1; j++) {
                 System.out.println("BulkLoadingTestRun " + j);
                 try (Transaction tx = db.beginTx()) {
-                    List<Node> coords = new ArrayList<>(N);
+
 
                     EditableLayer layer = sdbs.getOrCreatePointLayer("BulkLoader", "lat", "lon");
-
+                    List<Node> coords = new ArrayList<>(N);
                     for (int i = 0; i < N; i++) {
                         Node n = db.createNode(Label.label("Coordinate"));
                         n.setProperty("lat", random.nextDouble() * 90.0);

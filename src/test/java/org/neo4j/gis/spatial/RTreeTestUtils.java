@@ -1,5 +1,6 @@
 package org.neo4j.gis.spatial;
 
+import org.apache.commons.collections.map.HashedMap;
 import org.junit.Test;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.RTreeIndex;
@@ -64,11 +65,30 @@ public class RTreeTestUtils {
 
     }
 
+    public Map<Long, Long> get_height_map(GraphDatabaseService db, Node root){
+        String id = Long.toString(root.getId());
+
+
+        String cypher = "MATCH p = (root) -[:RTREE_CHILD*0..] ->(child) -[:RTREE_REFERENCE]->(leaf)\n" +
+                "    WHERE id(root) = "+id+"\n" +
+                "    RETURN length(p) as depth, count (*) as freq";
+        Result result = db.execute(cypher);
+
+        int i = 0;
+        Map<Long, Long> map = new HashedMap();
+        while (result.hasNext()) {
+            Map<String, Object> r = result.next();
+            map.put((Long) r.get("depth"), (Long) r.get("freq"));
+            i++;
+        }
+        return map;
+    }
+
     public boolean check_balance(GraphDatabaseService db, Node root) {
         String id = Long.toString(root.getId());
 
 
-        String cypher = "MATCH p = (root) -[:RTREE_CHILD*] ->(child) -[:RTREE_REFERENCE]->(leaf)\n" +
+        String cypher = "MATCH p = (root) -[:RTREE_CHILD*0..] ->(child) -[:RTREE_REFERENCE]->(leaf)\n" +
                 "    WHERE id(root) = "+id+"\n" +
                 "    RETURN length(p) as depth, count (*) as freq";
         Result result = db.execute(cypher);
