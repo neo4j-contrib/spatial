@@ -153,7 +153,6 @@ public class RTreeIndex implements SpatialIndexWriter {
 			for (Node n : getAllIndexInternalNodes()) {
 				deleteNode(n);
 			}
-			System.out.println("About to build tree from scratch");
 			buildRtreeFromScratch(getIndexRoot(), nodesToAdd, 0.7, 10);
 			countSaved = false;
 			totalGeometryCount = nodesToAdd.size();
@@ -254,24 +253,28 @@ public class RTreeIndex implements SpatialIndexWriter {
 			// todo move each branch into a named method
 			int expectedHeight = expectedHeight(loadingFactor, cluster.size());
 
-
-			int currentRTreeHeight = rootNodeHeight - 2;
+            //In an rtree is this height it will add as a single child to the current child node.
+            int currentRTreeHeight = rootNodeHeight - 2;
 			if (expectedHeight < currentRTreeHeight) {
+                //if the hieght is smaller than that recursively sort and split.
 				outliers.addAll(bulkInsertion(child, rootNodeHeight - 1, cluster, loadingFactor));
 			} //if constructed tree is the correct size insert it here.
 			else if (expectedHeight == currentRTreeHeight) {
 				//Do not create underfull nodes, instead use the add logic, except we know the root not to add them too.
+                //this handles the case where the number of nodes in a cluster is small.
 				if (cluster.size() < maxNodeReferences * loadingFactor / 2) {
 					// getParent because addition might cause a split. This strategy not ideal,
 					// but does tend to limit overlap more than adding to the child exclusively.
-					Node childParent = getIndexNodeParent(child);
+
 					for (Node n : cluster) {
-						addBelow(childParent, n);
+						addBelow(rootNode, n);
 					}
 				} else {
+
 					Node newRootNode = database.createNode();
 					buildRtreeFromScratch(newRootNode, cluster, loadingFactor, 4);
 					insertIndexNodeOnParent(child, newRootNode);
+
 				}
 
 			} else {
@@ -294,8 +297,13 @@ public class RTreeIndex implements SpatialIndexWriter {
 
 
 	private int expectedHeight(double loadingFactor, int size) {
-		final int targetLoading = (int) Math.round(maxNodeReferences * loadingFactor);
-		return (int) Math.ceil(Math.log(size) / Math.log(targetLoading)); //exploit change of base formula
+        if (size == 1) {
+            return 1;
+        } else {
+            final int targetLoading = (int) Math.floor(maxNodeReferences * loadingFactor);
+            return (int) Math.ceil(Math.log(size) / Math.log(targetLoading)); //exploit change of base formula
+        }
+
 	}
 
 	/**
@@ -365,7 +373,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 		//work out the number of times to partition it:
 		final int targetLoading = (int) Math.round(maxNodeReferences * loadingFactor);
 		int nodeCount = nodes.size();
-		final int height = (int) Math.ceil(Math.log(nodeCount) / Math.log(targetLoading)); //exploit change of base formula
+		final int height = expectedHeight(loadingFactor, nodeCount); //exploit change of base formula
 		final int subTreeSize = (int) Math.round(Math.pow(targetLoading, height - 1));
 		final int numberOfPartitions = (int) Math.ceil((double) nodeCount / (double) subTreeSize);
 
@@ -380,6 +388,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 		} else {
 			// - TODO change this to use the sort function above
 			List<List<Node>> partitions = partitionList(nodes, numberOfPartitions);
+
 			//recurse on each partition
 			for (List<Node> partition : partitions) {
 				Node newIndexNode = database.createNode();
@@ -392,11 +401,15 @@ public class RTreeIndex implements SpatialIndexWriter {
 
 	// quick dirty way to partition a set into equal sized disjoint subsets
 	// - TODO why not use list.sublist() without copying ?
+
 	private List<List<Node>> partitionList(List<Node> nodes, int numberOfPartitions) {
 		int nodeCount = nodes.size();
 		List<List<Node>> partitions = new ArrayList<>(numberOfPartitions);
 
-		int partitionSize = nodeCount / numberOfPartitions + 1;
+		int partitionSize = nodeCount / numberOfPartitions; //it is critical that partitionSize is always less than the target loading.
+        if (nodeCount % numberOfPartitions > 0) {
+            partitionSize++;
+        }
 		for (int i = 0; i < numberOfPartitions; i++) {
 			partitions.add(nodes.subList(i*partitionSize,Math.min((i+1)*partitionSize,nodeCount)));
         }
