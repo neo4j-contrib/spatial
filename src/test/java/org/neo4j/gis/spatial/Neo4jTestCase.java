@@ -379,7 +379,10 @@ public abstract class Neo4jTestCase extends TestCase {
 			} else {
 				data.append("DATA: ");
 			}
-			data.append(rel.getEndNode().toString());
+//			data.append(rel.getEndNode().toString());
+            data.append( rel.getEndNode().toString() + " BBOX[" + arrayString((double[]) rel.getEndNode().getProperty
+                    (Constants
+                    .PROP_BBOX)) + "]" );
 		}
 		
 		if (data.length() > 0) {

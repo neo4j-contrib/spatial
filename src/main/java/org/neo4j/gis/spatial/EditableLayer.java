@@ -57,7 +57,7 @@ public interface EditableLayer extends Layer {
      * Delete the geometry identified by the passed node id. This might be as simple as deleting the
      * geometry node, or it might require extracting and deleting an entire sub-graph.
      * 
-     * @param geoemtryNodeId
+     * @param geometryNodeId
      */
     void delete(long geometryNodeId);
 
@@ -65,7 +65,7 @@ public interface EditableLayer extends Layer {
      * Update the geometry identified by the passed node id. This might be as simple as changing
      * node properties or it might require editing an entire sub-graph.
      * 
-     * @param geoemtryNodeId
+     * @param geometryNodeId
      */
     void update(long geometryNodeId, Geometry geometry);
 
