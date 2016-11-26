@@ -81,7 +81,6 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
     	
     	// add BBOX to Node if it's missing
     	getGeometryEncoder().encodeGeometry(geometry, geomNode);
-    	
         index.add(geomNode);
         return new SpatialDatabaseRecord(this, geomNode, geometry);
     }

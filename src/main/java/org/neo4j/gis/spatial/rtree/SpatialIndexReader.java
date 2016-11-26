@@ -39,4 +39,6 @@ public interface SpatialIndexReader {
     Iterable<Node> getAllIndexedNodes();
 
 	SearchResults searchIndex(SearchFilter filter);
+
+    void addMonitor(TreeMonitor monitor);
 }

@@ -24,6 +24,7 @@ import java.util.Set;
 
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
+import org.neo4j.gis.spatial.rtree.TreeMonitor;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.gis.spatial.Layer;
@@ -98,6 +99,12 @@ public class LayerIndexReaderWrapper implements LayerIndexReader {
 	@Override
 	public SearchResults searchIndex(SearchFilter filter) {
 		return index.searchIndex(filter);
+	}
+
+	@Override
+	public void addMonitor( TreeMonitor monitor )
+	{
+
 	}
 
 	@Override

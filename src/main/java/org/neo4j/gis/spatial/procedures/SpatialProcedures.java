@@ -79,6 +79,7 @@ public class SpatialProcedures {
             this.node = node;
         }
     }
+
     public static class CountResult {
         public final long count;
 
@@ -145,7 +146,7 @@ public class SpatialProcedures {
 
     @Procedure("spatial.procedures")
     public Stream<NameResult> listProcedures() {
-        Procedures procedures = ((GraphDatabaseAPI)db).getDependencyResolver().resolveDependency( Procedures.class );
+        Procedures procedures = ((GraphDatabaseAPI) db).getDependencyResolver().resolveDependency(Procedures.class);
         Stream.Builder<NameResult> builder = Stream.builder();
         for (ProcedureSignature proc : procedures.getAll()) {
             if (proc.name().namespace()[0].equals("spatial")) {
@@ -258,8 +259,8 @@ public class SpatialProcedures {
         SpatialDatabaseService sdb = wrap(db);
         Layer layer = sdb.getLayer(name);
         if (layer == null) {
-            Map<String,String> knownTypes = sdb.getRegisteredLayerTypes();
-            if(knownTypes.containsKey(type)) {
+            Map<String, String> knownTypes = sdb.getRegisteredLayerTypes();
+            if (knownTypes.containsKey(type)) {
                 return streamNode(sdb.getOrCreateRegisteredTypeLayer(name, type, encoderConfig).getLayerNode());
             } else {
                 throw new IllegalArgumentException("Cannot create layer '" + name + "': unknown type '" + type + "' - supported types are " + knownTypes.toString());
@@ -276,7 +277,7 @@ public class SpatialProcedures {
     @Procedure("spatial.addWKTLayer")
     @PerformsWrites
     public Stream<NodeResult> addWKTLayer(@Name("name") String name,
-                                               @Name("nodePropertyName") String nodePropertyName) {
+                                          @Name("nodePropertyName") String nodePropertyName) {
         return addLayerOfType(name, "WKT", nodePropertyName);
     }
 
@@ -331,7 +332,7 @@ public class SpatialProcedures {
     public Stream<NodeResult> addGeometryWKTToLayer(@Name("layerName") String name, @Name("geometry") String geometryWKT) throws ParseException {
         EditableLayer layer = getEditableLayerOrThrow(name);
         WKTReader reader = new WKTReader(layer.getGeometryFactory());
-        return streamNode(addGeometryWkt(layer,reader,geometryWKT));
+        return streamNode(addGeometryWkt(layer, reader, geometryWKT));
     }
 
     // todo do we want to return anything ? or just a count?
@@ -340,7 +341,7 @@ public class SpatialProcedures {
     public Stream<NodeResult> addGeometryWKTsToLayer(@Name("layerName") String name, @Name("geometry") List<String> geometryWKTs) throws ParseException {
         EditableLayer layer = getEditableLayerOrThrow(name);
         WKTReader reader = new WKTReader(layer.getGeometryFactory());
-        return geometryWKTs.stream().map( geometryWKT -> addGeometryWkt(layer, reader, geometryWKT)).map(NodeResult::new);
+        return geometryWKTs.stream().map(geometryWKT -> addGeometryWkt(layer, reader, geometryWKT)).map(NodeResult::new);
     }
 
     private Node addGeometryWkt(EditableLayer layer, WKTReader reader, String geometryWKT) {
@@ -348,7 +349,7 @@ public class SpatialProcedures {
             Geometry geometry = reader.read(geometryWKT);
             return layer.add(geometry).getGeomNode();
         } catch (ParseException e) {
-            throw new RuntimeException("Error parsing geometry: "+geometryWKT,e);
+            throw new RuntimeException("Error parsing geometry: " + geometryWKT, e);
         }
     }
 
@@ -410,7 +411,7 @@ public class SpatialProcedures {
             @Name("max") Object max) {
         Layer layer = getLayerOrThrow(name);
         // TODO why a SearchWithin and not a SearchIntersectWindow?
-        Envelope envelope = new Envelope(toCoordinate(min),toCoordinate(max));
+        Envelope envelope = new Envelope(toCoordinate(min), toCoordinate(max));
         return GeoPipeline
                 .startWithinSearch(layer, layer.getGeometryFactory().toGeometry(envelope))
                 .stream().map(GeoPipeFlow::getGeomNode).map(NodeResult::new);
@@ -636,7 +637,7 @@ public class SpatialProcedures {
         if (value instanceof org.neo4j.cypher.internal.compiler.v3_0.Geometry) {
             return (org.neo4j.cypher.internal.compiler.v3_0.Geometry) value;
         }
-        if ( value instanceof org.neo4j.graphdb.spatial.Point) {
+        if (value instanceof org.neo4j.graphdb.spatial.Point) {
             org.neo4j.graphdb.spatial.Point point = (org.neo4j.graphdb.spatial.Point) value;
             List<Double> coord = point.getCoordinate().getCoordinate();
             return makeCypherGeometry(coord.get(0), coord.get(1), org.neo4j.cypher.internal.compiler.v3_0.CRS.fromSRID(point.getCRS().getCode()));
@@ -711,22 +712,24 @@ public class SpatialProcedures {
     }
 
     private Coordinate toCoordinate(Object value) {
+        if (value instanceof Coordinate) {
+            return (Coordinate) value;
+        }
         if (value instanceof GeographicPoint) {
             GeographicPoint point = (GeographicPoint) value;
             return new Coordinate(point.x(), point.y());
         }
-        Map<String, Object> latLon = null;
         if (value instanceof PropertyContainer) {
-            latLon = ((PropertyContainer) value).getProperties("latitude", "longitude","lat","lon");
+            return toCoordinate(((PropertyContainer) value).getProperties("latitude", "longitude", "lat", "lon"));
         }
-        if (value instanceof Map) latLon = (Map<String, Object>) value;
-        Coordinate coord = toCoordinate(latLon);
-        if (coord != null) return coord;
-        throw new RuntimeException("Can't convert "+value+" to a coordinate");
+        if (value instanceof Map) {
+            return toCoordinate((Map<String, Object>) value);
+        }
+        throw new RuntimeException("Can't convert " + value + " to a coordinate");
     }
 
     private Coordinate toCoordinate(Map<String, Object> map) {
-        if (map==null) return null;
+        if (map == null) return null;
         Coordinate coord = toCoordinate(map, "longitude", "latitude");
         if (coord == null) return toCoordinate(map, "lon", "lat");
         return coord;

@@ -90,7 +90,7 @@ public abstract class Neo4jTestCase extends TestCase {
     @Before
     protected void setUp() throws Exception {
         updateStorePrefix();
-        setUp(false, false, false);
+        setUp(true, false, false);
     }
 
     protected void updateStorePrefix()
@@ -129,10 +129,10 @@ public abstract class Neo4jTestCase extends TestCase {
             graphDb.shutdown();
             graphDb = null;
         }
-	if (batchInserter != null) {
-	    batchInserter.shutdown();
-	    batchInserter = null;
-	}
+        if (batchInserter != null) {
+            batchInserter.shutdown();
+            batchInserter = null;
+        }
         if (deleteDb) {
             deleteDatabase(true);
         }
@@ -379,7 +379,10 @@ public abstract class Neo4jTestCase extends TestCase {
 			} else {
 				data.append("DATA: ");
 			}
-			data.append(rel.getEndNode().toString());
+//			data.append(rel.getEndNode().toString());
+            data.append( rel.getEndNode().toString() + " BBOX[" + arrayString((double[]) rel.getEndNode().getProperty
+                    (Constants
+                    .PROP_BBOX)) + "]" );
 		}
 		
 		if (data.length() > 0) {

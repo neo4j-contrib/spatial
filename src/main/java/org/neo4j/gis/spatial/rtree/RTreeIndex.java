@@ -22,17 +22,28 @@ package org.neo4j.gis.spatial.rtree;
 import java.util.*;
 import java.util.concurrent.Callable;
 
+import org.neo4j.csv.reader.SourceTraceability;
 import org.neo4j.gis.spatial.Utilities;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
 import org.neo4j.graphdb.Path;
+import org.neo4j.graphdb.QueryExecutionException;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.ResourceIterable;
+import org.neo4j.graphdb.ResourceIterator;
+import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.event.KernelEventHandler;
+import org.neo4j.graphdb.event.TransactionEventHandler;
+import org.neo4j.graphdb.index.IndexManager;
+import org.neo4j.graphdb.schema.Schema;
+import org.neo4j.graphdb.traversal.BidirectionalTraversalDescription;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
 import org.neo4j.graphdb.traversal.Evaluators;
@@ -45,10 +56,13 @@ import org.neo4j.graphdb.traversal.Traverser;
 public class RTreeIndex implements SpatialIndexWriter {
 
 	public static final String INDEX_PROP_BBOX = "bbox";
-
+	private TreeMonitor monitor;
 	// Constructor
 	public RTreeIndex(GraphDatabaseService database, Node rootNode, EnvelopeDecoder envelopeEncoder) {
 		this(database, rootNode, envelopeEncoder, 100);
+	}
+	public void addMonitor(TreeMonitor monitor){
+		this.monitor=monitor;
 	}
 
 	public RTreeIndex(GraphDatabaseService database, Node rootNode, EnvelopeDecoder envelopeDecoder, int maxNodeReferences) {
@@ -56,7 +70,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 		this.rootNode = rootNode;
 		this.envelopeDecoder = envelopeDecoder;
 		this.maxNodeReferences = maxNodeReferences;
-
+        monitor=new EmptyMonitor();
 		if (envelopeDecoder == null) {
 			throw new NullPointerException("envelopeDecoder is NULL");
 		}
@@ -92,10 +106,9 @@ public class RTreeIndex implements SpatialIndexWriter {
 		while (!nodeIsLeaf(parent)) {
 			parent = chooseSubTree(parent, geomNode);
 		}
-
-		if (countChildren(parent, RTreeRelationshipTypes.RTREE_REFERENCE) >= maxNodeReferences) {
+        if (countChildren(parent, RTreeRelationshipTypes.RTREE_REFERENCE) >= maxNodeReferences) {
 			insertInLeaf(parent, geomNode);
-			splitAndAdjustPathBoundingBox(parent);
+            splitAndAdjustPathBoundingBox(parent);
 		} else {
 			if (insertInLeaf(parent, geomNode)) {
 				// bbox enlargement needed
@@ -145,7 +158,8 @@ public class RTreeIndex implements SpatialIndexWriter {
 
 		//If the insertion is large relative to the size of the tree, simply rebuild the whole tree.
 		if (geomNodes.size() > totalGeometryCount * 0.4) {
-			List<Node> nodesToAdd = new ArrayList<>(geomNodes.size() + totalGeometryCount);
+            monitor.addNbrRebuilt();
+            List<Node> nodesToAdd = new ArrayList<>(geomNodes.size() + totalGeometryCount);
 			for (Node n : getAllIndexedNodes()) {
 				nodesToAdd.add(n);
 			}
@@ -244,7 +258,6 @@ public class RTreeIndex implements SpatialIndexWriter {
 				outliers.add(n);
 			}
 		}
-
 		for (Node child : children) {
 			List<Node> cluster = map.get(child);
 
@@ -255,14 +268,21 @@ public class RTreeIndex implements SpatialIndexWriter {
 
             //In an rtree is this height it will add as a single child to the current child node.
             int currentRTreeHeight = rootNodeHeight - 2;
+			if(expectedHeight-currentRTreeHeight > 1 ){
+				throw new RuntimeException("Due to h_i-l_t > 1");
+			}
 			if (expectedHeight < currentRTreeHeight) {
+				monitor.addCase("h_i < l_t ");
                 //if the hieght is smaller than that recursively sort and split.
 				outliers.addAll(bulkInsertion(child, rootNodeHeight - 1, cluster, loadingFactor));
 			} //if constructed tree is the correct size insert it here.
 			else if (expectedHeight == currentRTreeHeight) {
+
 				//Do not create underfull nodes, instead use the add logic, except we know the root not to add them too.
                 //this handles the case where the number of nodes in a cluster is small.
+
 				if (cluster.size() < maxNodeReferences * loadingFactor / 2) {
+					monitor.addCase("h_i == l_t && small cluster");
 					// getParent because addition might cause a split. This strategy not ideal,
 					// but does tend to limit overlap more than adding to the child exclusively.
 
@@ -270,7 +290,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 						addBelow(rootNode, n);
 					}
 				} else {
-
+					monitor.addCase("h_i == l_t && big cluster");
 					Node newRootNode = database.createNode();
 					buildRtreeFromScratch(newRootNode, cluster, loadingFactor, 4);
 					insertIndexNodeOnParent(child, newRootNode);
@@ -278,7 +298,8 @@ public class RTreeIndex implements SpatialIndexWriter {
 				}
 
 			} else {
-				Node newRootNode = database.createNode();
+				monitor.addCase("h_i > l_t");
+                Node newRootNode = database.createNode();
 				buildRtreeFromScratch(newRootNode, cluster, loadingFactor, 4);
 				int insertDepth = getHeight(newRootNode, 0) - (currentRTreeHeight);
 				List<Node> childrenToBeInserted = getIndexChildren(newRootNode, insertDepth);
@@ -287,7 +308,27 @@ public class RTreeIndex implements SpatialIndexWriter {
 					relationship.delete();
 					insertIndexNodeOnParent(child, n);
 				}
-				// todo wouldn't it be better for this temporary tree to only live in memory?
+//                System.out.println("deleting tmp tree at: "+newRootNode.getId()+" ("+childrenToBeInserted.stream()
+//                        .map(Node::getId).toArray()+")");
+//                System.out.print("deleting tmp tree at: "+newRootNode.getId()+" ( ");
+//                List<String> outList= new ArrayList<>( );
+//				Iterator<Relationship> itr = newRootNode.getRelationships().iterator();
+//				while(itr.hasNext()){
+//					Iterator<Relationship> tmpItr=itr.next().getEndNode().getRelationships(Direction.OUTGOING).iterator();
+//					while(tmpItr.hasNext()){
+//						outList.add(tmpItr.next().toString());
+//					}
+//				}
+//                for (Node n : childrenToBeInserted) {
+//                    outList.add(n.getId());
+//                }
+//                java.util.Collections.sort( outList );
+//
+//                for (String n : outList) {
+//                    System.out.print(n + ", ");
+//                }
+//                System.out.println(" )");
+                // todo wouldn't it be better for this temporary tree to only live in memory?
 				deleteRecursivelySubtree(newRootNode, null); // remove the buffer tree remnants
 			}
 		}
@@ -316,14 +357,13 @@ public class RTreeIndex implements SpatialIndexWriter {
 	 * @param geomNodes
 	 * @param loadingFactor - Must be between 0.1 and 1, this is how full each node will be, approximately.
 	 *                      Use 1 for static trees, lower numbers if there are to be many subsequent updates.
-	 * @param NThreads      - This will attempt to paralellise the task if N >1;
+	 * @param NThreads      - This will attempt to parallelise the task if N >1;
 	 */
 	private void buildRtreeFromScratch(Node rootNode, final List<Node> geomNodes, double loadingFactor, int NThreads) {
 
-		int depth = 0;
-		partition(rootNode, geomNodes, depth, 0.7);
+		partition(rootNode, geomNodes, 0, loadingFactor);
 
-		//will at some point contain the logic for paralellisation.
+		//will at some point contain the logic for parallelisation.
 		/*
 		long shouldExpandRoot = getIndexChildren(rootNode).stream()
 		  .map(child -> partition(child, geomNodes, depth + 1, loadingFactor))
@@ -373,9 +413,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 		//work out the number of times to partition it:
 		final int targetLoading = (int) Math.round(maxNodeReferences * loadingFactor);
 		int nodeCount = nodes.size();
-		final int height = expectedHeight(loadingFactor, nodeCount); //exploit change of base formula
-		final int subTreeSize = (int) Math.round(Math.pow(targetLoading, height - 1));
-		final int numberOfPartitions = (int) Math.ceil((double) nodeCount / (double) subTreeSize);
+
 
 		boolean expandRootNodeBoundingBox = false;
 		if (nodeCount <= targetLoading) {
@@ -386,6 +424,10 @@ public class RTreeIndex implements SpatialIndexWriter {
 				adjustPathBoundingBox(rootNode);
 			}
 		} else {
+			final int height = expectedHeight(loadingFactor, nodeCount); //exploit change of base formula
+			monitor.addSplit();
+			final int subTreeSize = (int) Math.round(Math.pow(targetLoading, height - 1));
+			final int numberOfPartitions = (int) Math.ceil((double) nodeCount / (double) subTreeSize);
 			// - TODO change this to use the sort function above
 			List<List<Node>> partitions = partitionList(nodes, numberOfPartitions);
 
@@ -817,7 +859,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 		// children that can contain the new geometry
 		List<Node> indexNodes = new ArrayList<>();
 
-		// pick the child that contains the new geometry bounding box		
+		// pick the child that contains the new geometry bounding box
 		Iterable<Relationship> relationships = parentIndexNode.getRelationships(RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING);
 		for (Relationship relation : relationships) {
 			Node indexNode = relation.getEndNode();
@@ -900,10 +942,13 @@ public class RTreeIndex implements SpatialIndexWriter {
 	}
 
 	private void splitAndAdjustPathBoundingBox(Node indexNode) {
-		// create a new node and distribute the entries
-		Node newIndexNode = quadraticSplit(indexNode);
+        monitor.addSplit();
+        // create a new node and distribute the entries
+        Node newIndexNode = quadraticSplit(indexNode);
 		Node parent = getIndexNodeParent(indexNode);
-		if (parent == null) {
+//        System.out.println("spitIndex " + newIndexNode.getId());
+//        System.out.println("parent " + parent.getId());
+        if (parent == null) {
 			// if indexNode is the root
 			createNewRoot(indexNode, newIndexNode);
 		} else {
@@ -1015,7 +1060,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 
 		// create new node from split
 		Node newIndexNode = database.createNode();
-		for (Node node : group2) {
+        for (Node node : group2) {
 			addChild(newIndexNode, relationshipType, node);
 		}
 
@@ -1159,6 +1204,22 @@ public class RTreeIndex implements SpatialIndexWriter {
 		if (incoming!=null) {
 			incoming.delete();
 		}
+//		if ( node.getId() == 251144 )
+//		{
+//
+//			Iterator<Relationship> itr = node.getRelationships().iterator();
+//			while(itr.hasNext())
+//			{
+//				itr.next().delete();
+////				System.out.println( itr.next().toString() );
+//
+//			}
+//			System.out.println( "Noden" );
+//		}
+//		Iterator<Relationship> itr = node.getRelationships().iterator();
+//		while(itr.hasNext()){
+//			itr.next().delete();
+//		}
 		node.delete();
 	}
 

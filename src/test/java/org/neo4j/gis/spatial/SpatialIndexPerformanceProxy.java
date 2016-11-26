@@ -24,6 +24,7 @@ import java.util.Set;
 
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
+import org.neo4j.gis.spatial.rtree.TreeMonitor;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.gis.spatial.filter.SearchRecords;
@@ -130,7 +131,13 @@ public class SpatialIndexPerformanceProxy implements LayerIndexReader {
 		return results;
 	}
 
-	@Override
+    @Override
+    public void addMonitor( TreeMonitor monitor )
+    {
+
+    }
+
+    @Override
 	public SearchRecords search(SearchFilter filter) {
         long start = System.currentTimeMillis();
         SearchRecords results = spatialIndex.search(filter);
