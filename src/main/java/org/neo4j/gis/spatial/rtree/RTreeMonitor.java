@@ -26,13 +26,14 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class RTreeMonitor implements TreeMonitor {
     private int nbrSplit;
     private int height;
     private int nbrRebuilt;
     private HashMap<String, Integer> cases = new HashMap<>();
-    private ArrayList<Node> matchedTreeNodes = new ArrayList<Node>();
+    private ArrayList<ArrayList<Node>> matchedTreeNodes = new ArrayList<>();
 
     public RTreeMonitor() {
         reset();
@@ -93,12 +94,20 @@ public class RTreeMonitor implements TreeMonitor {
     }
 
     @Override
-    public void matchedTreeNode(Node node) {
-        matchedTreeNodes.add(node);
+    public void matchedTreeNode(int level, Node node) {
+        ensureMatchedTreeNodeLevel(level);
+        matchedTreeNodes.get(level).add(node);
+    }
+
+    private void ensureMatchedTreeNodeLevel(int level) {
+        while (matchedTreeNodes.size() <= level) {
+            matchedTreeNodes.add(new ArrayList<Node>());
+        }
     }
 
     @Override
-    public List<Node> getMatchedTreeNodes() {
-        return matchedTreeNodes;
+    public List<Node> getMatchedTreeNodes(int level) {
+        ensureMatchedTreeNodeLevel(level);
+        return matchedTreeNodes.get(level).stream().collect(Collectors.toList());
     }
 }

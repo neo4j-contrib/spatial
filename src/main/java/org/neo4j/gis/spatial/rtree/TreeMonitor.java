@@ -46,7 +46,7 @@ public interface TreeMonitor
 
     void reset();
 
-    void matchedTreeNode(Node node);
+    void matchedTreeNode(int level, Node node);
 
-    List<Node> getMatchedTreeNodes();
+    List<Node> getMatchedTreeNodes(int level);
 }

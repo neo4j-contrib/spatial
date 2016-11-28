@@ -32,6 +32,7 @@ import org.geotools.styling.Style;
 import org.neo4j.gis.spatial.*;
 import org.neo4j.graphdb.Node;
 import org.opengis.feature.simple.SimpleFeatureType;
+import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
@@ -44,33 +45,58 @@ import java.util.List;
 import static java.awt.RenderingHints.*;
 
 public class RTreeImageExporter {
+    private CoordinateReferenceSystem crs;
     private File exportDir;
-    double zoom = 1.0;
+    double zoom = 0.98;
     double[] offset = new double[]{0, 0};
-    Rectangle displaySize = new Rectangle(3200, 3200);
-    private final Layer layer;
-    private final RTreeIndex index;
-    private final GeometryEncoder geometryEncoder;
+    Rectangle displaySize = new Rectangle(2160, 2160);
+    private Layer layer;
+    private RTreeIndex index;
+    private GeometryEncoder geometryEncoder;
     private final Color[] colors = new Color[]{Color.BLUE, Color.CYAN, Color.GREEN, Color.RED, Color.YELLOW, Color.PINK, Color.ORANGE};
     ReferencedEnvelope bounds;
 
+    public RTreeImageExporter(Layer layer, RTreeIndex index, Coordinate min, Coordinate max) {
+        initialize(layer, index);
+        bounds.expandToInclude(new com.vividsolutions.jts.geom.Envelope(min.x, max.x, min.y, max.y));
+        bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
+    }
+
     public RTreeImageExporter(Layer layer, RTreeIndex index) {
+        initialize(layer, index);
+        bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
+    }
+
+    public void initialize(Layer layer, RTreeIndex index) {
         this.layer = layer;
         this.index = index;
         this.geometryEncoder = layer.getGeometryEncoder();
-        this.bounds = new ReferencedEnvelope(layer.getCoordinateReferenceSystem());
-        bounds.expandToInclude(Utilities.fromNeo4jToJts(index.getBoundingBox()));
+        this.crs = layer.getCoordinateReferenceSystem();
+        this.bounds = new ReferencedEnvelope(crs);
+        Envelope bbox = index.getBoundingBox();
+        if (bbox != null) {
+            bounds.expandToInclude(Utilities.fromNeo4jToJts(bbox));
+        }
     }
 
-    public void saveRTreeLayers(int levels) throws IOException {
-        saveRTreeLayers(levels, new ArrayList<>(), new ArrayList<>(), null, null);
+
+    public void saveRTreeLayers(File imagefile, int levels) throws IOException {
+        saveRTreeLayers(imagefile, levels, new EmptyMonitor(), new ArrayList<>(), null, null);
     }
 
-    public void saveRTreeLayers(int levels, List<Node> foundNodes, List<Node> matchedTreeNodes, Coordinate min, Coordinate max) throws IOException {
+    public void saveRTreeLayers(File imagefile, int levels, TreeMonitor monitor) throws IOException {
+        saveRTreeLayers(imagefile, levels, monitor, new ArrayList<>(), null, null);
+    }
+
+    public void saveRTreeLayers(File imagefile, int levels, TreeMonitor monitor, List<Node> foundNodes, Coordinate min, Coordinate max) throws IOException {
         MapContent mapContent = new MapContent();
+        drawBounds(mapContent, bounds, Color.WHITE);
+
         int indexHeight = index.getHeight(index.getIndexRoot(), 0);
         ArrayList<ArrayList<Node>> layers = new ArrayList<>(indexHeight);
+        ArrayList<List<Node>> indexMatches = new ArrayList<>(indexHeight);
         for (int i = 0; i < indexHeight; i++) {
+            indexMatches.add(monitor.getMatchedTreeNodes(indexHeight - i - 1));
             layers.add(new ArrayList<>());
             ArrayList<Node> nodes = layers.get(i);
             if (i == 0) {
@@ -88,18 +114,16 @@ public class RTreeImageExporter {
             ArrayList<Node> layer = layers.get(indexHeight - level - 1);
             System.out.println("Drawing index level " + level + " of " + layer.size() + " nodes");
             drawIndexNodes(level, mapContent, layer, colors[level % colors.length]);
+            drawIndexNodes(2 + level * 2, mapContent, indexMatches.get(level), Color.MAGENTA);
         }
         drawGeometryNodes(mapContent, foundNodes, Color.RED);
         if (min != null && max != null) {
             drawEnvelope(mapContent, min, max, Color.RED);
         }
-        drawIndexNodes(3, mapContent, matchedTreeNodes, Color.MAGENTA);
-        saveMapContentToImageFile(mapContent, new File("rtree.png"), bounds);
+        saveMapContentToImageFile(mapContent, imagefile, bounds);
     }
 
     private void saveMapContentToImageFile(MapContent mapContent, File imagefile, ReferencedEnvelope bounds) throws IOException {
-        bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
-
         RenderingHints hints = new RenderingHints(KEY_ANTIALIASING, VALUE_ANTIALIAS_ON);
         hints.put(KEY_TEXT_ANTIALIASING, VALUE_TEXT_ANTIALIAS_ON);
 
@@ -114,7 +138,9 @@ public class RTreeImageExporter {
         graphics.dispose();
         mapContent.dispose();
 
-        ImageIO.write(image, "png", checkFile(imagefile));
+        imagefile = checkFile(imagefile);
+        System.out.println("Writing image to disk: " + imagefile);
+        ImageIO.write(image, "png", imagefile);
     }
 
     private File checkFile(File file) {
@@ -137,17 +163,24 @@ public class RTreeImageExporter {
     }
 
     private void drawIndexNodes(int level, MapContent mapContent, List<Node> nodes, Color color) throws IOException {
-        Style style = StyledImageExporter.createPolygonStyle(color, Color.WHITE, 0.8, 0.1, level + 1);
+        Style style = StyledImageExporter.createPolygonStyle(color, Color.WHITE, 0.8, 0.0, level + 1);
         mapContent.addLayer(new org.geotools.map.FeatureLayer(makeIndexNodeFeatures(nodes), style));
     }
 
     private void drawEnvelope(MapContent mapContent, Coordinate min, Coordinate max, Color color) throws IOException {
-        Style style = StyledImageExporter.createPolygonStyle(color, Color.WHITE, 0.8, 0.1, 2);
+        Style style = StyledImageExporter.createPolygonStyle(color, Color.WHITE, 0.8, 0.0, 3);
         mapContent.addLayer(new org.geotools.map.FeatureLayer(makeEnvelopeFeatures(min, max), style));
     }
 
+    private void drawBounds(MapContent mapContent, ReferencedEnvelope bounds, Color color) throws IOException {
+        Style style = StyledImageExporter.createPolygonStyle(color, Color.WHITE, 0.8, 1.0, 6);
+        double[] min = bounds.getLowerCorner().getCoordinate();
+        double[] max = bounds.getUpperCorner().getCoordinate();
+        mapContent.addLayer(new org.geotools.map.FeatureLayer(makeEnvelopeFeatures(new Coordinate(min[0], min[1]), new Coordinate(max[0], max[1])), style));
+    }
+
     private MemoryFeatureCollection makeEnvelopeFeatures(Coordinate min, Coordinate max) {
-        SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("Polygon", Constants.GTYPE_POLYGON, layer.getCoordinateReferenceSystem(), new String[]{});
+        SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("Polygon", Constants.GTYPE_POLYGON, crs, new String[]{});
         Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, new ArrayList<String>());
         GeometryFactory geometryFactory = layer.getGeometryFactory();
         MemoryFeatureCollection features = new MemoryFeatureCollection(featureType);
@@ -164,7 +197,7 @@ public class RTreeImageExporter {
     }
 
     private MemoryFeatureCollection makeIndexNodeFeatures(List<Node> nodes) {
-        SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("Polygon", Constants.GTYPE_POLYGON, layer.getCoordinateReferenceSystem(), new String[]{});
+        SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("Polygon", Constants.GTYPE_POLYGON, crs, new String[]{});
         Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, new ArrayList<String>());
         GeometryFactory geometryFactory = layer.getGeometryFactory();
         MemoryFeatureCollection features = new MemoryFeatureCollection(featureType);

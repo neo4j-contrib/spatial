@@ -13,6 +13,7 @@ import org.neo4j.graphdb.*;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.*;
@@ -301,12 +302,19 @@ public class RTreeBulkInsertTest extends Neo4jTestCase {
     }
 
     public void testInsertManyNodesInBulk() throws FactoryException, IOException {
-        int width = 200;
-        int blockSize = 10000;
+        int width = 500;
+        int blockSize = 2000;
 //        int blockSize = 1000;
         List<Node> nodes = setup(width);
 
         EditableLayer layer = (EditableLayer) new SpatialDatabaseService(graphDb()).getLayer("Coordinates");
+        RTreeIndex rtree = (RTreeIndex) layer.getIndex();
+        RTreeImageExporter imageExporter;
+        try (Transaction tx = graphDb().beginTx()) {
+            imageExporter = new RTreeImageExporter(layer, rtree, new Coordinate(0.0, 0.0), new Coordinate(1.0, 1.0));
+            tx.success();
+        }
+
         RTreeMonitor monitor = new RTreeMonitor();
         layer.getIndex().addMonitor(monitor);
         TimedLogger log = new TimedLogger("Inserting " + (width * width) + " nodes into RTree using bulk insert",
@@ -314,32 +322,28 @@ public class RTreeBulkInsertTest extends Neo4jTestCase {
         long start = System.currentTimeMillis();
         for (int i = 0; i < width * width / blockSize; i++) {
             List<Node> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
-            try (Transaction tx = spatialProcedures().db.beginTx()) {
-
-                SpatialProcedures s = spatialProcedures();
+            long startIndexing = System.currentTimeMillis();
+            try (Transaction tx = graphDb().beginTx()) {
                 layer.addAll(slice);
                 tx.success();
             }
-//            catch ( Exception e ){
-//                Throwable t = e;
-//                do {
-//                    System.out.println(t.getMessage());
-//                    t.printStackTrace(System.out);
-//                    t=t.getCause();
-//                }while(t!=null);
-//            }
             System.out.println("Rebuilt " + monitor.getNbrRebuilt());
             System.out.println("Splits " + monitor.getNbrSplit());
             System.out.println("Cases " + monitor.getCaseCounts());
-            log.log("added to the tree", (i + 1) * blockSize);
+            log.log(startIndexing, "added to the tree", (i + 1) * blockSize);
+            try (Transaction tx = graphDb().beginTx()) {
+                imageExporter.saveRTreeLayers(new File("rtree/rtree-" + i + ".png"), 7);
+                tx.success();
+            }
         }
         System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + (width * width) + " nodes to RTree in bulk");
 
         Coordinate min = new Coordinate(0.5, 0.5);
         Coordinate max = new Coordinate(0.52, 0.52);
+        monitor.reset();
         List<Node> found = queryRTree(layer, monitor, min, max);
         debugTree(layer);
-        (new RTreeImageExporter(layer, (RTreeIndex)layer.getIndex())).saveRTreeLayers(5, found, monitor.getMatchedTreeNodes(), min, max);
+        imageExporter.saveRTreeLayers(new File("rtree/rtree.png"), 7, monitor, found, min, max);
 //        debugIndexTree((RTreeIndex) layer.getIndex());
     }
 
@@ -357,6 +361,11 @@ public class RTreeBulkInsertTest extends Neo4jTestCase {
             this.start = System.currentTimeMillis();
             this.previous = this.start;
             System.out.println(title);
+        }
+
+        public void log(long previous, String line, long number) {
+            this.previous = previous;
+            log(line, number);
         }
 
         public void log(String line, long number) {

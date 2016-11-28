@@ -639,7 +639,7 @@ public class RTreeIndex implements SpatialIndexWriter {
             else if ( rel.isType( RTreeRelationshipTypes.RTREE_CHILD ) )
             {
 				boolean shouldContinue = filter.needsToVisit( getIndexNodeEnvelope( node ) );
-				if(shouldContinue) monitor.matchedTreeNode(node);
+				if(shouldContinue) monitor.matchedTreeNode(path.length(), node);
                 return shouldContinue ?
                        Evaluation.EXCLUDE_AND_CONTINUE :
                        Evaluation.EXCLUDE_AND_PRUNE;
