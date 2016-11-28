@@ -119,7 +119,7 @@ public class StyledImageExporter {
 	 * 
 	 * @param fractionWidth
 	 *            fraction of the width to shift right/left
-	 * @param fractionHeigh
+	 * @param fractionHeight
 	 *            fraction of the height to shift up/down
 	 */
 	public void setOffset(double fractionWidth, double fractionHeight) {
