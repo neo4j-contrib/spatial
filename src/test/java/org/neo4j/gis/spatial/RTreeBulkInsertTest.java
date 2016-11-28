@@ -2,36 +2,23 @@ package org.neo4j.gis.spatial;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.util.ObjectCounter;
-import org.apache.commons.io.FileUtils;
-import org.geotools.geometry.Envelope2D;
-import org.geotools.referencing.CRS;
 import org.geotools.referencing.crs.DefaultEngineeringCRS;
 import org.junit.Test;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
+import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.gis.spatial.rtree.RTreeMonitor;
 import org.neo4j.gis.spatial.rtree.RTreeRelationshipTypes;
 import org.neo4j.gis.spatial.rtree.TreeMonitor;
 import org.neo4j.graphdb.*;
-import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-import org.opengis.geometry.Envelope;
 import org.opengis.referencing.FactoryException;
-import org.opengis.referencing.crs.CRSAuthorityFactory;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
-import java.io.File;
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 public class RTreeBulkInsertTest extends Neo4jTestCase {
 
@@ -214,17 +201,20 @@ public class RTreeBulkInsertTest extends Neo4jTestCase {
         return spatialProcedures;
     }
 
-    private void queryRTree(Layer layer) {
+    private void queryRTree(Layer layer, TreeMonitor monitor) {
         Coordinate min = new Coordinate(0.5, 0.5);
         Coordinate max = new Coordinate(0.52, 0.52);
         long count = 0;
         long start = System.currentTimeMillis();
         try (Transaction tx = spatialProcedures().db.beginTx()) {
-            Stream<SpatialProcedures.NodeResult> results = spatialProcedures().findGeometriesInBBox(layer.getName(), min, max);
-            count = results.count();
+            com.vividsolutions.jts.geom.Envelope envelope = new com.vividsolutions.jts.geom.Envelope(min, max);
+            count = GeoPipeline.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(envelope)).count();
             tx.success();
         }
         System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to find " + count + " nodes in 4x4 block");
+        int touched = monitor.getCaseCounts().get("Geometry Does NOT Match");
+        int matched = monitor.getCaseCounts().get("Geometry Matches");
+        System.out.println("Matched " + matched + "/" + touched + " touched nodes (" + (100.0 * matched / touched) + "%)");
 //        assertEquals("Expected 361 nodes to be returned", 361, count);
     }
 
@@ -252,7 +242,7 @@ public class RTreeBulkInsertTest extends Neo4jTestCase {
         }
         System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + (width * width) + " nodes to RTree in bulk");
 
-        queryRTree(layer);
+        queryRTree(layer, monitor);
         debugTree(layer);
     }
 
@@ -294,8 +284,18 @@ public class RTreeBulkInsertTest extends Neo4jTestCase {
         System.out.println(resultChildrenPerParent.next());
 
         Result resultChildrenPerParent2 = graphDb().execute(queryChildrenPerParent2, params);
+        Integer[] histogram = new Integer[10];
+        Arrays.fill(histogram, 0);
         while (resultChildrenPerParent2.hasNext()) {
-            System.out.println(resultChildrenPerParent2.next());
+            Map<String, Object> result = resultChildrenPerParent2.next();
+            long children = (long) result.get("children");
+            if (children < 20) {
+                System.out.println("Underfilled index node: " + result);
+            }
+            histogram[(int) children / 10]++;
+        }
+        for (int i = 0; i < 10; i++) {
+            System.out.println("[" + (i * 10) + ".." + ((i + 1) * 10) + "): " + histogram[i]);
         }
     }
 
@@ -334,7 +334,7 @@ public class RTreeBulkInsertTest extends Neo4jTestCase {
         }
         System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + (width * width) + " nodes to RTree in bulk");
 
-        queryRTree(layer);
+        queryRTree(layer, monitor);
         debugTree(layer);
 //        debugIndexTree((RTreeIndex) layer.getIndex());
     }

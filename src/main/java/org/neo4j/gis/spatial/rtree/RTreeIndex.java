@@ -20,30 +20,18 @@
 package org.neo4j.gis.spatial.rtree;
 
 import java.util.*;
-import java.util.concurrent.Callable;
+import java.util.stream.Collectors;
 
-import org.neo4j.csv.reader.SourceTraceability;
-import org.neo4j.gis.spatial.Utilities;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
 import org.neo4j.graphdb.Path;
-import org.neo4j.graphdb.QueryExecutionException;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
-import org.neo4j.graphdb.ResourceIterable;
-import org.neo4j.graphdb.ResourceIterator;
-import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.event.KernelEventHandler;
-import org.neo4j.graphdb.event.TransactionEventHandler;
-import org.neo4j.graphdb.index.IndexManager;
-import org.neo4j.graphdb.schema.Schema;
-import org.neo4j.graphdb.traversal.BidirectionalTraversalDescription;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluator;
 import org.neo4j.graphdb.traversal.Evaluators;
@@ -167,20 +155,54 @@ public class RTreeIndex implements SpatialIndexWriter {
 			for (Node n : getAllIndexInternalNodes()) {
 				deleteNode(n);
 			}
-			buildRtreeFromScratch(getIndexRoot(), nodesToAdd, 0.7, 10);
+			buildRtreeFromScratch(getIndexRoot(), decodeEnvelopes(nodesToAdd), 0.7);
 			countSaved = false;
 			totalGeometryCount = nodesToAdd.size();
 		} else {
 
-			List<Node> outliers = bulkInsertion(getIndexRoot(), getHeight(getIndexRoot(), 0), geomNodes, 0.7);
+			List<NodeWithEnvelope> outliers = bulkInsertion(getIndexRoot(), getHeight(getIndexRoot(), 0), decodeEnvelopes(geomNodes), 0.7);
 			countSaved = false;
 			totalGeometryCount = totalGeometryCount + (geomNodes.size() - outliers.size());
-			for (Node n : outliers) {
-				add(n);
+			for (NodeWithEnvelope n : outliers) {
+				add(n.node);
 			}
 		}
 	}
 
+	private List<NodeWithEnvelope> decodeEnvelopes(List<Node> nodes) {
+		return nodes.stream().map(NodeWithEnvelope::new).collect(Collectors.toList());
+	}
+
+	class NodeWithEnvelope {
+		Envelope envelope;
+		Node node;
+		NodeWithEnvelope(Node node) {
+			this.node = node;
+			this.envelope = envelopeDecoder.decodeEnvelope(node);
+		}
+	}
+
+	/**
+	 * Comparator for comparing nodes by compaing the xMin on their evelopes.
+	 */
+	public static class ComparatorOnXMin implements Comparator<NodeWithEnvelope> {
+
+		@Override
+		public int compare(NodeWithEnvelope o1, NodeWithEnvelope o2) {
+			return Double.compare(o1.envelope.getMinX(), o2.envelope.getMinX());
+		}
+	}
+
+	/**
+	 * Comparator or comparing nodes by coparing the yMin on their envelopes.
+	 */
+	public static class ComparatorOnYMin implements Comparator<NodeWithEnvelope> {
+
+		@Override
+		public int compare(NodeWithEnvelope o1, NodeWithEnvelope o2) {
+			return Double.compare(o1.envelope.getMinY(), o2.envelope.getMinY());
+		}
+	}
 
 	/**
 	 * Returns the height of the tree, starting with the rootNode and adding one for each subsequent level. Relies on the
@@ -226,11 +248,11 @@ public class RTreeIndex implements SpatialIndexWriter {
 		}
 	}
 
-	private List<Node> bulkInsertion(Node rootNode, int rootNodeHeight, final List<Node> geomNodes, final double loadingFactor) {
+	private List<NodeWithEnvelope> bulkInsertion(Node rootNode, int rootNodeHeight, final List<NodeWithEnvelope> geomNodes, final double loadingFactor) {
 		List<Node> children = getIndexChildren(rootNode);
 		children.sort(new IndexNodeAreaComparator());
 
-		Map<Node, List<Node>> map = new HashMap<>(children.size());
+		Map<Node, List<NodeWithEnvelope>> map = new HashMap<>(children.size());
 		Map<Node, Envelope> envelopes = new HashMap<>(children.size());
 		int nodesPerRootSubTree = Math.max(16, geomNodes.size() / children.size());
 		for (Node n : children) {
@@ -239,9 +261,9 @@ public class RTreeIndex implements SpatialIndexWriter {
 		}
 
 		// The outliers are those nodes which do not fit into the existing tree hierarchy.
-		List<Node> outliers = new ArrayList<>(geomNodes.size() / 10); // 10% outliers
-		for (Node n : geomNodes) {
-			Envelope env = envelopeDecoder.decodeEnvelope(n);
+		List<NodeWithEnvelope> outliers = new ArrayList<>(geomNodes.size() / 10); // 10% outliers
+		for (NodeWithEnvelope n : geomNodes) {
+			Envelope env = n.envelope;
 			boolean flag = true;
 
 			//exploits that the iterator returns the list inorder, which is sorted by size, as above. Thus child
@@ -259,7 +281,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 			}
 		}
 		for (Node child : children) {
-			List<Node> cluster = map.get(child);
+			List<NodeWithEnvelope> cluster = map.get(child);
 
 			if (cluster.isEmpty()) continue;
 
@@ -286,13 +308,13 @@ public class RTreeIndex implements SpatialIndexWriter {
 					// getParent because addition might cause a split. This strategy not ideal,
 					// but does tend to limit overlap more than adding to the child exclusively.
 
-					for (Node n : cluster) {
-						addBelow(rootNode, n);
+					for (NodeWithEnvelope n : cluster) {
+						addBelow(rootNode, n.node);
 					}
 				} else {
 					monitor.addCase("h_i == l_t && big cluster");
 					Node newRootNode = database.createNode();
-					buildRtreeFromScratch(newRootNode, cluster, loadingFactor, 4);
+					buildRtreeFromScratch(newRootNode, cluster, loadingFactor);
 					insertIndexNodeOnParent(child, newRootNode);
 
 				}
@@ -300,7 +322,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 			} else {
 				monitor.addCase("h_i > l_t");
                 Node newRootNode = database.createNode();
-				buildRtreeFromScratch(newRootNode, cluster, loadingFactor, 4);
+				buildRtreeFromScratch(newRootNode, cluster, loadingFactor);
 				int insertDepth = getHeight(newRootNode, 0) - (currentRTreeHeight);
 				List<Node> childrenToBeInserted = getIndexChildren(newRootNode, insertDepth);
 				for (Node n : childrenToBeInserted) {
@@ -357,42 +379,9 @@ public class RTreeIndex implements SpatialIndexWriter {
 	 * @param geomNodes
 	 * @param loadingFactor - Must be between 0.1 and 1, this is how full each node will be, approximately.
 	 *                      Use 1 for static trees, lower numbers if there are to be many subsequent updates.
-	 * @param NThreads      - This will attempt to parallelise the task if N >1;
 	 */
-	private void buildRtreeFromScratch(Node rootNode, final List<Node> geomNodes, double loadingFactor, int NThreads) {
-
+	private void buildRtreeFromScratch(Node rootNode, final List<NodeWithEnvelope> geomNodes, double loadingFactor) {
 		partition(rootNode, geomNodes, 0, loadingFactor);
-
-		//will at some point contain the logic for parallelisation.
-		/*
-		long shouldExpandRoot = getIndexChildren(rootNode).stream()
-		  .map(child -> partition(child, geomNodes, depth + 1, loadingFactor))
-		  .filter(expand -> expand).count();
-		// if paralellized has to return true if the root node bounding box has to be expanded
-		if (shouldExpandRoot > 0 ) {
-			adjustPathBoundingBox(rootNode);
-		}
-		*/
-	}
-
-	private class PartitionRunnable implements Callable<Boolean> {
-		final Node root;
-		final List<Node> geomNodes;
-		final int depth;
-		final double loadingFactor;
-
-		PartitionRunnable(Node newIndexNode, List<Node> geomNodes, int depth, double loadingFactor) {
-			this.root = newIndexNode;
-			this.geomNodes = geomNodes;
-			this.depth = depth;
-			this.loadingFactor = loadingFactor;
-		}
-
-
-		@Override
-		public Boolean call() throws Exception {
-			return partition(root, geomNodes, depth, loadingFactor);
-		}
 	}
 
 	/**
@@ -404,10 +393,10 @@ public class RTreeIndex implements SpatialIndexWriter {
 	 * @param loadingFactor - what fraction of the max references will be filled.
 	 * @return
 	 */
-	private boolean partition(Node rootNode, List<Node> nodes, int depth, final double loadingFactor) {
-		Comparator<Node> comparator = (depth % 2 == 0) ?
-				new Utilities.ComparatorOnXMin(this.envelopeDecoder) :
-				new Utilities.ComparatorOnYMin(this.envelopeDecoder);
+	private boolean partition(Node rootNode, List<NodeWithEnvelope> nodes, int depth, final double loadingFactor) {
+		Comparator<NodeWithEnvelope> comparator = (depth % 2 == 0) ?
+				new ComparatorOnXMin() :
+				new ComparatorOnYMin();
 		nodes.sort(comparator);
 
 		//work out the number of times to partition it:
@@ -417,8 +406,8 @@ public class RTreeIndex implements SpatialIndexWriter {
 
 		boolean expandRootNodeBoundingBox = false;
 		if (nodeCount <= targetLoading) {
-			for (Node n : nodes) {
-				expandRootNodeBoundingBox |= insertInLeaf(rootNode, n);
+			for (NodeWithEnvelope n : nodes) {
+				expandRootNodeBoundingBox |= insertInLeaf(rootNode, n.node);
 			}
 			if (expandRootNodeBoundingBox) {
 				adjustPathBoundingBox(rootNode);
@@ -429,10 +418,10 @@ public class RTreeIndex implements SpatialIndexWriter {
 			final int subTreeSize = (int) Math.round(Math.pow(targetLoading, height - 1));
 			final int numberOfPartitions = (int) Math.ceil((double) nodeCount / (double) subTreeSize);
 			// - TODO change this to use the sort function above
-			List<List<Node>> partitions = partitionList(nodes, numberOfPartitions);
+			List<List<NodeWithEnvelope>> partitions = partitionList(nodes, numberOfPartitions);
 
 			//recurse on each partition
-			for (List<Node> partition : partitions) {
+			for (List<NodeWithEnvelope> partition : partitions) {
 				Node newIndexNode = database.createNode();
 				expandRootNodeBoundingBox |= partition(newIndexNode, partition, depth + 1, loadingFactor);
 				expandRootNodeBoundingBox |= insertIndexNodeOnParent(rootNode, newIndexNode);
@@ -444,9 +433,9 @@ public class RTreeIndex implements SpatialIndexWriter {
 	// quick dirty way to partition a set into equal sized disjoint subsets
 	// - TODO why not use list.sublist() without copying ?
 
-	private List<List<Node>> partitionList(List<Node> nodes, int numberOfPartitions) {
+	private List<List<NodeWithEnvelope>> partitionList(List<NodeWithEnvelope> nodes, int numberOfPartitions) {
 		int nodeCount = nodes.size();
-		List<List<Node>> partitions = new ArrayList<>(numberOfPartitions);
+		List<List<NodeWithEnvelope>> partitions = new ArrayList<>(numberOfPartitions);
 
 		int partitionSize = nodeCount / numberOfPartitions; //it is critical that partitionSize is always less than the target loading.
         if (nodeCount % numberOfPartitions > 0) {
@@ -655,7 +644,9 @@ public class RTreeIndex implements SpatialIndexWriter {
             }
             else if ( rel.isType( RTreeRelationshipTypes.RTREE_REFERENCE ) )
             {
-                return filter.geometryMatches( node ) ?
+				boolean found = filter.geometryMatches( node );
+				monitor.addCase(found ? "Geometry Matches" : "Geometry Does NOT Match");
+                return found ?
                        Evaluation.INCLUDE_AND_PRUNE :
                        Evaluation.EXCLUDE_AND_PRUNE;
             }
