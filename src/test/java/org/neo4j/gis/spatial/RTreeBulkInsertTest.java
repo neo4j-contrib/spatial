@@ -284,7 +284,7 @@ public class RTreeBulkInsertTest extends Neo4jTestCase {
         System.out.println(resultChildrenPerParent.next());
 
         Result resultChildrenPerParent2 = graphDb().execute(queryChildrenPerParent2, params);
-        Integer[] histogram = new Integer[10];
+        Integer[] histogram = new Integer[11];
         Arrays.fill(histogram, 0);
         while (resultChildrenPerParent2.hasNext()) {
             Map<String, Object> result = resultChildrenPerParent2.next();
@@ -294,7 +294,7 @@ public class RTreeBulkInsertTest extends Neo4jTestCase {
             }
             histogram[(int) children / 10]++;
         }
-        for (int i = 0; i < 10; i++) {
+        for (int i = 0; i < histogram.length; i++) {
             System.out.println("[" + (i * 10) + ".." + ((i + 1) * 10) + "): " + histogram[i]);
         }
     }
