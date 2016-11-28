@@ -128,9 +128,9 @@ public class Envelope {
 
 	public boolean intersects(Envelope other) {
 		if (isValid() && other.isValid() && getDimension() == other.getDimension()) {
-			boolean result = false;
+			boolean result = true;
 			for (int i = 0; i < min.length; i++) {
-				result = result || !(other.min[i] > max[i] || other.max[i] < min[i]);
+				result = result && other.min[i] < max[i] && other.max[i] > min[i];
 			}
 			return result;
 		} else {
