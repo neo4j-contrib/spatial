@@ -5,16 +5,15 @@ import com.vividsolutions.jts.geom.Geometry;
 import org.geotools.referencing.crs.DefaultEngineeringCRS;
 import org.junit.Test;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
+import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
-import org.neo4j.gis.spatial.rtree.RTreeIndex;
-import org.neo4j.gis.spatial.rtree.RTreeMonitor;
-import org.neo4j.gis.spatial.rtree.RTreeRelationshipTypes;
-import org.neo4j.gis.spatial.rtree.TreeMonitor;
+import org.neo4j.gis.spatial.rtree.*;
 import org.neo4j.graphdb.*;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
+import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -201,21 +200,21 @@ public class RTreeBulkInsertTest extends Neo4jTestCase {
         return spatialProcedures;
     }
 
-    private void queryRTree(Layer layer, TreeMonitor monitor) {
-        Coordinate min = new Coordinate(0.5, 0.5);
-        Coordinate max = new Coordinate(0.52, 0.52);
-        long count = 0;
+    private List<Node> queryRTree(Layer layer, TreeMonitor monitor, Coordinate min, Coordinate max) {
+        List<Node> nodes;
         long start = System.currentTimeMillis();
         try (Transaction tx = spatialProcedures().db.beginTx()) {
             com.vividsolutions.jts.geom.Envelope envelope = new com.vividsolutions.jts.geom.Envelope(min, max);
-            count = GeoPipeline.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(envelope)).count();
+            nodes = GeoPipeline.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(envelope)).stream().map(GeoPipeFlow::getGeomNode).collect(Collectors.toList());
             tx.success();
         }
+        long count = nodes.size();
         System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to find " + count + " nodes in 4x4 block");
         int touched = monitor.getCaseCounts().get("Geometry Does NOT Match");
         int matched = monitor.getCaseCounts().get("Geometry Matches");
         System.out.println("Matched " + matched + "/" + touched + " touched nodes (" + (100.0 * matched / touched) + "%)");
 //        assertEquals("Expected 361 nodes to be returned", 361, count);
+        return nodes;
     }
 
     public void testInsertManyNodes() throws FactoryException {
@@ -242,7 +241,9 @@ public class RTreeBulkInsertTest extends Neo4jTestCase {
         }
         System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + (width * width) + " nodes to RTree in bulk");
 
-        queryRTree(layer, monitor);
+        Coordinate min = new Coordinate(0.5, 0.5);
+        Coordinate max = new Coordinate(0.52, 0.52);
+        queryRTree(layer, monitor, min, max);
         debugTree(layer);
     }
 
@@ -299,8 +300,8 @@ public class RTreeBulkInsertTest extends Neo4jTestCase {
         }
     }
 
-    public void testInsertManyNodesInBulk() throws FactoryException {
-        int width = 1000;
+    public void testInsertManyNodesInBulk() throws FactoryException, IOException {
+        int width = 200;
         int blockSize = 10000;
 //        int blockSize = 1000;
         List<Node> nodes = setup(width);
@@ -334,8 +335,11 @@ public class RTreeBulkInsertTest extends Neo4jTestCase {
         }
         System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + (width * width) + " nodes to RTree in bulk");
 
-        queryRTree(layer, monitor);
+        Coordinate min = new Coordinate(0.5, 0.5);
+        Coordinate max = new Coordinate(0.52, 0.52);
+        List<Node> found = queryRTree(layer, monitor, min, max);
         debugTree(layer);
+        (new RTreeImageExporter(layer, (RTreeIndex)layer.getIndex())).saveRTreeLayers(5, found, monitor.getMatchedTreeNodes(), min, max);
 //        debugIndexTree((RTreeIndex) layer.getIndex());
     }
 

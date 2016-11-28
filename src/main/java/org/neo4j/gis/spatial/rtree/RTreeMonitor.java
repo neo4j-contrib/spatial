@@ -20,7 +20,11 @@
 
 package org.neo4j.gis.spatial.rtree;
 
+import org.neo4j.graphdb.Node;
+
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class RTreeMonitor implements TreeMonitor {
@@ -28,6 +32,7 @@ public class RTreeMonitor implements TreeMonitor {
     private int height;
     private int nbrRebuilt;
     private HashMap<String, Integer> cases = new HashMap<>();
+    private ArrayList<Node> matchedTreeNodes = new ArrayList<Node>();
 
     public RTreeMonitor() {
         reset();
@@ -84,5 +89,16 @@ public class RTreeMonitor implements TreeMonitor {
         height = 0;
         nbrRebuilt = 0;
         nbrSplit = 0;
+        matchedTreeNodes.clear();
+    }
+
+    @Override
+    public void matchedTreeNode(Node node) {
+        matchedTreeNodes.add(node);
+    }
+
+    @Override
+    public List<Node> getMatchedTreeNodes() {
+        return matchedTreeNodes;
     }
 }

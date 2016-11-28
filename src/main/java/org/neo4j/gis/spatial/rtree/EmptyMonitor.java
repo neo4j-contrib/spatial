@@ -20,6 +20,9 @@
 
 package org.neo4j.gis.spatial.rtree;
 
+import org.neo4j.graphdb.Node;
+
+import java.util.List;
 import java.util.Map;
 
 public class EmptyMonitor implements TreeMonitor
@@ -71,5 +74,15 @@ public class EmptyMonitor implements TreeMonitor
     public void reset()
     {
 
+    }
+
+    @Override
+    public void matchedTreeNode(Node node) {
+
+    }
+
+    @Override
+    public List<Node> getMatchedTreeNodes() {
+        return null;
     }
 }

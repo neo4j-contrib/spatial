@@ -214,7 +214,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 	 * @param height
 	 * @return
 	 */
-	private int getHeight(Node rootNode, int height) {
+	int getHeight(Node rootNode, int height) {
 		Iterator<Relationship> rels = rootNode.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD).iterator();
 		if (rels.hasNext()) {
 			return getHeight(rels.next().getEndNode(), height + 1);
@@ -224,7 +224,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 		}
 	}
 
-	private List<Node> getIndexChildren(Node rootNode) {
+	List<Node> getIndexChildren(Node rootNode) {
 		List<Node> result = new ArrayList<>();
 		for (Relationship r : rootNode.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD)) {
 			result.add(r.getEndNode());
@@ -638,7 +638,9 @@ public class RTreeIndex implements SpatialIndexWriter {
             }
             else if ( rel.isType( RTreeRelationshipTypes.RTREE_CHILD ) )
             {
-                return filter.needsToVisit( getIndexNodeEnvelope( node ) ) ?
+				boolean shouldContinue = filter.needsToVisit( getIndexNodeEnvelope( node ) );
+				if(shouldContinue) monitor.matchedTreeNode(node);
+                return shouldContinue ?
                        Evaluation.EXCLUDE_AND_CONTINUE :
                        Evaluation.EXCLUDE_AND_PRUNE;
             }

@@ -321,21 +321,28 @@ public class StyledImageExporter {
         System.out.println("Created Geometry Style: "+style);
         return style;
     }
-    
-    /**
-     * Create a Style to draw polygon features
-     */
-    private static Style createPolygonStyle(Color strokeColor, Color fillColor) {
-        // create a partially opaque outline stroke
+
+	/**
+	 * Create a Style to draw polygon features
+	 */
+	public static Style createPolygonStyle(Color strokeColor, Color fillColor) {
+		return createPolygonStyle(strokeColor, fillColor, 0.5, 0.5, 1);
+	}
+
+	/**
+	 * Create a Style to draw polygon features
+	 */
+	public static Style createPolygonStyle(Color strokeColor, Color fillColor, double stokeGamma, double fillGamma, int strokeWidth) {
+		// create a partially opaque outline stroke
         Stroke stroke = styleFactory.createStroke(
                 filterFactory.literal(strokeColor),
-                filterFactory.literal(1),
-                filterFactory.literal(0.5));
+                filterFactory.literal(strokeWidth),
+                filterFactory.literal(stokeGamma));
 
         // create a partial opaque fill
         Fill fill = styleFactory.createFill(
                 filterFactory.literal(fillColor),
-                filterFactory.literal(0.5));
+                filterFactory.literal(fillGamma));
 
         /*
          * Setting the geometryPropertyName arg to null signals that we want to
