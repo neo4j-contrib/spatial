@@ -270,7 +270,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		assertNotNull("Layer index envelope should not be null", layer.getIndex().getBoundingBox());
 		Envelope bbox = layer.getIndex().getBoundingBox();
 		System.out.println("Layer has bounding box: " + bbox);
-		debugIndexTree((RTreeIndex) layer.getIndex());
+		Neo4jTestUtils.debugIndexTree(graphDb(), (RTreeIndex) layer.getIndex());
 		return bbox;
 	}
 

@@ -153,7 +153,9 @@ public class RTreeIndex implements SpatialIndexWriter {
 			}
 			nodesToAdd.addAll(geomNodes);
 			for (Node n : getAllIndexInternalNodes()) {
-				deleteNode(n);
+				if (!n.equals(getIndexRoot())) {
+					deleteNode(n);
+				}
 			}
 			buildRtreeFromScratch(getIndexRoot(), decodeEnvelopes(nodesToAdd), 0.7);
 			countSaved = false;
@@ -295,7 +297,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 			}
 			if (expectedHeight < currentRTreeHeight) {
 				monitor.addCase("h_i < l_t ");
-                //if the hieght is smaller than that recursively sort and split.
+                //if the height is smaller than that recursively sort and split.
 				outliers.addAll(bulkInsertion(child, rootNodeHeight - 1, cluster, loadingFactor));
 			} //if constructed tree is the correct size insert it here.
 			else if (expectedHeight == currentRTreeHeight) {
@@ -320,15 +322,24 @@ public class RTreeIndex implements SpatialIndexWriter {
 				}
 
 			} else {
-				monitor.addCase("h_i > l_t");
                 Node newRootNode = database.createNode();
 				buildRtreeFromScratch(newRootNode, cluster, loadingFactor);
-				int insertDepth = getHeight(newRootNode, 0) - (currentRTreeHeight);
-				List<Node> childrenToBeInserted = getIndexChildren(newRootNode, insertDepth);
-				for (Node n : childrenToBeInserted) {
-					Relationship relationship = n.getSingleRelationship(RTreeRelationshipTypes.RTREE_CHILD, Direction.INCOMING);
-					relationship.delete();
-					insertIndexNodeOnParent(child, n);
+				int newHeight = getHeight(newRootNode, 0);
+				if (newHeight == 1) {
+					monitor.addCase("h_i > l_t (d==1)");
+					for (Relationship geom : newRootNode.getRelationships(RTreeRelationshipTypes.RTREE_REFERENCE)) {
+						addBelow(child, geom.getEndNode());
+						geom.delete();
+					}
+				} else {
+					monitor.addCase("h_i > l_t (d>1)");
+					int insertDepth = newHeight - (currentRTreeHeight);
+					List<Node> childrenToBeInserted = getIndexChildren(newRootNode, insertDepth);
+					for (Node n : childrenToBeInserted) {
+						Relationship relationship = n.getSingleRelationship(RTreeRelationshipTypes.RTREE_CHILD, Direction.INCOMING);
+						relationship.delete();
+						insertIndexNodeOnParent(child, n);
+					}
 				}
 //                System.out.println("deleting tmp tree at: "+newRootNode.getId()+" ("+childrenToBeInserted.stream()
 //                        .map(Node::getId).toArray()+")");
@@ -350,7 +361,9 @@ public class RTreeIndex implements SpatialIndexWriter {
 //                    System.out.print(n + ", ");
 //                }
 //                System.out.println(" )");
-                // todo wouldn't it be better for this temporary tree to only live in memory?
+//				System.out.println("Deleting sub-tree:\n" + database.execute("MATCH p=(root)-[:RTREE_CHILD*0..]-(index)-[:RTREE_REFERENCE]->(geom) WHERE id(root)="+newRootNode.getId()+" return length(p), count(*)").resultAsString());
+
+				// todo wouldn't it be better for this temporary tree to only live in memory?
 				deleteRecursivelySubtree(newRootNode, null); // remove the buffer tree remnants
 			}
 		}
@@ -610,7 +623,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 		TraversalDescription td = database.traversalDescription()
 				.breadthFirst()
 				.relationships( RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING )
-				.evaluator( Evaluators.excludeStartPosition() );
+				.evaluator( Evaluators.all() );
         return td.traverse( getIndexRoot() ).nodes();
 	}
 
@@ -1197,22 +1210,12 @@ public class RTreeIndex implements SpatialIndexWriter {
 		if (incoming!=null) {
 			incoming.delete();
 		}
-//		if ( node.getId() == 251144 )
-//		{
-//
-//			Iterator<Relationship> itr = node.getRelationships().iterator();
-//			while(itr.hasNext())
-//			{
-//				itr.next().delete();
-////				System.out.println( itr.next().toString() );
-//
-//			}
-//			System.out.println( "Noden" );
-//		}
-//		Iterator<Relationship> itr = node.getRelationships().iterator();
-//		while(itr.hasNext()){
-//			itr.next().delete();
-//		}
+		Iterator<Relationship> itr = node.getRelationships().iterator();
+		while (itr.hasNext()) {
+			Relationship rel = itr.next();
+			System.out.println("Unexpected relationship found on " + node + ": " + rel.toString());
+			rel.delete();
+		}
 		node.delete();
 	}
 

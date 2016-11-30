@@ -46,6 +46,10 @@ public class SimplePointLayer extends EditableLayerImpl {
 		return add(new Coordinate(x, y), fieldsName, fields);
 	}
 
+	public Integer getGeometryType() {
+		return GTYPE_POINT;
+	}
+
 	public List<GeoPipeFlow> findClosestPointsTo(Coordinate coordinate, double d) {
 		return GeoPipeline
 			.startNearestNeighborLatLonSearch(this, coordinate, d)

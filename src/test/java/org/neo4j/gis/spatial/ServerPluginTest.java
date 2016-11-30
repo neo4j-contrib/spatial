@@ -75,7 +75,7 @@ public class ServerPluginTest extends Neo4jTestCase {
         
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
 		Layer layer = spatialService.getLayer(LAYER);
-        debugIndexTree((RTreeIndex) layer.getIndex());
+        Neo4jTestUtils.debugIndexTree(graphDb(), (RTreeIndex) layer.getIndex());
         
         plugin.addNodeToLayer(graphDb(), point, LAYER);
         Iterable<Node> geometries = plugin.findGeometriesInBBox( graphDb(), 15.0, 15.3, 60.0, 60.2, LAYER );

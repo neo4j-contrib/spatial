@@ -109,7 +109,11 @@ public class RTreeImageExporter {
                 }
             }
         }
-        drawGeometryNodes(mapContent, index.getAllIndexedNodes(), Color.LIGHT_GRAY);
+        ArrayList<Node> allIndexedNodes = new ArrayList<>();
+        for(Node node: index.getAllIndexedNodes()) {
+            allIndexedNodes.add(node);
+        }
+        drawGeometryNodes(mapContent, allIndexedNodes, Color.LIGHT_GRAY);
         for (int level = 0; level < Math.min(indexHeight, levels); level++) {
             ArrayList<Node> layer = layers.get(indexHeight - level - 1);
             System.out.println("Drawing index level " + level + " of " + layer.size() + " nodes");
@@ -156,7 +160,7 @@ public class RTreeImageExporter {
         return file;
     }
 
-    private void drawGeometryNodes(MapContent mapContent, Iterable<Node> nodes, Color color) {
+    private void drawGeometryNodes(MapContent mapContent, List<Node> nodes, Color color) {
         SimpleFeatureType featureType = Neo4jFeatureBuilder.getTypeFromLayer(layer);
         Style style = StyledImageExporter.createStyleFromGeometry(featureType, color, color.GRAY);
         mapContent.addLayer(new org.geotools.map.FeatureLayer(makeGeometryNodeFeatures(nodes, featureType), style));
@@ -217,7 +221,7 @@ public class RTreeImageExporter {
         return features;
     }
 
-    private MemoryFeatureCollection makeGeometryNodeFeatures(Iterable<Node> nodes, SimpleFeatureType featureType) {
+    private MemoryFeatureCollection makeGeometryNodeFeatures(List<Node> nodes, SimpleFeatureType featureType) {
         Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, new ArrayList<String>());
         MemoryFeatureCollection features = new MemoryFeatureCollection(featureType);
         for (Node node : nodes) {
