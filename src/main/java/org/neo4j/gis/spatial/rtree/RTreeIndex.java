@@ -653,6 +653,7 @@ public class RTreeIndex implements SpatialIndexWriter {
             {
 				boolean shouldContinue = filter.needsToVisit( getIndexNodeEnvelope( node ) );
 				if(shouldContinue) monitor.matchedTreeNode(path.length(), node);
+				monitor.addCase(shouldContinue ? "Index Matches" : "Index Does NOT Match");
                 return shouldContinue ?
                        Evaluation.EXCLUDE_AND_CONTINUE :
                        Evaluation.EXCLUDE_AND_PRUNE;
