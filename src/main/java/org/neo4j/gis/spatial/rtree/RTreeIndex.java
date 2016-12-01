@@ -44,9 +44,14 @@ import org.neo4j.graphdb.traversal.Traverser;
 public class RTreeIndex implements SpatialIndexWriter {
 
     public static final String INDEX_PROP_BBOX = "bbox";
+
     public static final String KEY_SPLIT = "splitMode";
     public static final String QUADRATIC_SPLIT = "quadratic";
     public static final String GREENES_SPLIT = "greene";
+
+    public static final String KEY_MAX_NODE_REFERENCES = "maxNodeReferences";
+    public static final long MIN_MAX_NODE_REFERENCES = 10;
+    public static final long MAX_MAX_NODE_REFERENCES = 1000000;
 
 	private TreeMonitor monitor;
 	// Constructor
@@ -78,17 +83,31 @@ public class RTreeIndex implements SpatialIndexWriter {
 	}
 
     public void configure(Map<String, Object> config) {
-        for(String key:config.keySet()) {
-            if(key.equals(KEY_SPLIT)) {
-                String value = config.get(key).toString();
-                switch(value) {
-                    case QUADRATIC_SPLIT:
-                    case GREENES_SPLIT:
-                        splitMode = value;
-                        break;
-                    default:
-                        throw new IllegalArgumentException("No such RTreeIndex value for '"+key+"': "+value);
-                }
+        for (String key : config.keySet()) {
+            switch (key) {
+                case KEY_SPLIT:
+                    String value = config.get(key).toString();
+                    switch (value) {
+                        case QUADRATIC_SPLIT:
+                        case GREENES_SPLIT:
+                            splitMode = value;
+                            break;
+                        default:
+                            throw new IllegalArgumentException("No such RTreeIndex value for '" + key + "': " + value);
+                    }
+                    break;
+                case KEY_MAX_NODE_REFERENCES:
+                    int intValue = Integer.parseInt(config.get(key).toString());
+                    if (intValue < MIN_MAX_NODE_REFERENCES) {
+                        throw new IllegalArgumentException("RTreeIndex does not allow " + key + " less than " + MIN_MAX_NODE_REFERENCES);
+                    }
+                    if (intValue > MAX_MAX_NODE_REFERENCES) {
+                        throw new IllegalArgumentException("RTreeIndex does not allow " + key + " greater than " + MAX_MAX_NODE_REFERENCES);
+                    }
+                    this.maxNodeReferences = intValue;
+                    break;
+                default:
+                    throw new IllegalArgumentException("No such RTreeIndex configuration key: " + key);
             }
         }
     }
@@ -198,33 +217,37 @@ public class RTreeIndex implements SpatialIndexWriter {
 	class NodeWithEnvelope {
 		Envelope envelope;
 		Node node;
-		NodeWithEnvelope(Node node) {
-			this.node = node;
-			this.envelope = envelopeDecoder.decodeEnvelope(node);
-		}
+        NodeWithEnvelope(Node node) {
+            this.node = node;
+            this.envelope = envelopeDecoder.decodeEnvelope(node);
+        }
+        NodeWithEnvelope(Node node, Envelope envelope) {
+            this.node = node;
+            this.envelope = envelope;
+        }
 	}
 
-	/**
-	 * Comparator for comparing nodes by compaing the xMin on their evelopes.
-	 */
-	public static class ComparatorOnXMin implements Comparator<NodeWithEnvelope> {
-
-		@Override
-		public int compare(NodeWithEnvelope o1, NodeWithEnvelope o2) {
-			return Double.compare(o1.envelope.getMinX(), o2.envelope.getMinX());
-		}
-	}
-
-	/**
-	 * Comparator or comparing nodes by coparing the yMin on their envelopes.
-	 */
-	public static class ComparatorOnYMin implements Comparator<NodeWithEnvelope> {
-
-		@Override
-		public int compare(NodeWithEnvelope o1, NodeWithEnvelope o2) {
-			return Double.compare(o1.envelope.getMinY(), o2.envelope.getMinY());
-		}
-	}
+//	/**
+//	 * Comparator for comparing nodes by compaing the xMin on their evelopes.
+//	 */
+//	public static class ComparatorOnXMin implements Comparator<NodeWithEnvelope> {
+//
+//		@Override
+//		public int compare(NodeWithEnvelope o1, NodeWithEnvelope o2) {
+//			return Double.compare(o1.envelope.getMinX(), o2.envelope.getMinX());
+//		}
+//	}
+//
+//	/**
+//	 * Comparator or comparing nodes by coparing the yMin on their envelopes.
+//	 */
+//	public static class ComparatorOnYMin implements Comparator<NodeWithEnvelope> {
+//
+//		@Override
+//		public int compare(NodeWithEnvelope o1, NodeWithEnvelope o2) {
+//			return Double.compare(o1.envelope.getMinY(), o2.envelope.getMinY());
+//		}
+//	}
 
 	/**
 	 * Returns the height of the tree, starting with the rootNode and adding one for each subsequent level. Relies on the
@@ -430,12 +453,14 @@ public class RTreeIndex implements SpatialIndexWriter {
 	 * @return
 	 */
 	private boolean partition(Node rootNode, List<NodeWithEnvelope> nodes, int depth, final double loadingFactor) {
-		Comparator<NodeWithEnvelope> comparator = (depth % 2 == 0) ?
-				new ComparatorOnXMin() :
-				new ComparatorOnYMin();
-		nodes.sort(comparator);
 
-		//work out the number of times to partition it:
+        // We want to split by the longest dimension to avoid degrading into extremely thin envelopes
+        int longestDimension = findLongestDimension(nodes);
+
+        // Sort the entries by the longest dimension and then create envelopes around left and right halves
+        nodes.sort(new SingleDimensionNodeEnvelopeComparator(longestDimension));
+
+        //work out the number of times to partition it:
 		final int targetLoading = (int) Math.round(maxNodeReferences * loadingFactor);
 		int nodeCount = nodes.size();
 
@@ -1010,17 +1035,15 @@ public class RTreeIndex implements SpatialIndexWriter {
         }
     }
 
-    private Node[] mostDistantByDeadSpace(List<Node> entries, RelationshipType relationshipType) {
-        Node seed1 = null;
-        Node seed2 = null;
+    private NodeWithEnvelope[] mostDistantByDeadSpace(List<NodeWithEnvelope> entries) {
+        NodeWithEnvelope seed1 = null;
+        NodeWithEnvelope seed2 = null;
         double worst = Double.NEGATIVE_INFINITY;
         for (int i = 0; i < entries.size(); ++i) {
-            Node e = entries.get(i);
-            Envelope eEnvelope = getChildNodeEnvelope(e, relationshipType);
+            NodeWithEnvelope e = entries.get(i);
             for (int j = i + 1; j < entries.size(); ++j) {
-                Node e1 = entries.get(j);
-                Envelope e1Envelope = getChildNodeEnvelope(e1, relationshipType);
-                double deadSpace = eEnvelope.separation(e1Envelope);
+                NodeWithEnvelope e1 = entries.get(j);
+                double deadSpace = e.envelope.separation(e1.envelope);
                 if (deadSpace > worst) {
                     worst = deadSpace;
                     seed1 = e;
@@ -1028,55 +1051,54 @@ public class RTreeIndex implements SpatialIndexWriter {
                 }
             }
         }
-        return new Node[]{seed1,seed2};
+        return new NodeWithEnvelope[]{seed1, seed2};
     }
 
-	private Node greenesSplit(Node indexNode, RelationshipType relationshipType) {
-		List<Node> entries = new ArrayList<>();
-
-		Iterable<Relationship> relationships = indexNode.getRelationships(relationshipType, Direction.OUTGOING);
-		for (Relationship relationship : relationships) {
-			entries.add(relationship.getEndNode());
-			relationship.delete();
-		}
-
+    private int findLongestDimension(List<NodeWithEnvelope> entries) {
         // pick two seed entries such that the dead space is maximal
-        Node[] seeds = mostDistantByDeadSpace(entries, relationshipType);
+        NodeWithEnvelope[] seeds = mostDistantByDeadSpace(entries);
 
         // Choose dimension to split on based on seed separation
-        Envelope oldEnvelope = getIndexNodeEnvelope(indexNode);
-        Envelope env1 = getChildNodeEnvelope(seeds[0], relationshipType);
-        Envelope env2 = getChildNodeEnvelope(seeds[1], relationshipType);
+        Envelope env1 = seeds[0].envelope;
+        Envelope env2 = seeds[1].envelope;
         int longestDimension = 0;
         double maxSeparation = Double.NEGATIVE_INFINITY;
-        for (int i = 0; i < oldEnvelope.getDimension(); i++) {
+        for (int i = 0; i < env1.getDimension(); i++) {
             double separation = env1.separation(env2, i);
             if (separation > maxSeparation) {
                 maxSeparation = separation;
                 longestDimension = i;
             }
         }
+        return longestDimension;
+    }
+
+    private List<NodeWithEnvelope> extractChildNodesWithEnvelopes(Node indexNode, RelationshipType relationshipType) {
+        List<NodeWithEnvelope> entries = new ArrayList<>();
+
+        Iterable<Relationship> relationships = indexNode.getRelationships(relationshipType, Direction.OUTGOING);
+        for (Relationship relationship : relationships) {
+            Node node = relationship.getEndNode();
+            entries.add(new NodeWithEnvelope(node, getChildNodeEnvelope(node, relationshipType)));
+            relationship.delete();
+        }
+        return entries;
+    }
+
+	private Node greenesSplit(Node indexNode, RelationshipType relationshipType) {
+        // Disconnect all current children from the index and return them with their envelopes
+		List<NodeWithEnvelope> entries = extractChildNodesWithEnvelopes(indexNode, relationshipType);
+
+        // We want to split by the longest dimension to avoid degrading into extremely thin envelopes
+        int longestDimension = findLongestDimension(entries);
 
         // Sort the entries by the longest dimension and then create envelopes around left and right halves
-        List<NodeWithEnvelope> nodeWithEnvelopes = decodeEnvelopes(entries);
-        nodeWithEnvelopes.sort(new SingleDimensionNodeEnvelopeComparator(longestDimension));
-        int splitAt = nodeWithEnvelopes.size() / 2;
-        List<NodeWithEnvelope> left = nodeWithEnvelopes.subList(0,splitAt);
-        List<NodeWithEnvelope> right = nodeWithEnvelopes.subList(splitAt,nodeWithEnvelopes.size());
-//        Collector<NodeWithEnvelope, Envelope, Envelope> envelopeCollector =
-//                Collector.of(
-//                        () -> new Envelope(),                     // supplier of initial empty envelope
-//                        (j, p) -> j.expandToInclude(p.envelope),  // accumulator adding entries to envelope
-//                        (j1, j2) -> j1.expandToInclude(j2),       // combiner of two envelopes
-//                        (e) -> (e));                              // finisher returning final envelope
-//
-//        Envelope leftEnv = left.stream().collect(envelopeCollector);
-//        Envelope rightEnv = right.stream().collect(envelopeCollector);
+        entries.sort(new SingleDimensionNodeEnvelopeComparator(longestDimension));
+        int splitAt = entries.size() / 2;
+        List<NodeWithEnvelope> left = entries.subList(0,splitAt);
+        List<NodeWithEnvelope> right = entries.subList(splitAt,entries.size());
 
-        return splitIntoTwoGroups(indexNode,
-                left.stream().map(e -> e.node).collect(Collectors.toList()),
-                right.stream().map(e -> e.node).collect(Collectors.toList()),
-                relationshipType);
+        return reconnectTwoChildGroups(indexNode, left, right, relationshipType);
     }
 
     private static class SingleDimensionNodeEnvelopeComparator implements Comparator<NodeWithEnvelope> {
@@ -1096,37 +1118,31 @@ public class RTreeIndex implements SpatialIndexWriter {
     }
 
 	private Node quadraticSplit(Node indexNode, RelationshipType relationshipType) {
-		List<Node> entries = new ArrayList<>();
-
-		Iterable<Relationship> relationships = indexNode.getRelationships(relationshipType, Direction.OUTGOING);
-		for (Relationship relationship : relationships) {
-			entries.add(relationship.getEndNode());
-			relationship.delete();
-		}
+        // Disconnect all current children from the index and return them with their envelopes
+        List<NodeWithEnvelope> entries = extractChildNodesWithEnvelopes(indexNode, relationshipType);
 
 		// pick two seed entries such that the dead space is maximal
-        Node[] seeds = mostDistantByDeadSpace(entries, relationshipType);
+        NodeWithEnvelope[] seeds = mostDistantByDeadSpace(entries);
 
-		List<Node> group1 = new ArrayList<>();
+		List<NodeWithEnvelope> group1 = new ArrayList<>();
 		group1.add(seeds[0]);
-		Envelope group1envelope = getChildNodeEnvelope(seeds[0], relationshipType);
+		Envelope group1envelope = seeds[0].envelope;
 
-		List<Node> group2 = new ArrayList<>();
+		List<NodeWithEnvelope> group2 = new ArrayList<>();
 		group2.add(seeds[1]);
-		Envelope group2envelope = getChildNodeEnvelope(seeds[1], relationshipType);
+		Envelope group2envelope = seeds[1].envelope;
 
 		entries.remove(seeds[0]);
 		entries.remove(seeds[1]);
 		while (entries.size() > 0) {
 			// compute the cost of inserting each entry
-			List<Node> bestGroup = null;
+			List<NodeWithEnvelope> bestGroup = null;
 			Envelope bestGroupEnvelope = null;
-			Node bestEntry = null;
+            NodeWithEnvelope bestEntry = null;
 			double expansionMin = Double.POSITIVE_INFINITY;
-			for (Node e : entries) {
-				Envelope nodeEnvelope = getChildNodeEnvelope(e, relationshipType);
-				double expansion1 = getArea(createEnvelope(nodeEnvelope, group1envelope)) - getArea(group1envelope);
-				double expansion2 = getArea(createEnvelope(nodeEnvelope, group2envelope)) - getArea(group2envelope);
+			for (NodeWithEnvelope e : entries) {
+				double expansion1 = getArea(createEnvelope(e.envelope, group1envelope)) - getArea(group1envelope);
+				double expansion2 = getArea(createEnvelope(e.envelope, group2envelope)) - getArea(group2envelope);
 
 				if (expansion1 < expansion2 && expansion1 < expansionMin) {
 					bestGroup = group1;
@@ -1154,25 +1170,25 @@ public class RTreeIndex implements SpatialIndexWriter {
 
 			// insert the best candidate entry in the best group
 			bestGroup.add(bestEntry);
-			bestGroupEnvelope.expandToInclude(getChildNodeEnvelope(bestEntry, relationshipType));
+			bestGroupEnvelope.expandToInclude(bestEntry.envelope);
 
 			entries.remove(bestEntry);
 		}
 
-		return splitIntoTwoGroups(indexNode, group1, group2, relationshipType);
+		return reconnectTwoChildGroups(indexNode, group1, group2, relationshipType);
 	}
 
-    private Node splitIntoTwoGroups(Node indexNode, List<Node> group1, List<Node> group2, RelationshipType relationshipType) {
+    private Node reconnectTwoChildGroups(Node indexNode, List<NodeWithEnvelope> group1, List<NodeWithEnvelope> group2, RelationshipType relationshipType) {
         // reset bounding box and add new children
         indexNode.removeProperty(INDEX_PROP_BBOX);
-        for (Node node : group1) {
-            addChild(indexNode, relationshipType, node);
+        for (NodeWithEnvelope entry : group1) {
+            addChild(indexNode, relationshipType, entry.node);
         }
 
         // create new node from split
         Node newIndexNode = database.createNode();
-        for (Node node : group2) {
-            addChild(newIndexNode, relationshipType, node);
+        for (NodeWithEnvelope entry : group2) {
+            addChild(newIndexNode, relationshipType, entry.node);
         }
 
         return newIndexNode;

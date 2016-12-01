@@ -193,21 +193,21 @@ public class RTreeBulkInsertTest {
 
     @Test
     public void shouldInsertManyNodesIndividuallyWithQuadraticSplit() throws FactoryException, IOException {
-        insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, testConfigs.get("medium"));
+        insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("medium"));
     }
 
     @Test
     public void shouldInsertManyNodesIndividuallyGreenesSplit() throws FactoryException, IOException {
-        insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, testConfigs.get("medium"));
+        insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("medium"));
     }
 
-    private void insertManyNodesIndividually(String splitMode, int blockSize, RTreeTestConfig config)
+    private void insertManyNodesIndividually(String splitMode, int blockSize, int maxNodeReferences, RTreeTestConfig config)
             throws FactoryException, IOException {
         List<Node> nodes = setup(config.width);
         TreeMonitor monitor = new RTreeMonitor();
         EditableLayer layer = (EditableLayer) new SpatialDatabaseService(db).getLayer("Coordinates");
         layer.getIndex().addMonitor(monitor);
-        layer.getIndex().configure(map(RTreeIndex.KEY_SPLIT, splitMode));
+        layer.getIndex().configure(map(RTreeIndex.KEY_SPLIT, splitMode, RTreeIndex.KEY_MAX_NODE_REFERENCES, maxNodeReferences));
         TimedLogger log = new TimedLogger("Inserting " + config.totalCount + " nodes into RTree using solo insert and "
                 + splitMode + " split", config.totalCount);
         long start = System.currentTimeMillis();
@@ -233,7 +233,7 @@ public class RTreeBulkInsertTest {
      * Run this manually to generate images of RTree that can be used for animation.
      * ffmpeg -f image2 -r 12 -i rtree-single/rtree-%d.png -r 12 -s 1280x960 rtree-single2_12fps.mp4
      */
-    @Test
+    @Ignore
     public void shouldInsertManyNodesIndividuallyAndGenerateImagesForAnimation() throws FactoryException, IOException {
         RTreeTestConfig config = testConfigs.get("medium");
         int blockSize = 5;
@@ -289,22 +289,22 @@ public class RTreeBulkInsertTest {
 
     @Test
     public void shouldInsertManyNodesInBulkWithQuadraticSplit() throws FactoryException, IOException {
-        insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, testConfigs.get("medium"));
+        insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("medium"));
     }
 
     @Test
     public void shouldInsertManyNodesInBulkWithGreenesSplit() throws FactoryException, IOException {
-        insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, testConfigs.get("medium"));
+        insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("medium"));
     }
 
-    private void insertManyNodesInBulk(String splitMode, int blockSize, RTreeTestConfig config)
+    private void insertManyNodesInBulk(String splitMode, int blockSize, int maxNodeReferences, RTreeTestConfig config)
             throws FactoryException, IOException {
         List<Node> nodes = setup(config.width);
 
         EditableLayer layer = (EditableLayer) new SpatialDatabaseService(db).getLayer("Coordinates");
         RTreeMonitor monitor = new RTreeMonitor();
         layer.getIndex().addMonitor(monitor);
-        layer.getIndex().configure(map(RTreeIndex.KEY_SPLIT, splitMode));
+        layer.getIndex().configure(map(RTreeIndex.KEY_SPLIT, splitMode, RTreeIndex.KEY_MAX_NODE_REFERENCES, maxNodeReferences));
         TimedLogger log = new TimedLogger("Inserting " + config.totalCount + " nodes into RTree using bulk insert and "
                 + splitMode + " split", config.totalCount);
         long start = System.currentTimeMillis();
@@ -335,7 +335,7 @@ public class RTreeBulkInsertTest {
     @Ignore
     public void shouldInsertManyNodesInBulkAndGenerateImagesForAnimation() throws FactoryException, IOException {
         RTreeTestConfig config = testConfigs.get("medium");
-        int blockSize = 2000;
+        int blockSize = 1000;
 //        int blockSize = 1000;
         String splitMode = RTreeIndex.GREENES_SPLIT;
         List<Node> nodes = setup(config.width);
