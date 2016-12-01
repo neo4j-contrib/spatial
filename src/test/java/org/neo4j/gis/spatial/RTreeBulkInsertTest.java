@@ -200,7 +200,7 @@ public class RTreeBulkInsertTest {
      * Run this manually to generate images of RTree that can be used for animation.
      * ffmpeg -f image2 -r 12 -i rtree-single/rtree-%d.png -r 12 -s 1280x960 rtree-single2_12fps.mp4
      */
-    @Ignore
+    @Test
     public void shouldInsertManyNodesIndividuallyAndGenerateImagesForAnimation() throws FactoryException, IOException {
         int width = 500;
         int blockSize = 5;
@@ -219,7 +219,7 @@ public class RTreeBulkInsertTest {
         layer.getIndex().addMonitor(monitor);
         TimedLogger log = new TimedLogger("Inserting " + (width * width) + " nodes into RTree using solo insert",
                 (width * width), 2000);
-        long start = 0;
+        long start = System.currentTimeMillis();
         int prevBlock = 0;
         int i = 0;
         int currBlock = 1;
@@ -243,7 +243,6 @@ public class RTreeBulkInsertTest {
             prevBlock = currBlock;
             currBlock += Math.min(blockSize, maxBlockSize);
             blockSize *= 1.33;
-            if (i > 30) break;
         }
         System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + (width * width) + " nodes to RTree in bulk");
 
@@ -257,8 +256,8 @@ public class RTreeBulkInsertTest {
 
     @Test
     public void shouldInsertManyNodesInBulk() throws FactoryException, IOException {
-        int width = 500;
-        int blockSize = 10000;
+        int width = 750;
+        int blockSize = 5000;
         List<Node> nodes = setup(width);
 
         EditableLayer layer = (EditableLayer) new SpatialDatabaseService(db).getLayer("Coordinates");
@@ -424,7 +423,10 @@ public class RTreeBulkInsertTest {
         try {
             GeometryEncoder encoder = new SimplePointEncoder();
 
-            Method buildRTreeFromScratch = RTreeIndex.class.getDeclaredMethod("buildRtreeFromScratch", Node.class, List.class, double.class, int.class);
+            Method decodeEnvelopes = RTreeIndex.class.getDeclaredMethod("decodeEnvelopes", List.class);
+            decodeEnvelopes.setAccessible(true);
+
+            Method buildRTreeFromScratch = RTreeIndex.class.getDeclaredMethod("buildRtreeFromScratch", Node.class, List.class, double.class);
             buildRTreeFromScratch.setAccessible(true);
 
             Method expectedHeight = RTreeIndex.class.getDeclaredMethod("expectedHeight", double.class, int.class);
@@ -458,7 +460,7 @@ public class RTreeBulkInsertTest {
                         //                   layer.add(n);
                     }
 
-                    buildRTreeFromScratch.invoke(rtree, rtree.getIndexRoot(), coords, 0.7, 4);
+                    buildRTreeFromScratch.invoke(rtree, rtree.getIndexRoot(), decodeEnvelopes.invoke(rtree, coords), 0.7);
                     RTreeTestUtils testUtils = new RTreeTestUtils(rtree);
 
                     Map<Long, Long> results = testUtils.get_height_map(db, rtree.getIndexRoot());
@@ -580,9 +582,9 @@ public class RTreeBulkInsertTest {
         System.out.println("Searching with spatial.withinDistance");
         long start = System.currentTimeMillis();
         try (Transaction tx = db.beginTx()) { // 'points',{longitude:15.0,latitude:60.0},100
-            Result result = db.execute("CALL spatial.withinDistance('Coordinates',{longitude:0.5, latitude:0.5},1000.0) yield node as malmo");
+            Result result = db.execute("CALL spatial.withinDistance('Coordinates',{longitude:0.5, latitude:0.5},1000.0) yield node");
             int i = 0;
-            ResourceIterator thing = result.columnAs("malmo");
+            ResourceIterator thing = result.columnAs("node");
             while (thing.hasNext()) {
                 assertNotNull(thing.next());
                 i++;
@@ -624,9 +626,22 @@ public class RTreeBulkInsertTest {
         }
         long count = nodes.size();
         System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to find " + count + " nodes in 4x4 block");
+        int indexTouched = monitor.getCaseCounts().get("Index Does NOT Match");
+        int indexMatched = monitor.getCaseCounts().get("Index Matches");
         int touched = monitor.getCaseCounts().get("Geometry Does NOT Match");
         int matched = monitor.getCaseCounts().get("Geometry Matches");
+        int geometrySize = ((RTreeIndex)layer.getIndex()).count();
+        int indexSize = 0;
+        try (Transaction tx = spatialProcedures().db.beginTx()) {
+            for (Node n : ((RTreeIndex) layer.getIndex()).getAllIndexInternalNodes()) {
+                indexSize++;
+            }
+            tx.success();
+        }
         System.out.println("Matched " + matched + "/" + touched + " touched nodes (" + (100.0 * matched / touched) + "%)");
+        System.out.println("Having matched " + indexMatched + "/" + indexTouched + " touched index nodes (" + (100.0 * indexMatched / indexTouched) + "%)");
+        System.out.println("Which means we touched " + indexTouched + "/" + indexSize + " index nodes (" + (100.0 * indexTouched / indexSize) + "%)");
+        System.out.println("Index contains " + geometrySize + " geometries");
 //        assertEquals("Expected 361 nodes to be returned", 361, count);
         return nodes;
     }
