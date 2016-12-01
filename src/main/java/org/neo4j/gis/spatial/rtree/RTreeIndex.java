@@ -484,8 +484,12 @@ public class RTreeIndex implements SpatialIndexWriter {
 			//recurse on each partition
 			for (List<NodeWithEnvelope> partition : partitions) {
 				Node newIndexNode = database.createNode();
-				expandRootNodeBoundingBox |= partition(newIndexNode, partition, depth + 1, loadingFactor);
-				expandRootNodeBoundingBox |= insertIndexNodeOnParent(rootNode, newIndexNode);
+                if (partition.size() > 1) {
+                    expandRootNodeBoundingBox |= partition(newIndexNode, partition, depth + 1, loadingFactor);
+                } else {
+                    addBelow(newIndexNode, partition.get(0).node);
+                }
+                expandRootNodeBoundingBox |= insertIndexNodeOnParent(rootNode, newIndexNode);
 			}
 		}
 		return expandRootNodeBoundingBox;

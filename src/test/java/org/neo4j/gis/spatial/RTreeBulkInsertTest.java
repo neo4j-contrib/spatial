@@ -193,12 +193,12 @@ public class RTreeBulkInsertTest {
 
     @Test
     public void shouldInsertManyNodesIndividuallyWithQuadraticSplit() throws FactoryException, IOException {
-        insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("medium"));
+        insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("medium"));
     }
 
     @Test
     public void shouldInsertManyNodesIndividuallyGreenesSplit() throws FactoryException, IOException {
-        insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("medium"));
+        insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("medium"));
     }
 
     private void insertManyNodesIndividually(String splitMode, int blockSize, int maxNodeReferences, RTreeTestConfig config)
@@ -217,16 +217,14 @@ public class RTreeBulkInsertTest {
                 for (Node node : slice) {
                     layer.add(node);
                 }
-                System.out.println("Rebuilt " + monitor.getNbrRebuilt());
-                System.out.println("Splits " + monitor.getNbrSplit());
                 tx.success();
             }
-            log.log("added to the tree", (i + 1) * blockSize);
+            log.log("added - Rebuilt: " + monitor.getNbrRebuilt() + ", Splits: " + monitor.getNbrSplit() + ", Cases " + monitor.getCaseCounts(), (i + 1) * blockSize);
         }
         System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + config.totalCount + " nodes to RTree in bulk");
 
         queryRTree(layer, monitor, config);
-        debugTree(layer);
+        debugTree(layer, maxNodeReferences);
     }
 
     /*
@@ -238,6 +236,7 @@ public class RTreeBulkInsertTest {
         RTreeTestConfig config = testConfigs.get("medium");
         int blockSize = 5;
         int maxBlockSize = 1000;
+        int maxNodeReferences = 10;
         String splitMode = RTreeIndex.GREENES_SPLIT;
         List<Node> nodes = setup(config.width);
 
@@ -251,7 +250,7 @@ public class RTreeBulkInsertTest {
 
         TreeMonitor monitor = new RTreeMonitor();
         layer.getIndex().addMonitor(monitor);
-        layer.getIndex().configure(map(RTreeIndex.KEY_SPLIT, splitMode));
+        layer.getIndex().configure(map(RTreeIndex.KEY_SPLIT, splitMode, RTreeIndex.KEY_MAX_NODE_REFERENCES, maxNodeReferences));
         TimedLogger log = new TimedLogger("Inserting " + config.totalCount + " nodes into RTree using solo insert and "
                 + splitMode + " split", config.totalCount);
         long start = System.currentTimeMillis();
@@ -283,18 +282,18 @@ public class RTreeBulkInsertTest {
 
         monitor.reset();
         List<Node> found = queryRTree(layer, monitor, config);
-        debugTree(layer);
+        debugTree(layer, maxNodeReferences);
         imageExporter.saveRTreeLayers(new File("rtree-single-" + splitMode + "/rtree.png"), 7, monitor, found, config.searchMin, config.searchMax);
     }
 
     @Test
     public void shouldInsertManyNodesInBulkWithQuadraticSplit() throws FactoryException, IOException {
-        insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("medium"));
+        insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("medium"));
     }
 
     @Test
     public void shouldInsertManyNodesInBulkWithGreenesSplit() throws FactoryException, IOException {
-        insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("medium"));
+        insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("medium"));
     }
 
     private void insertManyNodesInBulk(String splitMode, int blockSize, int maxNodeReferences, RTreeTestConfig config)
@@ -315,16 +314,13 @@ public class RTreeBulkInsertTest {
                 layer.addAll(slice);
                 tx.success();
             }
-            System.out.println("Rebuilt " + monitor.getNbrRebuilt());
-            System.out.println("Splits " + monitor.getNbrSplit());
-            System.out.println("Cases " + monitor.getCaseCounts());
-            log.log(startIndexing, "added to the tree", (i + 1) * blockSize);
+            log.log(startIndexing, "added - Rebuilt: " + monitor.getNbrRebuilt() + ", Splits: " + monitor.getNbrSplit() + ", Cases " + monitor.getCaseCounts(), (i + 1) * blockSize);
         }
         System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + config.totalCount + " nodes to RTree in bulk");
 
         monitor.reset();
         queryRTree(layer, monitor, config);
-        debugTree(layer);
+        debugTree(layer, maxNodeReferences);
 //        debugIndexTree((RTreeIndex) layer.getIndex());
     }
 
@@ -336,7 +332,7 @@ public class RTreeBulkInsertTest {
     public void shouldInsertManyNodesInBulkAndGenerateImagesForAnimation() throws FactoryException, IOException {
         RTreeTestConfig config = testConfigs.get("medium");
         int blockSize = 1000;
-//        int blockSize = 1000;
+        int maxNodeReferences = 10;
         String splitMode = RTreeIndex.GREENES_SPLIT;
         List<Node> nodes = setup(config.width);
 
@@ -350,7 +346,7 @@ public class RTreeBulkInsertTest {
 
         RTreeMonitor monitor = new RTreeMonitor();
         layer.getIndex().addMonitor(monitor);
-        layer.getIndex().configure(map(RTreeIndex.KEY_SPLIT, splitMode));
+        layer.getIndex().configure(map(RTreeIndex.KEY_SPLIT, splitMode, RTreeIndex.KEY_MAX_NODE_REFERENCES, maxNodeReferences));
         TimedLogger log = new TimedLogger("Inserting " + config.totalCount + " nodes into RTree using bulk insert and "
                 + splitMode + " split", config.totalCount);
         long start = System.currentTimeMillis();
@@ -374,7 +370,7 @@ public class RTreeBulkInsertTest {
 
         monitor.reset();
         List<Node> found = queryRTree(layer, monitor, config);
-        debugTree(layer);
+        debugTree(layer, maxNodeReferences);
         imageExporter.saveRTreeLayers(new File("rtree-bulk-" + splitMode + "/rtree.png"), 7, monitor, found, config.searchMin, config.searchMax);
 //        debugIndexTree((RTreeIndex) layer.getIndex());
     }
@@ -723,7 +719,7 @@ public class RTreeBulkInsertTest {
         }
     }
 
-    private void debugTree(Layer layer) {
+    private void debugTree(Layer layer, int maxNodeReferences) {
         Node layerNode = layer.getLayerNode();
         String queryDepthAndGeometries =
                 "MATCH (layer)-[:RTREE_ROOT]->(root) WHERE ID(layer)={layerNodeId} WITH root " +
@@ -766,7 +762,7 @@ public class RTreeBulkInsertTest {
         while (resultChildrenPerParent2.hasNext()) {
             Map<String, Object> result = resultChildrenPerParent2.next();
             long children = (long) result.get("children");
-            if (children < 20) {
+            if (children < maxNodeReferences*0.2) {
                 System.out.println("Underfilled index node: " + result);
             }
             histogram[(int) children / 10]++;
