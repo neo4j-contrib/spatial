@@ -1050,7 +1050,7 @@ public class RTreeIndex implements SpatialIndexWriter {
         int longestDimension = 0;
         double maxSeparation = Double.NEGATIVE_INFINITY;
         for (int i = 0; i < oldEnvelope.getDimension(); i++) {
-            double separation = env1.separation(env2);
+            double separation = env1.separation(env2, i);
             if (separation > maxSeparation) {
                 maxSeparation = separation;
                 longestDimension = i;
