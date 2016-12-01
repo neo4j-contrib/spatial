@@ -1017,7 +1017,7 @@ public class RTreeIndex implements SpatialIndexWriter {
             for (int j = i + 1; j < entries.size(); ++j) {
                 Node e1 = entries.get(j);
                 Envelope e1Envelope = getChildNodeEnvelope(e1, relationshipType);
-                double deadSpace = getArea(createEnvelope(eEnvelope, e1Envelope)) - getArea(eEnvelope) - getArea(e1Envelope);
+                double deadSpace = eEnvelope.separation(e1Envelope);
                 if (deadSpace > worst) {
                     worst = deadSpace;
                     seed1 = e;
@@ -1045,11 +1045,11 @@ public class RTreeIndex implements SpatialIndexWriter {
         Envelope env1 = getChildNodeEnvelope(seeds[0], relationshipType);
         Envelope env2 = getChildNodeEnvelope(seeds[1], relationshipType);
         int longestDimension = 0;
-        double maxLength = Double.NEGATIVE_INFINITY;
+        double maxSeparation = Double.NEGATIVE_INFINITY;
         for (int i = 0; i < oldEnvelope.getDimension(); i++) {
-            double length = Math.abs(env1.getMin(i) - env2.getMin(i));
-            if (length > maxLength) {
-                maxLength = length;
+            double separation = env1.separation(env2);
+            if (separation > maxSeparation) {
+                maxSeparation = separation;
                 longestDimension = i;
             }
         }
@@ -1085,7 +1085,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 
         @Override
         public int compare(NodeWithEnvelope o1, NodeWithEnvelope o2) {
-            double length = o2.envelope.getMin(dimension) - o1.envelope.getMin(dimension);
+            double length = o2.envelope.centre(dimension) - o1.envelope.centre(dimension);
             if (length < 0.0) return -1;
             else if (length > 0.0) return 1;
             else return 0;

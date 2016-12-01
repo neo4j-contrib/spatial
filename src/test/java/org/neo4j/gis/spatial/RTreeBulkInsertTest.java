@@ -193,7 +193,7 @@ public class RTreeBulkInsertTest {
 
     @Test
     public void shouldInsertManyNodesIndividuallyWithQuadraticSplit() throws FactoryException, IOException {
-        insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, testConfigs.get("medium"));
+        insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, testConfigs.get("medium"));
     }
 
     @Test
@@ -271,7 +271,7 @@ public class RTreeBulkInsertTest {
             }
             log.log(startIndexing, "added to the tree", currBlock - prevBlock);
             try (Transaction tx = db.beginTx()) {
-                imageExporter.saveRTreeLayers(new File("rtree-single/rtree-" + i + ".png"), 7);
+                imageExporter.saveRTreeLayers(new File("rtree-single-" + splitMode + "/rtree-" + i + ".png"), 7);
                 tx.success();
             }
             i++;
@@ -284,7 +284,7 @@ public class RTreeBulkInsertTest {
         monitor.reset();
         List<Node> found = queryRTree(layer, monitor, config);
         debugTree(layer);
-        imageExporter.saveRTreeLayers(new File("rtree-single/rtree.png"), 7, monitor, found, config.searchMin, config.searchMax);
+        imageExporter.saveRTreeLayers(new File("rtree-single-" + splitMode + "/rtree.png"), 7, monitor, found, config.searchMin, config.searchMax);
     }
 
     @Test
@@ -366,18 +366,16 @@ public class RTreeBulkInsertTest {
             System.out.println("Cases " + monitor.getCaseCounts());
             log.log(startIndexing, "added to the tree", (i + 1) * blockSize);
             try (Transaction tx = db.beginTx()) {
-                imageExporter.saveRTreeLayers(new File("rtree-bulk/rtree-" + i + ".png"), 7);
+                imageExporter.saveRTreeLayers(new File("rtree-bulk-" + splitMode + "/rtree-" + i + ".png"), 7);
                 tx.success();
             }
         }
         System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + config.totalCount + " nodes to RTree in bulk");
 
-        Coordinate min = new Coordinate(0.5, 0.5);
-        Coordinate max = new Coordinate(0.52, 0.52);
         monitor.reset();
         List<Node> found = queryRTree(layer, monitor, config);
         debugTree(layer);
-        imageExporter.saveRTreeLayers(new File("rtree-bulk/rtree.png"), 7, monitor, found, min, max);
+        imageExporter.saveRTreeLayers(new File("rtree-bulk-" + splitMode + "/rtree.png"), 7, monitor, found, config.searchMin, config.searchMax);
 //        debugIndexTree((RTreeIndex) layer.getIndex());
     }
 

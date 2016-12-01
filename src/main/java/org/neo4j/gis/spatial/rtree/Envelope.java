@@ -44,8 +44,7 @@ public class Envelope {
 	
 	/**
 	 * General constructor for the n-dimensional case starting with a single point
-	 * @param min
-	 * @param max
+	 * @param p
 	 */
 	public Envelope(double[] p) {
 		this.min = p.clone();
@@ -165,12 +164,16 @@ public class Envelope {
 		}
 		double[] center = new double[min.length];
 		for (int i = 0; i < min.length; i++) {
-			center[i] = (min[i] + max[i]) / 2.0;
+			center[i] = centre(i);
 		}
 		return center;
 	}
 
-	/**
+    public double centre(int dimension) {
+        return (min[dimension] + max[dimension]) / 2.0;
+    }
+
+    /**
 	 * Return the distance between the two envelopes on one dimension. This can return negative values if the envelopes intersect on this dimension.
 	 * @param other
 	 * @param dimension
@@ -252,8 +255,20 @@ public class Envelope {
 		}
 		return area;
 	}
-	
-	public boolean isValid() {
+
+    public double separation(Envelope other) {
+        Envelope combined = new Envelope(this);
+        combined.expandToInclude(other);
+        return combined.getArea() - this.getArea() - other.getArea();
+    }
+
+    public double separation(Envelope other, int dimension) {
+        Envelope combined = new Envelope(this);
+        combined.expandToInclude(other);
+        return combined.getWidth(dimension) - this.getWidth(dimension) - other.getWidth(dimension);
+    }
+
+    public boolean isValid() {
 		boolean ans = min != null && max != null && min.length == max.length;
 		if (!ans)
 			return ans;
