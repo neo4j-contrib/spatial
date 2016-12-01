@@ -219,7 +219,7 @@ public class RTreeBulkInsertTest {
                 }
                 tx.success();
             }
-            log.log("added - Rebuilt: " + monitor.getNbrRebuilt() + ", Splits: " + monitor.getNbrSplit() + ", Cases " + monitor.getCaseCounts(), (i + 1) * blockSize);
+            log.log("Splits: " + monitor.getNbrSplit(), (i + 1) * blockSize);
         }
         System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + config.totalCount + " nodes to RTree in bulk");
 
@@ -264,11 +264,9 @@ public class RTreeBulkInsertTest {
                 for (Node node : slice) {
                     layer.add(node);
                 }
-                System.out.println("Rebuilt " + monitor.getNbrRebuilt());
-                System.out.println("Splits " + monitor.getNbrSplit());
                 tx.success();
             }
-            log.log(startIndexing, "added to the tree", currBlock - prevBlock);
+            log.log("Splits: " + monitor.getNbrSplit(), currBlock - prevBlock);
             try (Transaction tx = db.beginTx()) {
                 imageExporter.saveRTreeLayers(new File("rtree-single-" + splitMode + "/rtree-" + i + ".png"), 7);
                 tx.success();
@@ -314,7 +312,7 @@ public class RTreeBulkInsertTest {
                 layer.addAll(slice);
                 tx.success();
             }
-            log.log(startIndexing, "added - Rebuilt: " + monitor.getNbrRebuilt() + ", Splits: " + monitor.getNbrSplit() + ", Cases " + monitor.getCaseCounts(), (i + 1) * blockSize);
+            log.log(startIndexing, "Rebuilt: " + monitor.getNbrRebuilt() + ", Splits: " + monitor.getNbrSplit() + ", Cases " + monitor.getCaseCounts(), (i + 1) * blockSize);
         }
         System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + config.totalCount + " nodes to RTree in bulk");
 
@@ -357,10 +355,7 @@ public class RTreeBulkInsertTest {
                 layer.addAll(slice);
                 tx.success();
             }
-            System.out.println("Rebuilt " + monitor.getNbrRebuilt());
-            System.out.println("Splits " + monitor.getNbrSplit());
-            System.out.println("Cases " + monitor.getCaseCounts());
-            log.log(startIndexing, "added to the tree", (i + 1) * blockSize);
+            log.log(startIndexing, "Rebuilt: " + monitor.getNbrRebuilt() + ", Splits: " + monitor.getNbrSplit() + ", Cases " + monitor.getCaseCounts(), (i + 1) * blockSize);
             try (Transaction tx = db.beginTx()) {
                 imageExporter.saveRTreeLayers(new File("rtree-bulk-" + splitMode + "/rtree-" + i + ".png"), 7);
                 tx.success();
@@ -713,7 +708,7 @@ public class RTreeBulkInsertTest {
                 double percentage = 100.0 * number / count;
                 double seconds = (current - start) / 1000.0;
                 int rate = (int) (number / seconds);
-                System.out.println("\t" + ((int) percentage) + "%\t" + seconds + "s\t" + rate + "n/s:\t" + number + " " + line);
+                System.out.println("\t" + ((int) percentage) + "%\t" + number + "\t" + seconds + "s\t" + rate + "n/s:\t" + line);
                 previous = current;
             }
         }
@@ -758,17 +753,18 @@ public class RTreeBulkInsertTest {
 
         Result resultChildrenPerParent2 = db.execute(queryChildrenPerParent2, params);
         Integer[] histogram = new Integer[11];
+        int blockSize = Math.max(10, maxNodeReferences) / 10;
         Arrays.fill(histogram, 0);
         while (resultChildrenPerParent2.hasNext()) {
             Map<String, Object> result = resultChildrenPerParent2.next();
             long children = (long) result.get("children");
-            if (children < maxNodeReferences*0.2) {
+            if (children < blockSize * 2) {
                 System.out.println("Underfilled index node: " + result);
             }
-            histogram[(int) children / 10]++;
+            histogram[(int) children / blockSize]++;
         }
         for (int i = 0; i < histogram.length; i++) {
-            System.out.println("[" + (i * 10) + ".." + ((i + 1) * 10) + "): " + histogram[i]);
+            System.out.println("[" + (i * blockSize) + ".." + ((i + 1) * blockSize) + "): " + histogram[i]);
         }
     }
 
