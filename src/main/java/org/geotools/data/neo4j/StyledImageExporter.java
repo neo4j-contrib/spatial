@@ -318,7 +318,7 @@ public class StyledImageExporter {
         style.featureTypeStyles().addAll(createPolygonStyle(strokeColor, fillColor).featureTypeStyles());
         style.featureTypeStyles().addAll(createLineStyle(strokeColor).featureTypeStyles());
         style.featureTypeStyles().addAll(createPointStyle(strokeColor, fillColor).featureTypeStyles());
-        System.out.println("Created Geometry Style: "+style);
+//        System.out.println("Created Geometry Style: "+style);
         return style;
     }
 
@@ -362,7 +362,7 @@ public class StyledImageExporter {
         FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(new Rule[]{ rule });
         Style style = styleFactory.createStyle();
         style.featureTypeStyles().add(fts);
-        System.out.println("Created Polygon Style: " + style);
+//        System.out.println("Created Polygon Style: " + style);
 
         return style;
     }
@@ -393,7 +393,7 @@ public class StyledImageExporter {
         FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(new Rule[]{rule});
         Style style = styleFactory.createStyle();
         style.featureTypeStyles().add(fts);
-        System.out.println("Created Line Style: "+style);
+//        System.out.println("Created Line Style: "+style);
 
         return style;
     }
@@ -430,7 +430,7 @@ public class StyledImageExporter {
         FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(new Rule[]{rule});
         Style style = styleFactory.createStyle();
         style.featureTypeStyles().add(fts);
-        System.out.println("Created Point Style: " + style);
+//        System.out.println("Created Point Style: " + style);
 
         return style;
     }

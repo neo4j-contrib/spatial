@@ -231,7 +231,7 @@ public class RTreeBulkInsertTest {
      * Run this manually to generate images of RTree that can be used for animation.
      * ffmpeg -f image2 -r 12 -i rtree-single/rtree-%d.png -r 12 -s 1280x960 rtree-single2_12fps.mp4
      */
-    @Ignore
+    @Test
     public void shouldInsertManyNodesIndividuallyAndGenerateImagesForAnimation() throws FactoryException, IOException {
         RTreeTestConfig config = testConfigs.get("medium");
         int blockSize = 5;
