@@ -272,6 +272,9 @@ public class RTreeIndex implements SpatialIndexWriter {
 
 	private List<NodeWithEnvelope> bulkInsertion(Node rootNode, int rootNodeHeight, final List<NodeWithEnvelope> geomNodes, final double loadingFactor) {
 		List<Node> children = getIndexChildren(rootNode);
+		if(children.isEmpty()){
+			return geomNodes;
+		}
 		children.sort(new IndexNodeAreaComparator());
 
 		Map<Node, List<NodeWithEnvelope>> map = new HashMap<>(children.size());
