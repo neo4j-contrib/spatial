@@ -43,7 +43,11 @@ import org.neo4j.graphdb.traversal.Traverser;
  */
 public class RTreeIndex implements SpatialIndexWriter {
 
-	public static final String INDEX_PROP_BBOX = "bbox";
+    public static final String INDEX_PROP_BBOX = "bbox";
+    public static final String KEY_SPLIT = "splitMode";
+    public static final String QUADRATIC_SPLIT = "quadratic";
+    public static final String GREENES_SPLIT = "greene";
+
 	private TreeMonitor monitor;
 	// Constructor
 	public RTreeIndex(GraphDatabaseService database, Node rootNode, EnvelopeDecoder envelopeEncoder) {
@@ -72,6 +76,22 @@ public class RTreeIndex implements SpatialIndexWriter {
 	public EnvelopeDecoder getEnvelopeDecoder() {
 		return this.envelopeDecoder;
 	}
+
+    public void configure(Map<String, Object> config) {
+        for(String key:config.keySet()) {
+            if(key.equals(KEY_SPLIT)) {
+                String value = config.get(key).toString();
+                switch(value) {
+                    case QUADRATIC_SPLIT:
+                    case GREENES_SPLIT:
+                        splitMode = value;
+                        break;
+                    default:
+                        throw new IllegalArgumentException("No such RTreeIndex value for '"+key+"': "+value);
+                }
+            }
+        }
+    }
 
 	@Override
 	public void add(Node geomNode) {
@@ -951,8 +971,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 	private void splitAndAdjustPathBoundingBox(Node indexNode) {
         monitor.addSplit();
         // create a new node and distribute the entries
-//        Node newIndexNode = quadraticSplit(indexNode);
-        Node newIndexNode = greenesSplit(indexNode);
+        Node newIndexNode = splitMode.equals(GREENES_SPLIT) ? greenesSplit(indexNode) : quadraticSplit(indexNode);
 		Node parent = getIndexNodeParent(indexNode);
 //        System.out.println("spitIndex " + newIndexNode.getId());
 //        System.out.println("parent " + parent.getId());
@@ -1365,6 +1384,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 	private Node rootNode;
 	private EnvelopeDecoder envelopeDecoder;
 	private int maxNodeReferences;
+    private String splitMode = QUADRATIC_SPLIT;
 
 	private Node metadataNode;
 	private int totalGeometryCount = 0;

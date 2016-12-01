@@ -23,22 +23,25 @@ import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.graphdb.Node;
 
+import java.util.Map;
 
 public interface SpatialIndexReader {
 
-	EnvelopeDecoder getEnvelopeDecoder();
-	
-	boolean isEmpty();	
+    EnvelopeDecoder getEnvelopeDecoder();
 
-	int count();
-		
-	Envelope getBoundingBox();
+    boolean isEmpty();
 
-	boolean isNodeIndexed(Long nodeId);
-	
+    int count();
+
+    Envelope getBoundingBox();
+
+    boolean isNodeIndexed(Long nodeId);
+
     Iterable<Node> getAllIndexedNodes();
 
-	SearchResults searchIndex(SearchFilter filter);
+    SearchResults searchIndex(SearchFilter filter);
 
     void addMonitor(TreeMonitor monitor);
+
+    void configure(Map<String, Object> config);
 }

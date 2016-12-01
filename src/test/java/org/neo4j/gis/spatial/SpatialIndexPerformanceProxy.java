@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.neo4j.gis.spatial.rtree.Envelope;
@@ -134,6 +135,11 @@ public class SpatialIndexPerformanceProxy implements LayerIndexReader {
     @Override
     public void addMonitor( TreeMonitor monitor )
     {
+
+    }
+
+    @Override
+    public void configure(Map<String, Object> config) {
 
     }
 
