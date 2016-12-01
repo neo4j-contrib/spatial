@@ -266,7 +266,7 @@ public class RTreeBulkInsertTest {
                 }
                 tx.success();
             }
-            log.log("Splits: " + monitor.getNbrSplit(), currBlock - prevBlock);
+            log.log("Splits: " + monitor.getNbrSplit(), currBlock);
             try (Transaction tx = db.beginTx()) {
                 imageExporter.saveRTreeLayers(new File("rtree-single-" + splitMode + "/rtree-" + i + ".png"), 7);
                 tx.success();
