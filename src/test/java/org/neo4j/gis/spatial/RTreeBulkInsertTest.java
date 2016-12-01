@@ -26,27 +26,26 @@ import java.util.stream.IntStream;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.neo4j.helpers.collection.MapUtil.map;
 
 public class RTreeBulkInsertTest {
 
     @Rule
     public final EphemeralFileSystemRule fsRule = new EphemeralFileSystemRule();
     private GraphDatabaseService db;
-    private final File storeDir = new File( "store" ).getAbsoluteFile();
+    private final File storeDir = new File("store").getAbsoluteFile();
 
     @Before
-    public void before() throws IOException
-    {
-        restart( fsRule.get() );
+    public void before() throws IOException {
+        restart(fsRule.get());
     }
 
     @After
-    public void after()
-    {
+    public void after() {
         doCleanShutdown();
     }
 
-    @Test
+    @Ignore
     public void shouldDeleteRecursiveTree() {
         int depth = 5;
         int width = 2;
@@ -112,7 +111,7 @@ public class RTreeBulkInsertTest {
         node.delete();
     }
 
-    @Test
+    @Ignore
     public void shouldInsertSimpleRTree() {
         int width = 20;
         int blockSize = 10000;
@@ -165,18 +164,54 @@ public class RTreeBulkInsertTest {
 
     }
 
+    private static class RTreeTestConfig {
+        int width;
+        Coordinate searchMin;
+        Coordinate searchMax;
+        long totalCount;
+        long expectedCount;
+
+        public RTreeTestConfig(int width, Coordinate searchMin, Coordinate searchMax, long expectedCount) {
+            this.width = width;
+            this.searchMin = searchMin;
+            this.searchMax = searchMax;
+            this.expectedCount = expectedCount;
+            this.totalCount = width * width;
+        }
+    }
+
+    private static final Map<String, RTreeTestConfig> testConfigs = new HashMap<String, RTreeTestConfig>();
+
+    static {
+        Coordinate searchMin = new Coordinate(0.5, 0.5);
+        Coordinate searchMax = new Coordinate(0.52, 0.52);
+        testConfigs.put("very_small", new RTreeTestConfig(100, searchMin, searchMax, 1));
+        testConfigs.put("small", new RTreeTestConfig(250, searchMin, searchMax, 16));
+        testConfigs.put("medium", new RTreeTestConfig(500, searchMin, searchMax, 81));
+        testConfigs.put("large", new RTreeTestConfig(750, searchMin, searchMax, 446));
+    }
+
     @Test
-    public void shouldInsertManyNodesIndividually() throws FactoryException {
-        int width = 100;
-        int blockSize = 10000;
-        List<Node> nodes = setup(width);
+    public void shouldInsertManyNodesIndividuallyWithQuadraticSplit() throws FactoryException, IOException {
+        insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, testConfigs.get("medium"));
+    }
+
+    @Test
+    public void shouldInsertManyNodesIndividuallyGreenesSplit() throws FactoryException, IOException {
+        insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, testConfigs.get("medium"));
+    }
+
+    private void insertManyNodesIndividually(String splitMode, int blockSize, RTreeTestConfig config)
+            throws FactoryException, IOException {
+        List<Node> nodes = setup(config.width);
         TreeMonitor monitor = new RTreeMonitor();
         EditableLayer layer = (EditableLayer) new SpatialDatabaseService(db).getLayer("Coordinates");
         layer.getIndex().addMonitor(monitor);
-        TimedLogger log = new TimedLogger("Inserting " + (width * width) + " nodes into RTree using solo insert",
-                (width * width), 2000);
+        layer.getIndex().configure(map(RTreeIndex.KEY_SPLIT, splitMode));
+        TimedLogger log = new TimedLogger("Inserting " + config.totalCount + " nodes into RTree using solo insert and "
+                + splitMode + " split", config.totalCount);
         long start = System.currentTimeMillis();
-        for (int i = 0; i < width * width / blockSize; i++) {
+        for (int i = 0; i < config.totalCount / blockSize; i++) {
             List<Node> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
             try (Transaction tx = spatialProcedures().db.beginTx()) {
                 for (Node node : slice) {
@@ -188,11 +223,9 @@ public class RTreeBulkInsertTest {
             }
             log.log("added to the tree", (i + 1) * blockSize);
         }
-        System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + (width * width) + " nodes to RTree in bulk");
+        System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + config.totalCount + " nodes to RTree in bulk");
 
-        Coordinate min = new Coordinate(0.5, 0.5);
-        Coordinate max = new Coordinate(0.52, 0.52);
-        queryRTree(layer, monitor, min, max);
+        queryRTree(layer, monitor, config);
         debugTree(layer);
     }
 
@@ -200,12 +233,13 @@ public class RTreeBulkInsertTest {
      * Run this manually to generate images of RTree that can be used for animation.
      * ffmpeg -f image2 -r 12 -i rtree-single/rtree-%d.png -r 12 -s 1280x960 rtree-single2_12fps.mp4
      */
-    @Test
+    @Ignore
     public void shouldInsertManyNodesIndividuallyAndGenerateImagesForAnimation() throws FactoryException, IOException {
-        int width = 500;
+        RTreeTestConfig config = testConfigs.get("medium");
         int blockSize = 5;
         int maxBlockSize = 1000;
-        List<Node> nodes = setup(width);
+        String splitMode = RTreeIndex.GREENES_SPLIT;
+        List<Node> nodes = setup(config.width);
 
         EditableLayer layer = (EditableLayer) new SpatialDatabaseService(db).getLayer("Coordinates");
         RTreeIndex rtree = (RTreeIndex) layer.getIndex();
@@ -217,13 +251,14 @@ public class RTreeBulkInsertTest {
 
         TreeMonitor monitor = new RTreeMonitor();
         layer.getIndex().addMonitor(monitor);
-        TimedLogger log = new TimedLogger("Inserting " + (width * width) + " nodes into RTree using solo insert",
-                (width * width), 2000);
+        layer.getIndex().configure(map(RTreeIndex.KEY_SPLIT, splitMode));
+        TimedLogger log = new TimedLogger("Inserting " + config.totalCount + " nodes into RTree using solo insert and "
+                + splitMode + " split", config.totalCount);
         long start = System.currentTimeMillis();
         int prevBlock = 0;
         int i = 0;
         int currBlock = 1;
-        while (currBlock < width * width) {
+        while (currBlock < config.totalCount) {
             List<Node> slice = nodes.subList(prevBlock, currBlock);
             long startIndexing = System.currentTimeMillis();
             try (Transaction tx = spatialProcedures().db.beginTx()) {
@@ -244,29 +279,36 @@ public class RTreeBulkInsertTest {
             currBlock += Math.min(blockSize, maxBlockSize);
             blockSize *= 1.33;
         }
-        System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + (width * width) + " nodes to RTree in bulk");
+        System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + config.totalCount + " nodes to RTree in bulk");
 
-        Coordinate min = new Coordinate(0.5, 0.5);
-        Coordinate max = new Coordinate(0.52, 0.52);
         monitor.reset();
-        List<Node> found = queryRTree(layer, monitor, min, max);
+        List<Node> found = queryRTree(layer, monitor, config);
         debugTree(layer);
-        imageExporter.saveRTreeLayers(new File("rtree-single/rtree.png"), 7, monitor, found, min, max);
+        imageExporter.saveRTreeLayers(new File("rtree-single/rtree.png"), 7, monitor, found, config.searchMin, config.searchMax);
     }
 
     @Test
-    public void shouldInsertManyNodesInBulk() throws FactoryException, IOException {
-        int width = 750;
-        int blockSize = 5000;
-        List<Node> nodes = setup(width);
+    public void shouldInsertManyNodesInBulkWithQuadraticSplit() throws FactoryException, IOException {
+        insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, testConfigs.get("medium"));
+    }
+
+    @Test
+    public void shouldInsertManyNodesInBulkWithGreenesSplit() throws FactoryException, IOException {
+        insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, testConfigs.get("medium"));
+    }
+
+    private void insertManyNodesInBulk(String splitMode, int blockSize, RTreeTestConfig config)
+            throws FactoryException, IOException {
+        List<Node> nodes = setup(config.width);
 
         EditableLayer layer = (EditableLayer) new SpatialDatabaseService(db).getLayer("Coordinates");
         RTreeMonitor monitor = new RTreeMonitor();
         layer.getIndex().addMonitor(monitor);
-        TimedLogger log = new TimedLogger("Inserting " + (width * width) + " nodes into RTree using bulk insert",
-                (width * width), 1000);
+        layer.getIndex().configure(map(RTreeIndex.KEY_SPLIT, splitMode));
+        TimedLogger log = new TimedLogger("Inserting " + config.totalCount + " nodes into RTree using bulk insert and "
+                + splitMode + " split", config.totalCount);
         long start = System.currentTimeMillis();
-        for (int i = 0; i < width * width / blockSize; i++) {
+        for (int i = 0; i < config.totalCount / blockSize; i++) {
             List<Node> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
             long startIndexing = System.currentTimeMillis();
             try (Transaction tx = db.beginTx()) {
@@ -278,12 +320,10 @@ public class RTreeBulkInsertTest {
             System.out.println("Cases " + monitor.getCaseCounts());
             log.log(startIndexing, "added to the tree", (i + 1) * blockSize);
         }
-        System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + (width * width) + " nodes to RTree in bulk");
+        System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + config.totalCount + " nodes to RTree in bulk");
 
-        Coordinate min = new Coordinate(0.5, 0.5);
-        Coordinate max = new Coordinate(0.52, 0.52);
         monitor.reset();
-        queryRTree(layer, monitor, min, max);
+        queryRTree(layer, monitor, config);
         debugTree(layer);
 //        debugIndexTree((RTreeIndex) layer.getIndex());
     }
@@ -294,10 +334,11 @@ public class RTreeBulkInsertTest {
      */
     @Ignore
     public void shouldInsertManyNodesInBulkAndGenerateImagesForAnimation() throws FactoryException, IOException {
-        int width = 500;
+        RTreeTestConfig config = testConfigs.get("medium");
         int blockSize = 2000;
 //        int blockSize = 1000;
-        List<Node> nodes = setup(width);
+        String splitMode = RTreeIndex.GREENES_SPLIT;
+        List<Node> nodes = setup(config.width);
 
         EditableLayer layer = (EditableLayer) new SpatialDatabaseService(db).getLayer("Coordinates");
         RTreeIndex rtree = (RTreeIndex) layer.getIndex();
@@ -309,10 +350,11 @@ public class RTreeBulkInsertTest {
 
         RTreeMonitor monitor = new RTreeMonitor();
         layer.getIndex().addMonitor(monitor);
-        TimedLogger log = new TimedLogger("Inserting " + (width * width) + " nodes into RTree using bulk insert",
-                (width * width), 1000);
+        layer.getIndex().configure(map(RTreeIndex.KEY_SPLIT, splitMode));
+        TimedLogger log = new TimedLogger("Inserting " + config.totalCount + " nodes into RTree using bulk insert and "
+                + splitMode + " split", config.totalCount);
         long start = System.currentTimeMillis();
-        for (int i = 0; i < width * width / blockSize; i++) {
+        for (int i = 0; i < config.totalCount / blockSize; i++) {
             List<Node> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
             long startIndexing = System.currentTimeMillis();
             try (Transaction tx = db.beginTx()) {
@@ -328,18 +370,18 @@ public class RTreeBulkInsertTest {
                 tx.success();
             }
         }
-        System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + (width * width) + " nodes to RTree in bulk");
+        System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + config.totalCount + " nodes to RTree in bulk");
 
         Coordinate min = new Coordinate(0.5, 0.5);
         Coordinate max = new Coordinate(0.52, 0.52);
         monitor.reset();
-        List<Node> found = queryRTree(layer, monitor, min, max);
+        List<Node> found = queryRTree(layer, monitor, config);
         debugTree(layer);
         imageExporter.saveRTreeLayers(new File("rtree-bulk/rtree.png"), 7, monitor, found, min, max);
 //        debugIndexTree((RTreeIndex) layer.getIndex());
     }
 
-    @Test
+    @Ignore
     public void shouldAccessIndexAfterBulkInsertion() throws Exception {
         // Use these two lines if you want to examine the output.
 //        File dbPath = new File("target/var/BulkTest");
@@ -413,7 +455,7 @@ public class RTreeBulkInsertTest {
         db.shutdown();
     }
 
-    @Test
+    @Ignore
     public void shouldBuildTreeFromScratch() throws Exception {
 //        File dbPath = new File("target/var/BulkTest2");
 //        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath);
@@ -476,7 +518,7 @@ public class RTreeBulkInsertTest {
         }
     }
 
-    @Test
+    @Ignore
     public void shouldPerformRTreeBulkInsertion() throws Exception {
         // Use these two lines if you want to examine the output.
 //        File dbPath = new File("target/var/BulkTest");
@@ -616,11 +658,11 @@ public class RTreeBulkInsertTest {
         return spatialProcedures;
     }
 
-    private List<Node> queryRTree(Layer layer, TreeMonitor monitor, Coordinate min, Coordinate max) {
+    private List<Node> queryRTree(Layer layer, TreeMonitor monitor, RTreeTestConfig config) {
         List<Node> nodes;
         long start = System.currentTimeMillis();
         try (Transaction tx = spatialProcedures().db.beginTx()) {
-            com.vividsolutions.jts.geom.Envelope envelope = new com.vividsolutions.jts.geom.Envelope(min, max);
+            com.vividsolutions.jts.geom.Envelope envelope = new com.vividsolutions.jts.geom.Envelope(config.searchMin, config.searchMax);
             nodes = GeoPipeline.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(envelope)).stream().map(GeoPipeFlow::getGeomNode).collect(Collectors.toList());
             tx.success();
         }
@@ -630,7 +672,7 @@ public class RTreeBulkInsertTest {
         int indexMatched = monitor.getCaseCounts().get("Index Matches");
         int touched = monitor.getCaseCounts().get("Geometry Does NOT Match");
         int matched = monitor.getCaseCounts().get("Geometry Matches");
-        int geometrySize = ((RTreeIndex)layer.getIndex()).count();
+        int geometrySize = layer.getIndex().count();
         int indexSize = 0;
         try (Transaction tx = spatialProcedures().db.beginTx()) {
             for (Node n : ((RTreeIndex) layer.getIndex()).getAllIndexInternalNodes()) {
@@ -642,7 +684,7 @@ public class RTreeBulkInsertTest {
         System.out.println("Having matched " + indexMatched + "/" + indexTouched + " touched index nodes (" + (100.0 * indexMatched / indexTouched) + "%)");
         System.out.println("Which means we touched " + indexTouched + "/" + indexSize + " index nodes (" + (100.0 * indexTouched / indexSize) + "%)");
         System.out.println("Index contains " + geometrySize + " geometries");
-//        assertEquals("Expected 361 nodes to be returned", 361, count);
+        assertEquals("Expected " + config.expectedCount + " nodes to be returned", config.expectedCount, count);
         return nodes;
     }
 
@@ -652,6 +694,10 @@ public class RTreeBulkInsertTest {
         long gap;
         long start;
         long previous;
+
+        public TimedLogger(String title, long count) {
+            this(title, count, 1000);
+        }
 
         public TimedLogger(String title, long count, long gap) {
             this.title = title;
@@ -732,26 +778,20 @@ public class RTreeBulkInsertTest {
         }
     }
 
-    private void restart( FileSystemAbstraction fs ) throws IOException
-    {
-        if ( db != null )
-        {
+    private void restart(FileSystemAbstraction fs) throws IOException {
+        if (db != null) {
             db.shutdown();
         }
 
-        fs.mkdirs( storeDir );
+        fs.mkdirs(storeDir);
         TestGraphDatabaseFactory dbFactory = new TestGraphDatabaseFactory();
-        db = dbFactory.setFileSystem( fs ).newImpermanentDatabaseBuilder( storeDir ).newGraphDatabase();
+        db = dbFactory.setFileSystem(fs).newImpermanentDatabaseBuilder(storeDir).newGraphDatabase();
     }
 
-    private void doCleanShutdown()
-    {
-        try
-        {
+    private void doCleanShutdown() {
+        try {
             db.shutdown();
-        }
-        finally
-        {
+        } finally {
             db = null;
         }
     }

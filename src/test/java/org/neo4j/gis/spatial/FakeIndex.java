@@ -19,10 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
@@ -170,6 +167,11 @@ public class FakeIndex implements LayerIndexReader, Constants {
 	@Override
 	public void addMonitor( TreeMonitor monitor )
 	{
+
+	}
+
+	@Override
+	public void configure(Map<String, Object> config) {
 
 	}
 
