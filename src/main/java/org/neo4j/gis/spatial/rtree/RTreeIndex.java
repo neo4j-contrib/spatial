@@ -1040,8 +1040,8 @@ public class RTreeIndex implements SpatialIndexWriter {
     }
 
     private NodeWithEnvelope[] mostDistantByDeadSpace(List<NodeWithEnvelope> entries) {
-        NodeWithEnvelope seed1 = null;
-        NodeWithEnvelope seed2 = null;
+		NodeWithEnvelope seed1 = entries.get(0);
+		NodeWithEnvelope seed2 = entries.get(0);
         double worst = Double.NEGATIVE_INFINITY;
         for (int i = 0; i < entries.size(); ++i) {
             NodeWithEnvelope e = entries.get(i);
