@@ -281,6 +281,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 		if (depth < 1) {
 			throw new IllegalArgumentException("Depths must be at least one");
 		}
+
 		List<Node> rootChildren = getIndexChildren(rootNode);
 		if (depth == 1) {
 			return rootChildren;
@@ -714,6 +715,7 @@ public class RTreeIndex implements SpatialIndexWriter {
             {
 				boolean found = filter.geometryMatches( node );
 				monitor.addCase(found ? "Geometry Matches" : "Geometry Does NOT Match");
+                if(found) monitor.setHeight(path.length());
                 return found ?
                        Evaluation.INCLUDE_AND_PRUNE :
                        Evaluation.EXCLUDE_AND_PRUNE;
@@ -1407,7 +1409,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 	private Node rootNode;
 	private EnvelopeDecoder envelopeDecoder;
 	private int maxNodeReferences;
-    private String splitMode = QUADRATIC_SPLIT;
+    private String splitMode = GREENES_SPLIT;
 
 	private Node metadataNode;
 	private int totalGeometryCount = 0;

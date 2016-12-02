@@ -28,7 +28,7 @@ import java.util.Map;
 
 public interface TreeMonitor
 {
-    void addHight();
+    void setHeight(int height);
 
     int getHeight();
 

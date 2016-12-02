@@ -29,7 +29,7 @@ import java.util.Map;
 public class EmptyMonitor implements TreeMonitor
 {
     @Override
-    public void addHight()
+    public void setHeight(int height)
     {
     }
 

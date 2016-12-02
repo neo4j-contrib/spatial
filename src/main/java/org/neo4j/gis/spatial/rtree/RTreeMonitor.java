@@ -40,8 +40,8 @@ public class RTreeMonitor implements TreeMonitor {
     }
 
     @Override
-    public void addHight() {
-        height++;
+    public void setHeight(int height) {
+        this.height = height;
     }
 
     public int getHeight() {
