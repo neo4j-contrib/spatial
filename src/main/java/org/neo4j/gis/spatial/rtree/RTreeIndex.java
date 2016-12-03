@@ -196,12 +196,12 @@ public class RTreeIndex implements SpatialIndexWriter {
 					deleteNode(n);
 				}
 			}
-			buildRtreeFromScratch(getIndexRoot(), decodeEnvelopes(nodesToAdd), 0.7);
+			buildRtreeFromScratch(getIndexRoot(), decodeGeometryNodeEnvelopes(nodesToAdd), 0.7);
 			countSaved = false;
 			totalGeometryCount = nodesToAdd.size();
 		} else {
 
-			List<NodeWithEnvelope> outliers = bulkInsertion(getIndexRoot(), getHeight(getIndexRoot(), 0), decodeEnvelopes(geomNodes), 0.7);
+			List<NodeWithEnvelope> outliers = bulkInsertion(getIndexRoot(), getHeight(getIndexRoot(), 0), decodeGeometryNodeEnvelopes(geomNodes), 0.7);
 			countSaved = false;
 			totalGeometryCount = totalGeometryCount + (geomNodes.size() - outliers.size());
 			for (NodeWithEnvelope n : outliers) {
@@ -210,22 +210,24 @@ public class RTreeIndex implements SpatialIndexWriter {
 		}
 	}
 
-	private List<NodeWithEnvelope> decodeEnvelopes(List<Node> nodes) {
-		return nodes.stream().map(NodeWithEnvelope::new).collect(Collectors.toList());
+	private List<NodeWithEnvelope> decodeGeometryNodeEnvelopes(List<Node> nodes) {
+		return nodes.stream().map(GeometryNodeWithEnvelope::new).collect(Collectors.toList());
 	}
 
-	class NodeWithEnvelope {
-		Envelope envelope;
-		Node node;
-        NodeWithEnvelope(Node node) {
-            this.node = node;
-            this.envelope = envelopeDecoder.decodeEnvelope(node);
-        }
+    public class NodeWithEnvelope {
+        Envelope envelope;
+        Node node;
         NodeWithEnvelope(Node node, Envelope envelope) {
             this.node = node;
             this.envelope = envelope;
         }
-	}
+    }
+
+    public class GeometryNodeWithEnvelope extends NodeWithEnvelope {
+        GeometryNodeWithEnvelope(Node node) {
+            super(node, envelopeDecoder.decodeEnvelope(node));
+        }
+    }
 
 //	/**
 //	 * Comparator for comparing nodes by compaing the xMin on their evelopes.
