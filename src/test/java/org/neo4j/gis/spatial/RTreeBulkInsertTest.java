@@ -364,6 +364,7 @@ public class RTreeBulkInsertTest {
         }
         System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + config.totalCount + " nodes to RTree in bulk");
         stats.setInsertTime(start);
+        stats.put("Insert Splits", monitor.getNbrSplit());
 
         queryRTree(layer, monitor, stats);
         verifyTreeStructure(layer, splitMode, stats);
@@ -421,6 +422,7 @@ public class RTreeBulkInsertTest {
         }
         System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + config.totalCount + " nodes to RTree in bulk");
         stats.setInsertTime(start);
+        stats.put("Insert Splits", monitor.getNbrSplit());
 
         monitor.reset();
         List<Node> found = queryRTree(layer, monitor, stats);
@@ -450,6 +452,7 @@ public class RTreeBulkInsertTest {
         }
         System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + config.totalCount + " nodes to RTree in bulk");
         stats.setInsertTime(start);
+        stats.put("Insert Splits", monitor.getNbrSplit());
 
         monitor.reset();
         queryRTree(layer, monitor, stats);
@@ -499,6 +502,7 @@ public class RTreeBulkInsertTest {
         }
         System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + config.totalCount + " nodes to RTree in bulk");
         stats.setInsertTime(start);
+        stats.put("Insert Splits", monitor.getNbrSplit());
 
         monitor.reset();
         List<Node> found = queryRTree(layer, monitor, stats);
@@ -794,7 +798,7 @@ public class RTreeBulkInsertTest {
         }
     }
 
-    private void checkIndexOverlaps(Layer layer) {
+    private void checkIndexOverlaps(Layer layer, TestStats stats) {
         RTreeIndex index = (RTreeIndex) layer.getIndex();
         Node root = index.getIndexRoot();
         ArrayList<ArrayList<NodeWithEnvelope>> nodes = new ArrayList<>();
@@ -818,6 +822,8 @@ public class RTreeBulkInsertTest {
         for (int level = 0; level < nodes.size(); level++) {
             double[] overlap = calculateOverlap(nodes.get(0).get(0), nodes.get(level));
             System.out.println("\t" + level + "\t" + nodes.get(level).size() + "\t" + overlap[0] + "\t" + overlap[1]);
+            stats.put("Leaf Overlap Delta", overlap[0]);
+            stats.put("Leaf Overlap Ratio", overlap[1]);
         }
     }
 
@@ -980,7 +986,7 @@ public class RTreeBulkInsertTest {
         long leafCountFactor = splitMode.equals(RTreeIndex.QUADRATIC_SPLIT) ? 20 : 2;
         long maxLeafCount = leafCountFactor * geometries / stats.maxNodeReferences;
         assertThat("In " + splitMode + " we expected leaves to be no more than " + leafCountFactor + "x(geometries/maxNodeReferences)", (long) leafMap.get("leaves"), lessThanOrEqualTo(maxLeafCount));
-        checkIndexOverlaps(layer);
+        checkIndexOverlaps(layer, stats);
     }
 
     private void restart() throws IOException {
