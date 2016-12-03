@@ -39,49 +39,51 @@ import org.neo4j.graphdb.Node;
  */
 public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader, Constants {
 
-	// Constructor
-	
-	public LayerRTreeIndex(GraphDatabaseService database, Layer layer) {
-		this(database, layer, 100);
-	}
-	
-	public LayerRTreeIndex(GraphDatabaseService database, Layer layer, int maxNodeReferences) {
-		super(database, layer.getLayerNode(), layer.getGeometryEncoder(), maxNodeReferences);
+    // Constructor
+    
+    public LayerRTreeIndex(GraphDatabaseService database, Layer layer) {
+        this(database, layer, 100);
+    }
+    
+    public LayerRTreeIndex(GraphDatabaseService database, Layer layer, int maxNodeReferences) {
+        super(database, layer.getLayerNode(), layer.getGeometryEncoder(), maxNodeReferences);
         this.layer = layer;
-	}
-	
-	
-	// Public methods
-	
-	@Override
-	public Layer getLayer() {
-		return layer;
-	}
-	
-	@Override
-	public SpatialDatabaseRecord get(Long geomNodeId) {
-		Node geomNode = this.getDatabase().getNodeById(geomNodeId);			
-		// be sure geomNode is inside this RTree
-		findLeafContainingGeometryNode(geomNode, true);
-
-		return new SpatialDatabaseRecord(layer,geomNode);
-	}
-	
-	@Override
-	public List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds) {
-		List<SpatialDatabaseRecord> results = new ArrayList<SpatialDatabaseRecord>();
-		for (Long geomNodeId : geomNodeIds) {
-			results.add(get(geomNodeId));
-		}
-		return results;
-	}
-		
-	@Override
-	public SearchRecords search(SearchFilter filter) {
-		return new SearchRecords(layer, searchIndex(filter));
-	}	
-	
-	
-	// Attributes
-	private Layer layer;
+    }
+    
+    
+    // Public methods
+    
+    @Override
+    public Layer getLayer() {
+        return layer;
+    }
+    
+    @Override
+    public SpatialDatabaseRecord get(Long geomNodeId) {
+        Node geomNode = this.getDatabase().getNodeById(geomNodeId);
+        // be sure geomNode is inside this RTree
+        if (geomNode != null && isGeometryNodeIndexed(geomNode) && isIndexNodeInThisIndex(findLeafContainingGeometryNode(geomNode))) {
+            return new SpatialDatabaseRecord(layer, geomNode);
+        } else {
+            throw new RuntimeException("GeometryNode is not indexed in this index: " + geomNodeId);
+        }
+    }
+    
+    @Override
+    public List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds) {
+        List<SpatialDatabaseRecord> results = new ArrayList<SpatialDatabaseRecord>();
+        for (Long geomNodeId : geomNodeIds) {
+            results.add(get(geomNodeId));
+        }
+        return results;
+    }
+        
+    @Override
+    public SearchRecords search(SearchFilter filter) {
+        return new SearchRecords(layer, searchIndex(filter));
+    }    
+    
+    
+    // Attributes
+    private Layer layer;
 }

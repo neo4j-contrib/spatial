@@ -125,8 +125,6 @@ public class RTreeIndex implements SpatialIndexWriter {
 
 	/**
 	 * This method will add the node somewhere below the parent.
-	 * @param parent
-	 * @param geomNode
 	 */
 	private void addBelow(Node parent, Node geomNode){
 		// choose a path down to a leaf
@@ -148,8 +146,6 @@ public class RTreeIndex implements SpatialIndexWriter {
 	/**
 	 * Use this method if you want to insert an index node as a child of a given index node. This will recursively
 	 * update the bounding boxes above the parent to keep the tree consistent.
-	 * @param parent
-	 * @param child
 	 * @return true if parent bounding box was / has to be expanded
 	 */
 	private boolean insertIndexNodeOnParent(Node parent, Node child) {
@@ -169,7 +165,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 	/**
 	 * Depending on the size of the incumbent tree, this will either attempt to rebuild the entire index from scratch
 	 * (strategy used if the insert larger than 40% of the current tree size - may give heap out of memory errors for
-	 * large inserts as has O(n) space complexity in the total tree size. It has nlog(n) time complexity. See fuction
+	 * large inserts as has O(n) space complexity in the total tree size. It has n*log(n) time complexity. See function
 	 * partition for more details.) or it will insert using the method of seeded clustering, where you attempt to use the
 	 * existing tree structure to partition your data.
 	 * <p>
@@ -177,8 +173,6 @@ public class RTreeIndex implements SpatialIndexWriter {
 	 * Repeated use of this strategy will lead to degraded query performance, especially if used for
 	 * many relatively small insertions compared to tree size. Though not worse than one by one insertion.
 	 * In practice, it should be fine for most uses.
-	 *
-	 * @param geomNodes
 	 */
 	@Override
 	public void add(List<Node> geomNodes) {
@@ -229,39 +223,13 @@ public class RTreeIndex implements SpatialIndexWriter {
         }
     }
 
-//	/**
-//	 * Comparator for comparing nodes by compaing the xMin on their evelopes.
-//	 */
-//	public static class ComparatorOnXMin implements Comparator<NodeWithEnvelope> {
-//
-//		@Override
-//		public int compare(NodeWithEnvelope o1, NodeWithEnvelope o2) {
-//			return Double.compare(o1.envelope.getMinX(), o2.envelope.getMinX());
-//		}
-//	}
-//
-//	/**
-//	 * Comparator or comparing nodes by coparing the yMin on their envelopes.
-//	 */
-//	public static class ComparatorOnYMin implements Comparator<NodeWithEnvelope> {
-//
-//		@Override
-//		public int compare(NodeWithEnvelope o1, NodeWithEnvelope o2) {
-//			return Double.compare(o1.envelope.getMinY(), o2.envelope.getMinY());
-//		}
-//	}
-
 	/**
 	 * Returns the height of the tree, starting with the rootNode and adding one for each subsequent level. Relies on the
 	 * balanced property of the RTree that all leaves are on the same level and no index nodes are empty. In the convention
      * the index is level 0, so if there is just the index and the leaf nodes, the leaf nodes are level one and the height is one.
      * Thus the lowest level is 1.
-	 *
-	 * @param rootNode
-	 * @param height
-	 * @return
 	 */
-	int getHeight(Node rootNode, int height) {
+    int getHeight(Node rootNode, int height) {
 		Iterator<Relationship> rels = rootNode.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD).iterator();
 		if (rels.hasNext()) {
 			return getHeight(rels.next().getEndNode(), height + 1);
@@ -390,28 +358,6 @@ public class RTreeIndex implements SpatialIndexWriter {
 						insertIndexNodeOnParent(child, n);
 					}
 				}
-//                System.out.println("deleting tmp tree at: "+newRootNode.getId()+" ("+childrenToBeInserted.stream()
-//                        .map(Node::getId).toArray()+")");
-//                System.out.print("deleting tmp tree at: "+newRootNode.getId()+" ( ");
-//                List<String> outList= new ArrayList<>( );
-//				Iterator<Relationship> itr = newRootNode.getRelationships().iterator();
-//				while(itr.hasNext()){
-//					Iterator<Relationship> tmpItr=itr.next().getEndNode().getRelationships(Direction.OUTGOING).iterator();
-//					while(tmpItr.hasNext()){
-//						outList.add(tmpItr.next().toString());
-//					}
-//				}
-//                for (Node n : childrenToBeInserted) {
-//                    outList.add(n.getId());
-//                }
-//                java.util.Collections.sort( outList );
-//
-//                for (String n : outList) {
-//                    System.out.print(n + ", ");
-//                }
-//                System.out.println(" )");
-//				System.out.println("Deleting sub-tree:\n" + database.execute("MATCH p=(root)-[:RTREE_CHILD*0..]-(index)-[:RTREE_REFERENCE]->(geom) WHERE id(root)="+newRootNode.getId()+" return length(p), count(*)").resultAsString());
-
 				// todo wouldn't it be better for this temporary tree to only live in memory?
 				deleteRecursivelySubtree(newRootNode, null); // remove the buffer tree remnants
 			}
@@ -432,28 +378,22 @@ public class RTreeIndex implements SpatialIndexWriter {
 	}
 
 	/**
-	 * This algorithm is based on Overlap Minimizing Top-down Bulk Loading Algorithm for R-tree by T Lee and S Lee.
-	 * This is effectively a wrapper function around the function Partition which will attempt to parallelise the task.
-	 * This can work better or worse since the top level may have as few as two nodes, in which case it fails is not optimal.
-	 * //TODO - Better parallelisation strategy.
-	 *
-	 * @param rootNode
-	 * @param geomNodes
-	 * @param loadingFactor - Must be between 0.1 and 1, this is how full each node will be, approximately.
-	 *                      Use 1 for static trees, lower numbers if there are to be many subsequent updates.
-	 */
+     * This algorithm is based on Overlap Minimizing Top-down Bulk Loading Algorithm for R-tree by T Lee and S Lee.
+     * This is effectively a wrapper function around the function Partition which will attempt to parallelise the task.
+     * This can work better or worse since the top level may have as few as two nodes, in which case it fails is not optimal.
+     * The loadingFactor must be between 0.1 and 1, this is how full each node will be, approximately.
+     * Use 1 for static trees (will not be added to after build built), lower numbers if there are to be many subsequent updates.
+     * //TODO - Better parallelisation strategy.
+     */
 	private void buildRtreeFromScratch(Node rootNode, final List<NodeWithEnvelope> geomNodes, double loadingFactor) {
 		partition(rootNode, geomNodes, 0, loadingFactor);
 	}
 
 	/**
-	 * This will partition a node into
-	 *
-	 * @param rootNode
-	 * @param nodes
-	 * @param depth
-	 * @param loadingFactor - what fraction of the max references will be filled.
-	 * @return
+	 * This will partition a collection of nodes under the specified index node. The nodes are clustered into one
+     * or more groups based on the loading factor, and the tree is expanded if necessary. If the nodes all fit
+     * into the parent, they are added directly, otherwise the depth is increased and partition called for each
+     * cluster at the deeper depth based on a new root node for each cluster.
 	 */
 	private boolean partition(Node rootNode, List<NodeWithEnvelope> nodes, int depth, final double loadingFactor) {
 
@@ -534,40 +474,41 @@ public class RTreeIndex implements SpatialIndexWriter {
 				throw nfe;
 			}
 		}
-		
-		if (geomNode == null && !throwExceptionIfNotFound) {
-			//fail silently
-			return;
-		}
+        if (geomNode != null && isGeometryNodeIndexed(geomNode)) {
 
-		// be sure geomNode is inside this RTree
-		Node indexNode = findLeafContainingGeometryNode(geomNode, throwExceptionIfNotFound);
-		if (indexNode == null) {
-			return;
-		}
+            Node indexNode = findLeafContainingGeometryNode(geomNode);
 
-		// remove the entry 
-		final Relationship geometryRtreeReference = geomNode.getSingleRelationship(RTreeRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING);
-		if (geometryRtreeReference != null) {
-			geometryRtreeReference.delete();
-		}
-		if (deleteGeomNode) {
-			deleteNode(geomNode);
-		}
+            // be sure geomNode is inside this RTree
+            if (isIndexNodeInThisIndex(indexNode)) {
 
-		// reorganize the tree if needed
-		if (countChildren(indexNode, RTreeRelationshipTypes.RTREE_REFERENCE) == 0) {
-			indexNode = deleteEmptyTreeNodes(indexNode, RTreeRelationshipTypes.RTREE_REFERENCE);
-			adjustParentBoundingBox(indexNode, RTreeRelationshipTypes.RTREE_CHILD);
-		} else {
-			adjustParentBoundingBox(indexNode, RTreeRelationshipTypes.RTREE_REFERENCE);
-		}
+                // remove the entry
+                final Relationship geometryRtreeReference = geomNode.getSingleRelationship(RTreeRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING);
+                if (geometryRtreeReference != null) {
+                    geometryRtreeReference.delete();
+                }
+                if (deleteGeomNode) {
+                    deleteNode(geomNode);
+                }
 
-		adjustPathBoundingBox(indexNode);
+                // reorganize the tree if needed
+                if (countChildren(indexNode, RTreeRelationshipTypes.RTREE_REFERENCE) == 0) {
+                    indexNode = deleteEmptyTreeNodes(indexNode, RTreeRelationshipTypes.RTREE_REFERENCE);
+                    adjustParentBoundingBox(indexNode, RTreeRelationshipTypes.RTREE_CHILD);
+                } else {
+                    adjustParentBoundingBox(indexNode, RTreeRelationshipTypes.RTREE_REFERENCE);
+                }
 
-		countSaved = false;
-		totalGeometryCount--;
-	}
+                adjustPathBoundingBox(indexNode);
+
+                countSaved = false;
+                totalGeometryCount--;
+            } else if (throwExceptionIfNotFound) {
+                throw new RuntimeException("GeometryNode not indexed in this RTree: " + geomNodeId);
+            }
+        } else if (throwExceptionIfNotFound) {
+            throw new RuntimeException("GeometryNode not indexed with an RTree: " + geomNodeId);
+        }
+    }
 
 	private Node deleteEmptyTreeNodes(Node indexNode, RelationshipType relType) {
 		if (countChildren(indexNode, relType) == 0) {
@@ -664,10 +605,11 @@ public class RTreeIndex implements SpatialIndexWriter {
 
 	@Override
 	public boolean isNodeIndexed(Long geomNodeId) {
-		Node geomNode = database.getNodeById(geomNodeId);
-		// be sure geomNode is inside this RTree
-		return findLeafContainingGeometryNode(geomNode, false) != null;
-	}
+        Node geomNode = database.getNodeById(geomNodeId);
+        // be sure geomNode is inside this RTree
+        return geomNode != null && isGeometryNodeIndexed(geomNode)
+                && isIndexNodeInThisIndex(findLeafContainingGeometryNode(geomNode));
+    }
 
 	public void warmUp() {
 		visit(new WarmUpVisitor(), getIndexRoot());
@@ -780,9 +722,6 @@ public class RTreeIndex implements SpatialIndexWriter {
 	/***
 	 * This will get the envelope of the child. The relationshipType acts as as flag to allow the function to
 	 * know whether the child is a leaf or an index node.
-	 * @param child
-	 * @param relType
-     * @return
      */
 	private Envelope getChildNodeEnvelope(Node child, RelationshipType relType) {
 		if (relType.name().equals(RTreeRelationshipTypes.RTREE_REFERENCE.name())) {
@@ -989,11 +928,9 @@ public class RTreeIndex implements SpatialIndexWriter {
 
 	private int countChildren(Node indexNode, RelationshipType relationshipType) {
 		int counter = 0;
-		Iterator<Relationship> iterator = indexNode.getRelationships(relationshipType, Direction.OUTGOING).iterator();
-		while (iterator.hasNext()) {
-			iterator.next();
-			counter++;
-		}
+        for (Relationship ignored : indexNode.getRelationships(relationshipType, Direction.OUTGOING)) {
+            counter++;
+        }
 		return counter;
 	}
 
@@ -1176,12 +1113,16 @@ public class RTreeIndex implements SpatialIndexWriter {
 				}
 			}
 
-			// insert the best candidate entry in the best group
-			bestGroup.add(bestEntry);
-			bestGroupEnvelope.expandToInclude(bestEntry.envelope);
+            if (bestEntry == null) {
+                throw new RuntimeException("Should not be possible to fail to find a best entry during quadratic split");
+            } else {
+                // insert the best candidate entry in the best group
+                bestGroup.add(bestEntry);
+                bestGroupEnvelope.expandToInclude(bestEntry.envelope);
 
-			entries.remove(bestEntry);
-		}
+                entries.remove(bestEntry);
+            }
+        }
 
 		return reconnectTwoChildGroups(indexNode, group1, group2, relationshipType);
 	}
@@ -1232,10 +1173,8 @@ public class RTreeIndex implements SpatialIndexWriter {
 	}
 
 	/**
-	 * Fix an IndexNode bounding box after a child has been removed
-	 *
-	 * @param indexNode
-	 * @return true if something has changed
+	 * Fix an IndexNode bounding box after a child has been added or removed removed. Return true if something was
+     * changed so that parents can also be adjusted.
 	 */
 	private boolean adjustParentBoundingBox(Node indexNode, RelationshipType relationshipType) {
 		double[] old = null;
@@ -1245,16 +1184,15 @@ public class RTreeIndex implements SpatialIndexWriter {
 
 		Envelope bbox = null;
 
-		Iterator<Relationship> iterator = indexNode.getRelationships(relationshipType, Direction.OUTGOING).iterator();
-		while (iterator.hasNext()) {
-			Node childNode = iterator.next().getEndNode();
+        for (Relationship relationship : indexNode.getRelationships(relationshipType, Direction.OUTGOING)) {
+            Node childNode = relationship.getEndNode();
 
-			if (bbox == null) {
-				bbox = new Envelope(getChildNodeEnvelope(childNode, relationshipType));
-			} else {
-				bbox.expandToInclude(getChildNodeEnvelope(childNode, relationshipType));
-			}
-		}
+            if (bbox == null) {
+                bbox = new Envelope(getChildNodeEnvelope(childNode, relationshipType));
+            } else {
+                bbox.expandToInclude(getChildNodeEnvelope(childNode, relationshipType));
+            }
+        }
 
 		if (bbox == null) {
 			// this could happen in an empty tree
@@ -1339,47 +1277,34 @@ public class RTreeIndex implements SpatialIndexWriter {
 		if (incoming!=null) {
 			incoming.delete();
 		}
-		Iterator<Relationship> itr = node.getRelationships().iterator();
-		while (itr.hasNext()) {
-			Relationship rel = itr.next();
-			System.out.println("Unexpected relationship found on " + node + ": " + rel.toString());
-			rel.delete();
-		}
+        for (Relationship rel : node.getRelationships()) {
+            System.out.println("Unexpected relationship found on " + node + ": " + rel.toString());
+            rel.delete();
+        }
 		node.delete();
 	}
 
-	protected Node findLeafContainingGeometryNode(Node geomNode, boolean throwExceptionIfNotFound) {
-		if (!geomNode.hasRelationship(RTreeRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING)) {
-			if (throwExceptionIfNotFound) {
-				throw new RuntimeException("GeometryNode not indexed with an RTree: " + geomNode.getId());
-			} else {
-				return null;
-			}
-		}
+    protected boolean isGeometryNodeIndexed(Node geomNode) {
+        return geomNode.hasRelationship(RTreeRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING);
+    }
 
-		Node indexNodeLeaf = geomNode.getSingleRelationship(RTreeRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING).getStartNode();
+    protected Node findLeafContainingGeometryNode(Node geomNode) {
+        return geomNode.getSingleRelationship(RTreeRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING).getStartNode();
+    }
 
-		Node root = null;
-		Node child = indexNodeLeaf;
-		while (root == null) {
-			Node parent = getIndexNodeParent(child);
-			if (parent == null) {
-				root = child;
-			} else {
-				child = parent;
-			}
-		}
-
-		if (root.getId() != getIndexRoot().getId()) {
-			if (throwExceptionIfNotFound) {
-				throw new RuntimeException("GeometryNode not indexed in this RTree: " + geomNode.getId());
-			} else {
-				return null;
-			}
-		} else {
-			return indexNodeLeaf;
-		}
-	}
+    protected boolean isIndexNodeInThisIndex(Node indexNode) {
+        Node child = indexNode;
+        Node root = null;
+        while (root == null) {
+            Node parent = getIndexNodeParent(child);
+            if (parent == null) {
+                root = child;
+            } else {
+                child = parent;
+            }
+        }
+        return root.getId() == getIndexRoot().getId();
+    }
 
 	private void deleteNode(Node node) {
 		for (Relationship r : node.getRelationships()) {
