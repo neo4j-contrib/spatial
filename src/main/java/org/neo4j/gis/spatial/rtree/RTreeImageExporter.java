@@ -41,6 +41,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static java.awt.RenderingHints.*;
 
@@ -93,17 +94,20 @@ public class RTreeImageExporter {
         drawBounds(mapContent, bounds, Color.WHITE);
 
         int indexHeight = index.getHeight(index.getIndexRoot(), 0);
-        ArrayList<ArrayList<Node>> layers = new ArrayList<>(indexHeight);
-        ArrayList<List<Node>> indexMatches = new ArrayList<>(indexHeight);
+        ArrayList<ArrayList<RTreeIndex.NodeWithEnvelope>> layers = new ArrayList<>(indexHeight);
+        ArrayList<List<RTreeIndex.NodeWithEnvelope>> indexMatches = new ArrayList<>(indexHeight);
         for (int i = 0; i < indexHeight; i++) {
-            indexMatches.add(monitor.getMatchedTreeNodes(indexHeight - i - 1));
+            indexMatches.add(monitor.getMatchedTreeNodes(indexHeight - i - 1).stream()
+                    .map(n -> new RTreeIndex.NodeWithEnvelope(n, index.getLeafNodeEnvelope(n)))
+                    .collect(Collectors.toList()));
             layers.add(new ArrayList<>());
-            ArrayList<Node> nodes = layers.get(i);
+            ArrayList<RTreeIndex.NodeWithEnvelope> nodes = layers.get(i);
             if (i == 0) {
-                nodes.add(index.getIndexRoot());
+                Node indexRoot = index.getIndexRoot();
+                nodes.add(new RTreeIndex.NodeWithEnvelope(indexRoot, index.getIndexNodeEnvelope(indexRoot)));
             } else {
-                for (Node parent : layers.get(i - 1)) {
-                    for (Node child : index.getIndexChildren(parent)) {
+                for (RTreeIndex.NodeWithEnvelope parent : layers.get(i - 1)) {
+                    for (RTreeIndex.NodeWithEnvelope child : index.getIndexChildren(parent.node)) {
                         layers.get(i).add(child);
                     }
                 }
@@ -115,7 +119,7 @@ public class RTreeImageExporter {
         }
         drawGeometryNodes(mapContent, allIndexedNodes, Color.LIGHT_GRAY);
         for (int level = 0; level < Math.min(indexHeight, levels); level++) {
-            ArrayList<Node> layer = layers.get(indexHeight - level - 1);
+            ArrayList<RTreeIndex.NodeWithEnvelope> layer = layers.get(indexHeight - level - 1);
             System.out.println("Drawing index level " + level + " of " + layer.size() + " nodes");
             drawIndexNodes(level, mapContent, layer, colors[level % colors.length]);
             drawIndexNodes(2 + level * 2, mapContent, indexMatches.get(level), Color.MAGENTA);
@@ -166,7 +170,7 @@ public class RTreeImageExporter {
         mapContent.addLayer(new org.geotools.map.FeatureLayer(makeGeometryNodeFeatures(nodes, featureType), style));
     }
 
-    private void drawIndexNodes(int level, MapContent mapContent, List<Node> nodes, Color color) throws IOException {
+    private void drawIndexNodes(int level, MapContent mapContent, List<RTreeIndex.NodeWithEnvelope> nodes, Color color) throws IOException {
         Style style = StyledImageExporter.createPolygonStyle(color, Color.WHITE, 0.8, 0.0, level + 1);
         mapContent.addLayer(new org.geotools.map.FeatureLayer(makeIndexNodeFeatures(nodes), style));
     }
@@ -200,14 +204,14 @@ public class RTreeImageExporter {
         return features;
     }
 
-    private MemoryFeatureCollection makeIndexNodeFeatures(List<Node> nodes) {
+    private MemoryFeatureCollection makeIndexNodeFeatures(List<RTreeIndex.NodeWithEnvelope> nodes) {
         SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("Polygon", Constants.GTYPE_POLYGON, crs, new String[]{});
         Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, new ArrayList<String>());
         GeometryFactory geometryFactory = layer.getGeometryFactory();
         MemoryFeatureCollection features = new MemoryFeatureCollection(featureType);
         for (int i = 0; i < nodes.size(); i++) {
-            Node node = nodes.get(i);
-            Envelope envelope = index.getIndexNodeEnvelope(node);
+            RTreeIndex.NodeWithEnvelope node = nodes.get(i);
+            Envelope envelope = node.envelope;
             Coordinate[] coordinates = new Coordinate[]{
                     new Coordinate(envelope.getMinX(), envelope.getMinY()),
                     new Coordinate(envelope.getMinX(), envelope.getMaxY()),

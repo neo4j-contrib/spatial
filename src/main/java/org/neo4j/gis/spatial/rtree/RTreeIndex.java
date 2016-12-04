@@ -208,7 +208,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 		return nodes.stream().map(GeometryNodeWithEnvelope::new).collect(Collectors.toList());
 	}
 
-    public class NodeWithEnvelope {
+    public static class NodeWithEnvelope {
         Envelope envelope;
         Node node;
         NodeWithEnvelope(Node node, Envelope envelope) {
@@ -239,44 +239,43 @@ public class RTreeIndex implements SpatialIndexWriter {
 		}
 	}
 
-	List<Node> getIndexChildren(Node rootNode) {
-		List<Node> result = new ArrayList<>();
-		for (Relationship r : rootNode.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD)) {
-			result.add(r.getEndNode());
-		}
-		return result;
-	}
+    List<NodeWithEnvelope> getIndexChildren(Node rootNode) {
+        List<NodeWithEnvelope> result = new ArrayList<>();
+        for (Relationship r : rootNode.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD)) {
+            Node child = r.getEndNode();
+            result.add(new NodeWithEnvelope(child, getIndexNodeEnvelope(child)));
+        }
+        return result;
+    }
 
-	private List<Node> getIndexChildren(Node rootNode, int depth) {
+	private List<NodeWithEnvelope> getIndexChildren(Node rootNode, int depth) {
 		if (depth < 1) {
 			throw new IllegalArgumentException("Depths must be at least one");
 		}
 
-		List<Node> rootChildren = getIndexChildren(rootNode);
+		List<NodeWithEnvelope> rootChildren = getIndexChildren(rootNode);
 		if (depth == 1) {
 			return rootChildren;
 		} else {
-			List<Node> result = new ArrayList<>(rootChildren.size() * 5);
-			for (Node child : rootChildren) {
-				result.addAll(getIndexChildren(child, depth - 1));
+			List<NodeWithEnvelope> result = new ArrayList<>(rootChildren.size() * 5);
+			for (NodeWithEnvelope child : rootChildren) {
+				result.addAll(getIndexChildren(child.node, depth - 1));
 			}
 			return result;
 		}
 	}
 
 	private List<NodeWithEnvelope> bulkInsertion(Node rootNode, int rootNodeHeight, final List<NodeWithEnvelope> geomNodes, final double loadingFactor) {
-		List<Node> children = getIndexChildren(rootNode);
+		List<NodeWithEnvelope> children = getIndexChildren(rootNode);
 		if(children.isEmpty()){
 			return geomNodes;
 		}
 		children.sort(new IndexNodeAreaComparator());
 
-		Map<Node, List<NodeWithEnvelope>> map = new HashMap<>(children.size());
-		Map<Node, Envelope> envelopes = new HashMap<>(children.size());
+		Map<NodeWithEnvelope, List<NodeWithEnvelope>> map = new HashMap<>(children.size());
 		int nodesPerRootSubTree = Math.max(16, geomNodes.size() / children.size());
-		for (Node n : children) {
+		for (NodeWithEnvelope n : children) {
 			map.put(n, new ArrayList<>(nodesPerRootSubTree));
-			envelopes.put(n, getIndexNodeEnvelope(n));
 		}
 
 		// The outliers are those nodes which do not fit into the existing tree hierarchy.
@@ -287,8 +286,8 @@ public class RTreeIndex implements SpatialIndexWriter {
 
 			//exploits that the iterator returns the list inorder, which is sorted by size, as above. Thus child
 			//is always added to the smallest existing envelope which contains it.
-			for (Node c : children) {
-				if (envelopes.get(c).contains(env)) {
+			for (NodeWithEnvelope c : children) {
+				if (c.envelope.contains(env)) {
 					map.get(c).add(n); //add to smallest area envelope which contains the child;
 					flag = false;
 					break;
@@ -299,7 +298,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 				outliers.add(n);
 			}
 		}
-		for (Node child : children) {
+		for (NodeWithEnvelope child : children) {
 			List<NodeWithEnvelope> cluster = map.get(child);
 
 			if (cluster.isEmpty()) continue;
@@ -315,7 +314,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 			if (expectedHeight < currentRTreeHeight) {
 				monitor.addCase("h_i < l_t ");
                 //if the height is smaller than that recursively sort and split.
-				outliers.addAll(bulkInsertion(child, rootNodeHeight - 1, cluster, loadingFactor));
+				outliers.addAll(bulkInsertion(child.node, rootNodeHeight - 1, cluster, loadingFactor));
 			} //if constructed tree is the correct size insert it here.
 			else if (expectedHeight == currentRTreeHeight) {
 
@@ -334,7 +333,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 					monitor.addCase("h_i == l_t && big cluster");
 					Node newRootNode = database.createNode();
 					buildRtreeFromScratch(newRootNode, cluster, loadingFactor);
-					insertIndexNodeOnParent(child, newRootNode);
+					insertIndexNodeOnParent(child.node, newRootNode);
 
 				}
 
@@ -345,17 +344,17 @@ public class RTreeIndex implements SpatialIndexWriter {
 				if (newHeight == 1) {
 					monitor.addCase("h_i > l_t (d==1)");
 					for (Relationship geom : newRootNode.getRelationships(RTreeRelationshipTypes.RTREE_REFERENCE)) {
-						addBelow(child, geom.getEndNode());
+						addBelow(child.node, geom.getEndNode());
 						geom.delete();
 					}
 				} else {
 					monitor.addCase("h_i > l_t (d>1)");
 					int insertDepth = newHeight - (currentRTreeHeight);
-					List<Node> childrenToBeInserted = getIndexChildren(newRootNode, insertDepth);
-					for (Node n : childrenToBeInserted) {
-						Relationship relationship = n.getSingleRelationship(RTreeRelationshipTypes.RTREE_CHILD, Direction.INCOMING);
+					List<NodeWithEnvelope> childrenToBeInserted = getIndexChildren(newRootNode, insertDepth);
+					for (NodeWithEnvelope n : childrenToBeInserted) {
+						Relationship relationship = n.node.getSingleRelationship(RTreeRelationshipTypes.RTREE_CHILD, Direction.INCOMING);
 						relationship.delete();
-						insertIndexNodeOnParent(child, n);
+						insertIndexNodeOnParent(child.node, n.node);
 					}
 				}
 				// todo wouldn't it be better for this temporary tree to only live in memory?
@@ -735,7 +734,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 	 * The leaf nodes belong to the domain model, and as such need to use
 	 * the layers domain-specific GeometryEncoder for decoding the envelope.
 	 */
-	private Envelope getLeafNodeEnvelope(Node geomNode) {
+	public Envelope getLeafNodeEnvelope(Node geomNode) {
 		return envelopeDecoder.decodeEnvelope(geomNode);
 	}
 
@@ -1405,11 +1404,11 @@ public class RTreeIndex implements SpatialIndexWriter {
 		}
 	}
 
-	private class IndexNodeAreaComparator implements Comparator<Node> {
+	private class IndexNodeAreaComparator implements Comparator<NodeWithEnvelope> {
 
 		@Override
-		public int compare(Node o1, Node o2) {
-			return Double.compare(getIndexNodeEnvelope(o1).getArea(), getIndexNodeEnvelope(o2).getArea());
+		public int compare(NodeWithEnvelope o1, NodeWithEnvelope o2) {
+			return Double.compare(o1.envelope.getArea(), o2.envelope.getArea());
 		}
 	}
 }
