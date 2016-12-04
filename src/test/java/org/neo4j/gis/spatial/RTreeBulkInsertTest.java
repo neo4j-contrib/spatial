@@ -425,7 +425,7 @@ public class RTreeBulkInsertTest {
         stats.put("Insert Splits", monitor.getNbrSplit());
 
         monitor.reset();
-        List<Node> found = queryRTree(layer, monitor, stats);
+        List<Node> found = queryRTree(layer, monitor, stats, false);
         verifyTreeStructure(layer, splitMode, stats);
         imageExporter.saveRTreeLayers(new File("rtree-single-" + splitMode + "/rtree.png"), 7, monitor, found, config.searchMin, config.searchMax);
     }
@@ -505,7 +505,7 @@ public class RTreeBulkInsertTest {
         stats.put("Insert Splits", monitor.getNbrSplit());
 
         monitor.reset();
-        List<Node> found = queryRTree(layer, monitor, stats);
+        List<Node> found = queryRTree(layer, monitor, stats, false);
         verifyTreeStructure(layer, splitMode, stats);
         imageExporter.saveRTreeLayers(new File("rtree-bulk-" + splitMode + "/rtree.png"), 7, monitor, found, config.searchMin, config.searchMax);
 //        debugIndexTree((RTreeIndex) layer.getIndex());
@@ -837,6 +837,10 @@ public class RTreeBulkInsertTest {
     }
 
     private List<Node> queryRTree(Layer layer, TreeMonitor monitor, TestStats stats) {
+        return queryRTree(layer, monitor, stats, true);
+    }
+
+    private List<Node> queryRTree(Layer layer, TreeMonitor monitor, TestStats stats, boolean assertTouches) {
         List<Node> nodes;
         RTreeTestConfig config = stats.config;
         long start = System.currentTimeMillis();
@@ -877,7 +881,7 @@ public class RTreeBulkInsertTest {
         assertEquals("Expected " + config.expectedCount + " nodes to be returned", config.expectedCount, count);
         assertEquals("Expected " + config.expectedCount + " nodes to be matched", config.expectedCount, matched);
         int maxExpectedGeometriesTouched = matched * maxNodeReferences;
-        if (count > 1) {
+        if (count > 1 && assertTouches) {
             assertThat("Should not touch more geometries than " + maxNodeReferences + "*matched", touched, lessThanOrEqualTo(maxExpectedGeometriesTouched));
             int maxExpectedIndexTouched = indexMatched * maxNodeReferences;
             assertThat("Should not touch more index nodes than " + maxNodeReferences + "*matched", indexTouched, lessThanOrEqualTo(maxExpectedIndexTouched));
