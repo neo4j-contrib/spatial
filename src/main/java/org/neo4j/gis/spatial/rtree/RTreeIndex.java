@@ -332,7 +332,6 @@ public class RTreeIndex implements SpatialIndexWriter {
 					Node newRootNode = database.createNode();
 					buildRtreeFromScratch(newRootNode, cluster, loadingFactor);
 					insertIndexNodeOnParent(child.node, newRootNode);
-
 				}
 
 			} else {
@@ -381,33 +380,37 @@ public class RTreeIndex implements SpatialIndexWriter {
 
     private void mergeTwoSubtrees(NodeWithEnvelope parent, List<NodeWithEnvelope> left, List<NodeWithEnvelope> right) {
         ArrayList<NodeTuple> pairs = new ArrayList<>();
-        HashSet<NodeWithEnvelope> childrenToConnect = new HashSet<>();
-        HashSet<NodeWithEnvelope> childrenToDisconnect = new HashSet<>();
+        HashSet<NodeWithEnvelope> disconnectedChildren = new HashSet<>();
         for (NodeWithEnvelope leftNode : left) {
             for (NodeWithEnvelope rightNode : right) {
                 NodeTuple pair = new NodeTuple(leftNode, rightNode);
                 if (pair.overlap > 0.5) {
                     pairs.add(pair);
-                    childrenToDisconnect.add(leftNode);
-                    childrenToDisconnect.add(rightNode);
                 }
             }
         }
         pairs.sort((o1, o2) -> Double.compare(o1.overlap, o2.overlap));
         while (!pairs.isEmpty()) {
             NodeTuple pair = pairs.remove(pairs.size() - 1);
-            childrenToConnect.add(mergeIndexNodes(pair.left, pair.right));
-            pairs.removeIf(t -> t.contains(pair.left) || t.contains(pair.right));
+			Envelope merged = new Envelope(pair.left.envelope);
+			merged.expandToInclude(pair.right.envelope);
+			NodeWithEnvelope newNode = new NodeWithEnvelope(pair.left.node, merged);
+			mergeTwoSubtrees(newNode, getIndexChildren(pair.left.node), getIndexChildren(pair.right.node));
+			pairs.removeIf(t -> t.contains(pair.left) || t.contains(pair.right));
+			disconnectedChildren.add(pair.right);
+			Iterator<Relationship> itr = pair.right.node.getRelationships(RTreeRelationshipTypes.RTREE_CHILD,Direction.INCOMING).iterator();
+			while(itr.hasNext()){
+				itr.next().delete();
+			}
+			pair.right.node.delete();
         }
-        //TODO: Merged new children into parent
-    }
 
-    private NodeWithEnvelope mergeIndexNodes(NodeWithEnvelope left, NodeWithEnvelope right) {
-        Envelope merged = new Envelope(left.envelope);
-        merged.expandToInclude(right.envelope);
-        NodeWithEnvelope newNode = new NodeWithEnvelope(left.node, merged);
-        mergeTwoSubtrees(newNode, getIndexChildren(left.node), getIndexChildren(right.node));
-        return newNode;
+		right.removeIf(t-> disconnectedChildren.contains(t));
+
+		for( NodeWithEnvelope n : right){
+			n.node.getSingleRelationship(RTreeRelationshipTypes.RTREE_CHILD,Direction.INCOMING);
+			parent.node.createRelationshipTo(n.node,RTreeRelationshipTypes.RTREE_CHILD);
+		}
     }
 
 	private int expectedHeight(double loadingFactor, int size) {
