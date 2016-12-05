@@ -268,6 +268,13 @@ public class Envelope {
         return combined.getWidth(dimension) - this.getWidth(dimension) - other.getWidth(dimension);
     }
 
+    public double overlap(Envelope other) {
+        Envelope combined = new Envelope();
+        combined.expandToInclude(this);
+        combined.expandToInclude(other);
+        return (this.getArea() + other.getArea()) / combined.getArea();
+    }
+
     public boolean isValid() {
 		boolean ans = min != null && max != null && min.length == max.length;
 		if (!ans)

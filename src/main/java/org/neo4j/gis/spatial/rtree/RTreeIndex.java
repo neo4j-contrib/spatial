@@ -364,6 +364,51 @@ public class RTreeIndex implements SpatialIndexWriter {
 		return outliers;
 	}
 
+    class NodeTuple {
+        private final double overlap;
+        NodeWithEnvelope left;
+        NodeWithEnvelope right;
+
+        NodeTuple(NodeWithEnvelope left, NodeWithEnvelope right) {
+            this.left = left;
+            this.right = right;
+            this.overlap = left.envelope.overlap(right.envelope);
+        }
+        boolean contains(NodeWithEnvelope node) {
+            return left.node.equals(node) || right.node.equals(node);
+        }
+    }
+
+    private void mergeTwoSubtrees(NodeWithEnvelope parent, List<NodeWithEnvelope> left, List<NodeWithEnvelope> right) {
+        ArrayList<NodeTuple> pairs = new ArrayList<>();
+        HashSet<NodeWithEnvelope> childrenToConnect = new HashSet<>();
+        HashSet<NodeWithEnvelope> childrenToDisconnect = new HashSet<>();
+        for (NodeWithEnvelope leftNode : left) {
+            for (NodeWithEnvelope rightNode : right) {
+                NodeTuple pair = new NodeTuple(leftNode, rightNode);
+                if (pair.overlap > 0.5) {
+                    pairs.add(pair);
+                    childrenToDisconnect.add(leftNode);
+                    childrenToDisconnect.add(rightNode);
+                }
+            }
+        }
+        pairs.sort((o1, o2) -> Double.compare(o1.overlap, o2.overlap));
+        while (!pairs.isEmpty()) {
+            NodeTuple pair = pairs.remove(pairs.size() - 1);
+            childrenToConnect.add(mergeIndexNodes(pair.left, pair.right));
+            pairs.removeIf(t -> t.contains(pair.left) || t.contains(pair.right));
+        }
+        //TODO: Merged new children into parent
+    }
+
+    private NodeWithEnvelope mergeIndexNodes(NodeWithEnvelope left, NodeWithEnvelope right) {
+        Envelope merged = new Envelope(left.envelope);
+        merged.expandToInclude(right.envelope);
+        NodeWithEnvelope newNode = new NodeWithEnvelope(left.node, merged);
+        mergeTwoSubtrees(newNode, getIndexChildren(left.node), getIndexChildren(right.node));
+        return newNode;
+    }
 
 	private int expectedHeight(double loadingFactor, int size) {
         if (size == 1) {

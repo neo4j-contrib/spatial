@@ -380,6 +380,7 @@ public class RTreeBulkInsertTest {
             }
         }
     }
+
     private void insertManyNodesIndividually(String splitMode, int blockSize, int maxNodeReferences, RTreeTestConfig config)
             throws FactoryException, IOException {
         TestStats stats = new TestStats(config, "Single", splitMode, blockSize, maxNodeReferences);
