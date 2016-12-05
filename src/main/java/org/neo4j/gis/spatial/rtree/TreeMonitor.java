@@ -32,11 +32,11 @@ public interface TreeMonitor
 
     int getHeight();
 
-    void addNbrRebuilt();
+    void addNbrRebuilt(RTreeIndex rtree);
 
     int getNbrRebuilt();
 
-    void addSplit();
+    void addSplit(Node indexNode);
 
     int getNbrSplit();
 

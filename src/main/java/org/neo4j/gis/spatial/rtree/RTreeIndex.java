@@ -146,9 +146,8 @@ public class RTreeIndex implements SpatialIndexWriter {
 	/**
 	 * Use this method if you want to insert an index node as a child of a given index node. This will recursively
 	 * update the bounding boxes above the parent to keep the tree consistent.
-	 * @return true if parent bounding box was / has to be expanded
 	 */
-	private boolean insertIndexNodeOnParent(Node parent, Node child) {
+	private void insertIndexNodeOnParent(Node parent, Node child) {
 		int numChildren = countChildren(parent, RTreeRelationshipTypes.RTREE_CHILD);
 		boolean needExpansion = addChild(parent, RTreeRelationshipTypes.RTREE_CHILD, child);
 		if (numChildren < maxNodeReferences) {
@@ -158,7 +157,6 @@ public class RTreeIndex implements SpatialIndexWriter {
 		} else {
 			splitAndAdjustPathBoundingBox(parent);
 		}
-		return needExpansion;
 	}
 
 
@@ -179,7 +177,6 @@ public class RTreeIndex implements SpatialIndexWriter {
 
 		//If the insertion is large relative to the size of the tree, simply rebuild the whole tree.
 		if (geomNodes.size() > totalGeometryCount * 0.4) {
-            monitor.addNbrRebuilt();
             List<Node> nodesToAdd = new ArrayList<>(geomNodes.size() + totalGeometryCount);
 			for (Node n : getAllIndexedNodes()) {
 				nodesToAdd.add(n);
@@ -193,6 +190,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 			buildRtreeFromScratch(getIndexRoot(), decodeGeometryNodeEnvelopes(nodesToAdd), 0.7);
 			countSaved = false;
 			totalGeometryCount = nodesToAdd.size();
+            monitor.addNbrRebuilt(this);
 		} else {
 
 			List<NodeWithEnvelope> outliers = bulkInsertion(getIndexRoot(), getHeight(getIndexRoot(), 0), decodeGeometryNodeEnvelopes(geomNodes), 0.7);
@@ -361,6 +359,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 				deleteRecursivelySubtree(newRootNode, null); // remove the buffer tree remnants
 			}
 		}
+        monitor.addSplit(rootNode); // for debugging via images
 
 		return outliers;
 	}
@@ -394,7 +393,7 @@ public class RTreeIndex implements SpatialIndexWriter {
      * into the parent, they are added directly, otherwise the depth is increased and partition called for each
      * cluster at the deeper depth based on a new root node for each cluster.
 	 */
-	private boolean partition(Node rootNode, List<NodeWithEnvelope> nodes, int depth, final double loadingFactor) {
+	private void partition(Node indexNode, List<NodeWithEnvelope> nodes, int depth, final double loadingFactor) {
 
         // We want to split by the longest dimension to avoid degrading into extremely thin envelopes
         int longestDimension = findLongestDimension(nodes);
@@ -406,18 +405,18 @@ public class RTreeIndex implements SpatialIndexWriter {
 		final int targetLoading = (int) Math.round(maxNodeReferences * loadingFactor);
 		int nodeCount = nodes.size();
 
-
-		boolean expandRootNodeBoundingBox = false;
 		if (nodeCount <= targetLoading) {
+            // We have few enough nodes to add them directly to the current index node
+            boolean expandRootNodeBoundingBox = false;
 			for (NodeWithEnvelope n : nodes) {
-				expandRootNodeBoundingBox |= insertInLeaf(rootNode, n.node);
+				expandRootNodeBoundingBox |= insertInLeaf(indexNode, n.node);
 			}
 			if (expandRootNodeBoundingBox) {
-				adjustPathBoundingBox(rootNode);
+				adjustPathBoundingBox(indexNode);
 			}
 		} else {
+            // We have more geometries than can fit in the current index node - create clusters and index them
 			final int height = expectedHeight(loadingFactor, nodeCount); //exploit change of base formula
-			monitor.addSplit();
 			final int subTreeSize = (int) Math.round(Math.pow(targetLoading, height - 1));
 			final int numberOfPartitions = (int) Math.ceil((double) nodeCount / (double) subTreeSize);
 			// - TODO change this to use the sort function above
@@ -427,14 +426,14 @@ public class RTreeIndex implements SpatialIndexWriter {
 			for (List<NodeWithEnvelope> partition : partitions) {
 				Node newIndexNode = database.createNode();
                 if (partition.size() > 1) {
-                    expandRootNodeBoundingBox |= partition(newIndexNode, partition, depth + 1, loadingFactor);
+                    partition(newIndexNode, partition, depth + 1, loadingFactor);
                 } else {
                     addBelow(newIndexNode, partition.get(0).node);
                 }
-                expandRootNodeBoundingBox |= insertIndexNodeOnParent(rootNode, newIndexNode);
+                insertIndexNodeOnParent(indexNode, newIndexNode);
 			}
+            monitor.addSplit(indexNode);
 		}
-		return expandRootNodeBoundingBox;
 	}
 
 	// quick dirty way to partition a set into equal sized disjoint subsets
@@ -941,7 +940,6 @@ public class RTreeIndex implements SpatialIndexWriter {
 	}
 
 	private void splitAndAdjustPathBoundingBox(Node indexNode) {
-        monitor.addSplit();
         // create a new node and distribute the entries
         Node newIndexNode = splitMode.equals(GREENES_SPLIT) ? greenesSplit(indexNode) : quadraticSplit(indexNode);
 		Node parent = getIndexNodeParent(indexNode);
@@ -961,6 +959,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 				adjustPathBoundingBox(parent);
 			}
 		}
+        monitor.addSplit(newIndexNode);
 	}
 
     private Node quadraticSplit(Node indexNode) {

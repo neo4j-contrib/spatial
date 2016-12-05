@@ -49,7 +49,7 @@ public class RTreeMonitor implements TreeMonitor {
     }
 
     @Override
-    public void addNbrRebuilt() {
+    public void addNbrRebuilt(RTreeIndex rtree) {
         nbrRebuilt++;
     }
 
@@ -59,7 +59,7 @@ public class RTreeMonitor implements TreeMonitor {
     }
 
     @Override
-    public void addSplit() {
+    public void addSplit(Node indexNode) {
         nbrSplit++;
     }
 

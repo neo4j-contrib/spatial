@@ -85,15 +85,23 @@ public class RTreeImageExporter {
         saveRTreeLayers(imagefile, levels, new EmptyMonitor(), new ArrayList<>(), null, null);
     }
 
+    public void saveRTreeLayers(File imagefile, Node rootNode, int levels) throws IOException {
+        saveRTreeLayers(imagefile, rootNode, levels, new EmptyMonitor(), new ArrayList<>(), null, null);
+    }
+
     public void saveRTreeLayers(File imagefile, int levels, TreeMonitor monitor) throws IOException {
         saveRTreeLayers(imagefile, levels, monitor, new ArrayList<>(), null, null);
     }
 
     public void saveRTreeLayers(File imagefile, int levels, TreeMonitor monitor, List<Node> foundNodes, Coordinate min, Coordinate max) throws IOException {
+        saveRTreeLayers(imagefile, index.getIndexRoot(), levels, monitor, foundNodes, min, max);
+    }
+
+    public void saveRTreeLayers(File imagefile, Node rootNode, int levels, TreeMonitor monitor, List<Node> foundNodes, Coordinate min, Coordinate max) throws IOException {
         MapContent mapContent = new MapContent();
         drawBounds(mapContent, bounds, Color.WHITE);
 
-        int indexHeight = index.getHeight(index.getIndexRoot(), 0);
+        int indexHeight = index.getHeight(rootNode, 0);
         ArrayList<ArrayList<RTreeIndex.NodeWithEnvelope>> layers = new ArrayList<>(indexHeight);
         ArrayList<List<RTreeIndex.NodeWithEnvelope>> indexMatches = new ArrayList<>(indexHeight);
         for (int i = 0; i < indexHeight; i++) {
@@ -103,8 +111,7 @@ public class RTreeImageExporter {
             layers.add(new ArrayList<>());
             ArrayList<RTreeIndex.NodeWithEnvelope> nodes = layers.get(i);
             if (i == 0) {
-                Node indexRoot = index.getIndexRoot();
-                nodes.add(new RTreeIndex.NodeWithEnvelope(indexRoot, index.getIndexNodeEnvelope(indexRoot)));
+                nodes.add(new RTreeIndex.NodeWithEnvelope(rootNode, index.getIndexNodeEnvelope(rootNode)));
             } else {
                 for (RTreeIndex.NodeWithEnvelope parent : layers.get(i - 1)) {
                     for (RTreeIndex.NodeWithEnvelope child : index.getIndexChildren(parent.node)) {

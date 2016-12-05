@@ -39,7 +39,7 @@ public class EmptyMonitor implements TreeMonitor
     }
 
     @Override
-    public void addNbrRebuilt()
+    public void addNbrRebuilt(RTreeIndex rtree)
     {
     }
 
@@ -50,7 +50,7 @@ public class EmptyMonitor implements TreeMonitor
     }
 
     @Override
-    public void addSplit()
+    public void addSplit(Node indexNode)
     {
 
     }

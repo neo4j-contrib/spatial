@@ -341,12 +341,51 @@ public class RTreeBulkInsertTest {
      * Private methods used by the above tests
      */
 
+    class TreePrintingMonitor extends RTreeMonitor {
+        private final RTreeImageExporter imageExporter;
+        private final String splitMode;
+        private final String insertMode;
+        private HashMap<String, Integer> called = new HashMap<>();
+        TreePrintingMonitor(RTreeImageExporter imageExporter, String insertMode, String splitMode) {
+            this.imageExporter = imageExporter;
+            this.splitMode = splitMode;
+            this.insertMode = insertMode;
+        }
+        private Integer getCalled(String key) {
+            if (!called.containsKey(key)) {
+                called.put(key, 0);
+            }
+            return called.get(key);
+        }
+        @Override
+        public void addNbrRebuilt(RTreeIndex rtree) {
+            super.addNbrRebuilt(rtree);
+            printRTreeImage("rebuilt", rtree.getIndexRoot());
+        }
+        @Override
+        public void addSplit(Node indexNode) {
+            super.addSplit(indexNode);
+            printRTreeImage("split", indexNode);
+        }
+        private void printRTreeImage(String context, Node rootNode) {
+            try (Transaction tx = db.beginTx()) {
+                int count = getCalled(context);
+                imageExporter.saveRTreeLayers(new File("rtree-" + insertMode + "-" + splitMode + "/debug-" + context + "/rtree-" + count + ".png"),
+                        rootNode, 7);
+                called.put(context, count + 1);
+                tx.success();
+            } catch (IOException e) {
+                System.out.println("Failed to print RTree to disk: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
+    }
     private void insertManyNodesIndividually(String splitMode, int blockSize, int maxNodeReferences, RTreeTestConfig config)
             throws FactoryException, IOException {
         TestStats stats = new TestStats(config, "Single", splitMode, blockSize, maxNodeReferences);
         List<Node> nodes = setup(config.width);
-        TreeMonitor monitor = new RTreeMonitor();
         EditableLayer layer = (EditableLayer) new SpatialDatabaseService(db).getLayer("Coordinates");
+        TreeMonitor monitor = new RTreeMonitor();
         layer.getIndex().addMonitor(monitor);
         layer.getIndex().configure(map(RTreeIndex.KEY_SPLIT, splitMode, RTreeIndex.KEY_MAX_NODE_REFERENCES, maxNodeReferences));
         TimedLogger log = new TimedLogger("Inserting " + config.totalCount + " nodes into RTree using solo insert and "
@@ -392,7 +431,7 @@ public class RTreeBulkInsertTest {
             tx.success();
         }
 
-        TreeMonitor monitor = new RTreeMonitor();
+        TreeMonitor monitor = new TreePrintingMonitor(imageExporter, "single", splitMode);
         layer.getIndex().addMonitor(monitor);
         layer.getIndex().configure(map(RTreeIndex.KEY_SPLIT, splitMode, RTreeIndex.KEY_MAX_NODE_REFERENCES, maxNodeReferences));
         TimedLogger log = new TimedLogger("Inserting " + config.totalCount + " nodes into RTree using solo insert and "
@@ -481,7 +520,7 @@ public class RTreeBulkInsertTest {
             tx.success();
         }
 
-        RTreeMonitor monitor = new RTreeMonitor();
+        TreeMonitor monitor = new TreePrintingMonitor(imageExporter, "bulk", splitMode);
         layer.getIndex().addMonitor(monitor);
         layer.getIndex().configure(map(RTreeIndex.KEY_SPLIT, splitMode, RTreeIndex.KEY_MAX_NODE_REFERENCES, maxNodeReferences));
         TimedLogger log = new TimedLogger("Inserting " + config.totalCount + " nodes into RTree using bulk insert and "
