@@ -59,11 +59,11 @@ public class RTreeTests {
         RTreeIndex.NodeWithEnvelope rootLeft;
         RTreeIndex.NodeWithEnvelope rootRight;
         try (Transaction tx = db.beginTx()) {
-            rootLeft = createSimpleRTree(0.0, 0.8, 2);
+            rootLeft = createSimpleRTree(0.01, 0.81, 5);
             tx.success();
         }
         try (Transaction tx = db.beginTx()) {
-            rootRight = createSimpleRTree(0.2, 1.0, 2);
+            rootRight = createSimpleRTree(0.19, 0.99, 5);
             tx.success();
         }
         System.out.println("Created two trees");

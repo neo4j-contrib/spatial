@@ -373,8 +373,8 @@ public class RTreeIndex implements SpatialIndexWriter {
             this.right = right;
             this.overlap = left.envelope.overlap(right.envelope);
         }
-        boolean contains(NodeWithEnvelope node) {
-            return left.node.equals(node) || right.node.equals(node);
+        boolean contains(NodeWithEnvelope entry) {
+            return left.node.equals(entry.node) || right.node.equals(entry.node);
         }
     }
 
@@ -384,7 +384,7 @@ public class RTreeIndex implements SpatialIndexWriter {
         for (NodeWithEnvelope leftNode : left) {
             for (NodeWithEnvelope rightNode : right) {
                 NodeTuple pair = new NodeTuple(leftNode, rightNode);
-                if (pair.overlap > 0.5) {
+                if (pair.overlap > 0.1) {
                     pairs.add(pair);
                 }
             }
@@ -395,13 +395,14 @@ public class RTreeIndex implements SpatialIndexWriter {
 			Envelope merged = new Envelope(pair.left.envelope);
 			merged.expandToInclude(pair.right.envelope);
 			NodeWithEnvelope newNode = new NodeWithEnvelope(pair.left.node, merged);
-			mergeTwoSubtrees(newNode, getIndexChildren(pair.left.node), getIndexChildren(pair.right.node));
+			setIndexNodeEnvelope(newNode.node, newNode.envelope);
+			List<NodeWithEnvelope> rightChildren = getIndexChildren(pair.right.node);
 			pairs.removeIf(t -> t.contains(pair.left) || t.contains(pair.right));
-			for (Relationship rel : pair.right.node.getRelationships(RTreeRelationshipTypes.RTREE_CHILD, Direction.INCOMING)) {
-				rel.delete();
+			for (Relationship rel : pair.right.node.getRelationships()) {
+					rel.delete();
 			}
 			disconnectedChildren.add(pair.right);
-//			pair.right.node.delete();
+			mergeTwoSubtrees(newNode, getIndexChildren(pair.left.node), rightChildren);
 		}
 
 		right.removeIf(t -> disconnectedChildren.contains(t));
@@ -410,6 +411,13 @@ public class RTreeIndex implements SpatialIndexWriter {
 		for( NodeWithEnvelope n : right){
 			n.node.getSingleRelationship(RTreeRelationshipTypes.RTREE_CHILD,Direction.INCOMING);
 			parent.node.createRelationshipTo(n.node,RTreeRelationshipTypes.RTREE_CHILD);
+			parent.envelope.expandToInclude(n.envelope);
+		}
+		setIndexNodeEnvelope(parent.node, parent.envelope);
+		if (countChildren(parent.node, RTreeRelationshipTypes.RTREE_CHILD) > maxNodeReferences) {
+			splitAndAdjustPathBoundingBox(parent.node);
+		} else {
+			adjustPathBoundingBox(parent.node);
 		}
     }
 
