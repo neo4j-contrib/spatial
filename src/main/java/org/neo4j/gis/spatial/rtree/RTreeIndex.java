@@ -332,6 +332,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 					Node newRootNode = database.createNode();
 					buildRtreeFromScratch(newRootNode, cluster, loadingFactor);
 					insertIndexNodeOnParent(child.node, newRootNode);
+//					mergeTwoSubtrees(child, getIndexChildren(child.node), new List<NodeWithEnvelope>(){newRootNode}));
 				}
 
 			} else {
@@ -351,8 +352,9 @@ public class RTreeIndex implements SpatialIndexWriter {
 					for (NodeWithEnvelope n : childrenToBeInserted) {
 						Relationship relationship = n.node.getSingleRelationship(RTreeRelationshipTypes.RTREE_CHILD, Direction.INCOMING);
 						relationship.delete();
-						insertIndexNodeOnParent(child.node, n.node);
+//						insertIndexNodeOnParent(child.node, n.node);
 					}
+					mergeTwoSubtrees(child, childrenToBeInserted);
 				}
 				// todo wouldn't it be better for this temporary tree to only live in memory?
 				deleteRecursivelySubtree(newRootNode, null); // remove the buffer tree remnants
@@ -378,9 +380,10 @@ public class RTreeIndex implements SpatialIndexWriter {
         }
     }
 
-    protected void mergeTwoSubtrees(NodeWithEnvelope parent, List<NodeWithEnvelope> left, List<NodeWithEnvelope> right) {
+    protected void mergeTwoSubtrees(NodeWithEnvelope parent, List<NodeWithEnvelope> right) {
         ArrayList<NodeTuple> pairs = new ArrayList<>();
         HashSet<NodeWithEnvelope> disconnectedChildren = new HashSet<>();
+		List<NodeWithEnvelope> left = getIndexChildren(parent.node);
         for (NodeWithEnvelope leftNode : left) {
             for (NodeWithEnvelope rightNode : right) {
                 NodeTuple pair = new NodeTuple(leftNode, rightNode);
@@ -402,7 +405,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 					rel.delete();
 			}
 			disconnectedChildren.add(pair.right);
-			mergeTwoSubtrees(newNode, getIndexChildren(pair.left.node), rightChildren);
+			mergeTwoSubtrees(newNode, rightChildren);
 		}
 
 		right.removeIf(t -> disconnectedChildren.contains(t));

@@ -41,6 +41,6 @@ public class TestRTreeIndex extends RTreeIndex {
     }
 
     public void mergeTwoTrees(NodeWithEnvelope left, NodeWithEnvelope right) {
-        super.mergeTwoSubtrees(left, this.getIndexChildren(left.node), this.getIndexChildren(right.node));
+        super.mergeTwoSubtrees(left, this.getIndexChildren(right.node));
     }
 }
