@@ -441,7 +441,7 @@ public class RTreeBulkInsertTest {
         int prevBlock = 0;
         int i = 0;
         int currBlock = 1;
-        while (currBlock < config.totalCount) {
+        while (currBlock < nodes.size()) {
             List<Node> slice = nodes.subList(prevBlock, currBlock);
             long startIndexing = System.currentTimeMillis();
             try (Transaction tx = spatialProcedures().db.beginTx()) {
@@ -481,7 +481,7 @@ public class RTreeBulkInsertTest {
         TimedLogger log = new TimedLogger("Inserting " + config.totalCount + " nodes into RTree using bulk insert and "
                 + splitMode + " split with " + maxNodeReferences + " maxNodeReferences", config.totalCount);
         long start = System.currentTimeMillis();
-        for (int i = 0; i < config.totalCount / blockSize; i++) {
+        for (int i = 0; i < nodes.size() / blockSize; i++) {
             List<Node> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
             long startIndexing = System.currentTimeMillis();
             try (Transaction tx = db.beginTx()) {
@@ -527,7 +527,7 @@ public class RTreeBulkInsertTest {
         TimedLogger log = new TimedLogger("Inserting " + config.totalCount + " nodes into RTree using bulk insert and "
                 + splitMode + " split with " + maxNodeReferences + " maxNodeReferences", config.totalCount);
         long start = System.currentTimeMillis();
-        for (int i = 0; i < config.totalCount / blockSize; i++) {
+        for (int i = 0; i < nodes.size() / blockSize; i++) {
             List<Node> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
             long startIndexing = System.currentTimeMillis();
             try (Transaction tx = db.beginTx()) {
@@ -789,6 +789,69 @@ public class RTreeBulkInsertTest {
         java.util.Collections.shuffle(nodes, new Random(8));
         return nodes;
     }
+
+    private List<Node> populateSquareTestDataHeavy(int width) {
+        List<Node> nodes = populateSquareTestData(width);
+        Random rand = new Random(42);
+
+        for (int i = 0; i < width / 2; i++) {
+            try (Transaction tx = db.beginTx()) {
+                for (int j = 0; j < width / 2; j++) {
+                    Node node = db.createNode();
+                    node.addLabel(Label.label("Coordinates"));
+
+                    node.setProperty("lat", ((double) rand.nextInt(width / 10) / (double) width));
+                    node.setProperty("lon", ((double) rand.nextInt(width / 10) / (double) width));
+                    nodes.add(node);
+                }
+                tx.success();
+            }
+        }
+        java.util.Collections.shuffle(nodes, new Random(8));
+        return nodes;
+    }
+
+    private List<Node> populateSquareWithStreets(int width) {
+        List<Node> nodes = new ArrayList<>();
+        double squareValue = 0.25;
+        for (int i = 1; i < 4; i+=2) {
+            try (Transaction tx = db.beginTx()) {
+                for (int j = (int)squareValue*width; j < 2*squareValue*width; j++) {
+                    Node node = db.createNode();
+                    node.addLabel(Label.label("Coordinates"));
+                    node.setProperty("lat", i*squareValue);
+                    node.setProperty("lon", (j+squareValue)/width+squareValue);
+                    nodes.add(node);
+                    Node node2 = db.createNode();
+                    node2.addLabel(Label.label("Coordinates"));
+                    node2.setProperty("lat", (j+squareValue)/width+squareValue);
+                    node2.setProperty("lon", i*squareValue);
+                    nodes.add(node2);
+
+                }
+                tx.success();
+            }
+        }
+        for (int i = 0; i < width; i++) {
+            try (Transaction tx = db.beginTx()) {
+
+                Node node = db.createNode();
+                node.addLabel(Label.label("Coordinates"));
+                node.setProperty("lat", ((double) i / (double) width));
+                node.setProperty("lon", ((double) i / (double) width));
+                nodes.add(node);
+                Node node2 = db.createNode();
+                node2.addLabel(Label.label("Coordinates"));
+                node2.setProperty("lat", ((double) (width - i )/ (double) width));
+                node2.setProperty("lon", ((double) i / (double) width));
+                nodes.add(node2);
+                tx.success();
+            }
+        }
+        java.util.Collections.shuffle(nodes, new Random(8));
+        return nodes;
+    }
+
 
     private void searchForPos(int numNodes, GraphDatabaseService db) {
         System.out.println("Searching with spatial.withinDistance");
