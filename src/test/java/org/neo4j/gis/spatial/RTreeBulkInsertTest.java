@@ -360,18 +360,35 @@ public class RTreeBulkInsertTest {
         @Override
         public void addNbrRebuilt(RTreeIndex rtree) {
             super.addNbrRebuilt(rtree);
-            printRTreeImage("rebuilt", rtree.getIndexRoot());
+            printRTreeImage("rebuilt", rtree.getIndexRoot(), new ArrayList<>());
         }
+
         @Override
         public void addSplit(Node indexNode) {
             super.addSplit(indexNode);
-            printRTreeImage("split", indexNode);
+            printRTreeImage("split", indexNode, new ArrayList<>());
         }
-        private void printRTreeImage(String context, Node rootNode) {
+
+        @Override
+        public void beforeMergeTree(Node indexNode, List<RTreeIndex.NodeWithEnvelope> right) {
+            super.beforeMergeTree(indexNode, right);
+
+            printRTreeImage("before-merge", indexNode, right.stream().map(e -> e.envelope).collect(Collectors.toList()));
+
+        }
+
+        @Override
+        public void afterMergeTree(Node indexNode) {
+            super.afterMergeTree(indexNode);
+            printRTreeImage("after-merge", indexNode, new ArrayList<>());
+        }
+
+
+        private void printRTreeImage(String context, Node rootNode, List<Envelope> envelopes) {
             try (Transaction tx = db.beginTx()) {
                 int count = getCalled(context);
                 imageExporter.saveRTreeLayers(new File("rtree-" + insertMode + "-" + splitMode + "/debug-" + context + "/rtree-" + count + ".png"),
-                        rootNode, 7);
+                        rootNode, envelopes, 7);
                 called.put(context, count + 1);
                 tx.success();
             } catch (IOException e) {
@@ -814,18 +831,18 @@ public class RTreeBulkInsertTest {
     private List<Node> populateSquareWithStreets(int width) {
         List<Node> nodes = new ArrayList<>();
         double squareValue = 0.25;
-        for (int i = 1; i < 4; i+=2) {
+        for (int i = 1; i < 4; i += 2) {
             try (Transaction tx = db.beginTx()) {
-                for (int j = (int)squareValue*width; j < 2*squareValue*width; j++) {
+                for (int j = (int) squareValue * width; j < 2 * squareValue * width; j++) {
                     Node node = db.createNode();
                     node.addLabel(Label.label("Coordinates"));
-                    node.setProperty("lat", i*squareValue);
-                    node.setProperty("lon", (j+squareValue)/width+squareValue);
+                    node.setProperty("lat", i * squareValue);
+                    node.setProperty("lon", (j + squareValue) / width + squareValue);
                     nodes.add(node);
                     Node node2 = db.createNode();
                     node2.addLabel(Label.label("Coordinates"));
-                    node2.setProperty("lat", (j+squareValue)/width+squareValue);
-                    node2.setProperty("lon", i*squareValue);
+                    node2.setProperty("lat", (j + squareValue) / width + squareValue);
+                    node2.setProperty("lon", i * squareValue);
                     nodes.add(node2);
 
                 }
@@ -842,7 +859,7 @@ public class RTreeBulkInsertTest {
                 nodes.add(node);
                 Node node2 = db.createNode();
                 node2.addLabel(Label.label("Coordinates"));
-                node2.setProperty("lat", ((double) (width - i )/ (double) width));
+                node2.setProperty("lat", ((double) (width - i) / (double) width));
                 node2.setProperty("lon", ((double) i / (double) width));
                 nodes.add(node2);
                 tx.success();
@@ -1128,7 +1145,8 @@ public class RTreeBulkInsertTest {
         private String splitMode;
         private int maxNodeReferences;
         static LinkedHashSet<String> knownKeys = new LinkedHashSet<>();
-        private HashMap<String,Object> data = new HashMap<>();
+        private HashMap<String, Object> data = new HashMap<>();
+
         public TestStats(RTreeTestConfig config, String insertMode, String splitMode, int blockSize, int maxNodeReferences) {
             this.config = config;
             this.insertMode = insertMode;
@@ -1137,6 +1155,7 @@ public class RTreeBulkInsertTest {
             this.splitMode = splitMode;
             this.maxNodeReferences = maxNodeReferences;
         }
+
         public void setInsertTime(long start) {
             long current = System.currentTimeMillis();
             double seconds = (current - start) / 1000.0;
@@ -1144,31 +1163,38 @@ public class RTreeBulkInsertTest {
             put("Insert Time (s)", seconds);
             put("Insert Rate (n/s)", rate);
         }
+
         public void put(String key, Object value) {
             knownKeys.add(key);
             data.put(key, value);
         }
+
         public void get(String key) {
             data.get(key);
         }
+
         public static String[] headerArray() {
             return new String[]{"Size Name", "Insert Mode", "Split Mode", "Data Width", "Data Size", "Block Size", "Max Node References"};
         }
+
         public Object[] fieldArray() {
             return new Object[]{config.name, insertMode, splitMode, config.width, dataSize, blockSize, maxNodeReferences};
         }
+
         public static List<String> headerList() {
             ArrayList<String> fieldList = new ArrayList<>();
             fieldList.addAll(Arrays.asList(headerArray()));
             fieldList.addAll(knownKeys);
             return fieldList;
         }
+
         public List<Object> asList() {
             ArrayList<Object> fieldList = new ArrayList<>();
             fieldList.addAll(Arrays.asList(fieldArray()));
-            fieldList.addAll(knownKeys.stream().map(k -> data.get(k)).map(v -> (v==null) ? "" : v).collect(Collectors.toList()));
+            fieldList.addAll(knownKeys.stream().map(k -> data.get(k)).map(v -> (v == null) ? "" : v).collect(Collectors.toList()));
             return fieldList;
         }
+
         public static String headerString() {
             return String.join("\t", headerList());
         }

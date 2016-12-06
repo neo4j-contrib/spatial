@@ -56,6 +56,16 @@ public class EmptyMonitor implements TreeMonitor
     }
 
     @Override
+    public void beforeMergeTree(Node indexNode, List<RTreeIndex.NodeWithEnvelope> right) {
+
+    }
+
+    @Override
+    public void afterMergeTree(Node indexNode) {
+
+    }
+
+    @Override
     public int getNbrSplit()
     {
         return -1;

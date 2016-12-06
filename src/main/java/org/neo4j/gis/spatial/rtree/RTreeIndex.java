@@ -333,7 +333,10 @@ public class RTreeIndex implements SpatialIndexWriter {
 					buildRtreeFromScratch(newRootNode, cluster, loadingFactor);
 //					insertIndexNodeOnParent(child.node, newRootNode);
 					NodeWithEnvelope nodeWithEnvelope = new NodeWithEnvelope(newRootNode, getIndexNodeEnvelope(newRootNode));
-					mergeTwoSubtrees(child, Arrays.asList(new NodeWithEnvelope[]{nodeWithEnvelope}));
+                    List<NodeWithEnvelope> insert=new ArrayList<>(Arrays.asList(new NodeWithEnvelope[]{nodeWithEnvelope}));
+                    monitor.beforeMergeTree(child.node,insert);
+					mergeTwoSubtrees(child,insert );
+                    monitor.afterMergeTree(child.node);
 				}
 
 			} else {
@@ -355,7 +358,9 @@ public class RTreeIndex implements SpatialIndexWriter {
 						relationship.delete();
 //						insertIndexNodeOnParent(child.node, n.node);
 					}
+                    monitor.beforeMergeTree(child.node,childrenToBeInserted);
 					mergeTwoSubtrees(child, childrenToBeInserted);
+                    monitor.afterMergeTree(child.node);
 				}
 				// todo wouldn't it be better for this temporary tree to only live in memory?
 				deleteRecursivelySubtree(newRootNode, null); // remove the buffer tree remnants

@@ -38,6 +38,10 @@ public interface TreeMonitor
 
     void addSplit(Node indexNode);
 
+    void beforeMergeTree(Node indexNode, List<RTreeIndex.NodeWithEnvelope> right);
+
+    void afterMergeTree(Node indexNode);
+
     int getNbrSplit();
 
     void addCase(String key);

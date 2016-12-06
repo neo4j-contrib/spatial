@@ -93,7 +93,11 @@ public class RTreeImageExporter {
     }
 
     public void saveRTreeLayers(File imagefile, Node rootNode, int levels) throws IOException {
-        saveRTreeLayers(imagefile, rootNode, levels, new EmptyMonitor(), new ArrayList<>(), null, null);
+        saveRTreeLayers(imagefile, rootNode, levels, new EmptyMonitor(), new ArrayList<>(), new ArrayList<>(), null, null);
+    }
+
+    public void saveRTreeLayers(File imagefile, Node rootNode, List<Envelope> envelopes, int levels) throws IOException {
+        saveRTreeLayers(imagefile, rootNode, levels, new EmptyMonitor(), new ArrayList<>(), envelopes, null, null);
     }
 
     public void saveRTreeLayers(File imagefile, int levels, TreeMonitor monitor) throws IOException {
@@ -101,10 +105,11 @@ public class RTreeImageExporter {
     }
 
     public void saveRTreeLayers(File imagefile, int levels, TreeMonitor monitor, List<Node> foundNodes, Coordinate min, Coordinate max) throws IOException {
-        saveRTreeLayers(imagefile, index.getIndexRoot(), levels, monitor, foundNodes, min, max);
+        saveRTreeLayers(imagefile, index.getIndexRoot(), levels, monitor, foundNodes, new ArrayList<>(), min, max);
     }
 
-    public void saveRTreeLayers(File imagefile, Node rootNode, int levels, TreeMonitor monitor, List<Node> foundNodes, Coordinate min, Coordinate max) throws IOException {
+    public void saveRTreeLayers(File imagefile, Node rootNode, int levels, TreeMonitor monitor, List<Node> foundNodes, List<Envelope> envelopes
+            , Coordinate min, Coordinate max) throws IOException {
         MapContent mapContent = new MapContent();
         drawBounds(mapContent, bounds, Color.WHITE);
 
@@ -138,6 +143,7 @@ public class RTreeImageExporter {
             drawIndexNodes(level, mapContent, layer, colors[level % colors.length]);
             drawIndexNodes(2 + level * 2, mapContent, indexMatches.get(level), Color.MAGENTA);
         }
+        drawEnvelopes(mapContent, envelopes, Color.ORANGE);
         drawGeometryNodes(mapContent, foundNodes, Color.RED);
         if (min != null && max != null) {
             drawEnvelope(mapContent, min, max, Color.RED);
@@ -183,6 +189,11 @@ public class RTreeImageExporter {
         mapContent.addLayer(new org.geotools.map.FeatureLayer(makeGeometryNodeFeatures(nodes, featureType), style));
     }
 
+    private void drawEnvelopes(MapContent mapContent, List<Envelope> envelopes, Color color) {
+        Style style = StyledImageExporter.createPolygonStyle(color, Color.WHITE, 0.8, 0.0, 3);
+        mapContent.addLayer(new org.geotools.map.FeatureLayer(makeEnvelopeFeatures(envelopes), style));
+    }
+
     private void drawIndexNodes(int level, MapContent mapContent, List<RTreeIndex.NodeWithEnvelope> nodes, Color color) throws IOException {
         Style style = StyledImageExporter.createPolygonStyle(color, Color.WHITE, 0.8, 0.0, level + 1);
         mapContent.addLayer(new org.geotools.map.FeatureLayer(makeIndexNodeFeatures(nodes), style));
@@ -198,6 +209,26 @@ public class RTreeImageExporter {
         double[] min = bounds.getLowerCorner().getCoordinate();
         double[] max = bounds.getUpperCorner().getCoordinate();
         mapContent.addLayer(new org.geotools.map.FeatureLayer(makeEnvelopeFeatures(new Coordinate(min[0], min[1]), new Coordinate(max[0], max[1])), style));
+    }
+
+    private MemoryFeatureCollection makeEnvelopeFeatures(List<Envelope> envelopes) {
+        SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("Polygon", Constants.GTYPE_POLYGON, crs, new String[]{});
+        Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, new ArrayList<String>());
+        MemoryFeatureCollection features = new MemoryFeatureCollection(featureType);
+        for (Envelope envelope : envelopes) {
+
+
+            Coordinate[] coordinates = new Coordinate[]{
+                    new Coordinate(envelope.getMinX(), envelope.getMinY()),
+                    new Coordinate(envelope.getMinX(), envelope.getMaxY()),
+                    new Coordinate(envelope.getMaxX(), envelope.getMaxY()),
+                    new Coordinate(envelope.getMaxX(), envelope.getMinY()),
+                    new Coordinate(envelope.getMinX(), envelope.getMinY())
+            };
+            Geometry geometry = geometryFactory.createPolygon(coordinates);
+            features.add(featureBuilder.buildFeature("envelope", geometry, new HashMap<>()));
+        }
+        return features;
     }
 
     private MemoryFeatureCollection makeEnvelopeFeatures(Coordinate min, Coordinate max) {
