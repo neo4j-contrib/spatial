@@ -51,35 +51,42 @@ public class RTreeImageExporter {
     double zoom = 0.98;
     double[] offset = new double[]{0, 0};
     Rectangle displaySize = new Rectangle(2160, 2160);
-    private Layer layer;
     private RTreeIndex index;
+    private GeometryFactory geometryFactory;
     private GeometryEncoder geometryEncoder;
+    private SimpleFeatureType featureType;
     private final Color[] colors = new Color[]{Color.BLUE, Color.CYAN, Color.GREEN, Color.RED, Color.YELLOW, Color.PINK, Color.ORANGE};
     ReferencedEnvelope bounds;
 
     public RTreeImageExporter(Layer layer, RTreeIndex index, Coordinate min, Coordinate max) {
-        initialize(layer, index);
+        initialize(layer.getGeometryFactory(), layer.getGeometryEncoder(), layer.getCoordinateReferenceSystem(), Neo4jFeatureBuilder.getTypeFromLayer(layer), index);
         bounds.expandToInclude(new com.vividsolutions.jts.geom.Envelope(min.x, max.x, min.y, max.y));
         bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
     }
 
     public RTreeImageExporter(Layer layer, RTreeIndex index) {
-        initialize(layer, index);
+        initialize(layer.getGeometryFactory(), layer.getGeometryEncoder(), layer.getCoordinateReferenceSystem(), Neo4jFeatureBuilder.getTypeFromLayer(layer), index);
         bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
     }
 
-    public void initialize(Layer layer, RTreeIndex index) {
-        this.layer = layer;
+    public RTreeImageExporter(GeometryFactory geometryFactory, GeometryEncoder geometryEncoder, CoordinateReferenceSystem crs, SimpleFeatureType featureType, RTreeIndex index, Coordinate min, Coordinate max) {
+        initialize(geometryFactory, geometryEncoder, crs, featureType, index);
+        bounds.expandToInclude(new com.vividsolutions.jts.geom.Envelope(min.x, max.x, min.y, max.y));
+        bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
+    }
+
+    public void initialize(GeometryFactory geometryFactory, GeometryEncoder geometryEncoder, CoordinateReferenceSystem crs, SimpleFeatureType featureType, RTreeIndex index) {
+        this.geometryFactory = geometryFactory;
+        this.geometryEncoder = geometryEncoder;
+        this.featureType = featureType;
         this.index = index;
-        this.geometryEncoder = layer.getGeometryEncoder();
-        this.crs = layer.getCoordinateReferenceSystem();
+        this.crs = crs;
         this.bounds = new ReferencedEnvelope(crs);
         Envelope bbox = index.getBoundingBox();
         if (bbox != null) {
             bounds.expandToInclude(Utilities.fromNeo4jToJts(bbox));
         }
     }
-
 
     public void saveRTreeLayers(File imagefile, int levels) throws IOException {
         saveRTreeLayers(imagefile, levels, new EmptyMonitor(), new ArrayList<>(), null, null);
@@ -172,8 +179,7 @@ public class RTreeImageExporter {
     }
 
     private void drawGeometryNodes(MapContent mapContent, List<Node> nodes, Color color) {
-        SimpleFeatureType featureType = Neo4jFeatureBuilder.getTypeFromLayer(layer);
-        Style style = StyledImageExporter.createStyleFromGeometry(featureType, color, color.GRAY);
+        Style style = StyledImageExporter.createStyleFromGeometry(featureType, color, Color.GRAY);
         mapContent.addLayer(new org.geotools.map.FeatureLayer(makeGeometryNodeFeatures(nodes, featureType), style));
     }
 
@@ -197,7 +203,6 @@ public class RTreeImageExporter {
     private MemoryFeatureCollection makeEnvelopeFeatures(Coordinate min, Coordinate max) {
         SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("Polygon", Constants.GTYPE_POLYGON, crs, new String[]{});
         Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, new ArrayList<String>());
-        GeometryFactory geometryFactory = layer.getGeometryFactory();
         MemoryFeatureCollection features = new MemoryFeatureCollection(featureType);
         Coordinate[] coordinates = new Coordinate[]{
                 new Coordinate(min.x, min.y),
@@ -214,7 +219,6 @@ public class RTreeImageExporter {
     private MemoryFeatureCollection makeIndexNodeFeatures(List<RTreeIndex.NodeWithEnvelope> nodes) {
         SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("Polygon", Constants.GTYPE_POLYGON, crs, new String[]{});
         Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, new ArrayList<String>());
-        GeometryFactory geometryFactory = layer.getGeometryFactory();
         MemoryFeatureCollection features = new MemoryFeatureCollection(featureType);
         for (int i = 0; i < nodes.size(); i++) {
             RTreeIndex.NodeWithEnvelope node = nodes.get(i);
@@ -236,7 +240,7 @@ public class RTreeImageExporter {
         Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, new ArrayList<String>());
         MemoryFeatureCollection features = new MemoryFeatureCollection(featureType);
         for (Node node : nodes) {
-            Geometry geometry = layer.getGeometryEncoder().decodeGeometry(node);
+            Geometry geometry = geometryEncoder.decodeGeometry(node);
             features.add(featureBuilder.buildFeature(node.toString(), geometry, new HashMap<>()));
         }
         return features;

@@ -207,9 +207,9 @@ public class RTreeIndex implements SpatialIndexWriter {
 	}
 
     public static class NodeWithEnvelope {
-        Envelope envelope;
+        public Envelope envelope;
         Node node;
-        NodeWithEnvelope(Node node, Envelope envelope) {
+        public NodeWithEnvelope(Node node, Envelope envelope) {
             this.node = node;
             this.envelope = envelope;
         }
@@ -378,7 +378,7 @@ public class RTreeIndex implements SpatialIndexWriter {
         }
     }
 
-    private void mergeTwoSubtrees(NodeWithEnvelope parent, List<NodeWithEnvelope> left, List<NodeWithEnvelope> right) {
+    protected void mergeTwoSubtrees(NodeWithEnvelope parent, List<NodeWithEnvelope> left, List<NodeWithEnvelope> right) {
         ArrayList<NodeTuple> pairs = new ArrayList<>();
         HashSet<NodeWithEnvelope> disconnectedChildren = new HashSet<>();
         for (NodeWithEnvelope leftNode : left) {
@@ -390,22 +390,22 @@ public class RTreeIndex implements SpatialIndexWriter {
             }
         }
         pairs.sort((o1, o2) -> Double.compare(o1.overlap, o2.overlap));
-        while (!pairs.isEmpty()) {
-            NodeTuple pair = pairs.remove(pairs.size() - 1);
+		while (!pairs.isEmpty()) {
+			NodeTuple pair = pairs.remove(pairs.size() - 1);
 			Envelope merged = new Envelope(pair.left.envelope);
 			merged.expandToInclude(pair.right.envelope);
 			NodeWithEnvelope newNode = new NodeWithEnvelope(pair.left.node, merged);
 			mergeTwoSubtrees(newNode, getIndexChildren(pair.left.node), getIndexChildren(pair.right.node));
 			pairs.removeIf(t -> t.contains(pair.left) || t.contains(pair.right));
-			disconnectedChildren.add(pair.right);
-			Iterator<Relationship> itr = pair.right.node.getRelationships(RTreeRelationshipTypes.RTREE_CHILD,Direction.INCOMING).iterator();
-			while(itr.hasNext()){
-				itr.next().delete();
+			for (Relationship rel : pair.right.node.getRelationships(RTreeRelationshipTypes.RTREE_CHILD, Direction.INCOMING)) {
+				rel.delete();
 			}
-			pair.right.node.delete();
-        }
+			disconnectedChildren.add(pair.right);
+//			pair.right.node.delete();
+		}
 
-		right.removeIf(t-> disconnectedChildren.contains(t));
+		right.removeIf(t -> disconnectedChildren.contains(t));
+		disconnectedChildren.forEach(t -> t.node.delete());
 
 		for( NodeWithEnvelope n : right){
 			n.node.getSingleRelationship(RTreeRelationshipTypes.RTREE_CHILD,Direction.INCOMING);
@@ -1250,11 +1250,15 @@ public class RTreeIndex implements SpatialIndexWriter {
 			|| bbox.getMinY() != old[1]
 			|| bbox.getMaxX() != old[2]
 			|| bbox.getMaxY() != old[3]) {
-			indexNode.setProperty(INDEX_PROP_BBOX, new double[]{bbox.getMinX(), bbox.getMinY(), bbox.getMaxX(), bbox.getMaxY()});
+			setIndexNodeEnvelope(indexNode, bbox);
 			return true;
 		} else {
 			return false;
 		}
+	}
+
+	protected void setIndexNodeEnvelope(Node indexNode, Envelope bbox) {
+		indexNode.setProperty(INDEX_PROP_BBOX, new double[]{bbox.getMinX(), bbox.getMinY(), bbox.getMaxX(), bbox.getMaxY()});
 	}
 
 	/**
@@ -1264,7 +1268,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 	 * @param childBBox geomNode inserted
 	 * @return is bbox changed?
 	 */
-	private boolean expandParentBoundingBoxAfterNewChild(Node parent, double[] childBBox) {
+	protected boolean expandParentBoundingBoxAfterNewChild(Node parent, double[] childBBox) {
 		if (!parent.hasProperty(INDEX_PROP_BBOX)) {
 			parent.setProperty(INDEX_PROP_BBOX, new double[]{childBBox[0], childBBox[1], childBBox[2], childBBox[3]});
 			return true;
