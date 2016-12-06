@@ -21,25 +21,36 @@
 package org.neo4j.gis.spatial.rtree;
 
 
+import org.neo4j.graphdb.Node;
+
+import java.util.List;
 import java.util.Map;
 
 public interface TreeMonitor
 {
-    public void addHight();
+    void setHeight(int height);
 
-    public int getHeight();
+    int getHeight();
 
-    public void addNbrRebuilt();
+    void addNbrRebuilt(RTreeIndex rtree);
 
-    public int getNbrRebuilt();
+    int getNbrRebuilt();
 
-    public void addSplit();
+    void addSplit(Node indexNode);
 
-    public int getNbrSplit();
+    void beforeMergeTree(Node indexNode, List<RTreeIndex.NodeWithEnvelope> right);
 
-    public void addCase(String key);
+    void afterMergeTree(Node indexNode);
 
-    public Map<String, Integer> getCaseCounts();
+    int getNbrSplit();
+
+    void addCase(String key);
+
+    Map<String, Integer> getCaseCounts();
 
     void reset();
+
+    void matchedTreeNode(int level, Node node);
+
+    List<Node> getMatchedTreeNodes(int level);
 }

@@ -20,6 +20,8 @@
 package org.neo4j.gis.spatial.rtree;
 
 
+import java.util.Arrays;
+
 public class Envelope {
 
 	/**
@@ -44,8 +46,7 @@ public class Envelope {
 	
 	/**
 	 * General constructor for the n-dimensional case starting with a single point
-	 * @param min
-	 * @param max
+	 * @param p
 	 */
 	public Envelope(double[] p) {
 		this.min = p.clone();
@@ -72,6 +73,14 @@ public class Envelope {
 	
 	
 	// Public methods
+
+	public double[] getMin() {
+		return min;
+	}
+
+	public double[] getMax() {
+		return max;
+	}
 
 	public double getMin(int dimension) {
 		return min[dimension];
@@ -128,9 +137,9 @@ public class Envelope {
 
 	public boolean intersects(Envelope other) {
 		if (isValid() && other.isValid() && getDimension() == other.getDimension()) {
-			boolean result = false;
+			boolean result = true;
 			for (int i = 0; i < min.length; i++) {
-				result = result || !(other.min[i] > max[i] || other.max[i] < min[i]);
+				result = result && other.min[i] <= max[i] && other.max[i] >= min[i];
 			}
 			return result;
 		} else {
@@ -152,11 +161,25 @@ public class Envelope {
 		}
 	}
 
-	public void expandBy(double[] padding) {
+	public void scaleBy(double factor) {
 		for(int i=0;i<min.length;i++) {
-			min[i] -= padding[i];
-			max[i] += padding[i];
+			scaleBy(factor, i);
 		}
+	}
+
+	public void scaleBy(double factor, int dimension) {
+		max[dimension] = min[dimension] + (max[dimension] - min[dimension]) * factor;
+	}
+
+	public void shiftBy(double offset) {
+		for(int i=0;i<min.length;i++) {
+			shiftBy(offset, i);
+		}
+	}
+
+	public void shiftBy(double offset, int dimension) {
+		min[dimension] += offset;
+		max[dimension] += offset;
 	}
 
 	public double[] centre() {
@@ -165,12 +188,16 @@ public class Envelope {
 		}
 		double[] center = new double[min.length];
 		for (int i = 0; i < min.length; i++) {
-			center[i] = (min[i] + max[i]) / 2.0;
+			center[i] = centre(i);
 		}
 		return center;
 	}
 
-	/**
+    public double centre(int dimension) {
+        return (min[dimension] + max[dimension]) / 2.0;
+    }
+
+    /**
 	 * Return the distance between the two envelopes on one dimension. This can return negative values if the envelopes intersect on this dimension.
 	 * @param other
 	 * @param dimension
@@ -252,8 +279,38 @@ public class Envelope {
 		}
 		return area;
 	}
-	
-	public boolean isValid() {
+
+    public double separation(Envelope other) {
+        Envelope combined = new Envelope(this);
+        combined.expandToInclude(other);
+        return combined.getArea() - this.getArea() - other.getArea();
+    }
+
+    public double separation(Envelope other, int dimension) {
+        Envelope combined = new Envelope(this);
+        combined.expandToInclude(other);
+        return combined.getWidth(dimension) - this.getWidth(dimension) - other.getWidth(dimension);
+    }
+
+	public double overlap(Envelope other) {
+		Envelope smallest = this.getArea() < other.getArea() ? this : other;
+		Envelope intersection = this.intersection(other);
+		return intersection == null ? 0.0 : smallest.isPoint() ? 1.0 : intersection.getArea() / smallest.getArea();
+	}
+
+	public boolean isPoint() {
+		if (isValid()) {
+			boolean ans = true;
+			for (int i = 0; i < min.length; i++) {
+				ans = ans && min[i] == max[i];
+			}
+			return ans;
+		} else {
+			return false;
+		}
+	}
+
+    public boolean isValid() {
 		boolean ans = min != null && max != null && min.length == max.length;
 		if (!ans)
 			return ans;
@@ -299,9 +356,39 @@ public class Envelope {
 				sb.append(")");
 		}
 		return sb.toString();
-	}	
-	
-	
+	}
+
+	public Envelope intersection(Envelope other) {
+		if (isValid() && other.isValid() && getDimension() == other.getDimension()) {
+			double[] i_min = new double[this.min.length];
+			double[] i_max = new double[this.min.length];
+			Arrays.fill(i_min, Double.NaN);
+			Arrays.fill(i_max, Double.NaN);
+			boolean result = true;
+			for (int i = 0; i < min.length; i++) {
+				if (other.min[i] <= this.max[i] && other.max[i] >= this.min[i]) {
+					i_min[i] = Math.max(this.min[i], other.min[i]);
+					i_max[i] = Math.min(this.max[i], other.max[i]);
+				} else {
+					result = false;
+				}
+			}
+			return result ? new Envelope(i_min, i_max) : null;
+		} else {
+			throw new IllegalArgumentException("Cannot calculate intersection of Envelopes with different dimensions: " + this.getDimension() + " != " + other.getDimension());
+		}
+	}
+
+	public Envelope bbox(Envelope other) {
+		if (isValid() && other.isValid() && getDimension() == other.getDimension()) {
+			Envelope result = new Envelope(this);
+			result.expandToInclude(other);
+			return result;
+		} else {
+			throw new IllegalArgumentException("Cannot calculate bounding box of Envelopes with different dimensions: " + this.getDimension() + " != " + other.getDimension());
+		}
+	}
+
 	// Attributes
 	
 	private double[] min;

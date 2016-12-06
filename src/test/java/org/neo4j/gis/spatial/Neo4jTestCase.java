@@ -238,28 +238,10 @@ public abstract class Neo4jTestCase extends TestCase {
         }
     }
 
-    protected long calculateDiskUsage(File file) {
-        if(file.isDirectory()) {
-            long count = 0;
-            for(File sub:file.listFiles()) {
-                count += calculateDiskUsage(sub);
-            }
-            return count;
-        } else {
-            return file.length();
-        }
-    }
-
-    protected long databaseDiskUsage() {
-        return calculateDiskUsage(getNeoPath());
-    }
-
     protected void printDatabaseStats() {
-        System.out.println( "Database stats:" );
-        System.out.println( "\tTotal disk usage: " + (databaseDiskUsage()) / (1024.0 * 1024.0) + "MB" );
-        System.out.println( "\tTotal # nodes:    " + getNumberOfNodes() );
-        System.out.println( "\tTotal # rels:     " + getNumberOfRelationships() );
+        Neo4jTestUtils.printDatabaseStats(graphDb(), getNeoPath());
     }
+
     protected void restartTx() {
         restartTx(true);
     }
@@ -288,109 +270,4 @@ public abstract class Neo4jTestCase extends TestCase {
         return batchInserter != null;
     }
 
-    protected long getNumberOfNodes()
-    {
-        return (Long) graphDb.execute( "MATCH (n) RETURN count(n)" ).columnAs( "count(n)" ).next();
-    }
-
-    protected long getNumberOfRelationships()
-    {
-        return (Long) graphDb.execute( "MATCH ()-[r]->() RETURN count(r)" ).columnAs( "count(r)" ).next();
-    }
-
-    protected <T> void assertCollection(Collection<T> collection, T... expectedItems) {
-        String collectionString = join(", ", collection.toArray());
-        assertEquals(collectionString, expectedItems.length, collection.size());
-        for (T item : expectedItems) {
-            assertTrue(collection.contains(item));
-        }
-    }
-
-    protected <T> Collection<T> asCollection(Iterable<T> iterable) {
-        List<T> list = new ArrayList<T>();
-        for (T item : iterable) {
-            list.add(item);
-        }
-        return list;
-    }
-
-    protected <T> String join(String delimiter, T... items) {
-        StringBuffer buffer = new StringBuffer();
-        for (T item : items) {
-            if (buffer.length() > 0) {
-                buffer.append(delimiter);
-            }
-            buffer.append(item.toString());
-        }
-        return buffer.toString();
-    }
-
-    protected <T> int countIterable(Iterable<T> iterable) {
-        int counter = 0;
-        Iterator<T> itr = iterable.iterator();
-        while (itr.hasNext()) {
-            itr.next();
-            counter++;
-        }
-        return counter;
-    }
-    
-	protected void debugIndexTree(RTreeIndex index) {
-        try (Transaction tx = graphDb().beginTx()) {
-            printTree(index.getIndexRoot(), 0);
-            tx.success();
-        }
-	}
-	
-	private static String arrayString(double[] test) {
-		StringBuffer sb = new StringBuffer();
-		for (double d : test) {
-			addToArrayString(sb, d);
-		}
-		sb.append("]");
-		return sb.toString();
-	}	
-	
-	private static void addToArrayString(StringBuffer sb, Object obj) {
-		if (sb.length() == 0) {
-			sb.append("[");
-		} else {
-			sb.append(",");
-		}
-		sb.append(obj);
-	}
-	
-	private void printTree(Node root, int depth) {
-		StringBuffer tab = new StringBuffer();
-		for (int i = 0; i < depth; i++) {
-			tab.append("  ");
-		}
-		
-		if (root.hasProperty(Constants.PROP_BBOX)) {
-			System.out.println(tab.toString() + "INDEX: " + root + " BBOX[" + arrayString((double[]) root.getProperty(Constants.PROP_BBOX)) + "]");
-		} else {
-			System.out.println(tab.toString() + "INDEX: " + root);
-		}
-		
-		StringBuffer data = new StringBuffer();
-		for (Relationship rel : root.getRelationships(RTreeRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)) {
-			if (data.length() > 0) {
-				data.append(", ");
-			} else {
-				data.append("DATA: ");
-			}
-//			data.append(rel.getEndNode().toString());
-            data.append( rel.getEndNode().toString() + " BBOX[" + arrayString((double[]) rel.getEndNode().getProperty
-                    (Constants
-                    .PROP_BBOX)) + "]" );
-		}
-		
-		if (data.length() > 0) {
-			System.out.println("  " + tab + data);
-		}
-		
-		for (Relationship rel : root.getRelationships(RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
-			printTree(rel.getEndNode(), depth + 1);
-		}
-	}    
 }

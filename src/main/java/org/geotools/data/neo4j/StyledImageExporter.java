@@ -119,7 +119,7 @@ public class StyledImageExporter {
 	 * 
 	 * @param fractionWidth
 	 *            fraction of the width to shift right/left
-	 * @param fractionHeigh
+	 * @param fractionHeight
 	 *            fraction of the height to shift up/down
 	 */
 	public void setOffset(double fractionWidth, double fractionHeight) {
@@ -318,24 +318,31 @@ public class StyledImageExporter {
         style.featureTypeStyles().addAll(createPolygonStyle(strokeColor, fillColor).featureTypeStyles());
         style.featureTypeStyles().addAll(createLineStyle(strokeColor).featureTypeStyles());
         style.featureTypeStyles().addAll(createPointStyle(strokeColor, fillColor).featureTypeStyles());
-        System.out.println("Created Geometry Style: "+style);
+//        System.out.println("Created Geometry Style: "+style);
         return style;
     }
-    
-    /**
-     * Create a Style to draw polygon features
-     */
-    private static Style createPolygonStyle(Color strokeColor, Color fillColor) {
-        // create a partially opaque outline stroke
+
+	/**
+	 * Create a Style to draw polygon features
+	 */
+	public static Style createPolygonStyle(Color strokeColor, Color fillColor) {
+		return createPolygonStyle(strokeColor, fillColor, 0.5, 0.5, 1);
+	}
+
+	/**
+	 * Create a Style to draw polygon features
+	 */
+	public static Style createPolygonStyle(Color strokeColor, Color fillColor, double stokeGamma, double fillGamma, int strokeWidth) {
+		// create a partially opaque outline stroke
         Stroke stroke = styleFactory.createStroke(
                 filterFactory.literal(strokeColor),
-                filterFactory.literal(1),
-                filterFactory.literal(0.5));
+                filterFactory.literal(strokeWidth),
+                filterFactory.literal(stokeGamma));
 
         // create a partial opaque fill
         Fill fill = styleFactory.createFill(
                 filterFactory.literal(fillColor),
-                filterFactory.literal(0.5));
+                filterFactory.literal(fillGamma));
 
         /*
          * Setting the geometryPropertyName arg to null signals that we want to
@@ -355,7 +362,7 @@ public class StyledImageExporter {
         FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(new Rule[]{ rule });
         Style style = styleFactory.createStyle();
         style.featureTypeStyles().add(fts);
-        System.out.println("Created Polygon Style: " + style);
+//        System.out.println("Created Polygon Style: " + style);
 
         return style;
     }
@@ -386,7 +393,7 @@ public class StyledImageExporter {
         FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(new Rule[]{rule});
         Style style = styleFactory.createStyle();
         style.featureTypeStyles().add(fts);
-        System.out.println("Created Line Style: "+style);
+//        System.out.println("Created Line Style: "+style);
 
         return style;
     }
@@ -423,7 +430,7 @@ public class StyledImageExporter {
         FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(new Rule[]{rule});
         Style style = styleFactory.createStyle();
         style.featureTypeStyles().add(fts);
-        System.out.println("Created Point Style: " + style);
+//        System.out.println("Created Point Style: " + style);
 
         return style;
     }

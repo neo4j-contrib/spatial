@@ -20,12 +20,16 @@
 
 package org.neo4j.gis.spatial.rtree;
 
+import org.neo4j.graphdb.Node;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class EmptyMonitor implements TreeMonitor
 {
     @Override
-    public void addHight()
+    public void setHeight(int height)
     {
     }
 
@@ -35,7 +39,7 @@ public class EmptyMonitor implements TreeMonitor
     }
 
     @Override
-    public void addNbrRebuilt()
+    public void addNbrRebuilt(RTreeIndex rtree)
     {
     }
 
@@ -46,8 +50,18 @@ public class EmptyMonitor implements TreeMonitor
     }
 
     @Override
-    public void addSplit()
+    public void addSplit(Node indexNode)
     {
+
+    }
+
+    @Override
+    public void beforeMergeTree(Node indexNode, List<RTreeIndex.NodeWithEnvelope> right) {
+
+    }
+
+    @Override
+    public void afterMergeTree(Node indexNode) {
 
     }
 
@@ -71,5 +85,15 @@ public class EmptyMonitor implements TreeMonitor
     public void reset()
     {
 
+    }
+
+    @Override
+    public void matchedTreeNode(int level, Node node) {
+
+    }
+
+    @Override
+    public List<Node> getMatchedTreeNodes(int level) {
+        return new ArrayList();
     }
 }
