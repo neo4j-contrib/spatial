@@ -331,8 +331,9 @@ public class RTreeIndex implements SpatialIndexWriter {
 					monitor.addCase("h_i == l_t && big cluster");
 					Node newRootNode = database.createNode();
 					buildRtreeFromScratch(newRootNode, cluster, loadingFactor);
-					insertIndexNodeOnParent(child.node, newRootNode);
-//					mergeTwoSubtrees(child, getIndexChildren(child.node), new List<NodeWithEnvelope>(){newRootNode}));
+//					insertIndexNodeOnParent(child.node, newRootNode);
+					NodeWithEnvelope nodeWithEnvelope = new NodeWithEnvelope(newRootNode, getIndexNodeEnvelope(newRootNode));
+					mergeTwoSubtrees(child, Arrays.asList(new NodeWithEnvelope[]{nodeWithEnvelope}));
 				}
 
 			} else {
