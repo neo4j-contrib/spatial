@@ -71,7 +71,7 @@ public class EnvelopeTests {
         String intersectMessage = intersects ? "Should intersect" : "Should not intersect";
         String overlapMessage = intersects ? "Should overlap" : "Should not have overlap";
         assertThat(intersectMessage, left.intersects(right), equalTo(intersects));
-        assertThat(intersectMessage, right.intersects(left), equalTo(true));
+        assertThat(intersectMessage, right.intersects(left), equalTo(intersects));
         assertThat(overlapMessage, left.overlap(right), closeTo(overlap, 0.000001));
         assertThat(overlapMessage, right.overlap(left), closeTo(overlap, 0.000001));
     }
