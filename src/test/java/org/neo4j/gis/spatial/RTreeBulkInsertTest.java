@@ -184,10 +184,10 @@ public class RTreeBulkInsertTest {
     static {
         Coordinate searchMin = new Coordinate(0.5, 0.5);
         Coordinate searchMax = new Coordinate(0.52, 0.52);
-        addTestConfig(new RTreeTestConfig("very_small", 100, searchMin, searchMax, 1));
-        addTestConfig(new RTreeTestConfig("small", 250, searchMin, searchMax, 16));
-        addTestConfig(new RTreeTestConfig("medium", 500, searchMin, searchMax, 81));
-        addTestConfig(new RTreeTestConfig("large", 750, searchMin, searchMax, 196));
+        addTestConfig(new RTreeTestConfig("very_small", 100, searchMin, searchMax, 9));
+        addTestConfig(new RTreeTestConfig("small", 250, searchMin, searchMax, 35));
+        addTestConfig(new RTreeTestConfig("medium", 500, searchMin, searchMax, 121));
+        addTestConfig(new RTreeTestConfig("large", 750, searchMin, searchMax, 256));
     }
 
     static void addTestConfig(RTreeTestConfig config) {
@@ -199,22 +199,22 @@ public class RTreeBulkInsertTest {
      */
 
     @Test
-    public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_very_small() throws FactoryException, IOException {
+    public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_very_small_10() throws FactoryException, IOException {
         insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("very_small"));
     }
 
     @Test
-    public void shouldInsertManyNodesIndividuallyGreenesSplit_very_small() throws FactoryException, IOException {
+    public void shouldInsertManyNodesIndividuallyGreenesSplit_very_small_10() throws FactoryException, IOException {
         insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("very_small"));
     }
 
     @Test
-    public void shouldInsertManyNodesInBulkWithQuadraticSplit_very_small() throws FactoryException, IOException {
+    public void shouldInsertManyNodesInBulkWithQuadraticSplit_very_small_10() throws FactoryException, IOException {
         insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("very_small"));
     }
 
     @Test
-    public void shouldInsertManyNodesInBulkWithGreenesSplit_very_small() throws FactoryException, IOException {
+    public void shouldInsertManyNodesInBulkWithGreenesSplit_very_small_10() throws FactoryException, IOException {
         insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("very_small"));
     }
 
@@ -223,22 +223,22 @@ public class RTreeBulkInsertTest {
      */
 
     @Test
-    public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_small() throws FactoryException, IOException {
+    public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_small_10() throws FactoryException, IOException {
         insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("small"));
     }
 
     @Test
-    public void shouldInsertManyNodesIndividuallyGreenesSplit_small() throws FactoryException, IOException {
+    public void shouldInsertManyNodesIndividuallyGreenesSplit_small_10() throws FactoryException, IOException {
         insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("small"));
     }
 
     @Test
-    public void shouldInsertManyNodesInBulkWithQuadraticSplit_small() throws FactoryException, IOException {
+    public void shouldInsertManyNodesInBulkWithQuadraticSplit_small_10() throws FactoryException, IOException {
         insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("small"));
     }
 
     @Test
-    public void shouldInsertManyNodesInBulkWithGreenesSplit_small() throws FactoryException, IOException {
+    public void shouldInsertManyNodesInBulkWithGreenesSplit_small_10() throws FactoryException, IOException {
         insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("small"));
     }
     /*
@@ -266,31 +266,41 @@ public class RTreeBulkInsertTest {
     }
 
     /*
-     * Medium model 500*500 nodes
+     * Medium model 500*500 nodes (deep tree - factor 10)
      */
 
     @Ignore
-    public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_medium() throws FactoryException, IOException {
+    public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_medium_10() throws FactoryException, IOException {
         insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("medium"));
     }
 
     @Ignore
-    public void shouldInsertManyNodesIndividuallyGreenesSplit_medium() throws FactoryException, IOException {
+    public void shouldInsertManyNodesIndividuallyGreenesSplit_medium_10() throws FactoryException, IOException {
         insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("medium"));
     }
 
     @Test
-    public void shouldInsertManyNodesInBulkWithQuadraticSplit_medium() throws FactoryException, IOException {
+    public void shouldInsertManyNodesInBulkWithQuadraticSplit_medium_10() throws FactoryException, IOException {
         insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("medium"));
     }
 
     @Test
-    public void shouldInsertManyNodesInBulkWithGreenesSplit_medium() throws FactoryException, IOException {
+    public void shouldInsertManyNodesInBulkWithGreenesSplit_medium_10() throws FactoryException, IOException {
         insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("medium"));
     }
 
+    @Test
+    public void shouldInsertManyNodesInBulkWithQuadraticSplit_medium_10_merge() throws FactoryException, IOException {
+        insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("medium"), true);
+    }
+
+    @Test
+    public void shouldInsertManyNodesInBulkWithGreenesSplit_medium_10_merge() throws FactoryException, IOException {
+        insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("medium"), true);
+    }
+
     /*
-     * Medium model 500*500 nodes (shallow tree)
+     * Medium model 500*500 nodes (shallow tree - factor 100)
      */
 
     @Ignore
@@ -313,28 +323,38 @@ public class RTreeBulkInsertTest {
         insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("medium"));
     }
 
-    /*
-     * Large model 750*750 nodes
-     */
-
-    @Ignore
-    public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_large() throws FactoryException, IOException {
-        insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("large"));
-    }
-
-    @Ignore
-    public void shouldInsertManyNodesIndividuallyGreenesSplit_large() throws FactoryException, IOException {
-        insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("large"));
+    @Test
+    public void shouldInsertManyNodesInBulkWithQuadraticSplit_medium_100_merge() throws FactoryException, IOException {
+        insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("medium"), true);
     }
 
     @Test
-    public void shouldInsertManyNodesInBulkWithQuadraticSplit_large() throws FactoryException, IOException {
+    public void shouldInsertManyNodesInBulkWithGreenesSplit_medium_100_merge() throws FactoryException, IOException {
+        insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("medium"), true);
+    }
+
+    /*
+     * Large model 750*750 nodes (only test bulk insert, 100 and 10, green and quadratic)
+     */
+
+    @Test
+    public void shouldInsertManyNodesInBulkWithQuadraticSplit_large_10() throws FactoryException, IOException {
         insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("large"));
     }
 
     @Test
-    public void shouldInsertManyNodesInBulkWithGreenesSplit_large() throws FactoryException, IOException {
+    public void shouldInsertManyNodesInBulkWithGreenesSplit_large_10() throws FactoryException, IOException {
         insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("large"));
+    }
+
+    @Test
+    public void shouldInsertManyNodesInBulkWithQuadraticSplit_large_100() throws FactoryException, IOException {
+        insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("large"));
+    }
+
+    @Test
+    public void shouldInsertManyNodesInBulkWithGreenesSplit_large_100() throws FactoryException, IOException {
+        insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("large"));
     }
 
     /*
@@ -346,17 +366,20 @@ public class RTreeBulkInsertTest {
         private final String splitMode;
         private final String insertMode;
         private HashMap<String, Integer> called = new HashMap<>();
+
         TreePrintingMonitor(RTreeImageExporter imageExporter, String insertMode, String splitMode) {
             this.imageExporter = imageExporter;
             this.splitMode = splitMode;
             this.insertMode = insertMode;
         }
+
         private Integer getCalled(String key) {
             if (!called.containsKey(key)) {
                 called.put(key, 0);
             }
             return called.get(key);
         }
+
         @Override
         public void addNbrRebuilt(RTreeIndex rtree) {
             super.addNbrRebuilt(rtree);
@@ -366,7 +389,7 @@ public class RTreeBulkInsertTest {
         @Override
         public void addSplit(Node indexNode) {
             super.addSplit(indexNode);
-            printRTreeImage("split", indexNode, new ArrayList<>());
+//            printRTreeImage("split", indexNode, new ArrayList<>());
         }
 
         @Override
@@ -489,16 +512,25 @@ public class RTreeBulkInsertTest {
 
     private void insertManyNodesInBulk(String splitMode, int blockSize, int maxNodeReferences, RTreeTestConfig config)
             throws FactoryException, IOException {
+        insertManyNodesInBulk(splitMode, blockSize, maxNodeReferences, config, false);
+    }
+
+    private void insertManyNodesInBulk(String splitMode, int blockSize, int maxNodeReferences, RTreeTestConfig config,
+                                       boolean shouldMergeTrees) throws FactoryException, IOException {
         TestStats stats = new TestStats(config, "Bulk", splitMode, blockSize, maxNodeReferences);
         List<Node> nodes = setup(config.width);
         EditableLayer layer = (EditableLayer) new SpatialDatabaseService(db).getLayer("Coordinates");
         RTreeMonitor monitor = new RTreeMonitor();
         layer.getIndex().addMonitor(monitor);
-        layer.getIndex().configure(map(RTreeIndex.KEY_SPLIT, splitMode, RTreeIndex.KEY_MAX_NODE_REFERENCES, maxNodeReferences));
+        layer.getIndex().configure(map(
+                RTreeIndex.KEY_SPLIT, splitMode,
+                RTreeIndex.KEY_MAX_NODE_REFERENCES, maxNodeReferences,
+                RTreeIndex.KEY_SHOULD_MERGE_TREES, shouldMergeTrees)
+        );
         TimedLogger log = new TimedLogger("Inserting " + config.totalCount + " nodes into RTree using bulk insert and "
                 + splitMode + " split with " + maxNodeReferences + " maxNodeReferences", config.totalCount);
         long start = System.currentTimeMillis();
-        for (int i = 0; i < nodes.size() / blockSize; i++) {
+        for (int i = 0; i < config.totalCount / blockSize; i++) {
             List<Node> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
             long startIndexing = System.currentTimeMillis();
             try (Transaction tx = db.beginTx()) {
@@ -521,7 +553,7 @@ public class RTreeBulkInsertTest {
      * Run this manually to generate images of RTree that can be used for animation.
      * ffmpeg -f image2 -r 12 -i rtree-single/rtree-%d.png -r 12 -s 1280x960 rtree-single2_12fps.mp4
      */
-    @Test
+    @Ignore
     public void shouldInsertManyNodesInBulkAndGenerateImagesForAnimation() throws FactoryException, IOException {
         RTreeTestConfig config = testConfigs.get("medium");
         int blockSize = 1000;
@@ -544,7 +576,7 @@ public class RTreeBulkInsertTest {
         TimedLogger log = new TimedLogger("Inserting " + config.totalCount + " nodes into RTree using bulk insert and "
                 + splitMode + " split with " + maxNodeReferences + " maxNodeReferences", config.totalCount);
         long start = System.currentTimeMillis();
-        for (int i = 0; i < nodes.size() / blockSize; i++) {
+        for (int i = 0; i < config.totalCount / blockSize; i++) {
             List<Node> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
             long startIndexing = System.currentTimeMillis();
             try (Transaction tx = db.beginTx()) {

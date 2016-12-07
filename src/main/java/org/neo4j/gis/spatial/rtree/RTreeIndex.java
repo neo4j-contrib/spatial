@@ -50,6 +50,7 @@ public class RTreeIndex implements SpatialIndexWriter {
     public static final String GREENES_SPLIT = "greene";
 
     public static final String KEY_MAX_NODE_REFERENCES = "maxNodeReferences";
+    public static final String KEY_SHOULD_MERGE_TREES = "shouldMergeTrees";
     public static final long MIN_MAX_NODE_REFERENCES = 10;
     public static final long MAX_MAX_NODE_REFERENCES = 1000000;
 
@@ -105,6 +106,9 @@ public class RTreeIndex implements SpatialIndexWriter {
                         throw new IllegalArgumentException("RTreeIndex does not allow " + key + " greater than " + MAX_MAX_NODE_REFERENCES);
                     }
                     this.maxNodeReferences = intValue;
+                    break;
+                case KEY_SHOULD_MERGE_TREES:
+                    this.shouldMergeTrees = Boolean.parseBoolean(config.get(key).toString());
                     break;
                 default:
                     throw new IllegalArgumentException("No such RTreeIndex configuration key: " + key);
@@ -331,13 +335,16 @@ public class RTreeIndex implements SpatialIndexWriter {
 					monitor.addCase("h_i == l_t && big cluster");
 					Node newRootNode = database.createNode();
 					buildRtreeFromScratch(newRootNode, cluster, loadingFactor);
-//					insertIndexNodeOnParent(child.node, newRootNode);
-					NodeWithEnvelope nodeWithEnvelope = new NodeWithEnvelope(newRootNode, getIndexNodeEnvelope(newRootNode));
-                    List<NodeWithEnvelope> insert=new ArrayList<>(Arrays.asList(new NodeWithEnvelope[]{nodeWithEnvelope}));
-                    monitor.beforeMergeTree(child.node,insert);
-					mergeTwoSubtrees(child,insert );
-                    monitor.afterMergeTree(child.node);
-				}
+                    if (shouldMergeTrees) {
+                        NodeWithEnvelope nodeWithEnvelope = new NodeWithEnvelope(newRootNode, getIndexNodeEnvelope(newRootNode));
+                        List<NodeWithEnvelope> insert = new ArrayList<>(Arrays.asList(new NodeWithEnvelope[]{nodeWithEnvelope}));
+                        monitor.beforeMergeTree(child.node, insert);
+                        mergeTwoSubtrees(child, insert);
+                        monitor.afterMergeTree(child.node);
+                    } else {
+                        insertIndexNodeOnParent(child.node, newRootNode);
+                    }
+                }
 
 			} else {
                 Node newRootNode = database.createNode();
@@ -356,12 +363,16 @@ public class RTreeIndex implements SpatialIndexWriter {
 					for (NodeWithEnvelope n : childrenToBeInserted) {
 						Relationship relationship = n.node.getSingleRelationship(RTreeRelationshipTypes.RTREE_CHILD, Direction.INCOMING);
 						relationship.delete();
-//						insertIndexNodeOnParent(child.node, n.node);
-					}
-                    monitor.beforeMergeTree(child.node,childrenToBeInserted);
-					mergeTwoSubtrees(child, childrenToBeInserted);
-                    monitor.afterMergeTree(child.node);
-				}
+                        if (!shouldMergeTrees) {
+                            insertIndexNodeOnParent(child.node, n.node);
+                        }
+                    }
+                    if (shouldMergeTrees) {
+                        monitor.beforeMergeTree(child.node, childrenToBeInserted);
+                        mergeTwoSubtrees(child, childrenToBeInserted);
+                        monitor.afterMergeTree(child.node);
+                    }
+                }
 				// todo wouldn't it be better for this temporary tree to only live in memory?
 				deleteRecursivelySubtree(newRootNode, null); // remove the buffer tree remnants
 			}
@@ -1404,8 +1415,9 @@ public class RTreeIndex implements SpatialIndexWriter {
 	private EnvelopeDecoder envelopeDecoder;
 	private int maxNodeReferences;
     private String splitMode = GREENES_SPLIT;
+    private boolean shouldMergeTrees = false;
 
-	private Node metadataNode;
+    private Node metadataNode;
 	private int totalGeometryCount = 0;
 	private boolean countSaved = false;
 
