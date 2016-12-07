@@ -168,26 +168,35 @@ public class RTreeBulkInsertTest {
         Coordinate searchMax;
         long totalCount;
         long expectedCount;
+        long expectedGeometries;
 
-        public RTreeTestConfig(String name, int width, Coordinate searchMin, Coordinate searchMax, long expectedCount) {
+        /*
+         * Collection of test settings to perform assertions on.
+         * Note that due to some crazy GIS spec points on polygon edges are considered to be contained,
+         * unless the polygon is a rectangle, in which case they are not contained, leading to
+         * different numbers for expectedGeometries and expectedCount,
+         * See https://github.com/locationtech/jts/blob/master/modules/core/src/main/java/org/locationtech/jts/operation/predicate/RectangleContains.java#L70
+         */
+        public RTreeTestConfig(String name, int width, Coordinate searchMin, Coordinate searchMax, long expectedCount, long expectedGeometries) {
             this.name = name;
             this.width = width;
             this.searchMin = searchMin;
             this.searchMax = searchMax;
             this.expectedCount = expectedCount;
+            this.expectedGeometries = expectedGeometries;
             this.totalCount = width * width;
         }
     }
 
-    private static final Map<String, RTreeTestConfig> testConfigs = new HashMap<String, RTreeTestConfig>();
+    private static final Map<String, RTreeTestConfig> testConfigs = new HashMap<>();
 
     static {
         Coordinate searchMin = new Coordinate(0.5, 0.5);
         Coordinate searchMax = new Coordinate(0.52, 0.52);
-        addTestConfig(new RTreeTestConfig("very_small", 100, searchMin, searchMax, 9));
-        addTestConfig(new RTreeTestConfig("small", 250, searchMin, searchMax, 35));
-        addTestConfig(new RTreeTestConfig("medium", 500, searchMin, searchMax, 121));
-        addTestConfig(new RTreeTestConfig("large", 750, searchMin, searchMax, 256));
+        addTestConfig(new RTreeTestConfig("very_small", 100, searchMin, searchMax, 9, 1));
+        addTestConfig(new RTreeTestConfig("small", 250, searchMin, searchMax, 35, 16));
+        addTestConfig(new RTreeTestConfig("medium", 500, searchMin, searchMax, 121, 81));
+        addTestConfig(new RTreeTestConfig("large", 750, searchMin, searchMax, 256, 196));
     }
 
     static void addTestConfig(RTreeTestConfig config) {
@@ -289,12 +298,12 @@ public class RTreeBulkInsertTest {
         insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("medium"));
     }
 
-    @Test
+    @Ignore
     public void shouldInsertManyNodesInBulkWithQuadraticSplit_medium_10_merge() throws FactoryException, IOException {
         insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("medium"), true);
     }
 
-    @Test
+    @Ignore
     public void shouldInsertManyNodesInBulkWithGreenesSplit_medium_10_merge() throws FactoryException, IOException {
         insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("medium"), true);
     }
@@ -323,12 +332,12 @@ public class RTreeBulkInsertTest {
         insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("medium"));
     }
 
-    @Test
+    @Ignore
     public void shouldInsertManyNodesInBulkWithQuadraticSplit_medium_100_merge() throws FactoryException, IOException {
         insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("medium"), true);
     }
 
-    @Test
+    @Ignore
     public void shouldInsertManyNodesInBulkWithGreenesSplit_medium_100_merge() throws FactoryException, IOException {
         insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("medium"), true);
     }
@@ -1002,11 +1011,11 @@ public class RTreeBulkInsertTest {
             nodes = GeoPipeline.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(envelope)).stream().map(GeoPipeFlow::getGeomNode).collect(Collectors.toList());
             tx.success();
         }
-        long count = nodes.size();
+        long countGeometries = nodes.size();
         long queryTime = System.currentTimeMillis() - start;
         allStats.add(stats);
         stats.put("Query Time (ms)", queryTime);
-        System.out.println("Took " + queryTime + "ms to find " + count + " nodes in 4x4 block");
+        System.out.println("Took " + queryTime + "ms to find " + countGeometries + " nodes in 4x4 block");
         int indexTouched = monitor.getCaseCounts().get("Index Does NOT Match");
         int indexMatched = monitor.getCaseCounts().get("Index Matches");
         int touched = monitor.getCaseCounts().get("Geometry Does NOT Match");
@@ -1030,10 +1039,14 @@ public class RTreeBulkInsertTest {
         System.out.println("Having matched " + indexMatched + "/" + indexTouched + " touched index nodes (" + (100.0 * indexMatched / indexTouched) + "%)");
         System.out.println("Which means we touched " + indexTouched + "/" + indexSize + " index nodes (" + (100.0 * indexTouched / indexSize) + "%)");
         System.out.println("Index contains " + geometrySize + " geometries");
-        assertEquals("Expected " + config.expectedCount + " nodes to be returned", config.expectedCount, count);
+        // Note that due to some crazy GIS spec points on polygon edges are considered to be contained,
+        // unless the polygon is a rectangle, in which case they are not contained, leading to
+        // different numbers for expectedGeometries and expectedCount.
+        // See https://github.com/locationtech/jts/blob/master/modules/core/src/main/java/org/locationtech/jts/operation/predicate/RectangleContains.java#L70
+        assertEquals("Expected " + config.expectedGeometries + " nodes to be returned", config.expectedGeometries, countGeometries);
         assertEquals("Expected " + config.expectedCount + " nodes to be matched", config.expectedCount, matched);
         int maxExpectedGeometriesTouched = matched * maxNodeReferences;
-        if (count > 1 && assertTouches) {
+        if (countGeometries > 1 && assertTouches) {
             assertThat("Should not touch more geometries than " + maxNodeReferences + "*matched", touched, lessThanOrEqualTo(maxExpectedGeometriesTouched));
             int maxExpectedIndexTouched = indexMatched * maxNodeReferences;
             assertThat("Should not touch more index nodes than " + maxNodeReferences + "*matched", indexTouched, lessThanOrEqualTo(maxExpectedIndexTouched));
