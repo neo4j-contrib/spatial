@@ -1074,18 +1074,16 @@ public class RTreeIndex implements SpatialIndexWriter {
     }
 
     private int findLongestDimension(List<NodeWithEnvelope> entries) {
-        // pick two seed entries such that the dead space is maximal
-        NodeWithEnvelope[] seeds = mostDistantByDeadSpace(entries);
-
-        // Choose dimension to split on based on seed separation
-        Envelope env1 = seeds[0].envelope;
-        Envelope env2 = seeds[1].envelope;
+        Envelope env = new Envelope();
+        for (NodeWithEnvelope entry : entries) {
+            env.expandToInclude(entry.envelope);
+        }
         int longestDimension = 0;
-        double maxSeparation = Double.NEGATIVE_INFINITY;
-        for (int i = 0; i < env1.getDimension(); i++) {
-            double separation = env1.separation(env2, i);
-            if (separation > maxSeparation) {
-                maxSeparation = separation;
+        double maxWidth = Double.NEGATIVE_INFINITY;
+        for (int i = 0; i < env.getDimension(); i++) {
+            double width = env.getWidth(i);
+            if (width > maxWidth) {
+                maxWidth = width;
                 longestDimension = i;
             }
         }
