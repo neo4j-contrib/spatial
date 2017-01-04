@@ -310,9 +310,9 @@ public class RTreeIndex implements SpatialIndexWriter {
 
             //In an rtree is this height it will add as a single child to the current child node.
             int currentRTreeHeight = rootNodeHeight - 2;
-			if(expectedHeight-currentRTreeHeight > 1 ){
-				throw new RuntimeException("Due to h_i-l_t > 1");
-			}
+//			if(expectedHeight-currentRTreeHeight > 1 ){
+//				throw new RuntimeException("Due to h_i-l_t > 1");
+//			}
 			if (expectedHeight < currentRTreeHeight) {
 				monitor.addCase("h_i < l_t ");
                 //if the height is smaller than that recursively sort and split.
