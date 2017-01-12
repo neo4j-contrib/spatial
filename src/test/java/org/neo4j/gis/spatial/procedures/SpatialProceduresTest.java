@@ -443,20 +443,39 @@ public class SpatialProceduresTest {
 
     @Test
     public void import_shapefile() throws Exception {
-        testCallCount(db, "CALL spatial.importShapefile('shp/highway.shp')", null, 143);
+        testCountQuery("importShapefile", "CALL spatial.importShapefile('shp/highway.shp')", 143, "count", null);
         testCallCount(db, "CALL spatial.layers()", null, 1);
     }
 
     @Test
     public void import_shapefile_without_extension() throws Exception {
-        testCallCount(db, "CALL spatial.importShapefile('shp/highway')", null, 143);
+        testCountQuery("importShapefile", "CALL spatial.importShapefile('shp/highway')", 143, "count", null);
         testCallCount(db, "CALL spatial.layers()", null, 1);
     }
 
     @Test
     public void import_shapefile_to_layer() throws Exception {
         execute("CALL spatial.addWKTLayer('geom','wkt')");
-        testCallCount(db, "CALL spatial.importShapefileToLayer('geom','shp/highway.shp')", null, 143);
+        testCountQuery("importShapefileToLayer", "CALL spatial.importShapefileToLayer('geom','shp/highway.shp')", 143, "count", null);
+        testCallCount(db, "CALL spatial.layers()", null, 1);
+    }
+
+    @Test
+    public void import_osm() throws Exception {
+        testCountQuery("importShapefile", "CALL spatial.importOSM('map.osm')", 55, "count", null);
+        testCallCount(db, "CALL spatial.layers()", null, 1);
+    }
+
+    @Test
+    public void import_osm_without_extension() throws Exception {
+        testCountQuery("importShapefile", "CALL spatial.importOSM('map.osm')", 55, "count", null);
+        testCallCount(db, "CALL spatial.layers()", null, 1);
+    }
+
+    @Test
+    public void import_osm_to_layer() throws Exception {
+        execute("CALL spatial.addLayer('geom','OSM','')");
+        testCountQuery("importShapefileToLayer", "CALL spatial.importOSMToLayer('geom','map.osm')", 55, "count", null);
         testCallCount(db, "CALL spatial.layers()", null, 1);
     }
 

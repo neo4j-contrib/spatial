@@ -22,6 +22,8 @@ package org.neo4j.gis.spatial;
 import java.util.*;
 
 import org.geotools.referencing.crs.DefaultGeographicCRS;
+import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
+import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.utilities.ReferenceNodes;
 import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.encoders.Configurable;
@@ -455,6 +457,8 @@ public class SpatialDatabaseService implements Constants {
 		registeredLayerTypes.put("WKT", new RegisteredLayerType("WKT", WKTGeometryEncoder.class, EditableLayerImpl.class,
 				DefaultGeographicCRS.WGS84, "geometry"));
 		registeredLayerTypes.put("WKB", new RegisteredLayerType("WKB", WKBGeometryEncoder.class, EditableLayerImpl.class,
+				DefaultGeographicCRS.WGS84, "geometry"));
+		registeredLayerTypes.put("OSM", new RegisteredLayerType("OSM", OSMGeometryEncoder.class, OSMLayer.class,
 				DefaultGeographicCRS.WGS84, "geometry"));
     }
 

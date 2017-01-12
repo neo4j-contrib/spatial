@@ -31,6 +31,7 @@ import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePropertyEncoder;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
+import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.rtree.ProgressLoggingListener;
@@ -50,6 +51,7 @@ import org.neo4j.procedure.Procedure;
 import org.opengis.referencing.ReferenceIdentifier;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
+import javax.xml.stream.XMLStreamException;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
@@ -113,6 +115,14 @@ public class SpatialProcedures {
 
         public GeometryResult(Object geometry) {
             this.geometry = geometry;
+        }
+    }
+
+    public static class CountResult {
+        public final long count;
+
+        public CountResult(long count) {
+            this.count = count;
         }
     }
 
@@ -366,18 +376,18 @@ public class SpatialProcedures {
 
     @Procedure("spatial.importShapefileToLayer")
     @PerformsWrites
-    public Stream<NodeResult> importShapefile(
+    public Stream<CountResult> importShapefile(
             @Name("layerName") String name,
             @Name("uri") String uri) throws IOException {
         EditableLayerImpl layer = getEditableLayerOrThrow(name);
-        return importShapefileToLayer(uri, layer, 1000).stream().map(NodeResult::new);
+        return Stream.of(new CountResult(importShapefileToLayer(uri, layer, 1000).size()));
     }
 
     @Procedure("spatial.importShapefile")
     @PerformsWrites
-    public Stream<NodeResult> importShapefile(
+    public Stream<CountResult> importShapefile(
             @Name("uri") String uri) throws IOException {
-        return importShapefileToLayer(uri, null, 1000).stream().map(NodeResult::new);
+        return Stream.of(new CountResult(importShapefileToLayer(uri, null, 1000).size()));
     }
 
     private List<Node> importShapefileToLayer(String shpPath, EditableLayerImpl layer, int commitInterval) throws IOException {
@@ -393,6 +403,33 @@ public class SpatialProcedures {
         } else {
             return importer.importFile(shpPath, layer, Charset.defaultCharset());
         }
+    }
+    @Procedure("spatial.importOSMToLayer")
+    @PerformsWrites
+    public Stream<CountResult> importOSM(
+            @Name("layerName") String name,
+            @Name("uri") String uri) throws IOException, XMLStreamException {
+        EditableLayerImpl layer = getEditableLayerOrThrow(name);
+        return Stream.of(new CountResult(importOSMToLayer(uri, layer, 1000)));
+    }
+
+    @Procedure("spatial.importOSM")
+    @PerformsWrites
+    public Stream<CountResult> importOSM(
+            @Name("uri") String uri) throws IOException, XMLStreamException {
+        return Stream.of(new CountResult(importOSMToLayer(uri, null, 1000)));
+    }
+
+    private long importOSMToLayer(String osmPath, EditableLayerImpl layer, int commitInterval) throws IOException, XMLStreamException {
+        if (!osmPath.toLowerCase().endsWith(".osm")) {
+            // add extension
+            osmPath = osmPath + ".osm";
+        }
+
+        String layerName = (layer == null) ? osmPath.substring(osmPath.lastIndexOf(File.separator) + 1) : layer.getName();
+        OSMImporter importer = new OSMImporter(layerName, new ProgressLoggingListener("Importing " + osmPath, log.debugLogger()));
+        importer.importFile( db, osmPath, false, commitInterval, true );
+        return importer.reIndex( db, commitInterval );
     }
 
     @Procedure("spatial.bbox")
