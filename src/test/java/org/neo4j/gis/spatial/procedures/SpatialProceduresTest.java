@@ -260,6 +260,28 @@ public class SpatialProceduresTest {
     }
 
     @Test
+    public void create_a_pointlayer_with_config_on_existing_wkt_layer() {
+        execute("CALL spatial.addWKTLayer('geom','wkt')");
+        try {
+            testCall(db, "CALL spatial.addPointLayerWithConfig('geom','lon:lat')", (r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
+            fail("Expected exception to be thrown");
+        } catch (Exception e) {
+            assertThat(e.getMessage(), containsString("Cannot create existing layer"));
+        }
+    }
+
+    @Test
+    public void create_a_pointlayer_with_config_on_existing_osm_layer() {
+        execute("CALL spatial.addLayer('geom','OSM','')");
+        try {
+            testCall(db, "CALL spatial.addPointLayerWithConfig('geom','lon:lat')", (r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
+            fail("Expected exception to be thrown");
+        } catch (Exception e) {
+            assertThat(e.getMessage(), containsString("Cannot create existing layer"));
+        }
+    }
+
+    @Test
     public void create_a_pointlayer() {
         testCall(db, "CALL spatial.addPointLayer('geom')", (r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
     }
