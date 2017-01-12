@@ -138,10 +138,10 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     @Test
     public void filter_by_cql_using_bbox() throws CQLException
     {
-        // START SNIPPET: s_filter_by_cql_using_bbox
+        // tag::filter_by_cql_using_bbox[]
         GeoPipeline cqlFilter = GeoPipeline.start( osmLayer ).cqlFilter(
                 "BBOX(the_geom, 10, 40, 20, 56.0583531)" );
-        // END SNIPPET: s_filter_by_cql_using_bbox
+        // end::filter_by_cql_using_bbox[]
         assertEquals(
                 1,
                 cqlFilter.count() );
@@ -160,10 +160,10 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     @Documented("search_within_geometry")
     public void search_within_geometry() throws CQLException
     {
-        // START SNIPPET: s_search_within_geometry
+        // tag::search_within_geometry[]
         GeoPipeline pipeline = GeoPipeline
         .startWithinSearch(osmLayer, osmLayer.getGeometryFactory().toGeometry(new Envelope(10, 20, 50, 60)));
-        // END SNIPPET: s_search_within_geometry
+        // end::search_within_geometry[]
         assertEquals(
                 2,
                 pipeline.count() );
@@ -193,10 +193,10 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     @Test
     public void filter_by_cql_using_complex_cql() throws CQLException
     {
-        // START SNIPPET: s_filter_by_cql_using_complex_cql
+        // tag::filter_by_cql_using_complex_cql[]
         long counter  = GeoPipeline.start( osmLayer ).cqlFilter(
                         "highway is not null and geometryType(the_geom) = 'LineString'" ).count();
-        // END SNIPPET: s_filter_by_cql_using_complex_cql
+        // end::filter_by_cql_using_complex_cql[]
         
         FilterCQL filter = new FilterCQL(osmLayer,"highway is not null and geometryType(the_geom) = 'LineString'" ); 
         filter.setStarts( GeoPipeline.start( osmLayer ));
@@ -226,10 +226,10 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     @Test
     public void translate_geometries()
     {
-    	// START SNIPPET: s_affine_transformation
+    	// tag::affine_transformation[]
         GeoPipeline pipeline = GeoPipeline.start( boxesLayer )
         	.applyAffineTransform(AffineTransformation.translationInstance( 2, 3 ));
-        // END SNIPPET: s_affine_transformation
+        // end::affine_transformation[]
         addImageSnippet(boxesLayer, pipeline, getTitle());    	
     	
         GeoPipeline original = GeoPipeline.start( osmLayer ).copyDatabaseRecordProperties().sort(
@@ -309,9 +309,9 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     @Test
     public void get_buffer()
     {
-    	// START SNIPPET: s_buffer
+    	// tag::buffer[]
         GeoPipeline pipeline = GeoPipeline.start( boxesLayer ).toBuffer( 0.5 );
-        // END SNIPPET: s_buffer
+        // end::buffer[]
         addImageSnippet(boxesLayer, pipeline, getTitle());    	
     	
         pipeline = GeoPipeline.start( boxesLayer ).toBuffer( 0.1 ).createWellKnownText().calculateArea().sort(
@@ -338,9 +338,9 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     @Test
     public void get_centroid()
     {
-    	// START SNIPPET: s_centroid
+    	// tag::centroid[]
         GeoPipeline pipeline = GeoPipeline.start( boxesLayer ).toCentroid();
-        // END SNIPPET: s_centroid
+        // end::centroid[]
         addImageSnippet(boxesLayer, pipeline, getTitle(), Constants.GTYPE_POINT);
     	
         pipeline = GeoPipeline.start( boxesLayer ).toCentroid().createWellKnownText().copyDatabaseRecordProperties().sort(
@@ -368,12 +368,12 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     @Test
     public void export_to_GML()
     {
-        // START SNIPPET: s_export_to_gml
+        // tag::export_to_gml[]
         GeoPipeline pipeline = GeoPipeline.start( boxesLayer ).createGML();
         for ( GeoPipeFlow flow : pipeline ) {
             System.out.println(flow.getProperties().get( "GML" ));
          }
-        // END SNIPPET: s_export_to_gml
+        // end::export_to_gml[]
         String result = "";
         for ( GeoPipeFlow flow : GeoPipeline.start( boxesLayer ).createGML() ) {
             result = result + flow.getProperties().get( "GML" );
@@ -398,9 +398,9 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     @Test
     public void get_convex_hull()
     {
-    	// START SNIPPET: s_convex_hull
+    	// tag::convex_hull[]
         GeoPipeline pipeline = GeoPipeline.start( concaveLayer ).toConvexHull();
-        // END SNIPPET: s_convex_hull
+        // end::convex_hull[]
         addImageSnippet(concaveLayer, pipeline, getTitle());
         
         pipeline = GeoPipeline.start( concaveLayer ).toConvexHull().createWellKnownText();
@@ -427,9 +427,9 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     @Test
     public void densify()
     {
-    	// START SNIPPET: s_densify
+    	// tag::densify[]
         GeoPipeline pipeline = GeoPipeline.start( concaveLayer ).densify( 5 ).extractPoints();
-        // END SNIPPET: s_densify
+        // end::densify[]
         addImageSnippet(concaveLayer, pipeline, getTitle(), Constants.GTYPE_POINT);
     	
     	
@@ -472,11 +472,11 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     @Test
     public void get_max_area()
     {
-    	// START SNIPPET: s_max
+    	// tag::max[]
         GeoPipeline pipeline = GeoPipeline.start( boxesLayer )
         	.calculateArea()
         	.getMax( "Area" );
-        // END SNIPPET: s_max
+        // end::max[]
         addImageSnippet( boxesLayer, pipeline, getTitle() );
     	
         pipeline = GeoPipeline.start( boxesLayer ).calculateArea().getMax(
@@ -500,9 +500,9 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     @Test
     public void boundary()
     {
-    	// START SNIPPET: s_boundary
+    	// tag::boundary[]
         GeoPipeline pipeline = GeoPipeline.start( boxesLayer ).toBoundary();
-        // END SNIPPET: s_boundary
+        // end::boundary[]
         addImageSnippet( boxesLayer, pipeline, getTitle(), Constants.GTYPE_LINESTRING );
 
         // TODO test?
@@ -526,11 +526,11 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     @Test
     public void difference() throws Exception 
     {
-    	// START SNIPPET: s_difference
+    	// tag::difference[]
     	WKTReader reader = new WKTReader( intersectionLayer.getGeometryFactory() );
         Geometry geometry = reader.read( "POLYGON ((3 3, 3 5, 7 7, 7 3, 3 3))" );
         GeoPipeline pipeline = GeoPipeline.start( intersectionLayer ).difference( geometry );
-        // END SNIPPET: s_difference
+        // end::difference[]
         addImageSnippet( intersectionLayer, pipeline, getTitle() );
 
         // TODO test?
@@ -554,11 +554,11 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     @Test
     public void intersection() throws Exception 
     {
-    	// START SNIPPET: s_intersection
+    	// tag::intersection[]
     	WKTReader reader = new WKTReader( intersectionLayer.getGeometryFactory() );
         Geometry geometry = reader.read( "POLYGON ((3 3, 3 5, 7 7, 7 3, 3 3))" );
         GeoPipeline pipeline = GeoPipeline.start( intersectionLayer ).intersect( geometry );
-        // END SNIPPET: s_intersection
+        // end::intersection[]
         addImageSnippet( intersectionLayer, pipeline, getTitle() );
 
         // TODO test?
@@ -581,12 +581,12 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     @Test
     public void union() throws Exception 
     {
-    	// START SNIPPET: s_union
+    	// tag::union[]
     	WKTReader reader = new WKTReader( intersectionLayer.getGeometryFactory() );
         Geometry geometry = reader.read( "POLYGON ((3 3, 3 5, 7 7, 7 3, 3 3))" );
         SearchFilter filter = new SearchIntersectWindow( intersectionLayer, new Envelope( 7, 10, 7, 10 ) );
         GeoPipeline pipeline = GeoPipeline.start( intersectionLayer, filter ).union( geometry );
-        // END SNIPPET: s_union
+        // end::union[]
         addImageSnippet( intersectionLayer, pipeline, getTitle() );
 
         // TODO test?
@@ -610,11 +610,11 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     @Test
     public void get_min_area()
     {
-    	// START SNIPPET: s_min
+    	// tag::min[]
         GeoPipeline pipeline = GeoPipeline.start( boxesLayer )
         	.calculateArea()
         	.getMin( "Area" );
-        // END SNIPPET: s_min
+        // end::min[]
         addImageSnippet( boxesLayer, pipeline, getTitle() );
         
         pipeline = GeoPipeline.start( boxesLayer ).calculateArea().getMin(
@@ -675,7 +675,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     @Test
     public void break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them()
     {
-        // START SNIPPET: s_break_up_all_geometries_into_points_and_make_density_islands
+        // tag::break_up_all_geometries_into_points_and_make_density_islands[]
         //step1
         GeoPipeline pipeline = OSMGeoPipeline.startOsm( osmLayer )
                 //step2
@@ -686,7 +686,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
         	.toConvexHull()
         	//step5
         	.toBuffer( 0.0004 );
-        // END SNIPPET: s_break_up_all_geometries_into_points_and_make_density_islands
+        // end::break_up_all_geometries_into_points_and_make_density_islands[]
         	
         assertEquals( 9, pipeline.count() );
        
@@ -714,9 +714,9 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     @Test
     public void extract_points()
     {
-    	// START SNIPPET: s_extract_points
+    	// tag::extract_points[]
         GeoPipeline pipeline = GeoPipeline.start( boxesLayer ).extractPoints();
-        // END SNIPPET: s_extract_points
+        // end::extract_points[]
         addImageSnippet(boxesLayer, pipeline, getTitle(), Constants.GTYPE_POINT);
     	
         int count = 0;
@@ -792,9 +792,9 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     @Test
     public void unite_all()
     {
-    	// START SNIPPET: s_unite_all
+    	// tag::unite_all[]
         GeoPipeline pipeline = GeoPipeline.start( intersectionLayer ).unionAll();
-        // END SNIPPET: s_unite_all
+        // end::unite_all[]
         addImageSnippet( intersectionLayer, pipeline, getTitle() );
         
         pipeline = GeoPipeline.start( intersectionLayer )
@@ -834,9 +834,9 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     @Test
     public void intersect_all()
     {
-    	// START SNIPPET: s_intersect_all
+    	// tag::intersect_all[]
         GeoPipeline pipeline = GeoPipeline.start( intersectionLayer ).intersectAll();
-        // END SNIPPET: s_intersect_all
+        // end::intersect_all[]
         addImageSnippet( intersectionLayer, pipeline, getTitle() );
         
         pipeline = GeoPipeline.start( intersectionLayer )
@@ -872,11 +872,11 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     @Test
     public void intersecting_windows()
     {
-        // START SNIPPET: s_intersecting_windows
+        // tag::intersecting_windows[]
         GeoPipeline pipeline = GeoPipeline
         	.start( boxesLayer )
         	.windowIntersectionFilter(new Envelope( 0, 10, 0, 10 ) );
-        // END SNIPPET: s_intersecting_windows
+        // end::intersecting_windows[]
         addImageSnippet( boxesLayer, pipeline, getTitle() );
         
         // TODO test?
@@ -899,11 +899,11 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     @Test
     public void start_point()
     {
-        // START SNIPPET: s_start_point
+        // tag::start_point[]
         GeoPipeline pipeline = GeoPipeline
         	.start( linesLayer )
         	.toStartPoint();
-        // END SNIPPET: s_start_point
+        // end::start_point[]
         addImageSnippet( linesLayer, pipeline, getTitle(), Constants.GTYPE_POINT );
         
         pipeline = GeoPipeline
@@ -931,11 +931,11 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     @Test
     public void end_point()
     {
-        // START SNIPPET: s_end_point
+        // tag::end_point[]
         GeoPipeline pipeline = GeoPipeline
         	.start( linesLayer )
         	.toEndPoint();
-        // END SNIPPET: s_end_point
+        // end::end_point[]
         addImageSnippet( linesLayer, pipeline, getTitle(), Constants.GTYPE_POINT );
         
         pipeline = GeoPipeline
@@ -963,11 +963,11 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     @Test
     public void envelope()
     {
-        // START SNIPPET: s_envelope
+        // tag::envelope[]
         GeoPipeline pipeline = GeoPipeline
         	.start( linesLayer )
         	.toEnvelope();
-        // END SNIPPET: s_envelope
+        // end::envelope[]
         addImageSnippet( linesLayer, pipeline, getTitle(), Constants.GTYPE_POLYGON );
         
         // TODO test
