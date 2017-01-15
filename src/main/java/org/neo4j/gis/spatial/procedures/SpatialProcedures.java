@@ -25,7 +25,7 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
-import org.neo4j.cypher.internal.compiler.v3_0.GeographicPoint;
+import org.neo4j.cypher.internal.compiler.v3_1.GeographicPoint;
 import org.neo4j.gis.spatial.*;
 import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
@@ -150,7 +150,7 @@ public class SpatialProcedures {
     public Stream<NameResult> listProcedures() {
         Procedures procedures = ((GraphDatabaseAPI)db).getDependencyResolver().resolveDependency( Procedures.class );
         Stream.Builder<NameResult> builder = Stream.builder();
-        for (ProcedureSignature proc : procedures.getAll()) {
+        for (ProcedureSignature proc : procedures.getAllProcedures()) {
             if (proc.name().namespace()[0].equals("spatial")) {
                 builder.accept(new NameResult(proc.name().toString(), proc.toString()));
             }
@@ -645,15 +645,15 @@ public class SpatialProcedures {
         throw new RuntimeException("Can't convert " + value + " to a geometry");
     }
 
-    private org.neo4j.cypher.internal.compiler.v3_0.Geometry makeCypherGeometry(double x, double y, org.neo4j.cypher.internal.compiler.v3_0.CRS crs) {
-        if (crs.equals(org.neo4j.cypher.internal.compiler.v3_0.CRS.Cartesian())) {
-            return new org.neo4j.cypher.internal.compiler.v3_0.CartesianPoint(x, y, crs);
+    private org.neo4j.cypher.internal.compiler.v3_1.Geometry makeCypherGeometry(double x, double y, org.neo4j.cypher.internal.compiler.v3_1.CRS crs) {
+        if (crs.equals(org.neo4j.cypher.internal.compiler.v3_1.CRS.Cartesian())) {
+            return new org.neo4j.cypher.internal.compiler.v3_1.CartesianPoint(x, y, crs);
         } else {
-            return new org.neo4j.cypher.internal.compiler.v3_0.GeographicPoint(x, y, crs);
+            return new org.neo4j.cypher.internal.compiler.v3_1.GeographicPoint(x, y, crs);
         }
     }
 
-    private org.neo4j.cypher.internal.compiler.v3_0.Geometry makeCypherGeometry(Geometry geometry, org.neo4j.cypher.internal.compiler.v3_0.CRS crs) {
+    private org.neo4j.cypher.internal.compiler.v3_1.Geometry makeCypherGeometry(Geometry geometry, org.neo4j.cypher.internal.compiler.v3_1.CRS crs) {
         if (geometry.getGeometryType().toLowerCase().equals("point")) {
             Coordinate coordinate = geometry.getCoordinates()[0];
             return makeCypherGeometry(coordinate.getOrdinate(0), coordinate.getOrdinate(1), crs);
@@ -662,27 +662,27 @@ public class SpatialProcedures {
         }
     }
 
-    private org.neo4j.cypher.internal.compiler.v3_0.Geometry toCypherGeometry(Layer layer, Object value) {
-        if (value instanceof org.neo4j.cypher.internal.compiler.v3_0.Geometry) {
-            return (org.neo4j.cypher.internal.compiler.v3_0.Geometry) value;
+    private org.neo4j.cypher.internal.compiler.v3_1.Geometry toCypherGeometry(Layer layer, Object value) {
+        if (value instanceof org.neo4j.cypher.internal.compiler.v3_1.Geometry) {
+            return (org.neo4j.cypher.internal.compiler.v3_1.Geometry) value;
         }
         if ( value instanceof org.neo4j.graphdb.spatial.Point) {
             org.neo4j.graphdb.spatial.Point point = (org.neo4j.graphdb.spatial.Point) value;
             List<Double> coord = point.getCoordinate().getCoordinate();
-            return makeCypherGeometry(coord.get(0), coord.get(1), org.neo4j.cypher.internal.compiler.v3_0.CRS.fromSRID(point.getCRS().getCode()));
+            return makeCypherGeometry(coord.get(0), coord.get(1), org.neo4j.cypher.internal.compiler.v3_1.CRS.fromSRID(point.getCRS().getCode()));
         }
-        org.neo4j.cypher.internal.compiler.v3_0.CRS crs = org.neo4j.cypher.internal.compiler.v3_0.CRS.Cartesian();
+        org.neo4j.cypher.internal.compiler.v3_1.CRS crs = org.neo4j.cypher.internal.compiler.v3_1.CRS.Cartesian();
         if (layer != null) {
             CoordinateReferenceSystem layerCRS = layer.getCoordinateReferenceSystem();
             if (layerCRS != null) {
                 ReferenceIdentifier crsRef = layer.getCoordinateReferenceSystem().getName();
-                crs = org.neo4j.cypher.internal.compiler.v3_0.CRS.fromName(crsRef.toString());
+                crs = org.neo4j.cypher.internal.compiler.v3_1.CRS.fromName(crsRef.toString());
             }
         }
         if (value instanceof Geometry) {
             Geometry geometry = (Geometry) value;
             if (geometry.getSRID() > 0) {
-                crs = org.neo4j.cypher.internal.compiler.v3_0.CRS.fromSRID(geometry.getSRID());
+                crs = org.neo4j.cypher.internal.compiler.v3_1.CRS.fromSRID(geometry.getSRID());
             }
             if (geometry instanceof Point) {
                 Point point = (Point) geometry;
@@ -704,7 +704,7 @@ public class SpatialProcedures {
         if (value instanceof PropertyContainer) {
             latLon = ((PropertyContainer) value).getProperties("latitude", "longitude", "lat", "lon");
             if (layer == null) {
-                crs = org.neo4j.cypher.internal.compiler.v3_0.CRS.WGS84();
+                crs = org.neo4j.cypher.internal.compiler.v3_1.CRS.WGS84();
             }
         }
         if (value instanceof Map) latLon = (Map<String, Object>) value;

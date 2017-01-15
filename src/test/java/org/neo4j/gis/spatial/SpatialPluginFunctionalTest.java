@@ -19,17 +19,12 @@
  */
 package org.neo4j.gis.spatial;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.TestCase.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import javax.ws.rs.core.Response.Status;
 
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
@@ -40,8 +35,7 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Result;
-import org.neo4j.helpers.HostnamePort;
+import org.neo4j.helpers.ListenSocketAddress;
 import org.neo4j.kernel.impl.annotations.Documented;
 import org.neo4j.server.NeoServer;
 import org.neo4j.server.helpers.CommunityServerBuilder;
@@ -64,7 +58,7 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
      */
     @BeforeClass
     public static void allocateServer() throws IOException {
-        altServer = CommunityServerBuilder.server().onAddress( new HostnamePort( "localhost", PORT ) ).build();
+        altServer = CommunityServerBuilder.server().onAddress( new ListenSocketAddress( "localhost", PORT ) ).build();
         altServer.start();
     }
 
@@ -238,7 +232,7 @@ public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
         ImpermanentGraphDatabase graphdb = (ImpermanentGraphDatabase) graphdb();
         graphdb.cleanContent();
         //clean
-        gen.get().setGraph( graphdb() );
+        // gen.get().setGraph( graphdb() ); // FIXME
         
     }
     
