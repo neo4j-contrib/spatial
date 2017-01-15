@@ -59,7 +59,7 @@ public class ProgressLoggingListenerTest {
         }
         listener.done();
         verify(out).println("Starting test");
-        verify(out).println("100.00 (10/10) - Completed test");
+        verify(out).println(String.format("%.2f (10/10) - Completed test", 100f));
         verify(out, times(expectedLogCount)).println(anyString());
     }
 }
