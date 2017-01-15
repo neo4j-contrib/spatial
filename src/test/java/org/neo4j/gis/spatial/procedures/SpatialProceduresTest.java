@@ -121,7 +121,7 @@ public class SpatialProceduresTest {
     }
 
     public static void registerProcedure(GraphDatabaseService db, Class<?> procedure) throws KernelException {
-        ((GraphDatabaseAPI) db).getDependencyResolver().resolveDependency(Procedures.class).register(procedure);
+        ((GraphDatabaseAPI) db).getDependencyResolver().resolveDependency(Procedures.class).registerProcedure(procedure);
     }
 
     @Test
@@ -219,7 +219,8 @@ public class SpatialProceduresTest {
     public void create_node_decode_to_geometry() {
         execute("CALL spatial.addWKTLayer('geom','geom')");
         ResourceIterator<Object> results = db.execute("CREATE (n:Node {geom:'POINT(4.0 5.0)'}) WITH n CALL spatial.decodeGeometry('geom',n) YIELD geometry RETURN geometry").columnAs("geometry");
-        assertThat("Should be Geometry type", results.next(), instanceOf(Geometry.class));
+        Object actual = results.next();
+        assertThat("Should be Geometry type", actual, instanceOf(Geometry.class));
         results.close();
     }
 

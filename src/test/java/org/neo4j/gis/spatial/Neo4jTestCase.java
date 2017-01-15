@@ -21,11 +21,7 @@ package org.neo4j.gis.spatial;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
 
 import junit.framework.TestCase;
@@ -34,12 +30,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
-import org.neo4j.gis.spatial.rtree.RTreeIndex;
-import org.neo4j.gis.spatial.rtree.RTreeRelationshipTypes;
-import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
@@ -47,10 +38,9 @@ import org.neo4j.graphdb.mockfs.EphemeralFileSystemAbstraction;
 import org.neo4j.io.fs.FileUtils;
 import org.neo4j.kernel.impl.proc.Procedures;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
-import org.neo4j.test.EphemeralFileSystemRule;
+import org.neo4j.test.rule.fs.EphemeralFileSystemRule;
 import org.neo4j.unsafe.batchinsert.BatchInserter;
 import org.neo4j.unsafe.batchinsert.BatchInserters;
-
 
 /**
  * Base class for the meta model tests.
@@ -156,12 +146,9 @@ public abstract class Neo4jTestCase extends TestCase {
         }
         if (useBatchInserter) {
             batchInserter = BatchInserters.inserter(getNeoPath(), config);
-	    //graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(getNeoPath().getAbsolutePath()).setConfig( config ).newGraphDatabase();
-	    //graphDb = new TestGraphDatabaseFactory().setFileSystem( fileSystem ).newImpermanentDatabase( getNeoPath().getAbsolutePath() );
         } else {
-	    //graphDb = new TestGraphDatabaseFactory().setFileSystem( fileSystem ).newImpermanentDatabase( getNeoPath().getAbsolutePath() );
-	    graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(getNeoPath()).setConfig( config ).newGraphDatabase();
-            ((GraphDatabaseAPI)graphDb).getDependencyResolver().resolveDependency(Procedures.class).register(SpatialProcedures.class);
+            graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(getNeoPath()).setConfig(config).newGraphDatabase();
+            ((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency(Procedures.class).registerProcedure(SpatialProcedures.class);
         }
         if (autoTx) {
             // with the batch inserter the tx is a dummy that simply succeeds all the time
