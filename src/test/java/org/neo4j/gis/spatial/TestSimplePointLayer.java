@@ -64,6 +64,21 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 	}
 
 	@Test
+	public void testNearestNeighborSearchOnEmptyLayer() {
+		SpatialDatabaseService db = new SpatialDatabaseService(graphDb());
+		EditableLayer layer = (EditableLayer) db.createSimplePointLayer("test", "Longitude", "Latitude");
+		assertNotNull(layer);
+		
+		// finds geometries around point
+		List<SpatialDatabaseRecord> results = GeoPipeline.startNearestNeighborLatLonSearch(layer, new Coordinate(15.3, 56.2), 1.0)
+			.toSpatialDatabaseRecordList();
+		
+		// should find no results
+		assertEquals(0, results.size());
+		
+	}
+
+	@Test
 	public void testSimplePointLayer() {
 		SpatialDatabaseService db = new SpatialDatabaseService(graphDb());
 		EditableLayer layer = (EditableLayer) db.createSimplePointLayer("test", "Longitude", "Latitude");
