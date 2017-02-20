@@ -1,0 +1,95 @@
+[[spatial-procedures]]
+= Neo4j Spatial Procedures
+
+Neo4j Spatial is also packaged as a ZIP file that can be unzipped into the http://neo4j.com[Neo4j Server] `$NEO4J_HOME/plugins` directory. 
+After restarting the server, you should be able to use the following *procedure calls* from the Cypher query language.
+
+// todo auto-generate
+.Available Spatial Procedures
+[options="headers",cols="2*m"]
+|===
+|name                           |signature                                                                                                                      
+|spatial.addLayer               |spatial.addLayer(name :: STRING?, type :: STRING?, encoderConfig :: STRING?) :: (node :: NODE?)                                
+
+|spatial.addLayerWithEncoder    |spatial.addLayerWithEncoder(name :: STRING?, encoder :: STRING?, encoderConfig :: STRING?) :: (node :: NODE?)                  
+
+|spatial.addNode                |spatial.addNode(layerName :: STRING?, node :: NODE?) :: (node :: NODE?)                                                        
+
+|spatial.addNodes               |spatial.addNodes(layerName :: STRING?, nodes :: LIST? OF NODE?) :: (node :: NODE?)                                             
+
+|spatial.addPointLayer          |spatial.addPointLayer(name :: STRING?) :: (node :: NODE?)                                                                      
+
+|spatial.addPointLayerWithConfig|spatial.addPointLayerWithConfig(name :: STRING?, encoderConfig :: STRING?) :: (node :: NODE?)                                  
+
+|spatial.addPointLayerXY        |spatial.addPointLayerXY(name :: STRING?, xProperty :: STRING?, yProperty :: STRING?) :: (node :: NODE?)                        
+
+|spatial.addWKT                 |spatial.addWKT(layerName :: STRING?, geometry :: STRING?) :: (node :: NODE?)                                                   
+
+|spatial.addWKTLayer            |spatial.addWKTLayer(name :: STRING?, nodePropertyName :: STRING?) :: (node :: NODE?)                                           
+
+|spatial.addWKTs                |spatial.addWKTs(layerName :: STRING?, geometry :: LIST? OF STRING?) :: (node :: NODE?)                                         
+
+|spatial.asExternalGeometry     |spatial.asExternalGeometry(geometry :: ANY?) :: (geometry :: ANY?)                                                             
+
+|spatial.asGeometry             |spatial.asGeometry(geometry :: ANY?) :: (geometry :: ANY?)                                                                     
+
+|spatial.bbox                   |spatial.bbox(layerName :: STRING?, min :: ANY?, max :: ANY?) :: (node :: NODE?)                                                
+
+|spatial.closest                |spatial.closest(layerName :: STRING?, coordinate :: ANY?, distanceInKm :: FLOAT?) :: (node :: NODE?)                           
+
+|spatial.decodeGeometry         |spatial.decodeGeometry(layerName :: STRING?, node :: NODE?) :: (geometry :: ANY?)                                              
+
+|spatial.getFeatureAttributes   |spatial.getFeatureAttributes(name :: STRING?) :: (name :: STRING?)                                                             
+
+|spatial.importShapefile        |spatial.importShapefile(uri :: STRING?) :: (node :: NODE?)                                                                     
+
+|spatial.importShapefileToLayer |spatial.importShapefileToLayer(layerName :: STRING?, uri :: STRING?) :: (node :: NODE?)                                        
+
+|spatial.intersects             |spatial.intersects(layerName :: STRING?, geometry :: ANY?) :: (node :: NODE?)                                                  
+
+|spatial.layer                  |spatial.layer(name :: STRING?) :: (node :: NODE?)                                                                              
+
+|spatial.layerTypes             |spatial.layerTypes() :: (name :: STRING?, signature :: STRING?)                                                                
+
+|spatial.layers                 |spatial.layers() :: (name :: STRING?, signature :: STRING?)                                                                    
+
+|spatial.procedures             |spatial.procedures() :: (name :: STRING?, signature :: STRING?)                                                                
+
+|spatial.removeLayer            |spatial.removeLayer(name :: STRING?) :: VOID                                                                                   
+
+|spatial.setFeatureAttributes   |spatial.setFeatureAttributes(name :: STRING?, attributeNames :: LIST? OF STRING?) :: (node :: NODE?)                           
+
+|spatial.updateFromWKT          |spatial.updateFromWKT(layerName :: STRING?, geometry :: STRING?, geometryNodeId :: INTEGER?) :: (node :: NODE?)                
+
+|spatial.withinDistance         |spatial.withinDistance(layerName :: STRING?, coordinate :: ANY?, distanceInKm :: FLOAT?) :: (node :: NODE?, distance :: FLOAT?)
+|===
+
+////
+:leveloffset: 0
+
+include::../dev/rest-api/finding-the-plugin.asciidoc[]
+
+:leveloffset: 0
+
+include::../dev/rest-api/create-a-pointlayer.asciidoc[]
+
+:leveloffset: 0
+
+include::../dev/rest-api/create-a-wkt-layer.asciidoc[]
+
+:leveloffset: 0
+
+include::../dev/rest-api/find-layer.asciidoc[]
+
+:leveloffset: 0
+
+include::../dev/rest-api/add-a-wkt-geometry-to-a-layer.asciidoc[]
+
+:leveloffset: 0
+
+include::../dev/rest-api/update-a-wkt-geometry-in-a-layer.asciidoc[]
+
+:leveloffset: 0
+
+include::../dev/rest-api/find-geometries-close-to-a-point.asciidoc[]
+////
