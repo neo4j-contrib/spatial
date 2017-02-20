@@ -484,13 +484,13 @@ public class SpatialProceduresTest {
 
     @Test
     public void import_osm() throws Exception {
-        testCountQuery("importShapefile", "CALL spatial.importOSM('map.osm')", 55, "count", null);
+        testCountQuery("importOSM", "CALL spatial.importOSM('map.osm')", 55, "count", null);
         testCallCount(db, "CALL spatial.layers()", null, 1);
     }
 
     @Test
     public void import_osm_without_extension() throws Exception {
-        testCountQuery("importShapefile", "CALL spatial.importOSM('map.osm')", 55, "count", null);
+        testCountQuery("importOSM", "CALL spatial.importOSM('map.osm')", 55, "count", null);
         testCallCount(db, "CALL spatial.layers()", null, 1);
     }
 
@@ -499,6 +499,23 @@ public class SpatialProceduresTest {
         execute("CALL spatial.addLayer('geom','OSM','')");
         testCountQuery("importShapefileToLayer", "CALL spatial.importOSMToLayer('geom','map.osm')", 55, "count", null);
         testCallCount(db, "CALL spatial.layers()", null, 1);
+    }
+
+    @Test
+    public void import_osm_and_add_geometry() throws Exception {
+        execute("CALL spatial.addLayer('geom','OSM','')");
+        testCountQuery("importShapefileToLayer", "CALL spatial.importOSMToLayer('geom','map.osm')", 55, "count", null);
+        testCallCount(db, "CALL spatial.layers()", null, 1);
+        testCallCount(db, "CALL spatial.withinDistance('geom',{lon:6.3740429666,lat:50.93676351666},100)", null, 0);
+        testCallCount(db, "CALL spatial.withinDistance('geom',{lon:6.3740429666,lat:50.93676351666},10000)", null, 217);
+
+        // Adding a point to the layer
+        ResourceIterator<Object> nodes = db.execute("CALL spatial.addWKT('geom', 'POINT(6.3740429666 50.93676351666)') YIELD node RETURN node").columnAs("node");
+        Node node = (Node) nodes.next();
+        nodes.close();
+        testCall(db, "CALL spatial.withinDistance('geom',{lon:6.3740429666,lat:50.93676351666},100)", r -> assertEquals(node, r.get("node")));
+        testCallCount(db, "CALL spatial.withinDistance('geom',{lon:6.3740429666,lat:50.93676351666},100)", null, 1);
+        testCallCount(db, "CALL spatial.withinDistance('geom',{lon:6.3740429666,lat:50.93676351666},10000)", null, 218);
     }
 
     private void testCountQuery(String name, String query, long count, String column, Map<String,Object> params) {
