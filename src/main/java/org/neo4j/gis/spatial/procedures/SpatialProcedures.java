@@ -404,6 +404,7 @@ public class SpatialProcedures {
             return importer.importFile(shpPath, layer, Charset.defaultCharset());
         }
     }
+
     @Procedure("spatial.importOSMToLayer")
     @PerformsWrites
     public Stream<CountResult> importOSM(
@@ -446,7 +447,6 @@ public class SpatialProcedures {
                 .stream().map(GeoPipeFlow::getGeomNode).map(NodeResult::new);
     }
 
-
     @Procedure("spatial.closest")
     @PerformsWrites // TODO FIX
     public Stream<NodeResult> findClosestGeometries(
@@ -459,7 +459,6 @@ public class SpatialProcedures {
         List<SpatialTopologyUtils.PointResult> edgeResults = SpatialTopologyUtils.findClosestEdges(point, layer, distanceInKm);
         return edgeResults.stream().map(e -> e.getValue().getGeomNode()).map(NodeResult::new);
     }
-
 
     @Procedure("spatial.withinDistance")
     @PerformsWrites // TODO FIX
