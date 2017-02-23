@@ -44,7 +44,7 @@ import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.graphdb.factory.GraphDatabaseSettings;
 import org.neo4j.graphdb.mockfs.EphemeralFileSystemAbstraction;
 import org.neo4j.io.fs.FileUtils;
-import org.neo4j.test.EphemeralFileSystemRule;
+import org.neo4j.test.rule.fs.EphemeralFileSystemRule;
 import org.neo4j.unsafe.batchinsert.BatchInserter;
 import org.neo4j.unsafe.batchinsert.BatchInserters;
 
