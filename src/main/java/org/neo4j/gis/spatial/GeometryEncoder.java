@@ -60,16 +60,25 @@ public interface GeometryEncoder extends EnvelopeDecoder {
      */
     void init(Layer layer);
 
-    /**
-     * This method is called to store a geometry object to the database. It should write it to the
-     * container supplied. If the container is a node, it can be the root of an entire sub-graph.
-     * 
-     * @param geometry
-     * @param container
-     */
-    void encodeGeometry(Geometry geometry, PropertyContainer container);
+	/**
+	 * This method is called to store a bounding box for the geometry to the database. It should write it to the
+	 * container supplied. If the container is a node, it can be the root of an entire sub-graph.
+	 *
+	 * @param geometry
+	 * @param container
+	 */
+	void ensureIndexable(Geometry geometry, PropertyContainer container);
 
-    /**
+	/**
+	 * This method is called to store a geometry object to the database. It should write it to the
+	 * container supplied. If the container is a node, it can be the root of an entire sub-graph.
+	 *
+	 * @param geometry
+	 * @param container
+	 */
+	void encodeGeometry(Geometry geometry, PropertyContainer container);
+
+	/**
      * This method is called on an individual container when we need to extract the geometry. If the
      * container is a node, this could be the root of a sub-graph containing the geometry.
      * 
