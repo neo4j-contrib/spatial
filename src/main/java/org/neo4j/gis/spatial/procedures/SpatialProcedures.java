@@ -126,14 +126,6 @@ public class SpatialProcedures {
         }
     }
 
-    public static class CountResult {
-        public final long count;
-
-        public CountResult(long count) {
-            this.count = count;
-        }
-    }
-
     private static Map<String, Class> encoderClasses = new HashMap<>();
 
     static {
