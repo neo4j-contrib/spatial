@@ -231,12 +231,12 @@ public class RTreeBulkInsertTest {
      * Small model 250*250 nodes
      */
 
-    @Test
+    @Ignore // takes too long, change to @Test when benchmarking
     public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_small_10() throws FactoryException, IOException {
         insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("small"));
     }
 
-    @Test
+    @Ignore // takes too long, change to @Test when benchmarking
     public void shouldInsertManyNodesIndividuallyGreenesSplit_small_10() throws FactoryException, IOException {
         insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("small"));
     }
@@ -250,16 +250,17 @@ public class RTreeBulkInsertTest {
     public void shouldInsertManyNodesInBulkWithGreenesSplit_small_10() throws FactoryException, IOException {
         insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("small"));
     }
+
     /*
      * Small model 250*250 nodes (shallow tree)
      */
 
-    @Test
+    @Ignore // takes too long, change to @Test when benchmarking
     public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_small_100() throws FactoryException, IOException {
         insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("small"));
     }
 
-    @Test
+    @Ignore // takes too long, change to @Test when benchmarking
     public void shouldInsertManyNodesIndividuallyGreenesSplit_small_100() throws FactoryException, IOException {
         insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("small"));
     }
@@ -322,7 +323,7 @@ public class RTreeBulkInsertTest {
         insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("medium"));
     }
 
-    @Test
+    @Ignore // takes too long, change to @Test when benchmarking
     public void shouldInsertManyNodesInBulkWithQuadraticSplit_medium_100() throws FactoryException, IOException {
         insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("medium"));
     }
@@ -346,22 +347,22 @@ public class RTreeBulkInsertTest {
      * Large model 750*750 nodes (only test bulk insert, 100 and 10, green and quadratic)
      */
 
-    @Test
+    @Ignore // takes too long, change to @Test when benchmarking
     public void shouldInsertManyNodesInBulkWithQuadraticSplit_large_10() throws FactoryException, IOException {
         insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("large"));
     }
 
-    @Test
+    @Ignore // takes too long, change to @Test when benchmarking
     public void shouldInsertManyNodesInBulkWithGreenesSplit_large_10() throws FactoryException, IOException {
         insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("large"));
     }
 
-    @Test
+    @Ignore // takes too long, change to @Test when benchmarking
     public void shouldInsertManyNodesInBulkWithQuadraticSplit_large_100() throws FactoryException, IOException {
         insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("large"));
     }
 
-    @Test
+    @Ignore // takes too long, change to @Test when benchmarking
     public void shouldInsertManyNodesInBulkWithGreenesSplit_large_100() throws FactoryException, IOException {
         insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("large"));
     }
