@@ -311,12 +311,6 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         
         // index must be created *after* geometryEncoder
         this.index = new LayerRTreeIndex(spatialDatabase.getDatabase(), this);
-
-        // try determine geometry type, might use index search to detect geometries
-        Integer geometryType = getGeometryType();
-        if (geometryType != null) {
-            setGeometryType(geometryType);
-        }
     }
     
     /**

@@ -3,6 +3,7 @@ package org.neo4j.gis.spatial;
 import org.geotools.data.ResourceInfo;
 import org.geotools.data.neo4j.Neo4jSpatialDataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
+import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
@@ -17,8 +18,11 @@ import org.opengis.feature.simple.SimpleFeatureType;
 import javax.xml.stream.XMLStreamException;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.util.HashSet;
+import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertThat;
 
 public class Neo4jSpatialDataStoreTest {
@@ -73,8 +77,7 @@ public class Neo4jSpatialDataStoreTest {
         SimpleFeatureSource source = store.getFeatureSource("map");
         SimpleFeatureCollection features = source.getFeatures();
         assertThat("Expected 217 features", features.size(), equalTo(217));
-        SimpleFeature feature = features.features().next();
-        assertThat("Expected first feature to have name 'Nybrodalsvägen'", feature.getAttribute("name").toString(), equalTo("Nybrodalsvägen"));
+        assertThat("Expected there to be a feature with name 'Nybrodalsvägen'", featureNames(features), hasItem("Nybrodalsvägen"));
     }
 
     @Test
@@ -86,8 +89,17 @@ public class Neo4jSpatialDataStoreTest {
         assertThat(bounds, equalTo(new ReferencedEnvelope(12.7856667, 13.2873561, 55.9254241, 56.2179056, DefaultGeographicCRS.WGS84)));
         SimpleFeatureCollection features = source.getFeatures();
         assertThat("Expected 217 features", features.size(), equalTo(217));
-        SimpleFeature feature = features.features().next();
-        assertThat("Expected first feature to have name 'Nybrodalsvägen'", feature.getAttribute("name").toString(), equalTo("Nybrodalsvägen"));
+        assertThat("Expected there to be a feature with name 'Nybrodalsvägen'", featureNames(features), hasItem("Nybrodalsvägen"));
     }
 
+    private Set<String> featureNames(SimpleFeatureCollection features) {
+        HashSet<String> names = new HashSet<>();
+        SimpleFeatureIterator featureIterator = features.features();
+        while (featureIterator.hasNext()) {
+            SimpleFeature feature = featureIterator.next();
+            Object name = feature.getAttribute("name");
+            if (name != null) names.add(name.toString());
+        }
+        return names;
+    }
 }
