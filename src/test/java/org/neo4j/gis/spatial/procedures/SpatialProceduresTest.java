@@ -260,6 +260,28 @@ public class SpatialProceduresTest {
     }
 
     @Test
+    public void create_a_pointlayer_with_config_on_existing_wkt_layer() {
+        execute("CALL spatial.addWKTLayer('geom','wkt')");
+        try {
+            testCall(db, "CALL spatial.addPointLayerWithConfig('geom','lon:lat')", (r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
+            fail("Expected exception to be thrown");
+        } catch (Exception e) {
+            assertThat(e.getMessage(), containsString("Cannot create existing layer"));
+        }
+    }
+
+    @Test
+    public void create_a_pointlayer_with_config_on_existing_osm_layer() {
+        execute("CALL spatial.addLayer('geom','OSM','')");
+        try {
+            testCall(db, "CALL spatial.addPointLayerWithConfig('geom','lon:lat')", (r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
+            fail("Expected exception to be thrown");
+        } catch (Exception e) {
+            assertThat(e.getMessage(), containsString("Cannot create existing layer"));
+        }
+    }
+
+    @Test
     public void create_a_pointlayer() {
         testCall(db, "CALL spatial.addPointLayer('geom')", (r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
     }
@@ -446,21 +468,57 @@ public class SpatialProceduresTest {
 
     @Test
     public void import_shapefile() throws Exception {
-        testCallCount(db, "CALL spatial.importShapefile('shp/highway.shp')", null, 143);
+        testCountQuery("importShapefile", "CALL spatial.importShapefile('shp/highway.shp')", 143, "count", null);
         testCallCount(db, "CALL spatial.layers()", null, 1);
     }
 
     @Test
     public void import_shapefile_without_extension() throws Exception {
-        testCallCount(db, "CALL spatial.importShapefile('shp/highway')", null, 143);
+        testCountQuery("importShapefile", "CALL spatial.importShapefile('shp/highway')", 143, "count", null);
         testCallCount(db, "CALL spatial.layers()", null, 1);
     }
 
     @Test
     public void import_shapefile_to_layer() throws Exception {
         execute("CALL spatial.addWKTLayer('geom','wkt')");
-        testCallCount(db, "CALL spatial.importShapefileToLayer('geom','shp/highway.shp')", null, 143);
+        testCountQuery("importShapefileToLayer", "CALL spatial.importShapefileToLayer('geom','shp/highway.shp')", 143, "count", null);
         testCallCount(db, "CALL spatial.layers()", null, 1);
+    }
+
+    @Test
+    public void import_osm() throws Exception {
+        testCountQuery("importOSM", "CALL spatial.importOSM('map.osm')", 55, "count", null);
+        testCallCount(db, "CALL spatial.layers()", null, 1);
+    }
+
+    @Test
+    public void import_osm_without_extension() throws Exception {
+        testCountQuery("importOSM", "CALL spatial.importOSM('map.osm')", 55, "count", null);
+        testCallCount(db, "CALL spatial.layers()", null, 1);
+    }
+
+    @Test
+    public void import_osm_to_layer() throws Exception {
+        execute("CALL spatial.addLayer('geom','OSM','')");
+        testCountQuery("importShapefileToLayer", "CALL spatial.importOSMToLayer('geom','map.osm')", 55, "count", null);
+        testCallCount(db, "CALL spatial.layers()", null, 1);
+    }
+
+    @Test
+    public void import_osm_and_add_geometry() throws Exception {
+        execute("CALL spatial.addLayer('geom','OSM','')");
+        testCountQuery("importShapefileToLayer", "CALL spatial.importOSMToLayer('geom','map.osm')", 55, "count", null);
+        testCallCount(db, "CALL spatial.layers()", null, 1);
+        testCallCount(db, "CALL spatial.withinDistance('geom',{lon:6.3740429666,lat:50.93676351666},100)", null, 0);
+        testCallCount(db, "CALL spatial.withinDistance('geom',{lon:6.3740429666,lat:50.93676351666},10000)", null, 217);
+
+        // Adding a point to the layer
+        ResourceIterator<Object> nodes = db.execute("CALL spatial.addWKT('geom', 'POINT(6.3740429666 50.93676351666)') YIELD node RETURN node").columnAs("node");
+        Node node = (Node) nodes.next();
+        nodes.close();
+        testCall(db, "CALL spatial.withinDistance('geom',{lon:6.3740429666,lat:50.93676351666},100)", r -> assertEquals(node, r.get("node")));
+        testCallCount(db, "CALL spatial.withinDistance('geom',{lon:6.3740429666,lat:50.93676351666},100)", null, 1);
+        testCallCount(db, "CALL spatial.withinDistance('geom',{lon:6.3740429666,lat:50.93676351666},10000)", null, 218);
     }
 
     private void testCountQuery(String name, String query, long count, String column, Map<String,Object> params) {

@@ -223,17 +223,17 @@ public class OSMImporter implements Constants
         this.filterEnvelope = filterEnvelope;
     }
 
-    public void reIndex( GraphDatabaseService database )
+    public long reIndex( GraphDatabaseService database )
     {
-        reIndex( database, 10000, true, false );
+        return reIndex( database, 10000, true, false );
     }
 
-    public void reIndex( GraphDatabaseService database, int commitInterval )
+    public long reIndex( GraphDatabaseService database, int commitInterval )
     {
-        reIndex( database, commitInterval, true, false );
+        return reIndex( database, commitInterval, true, false );
     }
 
-    public void reIndex( GraphDatabaseService database, int commitInterval,
+    public long reIndex( GraphDatabaseService database, int commitInterval,
             boolean includePoints, boolean includeRelations )
     {
         if ( commitInterval < 1 )
@@ -329,6 +329,7 @@ public class OSMImporter implements Constants
                     + (1.0 * (stopTime - startTime) / 1000.0));
             stats.dumpGeomStats();
         }
+        return count;
     }
 
     private static class GeometryMetaData

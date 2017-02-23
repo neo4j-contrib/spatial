@@ -77,10 +77,11 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
      * Add the geometry encoded in the given Node. This causes the geometry to appear in the index.
      */
     public SpatialDatabaseRecord add(Node geomNode) {
-    	Geometry geometry = getGeometryEncoder().decodeGeometry(geomNode);     
-    	
-    	// add BBOX to Node if it's missing
-    	getGeometryEncoder().encodeGeometry(geometry, geomNode);
+    	Geometry geometry = getGeometryEncoder().decodeGeometry(geomNode);
+
+        // add BBOX to Node if it's missing
+        getGeometryEncoder().ensureIndexable(geometry, geomNode);
+
         index.add(geomNode);
         return new SpatialDatabaseRecord(this, geomNode, geometry);
     }

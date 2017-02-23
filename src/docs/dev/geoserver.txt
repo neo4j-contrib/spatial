@@ -1,20 +1,18 @@
-
 [[spatial-geoserver]]
-Neo4j Spatial Geoserver Plugin
-==============================
+= Neo4j Spatial Geoserver Plugin
 
 [IMPORTANT]
 Tested with: GeoServer 2.1.1
 
 [[spatial-geoserver-building]]
-== Building ==
+== Building
 
 ----
 mvn clean install
 ----
 
 [[spatial-geoserver-deployment]]
-== Deployment into Geoserver ==
+== Deployment into Geoserver
 
 * unzip the +target/xxxx-server-plugin.zip+ into $GEOSERVER_HOME/webapps/geoserver/WEB-INF/lib
 
@@ -27,7 +25,7 @@ mvn clean install
 * in Layers, do "Add new resource" and choose your Neo4j datastore to see the exisitng Neo4j Spatial layers and add them.
 
 [[spatial-geoserver-trunk]]
-== Testing in GeoServer trunk ==
+== Testing in GeoServer trunk
 
 * check out the geoserver source
 

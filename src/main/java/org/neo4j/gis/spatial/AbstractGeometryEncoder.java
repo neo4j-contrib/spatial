@@ -21,7 +21,6 @@ package org.neo4j.gis.spatial;
 
 import org.apache.commons.lang.ArrayUtils;
 import org.neo4j.gis.spatial.rtree.Envelope;
-import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.PropertyContainer;
 
@@ -46,14 +45,17 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 		container.setProperty(bboxProperty, new double[] { mbb.getMinX(), mbb.getMinY(), mbb.getMaxX(), mbb.getMaxY() });
 	}
 
-	@Override	
-	public void encodeGeometry(Geometry geometry, PropertyContainer container) {
-		container.setProperty(PROP_TYPE, encodeGeometryType(geometry.getGeometryType()));
+	@Override
+    public void ensureIndexable(Geometry geometry, PropertyContainer container) {
+        container.setProperty(PROP_TYPE, encodeGeometryType(geometry.getGeometryType()));
+        encodeEnvelope(Utilities.fromJtsToNeo4j(geometry.getEnvelopeInternal()), container);
+    }
 
-		encodeEnvelope(Utilities.fromJtsToNeo4j(geometry.getEnvelopeInternal()), container);
-
-		encodeGeometryShape(geometry, container);
-	}
+	@Override
+    public void encodeGeometry(Geometry geometry, PropertyContainer container) {
+        ensureIndexable(geometry, container);
+        encodeGeometryShape(geometry, container);
+    }
 
 	@Override
 	public Envelope decodeEnvelope(PropertyContainer container) {
