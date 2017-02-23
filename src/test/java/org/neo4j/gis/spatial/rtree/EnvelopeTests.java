@@ -19,11 +19,9 @@
  */
 package org.neo4j.gis.spatial.rtree;
 
-import org.hamcrest.Matcher;
 import org.junit.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.Assert.assertTrue;

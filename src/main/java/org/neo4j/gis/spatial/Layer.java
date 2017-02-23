@@ -26,7 +26,6 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.GeometryFactory;
 
-import java.util.Collection;
 import java.util.List;
 
 

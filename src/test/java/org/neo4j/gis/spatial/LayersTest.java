@@ -25,17 +25,10 @@ import com.vividsolutions.jts.geom.CoordinateList;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.LineString;
 
-import java.io.File;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
-import com.vividsolutions.jts.geom.*;
-import org.apache.commons.io.FileUtils;
 import org.junit.Test;
 import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
@@ -45,17 +38,7 @@ import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 
 import org.neo4j.gis.spatial.rtree.ProgressLoggingListener;
-import org.neo4j.gis.spatial.rtree.RTreeIndex;
-import org.neo4j.gis.spatial.rtree.RTreeRelationshipTypes;
 import org.neo4j.graphdb.*;
-import org.neo4j.graphdb.event.TransactionData;
-import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Random;
-import javax.measure.unit.SI;
 
 public class LayersTest extends Neo4jTestCase
 {
