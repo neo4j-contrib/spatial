@@ -76,11 +76,11 @@ public class OrthodromicDistance extends AbstractGeoPipe {
 
 	public static double calculateDistance(Coordinate reference, Coordinate point) {
 		// TODO use org.geotools.referencing.GeodeticCalculator?
-		
+
 		// d = acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon2 - lon1)) * R
-		double distanceInKm = Math.acos(Math.sin(Math.toRadians(reference.y)) * Math.sin(Math.toRadians(point.y))
+		double distanceInKm = Math.acos(Math.min(Math.sin(Math.toRadians(reference.y)) * Math.sin(Math.toRadians(point.y))
 				+ Math.cos(Math.toRadians(reference.y)) * Math.cos(Math.toRadians(point.y))
-				* Math.cos(Math.toRadians(point.x) - Math.toRadians(reference.x)))
+				* Math.cos(Math.toRadians(point.x) - Math.toRadians(reference.x)),1.0))
 				* earthRadiusInKm;
 		return distanceInKm;
 	}

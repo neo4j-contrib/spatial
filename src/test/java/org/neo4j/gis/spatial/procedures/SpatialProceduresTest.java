@@ -35,6 +35,7 @@ import java.util.function.Consumer;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.TestCase.assertFalse;
 import static org.hamcrest.CoreMatchers.containsString;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.instanceOf;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
@@ -153,6 +154,18 @@ public class SpatialProceduresTest {
         testCall(db, "CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)", r -> assertEquals(node, r.get("node")));
     }
 
+    @Test
+    // This tests issue https://github.com/neo4j-contrib/spatial/issues/298
+    public void add_node_point_layer_and_search_multiple_points_precision() {
+        execute("CALL spatial.addPointLayer('bar')");
+        execute("create (n:Point) set n={latitude: 52.2029252, longitude: 0.0905302} with n call spatial.addNode('bar', n) yield node return node");
+        execute("create (n:Point) set n={latitude: 52.202925, longitude: 0.090530} with n call spatial.addNode('bar', n) yield node return node");
+//        long countLow = execute("call spatial.withinDistance('bar', {latitude:52.202925,longitude:0.0905302}, 100) YIELD node RETURN node");
+//        assertThat("Expected two nodes when using low precision", countLow, equalTo(2L));
+        long countHigh = execute("call spatial.withinDistance('bar', {latitude:52.2029252,longitude:0.0905302}, 100) YIELD node RETURN node");
+        assertThat("Expected two nodes when using high precision", countHigh, equalTo(2L));
+    }
+
     //
     // Testing interaction between Neo4j Spatial and the Neo4j 3.0 Point type (point() and distance() functions)
     //
@@ -242,11 +255,12 @@ public class SpatialProceduresTest {
         System.out.println(distance);
     }
 
-    private void execute(String statement) {
-        Iterators.count(db.execute(statement));
+    private long execute(String statement) {
+        return Iterators.count(db.execute(statement));
     }
-    private void execute(String statement,Map<String,Object> params) {
-        Iterators.count(db.execute(statement,params));
+
+    private long execute(String statement,Map<String,Object> params) {
+        return Iterators.count(db.execute(statement,params));
     }
 
     @Test
