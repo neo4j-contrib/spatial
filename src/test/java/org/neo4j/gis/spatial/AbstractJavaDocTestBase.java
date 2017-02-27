@@ -24,6 +24,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
 import org.neo4j.cypher.internal.compiler.v3_0.prettifier.Prettifier;
+import org.neo4j.doc.tools.JavaTestDocsGenerator;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.test.*;
@@ -71,11 +72,11 @@ public abstract class AbstractJavaDocTestBase implements GraphHolder {
     public void setUp() {
         GraphDatabaseService graphdb = this.graphdb();
         GraphDatabaseServiceCleaner.cleanDatabaseContent(graphdb);
-        ((JavaTestDocsGenerator)this.gen.get()).setGraph(graphdb);
+        this.gen.get().setGraph(graphdb);
     }
 
     @After
     public void doc() {
-        ((JavaTestDocsGenerator)this.gen.get()).document("target/docs/dev", "examples");
+        this.gen.get().document("target/docs/dev", "examples");
     }
 }
