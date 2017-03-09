@@ -1156,7 +1156,10 @@ public class RTreeBulkInsertTest {
         long leafCountFactor = splitMode.equals(RTreeIndex.QUADRATIC_SPLIT) ? 20 : 2;
         long maxLeafCount = leafCountFactor * geometries / stats.maxNodeReferences;
         assertThat("In " + splitMode + " we expected leaves to be no more than " + leafCountFactor + "x(geometries/maxNodeReferences)", (long) leafMap.get("leaves"), lessThanOrEqualTo(maxLeafCount));
-        checkIndexOverlaps(layer, stats);
+        try (Transaction tx = db.beginTx()) {
+            checkIndexOverlaps(layer, stats);
+            tx.success();
+        }
     }
 
     private void restart() throws IOException {
