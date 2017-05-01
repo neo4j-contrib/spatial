@@ -25,6 +25,7 @@ import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Date;
 
 import org.geotools.data.PrjFileReader;
 import org.geotools.data.shapefile.files.ShpFileType;
@@ -205,6 +206,16 @@ public class ShapefileImporter implements Constants {
 										geometry = (Geometry) record.shape();
 										if (filterEnvelope == null || filterEnvelope.intersects(geometry.getEnvelopeInternal())) {
 											values = dbfReader.readEntry();
+                                                                                        
+                                                                                        //convert Date to String 
+                                                                                        //necessary because Neo4j doesn't support Date properties on nodes
+                                                                                        for (int k = 0; k < fieldsName.length - 1; k++){
+                                                                                            if (values[k] instanceof Date){
+                                                                                                Date aux = (Date) values[k];
+                                                                                                values[k] = aux.toString();
+                                                                                            }
+                                                                                        }
+                                                                                        
 											fields.add(recordCounter);
 											Collections.addAll(fields, values);
 											if (geometry.isEmpty()) {
