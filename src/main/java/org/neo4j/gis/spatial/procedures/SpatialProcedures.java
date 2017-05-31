@@ -44,10 +44,8 @@ import org.neo4j.kernel.api.proc.ProcedureSignature;
 import org.neo4j.kernel.impl.proc.Procedures;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.Log;
-import org.neo4j.procedure.Context;
-import org.neo4j.procedure.Name;
-import org.neo4j.procedure.PerformsWrites;
-import org.neo4j.procedure.Procedure;
+import org.neo4j.procedure.*;
+import static org.neo4j.procedure.Mode.*;
 import org.opengis.referencing.ReferenceIdentifier;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
@@ -147,6 +145,7 @@ public class SpatialProcedures {
     }
 
     @Procedure("spatial.procedures")
+    @Description("Lists all spatial procedures with name and signature")
     public Stream<NameResult> listProcedures() {
         Procedures procedures = ((GraphDatabaseAPI) db).getDependencyResolver().resolveDependency(Procedures.class);
         Stream.Builder<NameResult> builder = Stream.builder();
@@ -158,8 +157,8 @@ public class SpatialProcedures {
         return builder.build();
     }
 
-    @Procedure("spatial.layers")
-    @PerformsWrites // TODO FIX - due to lazy evaluation of index count, updated during later reads, not during writes
+    @Procedure(value="spatial.layers", mode = WRITE)
+    @Description("Returns name, and details for all layers")
     public Stream<NameResult> getAllLayers() {
         Stream.Builder<NameResult> builder = Stream.builder();
         SpatialDatabaseService spatial = wrap(db);
@@ -173,6 +172,7 @@ public class SpatialProcedures {
     }
 
     @Procedure("spatial.layerTypes")
+    @Description("Returns the different registered layer types")
     public Stream<NameResult> getAllLayerTypes() {
         Stream.Builder<NameResult> builder = Stream.builder();
         for (Map.Entry<String, String> entry : wrap(db).getRegisteredLayerTypes().entrySet()) {
@@ -181,8 +181,8 @@ public class SpatialProcedures {
         return builder.build();
     }
 
-    @Procedure("spatial.addPointLayer")
-    @PerformsWrites
+    @Procedure(value="spatial.addPointLayer", mode=WRITE)
+    @Description("Adds a new simple point layer, returns the layer root node")
     public Stream<NodeResult> addSimplePointLayer(@Name("name") String name) {
         SpatialDatabaseService sdb = wrap(db);
         Layer layer = sdb.getLayer(name);
@@ -193,8 +193,8 @@ public class SpatialProcedures {
         }
     }
 
-    @Procedure("spatial.addPointLayerXY")
-    @PerformsWrites
+    @Procedure(value="spatial.addPointLayerXY", mode=WRITE)
+    @Description("Adds a new simple point layer with the given properties for x and y coordinates, returns the layer root node")
     public Stream<NodeResult> addSimplePointLayer(
             @Name("name") String name,
             @Name("xProperty") String xProperty,
@@ -213,8 +213,8 @@ public class SpatialProcedures {
         }
     }
 
-    @Procedure("spatial.addPointLayerWithConfig")
-    @PerformsWrites
+    @Procedure(value="spatial.addPointLayerWithConfig", mode=WRITE)
+    @Description("Adds a new simple point layer with the given configuration, returns the layer root node")
     public Stream<NodeResult> addSimplePointLayer(
             @Name("name") String name,
             @Name("encoderConfig") String encoderConfig) {
@@ -231,8 +231,8 @@ public class SpatialProcedures {
         }
     }
 
-    @Procedure("spatial.addLayerWithEncoder")
-    @PerformsWrites
+    @Procedure(value="spatial.addLayerWithEncoder", mode=WRITE)
+    @Description("Adds a new layer with the given encoder class and configuration, returns the layer root node")
     public Stream<NodeResult> addLayer(
             @Name("name") String name,
             @Name("encoder") String encoderClassName,
@@ -252,8 +252,8 @@ public class SpatialProcedures {
         }
     }
 
-    @Procedure("spatial.addLayer")
-    @PerformsWrites
+    @Procedure(value="spatial.addLayer", mode=WRITE)
+    @Description("Adds a new layer with the given type (see spatial.getAllLayerTypes) and configuration, returns the layer root node")
     public Stream<NodeResult> addLayerOfType(
             @Name("name") String name,
             @Name("type") String type,
@@ -276,29 +276,28 @@ public class SpatialProcedures {
         return Stream.of(new NodeResult(node));
     }
 
-    @Procedure("spatial.addWKTLayer")
-    @PerformsWrites
+    @Procedure(value="spatial.addWKTLayer", mode=WRITE)
+    @Description("Adds a new WKT layer with the given node property to hold the WKT string, returns the layer root node")
     public Stream<NodeResult> addWKTLayer(@Name("name") String name,
                                           @Name("nodePropertyName") String nodePropertyName) {
         return addLayerOfType(name, "WKT", nodePropertyName);
     }
 
-    // todo do we need this?
-    @Procedure("spatial.layer")
-    @PerformsWrites // TODO FIX - due to lazy evaluation of index count, updated during later reads, not during writes
+    @Procedure(value="spatial.layer", mode=WRITE)
+    @Description("Returns the layer root node for the given layer name")
     public Stream<NodeResult> getLayer(@Name("name") String name) {
         return streamNode(getLayerOrThrow(name).getLayerNode());
     }
 
-    @Procedure("spatial.getFeatureAttributes")
-    @PerformsWrites
+    @Procedure(value="spatial.getFeatureAttributes", mode=WRITE)
+    @Description("Returns feature attributes of the given layer")
     public Stream<StringResult> getFeatureAttributes(@Name("name") String name) {
         Layer layer = this.getLayerOrThrow(name);
         return Arrays.asList(layer.getExtraPropertyNames()).stream().map(StringResult::new);
     }
 
-    @Procedure("spatial.setFeatureAttributes")
-    @PerformsWrites
+    @Procedure(value="spatial.setFeatureAttributes", mode=WRITE)
+    @Description("Sets the feature attributes of the given layer")
     public Stream<NodeResult> setFeatureAttributes(@Name("name") String name,
                                                    @Name("attributeNames") List<String> attributeNames) {
         EditableLayerImpl layer = this.getEditableLayerOrThrow(name);
@@ -306,40 +305,36 @@ public class SpatialProcedures {
         return streamNode(layer.getLayerNode());
     }
 
-    @Procedure("spatial.removeLayer")
-    @PerformsWrites
+    @Procedure(value="spatial.removeLayer", mode=WRITE)
+    @Description("Removes the given layer")
     public void removeLayer(@Name("name") String name) {
         wrap(db).deleteLayer(name, new ProgressLoggingListener("Deleting layer '" + name + "'", log.infoLogger()));
     }
 
-    // todo do we want to return anything ? or just a count?
-    @Procedure("spatial.addNode")
-    @PerformsWrites
+    @Procedure(value="spatial.addNode", mode=WRITE)
+    @Description("Adds the given node to the layer, returns the geometry-node")
     public Stream<NodeResult> addNodeToLayer(@Name("layerName") String name, @Name("node") Node node) {
         EditableLayer layer = getEditableLayerOrThrow(name);
         return streamNode(layer.add(node).getGeomNode());
     }
 
-    // todo do we want to return anything ? or just a count?
-    @Procedure("spatial.addNodes")
-    @PerformsWrites
+    @Procedure(value="spatial.addNodes", mode=WRITE)
+    @Description("Adds the given nodes list to the layer, returns the count")
     public Stream<CountResult> addNodesToLayer(@Name("layerName") String name, @Name("nodes") List<Node> nodes) {
         EditableLayer layer = getEditableLayerOrThrow(name);
         return Stream.of(new CountResult(layer.addAll(nodes)));
     }
 
-    // todo do we want to return anything ? or just a count?
-    @Procedure("spatial.addWKT")
-    @PerformsWrites
+    @Procedure(value="spatial.addWKT", mode=WRITE)
+    @Description("Adds the given WKT string to the layer, returns the created geometry node")
     public Stream<NodeResult> addGeometryWKTToLayer(@Name("layerName") String name, @Name("geometry") String geometryWKT) throws ParseException {
         EditableLayer layer = getEditableLayerOrThrow(name);
         WKTReader reader = new WKTReader(layer.getGeometryFactory());
         return streamNode(addGeometryWkt(layer, reader, geometryWKT));
     }
 
-    // todo do we want to return anything ? or just a count?
-    @Procedure("spatial.addWKTs")
-    @PerformsWrites
+    @Procedure(value="spatial.addWKTs", mode=WRITE)
+    @Description("Adds the given WKT string list to the layer, returns the created geometry nodes")
     public Stream<NodeResult> addGeometryWKTsToLayer(@Name("layerName") String name, @Name("geometry") List<String> geometryWKTs) throws ParseException {
         EditableLayer layer = getEditableLayerOrThrow(name);
         WKTReader reader = new WKTReader(layer.getGeometryFactory());
@@ -356,8 +351,8 @@ public class SpatialProcedures {
     }
 
     // todo do we need this procedure??
-    @Procedure("spatial.updateFromWKT")
-    @PerformsWrites
+    @Procedure(value="spatial.updateFromWKT", mode=WRITE)
+    @Description("Internal procedure, updates the geometry node with the given id with a new WKT string")
     public Stream<NodeResult> updateGeometryFromWKT(@Name("layerName") String name, @Name("geometry") String geometryWKT,
                                                     @Name("geometryNodeId") long geometryNodeId) {
         try (Transaction tx = db.beginTx()) {
@@ -374,8 +369,8 @@ public class SpatialProcedures {
         return null;
     }
 
-    @Procedure("spatial.importShapefileToLayer")
-    @PerformsWrites
+    @Procedure(value="spatial.importShapefileToLayer", mode=WRITE)
+    @Description("Imports the the provided shape-file from URI to the given layer, returns the count of data added")
     public Stream<CountResult> importShapefile(
             @Name("layerName") String name,
             @Name("uri") String uri) throws IOException {
@@ -383,8 +378,8 @@ public class SpatialProcedures {
         return Stream.of(new CountResult(importShapefileToLayer(uri, layer, 1000).size()));
     }
 
-    @Procedure("spatial.importShapefile")
-    @PerformsWrites
+    @Procedure(value="spatial.importShapefile", mode=WRITE)
+    @Description("Imports the the provided shape-file from URI to a layer of the same name, returns the count of data added")
     public Stream<CountResult> importShapefile(
             @Name("uri") String uri) throws IOException {
         return Stream.of(new CountResult(importShapefileToLayer(uri, null, 1000).size()));
@@ -405,8 +400,8 @@ public class SpatialProcedures {
         }
     }
 
-    @Procedure("spatial.importOSMToLayer")
-    @PerformsWrites
+    @Procedure(value="spatial.importOSMToLayer", mode=WRITE)
+    @Description("Imports the the provided osm-file from URI to a layer, returns the count of data added")
     public Stream<CountResult> importOSM(
             @Name("layerName") String name,
             @Name("uri") String uri) throws IOException, XMLStreamException {
@@ -414,8 +409,8 @@ public class SpatialProcedures {
         return Stream.of(new CountResult(importOSMToLayer(uri, layer, 1000)));
     }
 
-    @Procedure("spatial.importOSM")
-    @PerformsWrites
+    @Procedure(value="spatial.importOSM", mode=WRITE)
+    @Description("Imports the the provided osm-file from URI to a layer of the same name, returns the count of data added")
     public Stream<CountResult> importOSM(
             @Name("uri") String uri) throws IOException, XMLStreamException {
         return Stream.of(new CountResult(importOSMToLayer(uri, null, 1000)));
@@ -433,8 +428,8 @@ public class SpatialProcedures {
         return importer.reIndex( db, commitInterval );
     }
 
-    @Procedure("spatial.bbox")
-    @PerformsWrites // TODO FIX
+    @Procedure(value="spatial.bbox", mode=WRITE)
+    @Description("Finds all geometry nodes in the given layer within the lower left and upper right coordinates of a box")
     public Stream<NodeResult> findGeometriesInBBox(
             @Name("layerName") String name,
             @Name("min") Object min,
@@ -447,8 +442,8 @@ public class SpatialProcedures {
                 .stream().map(GeoPipeFlow::getGeomNode).map(NodeResult::new);
     }
 
-    @Procedure("spatial.closest")
-    @PerformsWrites // TODO FIX
+    @Procedure(value="spatial.closest", mode=WRITE)
+    @Description("Finds all geometry nodes in the layer within the distance to the given coordinate")
     public Stream<NodeResult> findClosestGeometries(
             @Name("layerName") String name,
             @Name("coordinate") Object coordinate,
@@ -460,8 +455,8 @@ public class SpatialProcedures {
         return edgeResults.stream().map(e -> e.getValue().getGeomNode()).map(NodeResult::new);
     }
 
-    @Procedure("spatial.withinDistance")
-    @PerformsWrites // TODO FIX
+    @Procedure(value="spatial.withinDistance", mode=WRITE)
+    @Description("Returns all geometry nodes and their ordered distance in the layer within the distance to the given coordinate")
     public Stream<NodeDistanceResult> findGeometriesWithinDistance(
             @Name("layerName") String name,
             @Name("coordinate") Object coordinate,
@@ -478,6 +473,7 @@ public class SpatialProcedures {
     }
 
     @Procedure("spatial.decodeGeometry")
+    @Description("Returns a geometry of a layer node as internal cypher geometry type, to be passed to other procedures but not returned to a client")
     // TODO: This currently returns an internal Cypher type, in order to be able to pass back into
     // other procedures that only accept internal cypher types due to a bug in Neo4j 3.0
     // If you need to return Geometries outside (eg. RETURN geometry), then consider spatial.asExternalGeometry(geometry)
@@ -490,6 +486,7 @@ public class SpatialProcedures {
     }
 
     @Procedure("spatial.asGeometry")
+    @Description("Returns a geometry object as an internal cypher geometry type, to be passed to other procedures but not returned to a client")
     // TODO: This currently returns an internal Cypher type, in order to be able to pass back into
     // other procedures that only accept internal cypher types due to a bug in Neo4j 3.0
     // If you need to return Geometries outside (eg. RETURN geometry), then consider spatial.asExternalGeometry(geometry)
@@ -500,6 +497,7 @@ public class SpatialProcedures {
     }
 
     @Procedure("spatial.asExternalGeometry")
+    @Description("Returns a geometry object as an external geometry type to be returned to a client")
     // TODO: This method only exists (and differs from spatial.asGeometry()) because of a bug in Cypher 3.0
     // Cypher will emit external geometry types but can only consume internal types. Once that bug is fixed,
     // We can make both asGeometry() and asExternalGeometry() return the same public type, and deprecate this procedure.
@@ -509,8 +507,8 @@ public class SpatialProcedures {
         return Stream.of(geometry).map(geom -> new GeometryResult(toNeo4jGeometry(null, geom)));
     }
 
-    @Procedure("spatial.intersects")
-    @PerformsWrites // TODO FIX
+    @Procedure(value="spatial.intersects", mode=WRITE)
+    @Description("Returns all geometry nodes that intersect the given geometry (shape, polygon) in the layer")
     public Stream<NodeResult> findGeometriesIntersecting(
             @Name("layerName") String name,
             @Name("geometry") Object geometry) {
