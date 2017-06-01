@@ -529,7 +529,7 @@
                                     <goal>copy-resources</goal>
                                 </goals>
                                 <configuration>
-                                    <outputDirectory>${project.build.directory}/src</outputDirectory>
+                                    <outputDirectory>${project.build.directory}/docs</outputDirectory>
                                     <resources>
                                         <resource>
                                             <directory>src/docs</directory>
