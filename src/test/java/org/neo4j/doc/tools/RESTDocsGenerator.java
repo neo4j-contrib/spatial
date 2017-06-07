@@ -522,7 +522,7 @@ public class RESTDocsGenerator extends org.neo4j.doc.tools.AsciiDocGenerator
             {
                 fw.append( org.neo4j.doc.tools.AsciiDocGenerator.dumpToSeparateFile( dir,
                         name + ".graph",
-                        AsciidocHelper.createGraphVizWithNodeId( "Final Graph",
+                        SpatialGraphVizHelper.createGraphVizWithNodeId( "Final Graph",
                                 graph, title ) ) );
                 line(fw, "" );
             }
