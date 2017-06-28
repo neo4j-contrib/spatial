@@ -70,6 +70,21 @@ public class CQLIndexReader extends LayerIndexReaderWrapper {
         this.filterEnvelope = Utilities.extractEnvelopeFromFilter(filter);
     }
 
+    private class Counter extends SpatialIndexRecordCounter {
+
+    	@Override
+        public boolean needsToVisit(Envelope indexNodeEnvelope) {
+            return queryIndexNode(indexNodeEnvelope);
+        }
+
+    	@Override
+        public void onIndexReference(Node geomNode) {
+            if (queryLeafNode(geomNode)) {
+                super.onIndexReference(geomNode);
+            }
+        }
+    }
+
     private boolean queryIndexNode(Envelope indexNodeEnvelope) {
         return filterEnvelope == null || filterEnvelope.intersects(indexNodeEnvelope);
     }
@@ -82,7 +97,9 @@ public class CQLIndexReader extends LayerIndexReaderWrapper {
 	
 	@Override
 	public int count() {
-    	return index.count();
+		Counter counter = new Counter();
+		index.visit(counter, index.getIndexRoot());
+		return counter.getResult();
 	}
 	
 	private SearchFilter wrapSearchFilter(final SearchFilter filter) {

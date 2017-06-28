@@ -46,9 +46,9 @@ import org.neo4j.graphdb.Node;
  */
 public class LayerIndexReaderWrapper implements LayerIndexReader {
 
-	protected LayerIndexReader index;
+	protected LayerTreeIndexReader index;
 
-	public LayerIndexReaderWrapper(LayerIndexReader index) {
+	public LayerIndexReaderWrapper(LayerTreeIndexReader index) {
 		this.index = index;
 	}
 

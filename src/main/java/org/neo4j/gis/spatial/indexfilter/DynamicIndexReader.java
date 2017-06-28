@@ -62,6 +62,21 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 	
 	private JSONObject query;
     
+	private class DynamicRecordCounter extends SpatialIndexRecordCounter {
+
+		@Override
+		public boolean needsToVisit(Envelope indexNodeEnvelope) {
+			return queryIndexNode(indexNodeEnvelope);
+		}
+
+		@Override
+		public void onIndexReference(Node geomNode) {
+			if (queryLeafNode(geomNode)) {
+				super.onIndexReference(geomNode);
+			}
+		}
+	}
+
 	public DynamicIndexReader(LayerTreeIndexReader index, String query) {
 		super(index);
 		this.query = (JSONObject) JSONValue.parse(query);
@@ -130,8 +145,9 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 
 	@Override
 	public int count() {
-		//TODO: Make this support a filtered count, right now it counts all unfiltered nodes
-		return index.count();
+		DynamicRecordCounter counter = new DynamicRecordCounter();
+		index.visit(counter, index.getIndexRoot());
+		return counter.getResult();
 	}
 	
 	private SearchFilter wrapSearchFilter(final SearchFilter filter) {
