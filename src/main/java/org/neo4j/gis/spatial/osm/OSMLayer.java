@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -136,7 +136,6 @@ public class OSMLayer extends DynamicLayer {
     	return removeLayerConfig(name);
     }
 
-    @SuppressWarnings("unchecked")
 	/**
 	 * <pre>
 	 * { "step": {"type": "GEOM", "direction": "INCOMING"
@@ -151,6 +150,7 @@ public class OSMLayer extends DynamicLayer {
 	 * to the way node and then to the tags node to test if the way is a
 	 * residential street.
 	 */
+	@SuppressWarnings("unchecked")
     public DynamicLayerConfig addDynamicLayerOnWayTags(String name, int type, HashMap<?,?> tags) {
 		JSONObject query = new JSONObject();
 		if (tags != null && !tags.isEmpty()) {
@@ -191,8 +191,8 @@ public class OSMLayer extends DynamicLayer {
 	 * over the naming, revert to the addDynamicLayerOnWayTags method.
 	 * The geometry is assumed to be LineString, the most common type for ways.
 	 * 
-	 * @param key
-	 * @param value
+	 * @param key key to match on way tags
+	 * @param value value to match on way tags
 	 */
 	public DynamicLayerConfig addSimpleDynamicLayer(String key, String value) {
 		return addSimpleDynamicLayer(key, value, Constants.GTYPE_LINESTRING);
@@ -204,13 +204,13 @@ public class OSMLayer extends DynamicLayer {
 	 * returned. This convenience method will automatically name the layer based
 	 * on the key/value passed, namely 'key-value'. If you want more control
 	 * over the naming, revert to the addDynamicLayerOnWayTags method.
-	 * 
-	 * @param key
-	 * @param value
+	 *
+	 * @param key key to match on way tags
+	 * @param value value to match on way tags
 	 * @param gtype type as defined in Constants.
 	 */
 	public DynamicLayerConfig addSimpleDynamicLayer(String key, String value, int gtype) {
-		HashMap<String, String> tags = new HashMap<String, String>();
+		HashMap<String, String> tags = new HashMap<>();
 		tags.put(key, value);
 		return addDynamicLayerOnWayTags(value==null ? key : key + "-" + value, gtype, tags);
 	}
@@ -229,8 +229,8 @@ public class OSMLayer extends DynamicLayer {
 	 *            String of ',' separated key=value tags to match
 	 */
 	public DynamicLayerConfig addSimpleDynamicLayer(int gtype, String tagsQuery) {
-		HashMap<String, String> tags = new HashMap<String, String>();
-		StringBuffer name = new StringBuffer();
+		HashMap<String, String> tags = new HashMap<>();
+		StringBuilder name = new StringBuilder();
 		for (String query : tagsQuery.split("\\s*\\,\\s*")) {
 			String[] fields = query.split("\\s*\\=+\\s*");
 			String key = fields[0];

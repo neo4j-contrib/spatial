@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -19,7 +19,7 @@
  */
 package org.neo4j.gis.spatial.osm;
 
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 
 import org.neo4j.gis.spatial.GeometryEncoder;
@@ -30,18 +30,15 @@ import org.neo4j.gis.spatial.SpatialDataset;
 import org.neo4j.gis.spatial.SpatialRelationshipTypes;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.traversal.Evaluation;
-import org.neo4j.graphdb.traversal.Evaluator;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
-
 
 public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Iterator<OSMDataset.Way> {
     private OSMLayer layer;
@@ -51,11 +48,6 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
     /**
      * This method is used to construct the dataset on an existing node when the node id is known,
      * which is the case with OSM importers.
-     * 
-     * @param spatialDatabase
-     * @param osmLayer
-     * @param layerNode
-     * @param datasetId
      */
     public OSMDataset(SpatialDatabaseService spatialDatabase, OSMLayer osmLayer, Node layerNode, long datasetId) {
         try (Transaction tx = spatialDatabase.getDatabase().beginTx()) {
@@ -78,10 +70,6 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
     /**
      * This method is used to construct the dataset when only the layer node is known, and the
      * dataset node needs to be searched for.
-     * 
-     * @param spatialDatabase
-     * @param osmLayer
-     * @param layerNode
      */
     public OSMDataset(SpatialDatabaseService spatialDatabase, OSMLayer osmLayer, Node layerNode) {
         try (Transaction tx = layerNode.getGraphDatabase().beginTx())
@@ -180,15 +168,8 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
 				.relationships( OSMRelation.NEXT, Direction.INCOMING )
 				.relationships( OSMRelation.FIRST_NODE, Direction.INCOMING )
 				.relationships( OSMRelation.GEOM, Direction.INCOMING )
-				.evaluator( new Evaluator()
-				{
-					@Override
-					public Evaluation evaluate( Path path )
-					{
-						return path.endNode().hasProperty( "way_osm_id" ) ? Evaluation.INCLUDE_AND_PRUNE
-																		  : Evaluation.EXCLUDE_AND_CONTINUE;
-					}
-				} );
+				.evaluator(path -> path.endNode().hasProperty( "way_osm_id" ) ? Evaluation.INCLUDE_AND_PRUNE
+                                                                  : Evaluation.EXCLUDE_AND_CONTINUE);
 		Iterator<Node> results = td.traverse( osmNodeOrWayNodeOrGeomNode ).nodes().iterator();
 		return results.hasNext() ? new Way(results.next()) : null;
 	}
@@ -198,7 +179,7 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
 		protected Node geomNode;
 		protected Geometry geometry;
 
-		public OSMNode(Node node) {
+		OSMNode(Node node) {
 			this.node = node;
 			Relationship geomRel = this.node.getSingleRelationship(OSMRelation.GEOM, Direction.OUTGOING);
 			if(geomRel != null) geomNode = geomRel.getEndNode();
@@ -208,10 +189,6 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
 			return OSMDataset.this.getWayFrom(this.node);
 		}
 
-		public Node getGeometryNode() {
-			return geomNode;
-		}
-		
 		public Geometry getGeometry() {
 			if(geometry == null && geomNode != null) {
 				geometry = layer.getGeometryEncoder().decodeGeometry(geomNode);
@@ -244,11 +221,11 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
 
 	public class Way extends OSMNode implements Iterable<WayPoint>, Iterator<WayPoint> {
 		private Iterator<Node> wayPointNodeIterator;
-		public Way(Node node) {
+		Way(Node node) {
 			super(node);
 		}
 		
-		public Iterable<Node> getWayNodes() {
+		Iterable<Node> getWayNodes() {
 			return OSMDataset.this.getWayNodes(this.node);
 		}
 		
@@ -286,11 +263,11 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
 	}
 
 	public class WayPoint extends OSMNode {
-		public WayPoint(Node node) {
+		WayPoint(Node node) {
 			super(node);
 		}
 
-		public boolean isAt(Coordinate coord) {
+		boolean isAt(Coordinate coord) {
 			return getCoordinate().equals(coord);
 		}
 
@@ -328,7 +305,7 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
     }
 
     public Iterable< ? extends Layer> getLayers() {
-        return Arrays.asList(new Layer[]{layer});
+        return Collections.singletonList(layer);
     }
 
 	public Iterable<Way> getWays() {
