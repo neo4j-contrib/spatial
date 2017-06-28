@@ -694,7 +694,7 @@
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>2.18.1</version>
                 <configuration>
-                    <argLine>-server -Xms512m -Xmx2G -XX:+UseConcMarkSweepGC</argLine>
+                    <argLine>-server -Xms512m -Xmx2G -XX:+UseConcMarkSweepGC -Djava.awt.headless=true</argLine>
                 </configuration>
             </plugin>
         </plugins>
