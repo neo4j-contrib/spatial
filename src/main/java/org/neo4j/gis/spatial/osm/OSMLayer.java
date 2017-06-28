@@ -85,7 +85,7 @@ public class OSMLayer extends DynamicLayer {
 	}
 
 	protected void clear() {
-		index.clear(new NullListener());
+		indexWriter.clear(new NullListener());
 	}
 
 	public Node addWay(Node way) {
@@ -100,7 +100,7 @@ public class OSMLayer extends DynamicLayer {
 				// This is a test of the validity of the geometry, throws exception on error
 				if (verifyGeom)
 					getGeometryEncoder().decodeGeometry(geomNode);
-				index.add(geomNode);
+				indexWriter.add(geomNode);
 			} catch (Exception e) {
 				System.err.println("Failed geometry test on node " + geomNode.getProperty("name", geomNode.toString()) + ": "
 				        + e.getMessage());
@@ -129,7 +129,7 @@ public class OSMLayer extends DynamicLayer {
      * @return iterable over geometry nodes in the dataset
      */
     public Iterable<Node> getAllGeometryNodes() {
-        return index.getAllIndexedNodes();
+        return indexReader.getAllIndexedNodes();
     }
 
     public boolean removeDynamicLayer(String name) {
@@ -207,7 +207,7 @@ public class OSMLayer extends DynamicLayer {
 	 * 
 	 * @param key
 	 * @param value
-	 * @param geometry type as defined in Constants.
+	 * @param gtype type as defined in Constants.
 	 */
 	public DynamicLayerConfig addSimpleDynamicLayer(String key, String value, int gtype) {
 		HashMap<String, String> tags = new HashMap<String, String>();
@@ -223,9 +223,9 @@ public class OSMLayer extends DynamicLayer {
 	 * want more control over the naming, revert to the addDynamicLayerOnWayTags
 	 * method.
 	 * 
-	 * @param geometry
+	 * @param gtype
 	 *            type as defined in Constants.
-	 * @param query
+	 * @param tagsQuery
 	 *            String of ',' separated key=value tags to match
 	 */
 	public DynamicLayerConfig addSimpleDynamicLayer(int gtype, String tagsQuery) {
@@ -254,7 +254,7 @@ public class OSMLayer extends DynamicLayer {
 	 * want more control over the naming, revert to the addDynamicLayerOnWayTags
 	 * method. The geometry type will be assumed to be LineString.
 	 * 
-	 * @param query
+	 * @param tagsQuery
 	 *            String of ',' separated key=value tags to match
 	 */
 	public DynamicLayerConfig addSimpleDynamicLayer(String tagsQuery) {
@@ -264,7 +264,7 @@ public class OSMLayer extends DynamicLayer {
 	/**
 	 * Add a rule for a pure way based search, with a check on geometry type only.
 	 * 
-	 * @param geometry type as defined in Constants.
+	 * @param gtype type as defined in Constants.
 	 */
 	public DynamicLayerConfig addSimpleDynamicLayer(int gtype) {
 		return addDynamicLayerOnWayTags(SpatialDatabaseService.convertGeometryTypeToName(gtype), gtype, null);

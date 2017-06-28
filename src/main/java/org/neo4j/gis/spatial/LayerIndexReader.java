@@ -22,7 +22,6 @@ package org.neo4j.gis.spatial;
 import java.util.List;
 import java.util.Set;
 
-import org.neo4j.gis.spatial.rtree.SpatialIndexReader;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 
@@ -32,10 +31,18 @@ import org.neo4j.gis.spatial.filter.SearchRecords;
  */
 public interface LayerIndexReader extends SpatialIndexReader {
 
+	/**
+	 * The index used by a layer is dynamically constructed from a property of the layer node. As such it needs to be
+	 * constructed with a default, no-arg constructor and then initialized with necessary parameters, such as the layer.
+	 *
+	 * @param layer object containing and controlling this index
+	 */
+	void init(Layer layer);
+
 	Layer getLayer();
-	
+
 	SpatialDatabaseRecord get(Long geomNodeId);
-	
+
 	List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds);
 
 	SearchRecords search(SearchFilter filter);

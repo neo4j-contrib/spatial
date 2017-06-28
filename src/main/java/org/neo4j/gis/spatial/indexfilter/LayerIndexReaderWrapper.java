@@ -38,18 +38,23 @@ import org.neo4j.graphdb.Node;
 
 /**
  * This class wraps a SpatialIndexReader instance, passing through all calls
- * transparently. This is a class that should not be used as it, as it provides
- * not additional functionality. However extending this class allows for
+ * transparently. This is a class that should not be used as is, as it provides
+ * no additional functionality. However extending this class allows for
  * wrapping an existing index and modifying its behaviour through overriding
- * only specific methods. For example, override the excecuteSearch method with a
+ * only specific methods. For example, override the executeSearch method with a
  * modification to the search parameter.
  */
 public class LayerIndexReaderWrapper implements LayerIndexReader {
 
-	protected LayerTreeIndexReader index;
+	protected LayerIndexReader index;
 
-	public LayerIndexReaderWrapper(LayerTreeIndexReader index) {
+	public LayerIndexReaderWrapper(LayerIndexReader index) {
 		this.index = index;
+	}
+
+	@Override
+	public void init(Layer layer) {
+		if (layer != getLayer()) throw new IllegalArgumentException("Cannot change layer associated with this index");
 	}
 
 	@Override

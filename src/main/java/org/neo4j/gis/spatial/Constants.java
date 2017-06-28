@@ -31,10 +31,12 @@ public interface Constants {
 	String PROP_LAYERNODEEXTRAPROPS = "layerprops";
 	String PROP_CRS = "layercrs";
 	String PROP_CREATIONTIME = "ctime";
-    String PROP_GEOMENCODER = "geomencoder";
-    String PROP_GEOMENCODER_CONFIG = "geomencoder_config";
+	String PROP_GEOMENCODER = "geomencoder";
+	String PROP_INDEX_CLASS = "index_class";
+	String PROP_GEOMENCODER_CONFIG = "geomencoder_config";
+	String PROP_INDEX_CONFIG = "index_config";
     String PROP_LAYER_CLASS = "layer_class";
-	
+
 	String PROP_TYPE = "gtype";
 	String PROP_QUERY = "query";
 	String PROP_WKB = "wkb";

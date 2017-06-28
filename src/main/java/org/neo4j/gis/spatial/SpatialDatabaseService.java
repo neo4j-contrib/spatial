@@ -197,7 +197,7 @@ public class SpatialDatabaseService implements Constants {
 			String encoderConfig = null;
 			if (xProperty != null && yProperty != null)
 				encoderConfig = xProperty + ":" + yProperty;
-			return (EditableLayer) createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, encoderConfig);
+			return (EditableLayer) createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, null, encoderConfig);
 		} else if (layer instanceof EditableLayer) {
 			return (EditableLayer) layer;
 		} else {
@@ -209,7 +209,7 @@ public class SpatialDatabaseService implements Constants {
         try (Transaction tx = database.beginTx()) {
             Layer layer = getLayer(name);
             if (layer == null) {
-                layer = createLayer(name, geometryEncoder, layerClass, config);
+                layer = createLayer(name, geometryEncoder, layerClass, null, config);
             } else if (!(layerClass == null || layerClass.isInstance(layer))) {
                 throw new SpatialDatabaseException("Existing layer '"+layer+"' is not of the expected type: "+layerClass);
             }
@@ -266,46 +266,55 @@ public class SpatialDatabaseService implements Constants {
     }
 
 	public SimplePointLayer createSimplePointLayer(String name) {
-		return createSimplePointLayer(name, null, null, null);
+		return createSimplePointLayer(name, null);
 	}
 
 	public SimplePointLayer createSimplePointLayer(String name, String xProperty, String yProperty) {
 		return createSimplePointLayer(name, xProperty, yProperty, null);
 	}
 
-	private String makeConfig(String... args) {
-		StringBuffer sb = new StringBuffer();
-		for (String arg : args) {
-			if (arg != null) {
-				if (sb.length() > 0)
-					sb.append(":");
-				sb.append(arg);
-			}
-		}
-		return sb.toString();
-	}
-	
-	public SimplePointLayer createSimplePointLayer(String name, String xProperty, String yProperty, String bboxProperty) {
-		return (SimplePointLayer) createLayer(name, SimplePointEncoder.class, SimplePointLayer.class,
-				makeConfig(xProperty, yProperty, bboxProperty), org.geotools.referencing.crs.DefaultGeographicCRS.WGS84);
-	}
+    public SimplePointLayer createSimplePointLayer(String name, String... xybProperties) {
+        return createSimplePointLayer(name, LayerRTreeIndex.class, xybProperties);
+    }
+
+    public SimplePointLayer createSimplePointLayer(String name, Class<? extends LayerIndexReader> indexClass, String... xybProperties) {
+        return (SimplePointLayer) createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, indexClass,
+                makeConfig(xybProperties), org.geotools.referencing.crs.DefaultGeographicCRS.WGS84);
+    }
+
+    private String makeConfig(String... args) {
+        StringBuffer sb = new StringBuffer();
+        if(args != null) {
+            for (String arg : args) {
+                if (arg != null) {
+                    if (sb.length() > 0)
+                        sb.append(":");
+                    sb.append(arg);
+                }
+            }
+        }
+        return sb.toString();
+    }
 
     public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass, Class<? extends Layer> layerClass) {
-    	return createLayer(name, geometryEncoderClass, layerClass, null);
+    	return createLayer(name, geometryEncoderClass, layerClass, null, null);
     }
 
-    public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass, Class<? extends Layer> layerClass, String encoderConfig) {
-    	return createLayer(name, geometryEncoderClass, layerClass, encoderConfig, null);
+    public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass,
+                             Class<? extends Layer> layerClass, Class<? extends Layer> indexClass,
+                             String encoderConfig) {
+        return createLayer(name, geometryEncoderClass, layerClass, null, encoderConfig, null);
     }
 
-	public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass, Class<? extends Layer> layerClass,
-			String encoderConfig, CoordinateReferenceSystem crs) {
+    public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass,
+                             Class<? extends Layer> layerClass, Class<? extends LayerIndexReader> indexClass,
+                             String encoderConfig, CoordinateReferenceSystem crs) {
         Transaction tx = database.beginTx();
         try {
             if (containsLayer(name))
                 throw new SpatialDatabaseException("Layer " + name + " already exists");
 
-            Layer layer = DefaultLayer.makeLayerAndNode(this, name, geometryEncoderClass, layerClass);
+            Layer layer = DefaultLayer.makeLayerAndNode(this, name, geometryEncoderClass, layerClass, indexClass);
             getSpatialRoot().createRelationshipTo(layer.getLayerNode(), SpatialRelationshipTypes.LAYER);
 			if (encoderConfig != null && encoderConfig.length() > 0) {
 				GeometryEncoder encoder = layer.getGeometryEncoder();

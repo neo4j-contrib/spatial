@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -44,6 +44,11 @@ public class SpatialIndexPerformanceProxy implements LayerIndexReader {
     }
 
     // Public methods
+
+    @Override
+    public void init(Layer layer) {
+        if (layer != getLayer()) throw new IllegalArgumentException("Cannot change layer associated with this index");
+    }
 
     public Layer getLayer() {
     	return spatialIndex.getLayer();
@@ -111,7 +116,7 @@ public class SpatialIndexPerformanceProxy implements LayerIndexReader {
 	@Override
 	public Iterable<Node> getAllIndexedNodes() {
 		long start = System.currentTimeMillis();
-		Iterable<Node> result = getAllIndexedNodes();
+		Iterable<Node> result = spatialIndex.getAllIndexedNodes();
         long stop = System.currentTimeMillis();
         System.out.println("# exec time(getAllIndexedNodes()): " + (stop - start) + "ms");		
         return result;

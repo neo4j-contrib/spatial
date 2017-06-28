@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -39,20 +39,15 @@ import org.neo4j.graphdb.Node;
  */
 public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader, Constants {
 
-    // Constructor
-    
-    public LayerRTreeIndex(GraphDatabaseService database, Layer layer) {
-        this(database, layer, 100);
+    public void init(Layer layer) {
+        init(layer, 100);
     }
-    
-    public LayerRTreeIndex(GraphDatabaseService database, Layer layer, int maxNodeReferences) {
-        super(database, layer.getLayerNode(), layer.getGeometryEncoder(), maxNodeReferences);
+
+    public void init(Layer layer, int maxNodeReferences) {
+        super.init(layer.getSpatialDatabase().getDatabase(), layer.getLayerNode(), layer.getGeometryEncoder(), maxNodeReferences);
         this.layer = layer;
     }
-    
-    
-    // Public methods
-    
+
     @Override
     public Layer getLayer() {
         return layer;
@@ -71,19 +66,19 @@ public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader,
     
     @Override
     public List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds) {
-        List<SpatialDatabaseRecord> results = new ArrayList<SpatialDatabaseRecord>();
+        List<SpatialDatabaseRecord> results = new ArrayList<>();
         for (Long geomNodeId : geomNodeIds) {
             results.add(get(geomNodeId));
         }
         return results;
     }
-        
+
     @Override
     public SearchRecords search(SearchFilter filter) {
         return new SearchRecords(layer, searchIndex(filter));
-    }    
-    
-    
+    }
+
+
     // Attributes
     private Layer layer;
 }

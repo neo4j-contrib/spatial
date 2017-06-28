@@ -17,8 +17,9 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.rtree;
+package org.neo4j.gis.spatial;
 
+import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.graphdb.Node;
 
 import java.util.List;
@@ -29,7 +30,7 @@ public interface SpatialIndexWriter extends SpatialIndexReader {
 	void add(Node geomNode);
 	void add(List<Node> geomNodes);
 
-	void remove(long geomNodeId, boolean deleteGeomNode);
+	void remove(long geomNodeId, boolean deleteGeomNode, boolean throwExceptionIfNotFound);
 	
 	void removeAll(boolean deleteGeomNodes, Listener monitor);
 	

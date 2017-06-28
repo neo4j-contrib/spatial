@@ -61,7 +61,7 @@ public class LayersTest extends Neo4jTestCase
     public void testPointLayer()
     {
         SpatialDatabaseService db = new SpatialDatabaseService( graphDb() );
-        EditableLayer layer = (EditableLayer) db.createLayer("test", SimplePointEncoder.class, EditableLayerImpl.class, "lon:lat");
+        EditableLayer layer = (EditableLayer) db.createLayer("test", SimplePointEncoder.class, EditableLayerImpl.class, null, "lon:lat");
         assertNotNull( layer );
         SpatialDatabaseRecord record = layer.add( layer.getGeometryFactory().createPoint(
                 new Coordinate( 15.3, 56.2 ) ) );
@@ -90,7 +90,7 @@ public class LayersTest extends Neo4jTestCase
     public void testDeleteGeometry()
     {
         SpatialDatabaseService db = new SpatialDatabaseService( graphDb() );
-        EditableLayer layer = (EditableLayer) db.createLayer("test", SimplePointEncoder.class, EditableLayerImpl.class, "lon:lat");
+        EditableLayer layer = (EditableLayer) db.createLayer("test", SimplePointEncoder.class, EditableLayerImpl.class, null, "lon:lat");
         assertNotNull( layer );
         SpatialDatabaseRecord record = layer.add( layer.getGeometryFactory().createPoint(
                 new Coordinate( 15.3, 56.2 ) ) );

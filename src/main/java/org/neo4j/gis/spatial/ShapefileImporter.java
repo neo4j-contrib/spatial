@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -134,12 +134,9 @@ public class ShapefileImporter implements Constants {
         GeometryFactory geomFactory = layer.getGeometryFactory();
 		ArrayList<Node> added = new ArrayList<>();
 		
-		boolean strict = false;
-		boolean shpMemoryMapped = true;
-		
 		long startTime = System.currentTimeMillis();
 		
-		ShpFiles shpFiles = null;
+		ShpFiles shpFiles;
 		try {
 			shpFiles = new ShpFiles(new File(dataset));
 		} catch (Exception e) {
@@ -150,13 +147,13 @@ public class ShapefileImporter implements Constants {
 			}
 		}
 		
-		ShapefileReader shpReader = new ShapefileReader(shpFiles, strict, shpMemoryMapped, geomFactory);
+		ShapefileReader shpReader = new ShapefileReader(shpFiles, false, true, geomFactory);
 		try {
             Class geometryClass = JTSUtilities.findBestGeometryClass(shpReader.getHeader().getShapeType());
-            Integer geometryType = SpatialDatabaseService.convertJtsClassToGeometryType(geometryClass);
+            int geometryType = SpatialDatabaseService.convertJtsClassToGeometryType(geometryClass);
 			
 			// TODO ask charset to user?
-			DbaseFileReader dbfReader = new DbaseFileReader(shpFiles, shpMemoryMapped, charset);
+			DbaseFileReader dbfReader = new DbaseFileReader(shpFiles, true, charset);
 			try {
 				DbaseFileHeader dbaseFileHeader = dbfReader.getHeader();
 	            
@@ -173,10 +170,8 @@ public class ShapefileImporter implements Constants {
 						layer.setCoordinateReferenceSystem(crs);
 					}
 
-					if (geometryType != null) {
-						layer.setGeometryType(geometryType);
-					}
-					
+					layer.setGeometryType(geometryType);
+
 					layer.mergeExtraPropertyNames(fieldsName);
 					tx.success();
 				} finally {
@@ -188,7 +183,7 @@ public class ShapefileImporter implements Constants {
 					Record record;
 					Geometry geometry;
 					Object[] values;
-                    ArrayList<Object> fields = new ArrayList<Object>();
+                    ArrayList<Object> fields = new ArrayList<>();
 					int recordCounter = 0;
 					int filterCounter = 0;
 					while (shpReader.hasNext() && dbfReader.hasNext()) {
@@ -220,7 +215,7 @@ public class ShapefileImporter implements Constants {
 										}
 									} catch (IllegalArgumentException e) {
 										// org.geotools.data.shapefile.shp.ShapefileReader.Record.shape() can throw this exception
-										log("warn | found invalid geometry: index=" + recordCounter, e);					
+										log("warn | found invalid geometry: index=" + recordCounter, e);
 									}
 								}
 							}
@@ -259,14 +254,11 @@ public class ShapefileImporter implements Constants {
 		try {
             PrjFileReader prjReader = new PrjFileReader(shpFiles.getReadChannel(ShpFileType.PRJ, shpReader));
             try {
-				return prjReader.getCoodinateSystem();
+            	return prjReader.getCoordinateReferenceSystem();
 			} finally {
 				prjReader.close();
 			}
-		} catch (IOException e) {
-			e.printStackTrace();
-			return null;
-		} catch (FactoryException e) {
+		} catch (IOException | FactoryException e) {
 			e.printStackTrace();
 			return null;
 		}

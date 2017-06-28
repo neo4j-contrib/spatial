@@ -40,7 +40,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 	public SpatialDatabaseRecord add(Geometry geometry, String[] fieldsName, Object[] fields) {
 		try (Transaction tx = getDatabase().beginTx()) {
 			Node geomNode = addGeomNode(geometry, fieldsName, fields);
-			index.add(geomNode);
+			indexWriter.add(geomNode);
 			tx.success();
 			return new SpatialDatabaseRecord(this, geomNode, geometry);
 		}
@@ -49,11 +49,11 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 	@Override
 	public void update(long geomNodeId, Geometry geometry) {
 		try (Transaction tx = getDatabase().beginTx()) {
-			index.remove(geomNodeId, false);
+			indexWriter.remove(geomNodeId, false, true);
 
 			Node geomNode = getDatabase().getNodeById(geomNodeId);
 			getGeometryEncoder().encodeGeometry(geometry, geomNode);
-			index.add(geomNode);
+			indexWriter.add(geomNode);
 			tx.success();
 		}
 	}
@@ -61,7 +61,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 	@Override
 	public void delete(long geomNodeId) {
 		try (Transaction tx = getDatabase().beginTx()) {
-			index.remove(geomNodeId, true, false);
+			indexWriter.remove(geomNodeId, true, false);
 			tx.success();
 		}
 	}
@@ -70,7 +70,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 	public void removeFromIndex(long geomNodeId) {
 		try (Transaction tx = getDatabase().beginTx()) {
 			final boolean deleteGeomNode = false;
-			index.remove(geomNodeId, deleteGeomNode, false);
+			indexWriter.remove(geomNodeId, deleteGeomNode, false);
 			tx.success();
 		}
 	}

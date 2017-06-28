@@ -227,15 +227,15 @@ public class DynamicLayerConfig implements Layer, Constants {
 	}
 
 	public LayerIndexReader getIndex() {
-		if (parent.index instanceof LayerTreeIndexReader) {
+		if (parent.indexReader instanceof LayerTreeIndexReader) {
 			String query = getQuery();
 			if (query.startsWith("{")) {
 				// Make a standard JSON based dynamic layer
-				return new DynamicIndexReader((LayerTreeIndexReader) parent.index, query);
+				return new DynamicIndexReader((LayerTreeIndexReader) parent.indexReader, query);
 			} else {
 				// Make a CQL based dynamic layer
 				try {
-					return new CQLIndexReader((LayerTreeIndexReader) parent.index, this, query);
+					return new CQLIndexReader((LayerTreeIndexReader) parent.indexReader, this, query);
 				} catch (CQLException e) {
 					throw new SpatialDatabaseException("Error while creating CQL based DynamicLayer", e);
 				}

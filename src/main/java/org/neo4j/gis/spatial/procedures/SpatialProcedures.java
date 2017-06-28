@@ -203,8 +203,7 @@ public class SpatialProcedures {
         Layer layer = sdb.getLayer(name);
         if (layer == null) {
             if (xProperty != null && yProperty != null) {
-                String encoderConfig = xProperty + ":" + yProperty;
-                return streamNode(sdb.createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, encoderConfig).getLayerNode());
+                return streamNode(sdb.createSimplePointLayer(name, xProperty, yProperty).getLayerNode());
             } else {
                 throw new IllegalArgumentException("Cannot create layer '" + name + "': Missing encoder config values: xProperty[" + xProperty + "], yProperty[" + yProperty + "]");
             }
@@ -222,7 +221,7 @@ public class SpatialProcedures {
         Layer layer = sdb.getLayer(name);
         if (layer == null) {
             if (encoderConfig.indexOf(':') > 0) {
-                return streamNode(sdb.createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, encoderConfig).getLayerNode());
+                return streamNode(sdb.createSimplePointLayer(name, encoderConfig.split(":")).getLayerNode());
             } else {
                 throw new IllegalArgumentException("Cannot create layer '" + name + "': invalid encoder config '" + encoderConfig + "'");
             }
@@ -243,7 +242,7 @@ public class SpatialProcedures {
             Class encoderClass = encoderClasses.get(encoderClassName);
             Class layerClass = sdb.suggestLayerClassForEncoder(encoderClass);
             if (encoderClass != null) {
-                return streamNode(sdb.createLayer(name, encoderClass, layerClass, encoderConfig).getLayerNode());
+                return streamNode(sdb.createLayer(name, encoderClass, layerClass, null, encoderConfig).getLayerNode());
             } else {
                 throw new IllegalArgumentException("Cannot create layer '" + name + "': invalid encoder class '" + encoderClassName + "'");
             }

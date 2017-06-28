@@ -35,15 +35,14 @@ import org.neo4j.graphdb.Node;
  */
 public class FakeIndex implements LayerIndexReader, Constants {
 
-	// Constructor
-	
 	public FakeIndex(Layer layer) {
+		init(layer);
+	}
+
+	public void init(Layer layer) {
 		this.layer = layer;
 	}
-		
-	
-	// Public methods
-	
+
 	public Layer getLayer() {
 		return layer;
 	}
