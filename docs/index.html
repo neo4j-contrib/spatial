@@ -5,7 +5,7 @@
 <!--[if IE]><meta http-equiv="X-UA-Compatible" content="IE=edge"><![endif]-->
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="generator" content="Asciidoctor 1.5.3">
-<title>Neo4j Spatial v0.23-neo4j-3.0.4</title>
+<title>Neo4j Spatial v0.24-neo4j-3.0.8</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Open+Sans:300,300italic,400,400italic,600,600italic%7CNoto+Serif:400,400italic,700,700italic%7CDroid+Sans+Mono:400,700">
 <style>
 /* Asciidoctor default stylesheet | MIT License | http://asciidoctor.org */
@@ -419,7 +419,7 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 </head>
 <body class="article toc2 toc-left">
 <div id="header">
-<h1>Neo4j Spatial v0.23-neo4j-3.0.4</h1>
+<h1>Neo4j Spatial v0.24-neo4j-3.0.8</h1>
 <div id="toc" class="toc2">
 <div id="toctitle">Table of Contents</div>
 <ul class="sectlevel1">
@@ -652,7 +652,7 @@ After restarting the server, you should be able to use the following <strong>pro
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>spatial.addNodes</code></p></td>
-<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spatial.addNodes(layerName :: STRING?, nodes :: LIST? OF NODE?) :: (count :: INTEGER?)</code></p></td>
+<td class="tableblock halign-left valign-top"><p class="tableblock"><code>spatial.addNodes(layerName :: STRING?, nodes :: LIST? OF NODE?) :: (node :: NODE?)</code></p></td>
 </tr>
 <tr>
 <td class="tableblock halign-left valign-top"><p class="tableblock"><code>spatial.addPointLayer</code></p></td>
@@ -1082,7 +1082,7 @@ After restarting the server, you should be able to do things like the following 
     label = "LAYER\n"
   ]
   N22 [
-    label = "{Node\[22\]|layer_class = \'org.neo4j.gis.spatial.SimplePointLayer\'\lgeomencoder_config = \'lon:lat\'\llayer = \'geom\'\lctime = 1485217823526\lgeomencoder = \'org.neo4j.gis.spatial.encoders.SimplePointEncoder\'\l}"
+    label = "{Node\[22\]|index_class = \'org.neo4j.gis.spatial.LayerRTreeIndex\'\llayer_class = \'org.neo4j.gis.spatial.SimplePointLayer\'\lgeomencoder_config = \'lon:lat\'\llayer = \'geom\'\lctime = 1498723875809\lgeomencoder = \'org.neo4j.gis.spatial.encoders.SimplePointEncoder\'\l}"
   ]
   N22 -&gt; N24 [
     color = "#4e9a06"
@@ -1148,8 +1148,9 @@ After restarting the server, you should be able to do things like the following 
     "labels" : [ ]
   },
   "data" : {
+    "index_class" : "org.neo4j.gis.spatial.LayerRTreeIndex",
     "geomencoder_config" : "lon:lat",
-    "ctime" : 1485217823526,
+    "ctime" : 1498723875809,
     "geomencoder" : "org.neo4j.gis.spatial.encoders.SimplePointEncoder",
     "layer_class" : "org.neo4j.gis.spatial.SimplePointLayer",
     "layer" : "geom"
@@ -1189,7 +1190,7 @@ After restarting the server, you should be able to do things like the following 
     label = "LAYER\n"
   ]
   N26 [
-    label = "{Node\[26\]|layer_class = \'org.neo4j.gis.spatial.EditableLayerImpl\'\lgeomencoder_config = \'wkt\'\llayer = \'geom\'\lctime = 1485217823593\lgeomencoder = \'org.neo4j.gis.spatial.WKTGeometryEncoder\'\l}"
+    label = "{Node\[26\]|index_class = \'org.neo4j.gis.spatial.LayerRTreeIndex\'\llayer_class = \'org.neo4j.gis.spatial.EditableLayerImpl\'\lgeomencoder_config = \'wkt\'\llayer = \'geom\'\lctime = 1498723875842\lgeomencoder = \'org.neo4j.gis.spatial.WKTGeometryEncoder\'\l}"
   ]
   N26 -&gt; N27 [
     color = "#4e9a06"
@@ -1255,8 +1256,9 @@ After restarting the server, you should be able to do things like the following 
     "labels" : [ ]
   },
   "data" : {
+    "index_class" : "org.neo4j.gis.spatial.LayerRTreeIndex",
     "geomencoder_config" : "wkt",
-    "ctime" : 1485217823593,
+    "ctime" : 1498723875842,
     "geomencoder" : "org.neo4j.gis.spatial.WKTGeometryEncoder",
     "layer_class" : "org.neo4j.gis.spatial.EditableLayerImpl",
     "layer" : "geom"
@@ -1296,7 +1298,7 @@ After restarting the server, you should be able to do things like the following 
     label = "LAYER\n"
   ]
   N17 [
-    label = "{Node\[17\]|layer_class = \'org.neo4j.gis.spatial.EditableLayerImpl\'\lgeomencoder_config = \'wkt\'\llayer = \'geom\'\lctime = 1485217823316\lgeomencoder = \'org.neo4j.gis.spatial.WKTGeometryEncoder\'\l}"
+    label = "{Node\[17\]|index_class = \'org.neo4j.gis.spatial.LayerRTreeIndex\'\llayer_class = \'org.neo4j.gis.spatial.EditableLayerImpl\'\lgeomencoder_config = \'wkt\'\llayer = \'geom\'\lctime = 1498723875708\lgeomencoder = \'org.neo4j.gis.spatial.WKTGeometryEncoder\'\l}"
   ]
   N17 -&gt; N19 [
     color = "#4e9a06"
@@ -1368,8 +1370,9 @@ After restarting the server, you should be able to do things like the following 
     "labels" : [ ]
   },
   "data" : {
+    "index_class" : "org.neo4j.gis.spatial.LayerRTreeIndex",
     "geomencoder_config" : "wkt",
-    "ctime" : 1485217823316,
+    "ctime" : 1498723875708,
     "geomencoder" : "org.neo4j.gis.spatial.WKTGeometryEncoder",
     "layer_class" : "org.neo4j.gis.spatial.EditableLayerImpl",
     "layer" : "geom"
@@ -1409,7 +1412,7 @@ After restarting the server, you should be able to do things like the following 
     label = "LAYER\n"
   ]
   N1 [
-    label = "{Node\[1\]|layer_class = \'org.neo4j.gis.spatial.EditableLayerImpl\'\lgeomencoder_config = \'wkt\'\llayer = \'geom\'\lctime = 1485217821209\lgeomencoder = \'org.neo4j.gis.spatial.WKTGeometryEncoder\'\l}"
+    label = "{Node\[1\]|index_class = \'org.neo4j.gis.spatial.LayerRTreeIndex\'\llayer_class = \'org.neo4j.gis.spatial.EditableLayerImpl\'\lgeomencoder_config = \'wkt\'\llayer = \'geom\'\lctime = 1498723875007\lgeomencoder = \'org.neo4j.gis.spatial.WKTGeometryEncoder\'\l}"
   ]
   N1 -&gt; N3 [
     color = "#4e9a06"
@@ -1521,7 +1524,7 @@ After restarting the server, you should be able to do things like the following 
     label = "LAYER\n"
   ]
   N30 [
-    label = "{Node\[30\]|layer_class = \'org.neo4j.gis.spatial.EditableLayerImpl\'\lgeomencoder_config = \'wkt\'\llayer = \'geom\'\lctime = 1485217823964\lgeomencoder = \'org.neo4j.gis.spatial.WKTGeometryEncoder\'\l}"
+    label = "{Node\[30\]|index_class = \'org.neo4j.gis.spatial.LayerRTreeIndex\'\llayer_class = \'org.neo4j.gis.spatial.EditableLayerImpl\'\lgeomencoder_config = \'wkt\'\llayer = \'geom\'\lctime = 1498723875913\lgeomencoder = \'org.neo4j.gis.spatial.WKTGeometryEncoder\'\l}"
   ]
   N30 -&gt; N32 [
     color = "#4e9a06"
@@ -1545,7 +1548,7 @@ After restarting the server, you should be able to do things like the following 
     label = "{Node\[32\]|maxNodeReferences = 100\ltotalGeometryCount = 1\l}"
   ]
   N33 [
-    label = "{Node\[33\]|gtype = 2\lbbox = \[15.3, 60.1, 16.2, 60.1\]\lwkt = \'LINESTRING (16.2 60.1, 15.3 60.1)\'\l}"
+    label = "{Node\[33\]|bbox = \[15.3, 60.1, 16.2, 60.1\]\lgtype = 2\lwkt = \'LINESTRING (16.2 60.1, 15.3 60.1)\'\l}"
   ]</pre>
 </div>
 </div>
@@ -1634,7 +1637,7 @@ After restarting the server, you should be able to do things like the following 
     label = "LAYER\n"
   ]
   N12 [
-    label = "{Node\[12\]|layer_class = \'org.neo4j.gis.spatial.EditableLayerImpl\'\lgeomencoder_config = \'wkt\'\llayer = \'geom\'\lctime = 1485217823062\lgeomencoder = \'org.neo4j.gis.spatial.WKTGeometryEncoder\'\l}"
+    label = "{Node\[12\]|index_class = \'org.neo4j.gis.spatial.LayerRTreeIndex\'\llayer_class = \'org.neo4j.gis.spatial.EditableLayerImpl\'\lgeomencoder_config = \'wkt\'\llayer = \'geom\'\lctime = 1498723875607\lgeomencoder = \'org.neo4j.gis.spatial.WKTGeometryEncoder\'\l}"
   ]
   N12 -&gt; N14 [
     color = "#4e9a06"
@@ -1981,8 +1984,7 @@ Envelope bbox = new Envelope(12.94, 12.96, 56.04, 56.06);
 <div class="listingblock">
 <div class="title">Example:</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">GeoPipeline pipeline = GeoPipeline
-.startWithinSearch(osmLayer, osmLayer.getGeometryFactory().toGeometry(new Envelope(10, 20, 50, 60)));</code></pre>
+<pre class="highlight"><code class="language-java" data-lang="java">Unresolved directive in dev/geo-pipes.txt - include::../../../src/test/java/org/neo4j/gis/spatial/pipes/GeoPipesTest.java[tags=search_within_geometry]</code></pre>
 </div>
 </div>
 </div>
@@ -1993,9 +1995,7 @@ Envelope bbox = new Envelope(12.94, 12.96, 56.04, 56.06);
 </div>
 <div class="listingblock">
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">GeoPipeline pipeline = GeoPipeline
-	.start( boxesLayer )
-	.windowIntersectionFilter(new Envelope( 0, 10, 0, 10 ) );</code></pre>
+<pre class="highlight"><code class="language-java" data-lang="java">Unresolved directive in dev/geo-pipes.txt - include::../../../src/test/java/org/neo4j/gis/spatial/pipes/GeoPipesTest.java[tags=intersecting_windows]</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2016,7 +2016,7 @@ It groups every item in the pipeline in a single item containing the geometry ou
 <div class="listingblock">
 <div class="title">Example:</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">GeoPipeline pipeline = GeoPipeline.start( intersectionLayer ).intersectAll();</code></pre>
+<pre class="highlight"><code class="language-java" data-lang="java">Unresolved directive in dev/geo-pipes.txt - include::../../../src/test/java/org/neo4j/gis/spatial/pipes/GeoPipesTest.java[tags=intersect_all]</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2036,7 +2036,7 @@ It groups every item in the pipeline in a single item containing the geometry ou
 <div class="listingblock">
 <div class="title">Example:</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">GeoPipeline pipeline = GeoPipeline.start( intersectionLayer ).unionAll();</code></pre>
+<pre class="highlight"><code class="language-java" data-lang="java">Unresolved directive in dev/geo-pipes.txt - include::../../../src/test/java/org/neo4j/gis/spatial/pipes/GeoPipesTest.java[tags=unite_all]</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2056,7 +2056,7 @@ It groups every item in the pipeline in a single item containing the geometry ou
 <div class="listingblock">
 <div class="title">Example:</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">GeoPipeline pipeline = GeoPipeline.start( boxesLayer ).extractPoints();</code></pre>
+<pre class="highlight"><code class="language-java" data-lang="java">Unresolved directive in dev/geo-pipes.txt - include::../../../src/test/java/org/neo4j/gis/spatial/pipes/GeoPipesTest.java[tags=extract_points]</code></pre>
 </div>
 </div>
 <div class="imageblock">
@@ -2073,8 +2073,7 @@ It groups every item in the pipeline in a single item containing the geometry ou
 <div class="listingblock">
 <div class="title">Example:</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">long counter  = GeoPipeline.start( osmLayer ).cqlFilter(
-                "highway is not null and geometryType(the_geom) = 'LineString'" ).count();</code></pre>
+<pre class="highlight"><code class="language-java" data-lang="java">Unresolved directive in dev/geo-pipes.txt - include::../../../src/test/java/org/neo4j/gis/spatial/pipes/GeoPipesTest.java[tags=filter_by_cql_using_complex_cql]</code></pre>
 </div>
 </div>
 </div>
@@ -2086,7 +2085,7 @@ It groups every item in the pipeline in a single item containing the geometry ou
 <div class="listingblock">
 <div class="title">Example:</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">GeoPipeline pipeline = GeoPipeline.start( boxesLayer ).toBoundary();</code></pre>
+<pre class="highlight"><code class="language-java" data-lang="java">Unresolved directive in dev/geo-pipes.txt - include::../../../src/test/java/org/neo4j/gis/spatial/pipes/GeoPipesTest.java[tags=boundary]</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2106,7 +2105,7 @@ It groups every item in the pipeline in a single item containing the geometry ou
 <div class="listingblock">
 <div class="title">Example:</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">GeoPipeline pipeline = GeoPipeline.start( boxesLayer ).toCentroid();</code></pre>
+<pre class="highlight"><code class="language-java" data-lang="java">Unresolved directive in dev/geo-pipes.txt - include::../../../src/test/java/org/neo4j/gis/spatial/pipes/GeoPipesTest.java[tags=centroid]</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2126,7 +2125,7 @@ It groups every item in the pipeline in a single item containing the geometry ou
 <div class="listingblock">
 <div class="title">Example:</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">GeoPipeline pipeline = GeoPipeline.start( concaveLayer ).toConvexHull();</code></pre>
+<pre class="highlight"><code class="language-java" data-lang="java">Unresolved directive in dev/geo-pipes.txt - include::../../../src/test/java/org/neo4j/gis/spatial/pipes/GeoPipesTest.java[tags=convex_hull]</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2146,7 +2145,7 @@ It groups every item in the pipeline in a single item containing the geometry ou
 <div class="listingblock">
 <div class="title">Example:</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">GeoPipeline pipeline = GeoPipeline.start( concaveLayer ).densify( 5 ).extractPoints();</code></pre>
+<pre class="highlight"><code class="language-java" data-lang="java">Unresolved directive in dev/geo-pipes.txt - include::../../../src/test/java/org/neo4j/gis/spatial/pipes/GeoPipesTest.java[tags=densify]</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2166,9 +2165,7 @@ It groups every item in the pipeline in a single item containing the geometry ou
 <div class="listingblock">
 <div class="title">Example:</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">GeoPipeline pipeline = GeoPipeline
-	.start( linesLayer )
-	.toEnvelope();</code></pre>
+<pre class="highlight"><code class="language-java" data-lang="java">Unresolved directive in dev/geo-pipes.txt - include::../../../src/test/java/org/neo4j/gis/spatial/pipes/GeoPipesTest.java[tags=envelope]</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2188,10 +2185,7 @@ It groups every item in the pipeline in a single item containing the geometry ou
 <div class="listingblock">
 <div class="title">Example:</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">GeoPipeline pipeline = GeoPipeline.start( boxesLayer ).createGML();
-for ( GeoPipeFlow flow : pipeline ) {
-    System.out.println(flow.getProperties().get( "GML" ));
- }</code></pre>
+<pre class="highlight"><code class="language-java" data-lang="java">Unresolved directive in dev/geo-pipes.txt - include::../../../src/test/java/org/neo4j/gis/spatial/pipes/GeoPipesTest.java[tags=export_to_gml]</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2228,9 +2222,7 @@ for ( GeoPipeFlow flow : pipeline ) {
 <div class="listingblock">
 <div class="title">Example:</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">WKTReader reader = new WKTReader( intersectionLayer.getGeometryFactory() );
-   Geometry geometry = reader.read( "POLYGON ((3 3, 3 5, 7 7, 7 3, 3 3))" );
-   GeoPipeline pipeline = GeoPipeline.start( intersectionLayer ).intersect( geometry );</code></pre>
+<pre class="highlight"><code class="language-java" data-lang="java">Unresolved directive in dev/geo-pipes.txt - include::../../../src/test/java/org/neo4j/gis/spatial/pipes/GeoPipesTest.java[tags=intersection]</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2250,10 +2242,7 @@ for ( GeoPipeFlow flow : pipeline ) {
 <div class="listingblock">
 <div class="title">Example:</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">WKTReader reader = new WKTReader( intersectionLayer.getGeometryFactory() );
-   Geometry geometry = reader.read( "POLYGON ((3 3, 3 5, 7 7, 7 3, 3 3))" );
-   SearchFilter filter = new SearchIntersectWindow( intersectionLayer, new Envelope( 7, 10, 7, 10 ) );
-   GeoPipeline pipeline = GeoPipeline.start( intersectionLayer, filter ).union( geometry );</code></pre>
+<pre class="highlight"><code class="language-java" data-lang="java">Unresolved directive in dev/geo-pipes.txt - include::../../../src/test/java/org/neo4j/gis/spatial/pipes/GeoPipesTest.java[tags=union]</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2273,9 +2262,7 @@ for ( GeoPipeFlow flow : pipeline ) {
 <div class="listingblock">
 <div class="title">Example:</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">GeoPipeline pipeline = GeoPipeline
-	.start( linesLayer )
-	.toStartPoint();</code></pre>
+<pre class="highlight"><code class="language-java" data-lang="java">Unresolved directive in dev/geo-pipes.txt - include::../../../src/test/java/org/neo4j/gis/spatial/pipes/GeoPipesTest.java[tags=start_point]</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2295,9 +2282,7 @@ for ( GeoPipeFlow flow : pipeline ) {
 <div class="listingblock">
 <div class="title">Example:</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">GeoPipeline pipeline = GeoPipeline
-	.start( linesLayer )
-	.toEndPoint();</code></pre>
+<pre class="highlight"><code class="language-java" data-lang="java">Unresolved directive in dev/geo-pipes.txt - include::../../../src/test/java/org/neo4j/gis/spatial/pipes/GeoPipesTest.java[tags=end_point]</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2317,9 +2302,7 @@ for ( GeoPipeFlow flow : pipeline ) {
 <div class="listingblock">
 <div class="title">Example:</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">GeoPipeline pipeline = GeoPipeline.start( boxesLayer )
-	.calculateArea()
-	.getMax( "Area" );</code></pre>
+<pre class="highlight"><code class="language-java" data-lang="java">Unresolved directive in dev/geo-pipes.txt - include::../../../src/test/java/org/neo4j/gis/spatial/pipes/GeoPipesTest.java[tags=max]</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2339,9 +2322,7 @@ for ( GeoPipeFlow flow : pipeline ) {
 <div class="listingblock">
 <div class="title">Example:</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">GeoPipeline pipeline = GeoPipeline.start( boxesLayer )
-	.calculateArea()
-	.getMin( "Area" );</code></pre>
+<pre class="highlight"><code class="language-java" data-lang="java">Unresolved directive in dev/geo-pipes.txt - include::../../../src/test/java/org/neo4j/gis/spatial/pipes/GeoPipesTest.java[tags=min]</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -2361,16 +2342,7 @@ for ( GeoPipeFlow flow : pipeline ) {
 <div class="listingblock">
 <div class="title">Example:</div>
 <div class="content">
-<pre class="highlight"><code class="language-java" data-lang="java">//step1
-GeoPipeline pipeline = OSMGeoPipeline.startOsm( osmLayer )
-        //step2
-	.extractOsmPoints()
-	//step3
-	.groupByDensityIslands( 0.0005 )
-	//step4
-	.toConvexHull()
-	//step5
-	.toBuffer( 0.0004 );</code></pre>
+<pre class="highlight"><code class="language-java" data-lang="java">Unresolved directive in dev/geo-pipes.txt - include::../../../src/test/java/org/neo4j/gis/spatial/pipes/GeoPipesTest.java[tags=break_up_all_geometries_into_points_and_make_density_islands]</code></pre>
 </div>
 </div>
 <div class="paragraph">
@@ -3097,7 +3069,7 @@ GeoServer seems to have trouble detecting the CRS and bounds, so we have to ente
 </div>
 <div id="footer">
 <div id="footer-text">
-Last updated 2017-01-24 00:46:16 MEZ
+Last updated 2017-06-29 11:15:52 EEST
 </div>
 </div>
 </body>
