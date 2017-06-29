@@ -28,18 +28,7 @@ import static org.neo4j.helpers.collection.MapUtil.map;
 
 public class ReferenceNodes {
 
-    private static GraphDatabaseService dbRef;
-
-    public static Node getReferenceNode(GraphDatabaseService db) {
-        return getReferenceNode(db, "rtree");
-    }
-
     public static Node getReferenceNode(GraphDatabaseService db, String name) {
-
-        if (db != dbRef) {
-            ReferenceNodes.dbRef = db;
-        }
-
         Result result = db.execute("MERGE (ref:ReferenceNode {name:{name}}) RETURN ref", map("name", name));
         return Iterators.single(result.<Node>columnAs("ref"));
     }
