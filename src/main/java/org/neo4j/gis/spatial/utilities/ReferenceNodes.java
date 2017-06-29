@@ -40,7 +40,7 @@ public class ReferenceNodes {
             ReferenceNodes.dbRef = db;
         }
 
-	Result result = db.execute("MERGE (ref:ReferenceNode {name:{name}}) RETURN ref", map("name", name));
+        Result result = db.execute("MERGE (ref:ReferenceNode {name:{name}}) RETURN ref", map("name", name));
         return Iterators.single(result.<Node>columnAs("ref"));
     }
 }
