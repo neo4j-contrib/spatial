@@ -20,29 +20,16 @@
 package org.neo4j.gis.spatial.index;
 
 import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.SimplePointLayer;
-import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
-
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 public class LayerRTreeIndexTest extends LayerIndexTestBase {
 
-    protected SimplePointLayer createSimplePointLayer(String name) {
-        return spatial.createSimplePointLayer(name, LayerRTreeIndex.class);
+    protected Class<? extends LayerIndexReader> getIndexClass() {
+        return LayerRTreeIndex.class;
     }
 
     protected SpatialIndexWriter mockLayerIndex() {
-        Node layerNode;
-        try (Transaction tx = graph.beginTx()) {
-            layerNode = graph.createNode();
-            tx.success();
-        }
-        Layer layer = mock(Layer.class);
-        when(layer.getSpatialDatabase()).thenReturn(spatial);
-        when(layer.getGeometryEncoder()).thenReturn(encoder);
-        when(layer.getLayerNode()).thenReturn(layerNode);
+        Layer layer = mockLayer();
         LayerRTreeIndex index = new LayerRTreeIndex();
         try (Transaction tx = graph.beginTx()) {
             index.init(layer);

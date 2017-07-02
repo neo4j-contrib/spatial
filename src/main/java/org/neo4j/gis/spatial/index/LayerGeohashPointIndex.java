@@ -20,7 +20,6 @@
 package org.neo4j.gis.spatial.index;
 
 import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
@@ -30,28 +29,28 @@ import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.NotFoundException;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.helpers.collection.Iterables;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 public class LayerGeohashPointIndex implements LayerIndexReader, SpatialIndexWriter {
 
     private Layer layer;
-    private String indexName;
     private Index<Node> index;
     private GraphDatabaseService graph;
+    private static final String GEOHASH_KEY = "geohash";
 
     @Override
     public void init(Layer layer) {
         this.layer = layer;
-        this.indexName = "_Spatial_Geohash_Index_" + layer.getName();
+        String indexName = "_Spatial_Geohash_Index_" + layer.getName();
         graph = layer.getSpatialDatabase().getDatabase();
-        try(Transaction tx = graph.beginTx()) {
-            index = graph.index().forNodes(this.indexName);
+        try (Transaction tx = graph.beginTx()) {
+            index = graph.index().forNodes(indexName);
             tx.success();
         }
     }
@@ -63,12 +62,16 @@ public class LayerGeohashPointIndex implements LayerIndexReader, SpatialIndexWri
 
     @Override
     public SearchRecords search(SearchFilter filter) {
-        throw new UnsupportedOperationException("Not implemented: search(SearchFilter)");
+        return new SearchRecords(layer, searchIndex(filter));
     }
 
     @Override
     public void add(Node geomNode) {
-        throw new UnsupportedOperationException("Not implemented: add(Node)");
+        index.add(geomNode, GEOHASH_KEY, getGeohash(geomNode));
+    }
+
+    private String getGeohash(Node geomNode) {
+        return "X";
     }
 
     @Override
@@ -80,7 +83,22 @@ public class LayerGeohashPointIndex implements LayerIndexReader, SpatialIndexWri
 
     @Override
     public void remove(long geomNodeId, boolean deleteGeomNode, boolean throwExceptionIfNotFound) {
-        throw new UnsupportedOperationException("Not implemented: remove(...)");
+        try (Transaction tx = graph.beginTx()) {
+            try {
+                Node geomNode = graph.getNodeById(geomNodeId);
+                if (geomNode != null) {
+                    index.remove(geomNode);
+                    if (deleteGeomNode) {
+                        geomNode.delete();
+                    }
+                }
+            } catch (NotFoundException nfe) {
+                if (throwExceptionIfNotFound) {
+                    throw nfe;
+                }
+            }
+            tx.success();
+        }
     }
 
     @Override
@@ -90,12 +108,12 @@ public class LayerGeohashPointIndex implements LayerIndexReader, SpatialIndexWri
 
     @Override
     public void clear(Listener monitor) {
-
+        throw new UnsupportedOperationException("Not implemented: removeAll(...)");
     }
 
     @Override
     public EnvelopeDecoder getEnvelopeDecoder() {
-        return null;
+        return layer.getGeometryEncoder();
     }
 
     @Override
@@ -125,7 +143,7 @@ public class LayerGeohashPointIndex implements LayerIndexReader, SpatialIndexWri
 
     @Override
     public SearchResults searchIndex(SearchFilter filter) {
-        throw new UnsupportedOperationException("Not implemented: searchIndex(SearchFilter)");
+        return new SearchResults(index.query(GEOHASH_KEY, "X"));
     }
 
     @Override
