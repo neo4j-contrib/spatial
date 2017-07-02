@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -21,6 +21,7 @@ package org.neo4j.gis.spatial;
 
 import java.util.*;
 
+import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
 import org.neo4j.gis.spatial.rtree.TreeMonitor;
@@ -28,7 +29,6 @@ import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.graphdb.Node;
-
 
 /**
  * @author Davide Savazzi
@@ -83,7 +83,7 @@ public class FakeIndex implements LayerIndexReader, Constants {
 	}
 	
     public List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds) {
-    	List<SpatialDatabaseRecord> results = new ArrayList<SpatialDatabaseRecord>();
+    	List<SpatialDatabaseRecord> results = new ArrayList<>();
 
     	for (Long geomNodeId : geomNodeIds) {
     		results.add(get(geomNodeId));
@@ -118,7 +118,7 @@ public class FakeIndex implements LayerIndexReader, Constants {
 		private Node nextNode;
 		private Iterator<Node> nodes;
 
-		public NodeFilter(SearchFilter filter, Iterable<Node> nodes) {
+		NodeFilter(SearchFilter filter, Iterable<Node> nodes) {
 			this.filter = filter;
 			this.nodes = nodes.iterator();
 			nextNode = getNextNode();

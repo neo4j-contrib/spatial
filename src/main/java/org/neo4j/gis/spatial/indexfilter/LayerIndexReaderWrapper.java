@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -19,9 +19,7 @@
  */
 package org.neo4j.gis.spatial.indexfilter;
 
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
@@ -29,9 +27,8 @@ import org.neo4j.gis.spatial.rtree.TreeMonitor;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.LayerIndexReader;
-import org.neo4j.gis.spatial.LayerTreeIndexReader;
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import org.neo4j.gis.spatial.index.LayerIndexReader;
+import org.neo4j.gis.spatial.index.LayerTreeIndexReader;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.graphdb.Node;
 
@@ -75,16 +72,6 @@ public class LayerIndexReaderWrapper implements LayerIndexReader {
 	@Override
 	public boolean isNodeIndexed(Long nodeId) {
 		return index.isNodeIndexed(nodeId);
-	}
-
-	@Override
-	public SpatialDatabaseRecord get(Long geomNodeId) {
-		return index.get(geomNodeId);
-	}
-
-	@Override
-	public List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds) {
-		return index.get(geomNodeIds);
 	}
 
 	@Override

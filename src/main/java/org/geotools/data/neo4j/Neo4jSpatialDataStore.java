@@ -337,9 +337,7 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 				records = null;
 			} else if (filter instanceof FidFilterImpl) {
 				// filter by Feature unique id
-				List<SpatialDatabaseRecord> results = layer.getIndex().get(convertToGeomNodeIds((FidFilterImpl) filter));
-				System.out.println("found results for FidFilter: " + results.size());
-				records = results.iterator();
+				throw new UnsupportedOperationException("Unsupported use of FidFilterImpl in Neo4jSpatialDataStore");
 			} else {
 				records = layer.getIndex().search(new SearchCQL(layer, filter));
 			}
@@ -439,25 +437,6 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
         return (EditableLayer) layer;
 	}
 
-	private Set<Long> convertToGeomNodeIds(FidFilterImpl fidFilter) {
-		Set<Long> nodeIds = new HashSet<Long>();
-		
-		Set<String> ids = fidFilter.getIDs();
-		for (String id : ids) {
-			if (newSimpleFeatures.containsKey(id)) {
-				nodeIds.add(newSimpleFeatures.get(id));				
-			} else {
-				try {
-					nodeIds.add(new Long(id));
-				} catch (NumberFormatException e) {
-					System.out.println("Neo4j Invalid FID: " + id);
-				}
-			}
-		}		
-		
-		return nodeIds;
-	}
-	
 	/**
 	 * Try to create an optimized FeatureWriter for the given Filter.
 	 */
@@ -485,6 +464,4 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 	private Map<String,SimpleFeatureSource> featureSourceIndex = Collections.synchronizedMap(new HashMap<String,SimpleFeatureSource>());
 	private GraphDatabaseService database;
 	private SpatialDatabaseService spatialDatabase;
-	
-	private Map<String,Long> newSimpleFeatures = new HashMap<String,Long>();
 }

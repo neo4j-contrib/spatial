@@ -607,24 +607,6 @@ public class SpatialProceduresTest {
     /*
 
     @Test
-    @Documented("update_a_WKT_geometry_in_a_layer")
-    public void update_a_WKT_geometry_in_a_layer() throws Exception {
-        data.get();
-        String geom = "geom";
-        String response = post(Status.OK, "{\"layer\":\"" + geom + "\", \"format\":\"WKT\",\"nodePropertyName\":\"wkt\"}", ENDPOINT + "/graphdb/addEditableLayer");
-        String wkt = "LINESTRING (15.2 60.1, 15.3 60.1)";
-        String wkt2 = "LINESTRING (16.2 60.1, 15.3 60.1)";
-        response = post(Status.OK, "{\"layer\":\"" + geom + "\", \"geometry\":\"" + wkt + "\"}", ENDPOINT + "/graphdb/addGeometryWKTToLayer");
-        String self = (String) ((JSONObject) ((JSONArray) new JSONParser().parse(response)).get(0)).get("self");
-        String geomId = self.substring(self.lastIndexOf("/") + 1);
-        response = post(Status.OK, "{\"layer\":\"" + geom + "\", \"geometry\":\"" + wkt2 + "\",\"geometryNodeId\":" + geomId + "}", ENDPOINT + "/graphdb/updateGeometryFromWKT");
-
-        assertTrue(response.contains(wkt2));
-        assertTrue(response.contains("http://localhost:" + PORT + "/db/data/node/" + geomId));
-
-    }
-
-    @Test
     public void find_geometries_within__distance() throws Exception {
         data.get();
         String response = post(Status.OK, "{\"layer\":\"geom\", \"lat\":\"lat\", \"lon\":\"lon\"}", ENDPOINT + "/graphdb/addSimplePointLayer");

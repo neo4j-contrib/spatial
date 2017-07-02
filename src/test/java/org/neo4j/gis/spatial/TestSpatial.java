@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.geotools.data.shapefile.shp.ShapefileException;
+import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.gis.spatial.filter.SearchIntersect;

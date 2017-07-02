@@ -19,10 +19,9 @@
  */
 package org.neo4j.gis.spatial;
 
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
+import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
 import org.neo4j.gis.spatial.rtree.TreeMonitor;
@@ -30,7 +29,6 @@ import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.graphdb.Node;
-
 
 /**
  * @author Davide Savazzi
@@ -69,23 +67,7 @@ public class SpatialIndexPerformanceProxy implements LayerIndexReader {
         System.out.println("# exec time(count): " + (stop - start) + "ms");
         return count;
     }
-    
-    public SpatialDatabaseRecord get(Long geomNodeId) {
-        long start = System.currentTimeMillis();
-        SpatialDatabaseRecord result = spatialIndex.get(geomNodeId);
-        long stop = System.currentTimeMillis();
-        System.out.println("# exec time(get(" + geomNodeId + ")): " + (stop - start) + "ms");    	
-        return result;    	
-    }
-    
-    public List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds) {
-        long start = System.currentTimeMillis();
-        List<SpatialDatabaseRecord> result = spatialIndex.get(geomNodeIds);
-        long stop = System.currentTimeMillis();
-        System.out.println("# exec time(get(" + geomNodeIds + ")): " + (stop - start) + "ms");    	
-        return result;
-    }
- 
+
     public Iterable<Node> getAllGeometryNodes() {
 	    return spatialIndex.getAllIndexedNodes();
     }

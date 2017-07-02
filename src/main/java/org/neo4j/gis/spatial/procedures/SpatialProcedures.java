@@ -354,25 +354,6 @@ public class SpatialProcedures {
         }
     }
 
-    // todo do we need this procedure??
-    @Procedure("spatial.updateFromWKT")
-    @PerformsWrites
-    public Stream<NodeResult> updateGeometryFromWKT(@Name("layerName") String name, @Name("geometry") String geometryWKT,
-                                                    @Name("geometryNodeId") long geometryNodeId) {
-        try (Transaction tx = db.beginTx()) {
-            EditableLayer layer = getEditableLayerOrThrow(name);
-            WKTReader reader = new WKTReader(layer.getGeometryFactory());
-            Geometry geometry = reader.read(geometryWKT);
-            SpatialDatabaseRecord record = layer.getIndex().get(geometryNodeId);
-            layer.getGeometryEncoder().encodeGeometry(geometry, record.getGeomNode());
-            tx.success();
-            return streamNode(record.getGeomNode());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
     @Procedure("spatial.importShapefileToLayer")
     @PerformsWrites
     public Stream<CountResult> importShapefile(

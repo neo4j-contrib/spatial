@@ -22,6 +22,8 @@ package org.neo4j.gis.spatial;
 import java.util.*;
 
 import org.geotools.referencing.crs.DefaultGeographicCRS;
+import org.neo4j.gis.spatial.index.LayerIndexReader;
+import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.utilities.LayerUtilities;

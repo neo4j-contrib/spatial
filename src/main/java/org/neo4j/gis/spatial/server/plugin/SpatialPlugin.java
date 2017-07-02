@@ -179,27 +179,6 @@ public class SpatialPlugin extends ServerPlugin {
     }
 
     @PluginTarget(GraphDatabaseService.class)
-    @Description("update an existing geometry specified in WKT format. The layer must already contain the record.")
-    public Iterable<Node> updateGeometryFromWKT(@Source GraphDatabaseService db,
-                                                @Description("The geometry in WKT to add to the layer") @Parameter(name = "geometry") String geometryWKT,
-                                                @Description("The geometry node id") @Parameter(name = "geometryNodeId") long geometryNodeId,
-                                                @Description("The layer to add the node to.") @Parameter(name = "layer") String layer) {
-        SpatialDatabaseService spatialService = getSpatialDatabaseService(db);
-        try (Transaction tx = db.beginTx()) {
-            EditableLayer spatialLayer = (EditableLayer) spatialService.getLayer(layer);
-            WKTReader reader = new WKTReader(spatialLayer.getGeometryFactory());
-            Geometry geometry = reader.read(geometryWKT);
-            SpatialDatabaseRecord record = spatialLayer.getIndex().get(geometryNodeId);
-            spatialLayer.getGeometryEncoder().encodeGeometry(geometry, record.getGeomNode());
-            tx.success();
-            return singleton(record.getGeomNode());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    @PluginTarget(GraphDatabaseService.class)
     @Description("search a layer for geometries in a bounding box. To achieve more complex CQL searches, pre-define the dynamic layer with addCQLDynamicLayer.")
     public Iterable<Node> findGeometriesInBBox(
             @Source GraphDatabaseService db,

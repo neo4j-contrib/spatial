@@ -20,6 +20,8 @@
 package org.neo4j.gis.spatial.utilities;
 
 import org.neo4j.gis.spatial.*;
+import org.neo4j.gis.spatial.index.LayerIndexReader;
+import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.graphdb.Node;
 
 /**

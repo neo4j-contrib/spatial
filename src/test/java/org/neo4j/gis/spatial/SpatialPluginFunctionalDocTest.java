@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -19,18 +19,12 @@
  */
 package org.neo4j.gis.spatial;
 
-import static junit.framework.Assert.assertEquals;
-import static junit.framework.TestCase.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
 import javax.ws.rs.core.Response.Status;
 
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -41,7 +35,6 @@ import org.junit.Test;
 
 import org.neo4j.doc.tools.AbstractRestFunctionalTestBase;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Result;
 import org.neo4j.helpers.HostnamePort;
 import org.neo4j.kernel.impl.annotations.Documented;
 import org.neo4j.server.NeoServer;
@@ -177,28 +170,6 @@ public class SpatialPluginFunctionalDocTest extends AbstractRestFunctionalTestBa
         String wkt = "LINESTRING (15.2 60.1, 15.3 60.1)";
         response = post(Status.OK,"{\"layer\":\""+geom+ "\", \"geometry\":\"" + wkt + "\"}", ENDPOINT+ "/graphdb/addGeometryWKTToLayer");
         assertTrue(response.contains(wkt));
-
-    }
-
-    /**
-     * Update a geometry, encoded in WKT, on an existing geometry in a layer.
-     */
-    @Test
-    @Documented("update_a_WKT_geometry_in_a_layer")
-    public void update_a_WKT_geometry_in_a_layer() throws Exception
-    {
-        data.get();
-        String geom = "geom";
-        String response = post(Status.OK,"{\"layer\":\""+geom+"\", \"format\":\"WKT\",\"nodePropertyName\":\"wkt\"}", ENDPOINT + "/graphdb/addEditableLayer");
-        String wkt = "LINESTRING (15.2 60.1, 15.3 60.1)";
-        String wkt2 = "LINESTRING (16.2 60.1, 15.3 60.1)";
-        response = post(Status.OK,"{\"layer\":\""+geom+ "\", \"geometry\":\"" + wkt + "\"}", ENDPOINT+ "/graphdb/addGeometryWKTToLayer");
-        String self = (String) ((JSONObject)((JSONArray) new JSONParser().parse(response)).get(0)).get("self");
-        String geomId=self.substring(self.lastIndexOf("/")+1);
-        response = post(Status.OK,"{\"layer\":\""+geom+ "\", \"geometry\":\"" + wkt2 + "\",\"geometryNodeId\":"+geomId+"}", ENDPOINT+ "/graphdb/updateGeometryFromWKT");
-
-        assertTrue(response.contains(wkt2));
-        assertTrue(response.contains("http://localhost:"+PORT+"/db/data/node/"+geomId));
 
     }
 
