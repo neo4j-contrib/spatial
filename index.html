@@ -452,72 +452,10 @@ body.book #toc,body.book #preamble,body.book h1.sect0,body.book .sect1>h2{page-b
 In particular you can add spatial indexes to already located data, and perform spatial operations on the data like searching for data within specified regions or within a specified distance of a point of interest.
 In addition classes are provided to expose the data to GeoTools and thereby to GeoTools-enabled applications like GeoServer and uDig.</p>
 </div>
-<div class="imageblock">
-<div class="content">
-<img src="0.24-neo4j-3.1/images/one-street.png" alt="one street">
-</div>
-</div>
-<div class="paragraph">
-<p>The key features include:</p>
-</div>
-<div class="ulist">
-<ul>
-<li>
-<p>Utilities for importing from ESRI Shapefile as well as Open Street Map files</p>
-</li>
-<li>
-<p>Support for all the common geometry types: Point, LineString, Polygon, etc.</p>
-</li>
-<li>
-<p>An RTree index for fast searches on geometries</p>
-</li>
-<li>
-<p>Support for topology operations during the search (contains, within, intersects, covers, disjoint, etc.)</p>
-</li>
-<li>
-<p>The possibility to enable spatial operations on any graph of data, regardless of the way the spatial data is stored, as long as an adapter is provided to map from the graph to the geometries.</p>
-</li>
-<li>
-<p>Ability to split a single layer or dataset into multiple sub-layers or views with pre-configured filters</p>
-</li>
-</ul>
-</div>
-<div class="sect2">
-<h3 id="_get_started">Get Started</h3>
-<div class="paragraph">
-<p>The easiest way to get started with neo4j-spatial is to grab the <code>server-plugin-*.jar</code> from <a href="https://github.com/neo4j-contrib/spatial/releases">the latest release</a>, copy it to your <code>$NEO4J_HOME/plugins</code> and restart your Neo4j server.</p>
-</div>
-<div class="paragraph">
-<p>From there you can use all the <a href="#spatial-procedures">Neo4j Spatial Procedures</a> in your Cypher queries to add Nodes to the spatial index and perform a number of spatial point, distance and intersection queries.</p>
-</div>
-<div class="listingblock">
-<div class="title">Simple Example</div>
-<div class="content">
-<pre class="highlight"><code class="language-cypher" data-lang="cypher">CALL spatial.addPointLayer('geom');
-CALL spatial.layers();
-
-CREATE (n:Node {latitude:60.1,longitude:15.2})
-WITH n
-CALL spatial.addNode('geom',n) YIELD node
-RETURN node;
-
-CALL spatial.bbox('geom',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0});</code></pre>
-</div>
-</div>
-<div class="paragraph">
-<p>A good example blog post for how to use them with one of the neo4j drivers, is <a href="http://www.lyonwj.com/2016/08/09/neo4j-spatial-procedures-congressional-boundaries/">Spatial Procedures in Legis Graph</a> by <a href="http://twitter.com/lyonwj">William Lyon</a> (<a href="http://www.lyonwj.com/2016/03/21/legis-graph-spatial-indexing/">Part 1</a>).</p>
-</div>
-<div class="paragraph">
-<p><a href="http://twitter.com/maxdemarzi">Max de Marzi</a> explains <a href="#spatial-server-plugin">Using the Neo4j Spatial Server plugin</a> in his <a href="https://maxdemarzi.com/2014/02/11/neo4j-spatial-part-2/">two-part blog post around restaurant recommendations</a>.</p>
-</div>
-<div class="paragraph">
-<p>An general introduction to Neo4j Spatial and a simple example on how to use the Spatial Java APIs can be found in this <a href="https://neo4j.com/blog/neo4j-spatial-part1-finding-things-close-to-other-things/">blog post</a> by <a href="http://twitter.com/craigtaverner">Craig Taverner</a>.</p>
-</div>
-</div>
 </div>
 </div>
 <div class="sect1">
-<h2 id="spatial-indexing">Documentation for different versions</h2>
+<h2 id="spatial-indexing">Documentation</h2>
 <div class="sectionbody">
 <div class="paragraph">
 <p>
