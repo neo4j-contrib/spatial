@@ -1,5 +1,0 @@
-Neo4j Spatial
-
-    Neo4j Spatial is a library of utilities for Neo4j that facilitates the enabling of spatial operations on data.
-    In particular you can add spatial indexes to already located data, and perform spatial operations on the data like searching for data within specified regions or within a specified distance of a point of interest.
-    In addition classes are provided to expose the data to geotools and thereby to geotools enabled applications like geoserver and uDig.
