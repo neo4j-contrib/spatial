@@ -1,0 +1,14 @@
+= Appendix: Integrations
+
+:leveloffset: 1
+
+include::udig.txt[]
+
+:leveloffset: 1
+
+include::geoserver.txt[]
+
+:leveloffset: 1
+
+include::geoserver2.txt[]
+
