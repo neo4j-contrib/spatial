@@ -19,12 +19,16 @@
  */
 package org.neo4j.gis.spatial.index;
 
+import com.vividsolutions.jts.geom.Geometry;
+import com.vividsolutions.jts.geom.Point;
+import org.apache.lucene.spatial.util.GeoHashUtils;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
 import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.TreeMonitor;
+import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -71,7 +75,10 @@ public class LayerGeohashPointIndex implements LayerIndexReader, SpatialIndexWri
     }
 
     private String getGeohash(Node geomNode) {
-        return "X";
+        //TODO: Make this code projection aware - currently it assumes lat/lon
+        Geometry geom = layer.getGeometryEncoder().decodeGeometry(geomNode);
+        Point point = geom.getCentroid();   // Other code is ensuring only point layers use this, but just in case we encode the centroid
+        return GeoHashUtils.stringEncode(point.getX(), point.getY());
     }
 
     @Override
@@ -143,7 +150,28 @@ public class LayerGeohashPointIndex implements LayerIndexReader, SpatialIndexWri
 
     @Override
     public SearchResults searchIndex(SearchFilter filter) {
-        return new SearchResults(index.query(GEOHASH_KEY, "X"));
+        return new SearchResults(index.query(GEOHASH_KEY, determineGeohashPrefix(filter)));
+    }
+
+    private String greatestCommonPrefix(String a, String b) {
+        int minLength = Math.min(a.length(), b.length());
+        for (int i = 0; i < minLength; i++) {
+            if (a.charAt(i) != b.charAt(i)) {
+                return a.substring(0, i);
+            }
+        }
+        return a.substring(0, minLength);
+    }
+
+    private String determineGeohashPrefix(SearchFilter filter) {
+        if (filter instanceof AbstractSearchEnvelopeIntersection) {
+            Envelope referenceEnvelope = ((AbstractSearchEnvelopeIntersection) filter).getReferenceEnvelope();
+            String maxHash = GeoHashUtils.stringEncode(referenceEnvelope.getMaxX(), referenceEnvelope.getMaxY());
+            String minHash = GeoHashUtils.stringEncode(referenceEnvelope.getMinX(), referenceEnvelope.getMinY());
+            return greatestCommonPrefix(minHash, maxHash) + "*";
+        } else {
+            throw new UnsupportedOperationException("Geohash Index only supports searches based on AbstractSearchEnvelopeIntersection, not " + filter.getClass().getCanonicalName());
+        }
     }
 
     @Override

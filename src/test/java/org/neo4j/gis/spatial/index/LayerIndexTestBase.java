@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial.index;
 
 import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.Point;
 import org.junit.Before;
@@ -29,6 +30,7 @@ import org.neo4j.gis.spatial.SimplePointLayer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
+import org.neo4j.gis.spatial.filter.SearchIntersectWindow;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.rtree.filter.SearchAll;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
@@ -38,6 +40,8 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.test.TestGraphDatabaseFactory;
 
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -65,6 +69,7 @@ public abstract class LayerIndexTestBase {
         when(layer.getSpatialDatabase()).thenReturn(spatial);
         when(layer.getGeometryEncoder()).thenReturn(encoder);
         when(layer.getLayerNode()).thenReturn(layerNode);
+        when(layer.getGeometryFactory()).thenReturn(geometryFactory);
         return layer;
     }
 
@@ -72,8 +77,8 @@ public abstract class LayerIndexTestBase {
         try (Transaction tx = graph.beginTx()) {
             Node geomNode = graph.createNode();
             Point point = geometryFactory.createPoint(new Coordinate(x, y));
-            geomNode.setProperty("x", 1.0D);
-            geomNode.setProperty("y", 1.0D);
+            geomNode.setProperty("x", x);
+            geomNode.setProperty("y", y);
             encoder.encodeGeometry(point, geomNode);
             index.add(geomNode);
             tx.success();
@@ -111,9 +116,24 @@ public abstract class LayerIndexTestBase {
         SpatialIndexWriter index = mockLayerIndex();
         addSimplePoint(index, 1.0, 1.0);
         try (Transaction tx = graph.beginTx()) {
-            SearchResults results = index.searchIndex(new SearchAll());
-//            assertThat("Index should contain one result", results.count(), equalTo(1));
-            assertThat("Should find correct Geometry", encoder.decodeGeometry(results.iterator().next()), equalTo(geometryFactory.createPoint(new Coordinate(1.0, 1.0))));
+            SearchResults results = index.searchIndex(new SearchIntersectWindow(((LayerIndexReader)index).getLayer(), new Envelope(0.0, 2.0, 0.0, 2.0)));
+            List<Node> nodes = StreamSupport.stream(results.spliterator(), false).collect(Collectors.toList());
+            assertThat("Index should contain one result", nodes.size(), equalTo(1));
+            assertThat("Should find correct Geometry", encoder.decodeGeometry(nodes.get(0)), equalTo(geometryFactory.createPoint(new Coordinate(1.0, 1.0))));
+            tx.success();
+        }
+    }
+
+    @Test
+    public void shouldFindOnlyOneOfTwoNodesAddedDirectlyToIndex() {
+        SpatialIndexWriter index = mockLayerIndex();
+        addSimplePoint(index, 10.0, 10.0);
+        addSimplePoint(index, 1.0, 1.0);
+        try (Transaction tx = graph.beginTx()) {
+            SearchResults results = index.searchIndex(new SearchIntersectWindow(((LayerIndexReader)index).getLayer(), new Envelope(0.0, 2.0, 0.0, 2.0)));
+            List<Node> nodes = StreamSupport.stream(results.spliterator(), false).collect(Collectors.toList());
+            assertThat("Index should contain one result", nodes.size(), equalTo(1));
+            assertThat("Should find correct Geometry", encoder.decodeGeometry(nodes.get(0)), equalTo(geometryFactory.createPoint(new Coordinate(1.0, 1.0))));
             tx.success();
         }
     }
