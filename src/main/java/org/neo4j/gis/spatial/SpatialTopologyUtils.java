@@ -101,15 +101,19 @@ public class SpatialTopologyUtils {
 
 	public static List<PointResult> findClosestEdges(Point point,
 			Layer layer, double distance) {
-		ReferencedEnvelope env = new ReferencedEnvelope(
-				Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox()), 
-				layer.getCoordinateReferenceSystem());
-		if (distance <= 0.0)
-			distance = env.getSpan(0) / 100.0;
-		Envelope search = new Envelope(point.getCoordinate());
-		search.expandBy(distance);
-		GeometryFactory factory = layer.getGeometryFactory();
-		return findClosestEdges(point, layer, factory.toGeometry(search));
+		if (layer.getIndex().isEmpty()) {
+			return new ArrayList<>(0);
+		} else {
+			ReferencedEnvelope env = new ReferencedEnvelope(
+					Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox()),
+					layer.getCoordinateReferenceSystem());
+			if (distance <= 0.0)
+				distance = env.getSpan(0) / 100.0;
+			Envelope search = new Envelope(point.getCoordinate());
+			search.expandBy(distance);
+			GeometryFactory factory = layer.getGeometryFactory();
+			return findClosestEdges(point, layer, factory.toGeometry(search));
+		}
 	}
 
     /**
