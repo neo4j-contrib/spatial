@@ -64,7 +64,7 @@ import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
 import org.neo4j.test.TestGraphDatabaseFactory;
 
-public class GeoPipesTest extends AbstractJavaDocTestBase
+public class GeoPipesDocTest extends AbstractJavaDocTestBase
 {
 
     private static Layer osmLayer;
@@ -1192,7 +1192,7 @@ public class GeoPipesTest extends AbstractJavaDocTestBase
     public void doc()
     {
        // gen.get().addSnippet( "graph", AsciidocHelper.createGraphViz( imgName , graphdb(), "graph"+getTitle() ) );
-       gen.get().addTestSourceSnippets( GeoPipesTest.class, "s_"+getTitle().toLowerCase() );
+       gen.get().addTestSourceSnippets( GeoPipesDocTest.class, "s_"+getTitle().toLowerCase() );
        gen.get().document( "target/docs", "examples" );
        if (tx!=null) {
            tx.success(); tx.close();

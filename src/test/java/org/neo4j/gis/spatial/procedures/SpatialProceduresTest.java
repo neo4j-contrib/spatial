@@ -605,6 +605,12 @@ public class SpatialProceduresTest {
         testCall(db, "CALL spatial.closest('geom',{lon:15.2, lat:60.1}, 1.0)", r -> assertEquals(lineString, (dump((Node)r.get("node"))).getProperty("wkt")));
     }
 
+    @Test
+    public void find_no_geometries_using_closest_on_empty_layer() throws Exception {
+        execute("CALL spatial.addLayer('geom','WKT','wkt')");
+        testCallCount(db, "CALL spatial.closest('geom',{lon:15.2, lat:60.1}, 1.0)", null, 0);
+    }
+
     /*
 
     @Test
