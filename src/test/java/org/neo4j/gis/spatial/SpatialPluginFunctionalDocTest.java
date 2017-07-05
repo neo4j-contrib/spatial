@@ -34,15 +34,15 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
 
+import org.neo4j.doc.tools.AbstractRestFunctionalTestBase;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.helpers.ListenSocketAddress;
 import org.neo4j.kernel.impl.annotations.Documented;
 import org.neo4j.server.NeoServer;
 import org.neo4j.server.helpers.CommunityServerBuilder;
-import org.neo4j.server.rest.AbstractRestFunctionalTestBase;
 import org.neo4j.test.ImpermanentGraphDatabase;
 
-public class SpatialPluginFunctionalTest extends AbstractRestFunctionalTestBase
+public class SpatialPluginFunctionalDocTest extends AbstractRestFunctionalTestBase
 {
     private static final int PORT = 7575;
     private static final String ENDPOINT = "http://localhost:"+PORT+"/db/data/ext/SpatialPlugin";
