@@ -20,6 +20,8 @@
 package org.neo4j.gis.spatial.procedures;
 
 import org.junit.*;
+import org.neo4j.cypher.internal.compiler.v3_1.CartesianPoint;
+import org.neo4j.cypher.internal.compiler.v3_1.GeographicPoint;
 import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.spatial.Geometry;
 import org.neo4j.helpers.collection.Iterators;
@@ -197,7 +199,7 @@ public class SpatialProceduresTest {
     @Test
     public void create_point_geometry_return() {
         ResourceIterator<Object> results = db.execute("WITH point({latitude: 5.0, longitude: 4.0}) as geom CALL spatial.asGeometry(geom) YIELD geometry RETURN geometry").columnAs("geometry");
-        assertThat("Should be Geometry type", results.next(), instanceOf(Geometry.class));
+        assertThat("Should be Geometry type", results.next(), instanceOf(GeographicPoint.class));
         results.close();
     }
 
@@ -211,7 +213,7 @@ public class SpatialProceduresTest {
     @Test
     public void literal_geometry_return() {
         ResourceIterator<Object> results = db.execute("CALL spatial.asGeometry({latitude: 5.0, longitude: 4.0}) YIELD geometry RETURN geometry").columnAs("geometry");
-        assertThat("Should be Geometry type", results.next(), instanceOf(Geometry.class));
+        assertThat("Should be Geometry type", results.next(), instanceOf(CartesianPoint.class));
         results.close();
     }
 
@@ -220,7 +222,7 @@ public class SpatialProceduresTest {
         execute("CALL spatial.addWKTLayer('geom','geom')");
         ResourceIterator<Object> results = db.execute("CREATE (n:Node {geom:'POINT(4.0 5.0)'}) WITH n CALL spatial.decodeGeometry('geom',n) YIELD geometry RETURN geometry").columnAs("geometry");
         Object actual = results.next();
-        assertThat("Should be Geometry type", actual, instanceOf(Geometry.class));
+        assertThat("Should be Geometry type", actual, instanceOf(CartesianPoint.class));
         results.close();
     }
 

@@ -23,7 +23,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
-import org.neo4j.cypher.internal.compiler.v3_0.prettifier.Prettifier;
+import org.neo4j.cypher.internal.compiler.v3_2.prettifier.Prettifier;
 import org.neo4j.doc.tools.JavaTestDocsGenerator;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;

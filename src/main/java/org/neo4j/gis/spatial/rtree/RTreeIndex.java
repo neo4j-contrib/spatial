@@ -21,6 +21,7 @@ package org.neo4j.gis.spatial.rtree;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
@@ -186,11 +187,12 @@ public class RTreeIndex implements SpatialIndexWriter {
 				nodesToAdd.add(n);
 			}
 			nodesToAdd.addAll(geomNodes);
-			for (Node n : getAllIndexInternalNodes()) {
-				if (!n.equals(getIndexRoot())) {
-					deleteNode(n);
-				}
-			}
+
+			final Set<Node> toDelete = StreamSupport.stream(getAllIndexInternalNodes().spliterator(), false)
+					.filter(node -> !node.equals(getIndexRoot()))
+					.collect(Collectors.toSet());
+			toDelete.stream().forEach(node -> deleteNode(node));
+
 			buildRtreeFromScratch(getIndexRoot(), decodeGeometryNodeEnvelopes(nodesToAdd), 0.7);
 			countSaved = false;
 			totalGeometryCount = nodesToAdd.size();

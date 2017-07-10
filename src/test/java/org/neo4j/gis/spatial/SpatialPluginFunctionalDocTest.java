@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial;
 
 import static org.junit.Assert.assertTrue;
+import static org.neo4j.test.GraphDatabaseServiceCleaner.cleanDatabaseContent;
 
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -229,8 +230,7 @@ public class SpatialPluginFunctionalDocTest extends AbstractRestFunctionalTestBa
     @Before
     public void cleanContent()
     {
-        ImpermanentGraphDatabase graphdb = (ImpermanentGraphDatabase) graphdb();
-        graphdb.cleanContent();
+        cleanDatabaseContent(graphdb());
     }
     
 }

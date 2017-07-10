@@ -27,6 +27,7 @@ import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.ProgressLoggingListener;
 
 import java.io.PrintStream;
+import java.util.Locale;
 
 public class ProgressLoggingListenerTest {
 
@@ -59,7 +60,7 @@ public class ProgressLoggingListenerTest {
         }
         listener.done();
         verify(out).println("Starting test");
-        verify(out).println(String.format("%.2f (10/10) - Completed test", 100f));
+        verify(out).println(String.format(Locale.US, "%.2f (10/10) - Completed test", 100f));
         verify(out, times(expectedLogCount)).println(anyString());
     }
 }
