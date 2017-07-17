@@ -544,7 +544,7 @@ public class RTreeBulkInsertTest {
             List<Node> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
             long startIndexing = System.currentTimeMillis();
             try (Transaction tx = db.beginTx()) {
-                    layer.addAll(slice);
+                layer.addAll(slice);
                 tx.success();
             }
             log.log(startIndexing, "Rebuilt: " + monitor.getNbrRebuilt() + ", Splits: " + monitor.getNbrSplit() + ", Cases " + monitor.getCaseCounts(), (i + 1) * blockSize);
