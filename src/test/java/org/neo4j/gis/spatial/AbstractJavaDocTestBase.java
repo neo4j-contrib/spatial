@@ -23,8 +23,6 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
-import org.neo4j.cypher.internal.compiler.v3_0.prettifier.Prettifier;
-import org.neo4j.doc.tools.JavaTestDocsGenerator;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.test.*;
@@ -64,7 +62,9 @@ public abstract class AbstractJavaDocTestBase implements GraphHolder {
     }
 
     protected String createCypherSnippet(String cypherQuery) {
-        String snippet = Prettifier.apply(cypherQuery);
+        // TODO: Find a better solution to this
+        // The graphviz component no longer exists in 3.2, so we need to depend on the 3.1 component for now
+        String snippet = org.neo4j.cypher.internal.compiler.v3_1.prettifier.Prettifier.apply(cypherQuery);
         return AsciidocHelper.createAsciiDocSnippet("cypher", snippet);
     }
 

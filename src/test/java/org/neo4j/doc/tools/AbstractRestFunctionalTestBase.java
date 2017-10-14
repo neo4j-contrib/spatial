@@ -81,7 +81,9 @@ public class AbstractRestFunctionalTestBase extends SharedServerTestBase impleme
         String script = createScript( scriptTemplate );
         String queryString = "{\"query\": \"" + script + "\",\"params\":{" + parameterString + "}}";
 
-        String snippet = org.neo4j.cypher.internal.compiler.v3_0.prettifier.Prettifier$.MODULE$.apply( script );
+        // TODO: Find a better solution to this
+        // The graphviz component no longer exists in 3.2, so we need to depend on the 3.1 component for now
+        String snippet = org.neo4j.cypher.internal.compiler.v3_1.prettifier.Prettifier$.MODULE$.apply( script );
         gen().expectedStatus( status.getStatusCode() )
                 .payload( queryString )
                 .description( AsciidocHelper.createAsciiDocSnippet( "cypher", snippet ) );
