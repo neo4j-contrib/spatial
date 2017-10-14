@@ -186,11 +186,8 @@ public class RTreeIndex implements SpatialIndexWriter {
 				nodesToAdd.add(n);
 			}
 			nodesToAdd.addAll(geomNodes);
-			for (Node n : getAllIndexInternalNodes()) {
-				if (!n.equals(getIndexRoot())) {
-					deleteNode(n);
-				}
-			}
+			detachGeometryNodes( false, getIndexRoot(), new NullListener() );
+			deleteTreeBelow( getIndexRoot() );
 			buildRtreeFromScratch(getIndexRoot(), decodeGeometryNodeEnvelopes(nodesToAdd), 0.7);
 			countSaved = false;
 			totalGeometryCount = nodesToAdd.size();
@@ -601,10 +598,7 @@ public class RTreeIndex implements SpatialIndexWriter {
 		}
 	}
 
-	@Override
-	public void removeAll(final boolean deleteGeomNodes, final Listener monitor) {
-		Node indexRoot = getIndexRoot();
-
+	private void detachGeometryNodes(final boolean deleteGeomNodes, Node indexRoot, final Listener monitor) {
 		monitor.begin(count());
 		try {
 			// delete all geometry nodes
@@ -625,6 +619,13 @@ public class RTreeIndex implements SpatialIndexWriter {
 		} finally {
 			monitor.done();
 		}
+	}
+
+	@Override
+	public void removeAll(final boolean deleteGeomNodes, final Listener monitor) {
+		Node indexRoot = getIndexRoot();
+
+		detachGeometryNodes( deleteGeomNodes, indexRoot, monitor );
 
 		try (Transaction tx = database.beginTx()) {
 			// delete index root relationship
@@ -1344,6 +1345,12 @@ public class RTreeIndex implements SpatialIndexWriter {
 	private double getArea(Envelope e) {
 		return e.getWidth() * e.getHeight();
 		// TODO why not e.getArea(); ?
+	}
+
+	private void deleteTreeBelow( Node rootNode ) {
+		for ( Relationship relationship : rootNode.getRelationships( RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING )) {
+			deleteRecursivelySubtree( relationship.getEndNode(), relationship );
+		}
 	}
 
 	private void deleteRecursivelySubtree(Node node, Relationship incoming) {
