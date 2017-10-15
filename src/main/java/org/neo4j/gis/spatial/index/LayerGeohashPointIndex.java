@@ -42,6 +42,7 @@ import org.neo4j.helpers.collection.Iterables;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 public class LayerGeohashPointIndex implements LayerIndexReader, SpatialIndexWriter {
 
@@ -185,8 +186,12 @@ public class LayerGeohashPointIndex implements LayerIndexReader, SpatialIndexWri
         @Override
         public Node next() {
             Node node = next;
-            prefetch();
-            return node;
+            if (node == null) {
+                throw new NoSuchElementException(); // GeoPipes relies on this behaviour instead of hasNext()
+            } else {
+                prefetch();
+                return node;
+            }
         }
     }
 
