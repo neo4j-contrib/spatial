@@ -36,8 +36,10 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.index.Index;
+import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.helpers.collection.Iterables;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
@@ -150,7 +152,42 @@ public class LayerGeohashPointIndex implements LayerIndexReader, SpatialIndexWri
 
     @Override
     public SearchResults searchIndex(SearchFilter filter) {
-        return new SearchResults(index.query(GEOHASH_KEY, determineGeohashPrefix(filter)));
+        IndexHits<Node> indexHits = index.query(GEOHASH_KEY, determineGeohashPrefix(filter));
+        return new SearchResults(() -> new FilteredIndexIterator(indexHits, filter));
+    }
+
+    private class FilteredIndexIterator implements Iterator<Node> {
+        private Iterator<Node> inner;
+        private SearchFilter filter;
+        private Node next = null;
+        private FilteredIndexIterator(Iterator<Node> inner, SearchFilter filter) {
+            this.inner = inner;
+            this.filter = filter;
+            prefetch();
+        }
+
+        private void prefetch() {
+            next = null;
+            while (inner.hasNext()) {
+                Node node = inner.next();
+                if (filter.geometryMatches(node)) {
+                    next = node;
+                    break;
+                }
+            }
+        }
+
+        @Override
+        public boolean hasNext() {
+            return next != null;
+        }
+
+        @Override
+        public Node next() {
+            Node node = next;
+            prefetch();
+            return node;
+        }
     }
 
     private String greatestCommonPrefix(String a, String b) {

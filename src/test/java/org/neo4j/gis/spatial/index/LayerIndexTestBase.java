@@ -19,10 +19,9 @@
  */
 package org.neo4j.gis.spatial.index;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.*;
 import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.geom.Polygon;
 import org.junit.Before;
 import org.junit.Test;
 import org.neo4j.gis.spatial.Layer;
@@ -30,20 +29,22 @@ import org.neo4j.gis.spatial.SimplePointLayer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
+import org.neo4j.gis.spatial.filter.SearchIntersect;
 import org.neo4j.gis.spatial.filter.SearchIntersectWindow;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-import org.neo4j.gis.spatial.rtree.filter.SearchAll;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.test.TestGraphDatabaseFactory;
 
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.hasItem;
+import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -105,7 +106,7 @@ public abstract class LayerIndexTestBase {
         SpatialDatabaseRecord added = layer.add(1.0, 1.0);
         try (Transaction tx = graph.beginTx()) {
             List<GeoPipeFlow> found = layer.findClosestPointsTo(new Coordinate(1.0, 1.0), 0.5);
-//            assertThat("Should find one geometry node", found.size(), equalTo(1));
+            assertThat("Should find one geometry node", found.size(), equalTo(1));
             assertThat("Should find same geometry node", added.getGeomNode(), equalTo(found.get(0).getGeomNode()));
             tx.success();
         }
@@ -134,6 +135,62 @@ public abstract class LayerIndexTestBase {
             List<Node> nodes = StreamSupport.stream(results.spliterator(), false).collect(Collectors.toList());
             assertThat("Index should contain one result", nodes.size(), equalTo(1));
             assertThat("Should find correct Geometry", encoder.decodeGeometry(nodes.get(0)), equalTo(geometryFactory.createPoint(new Coordinate(1.0, 1.0))));
+            tx.success();
+        }
+    }
+
+    private Polygon makeTestPolygonInSquare(GeometryFactory geometryFactory, int length) {
+        if (length < 4) {
+            throw new IllegalArgumentException("Cannot create letter C in square smaller than 4x4");
+        }
+        int maxDim = length - 1;
+        LinearRing shell = geometryFactory.createLinearRing(new Coordinate[]{
+                new Coordinate(0, 1),
+                new Coordinate(0, maxDim - 1),
+                new Coordinate(1, maxDim),
+                new Coordinate(maxDim, maxDim),
+                new Coordinate(maxDim, maxDim - 1),
+                new Coordinate(1, maxDim - 1),
+                new Coordinate(1, 1),
+                new Coordinate(maxDim, 1),
+                new Coordinate(maxDim, 0),
+                new Coordinate(1, 0),
+                new Coordinate(0, 1)
+        });
+        Polygon polygon = geometryFactory.createPolygon(shell);
+        return polygon;
+    }
+
+    @Test
+    public void shouldFindCorrectSetOfNodesInsideAndOnPolygonEdge() {
+        int length = 5;  // make 5x5 square to test on
+        SimplePointLayer layer = spatial.createSimplePointLayer("test", getIndexClass());
+        GeometryFactory geometryFactory = layer.getGeometryFactory();
+        Polygon polygon = makeTestPolygonInSquare(geometryFactory, length);
+        HashSet<Coordinate> notIncluded = new LinkedHashSet<>();
+        HashSet<Coordinate> included = new LinkedHashSet<>();
+        for (int x = 0; x < length; x++) {
+            for (int y = 0; y < length; y++) {
+                Coordinate coordinate = new Coordinate(x, y);
+                layer.add(coordinate);
+                Geometry point = geometryFactory.createPoint(coordinate);
+                if (polygon.intersects(point)) {
+                    included.add(coordinate);
+                } else {
+                    notIncluded.add(coordinate);
+                }
+            }
+        }
+        try (Transaction tx = graph.beginTx()) {
+            SearchResults results = layer.getIndex().searchIndex(new SearchIntersect(layer, polygon));
+            Set<Coordinate> found = StreamSupport.stream(results.spliterator(), false).map(n ->
+                    encoder.decodeGeometry(n).getCoordinate()
+            ).collect(Collectors.toSet());
+            assertThat("Index should contain one result", found.size(), equalTo(included.size()));
+            assertThat("Should find correct Geometries", found, equalTo(included));
+            for (Coordinate shouldNotBeFound : notIncluded) {
+                assertThat("Point should not have been found", found, not(hasItem(shouldNotBeFound)));
+            }
             tx.success();
         }
     }

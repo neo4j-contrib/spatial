@@ -22,6 +22,8 @@ package org.neo4j.gis.spatial.index;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.graphdb.Transaction;
 
+import static org.mockito.Mockito.when;
+
 public class LayerGeohashPointIndexTest extends LayerIndexTestBase {
 
     protected Class<? extends LayerIndexReader> getIndexClass() {
@@ -35,6 +37,7 @@ public class LayerGeohashPointIndexTest extends LayerIndexTestBase {
             index.init(layer);
             tx.success();
         }
+        when(layer.getIndex()).thenReturn(index);
         return index;
     }
 }
