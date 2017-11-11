@@ -2,7 +2,7 @@
  * Copyright (c) 2002-2013 "Neo Technology," Network Engine for Objects in Lund
  * AB [http://neotechnology.com]
  *
- * This file is part of Neo4j.
+ * This file is part of Neo4j Spatial.
  *
  * Neo4j is free software: you can redistribute it and/or modify it under the
  * terms of the GNU General Public License as published by the Free Software
@@ -24,8 +24,9 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 
 public class TestRTreeIndex extends RTreeIndex {
+
     public TestRTreeIndex(GraphDatabaseService database) {
-        super(database, database.createNode(), new SimplePointEncoder());
+        init(database, database.createNode(), new SimplePointEncoder());
     }
 
     public RTreeIndex.NodeWithEnvelope makeChildIndexNode(NodeWithEnvelope parent, Envelope bbox) {

@@ -714,8 +714,8 @@ public class RTreeBulkInsertTest {
                 System.out.println("Building a Tree with " + Integer.toString(i) + " nodes");
                 try (Transaction tx = db.beginTx()) {
 
-                    RTreeIndex rtree = new RTreeIndex(
-                            sdbs.getDatabase(),
+                    RTreeIndex rtree = new RTreeIndex();
+                    rtree.init(sdbs.getDatabase(),
                             sdbs.getDatabase().createNode(),
                             encoder
                     );

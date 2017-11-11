@@ -1,20 +1,20 @@
-/**
- * Copyright (c) 2010-2013 "Neo Technology,"
+/*
+ * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
- * This file is part of Neo4j.
+ * This file is part of Neo4j Spatial.
  *
  * Neo4j is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public License
+ * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 package org.neo4j.gis.spatial.osm;
@@ -106,10 +106,8 @@ public class OSMImporter implements Constants
 
         /**
          * Return only reasonably commonly used tags.
-         * 
-         * @return
          */
-        public String[] getTags()
+        String[] getTags()
         {
             if ( stats.size() > 0 )
             {
@@ -139,7 +137,7 @@ public class OSMImporter implements Constants
         private HashMap<String, TagStats> tagStats = new HashMap<String, TagStats>();
         private HashMap<Integer, Integer> geomStats = new HashMap<Integer, Integer>();;
 
-        protected TagStats getTagStats( String type )
+        TagStats getTagStats(String type)
         {
             if ( !tagStats.containsKey( type ) )
             {
@@ -148,13 +146,13 @@ public class OSMImporter implements Constants
             return tagStats.get( type );
         }
 
-        protected int addToTagStats( String type, String key )
+        int addToTagStats(String type, String key)
         {
             getTagStats( "all" ).add( key );
             return getTagStats( type ).add( key );
         }
 
-        protected int addToTagStats( String type, Collection<String> keys )
+        int addToTagStats(String type, Collection<String> keys)
         {
             int count = 0;
             for ( String key : keys )
@@ -164,7 +162,7 @@ public class OSMImporter implements Constants
             return count;
         }
 
-        protected void printTagStats()
+        void printTagStats()
         {
             System.out.println( "Tag statistics for " + tagStats.size()
                                 + " types:" );
@@ -175,7 +173,7 @@ public class OSMImporter implements Constants
             }
         }
 
-        protected void addGeomStats( Node geomNode )
+        void addGeomStats(Node geomNode)
         {
             if ( geomNode != null )
             {
@@ -183,21 +181,21 @@ public class OSMImporter implements Constants
             }
         }
 
-        protected void addGeomStats( Integer geom )
+        void addGeomStats( Integer geom )
         {
             Integer count = geomStats.get( geom );
             geomStats.put( geom, count == null ? 1 : count + 1 );
         }
 
-        protected void dumpGeomStats()
+        void dumpGeomStats()
         {
             System.out.println( "Geometry statistics for " + geomStats.size()
                                 + " geometry types:" );
-            for ( Object key : geomStats.keySet() )
+            for ( Integer key : geomStats.keySet() )
             {
                 Integer count = geomStats.get( key );
                 System.out.println( "\t"
-                                    + SpatialDatabaseService.convertGeometryTypeToName( (Integer) key )
+                                    + SpatialDatabaseService.convertGeometryTypeToName( key )
                                     + ": " + count );
             }
             geomStats.clear();
@@ -338,7 +336,7 @@ public class OSMImporter implements Constants
         private int vertices = 0;
         private int geometry = -1;
 
-        public GeometryMetaData( int type )
+        GeometryMetaData(int type)
         {
             this.geometry = type;
         }
@@ -348,14 +346,14 @@ public class OSMImporter implements Constants
             return geometry;
         }
 
-        public void expandToIncludePoint( double[] location )
+        void expandToIncludePoint( double[] location )
         {
             bbox.expandToInclude( location[0], location[1] );
             vertices++;
             geometry = -1;
         }
 
-        public void expandToIncludeBBox( Map<String, Object> nodeProps )
+        void expandToIncludeBBox( Map<String, Object> nodeProps )
         {
             double[] sbb = (double[]) nodeProps.get( PROP_BBOX );
             bbox.expandToInclude( sbb[0], sbb[2] );
@@ -363,7 +361,7 @@ public class OSMImporter implements Constants
             vertices += (Integer) nodeProps.get( "vertices" );
         }
 
-        public void checkSupportedGeometry( Integer memGType )
+        void checkSupportedGeometry(Integer memGType)
         {
             if ( ( memGType == null || memGType != GTYPE_LINESTRING )
                  && geometry != GTYPE_POLYGON )
@@ -372,22 +370,22 @@ public class OSMImporter implements Constants
             }
         }
 
-        public void setPolygon()
+        void setPolygon()
         {
             geometry = GTYPE_POLYGON;
         }
 
-        public boolean isValid()
+        boolean isValid()
         {
             return geometry > 0;
         }
 
-        public int getVertices()
+        int getVertices()
         {
             return vertices;
         }
 
-        public Envelope getBBox()
+        private Envelope getBBox()
         {
             return bbox;
         }
@@ -395,9 +393,9 @@ public class OSMImporter implements Constants
 
     private static abstract class OSMWriter<T>
     {
-        protected StatsManager statsManager;
-        protected OSMImporter osmImporter;
-        protected T osm_dataset;
+        StatsManager statsManager;
+        OSMImporter osmImporter;
+        T osm_dataset;
 
         private OSMWriter( StatsManager statsManager, OSMImporter osmImporter )
         {
@@ -405,14 +403,14 @@ public class OSMImporter implements Constants
             this.osmImporter = osmImporter;
         }
 
-        public static OSMWriter<Long> fromBatchInserter(
+        static OSMWriter<Long> fromBatchInserter(
                 BatchInserter batchInserter, StatsManager stats,
                 OSMImporter osmImporter )
         {
             return new OSMBatchWriter( batchInserter, stats, osmImporter );
         }
 
-        public static OSMWriter<Node> fromGraphDatabase(
+        static OSMWriter<Node> fromGraphDatabase(
                 GraphDatabaseService graphDb, StatsManager stats,
                 OSMImporter osmImporter, int txInterval, boolean relaxedTxFlush )
         {
@@ -439,25 +437,25 @@ public class OSMImporter implements Constants
         protected abstract void createRelationship( T from, T to,
                 RelationshipType relType, LinkedHashMap<String, Object> relProps );
 
-        protected void createRelationship( T from, T to,
+        void createRelationship( T from, T to,
                 RelationshipType relType )
         {
             createRelationship( from, to, relType, null );
         }
 
-        protected HashMap<String, Integer> stats = new HashMap<String, Integer>();
-        protected HashMap<String, LogCounter> nodeFindStats = new HashMap<String, LogCounter>();
-        protected long logTime = 0;
-        protected long findTime = 0;
-        protected long firstFindTime = 0;
-        protected long lastFindTime = 0;
-        protected long firstLogTime = 0;
-        protected static int foundNodes = 0;
-        protected static int createdNodes = 0;
-        protected int foundOSMNodes = 0;
-        protected int missingUserCount = 0;
+        HashMap<String, Integer> stats = new HashMap<String, Integer>();
+        HashMap<String, LogCounter> nodeFindStats = new HashMap<String, LogCounter>();
+        long logTime = 0;
+        long findTime = 0;
+        long firstFindTime = 0;
+        long lastFindTime = 0;
+        long firstLogTime = 0;
+        static int foundNodes = 0;
+        static int createdNodes = 0;
+        int foundOSMNodes = 0;
+        int missingUserCount = 0;
 
-        protected void logMissingUser( Map<String, Object> nodeProps )
+        void logMissingUser( Map<String, Object> nodeProps )
         {
             if ( missingUserCount++ < 10 )
             {
@@ -472,14 +470,9 @@ public class OSMImporter implements Constants
             private long totalTime = 0;
         }
 
-        protected void logNodeFoundFrom( String key )
+        void logNodeFoundFrom( String key )
         {
-            LogCounter counter = nodeFindStats.get( key );
-            if ( counter == null )
-            {
-                counter = new LogCounter();
-                nodeFindStats.put( key, counter );
-            }
+            LogCounter counter = nodeFindStats.computeIfAbsent(key, k -> new LogCounter());
             counter.count++;
             foundOSMNodes++;
             long currentTime = System.currentTimeMillis();
@@ -491,7 +484,7 @@ public class OSMImporter implements Constants
             logNodesFound( currentTime );
         }
 
-        protected void logNodesFound( long currentTime )
+        void logNodesFound( long currentTime )
         {
             if ( firstFindTime == 0 )
             {
@@ -525,7 +518,7 @@ public class OSMImporter implements Constants
             }
         }
 
-        protected void logNodeAddition( LinkedHashMap<String, Object> tags,
+        void logNodeAddition( LinkedHashMap<String, Object> tags,
                 String type )
         {
             Integer count = stats.get( type );
@@ -607,22 +600,20 @@ public class OSMImporter implements Constants
             }
         }
 
-        protected T currentNode = null;
-        protected T prev_way = null;
-        protected T prev_relation = null;
-        protected int nodeCount = 0;
-        protected int poiCount = 0;
-        protected int wayCount = 0;
-        protected int relationCount = 0;
-        protected int userCount = 0;
-        protected int changesetCount = 0;
+        T currentNode = null;
+        T prev_way = null;
+        T prev_relation = null;
+        int nodeCount = 0;
+        int poiCount = 0;
+        int wayCount = 0;
+        int relationCount = 0;
+        int userCount = 0;
+        int changesetCount = 0;
 
         /**
          * Add the BBox metadata to the dataset
-         * 
-         * @param bboxProperties
          */
-        protected void addOSMBBox( Map<String, Object> bboxProperties )
+        void addOSMBBox( Map<String, Object> bboxProperties )
         {
             T bbox = addNode( PROP_BBOX, bboxProperties, null );
             createRelationship( osm_dataset, bbox, OSMRelation.BBOX );
@@ -636,7 +627,7 @@ public class OSMImporter implements Constants
          * 
          * @param nodeProps HashMap of attributes for the OSM-node
          */
-        protected void createOSMNode( Map<String, Object> nodeProps )
+        void createOSMNode( Map<String, Object> nodeProps )
         {
             T changesetNode = getChangesetNode( nodeProps );
             currentNode = addNode( "node", nodeProps, "node_osm_id" );

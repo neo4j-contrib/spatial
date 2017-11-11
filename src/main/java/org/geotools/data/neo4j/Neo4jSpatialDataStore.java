@@ -1,20 +1,20 @@
 /**
- * Copyright (c) 2010-2013 "Neo Technology,"
+ * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
- * This file is part of Neo4j.
+ * This file is part of Neo4j Spatial.
  *
  * Neo4j is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public License
+ * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 package org.geotools.data.neo4j;
@@ -337,9 +337,7 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 				records = null;
 			} else if (filter instanceof FidFilterImpl) {
 				// filter by Feature unique id
-				List<SpatialDatabaseRecord> results = layer.getIndex().get(convertToGeomNodeIds((FidFilterImpl) filter));
-				System.out.println("found results for FidFilter: " + results.size());
-				records = results.iterator();
+				throw new UnsupportedOperationException("Unsupported use of FidFilterImpl in Neo4jSpatialDataStore");
 			} else {
 				records = layer.getIndex().search(new SearchCQL(layer, filter));
 			}
@@ -439,25 +437,6 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
         return (EditableLayer) layer;
 	}
 
-	private Set<Long> convertToGeomNodeIds(FidFilterImpl fidFilter) {
-		Set<Long> nodeIds = new HashSet<Long>();
-		
-		Set<String> ids = fidFilter.getIDs();
-		for (String id : ids) {
-			if (newSimpleFeatures.containsKey(id)) {
-				nodeIds.add(newSimpleFeatures.get(id));				
-			} else {
-				try {
-					nodeIds.add(new Long(id));
-				} catch (NumberFormatException e) {
-					System.out.println("Neo4j Invalid FID: " + id);
-				}
-			}
-		}		
-		
-		return nodeIds;
-	}
-	
 	/**
 	 * Try to create an optimized FeatureWriter for the given Filter.
 	 */
@@ -485,6 +464,4 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
 	private Map<String,SimpleFeatureSource> featureSourceIndex = Collections.synchronizedMap(new HashMap<String,SimpleFeatureSource>());
 	private GraphDatabaseService database;
 	private SpatialDatabaseService spatialDatabase;
-	
-	private Map<String,Long> newSimpleFeatures = new HashMap<String,Long>();
 }

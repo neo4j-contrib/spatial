@@ -1,20 +1,20 @@
 /**
- * Copyright (c) 2010-2013 "Neo Technology,"
+ * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
- * This file is part of Neo4j.
+ * This file is part of Neo4j Spatial.
  *
  * Neo4j is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public License
+ * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 package org.neo4j.gis.spatial.server.plugin;
@@ -174,27 +174,6 @@ public class SpatialPlugin extends ServerPlugin {
             return singleton(record.getGeomNode());
         } catch (ParseException e) {
             System.err.println("Invalid Geometry: " + e.getLocalizedMessage());
-        }
-        return null;
-    }
-
-    @PluginTarget(GraphDatabaseService.class)
-    @Description("update an existing geometry specified in WKT format. The layer must already contain the record.")
-    public Iterable<Node> updateGeometryFromWKT(@Source GraphDatabaseService db,
-                                                @Description("The geometry in WKT to add to the layer") @Parameter(name = "geometry") String geometryWKT,
-                                                @Description("The geometry node id") @Parameter(name = "geometryNodeId") long geometryNodeId,
-                                                @Description("The layer to add the node to.") @Parameter(name = "layer") String layer) {
-        SpatialDatabaseService spatialService = getSpatialDatabaseService(db);
-        try (Transaction tx = db.beginTx()) {
-            EditableLayer spatialLayer = (EditableLayer) spatialService.getLayer(layer);
-            WKTReader reader = new WKTReader(spatialLayer.getGeometryFactory());
-            Geometry geometry = reader.read(geometryWKT);
-            SpatialDatabaseRecord record = spatialLayer.getIndex().get(geometryNodeId);
-            spatialLayer.getGeometryEncoder().encodeGeometry(geometry, record.getGeomNode());
-            tx.success();
-            return singleton(record.getGeomNode());
-        } catch (Exception e) {
-            e.printStackTrace();
         }
         return null;
     }

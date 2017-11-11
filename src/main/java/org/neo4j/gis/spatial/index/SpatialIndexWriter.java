@@ -2,7 +2,7 @@
  * Copyright (c) 2002-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
- * This file is part of Neo4j.
+ * This file is part of Neo4j Spatial.
  *
  * Neo4j is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,31 +17,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.rtree;
+package org.neo4j.gis.spatial.index;
 
-import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
-import org.neo4j.gis.spatial.rtree.filter.SearchResults;
+import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.graphdb.Node;
 
-import java.util.Map;
+import java.util.List;
 
-public interface SpatialIndexReader {
 
-    EnvelopeDecoder getEnvelopeDecoder();
+public interface SpatialIndexWriter extends SpatialIndexReader {
 
-    boolean isEmpty();
+	void add(Node geomNode);
+	void add(List<Node> geomNodes);
 
-    int count();
-
-    Envelope getBoundingBox();
-
-    boolean isNodeIndexed(Long nodeId);
-
-    Iterable<Node> getAllIndexedNodes();
-
-    SearchResults searchIndex(SearchFilter filter);
-
-    void addMonitor(TreeMonitor monitor);
-
-    void configure(Map<String, Object> config);
+	void remove(long geomNodeId, boolean deleteGeomNode, boolean throwExceptionIfNotFound);
+	
+	void removeAll(boolean deleteGeomNodes, Listener monitor);
+	
+	void clear(Listener monitor);
+	
 }

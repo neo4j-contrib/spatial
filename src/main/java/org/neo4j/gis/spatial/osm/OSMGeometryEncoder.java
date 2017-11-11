@@ -1,20 +1,20 @@
-/**
- * Copyright (c) 2010-2013 "Neo Technology,"
+/*
+ * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
- * This file is part of Neo4j.
+ * This file is part of Neo4j Spatial.
  *
  * Neo4j is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public License
+ * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 package org.neo4j.gis.spatial.osm;
@@ -29,7 +29,6 @@ import java.util.Iterator;
 import java.util.Map;
 
 import org.neo4j.gis.spatial.rtree.Envelope;
-import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.gis.spatial.AbstractGeometryEncoder;
 import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
@@ -114,11 +113,11 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	public static class OSMGraphException extends SpatialDatabaseException {
 		private static final long serialVersionUID = -6892234738075001044L;
 
-		public OSMGraphException(String message) {
+		OSMGraphException(String message) {
 			super(message);
 		}
 
-		public OSMGraphException(String message, Exception cause) {
+		OSMGraphException(String message, Exception cause) {
 			super(message, cause);
 		}
 	}
@@ -236,7 +235,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 				return null;
 			}
 		case GTYPE_MULTIPOLYGON:
-			ArrayList<Polygon> polygons = new ArrayList<Polygon>();
+			ArrayList<Polygon> polygons = new ArrayList<>();
 			for (Relationship rel : osmNode.getRelationships(OSMRelation.MEMBER, Direction.OUTGOING)) {
 				Node member = rel.getEndNode();
 				Geometry geometry = null;
@@ -267,9 +266,6 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	 * enclosing LinearRing around any geometry except Point and a straight
 	 * LineString, and return that. For sensible types, it returns a more
 	 * sensible result, for example a Polygon will produce its outer LinearRing.
-	 * 
-	 * @param geometry
-	 * @return enclosing LinearRing
 	 */
 	private LinearRing getOuterLinearRingFromGeometry(Geometry geometry) {
 		if (geometry instanceof LineString) {
@@ -300,14 +296,12 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	/**
 	 * Extend the array by copying the first point into the last position
 	 * 
-	 * @param coords
+	 * @param coords original array that is not closed
 	 * @return new array one point longer
 	 */
 	private Coordinate[] closeCoords(Coordinate[] coords) {
 		Coordinate[] nc = new Coordinate[coords.length + 1];
-		for (int i = 0; i < coords.length; i++) {
-			nc[i] = coords[i];
-		}
+		System.arraycopy(coords, 0, nc, 0, coords.length);
 		nc[coords.length] = coords[0];
 		coords = nc;
 		return coords;
@@ -316,16 +310,13 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	/**
 	 * The convex hull is like an elastic band surrounding all points in the
 	 * geometry.
-	 * 
-	 * @param geometry
-	 * @return
 	 */
 	private LinearRing getConvexHull(Geometry geometry) {
 		return getOuterLinearRingFromGeometry((new ConvexHull(geometry)).getConvexHull());
 	}
 
 	private Geometry decodeGeometryFromWay(Node wayNode, int gtype, int vertices, GeometryFactory geomFactory) {
-		ArrayList<Coordinate> coordinates = new ArrayList<Coordinate>();
+		ArrayList<Coordinate> coordinates = new ArrayList<>();
 		boolean overrun = false;
 		for (Node node : getPointNodesFromWayNode(wayNode)) {
 			if (coordinates.size() >= vertices) {
@@ -368,10 +359,10 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 		}
 	}
 
-	@Override
 	/**
 	 * For OSM data we can build basic geometry shapes as sub-graphs. This code should produce the same kinds of structures that the utilities in the OSMDataset create. However those structures are created from original OSM data, while here we attempt to create equivalent graphs from JTS Geometries. Note that this code is unable to connect the resulting sub-graph into the OSM data model, since the only node it has is the geometry node. Those connections to the rest of the OSM model need to be done in OSMDataset.
 	 */
+	@Override
 	protected void encodeGeometryShape(Geometry geometry, PropertyContainer container) {
 		Node geomNode = testIsNode(container);
 		vertices = 0;
@@ -467,7 +458,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	private class CombinedAttributes {
 		private Node node;
 		private PropertyContainer properties;
-		private HashMap<String, Object> extra = new HashMap<String, Object>();
+		private HashMap<String, Object> extra = new HashMap<>();
 
 		CombinedAttributes(Node geomNode) {
 			try {
@@ -517,9 +508,9 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	 * of the geometry node. This behaviour can be changed by other domain
 	 * models with different encodings.
 	 * 
-	 * @param geomNode
-	 * @param name to test
-	 * @return
+	 * @param geomNode node to test
+	 * @param name attribute to check for existence of
+	 * @return true if node has the specified attribute
 	 */
 	public boolean hasAttribute(Node geomNode, String name) {
 		return getProperties(geomNode).hasProperty(name);
@@ -532,9 +523,9 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	 * domain models with different encodings. If the property does not exist,
 	 * the method returns null.
 	 * 
-	 * @param geomNode
-	 * @param name to test
-	 * @return attribute, or null
+	 * @param geomNode node to test
+	 * @param name attribute to access
+	 * @return attribute value, or null
 	 */
 	public Object getAttribute(Node geomNode, String name) {
 		return getProperties(geomNode).getProperty(name);
