@@ -1,20 +1,20 @@
 /**
- * Copyright (c) 2010-2013 "Neo Technology,"
+ * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  * <p>
- * This file is part of Neo4j.
+ * This file is part of Neo4j Spatial.
  * <p>
  * Neo4j is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  * <p>
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ * GNU General Public License for more details.
  * <p>
- * You should have received a copy of the GNU Affero General Public License
+ * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 package org.neo4j.gis.spatial.procedures;
@@ -203,8 +203,7 @@ public class SpatialProcedures {
         Layer layer = sdb.getLayer(name);
         if (layer == null) {
             if (xProperty != null && yProperty != null) {
-                String encoderConfig = xProperty + ":" + yProperty;
-                return streamNode(sdb.createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, encoderConfig).getLayerNode());
+                return streamNode(sdb.createSimplePointLayer(name, xProperty, yProperty).getLayerNode());
             } else {
                 throw new IllegalArgumentException("Cannot create layer '" + name + "': Missing encoder config values: xProperty[" + xProperty + "], yProperty[" + yProperty + "]");
             }
@@ -222,7 +221,7 @@ public class SpatialProcedures {
         Layer layer = sdb.getLayer(name);
         if (layer == null) {
             if (encoderConfig.indexOf(':') > 0) {
-                return streamNode(sdb.createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, encoderConfig).getLayerNode());
+                return streamNode(sdb.createSimplePointLayer(name, encoderConfig.split(":")).getLayerNode());
             } else {
                 throw new IllegalArgumentException("Cannot create layer '" + name + "': invalid encoder config '" + encoderConfig + "'");
             }
@@ -243,7 +242,7 @@ public class SpatialProcedures {
             Class encoderClass = encoderClasses.get(encoderClassName);
             Class layerClass = sdb.suggestLayerClassForEncoder(encoderClass);
             if (encoderClass != null) {
-                return streamNode(sdb.createLayer(name, encoderClass, layerClass, encoderConfig).getLayerNode());
+                return streamNode(sdb.createLayer(name, encoderClass, layerClass, null, encoderConfig).getLayerNode());
             } else {
                 throw new IllegalArgumentException("Cannot create layer '" + name + "': invalid encoder class '" + encoderClassName + "'");
             }
@@ -348,25 +347,6 @@ public class SpatialProcedures {
         } catch (ParseException e) {
             throw new RuntimeException("Error parsing geometry: " + geometryWKT, e);
         }
-    }
-
-    // todo do we need this procedure??
-    @Procedure(value="spatial.updateFromWKT", mode=WRITE)
-    @Description("Internal procedure, updates the geometry node with the given id with a new WKT string")
-    public Stream<NodeResult> updateGeometryFromWKT(@Name("layerName") String name, @Name("geometry") String geometryWKT,
-                                                    @Name("geometryNodeId") long geometryNodeId) {
-        try (Transaction tx = db.beginTx()) {
-            EditableLayer layer = getEditableLayerOrThrow(name);
-            WKTReader reader = new WKTReader(layer.getGeometryFactory());
-            Geometry geometry = reader.read(geometryWKT);
-            SpatialDatabaseRecord record = layer.getIndex().get(geometryNodeId);
-            layer.getGeometryEncoder().encodeGeometry(geometry, record.getGeomNode());
-            tx.success();
-            return streamNode(record.getGeomNode());
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
     }
 
     @Procedure(value="spatial.importShapefileToLayer", mode=WRITE)

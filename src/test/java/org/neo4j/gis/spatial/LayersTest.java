@@ -1,20 +1,20 @@
 /**
- * Copyright (c) 2010-2013 "Neo Technology,"
+ * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
- * This file is part of Neo4j.
+ * This file is part of Neo4j Spatial.
  *
  * Neo4j is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public License
+ * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 package org.neo4j.gis.spatial;
@@ -61,7 +61,7 @@ public class LayersTest extends Neo4jTestCase
     public void testPointLayer()
     {
         SpatialDatabaseService db = new SpatialDatabaseService( graphDb() );
-        EditableLayer layer = (EditableLayer) db.createLayer("test", SimplePointEncoder.class, EditableLayerImpl.class, "lon:lat");
+        EditableLayer layer = (EditableLayer) db.createLayer("test", SimplePointEncoder.class, EditableLayerImpl.class, null, "lon:lat");
         assertNotNull( layer );
         SpatialDatabaseRecord record = layer.add( layer.getGeometryFactory().createPoint(
                 new Coordinate( 15.3, 56.2 ) ) );
@@ -90,7 +90,7 @@ public class LayersTest extends Neo4jTestCase
     public void testDeleteGeometry()
     {
         SpatialDatabaseService db = new SpatialDatabaseService( graphDb() );
-        EditableLayer layer = (EditableLayer) db.createLayer("test", SimplePointEncoder.class, EditableLayerImpl.class, "lon:lat");
+        EditableLayer layer = (EditableLayer) db.createLayer("test", SimplePointEncoder.class, EditableLayerImpl.class, null, "lon:lat");
         assertNotNull( layer );
         SpatialDatabaseRecord record = layer.add( layer.getGeometryFactory().createPoint(
                 new Coordinate( 15.3, 56.2 ) ) );

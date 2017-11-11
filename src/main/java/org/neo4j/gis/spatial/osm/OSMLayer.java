@@ -1,20 +1,20 @@
-/**
- * Copyright (c) 2010-2013 "Neo Technology,"
+/*
+ * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
- * This file is part of Neo4j.
+ * This file is part of Neo4j Spatial.
  *
  * Neo4j is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public License
+ * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 package org.neo4j.gis.spatial.osm;
@@ -85,7 +85,7 @@ public class OSMLayer extends DynamicLayer {
 	}
 
 	protected void clear() {
-		index.clear(new NullListener());
+		indexWriter.clear(new NullListener());
 	}
 
 	public Node addWay(Node way) {
@@ -100,7 +100,7 @@ public class OSMLayer extends DynamicLayer {
 				// This is a test of the validity of the geometry, throws exception on error
 				if (verifyGeom)
 					getGeometryEncoder().decodeGeometry(geomNode);
-				index.add(geomNode);
+				indexWriter.add(geomNode);
 			} catch (Exception e) {
 				System.err.println("Failed geometry test on node " + geomNode.getProperty("name", geomNode.toString()) + ": "
 				        + e.getMessage());
@@ -129,14 +129,13 @@ public class OSMLayer extends DynamicLayer {
      * @return iterable over geometry nodes in the dataset
      */
     public Iterable<Node> getAllGeometryNodes() {
-        return index.getAllIndexedNodes();
+        return indexReader.getAllIndexedNodes();
     }
 
     public boolean removeDynamicLayer(String name) {
     	return removeLayerConfig(name);
     }
 
-    @SuppressWarnings("unchecked")
 	/**
 	 * <pre>
 	 * { "step": {"type": "GEOM", "direction": "INCOMING"
@@ -151,6 +150,7 @@ public class OSMLayer extends DynamicLayer {
 	 * to the way node and then to the tags node to test if the way is a
 	 * residential street.
 	 */
+	@SuppressWarnings("unchecked")
     public DynamicLayerConfig addDynamicLayerOnWayTags(String name, int type, HashMap<?,?> tags) {
 		JSONObject query = new JSONObject();
 		if (tags != null && !tags.isEmpty()) {
@@ -191,8 +191,8 @@ public class OSMLayer extends DynamicLayer {
 	 * over the naming, revert to the addDynamicLayerOnWayTags method.
 	 * The geometry is assumed to be LineString, the most common type for ways.
 	 * 
-	 * @param key
-	 * @param value
+	 * @param key key to match on way tags
+	 * @param value value to match on way tags
 	 */
 	public DynamicLayerConfig addSimpleDynamicLayer(String key, String value) {
 		return addSimpleDynamicLayer(key, value, Constants.GTYPE_LINESTRING);
@@ -204,13 +204,13 @@ public class OSMLayer extends DynamicLayer {
 	 * returned. This convenience method will automatically name the layer based
 	 * on the key/value passed, namely 'key-value'. If you want more control
 	 * over the naming, revert to the addDynamicLayerOnWayTags method.
-	 * 
-	 * @param key
-	 * @param value
-	 * @param geometry type as defined in Constants.
+	 *
+	 * @param key key to match on way tags
+	 * @param value value to match on way tags
+	 * @param gtype type as defined in Constants.
 	 */
 	public DynamicLayerConfig addSimpleDynamicLayer(String key, String value, int gtype) {
-		HashMap<String, String> tags = new HashMap<String, String>();
+		HashMap<String, String> tags = new HashMap<>();
 		tags.put(key, value);
 		return addDynamicLayerOnWayTags(value==null ? key : key + "-" + value, gtype, tags);
 	}
@@ -223,14 +223,14 @@ public class OSMLayer extends DynamicLayer {
 	 * want more control over the naming, revert to the addDynamicLayerOnWayTags
 	 * method.
 	 * 
-	 * @param geometry
+	 * @param gtype
 	 *            type as defined in Constants.
-	 * @param query
+	 * @param tagsQuery
 	 *            String of ',' separated key=value tags to match
 	 */
 	public DynamicLayerConfig addSimpleDynamicLayer(int gtype, String tagsQuery) {
-		HashMap<String, String> tags = new HashMap<String, String>();
-		StringBuffer name = new StringBuffer();
+		HashMap<String, String> tags = new HashMap<>();
+		StringBuilder name = new StringBuilder();
 		for (String query : tagsQuery.split("\\s*\\,\\s*")) {
 			String[] fields = query.split("\\s*\\=+\\s*");
 			String key = fields[0];
@@ -254,7 +254,7 @@ public class OSMLayer extends DynamicLayer {
 	 * want more control over the naming, revert to the addDynamicLayerOnWayTags
 	 * method. The geometry type will be assumed to be LineString.
 	 * 
-	 * @param query
+	 * @param tagsQuery
 	 *            String of ',' separated key=value tags to match
 	 */
 	public DynamicLayerConfig addSimpleDynamicLayer(String tagsQuery) {
@@ -264,7 +264,7 @@ public class OSMLayer extends DynamicLayer {
 	/**
 	 * Add a rule for a pure way based search, with a check on geometry type only.
 	 * 
-	 * @param geometry type as defined in Constants.
+	 * @param gtype type as defined in Constants.
 	 */
 	public DynamicLayerConfig addSimpleDynamicLayer(int gtype) {
 		return addDynamicLayerOnWayTags(SpatialDatabaseService.convertGeometryTypeToName(gtype), gtype, null);

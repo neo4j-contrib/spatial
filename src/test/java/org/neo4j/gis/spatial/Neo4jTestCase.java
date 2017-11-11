@@ -1,20 +1,20 @@
-/**
- * Copyright (c) 2010-2013 "Neo Technology,"
+/*
+ * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
- * This file is part of Neo4j.
+ * This file is part of Neo4j Spatial.
  *
  * Neo4j is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public License
+ * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 package org.neo4j.gis.spatial;
@@ -46,7 +46,7 @@ import org.neo4j.unsafe.batchinsert.BatchInserters;
  * Base class for the meta model tests.
  */
 public abstract class Neo4jTestCase extends TestCase {
-    public static final Map<String, String> NORMAL_CONFIG = new HashMap<String, String>();
+    static final Map<String, String> NORMAL_CONFIG = new HashMap<>();
     static {
         //NORMAL_CONFIG.put( GraphDatabaseSettings.nodestore_mapped_memory_size.name(), "50M" );
         //NORMAL_CONFIG.put( GraphDatabaseSettings.relationshipstore_mapped_memory_size.name(), "120M" );
@@ -57,7 +57,7 @@ public abstract class Neo4jTestCase extends TestCase {
 	NORMAL_CONFIG.put( GraphDatabaseSettings.batch_inserter_batch_size.name(), "2" );
         NORMAL_CONFIG.put( GraphDatabaseSettings.dump_configuration.name(), "false" );
     }
-    protected static final Map<String, String> LARGE_CONFIG = new HashMap<String, String>();
+    static final Map<String, String> LARGE_CONFIG = new HashMap<>();
     static {
         //LARGE_CONFIG.put( GraphDatabaseSettings.nodestore_mapped_memory_size.name(), "100M" );
         //LARGE_CONFIG.put( GraphDatabaseSettings.relationshipstore_mapped_memory_size.name(), "300M" );
@@ -79,11 +79,12 @@ public abstract class Neo4jTestCase extends TestCase {
     @Override
     @Before
     protected void setUp() throws Exception {
+        super.setUp();
         updateStorePrefix();
         setUp(true, false, false);
     }
 
-    protected void updateStorePrefix()
+    private void updateStorePrefix()
     {
         storePrefix++;
     }
@@ -92,10 +93,6 @@ public abstract class Neo4jTestCase extends TestCase {
      * Configurable options for text cases, with or without deleting the previous database, and with
      * or without using the BatchInserter for higher creation speeds. Note that tests that need to
      * delete nodes or use transactions should not use the BatchInserter.
-     *
-     * @param deleteDb
-     * @param useBatchInserter
-     * @throws Exception
      */
     protected void setUp(boolean deleteDb, boolean useBatchInserter, boolean autoTx) throws Exception {
         super.setUp();
@@ -105,10 +102,8 @@ public abstract class Neo4jTestCase extends TestCase {
     /**
      * For test cases that want to control their own database access, we should
      * shutdown the current one.
-     *
-     * @param deleteDb
      */
-    protected void shutdownDatabase(boolean deleteDb) {
+    private void shutdownDatabase(boolean deleteDb) {
         if (tx != null) {
             tx.success();
             tx.close();
@@ -132,12 +127,8 @@ public abstract class Neo4jTestCase extends TestCase {
      * Some tests require switching between normal EmbeddedGraphDatabase and BatchInserter, so we
      * allow that with this method. We also allow deleting the previous database, if that is desired
      * (probably only the first time this is called).
-     *
-     * @param deleteDb
-     * @param useBatchInserter
-     * @throws Exception
      */
-    protected void reActivateDatabase(boolean deleteDb, boolean useBatchInserter, boolean autoTx) throws Exception {
+    void reActivateDatabase(boolean deleteDb, boolean useBatchInserter, boolean autoTx) throws Exception {
         shutdownDatabase( deleteDb );
         Map<String, String> config = NORMAL_CONFIG;
         String largeMode = System.getProperty("spatial.test.large");
@@ -158,13 +149,11 @@ public abstract class Neo4jTestCase extends TestCase {
     
     @Rule
     public EphemeralFileSystemRule fileSystemRule = new EphemeralFileSystemRule();
-    private EphemeralFileSystemAbstraction fileSystem;
 
     @Before
     public void before() throws Exception
     {
-        fileSystem = fileSystemRule.get();
-        fileSystem.mkdirs( new File( "target" ) );
+        fileSystemRule.get().mkdirs( new File( "target" ) );
     }
 
     @Override
@@ -174,14 +163,14 @@ public abstract class Neo4jTestCase extends TestCase {
         super.tearDown();
     }
 
-    protected void beforeShutdown() {
+    private void beforeShutdown() {
     }
 
-    protected File getNeoPath() {
+    File getNeoPath() {
         return new File(dbPath.getAbsolutePath(), Long.toString(storePrefix));
     }
 
-    protected void deleteDatabase(boolean synchronous) {
+    private void deleteDatabase(boolean synchronous) {
         if (synchronous)
         {
             try {
@@ -206,12 +195,12 @@ public abstract class Neo4jTestCase extends TestCase {
         }
     }
 
-    protected static void deleteBaseDir()
+    static void deleteBaseDir()
     {
         deleteFileOrDirectory(basePath);
     }
 
-    protected static void deleteFileOrDirectory(File file) {
+    private static void deleteFileOrDirectory(File file) {
         if (!file.exists()) {
             return;
         }
@@ -225,7 +214,7 @@ public abstract class Neo4jTestCase extends TestCase {
         }
     }
 
-    protected void printDatabaseStats() {
+    void printDatabaseStats() {
         Neo4jTestUtils.printDatabaseStats(graphDb(), getNeoPath());
     }
 
@@ -233,7 +222,7 @@ public abstract class Neo4jTestCase extends TestCase {
         restartTx(true);
     }
 
-    protected void restartTx(boolean success) {
+    private void restartTx(boolean success) {
         if (tx != null) {
             if (success) {
                 tx.success();
@@ -249,7 +238,7 @@ public abstract class Neo4jTestCase extends TestCase {
         return graphDb;
     }
 
-    protected BatchInserter getBatchInserter() {
+    BatchInserter getBatchInserter() {
         return batchInserter;
     }
 

@@ -1,21 +1,21 @@
-/**
- * Copyright (c) 2010-2013 "Neo Technology,"
+/*
+ * Copyright (c) 2002-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
- * This file is part of Neo4j.
+ * This file is part of Neo4j Spatial.Spatial.
  *
  * Neo4j is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package org.neo4j.gis.spatial;
 
@@ -25,6 +25,9 @@ import com.vividsolutions.jts.geom.PrecisionModel;
 import org.geotools.factory.FactoryRegistryException;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.ReferencingFactoryFinder;
+import org.neo4j.gis.spatial.index.LayerIndexReader;
+import org.neo4j.gis.spatial.index.LayerRTreeIndex;
+import org.neo4j.gis.spatial.index.SpatialIndexWriter;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
@@ -66,7 +69,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
     }
     
     public LayerIndexReader getIndex() {
-        return index;
+        return indexReader;
     }
 
     public String getSignature() {
@@ -82,7 +85,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         // add BBOX to Node if it's missing
         getGeometryEncoder().ensureIndexable(geometry, geomNode);
 
-        index.add(geomNode);
+        indexWriter.add(geomNode);
         return new SpatialDatabaseRecord(this, geomNode, geometry);
     }
 
@@ -95,7 +98,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
             // add BBOX to Node if it's missing
             geometryEncoder.encodeGeometry(geometry, geomNode);
         }
-        index.add(geomNodes);
+        indexWriter.add(geomNodes);
         return geomNodes.size();
     }
 
@@ -113,27 +116,21 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         if (layerNode.hasProperty(PROP_CRS)) {
             try {
                 return ReferencingFactoryFinder.getCRSFactory(null).createFromWKT((String) layerNode.getProperty(PROP_CRS));
-            } catch (FactoryRegistryException e) {
-                throw new SpatialDatabaseException(e);
-            } catch (FactoryException e) {
+            } catch (FactoryRegistryException | FactoryException e) {
                 throw new SpatialDatabaseException(e);
             }
         } else {
             return null;
         }
     }
-    
-    public void setGeometryType(Integer geometryType) {
+
+    public void setGeometryType(int geometryType) {
         Node layerNode = getLayerNode();
-        if (geometryType != null) {
-            if (geometryType.intValue() < GTYPE_POINT || geometryType.intValue() > GTYPE_MULTIPOLYGON) {
-                throw new IllegalArgumentException("Unknown geometry type: " + geometryType);
-            }
-            
-            layerNode.setProperty(PROP_TYPE, geometryType);
-        } else {
-            layerNode.removeProperty(PROP_TYPE);
+        if (geometryType < GTYPE_POINT || geometryType > GTYPE_MULTIPOLYGON) {
+            throw new IllegalArgumentException("Unknown geometry type: " + geometryType);
         }
+
+        layerNode.setProperty(PROP_TYPE, geometryType);
     }
     
     public Integer getGeometryType() {
@@ -142,7 +139,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
             return (Integer) layerNode.getProperty(PROP_TYPE);
         } else {
             GuessGeometryTypeSearch geomTypeSearch = new GuessGeometryTypeSearch();
-            index.searchIndex(geomTypeSearch).count();
+            indexReader.searchIndex(geomTypeSearch).count();
 	    
 	    // returns null for an empty layer!
 	    return geomTypeSearch.firstFoundType;
@@ -183,25 +180,22 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
     }
     
     public void setExtraPropertyNames(String[] names) {
-        Transaction tx = getDatabase().beginTx();
-        try {
+        try (Transaction tx = getDatabase().beginTx()) {
             getLayerNode().setProperty(PROP_LAYERNODEEXTRAPROPS, names);
             tx.success();
-        } finally {
-            tx.close();
         }
     }
     
-    public void mergeExtraPropertyNames(String[] names) {
+    void mergeExtraPropertyNames(String[] names) {
         Node layerNode = getLayerNode();
         if (layerNode.hasProperty(PROP_LAYERNODEEXTRAPROPS)) {
             String[] actualNames = (String[]) layerNode.getProperty(PROP_LAYERNODEEXTRAPROPS);
             
-            Set<String> mergedNames = new HashSet<String>();
-            for (String name : names) mergedNames.add(name);
-            for (String name : actualNames) mergedNames.add(name);
+            Set<String> mergedNames = new HashSet<>();
+            Collections.addAll(mergedNames, names);
+            Collections.addAll(mergedNames, actualNames);
 
-            layerNode.setProperty(PROP_LAYERNODEEXTRAPROPS, (String[]) mergedNames.toArray(new String[mergedNames.size()]));
+            layerNode.setProperty(PROP_LAYERNODEEXTRAPROPS, mergedNames.toArray(new String[mergedNames.size()]));
         } else {
             layerNode.setProperty(PROP_LAYERNODEEXTRAPROPS, names);
         }
@@ -214,64 +208,6 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 	 */
 	protected DefaultLayer() {
 	}
-    
-    /**
-     * Factory method to construct a layer from an existing layerNode. This will read the layer
-     * class from the layer node properties and construct the correct class from that.
-     * 
-     * @param spatialDatabase
-     * @param layerNode
-     * @return new layer instance from existing layer node
-     */
-    @SuppressWarnings("unchecked")
-    protected static Layer makeLayerFromNode(SpatialDatabaseService spatialDatabase, Node layerNode) {
-        try {
-            String name = (String) layerNode.getProperty(PROP_LAYER);
-            if (name == null) {
-                return null;
-            }
-            
-            String className = null;
-            if (layerNode.hasProperty(PROP_LAYER_CLASS)) {
-                className = (String) layerNode.getProperty(PROP_LAYER_CLASS);
-            }
-            
-            Class<? extends Layer> layerClass = className == null ? Layer.class : (Class<? extends Layer>) Class.forName(className);
-            return makeLayerInstance(spatialDatabase, name, layerNode, layerClass);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Factory method to construct a layer with the specified layer class. This can be used when
-     * creating a layer for the first time. It will also construct the underlying Node in the graph.
-     * 
-     * @param spatialDatabase
-     * @param name
-     * @param layerClass
-     * @return new Layer instance based on newly created layer Node
-     */
-    protected static Layer makeLayerAndNode(SpatialDatabaseService spatialDatabase, String name,
-            Class< ? extends GeometryEncoder> geometryEncoderClass, Class< ? extends Layer> layerClass) {
-        try {
-            Node layerNode = spatialDatabase.getDatabase().createNode();
-            layerNode.setProperty(PROP_LAYER, name);
-            layerNode.setProperty(PROP_CREATIONTIME, System.currentTimeMillis());
-            layerNode.setProperty(PROP_GEOMENCODER, geometryEncoderClass.getCanonicalName());
-            layerNode.setProperty(PROP_LAYER_CLASS, layerClass.getCanonicalName());
-            return DefaultLayer.makeLayerInstance(spatialDatabase, name, layerNode, layerClass);
-        } catch (Exception e) {
-            throw new SpatialDatabaseException(e);
-        }
-    }
-
-    private static Layer makeLayerInstance(SpatialDatabaseService spatialDatabase, String name, Node layerNode, Class<? extends Layer> layerClass) throws InstantiationException, IllegalAccessException {
-        if(layerClass == null) layerClass = Layer.class;
-        Layer layer = layerClass.newInstance();
-        layer.initialize(spatialDatabase, name, layerNode);
-        return layer;
-    }
 
     public void initialize(SpatialDatabaseService spatialDatabase, String name, Node layerNode) {
         this.spatialDatabase = spatialDatabase;
@@ -291,7 +227,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
                 System.err.println("Failed to lookup CRS: " + e.getMessage());
             }
         }
-        
+
         if (layerNode.hasProperty(PROP_GEOMENCODER)) {
             String encoderClassName = (String) layerNode.getProperty(PROP_GEOMENCODER);
             try {
@@ -310,9 +246,28 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         this.geometryEncoder.init(this);
         
         // index must be created *after* geometryEncoder
-        this.index = new LayerRTreeIndex(spatialDatabase.getDatabase(), this);
+        if (layerNode.hasProperty(PROP_INDEX_CLASS)) {
+            String indexClass = (String) layerNode.getProperty(PROP_INDEX_CLASS);
+            try {
+                Object index = Class.forName(indexClass).newInstance();
+                this.indexReader = (LayerIndexReader) index;
+                this.indexWriter = (SpatialIndexWriter) index;
+            } catch (Exception e) {
+                throw new SpatialDatabaseException(e);
+            }
+            if (this.indexReader instanceof Configurable) {
+                if (layerNode.hasProperty(PROP_INDEX_CONFIG)) {
+                    ((Configurable) this.indexReader).setConfiguration((String) layerNode.getProperty(PROP_INDEX_CONFIG));
+                }
+            }
+        } else {
+            LayerRTreeIndex index = new LayerRTreeIndex();
+            this.indexReader = index;
+            this.indexWriter = index;
+        }
+        this.indexReader.init(this);
     }
-    
+
     /**
      * All layers are associated with a single node in the database. This node will have properties,
      * relationships (sub-graph) or both to describe the contents of the layer
@@ -325,21 +280,16 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
      * Delete Layer
      */
     public void delete(Listener monitor) {
-        index.removeAll(true, monitor);
+        indexWriter.removeAll(true, monitor);
 
-        Transaction tx = getDatabase().beginTx();
-        try {
+        try (Transaction tx = getDatabase().beginTx()) {
             Node layerNode = getLayerNode();
             layerNode.getSingleRelationship(SpatialRelationshipTypes.LAYER, Direction.INCOMING).delete();
             layerNode.delete();
-
             tx.success();
-        } finally {
-            tx.close();
         }
     }
-    
-    
+
     // Private methods
     
     protected GraphDatabaseService getDatabase() {
@@ -352,20 +302,21 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
     private SpatialDatabaseService spatialDatabase;
     private String name;
     protected Node layerNode;
-    protected GeometryEncoder geometryEncoder;
-    protected GeometryFactory geometryFactory;
-    protected LayerRTreeIndex index;
-    
+    private GeometryEncoder geometryEncoder;
+    private GeometryFactory geometryFactory;
+    protected LayerIndexReader indexReader;
+    protected SpatialIndexWriter indexWriter;
+
     public SpatialDataset getDataset() {
         return this;
     }
 
     public Iterable<Node> getAllGeometryNodes() {
-        return index.getAllIndexedNodes();
+        return indexReader.getAllIndexedNodes();
     }
 
     public boolean containsGeometryNode(Node geomNode) {
-        return index.isNodeIndexed(geomNode.getId());
+        return indexReader.isNodeIndexed(geomNode.getId());
     }
 
     /**
@@ -402,7 +353,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
             }
             
         }
-        public NodeToGeometryIterable(Iterable<Node> allGeometryNodes) {
+        NodeToGeometryIterable(Iterable<Node> allGeometryNodes) {
             this.allGeometryNodeIterator = allGeometryNodes.iterator();
         }
 
@@ -428,7 +379,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
      * @return iterable over all Layers that can be viewed from this dataset
      */
     public Iterable< ? extends Layer> getLayers() {
-        return Arrays.asList(new Layer[]{this});
+        return Collections.singletonList(this);
     }
 
 	/**

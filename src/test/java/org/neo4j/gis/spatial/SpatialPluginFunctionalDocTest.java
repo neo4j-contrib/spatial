@@ -1,20 +1,20 @@
-/**
- * Copyright (c) 2010-2013 "Neo Technology,"
+/*
+ * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
- * This file is part of Neo4j.
+ * This file is part of Neo4j Spatial.
  *
  * Neo4j is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public License
+ * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 package org.neo4j.gis.spatial;
@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import javax.ws.rs.core.Response.Status;
 
-import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -171,28 +170,6 @@ public class SpatialPluginFunctionalDocTest extends AbstractRestFunctionalTestBa
         String wkt = "LINESTRING (15.2 60.1, 15.3 60.1)";
         response = post(Status.OK,"{\"layer\":\""+geom+ "\", \"geometry\":\"" + wkt + "\"}", ENDPOINT+ "/graphdb/addGeometryWKTToLayer");
         assertTrue(response.contains(wkt));
-
-    }
-
-    /**
-     * Update a geometry, encoded in WKT, on an existing geometry in a layer.
-     */
-    @Test
-    @Documented("update_a_WKT_geometry_in_a_layer")
-    public void update_a_WKT_geometry_in_a_layer() throws Exception
-    {
-        data.get();
-        String geom = "geom";
-        String response = post(Status.OK,"{\"layer\":\""+geom+"\", \"format\":\"WKT\",\"nodePropertyName\":\"wkt\"}", ENDPOINT + "/graphdb/addEditableLayer");
-        String wkt = "LINESTRING (15.2 60.1, 15.3 60.1)";
-        String wkt2 = "LINESTRING (16.2 60.1, 15.3 60.1)";
-        response = post(Status.OK,"{\"layer\":\""+geom+ "\", \"geometry\":\"" + wkt + "\"}", ENDPOINT+ "/graphdb/addGeometryWKTToLayer");
-        String self = (String) ((JSONObject)((JSONArray) new JSONParser().parse(response)).get(0)).get("self");
-        String geomId=self.substring(self.lastIndexOf("/")+1);
-        response = post(Status.OK,"{\"layer\":\""+geom+ "\", \"geometry\":\"" + wkt2 + "\",\"geometryNodeId\":"+geomId+"}", ENDPOINT+ "/graphdb/updateGeometryFromWKT");
-
-        assertTrue(response.contains(wkt2));
-        assertTrue(response.contains("http://localhost:"+PORT+"/db/data/node/"+geomId));
 
     }
 

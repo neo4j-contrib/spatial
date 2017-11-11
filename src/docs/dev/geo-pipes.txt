@@ -1,5 +1,5 @@
 = GeoPipes Examples
-:source: ../../../src/test/java/org/neo4j/gis/spatial/pipes/GeoPipesTest.java
+:source: ../../../src/test/java/org/neo4j/gis/spatial/pipes/GeoPipesDocTest.java
 
 Below follows a non-exhaustive lists of interesting GeoPipes that can be chained together to contruct a geoprocessing system in while trying to keep the processing as lazy as possible using iterators through the different steps.
 

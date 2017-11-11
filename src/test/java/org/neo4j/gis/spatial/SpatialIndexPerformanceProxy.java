@@ -1,28 +1,27 @@
-/**
- * Copyright (c) 2010-2013 "Neo Technology,"
+/*
+ * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
- * This file is part of Neo4j.
+ * This file is part of Neo4j Spatial.
  *
  * Neo4j is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as
- * published by the Free Software Foundation, either version 3 of the
- * License, or (at your option) any later version.
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU Affero General Public License
+ * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 package org.neo4j.gis.spatial;
 
-import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
+import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
 import org.neo4j.gis.spatial.rtree.TreeMonitor;
@@ -30,7 +29,6 @@ import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.graphdb.Node;
-
 
 /**
  * @author Davide Savazzi
@@ -44,6 +42,11 @@ public class SpatialIndexPerformanceProxy implements LayerIndexReader {
     }
 
     // Public methods
+
+    @Override
+    public void init(Layer layer) {
+        if (layer != getLayer()) throw new IllegalArgumentException("Cannot change layer associated with this index");
+    }
 
     public Layer getLayer() {
     	return spatialIndex.getLayer();
@@ -64,23 +67,7 @@ public class SpatialIndexPerformanceProxy implements LayerIndexReader {
         System.out.println("# exec time(count): " + (stop - start) + "ms");
         return count;
     }
-    
-    public SpatialDatabaseRecord get(Long geomNodeId) {
-        long start = System.currentTimeMillis();
-        SpatialDatabaseRecord result = spatialIndex.get(geomNodeId);
-        long stop = System.currentTimeMillis();
-        System.out.println("# exec time(get(" + geomNodeId + ")): " + (stop - start) + "ms");    	
-        return result;    	
-    }
-    
-    public List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds) {
-        long start = System.currentTimeMillis();
-        List<SpatialDatabaseRecord> result = spatialIndex.get(geomNodeIds);
-        long stop = System.currentTimeMillis();
-        System.out.println("# exec time(get(" + geomNodeIds + ")): " + (stop - start) + "ms");    	
-        return result;
-    }
- 
+
     public Iterable<Node> getAllGeometryNodes() {
 	    return spatialIndex.getAllIndexedNodes();
     }
@@ -111,7 +98,7 @@ public class SpatialIndexPerformanceProxy implements LayerIndexReader {
 	@Override
 	public Iterable<Node> getAllIndexedNodes() {
 		long start = System.currentTimeMillis();
-		Iterable<Node> result = getAllIndexedNodes();
+		Iterable<Node> result = spatialIndex.getAllIndexedNodes();
         long stop = System.currentTimeMillis();
         System.out.println("# exec time(getAllIndexedNodes()): " + (stop - start) + "ms");		
         return result;
