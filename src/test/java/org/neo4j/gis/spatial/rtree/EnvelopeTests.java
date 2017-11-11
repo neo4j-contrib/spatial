@@ -2,7 +2,7 @@
  * Copyright (c) 2002-2013 "Neo Technology," Network Engine for Objects in Lund
  * AB [http://neotechnology.com]
  * <p>
- * This file is part of Neo4j.
+ * This file is part of Neo4j Spatial.
  * <p>
  * Neo4j is free software: you can redistribute it and/or modify it under the
  * terms of the GNU General Public License as published by the Free Software
