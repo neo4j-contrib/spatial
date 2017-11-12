@@ -7,6 +7,7 @@ import org.geotools.data.simple.SimpleFeatureIterator;
 import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.neo4j.gis.spatial.osm.OSMImporter;
@@ -16,6 +17,7 @@ import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 
 import javax.xml.stream.XMLStreamException;
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.HashSet;
@@ -39,6 +41,14 @@ public class Neo4jSpatialDataStoreTest {
         importer.reIndex(graph);
     }
 
+    @After
+    public void teardown() {
+        if (this.graph != null) {
+            this.graph.shutdown();
+            this.graph = null;
+        }
+    }
+
     @Test
     public void shouldOpenDataStore() {
         Neo4jSpatialDataStore store = new Neo4jSpatialDataStore(graph);
@@ -48,11 +58,16 @@ public class Neo4jSpatialDataStoreTest {
 
     @Test
     public void shouldOpenDataStoreOnNonSpatialDatabase() {
-        GraphDatabaseService db = new TestGraphDatabaseFactory().newImpermanentDatabase();
-        Neo4jSpatialDataStore store = new Neo4jSpatialDataStore(db);
-        ReferencedEnvelope bounds = store.getBounds("map");
-        // TODO: rather should throw a descriptive exception
-        assertThat(bounds, equalTo(null));
+        GraphDatabaseService db = null;
+        try {
+            db = new TestGraphDatabaseFactory().newImpermanentDatabase(new File("other-db"));
+            Neo4jSpatialDataStore store = new Neo4jSpatialDataStore(db);
+            ReferencedEnvelope bounds = store.getBounds("map");
+            // TODO: rather should throw a descriptive exception
+            assertThat(bounds, equalTo(null));
+        } finally {
+            if (db != null) db.shutdown();
+        }
     }
 
     @Test

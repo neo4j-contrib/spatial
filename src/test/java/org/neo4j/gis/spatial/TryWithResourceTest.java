@@ -18,18 +18,20 @@ public class TryWithResourceTest {
     @Test
     public void testSuppressedException() throws Exception {
         try {
-        GraphDatabaseService db = new TestGraphDatabaseFactory().newImpermanentDatabase();
-        try (Transaction tx = db.beginTx()) {
-            Node n = db.createNode();
-            try (Transaction tx2 = db.beginTx()) {
-                n.setProperty("foo","bar");
-                if (true) throw new Exception(MESSAGE);
-                tx2.success();
+            GraphDatabaseService db = new TestGraphDatabaseFactory().newImpermanentDatabase();
+            try (Transaction tx = db.beginTx()) {
+                Node n = db.createNode();
+                try (Transaction tx2 = db.beginTx()) {
+                    n.setProperty("foo", "bar");
+                    if (true) throw new Exception(MESSAGE);
+                    tx2.success();
+                }
+                tx.success();
+            } finally {
+                db.shutdown();
             }
-            tx.success();
-        }
-        } catch(Exception e) {
-            assertEquals(MESSAGE,e.getMessage());
+        } catch (Exception e) {
+            assertEquals(MESSAGE, e.getMessage());
         }
     }
 
@@ -42,6 +44,8 @@ public class TryWithResourceTest {
                 n.setProperty("foo", "bar");
                 if (true) throw new Exception(MESSAGE);
                 tx.success();
+            } finally {
+                db.shutdown();
             }
         } catch (Exception e) {
             assertEquals(MESSAGE, e.getMessage());

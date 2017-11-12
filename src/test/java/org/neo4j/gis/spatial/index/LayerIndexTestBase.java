@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial.index;
 import com.vividsolutions.jts.geom.*;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.neo4j.gis.spatial.Layer;
@@ -90,6 +91,15 @@ public abstract class LayerIndexTestBase {
     public void setup() {
         graph = new TestGraphDatabaseFactory().newImpermanentDatabase();
         spatial = new SpatialDatabaseService(graph);
+    }
+
+    @After
+    public void tearDown() {
+        if (graph != null) {
+            graph.shutdown();
+            graph = null;
+            spatial = null;
+        }
     }
 
     @Test

@@ -182,11 +182,12 @@ public abstract class Neo4jTestCase extends TestCase {
         }
         else
         {
+            final File oldPath = getNeoPath();
             new Thread(new Runnable() {
                 @Override
                 public void run() {
                     try {
-                        FileUtils.deleteRecursively(getNeoPath());
+                        FileUtils.deleteRecursively(oldPath);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
