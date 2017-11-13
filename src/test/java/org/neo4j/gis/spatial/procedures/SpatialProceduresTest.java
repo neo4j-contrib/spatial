@@ -464,6 +464,15 @@ public class SpatialProceduresTest {
     }
 
     @Test
+    public void testDistanceNodeWithGeohashIndex() throws Exception {
+        execute("CALL spatial.addPointLayer('geom','geohash')");
+        ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node").columnAs("node");
+        Node node = (Node) nodes.next();
+        nodes.close();
+        testCall(db, "CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)", r -> assertEquals(node, r.get("node")));
+    }
+
+    @Test
     public void testDistanceNodeGeohash() throws Exception {
         execute("CALL spatial.addPointLayerGeohash('geom')");
         ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node").columnAs("node");
@@ -475,6 +484,15 @@ public class SpatialProceduresTest {
     @Test
     public void add_a_node_to_the_spatial_index_short() throws Exception {
         execute("CALL spatial.addPointLayerXY('geom','lon','lat')");
+        ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {lat:60.1,lon:15.2}) RETURN n").columnAs("n");
+        Node node = (Node) nodes.next();
+        nodes.close();
+        testCall(db, "MATCH (n:Node) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node", r -> Assert.assertEquals(node, r.get("node")));
+    }
+
+    @Test
+    public void add_a_node_to_the_spatial_index_short_with_geohash() throws Exception {
+        execute("CALL spatial.addPointLayerXY('geom','lon','lat','geohash')");
         ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {lat:60.1,lon:15.2}) RETURN n").columnAs("n");
         Node node = (Node) nodes.next();
         nodes.close();

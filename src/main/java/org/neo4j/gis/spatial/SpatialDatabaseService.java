@@ -185,14 +185,17 @@ public class SpatialDatabaseService implements Constants {
         return getOrCreateEditableLayer(name, "WKT", wktProperty);
     }
 
-	private Class<? extends LayerIndexReader> resolveIndexClass(String index) {
+	public static final String RTREE_INDEX_NAME = "rtree";
+	public static final String GEOHASH_INDEX_NAME = "geohash";
+
+	public Class<? extends LayerIndexReader> resolveIndexClass(String index) {
 		if (index == null) {
 			return LayerRTreeIndex.class;
 		}
 		switch (index.toLowerCase()) {
-			case "rtree":
+			case RTREE_INDEX_NAME:
 				return LayerRTreeIndex.class;
-			case "geohash":
+			case GEOHASH_INDEX_NAME:
 				return LayerGeohashPointIndex.class;
 		}
 		throw new IllegalArgumentException("Unknown index: " + index);
@@ -290,10 +293,10 @@ public class SpatialDatabaseService implements Constants {
 
     public SimplePointLayer createSimplePointLayer(String name, Class<? extends LayerIndexReader> indexClass, String... xybProperties) {
         return (SimplePointLayer) createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, indexClass,
-                makeConfig(xybProperties), org.geotools.referencing.crs.DefaultGeographicCRS.WGS84);
+                makeEncoderConfig(xybProperties), org.geotools.referencing.crs.DefaultGeographicCRS.WGS84);
     }
 
-    private String makeConfig(String... args) {
+    public String makeEncoderConfig(String... args) {
         StringBuilder sb = new StringBuilder();
         if(args != null) {
             for (String arg : args) {

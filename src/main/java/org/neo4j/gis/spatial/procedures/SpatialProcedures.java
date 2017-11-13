@@ -46,6 +46,8 @@ import org.neo4j.kernel.impl.proc.Procedures;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
+
+import static org.neo4j.gis.spatial.SpatialDatabaseService.RTREE_INDEX_NAME;
 import static org.neo4j.procedure.Mode.*;
 import org.opengis.referencing.ReferenceIdentifier;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -184,22 +186,31 @@ public class SpatialProcedures {
 
     @Procedure(value="spatial.addPointLayer", mode=WRITE)
     @Description("Adds a new simple point layer, returns the layer root node")
-    public Stream<NodeResult> addSimplePointLayer(@Name("name") String name) {
+    public Stream<NodeResult> addSimplePointLayer(
+            @Name("name") String name,
+            @Name(value = "indexType", defaultValue = RTREE_INDEX_NAME) String indexType,
+            @Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName) {
         SpatialDatabaseService sdb = wrap(db);
         Layer layer = sdb.getLayer(name);
         if (layer == null) {
-            return streamNode(sdb.createLayer(name, SimplePointEncoder.class, SimplePointLayer.class).getLayerNode());
+            return streamNode(sdb.createLayer(name, SimplePointEncoder.class, SimplePointLayer.class,
+                    sdb.resolveIndexClass(indexType), null,
+                    selectCRS(crsName)).getLayerNode());
         } else {
             throw new IllegalArgumentException("Cannot create existing layer: " + name);
         }
     }
 
     @Procedure(value="spatial.addPointLayerGeohash", mode=WRITE)
-    public Stream<NodeResult> addSimplePointLayerGeohash(@Name("name") String name) {
+    public Stream<NodeResult> addSimplePointLayerGeohash(
+            @Name("name") String name,
+            @Name(value = "crsName", defaultValue = WGS84_CRS_NAME) String crsName) {
         SpatialDatabaseService sdb = wrap(db);
         Layer layer = sdb.getLayer(name);
         if (layer == null) {
-            return streamNode(sdb.createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, LayerGeohashPointIndex.class, null).getLayerNode());
+            return streamNode(sdb.createLayer(name, SimplePointEncoder.class, SimplePointLayer.class,
+                    LayerGeohashPointIndex.class, null,
+                    selectCRS(crsName)).getLayerNode());
         } else {
             throw new IllegalArgumentException("Cannot create existing layer: " + name);
         }
@@ -210,12 +221,16 @@ public class SpatialProcedures {
     public Stream<NodeResult> addSimplePointLayer(
             @Name("name") String name,
             @Name("xProperty") String xProperty,
-            @Name("yProperty") String yProperty) {
+            @Name("yProperty") String yProperty,
+            @Name(value = "indexType", defaultValue = RTREE_INDEX_NAME) String indexType,
+            @Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName) {
         SpatialDatabaseService sdb = wrap(db);
         Layer layer = sdb.getLayer(name);
         if (layer == null) {
             if (xProperty != null && yProperty != null) {
-                return streamNode(sdb.createSimplePointLayer(name, xProperty, yProperty).getLayerNode());
+                return streamNode(sdb.createLayer(name, SimplePointEncoder.class, SimplePointLayer.class,
+                        sdb.resolveIndexClass(indexType), sdb.makeEncoderConfig(xProperty, yProperty),
+                        selectCRS(hintCRSName(crsName, yProperty))).getLayerNode());
             } else {
                 throw new IllegalArgumentException("Cannot create layer '" + name + "': Missing encoder config values: xProperty[" + xProperty + "], yProperty[" + yProperty + "]");
             }
@@ -226,20 +241,55 @@ public class SpatialProcedures {
 
     @Procedure(value="spatial.addPointLayerWithConfig", mode=WRITE)
     @Description("Adds a new simple point layer with the given configuration, returns the layer root node")
-    public Stream<NodeResult> addSimplePointLayer(
+    public Stream<NodeResult> addSimplePointLayerWithConfig(
             @Name("name") String name,
-            @Name("encoderConfig") String encoderConfig) {
+            @Name("encoderConfig") String encoderConfig,
+            @Name(value = "indexType", defaultValue = RTREE_INDEX_NAME) String indexType,
+            @Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName) {
         SpatialDatabaseService sdb = wrap(db);
         Layer layer = sdb.getLayer(name);
         if (layer == null) {
             if (encoderConfig.indexOf(':') > 0) {
-                return streamNode(sdb.createSimplePointLayer(name, encoderConfig.split(":")).getLayerNode());
+                return streamNode(sdb.createLayer(name, SimplePointEncoder.class, SimplePointLayer.class,
+                        sdb.resolveIndexClass(indexType), encoderConfig,
+                        selectCRS(hintCRSName(crsName, encoderConfig))).getLayerNode());
             } else {
                 throw new IllegalArgumentException("Cannot create layer '" + name + "': invalid encoder config '" + encoderConfig + "'");
             }
         } else {
             throw new IllegalArgumentException("Cannot create existing layer: " + name);
         }
+    }
+
+    public static final String UNSET_CRS_NAME = "";
+    public static final String WGS84_CRS_NAME = "wgs84";
+
+    /**
+     * Currently this only supports the string 'WGS84', for the convenience of procedure users.
+     * This should be expanded with CRS table lookup.
+     * @param name
+     * @return null or WGS84
+     */
+    public CoordinateReferenceSystem selectCRS(String name) {
+        if (name == null) {
+            return null;
+        } else {
+            switch (name.toLowerCase()) {
+                case WGS84_CRS_NAME:
+                    return org.geotools.referencing.crs.DefaultGeographicCRS.WGS84;
+                case UNSET_CRS_NAME:
+                    return null;
+                default:
+                    throw new IllegalArgumentException("Unsupported CRS name: " + name);
+            }
+        }
+    }
+
+    private String hintCRSName(String crsName, String hint) {
+        if (crsName.equals(UNSET_CRS_NAME) && hint.toLowerCase().contains("lat")) {
+            crsName = WGS84_CRS_NAME;
+        }
+        return crsName;
     }
 
     @Procedure(value="spatial.addLayerWithEncoder", mode=WRITE)
