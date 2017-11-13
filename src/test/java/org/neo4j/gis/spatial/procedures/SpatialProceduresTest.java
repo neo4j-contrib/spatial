@@ -166,6 +166,28 @@ public class SpatialProceduresTest {
         assertThat("Expected two nodes when using high precision", countHigh, equalTo(2L));
     }
 
+    @Test
+    public void add_node_and_search_bbox_and_distance_geohash() {
+        execute("CALL spatial.addPointLayerGeohash('geom')");
+        ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node").columnAs("node");
+        Node node = (Node) nodes.next();
+        nodes.close();
+        testCall(db, "CALL spatial.bbox('geom',{lon:15.0,lat:60.0},{lon:15.3, lat:60.2})", r -> assertEquals(node, r.get("node")));
+        testCall(db, "CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)", r -> assertEquals(node, r.get("node")));
+    }
+
+    @Test
+    // This tests issue https://github.com/neo4j-contrib/spatial/issues/298
+    public void add_node_point_layer_and_search_multiple_points_precision_geohash() {
+        execute("CALL spatial.addPointLayerGeohash('bar')");
+        execute("create (n:Point) set n={latitude: 52.2029252, longitude: 0.0905302} with n call spatial.addNode('bar', n) yield node return node");
+        execute("create (n:Point) set n={latitude: 52.202925, longitude: 0.090530} with n call spatial.addNode('bar', n) yield node return node");
+//        long countLow = execute("call spatial.withinDistance('bar', {latitude:52.202925,longitude:0.0905302}, 100) YIELD node RETURN node");
+//        assertThat("Expected two nodes when using low precision", countLow, equalTo(2L));
+        long countHigh = execute("call spatial.withinDistance('bar', {latitude:52.2029252,longitude:0.0905302}, 100) YIELD node RETURN node");
+        assertThat("Expected two nodes when using high precision", countHigh, equalTo(2L));
+    }
+
     //
     // Testing interaction between Neo4j Spatial and the Neo4j 3.0 Point type (point() and distance() functions)
     //
@@ -297,8 +319,13 @@ public class SpatialProceduresTest {
     }
 
     @Test
-    public void create_a_pointlayer() {
+    public void create_a_pointlayer_with_rtree() {
         testCall(db, "CALL spatial.addPointLayer('geom')", (r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
+    }
+
+    @Test
+    public void create_a_pointlayer_with_geohash() {
+        testCall(db, "CALL spatial.addPointLayerGeohash('geom')", (r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
     }
 
     @Test
@@ -392,9 +419,10 @@ public class SpatialProceduresTest {
             for(String key:procs.keySet()) {
                 System.out.println(key + ": " + procs.get(key));
             }
-            assertEquals("RegisteredLayerType(name='SimplePoint', geometryEncoder=SimplePointEncoder, layerClass=SimplePointLayer, crs='WGS84(DD)', defaultConfig='longitude:latitude')", procs.get("SimplePoint"));
-            assertEquals("RegisteredLayerType(name='WKT', geometryEncoder=WKTGeometryEncoder, layerClass=EditableLayerImpl, crs='WGS84(DD)', defaultConfig='geometry')", procs.get("WKT"));
-            assertEquals("RegisteredLayerType(name='WKB', geometryEncoder=WKBGeometryEncoder, layerClass=EditableLayerImpl, crs='WGS84(DD)', defaultConfig='geometry')", procs.get("WKB"));
+            assertEquals("RegisteredLayerType(name='SimplePoint', geometryEncoder=SimplePointEncoder, layerClass=SimplePointLayer, index=LayerRTreeIndex, crs='WGS84(DD)', defaultConfig='longitude:latitude')", procs.get("simplepoint"));
+            assertEquals("RegisteredLayerType(name='WKT', geometryEncoder=WKTGeometryEncoder, layerClass=EditableLayerImpl, index=LayerRTreeIndex, crs='WGS84(DD)', defaultConfig='geometry')", procs.get("wkt"));
+            assertEquals("RegisteredLayerType(name='WKB', geometryEncoder=WKBGeometryEncoder, layerClass=EditableLayerImpl, index=LayerRTreeIndex, crs='WGS84(DD)', defaultConfig='geometry')", procs.get("wkb"));
+            assertEquals("RegisteredLayerType(name='Geohash', geometryEncoder=SimplePointEncoder, layerClass=SimplePointLayer, index=LayerGeohashPointIndex, crs='WGS84(DD)', defaultConfig='longitude:latitude')", procs.get("geohash"));
         });
     }
 
@@ -409,8 +437,17 @@ public class SpatialProceduresTest {
     }
 
     @Test
-    public void add_a_node_to_the_spatial_index() throws Exception {
+    public void add_a_node_to_the_spatial_rtree_index() throws Exception {
         execute("CALL spatial.addPointLayer('geom')");
+        ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) RETURN n").columnAs("n");
+        Node node = (Node) nodes.next();
+        nodes.close();
+        testCall(db, "MATCH (n:Node) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node", r -> Assert.assertEquals(node, r.get("node")));
+    }
+
+    @Test
+    public void add_a_node_to_the_spatial_geohash_index() throws Exception {
+        execute("CALL spatial.addPointLayerGeohash('geom')");
         ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) RETURN n").columnAs("n");
         Node node = (Node) nodes.next();
         nodes.close();
@@ -420,6 +457,15 @@ public class SpatialProceduresTest {
     @Test
     public void testDistanceNode() throws Exception {
         execute("CALL spatial.addPointLayer('geom')");
+        ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node").columnAs("node");
+        Node node = (Node) nodes.next();
+        nodes.close();
+        testCall(db, "CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)", r -> assertEquals(node, r.get("node")));
+    }
+
+    @Test
+    public void testDistanceNodeGeohash() throws Exception {
+        execute("CALL spatial.addPointLayerGeohash('geom')");
         ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node").columnAs("node");
         Node node = (Node) nodes.next();
         nodes.close();
@@ -578,6 +624,24 @@ public class SpatialProceduresTest {
     }
 
     @Test
+    public void find_geometries_in_a_bounding_box_geohash() throws Exception {
+        execute("CALL spatial.addPointLayerGeohash('geom')");
+        ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node").columnAs("node");
+        Node node = (Node) nodes.next();
+        nodes.close();
+        testCall(db, "CALL spatial.bbox('geom',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})",r -> assertEquals(node,r.get("node")));
+    }
+
+    @Test
+    public void find_geometries_in_a_polygon_geohash() throws Exception {
+        execute("CALL spatial.addPointLayerGeohash('geom')");
+        ResourceIterator<Object> results = db.execute("UNWIND [{name:'a',latitude:60.1,longitude:15.2},{name:'b',latitude:60.3,longitude:15.5}] as point CREATE (n:Node) SET n += point WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node.name as name").columnAs("name");
+        results.close();
+        String polygon = "POLYGON((15.3 60.2, 15.3 60.4, 15.7 60.4, 15.7 60.2, 15.3 60.2))";
+        testCall(db, "CALL spatial.intersects('geom','" + polygon + "') YIELD node RETURN node.name as name", r -> assertEquals("b", r.get("name")));
+    }
+
+    @Test
     public void create_a_WKT_layer() throws Exception {
         testCall(db, "CALL spatial.addWKTLayer('geom','wkt')", r -> assertEquals("wkt",dump(((Node)r.get("node"))).getProperty("geomencoder_config")));
     }
@@ -598,11 +662,19 @@ public class SpatialProceduresTest {
     }
 
     @Test
-    public void find_geometries_close_to_a_point() throws Exception {
+    public void find_geometries_close_to_a_point_wkt() throws Exception {
         String lineString = "LINESTRING (15.2 60.1, 15.3 60.1)";
         execute("CALL spatial.addLayer('geom','WKT','wkt')");
         execute("CALL spatial.addWKT('geom',{wkt})", map("wkt",lineString));
         testCall(db, "CALL spatial.closest('geom',{lon:15.2, lat:60.1}, 1.0)", r -> assertEquals(lineString, (dump((Node)r.get("node"))).getProperty("wkt")));
+    }
+
+    @Test
+    public void find_geometries_close_to_a_point_geohash() throws Exception {
+        String lineString = "POINT (15.2 60.1)";
+        execute("CALL spatial.addLayer('geom','geohash','lon:lat')");
+        execute("CALL spatial.addWKT('geom',{wkt})", map("wkt",lineString));
+        testCallCount(db, "CALL spatial.closest('geom',{lon:15.2, lat:60.1}, 1.0)", null, 1);
     }
 
     @Test

@@ -30,6 +30,7 @@ import org.neo4j.gis.spatial.*;
 import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePropertyEncoder;
+import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
@@ -193,6 +194,17 @@ public class SpatialProcedures {
         }
     }
 
+    @Procedure(value="spatial.addPointLayerGeohash", mode=WRITE)
+    public Stream<NodeResult> addSimplePointLayerGeohash(@Name("name") String name) {
+        SpatialDatabaseService sdb = wrap(db);
+        Layer layer = sdb.getLayer(name);
+        if (layer == null) {
+            return streamNode(sdb.createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, LayerGeohashPointIndex.class, null).getLayerNode());
+        } else {
+            throw new IllegalArgumentException("Cannot create existing layer: " + name);
+        }
+    }
+
     @Procedure(value="spatial.addPointLayerXY", mode=WRITE)
     @Description("Adds a new simple point layer with the given properties for x and y coordinates, returns the layer root node")
     public Stream<NodeResult> addSimplePointLayer(
@@ -232,7 +244,7 @@ public class SpatialProcedures {
 
     @Procedure(value="spatial.addLayerWithEncoder", mode=WRITE)
     @Description("Adds a new layer with the given encoder class and configuration, returns the layer root node")
-    public Stream<NodeResult> addLayer(
+    public Stream<NodeResult> addLayerWithEncoder(
             @Name("name") String name,
             @Name("encoder") String encoderClassName,
             @Name("encoderConfig") String encoderConfig) {
@@ -261,7 +273,7 @@ public class SpatialProcedures {
         Layer layer = sdb.getLayer(name);
         if (layer == null) {
             Map<String, String> knownTypes = sdb.getRegisteredLayerTypes();
-            if (knownTypes.containsKey(type)) {
+            if (knownTypes.containsKey(type.toLowerCase())) {
                 return streamNode(sdb.getOrCreateRegisteredTypeLayer(name, type, encoderConfig).getLayerNode());
             } else {
                 throw new IllegalArgumentException("Cannot create layer '" + name + "': unknown type '" + type + "' - supported types are " + knownTypes.toString());

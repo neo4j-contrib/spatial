@@ -24,6 +24,7 @@ import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.server.plugin.SpatialPlugin;
@@ -52,17 +53,35 @@ public class ServerPluginTest extends Neo4jTestCase {
 		super.tearDown();
 	}
 
-	@Test
-	public void testCreateLayer() {
-		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-		assertNull(spatialService.getLayer(LAYER));
-		plugin.addSimplePointLayer(graphDb(), LAYER, LAT, LON);
+    @Test
+    public void testCreateLayerRTree() {
+        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+        assertNull(spatialService.getLayer(LAYER));
+        plugin.addSimplePointLayer(graphDb(), LAYER, LAT, LON, "rtree");
 
-		assertNotNull(spatialService.getLayer(LAYER));
-	}
+        assertNotNull(spatialService.getLayer(LAYER));
+    }
 
-	@Test
-	public void testSearchPoints() {
+    @Test
+    public void testCreateLayerGeohash() {
+        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+        assertNull(spatialService.getLayer(LAYER));
+        plugin.addSimplePointLayer(graphDb(), LAYER, LAT, LON, "geohash");
+
+        assertNotNull(spatialService.getLayer(LAYER));
+    }
+
+    @Test
+    public void testSearchPointsRTree() {
+        testSearchPoints("rtree");
+    }
+
+    @Test
+    public void testSearchPointsGeohash() {
+        testSearchPoints("geohash");
+    }
+
+    private void testSearchPoints(String indexType) {
         Node point;
         try ( Transaction tx2 = graphDb().beginTx() )
         {
@@ -71,11 +90,14 @@ public class ServerPluginTest extends Neo4jTestCase {
             point.setProperty( LON, 15.2 );
             tx2.success();
         }
-        plugin.addSimplePointLayer( graphDb(), LAYER, LAT, LON );
+        plugin.addSimplePointLayer( graphDb(), LAYER, LAT, LON, indexType );
         
 		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
 		Layer layer = spatialService.getLayer(LAYER);
-        Neo4jTestUtils.debugIndexTree(graphDb(), (RTreeIndex) layer.getIndex());
+        LayerIndexReader index = layer.getIndex();
+        if (index instanceof RTreeIndex) {
+            Neo4jTestUtils.debugIndexTree(graphDb(), (RTreeIndex) layer.getIndex());
+        }
         
         plugin.addNodeToLayer(graphDb(), point, LAYER);
         Iterable<Node> geometries = plugin.findGeometriesInBBox( graphDb(), 15.0, 15.3, 60.0, 60.2, LAYER );
@@ -90,11 +112,20 @@ public class ServerPluginTest extends Neo4jTestCase {
 //        assertTrue( geometries.iterator().hasNext() );
 
 	}
-	
-	@Test
-	public void testAddPointToLayerWithDefaults() {
-		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-        plugin.addSimplePointLayer( graphDb(), LAYER, LAT, LON );
+
+    @Test
+    public void testAddPointToLayerWithDefaultsForRTree() {
+        testAddPointToLayerWithDefaults("rtree");
+    }
+
+    @Test
+    public void testAddPointToLayerWithDefaultsForGeohash() {
+        testAddPointToLayerWithDefaults("geohash");
+    }
+
+    private void testAddPointToLayerWithDefaults(String indexName) {
+        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+        plugin.addSimplePointLayer( graphDb(), LAYER, LAT, LON, indexName );
 		assertNotNull(spatialService.getLayer(LAYER));
 		Layer layer2 = spatialService.getLayer(LAYER);
 
