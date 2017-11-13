@@ -46,10 +46,11 @@ public class SpatialPlugin extends ServerPlugin {
             @Source GraphDatabaseService db,
             @Description("The layer to find or create.") @Parameter(name = "layer") String layer,
             @Description("The node property that contains the latitude. Default is 'lat'") @Parameter(name = "lat", optional = true) String lat,
-            @Description("The node property that contains the longitude. Default is 'lon'") @Parameter(name = "lon", optional = true) String lon) {
+            @Description("The node property that contains the longitude. Default is 'lon'") @Parameter(name = "lon", optional = true) String lon,
+            @Description("The type of index to use. Default is 'rtree'") @Parameter(name = "index", optional = true) String index) {
         System.out.println("Creating new layer '" + layer + "' unless it already exists");
         SpatialDatabaseService spatialService = getSpatialDatabaseService(db);
-        return singleton(spatialService.getOrCreatePointLayer(layer, lon, lat).getLayerNode());
+        return singleton(spatialService.getOrCreatePointLayer(layer, index, lon, lat).getLayerNode());
     }
 
     @PluginTarget(GraphDatabaseService.class)
