@@ -21,7 +21,9 @@ package org.neo4j.gis.spatial;
 
 import java.util.*;
 
+import org.geotools.referencing.crs.AbstractCRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
+import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
 import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
@@ -183,13 +185,33 @@ public class SpatialDatabaseService implements Constants {
         return getOrCreateEditableLayer(name, "WKT", wktProperty);
     }
 
-	public EditableLayer getOrCreatePointLayer(String name, String xProperty, String yProperty) {
+	public static final String RTREE_INDEX_NAME = "rtree";
+	public static final String GEOHASH_INDEX_NAME = "geohash";
+
+	public Class<? extends LayerIndexReader> resolveIndexClass(String index) {
+		if (index == null) {
+			return LayerRTreeIndex.class;
+		}
+		switch (index.toLowerCase()) {
+			case RTREE_INDEX_NAME:
+				return LayerRTreeIndex.class;
+			case GEOHASH_INDEX_NAME:
+				return LayerGeohashPointIndex.class;
+		}
+		throw new IllegalArgumentException("Unknown index: " + index);
+	}
+
+	public EditableLayer getOrCreatePointLayer(String name, String index, String xProperty, String yProperty) {
+		return getOrCreatePointLayer(name, resolveIndexClass(index), xProperty, yProperty);
+	}
+
+	public EditableLayer getOrCreatePointLayer(String name, Class<? extends LayerIndexReader> indexClass, String xProperty, String yProperty) {
 		Layer layer = getLayer(name);
 		if (layer == null) {
 			String encoderConfig = null;
 			if (xProperty != null && yProperty != null)
 				encoderConfig = xProperty + ":" + yProperty;
-			return (EditableLayer) createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, null, encoderConfig);
+			return (EditableLayer) createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, indexClass, encoderConfig);
 		} else if (layer instanceof EditableLayer) {
 			return (EditableLayer) layer;
 		} else {
@@ -271,10 +293,10 @@ public class SpatialDatabaseService implements Constants {
 
     public SimplePointLayer createSimplePointLayer(String name, Class<? extends LayerIndexReader> indexClass, String... xybProperties) {
         return (SimplePointLayer) createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, indexClass,
-                makeConfig(xybProperties), org.geotools.referencing.crs.DefaultGeographicCRS.WGS84);
+                makeEncoderConfig(xybProperties), org.geotools.referencing.crs.DefaultGeographicCRS.WGS84);
     }
 
-    private String makeConfig(String... args) {
+    public String makeEncoderConfig(String... args) {
         StringBuilder sb = new StringBuilder();
         if(args != null) {
             for (String arg : args) {
@@ -293,7 +315,7 @@ public class SpatialDatabaseService implements Constants {
     }
 
     public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass,
-                             Class<? extends Layer> layerClass, Class<? extends Layer> indexClass,
+                             Class<? extends Layer> layerClass, Class<? extends LayerIndexReader> indexClass,
                              String encoderConfig) {
         return createLayer(name, geometryEncoderClass, layerClass, null, encoderConfig, null);
     }
@@ -425,14 +447,17 @@ public class SpatialDatabaseService implements Constants {
         String typeName;
         Class< ? extends GeometryEncoder> geometryEncoder;
         Class< ? extends Layer> layerClass;
+		Class<? extends LayerIndexReader> layerIndexClass;
         String defaultConfig;
         org.geotools.referencing.crs.AbstractCRS crs;
 
         RegisteredLayerType(String typeName, Class<? extends GeometryEncoder> geometryEncoder,
-							Class<? extends Layer> layerClass, org.geotools.referencing.crs.AbstractCRS crs, String defaultConfig) {
+							Class<? extends Layer> layerClass, AbstractCRS crs,
+							Class<? extends LayerIndexReader> layerIndexClass, String defaultConfig) {
             this.typeName = typeName;
             this.geometryEncoder = geometryEncoder;
             this.layerClass = layerClass;
+            this.layerIndexClass = layerIndexClass;
             this.crs = crs;
             this.defaultConfig = defaultConfig;
         }
@@ -443,25 +468,31 @@ public class SpatialDatabaseService implements Constants {
 		String getSignature() {
 			return "RegisteredLayerType(name='" + typeName + "', geometryEncoder=" +
 					geometryEncoder.getSimpleName() + ", layerClass=" + layerClass.getSimpleName() +
+					", index=" + layerIndexClass.getSimpleName() +
 					", crs='" + crs.getName(null) + "', defaultConfig='" + defaultConfig + "')";
 		}
 	}
 
-
     private static Map<String, RegisteredLayerType> registeredLayerTypes = new LinkedHashMap<>();
     static {
-        registeredLayerTypes.put("SimplePoint", new RegisteredLayerType("SimplePoint", SimplePointEncoder.class,
-                SimplePointLayer.class, org.geotools.referencing.crs.DefaultGeographicCRS.WGS84, "longitude:latitude"));
-		registeredLayerTypes.put("WKT", new RegisteredLayerType("WKT", WKTGeometryEncoder.class, EditableLayerImpl.class,
-				DefaultGeographicCRS.WGS84, "geometry"));
-		registeredLayerTypes.put("WKB", new RegisteredLayerType("WKB", WKBGeometryEncoder.class, EditableLayerImpl.class,
-				DefaultGeographicCRS.WGS84, "geometry"));
-		registeredLayerTypes.put("OSM", new RegisteredLayerType("OSM", OSMGeometryEncoder.class, OSMLayer.class,
-				DefaultGeographicCRS.WGS84, "geometry"));
-    }
+		addRegisteredLayerType(new RegisteredLayerType("SimplePoint", SimplePointEncoder.class,
+				SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "longitude:latitude"));
+		addRegisteredLayerType(new RegisteredLayerType("Geohash", SimplePointEncoder.class,
+				SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerGeohashPointIndex.class, "longitude:latitude"));
+		addRegisteredLayerType(new RegisteredLayerType("WKT", WKTGeometryEncoder.class, EditableLayerImpl.class,
+				DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "geometry"));
+		addRegisteredLayerType(new RegisteredLayerType("WKB", WKBGeometryEncoder.class, EditableLayerImpl.class,
+				DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "geometry"));
+		addRegisteredLayerType(new RegisteredLayerType("OSM", OSMGeometryEncoder.class, OSMLayer.class,
+				DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "geometry"));
+	}
+
+	private static void addRegisteredLayerType(RegisteredLayerType type) {
+		registeredLayerTypes.put(type.typeName.toLowerCase(), type);
+	}
 
     public Layer getOrCreateRegisteredTypeLayer(String name, String type, String config){
-        RegisteredLayerType registeredLayerType = registeredLayerTypes.get(type);
+        RegisteredLayerType registeredLayerType = registeredLayerTypes.get(type.toLowerCase());
         return getOrCreateRegisteredTypeLayer(name, registeredLayerType, config);
     }
 
