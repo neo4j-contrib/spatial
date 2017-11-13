@@ -33,6 +33,9 @@ import org.junit.Test;
 import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePropertyEncoder;
+import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
+import org.neo4j.gis.spatial.index.LayerIndexReader;
+import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
@@ -58,10 +61,18 @@ public class LayersTest extends Neo4jTestCase
     }
 
     @Test
-    public void testPointLayer()
-    {
-        SpatialDatabaseService db = new SpatialDatabaseService( graphDb() );
-        EditableLayer layer = (EditableLayer) db.createLayer("test", SimplePointEncoder.class, EditableLayerImpl.class, null, "lon:lat");
+    public void testPointLayerWithRTree() {
+        testPointLayer(LayerRTreeIndex.class);
+    }
+
+    @Test
+    public void testPointLayerWithGeohash() {
+        testPointLayer(LayerGeohashPointIndex.class);
+    }
+
+    private void testPointLayer(Class<? extends LayerIndexReader> indexClass) {
+        SpatialDatabaseService db = new SpatialDatabaseService(graphDb());
+        EditableLayer layer = (EditableLayer) db.createLayer("test", SimplePointEncoder.class, EditableLayerImpl.class, indexClass, "lon:lat");
         assertNotNull( layer );
         SpatialDatabaseRecord record = layer.add( layer.getGeometryFactory().createPoint(
                 new Coordinate( 15.3, 56.2 ) ) );
@@ -294,7 +305,7 @@ public class LayersTest extends Neo4jTestCase
 //        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath.getCanonicalPath());
         GraphDatabaseService db = graphDb();
         SpatialDatabaseService sdbs = new SpatialDatabaseService(db);
-        EditableLayer layer = sdbs.getOrCreatePointLayer("Coordinates", "lat", "lon");
+        EditableLayer layer = sdbs.getOrCreatePointLayer("Coordinates", "rtree", "lat", "lon");
 
         Random rand = new Random();
 
