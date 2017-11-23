@@ -6,6 +6,8 @@ import org.apache.commons.io.FileUtils;
 import org.geotools.referencing.crs.DefaultEngineeringCRS;
 import org.junit.*;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
+import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
+import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
@@ -22,6 +24,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.*;
@@ -161,7 +164,7 @@ public class RTreeBulkInsertTest {
 
     }
 
-    private static class RTreeTestConfig {
+    private static class IndexTestConfig {
         String name;
         int width;
         Coordinate searchMin;
@@ -177,7 +180,7 @@ public class RTreeBulkInsertTest {
          * different numbers for expectedGeometries and expectedCount,
          * See https://github.com/locationtech/jts/blob/master/modules/core/src/main/java/org/locationtech/jts/operation/predicate/RectangleContains.java#L70
          */
-        public RTreeTestConfig(String name, int width, Coordinate searchMin, Coordinate searchMax, long expectedCount, long expectedGeometries) {
+        public IndexTestConfig(String name, int width, Coordinate searchMin, Coordinate searchMax, long expectedCount, long expectedGeometries) {
             this.name = name;
             this.width = width;
             this.searchMin = searchMin;
@@ -188,24 +191,148 @@ public class RTreeBulkInsertTest {
         }
     }
 
-    private static final Map<String, RTreeTestConfig> testConfigs = new HashMap<>();
+    private static final Map<String, IndexTestConfig> testConfigs = new HashMap<>();
 
     static {
         Coordinate searchMin = new Coordinate(0.5, 0.5);
         Coordinate searchMax = new Coordinate(0.52, 0.52);
-        addTestConfig(new RTreeTestConfig("very_small", 100, searchMin, searchMax, 9, 1));
-        addTestConfig(new RTreeTestConfig("small", 250, searchMin, searchMax, 35, 16));
-        addTestConfig(new RTreeTestConfig("medium", 500, searchMin, searchMax, 121, 81));
-        addTestConfig(new RTreeTestConfig("large", 750, searchMin, searchMax, 256, 196));
+        addTestConfig(new IndexTestConfig("very_small", 100, searchMin, searchMax, 9, 1));
+        addTestConfig(new IndexTestConfig("small", 250, searchMin, searchMax, 35, 16));
+        addTestConfig(new IndexTestConfig("medium", 500, searchMin, searchMax, 121, 81));
+        addTestConfig(new IndexTestConfig("large", 750, searchMin, searchMax, 256, 196));
     }
 
-    static void addTestConfig(RTreeTestConfig config) {
+    private static void addTestConfig(IndexTestConfig config) {
         testConfigs.put(config.name, config);
+    }
+
+    private interface IndexMaker {
+        EditableLayer setupLayer();
+        List<Node> nodes();
+        TestStats initStats(int blockSize);
+        TimedLogger initLogger();
+        IndexTestConfig getConfig();
+        void verifyStructure();
+    }
+
+    private class GeohashIndexMaker implements IndexMaker {
+        private final String name;
+        private final String insertMode;
+        private final IndexTestConfig config;
+        private List<Node> nodes;
+        private EditableLayer layer;
+
+        private GeohashIndexMaker(String name, String insertMode, IndexTestConfig config) {
+            this.name = name;
+            this.insertMode = insertMode;
+            this.config = config;
+        }
+
+        @Override
+        public EditableLayer setupLayer() {
+            this.nodes = setup(name, "geohash", config.width);
+            this.layer = (EditableLayer) new SpatialDatabaseService(db).getLayer("Coordinates");
+            return layer;
+        }
+
+        @Override
+        public List<Node> nodes() {
+            return nodes;
+        }
+
+        @Override
+        public TestStats initStats(int blockSize) {
+            return new TestStats(config, insertMode, "Geohash", blockSize, -1);
+        }
+
+        @Override
+        public TimedLogger initLogger() {
+            return new TimedLogger("Inserting " + config.totalCount + " nodes into Geohash using solo insert", config.totalCount);
+        }
+
+        @Override
+        public IndexTestConfig getConfig() {
+            return config;
+        }
+
+        @Override
+        public void verifyStructure() {
+            verifyGeohashIndex(layer);
+        }
+    }
+
+    private class RTreeIndexMaker implements IndexMaker {
+        private final String splitMode;
+        private final String insertMode;
+        private final boolean shouldMergeTrees;
+        private final int maxNodeReferences;
+        private final IndexTestConfig config;
+        private final String name;
+        private EditableLayer layer;
+        private TestStats stats;
+        private List<Node> nodes;
+
+        private RTreeIndexMaker(String name, String splitMode, String insertMode, int maxNodeReferences, IndexTestConfig config) {
+            this(name, splitMode, insertMode, maxNodeReferences, config, false);
+        }
+
+        private RTreeIndexMaker(String name, String splitMode, String insertMode, int maxNodeReferences, IndexTestConfig config, boolean shouldMergeTrees) {
+            this.name = name;
+            this.splitMode = splitMode;
+            this.insertMode = insertMode;
+            this.shouldMergeTrees = shouldMergeTrees;
+            this.maxNodeReferences = maxNodeReferences;
+            this.config = config;
+        }
+
+        public EditableLayer setupLayer() {
+            this.nodes = setup(name, "rtree", config.width);
+            this.layer = (EditableLayer) new SpatialDatabaseService(db).getLayer(name);
+            layer.getIndex().configure(map(
+                    RTreeIndex.KEY_SPLIT, splitMode,
+                    RTreeIndex.KEY_MAX_NODE_REFERENCES, maxNodeReferences,
+                    RTreeIndex.KEY_SHOULD_MERGE_TREES, shouldMergeTrees)
+            );
+            return layer;
+        }
+
+        @Override
+        public List<Node> nodes() {
+            return nodes;
+        }
+
+        @Override
+        public TestStats initStats(int blockSize) {
+            this.stats = new TestStats(config, insertMode, splitMode, blockSize, maxNodeReferences);
+            return this.stats;
+        }
+
+        @Override
+        public TimedLogger initLogger() {
+            return new TimedLogger("Inserting " + config.totalCount + " nodes into RTree using " + insertMode + " insert and "
+                    + splitMode + " split with " + maxNodeReferences + " maxNodeReferences", config.totalCount);
+        }
+
+        @Override
+        public IndexTestConfig getConfig() {
+            return config;
+        }
+
+        @Override
+        public void verifyStructure() {
+            verifyTreeStructure(layer, splitMode, stats);
+        }
+
     }
 
     /*
      * Very small model 100*100 nodes
      */
+
+    @Test
+    public void shouldInsertManyNodesIndividuallyWithGeohash_very_small() throws FactoryException, IOException {
+        insertManyNodesIndividually(new GeohashIndexMaker("Coordinates", "Single", testConfigs.get("very_small")), 5000);
+    }
 
     @Test
     public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_very_small_10() throws FactoryException, IOException {
@@ -230,6 +357,11 @@ public class RTreeBulkInsertTest {
     /*
      * Small model 250*250 nodes
      */
+
+    @Test
+    public void shouldInsertManyNodesIndividuallyWithGeohash_small() throws FactoryException, IOException {
+        insertManyNodesIndividually(new GeohashIndexMaker("Coordinates", "Single", testConfigs.get("small")), 5000);
+    }
 
     @Ignore // takes too long, change to @Test when benchmarking
     public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_small_10() throws FactoryException, IOException {
@@ -278,6 +410,11 @@ public class RTreeBulkInsertTest {
     /*
      * Medium model 500*500 nodes (deep tree - factor 10)
      */
+
+    @Test
+    public void shouldInsertManyNodesIndividuallyWithGeohash_medium() throws FactoryException, IOException {
+        insertManyNodesIndividually(new GeohashIndexMaker("Coordinates", "Single", testConfigs.get("medium")), 5000);
+    }
 
     @Ignore
     public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_medium_10() throws FactoryException, IOException {
@@ -346,6 +483,11 @@ public class RTreeBulkInsertTest {
     /*
      * Large model 750*750 nodes (only test bulk insert, 100 and 10, green and quadratic)
      */
+
+    @Test
+    public void shouldInsertManyNodesIndividuallyWithGeohash_large() throws FactoryException, IOException {
+        insertManyNodesIndividually(new GeohashIndexMaker("Coordinates", "Single", testConfigs.get("large")), 5000);
+    }
 
     @Ignore // takes too long, change to @Test when benchmarking
     public void shouldInsertManyNodesInBulkWithQuadraticSplit_large_10() throws FactoryException, IOException {
@@ -431,16 +573,20 @@ public class RTreeBulkInsertTest {
         }
     }
 
-    private void insertManyNodesIndividually(String splitMode, int blockSize, int maxNodeReferences, RTreeTestConfig config)
+    private void insertManyNodesIndividually(String splitMode, int blockSize, int maxNodeReferences, IndexTestConfig config)
             throws FactoryException, IOException {
-        TestStats stats = new TestStats(config, "Single", splitMode, blockSize, maxNodeReferences);
-        List<Node> nodes = setup(config.width);
-        EditableLayer layer = (EditableLayer) new SpatialDatabaseService(db).getLayer("Coordinates");
+        insertManyNodesIndividually(new RTreeIndexMaker("Coordinates", splitMode, "Single", maxNodeReferences, config), blockSize);
+    }
+
+    private void insertManyNodesIndividually(IndexMaker indexMaker, int blockSize)
+            throws FactoryException, IOException {
+        TestStats stats = indexMaker.initStats(blockSize);
+        EditableLayer layer = indexMaker.setupLayer();
+        List<Node> nodes = indexMaker.nodes();
         TreeMonitor monitor = new RTreeMonitor();
         layer.getIndex().addMonitor(monitor);
-        layer.getIndex().configure(map(RTreeIndex.KEY_SPLIT, splitMode, RTreeIndex.KEY_MAX_NODE_REFERENCES, maxNodeReferences));
-        TimedLogger log = new TimedLogger("Inserting " + config.totalCount + " nodes into RTree using solo insert and "
-                + splitMode + " split with " + maxNodeReferences + " maxNodeReferences", config.totalCount);
+        TimedLogger log = indexMaker.initLogger();
+        IndexTestConfig config = indexMaker.getConfig();
         long start = System.currentTimeMillis();
         for (int i = 0; i < config.totalCount / blockSize; i++) {
             List<Node> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
@@ -457,7 +603,7 @@ public class RTreeBulkInsertTest {
         stats.put("Insert Splits", monitor.getNbrSplit());
 
         queryRTree(layer, monitor, stats);
-        verifyTreeStructure(layer, splitMode, stats);
+        indexMaker.verifyStructure();
     }
 
     /*
@@ -466,15 +612,16 @@ public class RTreeBulkInsertTest {
      */
     @Ignore
     public void shouldInsertManyNodesIndividuallyAndGenerateImagesForAnimation() throws FactoryException, IOException {
-        RTreeTestConfig config = testConfigs.get("medium");
+        IndexTestConfig config = testConfigs.get("medium");
         int blockSize = 5;
         int maxBlockSize = 1000;
         int maxNodeReferences = 10;
         String splitMode = RTreeIndex.GREENES_SPLIT;
-        TestStats stats = new TestStats(config, "Single", splitMode, blockSize, maxNodeReferences);
-        List<Node> nodes = setup(config.width);
+        IndexMaker indexMaker = new RTreeIndexMaker("Coordinates", splitMode, "Single", maxNodeReferences, config);
+        TestStats stats = indexMaker.initStats(blockSize);
+        EditableLayer layer = indexMaker.setupLayer();
+        List<Node> nodes = indexMaker.nodes();
 
-        EditableLayer layer = (EditableLayer) new SpatialDatabaseService(db).getLayer("Coordinates");
         RTreeIndex rtree = (RTreeIndex) layer.getIndex();
         RTreeImageExporter imageExporter;
         try (Transaction tx = db.beginTx()) {
@@ -484,9 +631,7 @@ public class RTreeBulkInsertTest {
 
         TreeMonitor monitor = new TreePrintingMonitor(imageExporter, "single", splitMode);
         layer.getIndex().addMonitor(monitor);
-        layer.getIndex().configure(map(RTreeIndex.KEY_SPLIT, splitMode, RTreeIndex.KEY_MAX_NODE_REFERENCES, maxNodeReferences));
-        TimedLogger log = new TimedLogger("Inserting " + config.totalCount + " nodes into RTree using solo insert and "
-                + splitMode + " split with " + maxNodeReferences + " maxNodeReferences", config.totalCount);
+        TimedLogger log = indexMaker.initLogger();
         long start = System.currentTimeMillis();
         int prevBlock = 0;
         int i = 0;
@@ -520,27 +665,26 @@ public class RTreeBulkInsertTest {
         imageExporter.saveRTreeLayers(new File("rtree-single-" + splitMode + "/rtree.png"), 7, monitor, found, config.searchMin, config.searchMax);
     }
 
-    private void insertManyNodesInBulk(String splitMode, int blockSize, int maxNodeReferences, RTreeTestConfig config)
+    private void insertManyNodesInBulk(String splitMode, int blockSize, int maxNodeReferences, IndexTestConfig config)
             throws FactoryException, IOException {
-        insertManyNodesInBulk(splitMode, blockSize, maxNodeReferences, config, false);
+        insertManyNodesInBulk(new RTreeIndexMaker("Coordinates", splitMode, "Bulk", maxNodeReferences, config, false), blockSize);
     }
 
-    private void insertManyNodesInBulk(String splitMode, int blockSize, int maxNodeReferences, RTreeTestConfig config,
+    private void insertManyNodesInBulk(String splitMode, int blockSize, int maxNodeReferences, IndexTestConfig config,
                                        boolean shouldMergeTrees) throws FactoryException, IOException {
-        TestStats stats = new TestStats(config, "Bulk", splitMode, blockSize, maxNodeReferences);
-        List<Node> nodes = setup(config.width);
-        EditableLayer layer = (EditableLayer) new SpatialDatabaseService(db).getLayer("Coordinates");
+        insertManyNodesInBulk(new RTreeIndexMaker("Coordinates", splitMode, "Bulk", maxNodeReferences, config, shouldMergeTrees), blockSize);
+    }
+
+    private void insertManyNodesInBulk(RTreeIndexMaker indexMaker, int blockSize)
+            throws FactoryException, IOException {
+        TestStats stats = indexMaker.initStats(blockSize);
+        EditableLayer layer = indexMaker.setupLayer();
+        List<Node> nodes = indexMaker.nodes;
         RTreeMonitor monitor = new RTreeMonitor();
         layer.getIndex().addMonitor(monitor);
-        layer.getIndex().configure(map(
-                RTreeIndex.KEY_SPLIT, splitMode,
-                RTreeIndex.KEY_MAX_NODE_REFERENCES, maxNodeReferences,
-                RTreeIndex.KEY_SHOULD_MERGE_TREES, shouldMergeTrees)
-        );
-        TimedLogger log = new TimedLogger("Inserting " + config.totalCount + " nodes into RTree using bulk insert and "
-                + splitMode + " split with " + maxNodeReferences + " maxNodeReferences", config.totalCount);
+        TimedLogger log = indexMaker.initLogger();
         long start = System.currentTimeMillis();
-        for (int i = 0; i < config.totalCount / blockSize; i++) {
+        for (int i = 0; i < indexMaker.config.totalCount / blockSize; i++) {
             List<Node> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
             long startIndexing = System.currentTimeMillis();
             try (Transaction tx = db.beginTx()) {
@@ -549,13 +693,13 @@ public class RTreeBulkInsertTest {
             }
             log.log(startIndexing, "Rebuilt: " + monitor.getNbrRebuilt() + ", Splits: " + monitor.getNbrSplit() + ", Cases " + monitor.getCaseCounts(), (i + 1) * blockSize);
         }
-        System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + config.totalCount + " nodes to RTree in bulk");
+        System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + indexMaker.config.totalCount + " nodes to RTree in bulk");
         stats.setInsertTime(start);
         stats.put("Insert Splits", monitor.getNbrSplit());
 
         monitor.reset();
         queryRTree(layer, monitor, stats);
-        verifyTreeStructure(layer, splitMode, stats);
+        indexMaker.verifyStructure();
 //        debugIndexTree((RTreeIndex) layer.getIndex());
     }
 
@@ -565,14 +709,15 @@ public class RTreeBulkInsertTest {
      */
     @Ignore
     public void shouldInsertManyNodesInBulkAndGenerateImagesForAnimation() throws FactoryException, IOException {
-        RTreeTestConfig config = testConfigs.get("medium");
+        IndexTestConfig config = testConfigs.get("medium");
         int blockSize = 1000;
         int maxNodeReferences = 10;
         String splitMode = RTreeIndex.GREENES_SPLIT;
-        TestStats stats = new TestStats(config, "Bulk", splitMode, blockSize, maxNodeReferences);
-        List<Node> nodes = setup(config.width);
+        IndexMaker indexMaker = new RTreeIndexMaker("Coordinates", splitMode, "Bulk", maxNodeReferences, config);
+        EditableLayer layer = indexMaker.setupLayer();
+        List<Node> nodes = indexMaker.nodes();
+        TestStats stats = indexMaker.initStats(blockSize);
 
-        EditableLayer layer = (EditableLayer) new SpatialDatabaseService(db).getLayer("Coordinates");
         RTreeIndex rtree = (RTreeIndex) layer.getIndex();
         RTreeImageExporter imageExporter;
         try (Transaction tx = db.beginTx()) {
@@ -582,9 +727,7 @@ public class RTreeBulkInsertTest {
 
         TreeMonitor monitor = new TreePrintingMonitor(imageExporter, "bulk", splitMode);
         layer.getIndex().addMonitor(monitor);
-        layer.getIndex().configure(map(RTreeIndex.KEY_SPLIT, splitMode, RTreeIndex.KEY_MAX_NODE_REFERENCES, maxNodeReferences));
-        TimedLogger log = new TimedLogger("Inserting " + config.totalCount + " nodes into RTree using bulk insert and "
-                + splitMode + " split with " + maxNodeReferences + " maxNodeReferences", config.totalCount);
+        TimedLogger log = indexMaker.initLogger();
         long start = System.currentTimeMillis();
         for (int i = 0; i < config.totalCount / blockSize; i++) {
             List<Node> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
@@ -605,7 +748,7 @@ public class RTreeBulkInsertTest {
 
         monitor.reset();
         List<Node> found = queryRTree(layer, monitor, stats, false);
-        verifyTreeStructure(layer, splitMode, stats);
+        indexMaker.verifyStructure();
         imageExporter.saveRTreeLayers(new File("rtree-bulk-" + splitMode + "/rtree.png"), 7, monitor, found, config.searchMin, config.searchMax);
 //        debugIndexTree((RTreeIndex) layer.getIndex());
     }
@@ -930,13 +1073,13 @@ public class RTreeBulkInsertTest {
 
     }
 
-    private List<Node> setup(int width) {
+    private List<Node> setup(String name, String index, int width) {
         long start = System.currentTimeMillis();
         List<Node> nodes = populateSquareTestData(width);
         System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to create " + (width * width) + " nodes");
         SpatialDatabaseService sdbs = new SpatialDatabaseService(db);
         CoordinateReferenceSystem crs = DefaultEngineeringCRS.GENERIC_2D;
-        EditableLayer layer = sdbs.getOrCreatePointLayer("Coordinates", "rtree", "lon", "lat");
+        EditableLayer layer = sdbs.getOrCreatePointLayer(name, index, "lon", "lat");
         try (Transaction tx = db.beginTx()) {
             layer.setCoordinateReferenceSystem(crs);
             tx.success();
@@ -998,15 +1141,26 @@ public class RTreeBulkInsertTest {
         return new double[]{nodesArea - rootArea, nodesArea / rootArea};
     }
 
-    private List<Node> queryRTree(Layer layer, TreeMonitor monitor, TestStats stats) {
-        return queryRTree(layer, monitor, stats, true);
+    private List<Node> queryRTree(Layer layer, TreeMonitor monitor, TestStats stats, boolean assertTouches) {
+        List<Node> nodes = queryIndex(layer, stats);
+        if (layer.getIndex() instanceof RTreeIndex) {
+            getRTreeIndexStats((RTreeIndex) layer.getIndex(), monitor, stats, assertTouches, nodes.size());
+        }
+        return nodes;
     }
 
-    private List<Node> queryRTree(Layer layer, TreeMonitor monitor, TestStats stats, boolean assertTouches) {
+    private List<Node> queryRTree(Layer layer, TreeMonitor monitor, TestStats stats) {
+        List<Node> nodes = queryIndex(layer, stats);
+        if (layer.getIndex() instanceof RTreeIndex) {
+            getRTreeIndexStats((RTreeIndex) layer.getIndex(), monitor, stats, true, nodes.size());
+        }
+        return nodes;
+    }
+
+    private List<Node> queryIndex(Layer layer, TestStats stats) {
         List<Node> nodes;
-        RTreeTestConfig config = stats.config;
+        IndexTestConfig config = stats.config;
         long start = System.currentTimeMillis();
-        int maxNodeReferences = stats.maxNodeReferences;
         try (Transaction tx = db.beginTx()) {
             com.vividsolutions.jts.geom.Envelope envelope = new com.vividsolutions.jts.geom.Envelope(config.searchMin, config.searchMax);
             nodes = GeoPipeline.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(envelope)).stream().map(GeoPipeFlow::getGeomNode).collect(Collectors.toList());
@@ -1017,20 +1171,27 @@ public class RTreeBulkInsertTest {
         allStats.add(stats);
         stats.put("Query Time (ms)", queryTime);
         System.out.println("Took " + queryTime + "ms to find " + countGeometries + " nodes in 4x4 block");
+        int geometrySize = layer.getIndex().count();
+        stats.put("Indexed", geometrySize);
+        System.out.println("Index contains " + geometrySize + " geometries");
+        assertEquals("Expected " + config.expectedGeometries + " nodes to be returned", config.expectedGeometries, countGeometries);
+        return nodes;
+    }
+
+    private void getRTreeIndexStats(RTreeIndex index, TreeMonitor monitor, TestStats stats, boolean assertTouches, long countGeometries) {
+        IndexTestConfig config = stats.config;
         int indexTouched = monitor.getCaseCounts().get("Index Does NOT Match");
         int indexMatched = monitor.getCaseCounts().get("Index Matches");
         int touched = monitor.getCaseCounts().get("Geometry Does NOT Match");
         int matched = monitor.getCaseCounts().get("Geometry Matches");
-        int geometrySize = layer.getIndex().count();
         int indexSize = 0;
         try (Transaction tx = db.beginTx()) {
-            for (Node n : ((RTreeIndex) layer.getIndex()).getAllIndexInternalNodes()) {
+            for (Node ignored : index.getAllIndexInternalNodes()) {
                 indexSize++;
             }
             tx.success();
         }
         stats.put("Index Size", indexSize);
-        stats.put("Indexed", geometrySize);
         stats.put("Found", matched);
         stats.put("Touched", touched);
         stats.put("Index Found", indexMatched);
@@ -1039,20 +1200,18 @@ public class RTreeBulkInsertTest {
         System.out.println("Matched " + matched + "/" + touched + " touched nodes (" + (100.0 * matched / touched) + "%)");
         System.out.println("Having matched " + indexMatched + "/" + indexTouched + " touched index nodes (" + (100.0 * indexMatched / indexTouched) + "%)");
         System.out.println("Which means we touched " + indexTouched + "/" + indexSize + " index nodes (" + (100.0 * indexTouched / indexSize) + "%)");
-        System.out.println("Index contains " + geometrySize + " geometries");
         // Note that due to some crazy GIS spec points on polygon edges are considered to be contained,
         // unless the polygon is a rectangle, in which case they are not contained, leading to
         // different numbers for expectedGeometries and expectedCount.
         // See https://github.com/locationtech/jts/blob/master/modules/core/src/main/java/org/locationtech/jts/operation/predicate/RectangleContains.java#L70
-        assertEquals("Expected " + config.expectedGeometries + " nodes to be returned", config.expectedGeometries, countGeometries);
         assertEquals("Expected " + config.expectedCount + " nodes to be matched", config.expectedCount, matched);
+        int maxNodeReferences = stats.maxNodeReferences;
         int maxExpectedGeometriesTouched = matched * maxNodeReferences;
         if (countGeometries > 1 && assertTouches) {
             assertThat("Should not touch more geometries than " + maxNodeReferences + "*matched", touched, lessThanOrEqualTo(maxExpectedGeometriesTouched));
             int maxExpectedIndexTouched = indexMatched * maxNodeReferences;
             assertThat("Should not touch more index nodes than " + maxNodeReferences + "*matched", indexTouched, lessThanOrEqualTo(maxExpectedIndexTouched));
         }
-        return nodes;
     }
 
     private class TimedLogger {
@@ -1062,11 +1221,11 @@ public class RTreeBulkInsertTest {
         long start;
         long previous;
 
-        public TimedLogger(String title, long count) {
+        private TimedLogger(String title, long count) {
             this(title, count, 1000);
         }
 
-        public TimedLogger(String title, long count, long gap) {
+        private TimedLogger(String title, long count, long gap) {
             this.title = title;
             this.count = count;
             this.gap = gap;
@@ -1075,12 +1234,12 @@ public class RTreeBulkInsertTest {
             System.out.println(title);
         }
 
-        public void log(long previous, String line, long number) {
+        private void log(long previous, String line, long number) {
             this.previous = previous;
             log(line, number);
         }
 
-        public void log(String line, long number) {
+        private void log(String line, long number) {
             long current = System.currentTimeMillis();
             if (current - previous > gap) {
                 double percentage = 100.0 * number / count;
@@ -1090,6 +1249,11 @@ public class RTreeBulkInsertTest {
                 previous = current;
             }
         }
+    }
+
+    private void verifyGeohashIndex(Layer layer) {
+        LayerIndexReader index = layer.getIndex();
+        assertTrue("Index should be a geohash index", index instanceof LayerGeohashPointIndex);
     }
 
     private void verifyTreeStructure(Layer layer, String splitMode, TestStats stats) {
@@ -1184,7 +1348,7 @@ public class RTreeBulkInsertTest {
     }
 
     private static class TestStats {
-        private RTreeTestConfig config;
+        private IndexTestConfig config;
         private String insertMode;
         private int dataSize;
         private int blockSize;
@@ -1193,7 +1357,7 @@ public class RTreeBulkInsertTest {
         static LinkedHashSet<String> knownKeys = new LinkedHashSet<>();
         private HashMap<String, Object> data = new HashMap<>();
 
-        public TestStats(RTreeTestConfig config, String insertMode, String splitMode, int blockSize, int maxNodeReferences) {
+        private TestStats(IndexTestConfig config, String insertMode, String splitMode, int blockSize, int maxNodeReferences) {
             this.config = config;
             this.insertMode = insertMode;
             this.dataSize = config.width * config.width;
@@ -1202,7 +1366,7 @@ public class RTreeBulkInsertTest {
             this.maxNodeReferences = maxNodeReferences;
         }
 
-        public void setInsertTime(long start) {
+        private void setInsertTime(long start) {
             long current = System.currentTimeMillis();
             double seconds = (current - start) / 1000.0;
             int rate = (int) (dataSize / seconds);
@@ -1219,29 +1383,29 @@ public class RTreeBulkInsertTest {
             data.get(key);
         }
 
-        public static String[] headerArray() {
+        private static String[] headerArray() {
             return new String[]{"Size Name", "Insert Mode", "Split Mode", "Data Width", "Data Size", "Block Size", "Max Node References"};
         }
 
-        public Object[] fieldArray() {
+        private Object[] fieldArray() {
             return new Object[]{config.name, insertMode, splitMode, config.width, dataSize, blockSize, maxNodeReferences};
         }
 
-        public static List<String> headerList() {
+        private static List<String> headerList() {
             ArrayList<String> fieldList = new ArrayList<>();
             fieldList.addAll(Arrays.asList(headerArray()));
             fieldList.addAll(knownKeys);
             return fieldList;
         }
 
-        public List<Object> asList() {
+        private List<Object> asList() {
             ArrayList<Object> fieldList = new ArrayList<>();
             fieldList.addAll(Arrays.asList(fieldArray()));
             fieldList.addAll(knownKeys.stream().map(k -> data.get(k)).map(v -> (v == null) ? "" : v).collect(Collectors.toList()));
             return fieldList;
         }
 
-        public static String headerString() {
+        private static String headerString() {
             return String.join("\t", headerList());
         }
 

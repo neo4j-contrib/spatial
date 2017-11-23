@@ -314,7 +314,7 @@ public class SpatialDatabaseService implements Constants {
     public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass,
                              Class<? extends Layer> layerClass, Class<? extends LayerIndexReader> indexClass,
                              String encoderConfig) {
-        return createLayer(name, geometryEncoderClass, layerClass, null, encoderConfig, null);
+        return createLayer(name, geometryEncoderClass, layerClass, indexClass, encoderConfig, null);
     }
 
     public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass,
