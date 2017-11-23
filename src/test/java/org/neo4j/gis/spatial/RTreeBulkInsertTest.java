@@ -247,7 +247,7 @@ public class RTreeBulkInsertTest {
 
         @Override
         public TimedLogger initLogger() {
-            return new TimedLogger("Inserting " + config.totalCount + " nodes into Geohash using solo insert", config.totalCount);
+            return new TimedLogger("Inserting " + config.totalCount + " nodes into Geohash using " + insertMode + " insert", config.totalCount);
         }
 
         @Override
@@ -336,7 +336,7 @@ public class RTreeBulkInsertTest {
 
     @Test
     public void shouldInsertManyNodesInBulkWithGeohash_very_small() throws FactoryException, IOException {
-        insertManyNodesInBulk(new GeohashIndexMaker("Coordinates", "Single", testConfigs.get("very_small")), 5000);
+        insertManyNodesInBulk(new GeohashIndexMaker("Coordinates", "Bulk", testConfigs.get("very_small")), 5000);
     }
 
     @Test
@@ -370,7 +370,7 @@ public class RTreeBulkInsertTest {
 
     @Test
     public void shouldInsertManyNodesInBulkWithGeohash_small() throws FactoryException, IOException {
-        insertManyNodesInBulk(new GeohashIndexMaker("Coordinates", "Single", testConfigs.get("small")), 5000);
+        insertManyNodesInBulk(new GeohashIndexMaker("Coordinates", "Bulk", testConfigs.get("small")), 5000);
     }
 
     @Ignore // takes too long, change to @Test when benchmarking
@@ -428,7 +428,7 @@ public class RTreeBulkInsertTest {
 
     @Test
     public void shouldInsertManyNodesInBulkWithGeohash_medium() throws FactoryException, IOException {
-        insertManyNodesInBulk(new GeohashIndexMaker("Coordinates", "Single", testConfigs.get("medium")), 5000);
+        insertManyNodesInBulk(new GeohashIndexMaker("Coordinates", "Bulk", testConfigs.get("medium")), 5000);
     }
 
     @Ignore
@@ -506,7 +506,7 @@ public class RTreeBulkInsertTest {
 
     @Test
     public void shouldInsertManyNodesInBulkWithGeohash_large() throws FactoryException, IOException {
-        insertManyNodesInBulk(new GeohashIndexMaker("Coordinates", "Single", testConfigs.get("large")), 5000);
+        insertManyNodesInBulk(new GeohashIndexMaker("Coordinates", "Bulk", testConfigs.get("large")), 5000);
     }
 
     @Ignore // takes too long, change to @Test when benchmarking
