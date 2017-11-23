@@ -335,6 +335,11 @@ public class RTreeBulkInsertTest {
     }
 
     @Test
+    public void shouldInsertManyNodesInBulkWithGeohash_very_small() throws FactoryException, IOException {
+        insertManyNodesInBulk(new GeohashIndexMaker("Coordinates", "Single", testConfigs.get("very_small")), 5000);
+    }
+
+    @Test
     public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_very_small_10() throws FactoryException, IOException {
         insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("very_small"));
     }
@@ -361,6 +366,11 @@ public class RTreeBulkInsertTest {
     @Test
     public void shouldInsertManyNodesIndividuallyWithGeohash_small() throws FactoryException, IOException {
         insertManyNodesIndividually(new GeohashIndexMaker("Coordinates", "Single", testConfigs.get("small")), 5000);
+    }
+
+    @Test
+    public void shouldInsertManyNodesInBulkWithGeohash_small() throws FactoryException, IOException {
+        insertManyNodesInBulk(new GeohashIndexMaker("Coordinates", "Single", testConfigs.get("small")), 5000);
     }
 
     @Ignore // takes too long, change to @Test when benchmarking
@@ -414,6 +424,11 @@ public class RTreeBulkInsertTest {
     @Test
     public void shouldInsertManyNodesIndividuallyWithGeohash_medium() throws FactoryException, IOException {
         insertManyNodesIndividually(new GeohashIndexMaker("Coordinates", "Single", testConfigs.get("medium")), 5000);
+    }
+
+    @Test
+    public void shouldInsertManyNodesInBulkWithGeohash_medium() throws FactoryException, IOException {
+        insertManyNodesInBulk(new GeohashIndexMaker("Coordinates", "Single", testConfigs.get("medium")), 5000);
     }
 
     @Ignore
@@ -487,6 +502,11 @@ public class RTreeBulkInsertTest {
     @Test
     public void shouldInsertManyNodesIndividuallyWithGeohash_large() throws FactoryException, IOException {
         insertManyNodesIndividually(new GeohashIndexMaker("Coordinates", "Single", testConfigs.get("large")), 5000);
+    }
+
+    @Test
+    public void shouldInsertManyNodesInBulkWithGeohash_large() throws FactoryException, IOException {
+        insertManyNodesInBulk(new GeohashIndexMaker("Coordinates", "Single", testConfigs.get("large")), 5000);
     }
 
     @Ignore // takes too long, change to @Test when benchmarking
@@ -675,16 +695,16 @@ public class RTreeBulkInsertTest {
         insertManyNodesInBulk(new RTreeIndexMaker("Coordinates", splitMode, "Bulk", maxNodeReferences, config, shouldMergeTrees), blockSize);
     }
 
-    private void insertManyNodesInBulk(RTreeIndexMaker indexMaker, int blockSize)
+    private void insertManyNodesInBulk(IndexMaker indexMaker, int blockSize)
             throws FactoryException, IOException {
         TestStats stats = indexMaker.initStats(blockSize);
         EditableLayer layer = indexMaker.setupLayer();
-        List<Node> nodes = indexMaker.nodes;
+        List<Node> nodes = indexMaker.nodes();
         RTreeMonitor monitor = new RTreeMonitor();
         layer.getIndex().addMonitor(monitor);
         TimedLogger log = indexMaker.initLogger();
         long start = System.currentTimeMillis();
-        for (int i = 0; i < indexMaker.config.totalCount / blockSize; i++) {
+        for (int i = 0; i < indexMaker.getConfig().totalCount / blockSize; i++) {
             List<Node> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
             long startIndexing = System.currentTimeMillis();
             try (Transaction tx = db.beginTx()) {
@@ -693,7 +713,7 @@ public class RTreeBulkInsertTest {
             }
             log.log(startIndexing, "Rebuilt: " + monitor.getNbrRebuilt() + ", Splits: " + monitor.getNbrSplit() + ", Cases " + monitor.getCaseCounts(), (i + 1) * blockSize);
         }
-        System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + indexMaker.config.totalCount + " nodes to RTree in bulk");
+        System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + indexMaker.getConfig().totalCount + " nodes to RTree in bulk");
         stats.setInsertTime(start);
         stats.put("Insert Splits", monitor.getNbrSplit());
 
