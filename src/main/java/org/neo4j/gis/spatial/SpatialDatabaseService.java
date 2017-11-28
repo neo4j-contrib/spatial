@@ -339,6 +339,7 @@ public class SpatialDatabaseService implements Constants {
 			if (crs != null && layer instanceof EditableLayer) {
 				((EditableLayer) layer).setCoordinateReferenceSystem(crs);
 			}
+			layer.getIndex().init(layer);
 			tx.success();
 			return layer;
 		}
