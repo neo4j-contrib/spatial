@@ -265,7 +265,6 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
             this.indexReader = index;
             this.indexWriter = index;
         }
-        this.indexReader.init(this);
     }
 
     /**
