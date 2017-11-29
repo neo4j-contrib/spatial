@@ -72,12 +72,12 @@ public class HilbertSpaceFillingCurveTest {
 
     @Test
     public void shouldCreateHilbertCurveWithRectangularEnvelope() {
-        assertAtLevel(new Envelope(-8, 8, -20,20 ), 3);
+        assertAtLevel(new Envelope(-8, 8, -20, 20), 3);
     }
 
     @Test
     public void shouldCreateHilbertCurveWithNonCenteredEnvelope() {
-        assertAtLevel(new Envelope(2, 7, 2,7 ), 3);
+        assertAtLevel(new Envelope(2, 7, 2, 7), 3);
     }
 
     @Test
@@ -102,6 +102,41 @@ public class HilbertSpaceFillingCurveTest {
         assertTiles(curve.getTilesIntersectingEnvelope(new Envelope(-6, 4, -5, -2)), new HilbertSpaceFillingCurve.LongRange(0, 0), new HilbertSpaceFillingCurve.LongRange(3, 3));
         assertTiles(curve.getTilesIntersectingEnvelope(new Envelope(-2, -1, -6, 5)), new HilbertSpaceFillingCurve.LongRange(0, 1));
         assertTiles(curve.getTilesIntersectingEnvelope(new Envelope(-2, 1, -6, 5)), new HilbertSpaceFillingCurve.LongRange(0, 3));
+    }
+
+    @Test
+    public void shouldGetSearchTilesForLevelTwo() {
+        Envelope envelope = new Envelope(-8, 8, -8, 8);
+        HilbertSpaceFillingCurve curve = new HilbertSpaceFillingCurve(envelope, 2);
+        assertTiles(curve.getTilesIntersectingEnvelope(new Envelope(-6, -5, -6, -5)), new HilbertSpaceFillingCurve.LongRange(0, 0));
+        assertTiles(curve.getTilesIntersectingEnvelope(new Envelope(0, 6, -6, -5)), new HilbertSpaceFillingCurve.LongRange(14, 15));
+        assertTiles(curve.getTilesIntersectingEnvelope(new Envelope(-6, 4, -5, -2)), new HilbertSpaceFillingCurve.LongRange(0, 3), new HilbertSpaceFillingCurve.LongRange(12, 15));
+        assertTiles(curve.getTilesIntersectingEnvelope(new Envelope(-2, -1, -6, 5)), new HilbertSpaceFillingCurve.LongRange(1, 2), new HilbertSpaceFillingCurve.LongRange(6, 7));
+        assertTiles(curve.getTilesIntersectingEnvelope(new Envelope(-2, 1, -6, 5)), new HilbertSpaceFillingCurve.LongRange(1, 2), new HilbertSpaceFillingCurve.LongRange(6, 9), new HilbertSpaceFillingCurve.LongRange(13, 14));
+    }
+
+    @Test
+    public void shouldGetSearchTilesForLevelThree() {
+        Envelope envelope = new Envelope(-8, 8, -8, 8);
+        HilbertSpaceFillingCurve curve = new HilbertSpaceFillingCurve(envelope, 3);
+        assertTiles(curve.getTilesIntersectingEnvelope(new Envelope(-8, -7, -8, -7)), new HilbertSpaceFillingCurve.LongRange(0, 0));
+        assertTiles(curve.getTilesIntersectingEnvelope(new Envelope(0, 1, 0, 1)), new HilbertSpaceFillingCurve.LongRange(32, 32));
+        assertTiles(curve.getTilesIntersectingEnvelope(new Envelope(7, 8, -8, -1)), new HilbertSpaceFillingCurve.LongRange(48, 49), new HilbertSpaceFillingCurve.LongRange(62, 63));
+    }
+
+    @Test
+    public void shouldGetSearchTilesForManyLevels() {
+        Envelope envelope = new Envelope(-8, 8, -8, 8);
+        for (int level = 1; level < HilbertSpaceFillingCurve.MAX_LEVEL; level++) {
+            HilbertSpaceFillingCurve curve = new HilbertSpaceFillingCurve(envelope, level);
+            System.out.print("Testing hilbert query at level " + level);
+            double halfTile = curve.getTileWidth(0, level) / 2.0;
+            long start = System.currentTimeMillis();
+            assertTiles(curve.getTilesIntersectingEnvelope(new Envelope(-8, -8 + halfTile, -8, -8 + halfTile)), new HilbertSpaceFillingCurve.LongRange(0, 0));
+            assertTiles(curve.getTilesIntersectingEnvelope(new Envelope(8 - halfTile, 8, -8, -8 + halfTile)), new HilbertSpaceFillingCurve.LongRange(curve.getValueWidth() - 1, curve.getValueWidth() - 1));
+            assertTiles(curve.getTilesIntersectingEnvelope(new Envelope(0, halfTile, 0, halfTile)), new HilbertSpaceFillingCurve.LongRange(curve.getValueWidth() / 2, curve.getValueWidth() / 2));
+            System.out.println(", took " + (System.currentTimeMillis() - start) + "ms");
+        }
     }
 
     private void assertTiles(List<HilbertSpaceFillingCurve.LongRange> results, HilbertSpaceFillingCurve.LongRange... expected) {

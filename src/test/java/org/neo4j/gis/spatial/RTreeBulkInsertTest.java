@@ -6,9 +6,11 @@ import org.apache.commons.io.FileUtils;
 import org.geotools.referencing.crs.DefaultEngineeringCRS;
 import org.junit.*;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
+import org.neo4j.gis.spatial.index.ExplicitIndexBackedPointIndex;
 import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
 import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
 import org.neo4j.gis.spatial.index.LayerIndexReader;
+import org.neo4j.gis.spatial.index.ExplicitIndexBackedMonitor;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
@@ -1260,6 +1262,8 @@ public class RTreeBulkInsertTest {
         List<Node> nodes = queryIndex(layer, stats);
         if (layer.getIndex() instanceof RTreeIndex) {
             getRTreeIndexStats((RTreeIndex) layer.getIndex(), monitor, stats, true, nodes.size());
+        } else if (layer.getIndex() instanceof ExplicitIndexBackedPointIndex) {
+            getExplicitIndexBackedIndexStats((ExplicitIndexBackedPointIndex) layer.getIndex(), stats, true, nodes.size());
         }
         return nodes;
     }
@@ -1319,6 +1323,21 @@ public class RTreeBulkInsertTest {
             int maxExpectedIndexTouched = indexMatched * maxNodeReferences;
             assertThat("Should not touch more index nodes than " + maxNodeReferences + "*matched", indexTouched, lessThanOrEqualTo(maxExpectedIndexTouched));
         }
+    }
+
+    private void getExplicitIndexBackedIndexStats(ExplicitIndexBackedPointIndex index, TestStats stats, boolean assertTouches, long countGeometries) {
+        IndexTestConfig config = stats.config;
+        ExplicitIndexBackedMonitor monitor = index.getMonitor();
+        long touched = monitor.getHits() + monitor.getMisses();
+        long matched = monitor.getHits();
+        stats.put("Found", matched);
+        stats.put("Touched", touched);
+        System.out.println("Matched " + matched + "/" + touched + " touched nodes (" + (100.0 * matched / touched) + "%)");
+        // Note that due to some crazy GIS spec points on polygon edges are considered to be contained,
+        // unless the polygon is a rectangle, in which case they are not contained, leading to
+        // different numbers for expectedGeometries and expectedCount.
+        // See https://github.com/locationtech/jts/blob/master/modules/core/src/main/java/org/locationtech/jts/operation/predicate/RectangleContains.java#L70
+        assertEquals("Expected " + config.expectedCount + " nodes to be matched", config.expectedCount, matched);
     }
 
     private class TimedLogger {

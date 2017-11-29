@@ -45,6 +45,7 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
     protected Layer layer;
     private Index<Node> index;
     private GraphDatabaseService graph;
+    private ExplicitIndexBackedMonitor monitor = new ExplicitIndexBackedMonitor();
 
     protected abstract String indexTypeName();
 
@@ -153,6 +154,7 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
         private Iterator<Node> inner;
         private SearchFilter filter;
         private Node next = null;
+
         private FilteredIndexIterator(Iterator<Node> inner, SearchFilter filter) {
             this.inner = inner;
             this.filter = filter;
@@ -165,7 +167,10 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
                 Node node = inner.next();
                 if (filter.geometryMatches(node)) {
                     next = node;
+                    monitor.hit();
                     break;
+                } else {
+                    monitor.miss();
                 }
             }
         }
@@ -192,6 +197,10 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
     @Override
     public void addMonitor(TreeMonitor monitor) {
 
+    }
+
+    public ExplicitIndexBackedMonitor getMonitor() {
+        return this.monitor;
     }
 
     @Override

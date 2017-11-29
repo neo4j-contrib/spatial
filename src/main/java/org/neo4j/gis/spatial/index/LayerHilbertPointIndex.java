@@ -27,6 +27,7 @@ import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.graphdb.Node;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.opengis.referencing.cs.CoordinateSystemAxis;
 
 import java.util.List;
 
@@ -49,14 +50,26 @@ public class LayerHilbertPointIndex extends ExplicitIndexBackedPointIndex<Long> 
                 throw new IllegalArgumentException("HilbertPointIndex cannot support CRS that is not 2D: " + crs.getName());
             }
             Envelope envelope = new Envelope(
-                    crs.getCoordinateSystem().getAxis(0).getMinimumValue(),
-                    crs.getCoordinateSystem().getAxis(0).getMaximumValue(),
-                    crs.getCoordinateSystem().getAxis(1).getMinimumValue(),
-                    crs.getCoordinateSystem().getAxis(1).getMaximumValue()
+                    getMin(crs.getCoordinateSystem().getAxis(0)),
+                    getMax(crs.getCoordinateSystem().getAxis(0)),
+                    getMin(crs.getCoordinateSystem().getAxis(1)),
+                    getMax(crs.getCoordinateSystem().getAxis(1))
             );
-            this.curve = new HilbertSpaceFillingCurve(envelope, 15);
+            this.curve = new HilbertSpaceFillingCurve(envelope, 12);
         }
         return this.curve;
+    }
+
+    private double getMin(CoordinateSystemAxis axis) {
+        double min = axis.getMinimumValue();
+        if (Double.isInfinite(min)) return 0.0;
+        else return min;
+    }
+
+    private double getMax(CoordinateSystemAxis axis) {
+        double max = axis.getMaximumValue();
+        if (Double.isInfinite(max)) return 1.0;
+        else return max;
     }
 
     @Override

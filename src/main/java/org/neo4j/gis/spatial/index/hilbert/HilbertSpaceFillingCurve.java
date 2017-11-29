@@ -1,3 +1,22 @@
+/*
+ * Copyright (c) 2010-2017 "Neo Technology,"
+ * Network Engine for Objects in Lund AB [http://neotechnology.com]
+ *
+ * This file is part of Neo4j Spatial.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
 package org.neo4j.gis.spatial.index.hilbert;
 
 import org.neo4j.gis.spatial.rtree.Envelope;
@@ -131,8 +150,8 @@ public class HilbertSpaceFillingCurve {
     }
 
     /**
-      * Given a 1D value, find the center coordinate of the tile of the corresponding coordinate (2D, maxLevel)
-      */
+     * Given a 1D value, find the center coordinate of the tile of the corresponding coordinate (2D, maxLevel)
+     */
     public double[] centerPointFor(long value) {
         return centerPointFor(value, maxLevel);
     }
@@ -211,35 +230,76 @@ public class HilbertSpaceFillingCurve {
         }
     }
 
-    /**
-     * Given an envelope, find a LongRange of tiles intersecting it on maxLevel and merge adjacent ones
-     */
-    public List<LongRange> getTilesIntersectingEnvelope(Envelope referenceEnvelope) {
-        return getTilesIntersectingEnvelope(referenceEnvelope, maxLevel);
-    }
-
-    /**
-     * Given an envelope, find a LongRange of tiles intersecting it on the given level and merge adjacent ones
-     */
-    public List<LongRange> getTilesIntersectingEnvelope(Envelope referenceEnvelope, int level) {
-        long minX = getLongCoord(referenceEnvelope.getMin(0), 0);
-        long maxX = getLongCoord(referenceEnvelope.getMax(0), 0);
-        long minY = getLongCoord(referenceEnvelope.getMin(1), 1);
-        long maxY = getLongCoord(referenceEnvelope.getMax(1), 1);
-
-        ArrayList<LongRange> results = new ArrayList<>();
-        LongRange current = null;
-        for (long v = 0L; v < this.getValueWidth(); v++) {
-            long[] coord = coordinateFor(v, level);
-            if (coord[0] >= minX && coord[0] <= maxX && coord[1] >= minY && coord[1] <= maxY) {
-                if (current != null && current.max == v - 1) {
-                    current.expandToMax(v);
+    private void addTilesIntersectingEnvelopeAt(SearchEnvelope search, SearchEnvelope currentExtent, CurveRule curve, long left, long right, ArrayList<LongRange> results) {
+        if (right - left == 1) {
+            long[] coord = coordinateFor(left, maxLevel);
+            if (search.contains(coord)) {
+                LongRange current = (results.size() > 0) ? results.get(results.size() - 1) : null;
+                if (current != null && current.max == left - 1) {
+                    current.expandToMax(left);
                 } else {
-                    current = new LongRange(v);
+                    current = new LongRange(left);
                     results.add(current);
                 }
             }
+        } else if (search.intersects(currentExtent)) {
+            long width = (right - left) / 4;
+            for (int i = 0; i < 4; i++) {
+                int npoint = curve.npointValues[i];
+                int bitX = (npoint & 2) >> 1;
+                int bitY = npoint & 1;
+                SearchEnvelope quadrant = currentExtent.quadrant(bitX, bitY);
+                addTilesIntersectingEnvelopeAt(search, quadrant, curve.children[i], left + i * width, left + (i + 1) * width, results);
+            }
         }
+    }
+
+    // TODO: This class could be generalized to n-dimensions using code in Envelope.java
+    private class SearchEnvelope {
+        long minX;
+        long maxX;
+        long minY;
+        long maxY;
+
+        private SearchEnvelope(Envelope referenceEnvelope) {
+            this.minX = getLongCoord(referenceEnvelope.getMin(0), 0);
+            this.maxX = getLongCoord(referenceEnvelope.getMax(0), 0);
+            this.minY = getLongCoord(referenceEnvelope.getMin(1), 1);
+            this.maxY = getLongCoord(referenceEnvelope.getMax(1), 1);
+        }
+
+        private SearchEnvelope(long minX, long maxX, long minY, long maxY) {
+            this.minX = minX;
+            this.maxX = maxX;
+            this.minY = minY;
+            this.maxY = maxY;
+        }
+
+        private SearchEnvelope quadrant(int x, int y) {
+            long width = (maxX - minX) / 2;
+            long height = (maxY - minY) / 2;
+            return new SearchEnvelope(this.minX + x * width, this.minX + (x + 1) * width, this.minY + y * height, this.minY + (y + 1) * height);
+        }
+
+        private boolean contains(long[] coord) {
+            return coord[0] >= minX && coord[0] <= maxX && coord[1] >= minY && coord[1] <= maxY;
+        }
+
+        private boolean intersects(SearchEnvelope other) {
+            return this.maxX >= other.minX && this.minX <= other.maxX && this.maxY >= other.minY && this.minY <= other.maxY;
+        }
+    }
+
+    /**
+     * Given an envelope, find a collection of LongRange of tiles intersecting it on maxLevel and merge adjacent ones
+     */
+    public List<LongRange> getTilesIntersectingEnvelope(Envelope referenceEnvelope) {
+        SearchEnvelope search = new SearchEnvelope(referenceEnvelope);
+        ArrayList<LongRange> results = new ArrayList<>();
+
+        addTilesIntersectingEnvelopeAt(search,
+                new SearchEnvelope(0, this.getWidth(), 0, this.getWidth()),
+                curveUp, 0, this.getValueWidth(), results);
         return results;
     }
 
