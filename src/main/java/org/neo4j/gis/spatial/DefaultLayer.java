@@ -213,7 +213,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         this.spatialDatabase = spatialDatabase;
         this.name = name;
         this.layerNode = layerNode;
-        
+
         this.geometryFactory = new GeometryFactory();
         CoordinateReferenceSystem crs = getCoordinateReferenceSystem();
         if (crs != null) {
@@ -265,6 +265,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
             this.indexReader = index;
             this.indexWriter = index;
         }
+        this.indexReader.init(this);
     }
 
     /**

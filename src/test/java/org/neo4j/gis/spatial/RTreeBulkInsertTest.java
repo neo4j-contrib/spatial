@@ -7,6 +7,7 @@ import org.geotools.referencing.crs.DefaultEngineeringCRS;
 import org.junit.*;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
+import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
 import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
@@ -261,6 +262,52 @@ public class RTreeBulkInsertTest {
         }
     }
 
+    private class HilbertIndexMaker implements IndexMaker {
+        private final String name;
+        private final String insertMode;
+        private final IndexTestConfig config;
+        private List<Node> nodes;
+        private EditableLayer layer;
+
+        private HilbertIndexMaker(String name, String insertMode, IndexTestConfig config) {
+            this.name = name;
+            this.insertMode = insertMode;
+            this.config = config;
+        }
+
+        @Override
+        public EditableLayer setupLayer() {
+            this.nodes = setup(name, "hilbert", config.width);
+            this.layer = (EditableLayer) new SpatialDatabaseService(db).getLayer("Coordinates");
+            return layer;
+        }
+
+        @Override
+        public List<Node> nodes() {
+            return nodes;
+        }
+
+        @Override
+        public TestStats initStats(int blockSize) {
+            return new TestStats(config, insertMode, "Hilbert", blockSize, -1);
+        }
+
+        @Override
+        public TimedLogger initLogger() {
+            return new TimedLogger("Inserting " + config.totalCount + " nodes into Hilbert using " + insertMode + " insert", config.totalCount);
+        }
+
+        @Override
+        public IndexTestConfig getConfig() {
+            return config;
+        }
+
+        @Override
+        public void verifyStructure() {
+            verifyHilbertIndex(layer);
+        }
+    }
+
     private class RTreeIndexMaker implements IndexMaker {
         private final String splitMode;
         private final String insertMode;
@@ -340,6 +387,16 @@ public class RTreeBulkInsertTest {
     }
 
     @Test
+    public void shouldInsertManyNodesIndividuallyWithHilbert_very_small() throws FactoryException, IOException {
+        insertManyNodesIndividually(new HilbertIndexMaker("Coordinates", "Single", testConfigs.get("very_small")), 5000);
+    }
+
+    @Test
+    public void shouldInsertManyNodesInBulkWithHilbert_very_small() throws FactoryException, IOException {
+        insertManyNodesInBulk(new HilbertIndexMaker("Coordinates", "Bulk", testConfigs.get("very_small")), 5000);
+    }
+
+    @Test
     public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_very_small_10() throws FactoryException, IOException {
         insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("very_small"));
     }
@@ -371,6 +428,16 @@ public class RTreeBulkInsertTest {
     @Test
     public void shouldInsertManyNodesInBulkWithGeohash_small() throws FactoryException, IOException {
         insertManyNodesInBulk(new GeohashIndexMaker("Coordinates", "Bulk", testConfigs.get("small")), 5000);
+    }
+
+    @Test
+    public void shouldInsertManyNodesIndividuallyWithHilbert_small() throws FactoryException, IOException {
+        insertManyNodesIndividually(new HilbertIndexMaker("Coordinates", "Single", testConfigs.get("small")), 5000);
+    }
+
+    @Test
+    public void shouldInsertManyNodesInBulkWithHilbert_small() throws FactoryException, IOException {
+        insertManyNodesInBulk(new HilbertIndexMaker("Coordinates", "Bulk", testConfigs.get("small")), 5000);
     }
 
     @Ignore // takes too long, change to @Test when benchmarking
@@ -429,6 +496,16 @@ public class RTreeBulkInsertTest {
     @Test
     public void shouldInsertManyNodesInBulkWithGeohash_medium() throws FactoryException, IOException {
         insertManyNodesInBulk(new GeohashIndexMaker("Coordinates", "Bulk", testConfigs.get("medium")), 5000);
+    }
+
+    @Test
+    public void shouldInsertManyNodesIndividuallyWithHilbert_medium() throws FactoryException, IOException {
+        insertManyNodesIndividually(new HilbertIndexMaker("Coordinates", "Single", testConfigs.get("medium")), 5000);
+    }
+
+    @Test
+    public void shouldInsertManyNodesInBulkWithHilbert_medium() throws FactoryException, IOException {
+        insertManyNodesInBulk(new HilbertIndexMaker("Coordinates", "Bulk", testConfigs.get("medium")), 5000);
     }
 
     @Ignore
@@ -507,6 +584,16 @@ public class RTreeBulkInsertTest {
     @Test
     public void shouldInsertManyNodesInBulkWithGeohash_large() throws FactoryException, IOException {
         insertManyNodesInBulk(new GeohashIndexMaker("Coordinates", "Bulk", testConfigs.get("large")), 5000);
+    }
+
+    @Test
+    public void shouldInsertManyNodesIndividuallyWithHilbert_large() throws FactoryException, IOException {
+        insertManyNodesIndividually(new HilbertIndexMaker("Coordinates", "Single", testConfigs.get("large")), 5000);
+    }
+
+    @Test
+    public void shouldInsertManyNodesInBulkWithHilbert_large() throws FactoryException, IOException {
+        insertManyNodesInBulk(new HilbertIndexMaker("Coordinates", "Bulk", testConfigs.get("large")), 5000);
     }
 
     @Ignore // takes too long, change to @Test when benchmarking
@@ -1274,6 +1361,11 @@ public class RTreeBulkInsertTest {
     private void verifyGeohashIndex(Layer layer) {
         LayerIndexReader index = layer.getIndex();
         assertTrue("Index should be a geohash index", index instanceof LayerGeohashPointIndex);
+    }
+
+    private void verifyHilbertIndex(Layer layer) {
+        LayerIndexReader index = layer.getIndex();
+        assertTrue("Index should be a hilbert index", index instanceof LayerHilbertPointIndex);
     }
 
     private void verifyTreeStructure(Layer layer, String splitMode, TestStats stats) {

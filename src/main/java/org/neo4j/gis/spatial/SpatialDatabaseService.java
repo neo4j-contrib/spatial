@@ -24,6 +24,7 @@ import java.util.*;
 import org.geotools.referencing.crs.AbstractCRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
+import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
 import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
@@ -194,6 +195,8 @@ public class SpatialDatabaseService implements Constants {
 				return LayerRTreeIndex.class;
 			case "geohash":
 				return LayerGeohashPointIndex.class;
+			case "hilbert":
+				return LayerHilbertPointIndex.class;
 		}
 		throw new IllegalArgumentException("Unknown index: " + index);
 	}
@@ -339,7 +342,6 @@ public class SpatialDatabaseService implements Constants {
 			if (crs != null && layer instanceof EditableLayer) {
 				((EditableLayer) layer).setCoordinateReferenceSystem(crs);
 			}
-			layer.getIndex().init(layer);
 			tx.success();
 			return layer;
 		}

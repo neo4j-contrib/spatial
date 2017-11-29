@@ -21,7 +21,6 @@ package org.neo4j.gis.spatial.index;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
-import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.index.hilbert.HilbertSpaceFillingCurve;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
@@ -40,23 +39,24 @@ public class LayerHilbertPointIndex extends ExplicitIndexBackedPointIndex<Long> 
         return "hilbert";
     }
 
-    @Override
-    public void init(Layer layer) {
-        super.init(layer);
-        CoordinateReferenceSystem crs = layer.getCoordinateReferenceSystem();
-        if (crs == null) {
-            throw new IllegalArgumentException("HilbertPointIndex cannot support layers without CRS");
+    private HilbertSpaceFillingCurve getCurve() {
+        if (this.curve == null) {
+            CoordinateReferenceSystem crs = layer.getCoordinateReferenceSystem();
+            if (crs == null) {
+                throw new IllegalArgumentException("HilbertPointIndex cannot support layers without CRS");
+            }
+            if (crs.getCoordinateSystem().getDimension() != 2) {
+                throw new IllegalArgumentException("HilbertPointIndex cannot support CRS that is not 2D: " + crs.getName());
+            }
+            Envelope envelope = new Envelope(
+                    crs.getCoordinateSystem().getAxis(0).getMinimumValue(),
+                    crs.getCoordinateSystem().getAxis(0).getMaximumValue(),
+                    crs.getCoordinateSystem().getAxis(1).getMinimumValue(),
+                    crs.getCoordinateSystem().getAxis(1).getMaximumValue()
+            );
+            this.curve = new HilbertSpaceFillingCurve(envelope, 15);
         }
-        if (crs.getCoordinateSystem().getDimension() != 2) {
-            throw new IllegalArgumentException("HilbertPointIndex cannot support CRS that is not 2D: " + crs.getName());
-        }
-        Envelope envelope = new Envelope(
-                crs.getCoordinateSystem().getAxis(0).getMinimumValue(),
-                crs.getCoordinateSystem().getAxis(0).getMaximumValue(),
-                crs.getCoordinateSystem().getAxis(1).getMinimumValue(),
-                crs.getCoordinateSystem().getAxis(1).getMaximumValue()
-        );
-        this.curve = new HilbertSpaceFillingCurve(envelope,8);
+        return this.curve;
     }
 
     @Override
@@ -64,7 +64,7 @@ public class LayerHilbertPointIndex extends ExplicitIndexBackedPointIndex<Long> 
         //TODO: Make this code projection aware - currently it assumes lat/lon
         Geometry geom = layer.getGeometryEncoder().decodeGeometry(geomNode);
         Point point = geom.getCentroid();   // Other code is ensuring only point layers use this, but just in case we encode the centroid
-        return curve.longValueFor(point.getX(), point.getY());
+        return getCurve().longValueFor(point.getX(), point.getY());
     }
 
     private void appendRange(StringBuilder sb, HilbertSpaceFillingCurve.LongRange range) {
@@ -78,7 +78,7 @@ public class LayerHilbertPointIndex extends ExplicitIndexBackedPointIndex<Long> 
     protected String queryStringFor(SearchFilter filter) {
         if (filter instanceof AbstractSearchEnvelopeIntersection) {
             Envelope referenceEnvelope = ((AbstractSearchEnvelopeIntersection) filter).getReferenceEnvelope();
-            List<HilbertSpaceFillingCurve.LongRange> tiles = curve.getTilesIntersectingEnvelope(referenceEnvelope);
+            List<HilbertSpaceFillingCurve.LongRange> tiles = getCurve().getTilesIntersectingEnvelope(referenceEnvelope);
             StringBuilder sb = new StringBuilder();
             for (HilbertSpaceFillingCurve.LongRange range : tiles) {
                 if (sb.length() > 0) {
