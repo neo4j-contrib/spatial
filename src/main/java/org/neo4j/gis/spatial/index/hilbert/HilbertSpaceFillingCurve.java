@@ -26,6 +26,8 @@ import java.util.List;
 
 public class HilbertSpaceFillingCurve {
 
+    // TODO need to be extended to 3D
+
     /**
      * Description of the space filling curve structure
      */
@@ -70,8 +72,12 @@ public class HilbertSpaceFillingCurve {
     public static final int MAX_LEVEL = 27;
 
     private final Envelope range;
+    private final int nbrDim;
     private final int maxLevel;
     private final long width;
+    private final long valueWidth;
+    private final int quadFactor;
+    private final long initialNormMask;
 
     private double[] scalingFactor;
 
@@ -81,6 +87,7 @@ public class HilbertSpaceFillingCurve {
 
     public HilbertSpaceFillingCurve(Envelope range, int maxLevel) {
         this.range = range;
+        this.nbrDim = range.getDimension();
         this.maxLevel = maxLevel;
         if (maxLevel < 1) {
             throw new IllegalArgumentException("Hilbert index needs at least one level");
@@ -89,10 +96,13 @@ public class HilbertSpaceFillingCurve {
             throw new IllegalArgumentException("Hilbert index does not yet support more than 2 dimensions");
         }
         this.width = (long) Math.pow(2, maxLevel);
-        this.scalingFactor = new double[range.getDimension()];
-        for (int dim = 0; dim < range.getDimension(); dim++) {
+        this.scalingFactor = new double[nbrDim];
+        for (int dim = 0; dim < nbrDim; dim++) {
             scalingFactor[dim] = this.width / range.getWidth(dim);
         }
+        this.valueWidth = (long) Math.pow(2, maxLevel * nbrDim);
+        this.initialNormMask = (long) (Math.pow(2, nbrDim) - 1) << (maxLevel - 1) * nbrDim;
+        this.quadFactor = (int) Math.pow(2, nbrDim);
     }
 
     public int getMaxLevel() {
@@ -100,11 +110,11 @@ public class HilbertSpaceFillingCurve {
     }
 
     public long getWidth() {
-        return this.width;
+        return width;
     }
 
     public long getValueWidth() {
-        return (long) Math.pow(2, maxLevel * range.getDimension());
+        return valueWidth;
     }
 
     public double getTileWidth(int dimension, int level) {
@@ -112,89 +122,221 @@ public class HilbertSpaceFillingCurve {
     }
 
     /**
-     * Given a coordinate in multiple dimensions, calculate its 1D value for maxLevel
+     * Given a coordinate in multiple dimensions, calculate its derived key for maxLevel
      */
-    public Long longValueFor(double x, double y) {
-        return longValueFor(x, y, maxLevel);
+    public Long derivedValueFor(double[] coord) {
+        return derivedValueFor(coord, maxLevel);
     }
 
     /**
-     * Given a coordinate in multiple dimensions, calculate its 1D value for given level
+     * Given a coordinate in multiple dimensions, calculate its derived key for given level
      */
-    public Long longValueFor(double x, double y, int level) {
+    public Long derivedValueFor(double[] coord, int level) {
         assertValidLevel(level);
-        long longX = getLongCoord(x, 0);
-        long longY = getLongCoord(y, 1);
-        long newValue = 0;
+        long[] normalizedValues = getNormalizedCoord(coord);
+        long derivedValue = 0;
         long mask = 1L << (maxLevel - 1);
-        int dimensions = range.getDimension();
 
         // First level is a single curveUp
+        // TODO: True in 3D?
         CurveRule currentCurve = curveUp;
 
         for (int i = 1; i <= maxLevel; i++) {
-            if (i <= level) {
-                int bitIndex = maxLevel - i;
-                int bitX = (int) ((longX & mask) >> bitIndex);
-                int bitY = (int) ((longY & mask) >> bitIndex);
-                int npoint = bitX << 1 | bitY;
-                int derivedIndex = currentCurve.indexForNPoint(npoint);
-                newValue = (newValue << 2) | derivedIndex;
-                mask = mask >> 1;
-                currentCurve = currentCurve.childAt(derivedIndex);
-            } else {
-                newValue = newValue << dimensions;
+            int bitIndex = maxLevel - i;
+            int npoint = 0;
+
+            for (long val : normalizedValues) {
+                npoint = npoint << 1 | (int) ((val & mask) >> bitIndex);
             }
+
+            int derivedIndex = currentCurve.indexForNPoint(npoint);
+            derivedValue = (derivedValue << nbrDim) | derivedIndex;
+            mask = mask >> 1;
+            currentCurve = currentCurve.childAt(derivedIndex);
         }
-        return newValue;
+
+        if (level < maxLevel) {
+            derivedValue = derivedValue << (nbrDim * maxLevel - level);
+        }
+        return derivedValue;
     }
 
     /**
-     * Given a 1D value, find the center coordinate of the tile of the corresponding coordinate (2D, maxLevel)
+     * Given a derived key, find the center coordinate of the corresponding tile at maxLevel
      */
-    public double[] centerPointFor(long value) {
-        return centerPointFor(value, maxLevel);
+    public double[] centerPointFor(long derivedValue) {
+        return centerPointFor(derivedValue, maxLevel);
     }
 
     /**
-     * Given a 1D value, find the center coordinate of the tile of the corresponding coordinate (2D, given level)
+     * Given a derived key, find the center coordinate of the corresponding tile at given level
      */
-    public double[] centerPointFor(long value, int level) {
-        long[] coordinate = coordinateFor(value, level);
-        return new double[]{
-                getDoubleCoord(coordinate[0], 0, level),
-                getDoubleCoord(coordinate[1], 1, level)
-        };
+    public double[] centerPointFor(long derivedValue, int level) {
+        long[] normalizedCoord = normalizedCoordinateFor(derivedValue, level);
+        return getDoubleCoord(normalizedCoord, level);
     }
 
     /**
-     * Given a 1D value, find the tile it corresponds to
+     * Given a derived key, find the normalized coordinate it corresponds to on the maxLevel
      */
-    public long[] coordinateFor(long value, int level) {
-        assertValidLevel(level);
-        long mask = 3L << (maxLevel - 1) * range.getDimension();
-        long[] coordinate = new long[range.getDimension()];
+    public long[] normalizedCoordinateFor(long derivedValue) {
+
+        long mask = initialNormMask;
+        long[] coordinate = new long[nbrDim];
 
         // First level is a single curveUp
+        // TODO: True in 3D?
         CurveRule currentCurve = curveUp;
 
         for (int i = 1; i <= maxLevel; i++) {
-            if (i <= level) {
-                int bitIndex = maxLevel - i;
-                int derivedIndex = (int) ((value & mask) >> bitIndex * 2);
-                long npoint = currentCurve.npointValues[derivedIndex];
-                long bitX = (npoint & 2) >> 1;
-                long bitY = npoint & 1;
-                coordinate[0] = (coordinate[0] << 1) | bitX;
-                coordinate[1] = (coordinate[1] << 1) | bitY;
-                mask = mask >> 2;
-                currentCurve = currentCurve.childAt(derivedIndex);
-            } else {
-                coordinate[0] = coordinate[0] << 1;
-                coordinate[1] = coordinate[1] << 1;
+
+            int bitIndex = maxLevel - i;
+            int derivedIndex = (int) ((derivedValue & mask) >> bitIndex * nbrDim);
+            int npoint = currentCurve.npointValues[derivedIndex];
+            int[] bitValues = bitValues(npoint);
+            for (int dim = 0; dim < nbrDim; dim++) {
+                coordinate[dim] = coordinate[dim] << 1 | bitValues[dim];
             }
+
+            mask = mask >> nbrDim;
+            currentCurve = currentCurve.childAt(derivedIndex);
         }
         return coordinate;
+    }
+
+    /**
+     * Given a derived key, find the normalized coordinate it corresponds to on a specific level
+     */
+    public long[] normalizedCoordinateFor(long derivedValue, int level) {
+        assertValidLevel(level);
+        long mask = initialNormMask;
+        long[] coordinate = new long[nbrDim];
+        int levelDiff = maxLevel - level;
+
+        // First level is a single curveUp
+        // TODO: True in 3D?
+        CurveRule currentCurve = curveUp;
+
+        for (int i = 1; i <= level; i++) {
+
+            int bitIndex = maxLevel - i;
+
+            int derivedIndex = (int) ((derivedValue & mask) >> bitIndex * nbrDim);
+            int npoint = currentCurve.npointValues[derivedIndex];
+            int[] bitValues = bitValues(npoint);
+
+            for (int dim = 0; dim < nbrDim; dim++) {
+                coordinate[dim] = coordinate[dim] << 1 | bitValues[dim];
+            }
+
+            mask = mask >> nbrDim;
+            currentCurve = currentCurve.childAt(derivedIndex);
+        }
+
+        if (levelDiff > 0) {
+            for (int dim = 0; dim < nbrDim; dim++) {
+                coordinate[dim] = coordinate[dim] << levelDiff;
+            }
+        }
+
+        return coordinate;
+    }
+
+    /**
+     * Given an envelope, find a collection of LongRange of tiles intersecting it on maxLevel and merge adjacent ones
+     */
+    public List<LongRange> getTilesIntersectingEnvelope(Envelope referenceEnvelope) {
+        SearchEnvelope search = new SearchEnvelope(referenceEnvelope);
+        ArrayList<LongRange> results = new ArrayList<>();
+
+        addTilesIntersectingEnvelopeAt(search,
+                new SearchEnvelope(0, this.getWidth(), nbrDim),
+                curveUp, 0, this.getValueWidth(), results);
+        return results;
+    }
+
+    private void addTilesIntersectingEnvelopeAt(SearchEnvelope search, SearchEnvelope currentExtent, CurveRule curve, long left, long right, ArrayList<LongRange> results) {
+        if (right - left == 1) {
+            long[] coord = normalizedCoordinateFor(left);
+            if (search.contains(coord)) {
+                LongRange current = (results.size() > 0) ? results.get(results.size() - 1) : null;
+                if (current != null && current.max == left - 1) {
+                    current.expandToMax(left);
+                } else {
+                    current = new LongRange(left);
+                    results.add(current);
+                }
+            }
+        } else if (search.intersects(currentExtent)) {
+            long width = (right - left) / quadFactor;
+            for (int i = 0; i < quadFactor; i++) {
+                int npoint = curve.npointValues[i];
+
+                SearchEnvelope quadrant = currentExtent.quadrant(bitValues(npoint));
+                addTilesIntersectingEnvelopeAt(search, quadrant, curve.children[i], left + i * width, left + (i + 1) * width, results);
+            }
+        }
+    }
+
+    /**
+     * Bit index describing the in which quadrant an npoint corresponds to
+     */
+    private int[] bitValues(int npoint) {
+        int[] bitValues = new int[nbrDim];
+
+        for (int dim = 0; dim < nbrDim; dim++) {
+            bitValues[dim] = (npoint & (nbrDim - dim)) >> (nbrDim - dim - 1);
+        }
+        return bitValues;
+    }
+
+    /**
+     * Given a coordinate, find the corresponding normalized coordinate
+     */
+    private long[] getNormalizedCoord(double[] coord) {
+        long[] normalizedCoord = new long[nbrDim];
+
+        for (int dim = 0; dim < nbrDim; dim++) {
+            double value = clamp(coord[dim], range.getMin(dim), range.getMax(dim));
+            if (value == range.getMax(dim)) {
+                normalizedCoord[dim] = valueWidth - 1;
+            } else {
+                normalizedCoord[dim] = (long) ((value - range.getMin(dim)) * scalingFactor[dim]);
+            }
+        }
+        return normalizedCoord;
+    }
+
+    /**
+     * Given a normalized coordinate, find the center coordinate of that tile  on the given level
+     */
+    private double[] getDoubleCoord(long[] normalizedCoord, int level) {
+        double[] coord = new double[nbrDim];
+
+        for (int dim = 0; dim < nbrDim; dim++) {
+            double coordinate = ((double) normalizedCoord[dim]) / scalingFactor[dim] + range.getMin(dim) + getTileWidth(dim, level) / 2.0;
+            coord[dim] = clamp(coordinate, range.getMin(dim), range.getMax(dim));
+        }
+        return coord;
+    }
+
+    private double clamp(double val, double min, double max) {
+        if (val <= min) {
+            return min;
+        }
+        if (val >= max) {
+            return max;
+        }
+        return val;
+    }
+
+    /**
+     * Assert that a given level is valid
+     */
+    private void assertValidLevel(int level) {
+        if (level > maxLevel) {
+            throw new IllegalArgumentException("Level " + level + " greater than max-level " + maxLevel);
+        }
     }
 
     /**
@@ -226,111 +368,71 @@ public class HilbertSpaceFillingCurve {
         }
 
         public String toString() {
-            return new StringBuilder().append("LongRange(").append(min).append(",").append(max).append(")").toString();
+            return "LongRange(" + min + "," + max + ")";
         }
     }
 
-    private void addTilesIntersectingEnvelopeAt(SearchEnvelope search, SearchEnvelope currentExtent, CurveRule curve, long left, long right, ArrayList<LongRange> results) {
-        if (right - left == 1) {
-            long[] coord = coordinateFor(left, maxLevel);
-            if (search.contains(coord)) {
-                LongRange current = (results.size() > 0) ? results.get(results.size() - 1) : null;
-                if (current != null && current.max == left - 1) {
-                    current.expandToMax(left);
-                } else {
-                    current = new LongRange(left);
-                    results.add(current);
-                }
-            }
-        } else if (search.intersects(currentExtent)) {
-            long width = (right - left) / 4;
-            for (int i = 0; i < 4; i++) {
-                int npoint = curve.npointValues[i];
-                int bitX = (npoint & 2) >> 1;
-                int bitY = npoint & 1;
-                SearchEnvelope quadrant = currentExtent.quadrant(bitX, bitY);
-                addTilesIntersectingEnvelopeAt(search, quadrant, curve.children[i], left + i * width, left + (i + 1) * width, results);
-            }
-        }
-    }
 
-    // TODO: This class could be generalized to n-dimensions using code in Envelope.java
+    /**
+     * N-dimensional searchEnvelope
+     */
     private class SearchEnvelope {
-        long minX;
-        long maxX;
-        long minY;
-        long maxY;
+        long min[];
+        long max[];
+        int nbrDim;
 
         private SearchEnvelope(Envelope referenceEnvelope) {
-            this.minX = getLongCoord(referenceEnvelope.getMin(0), 0);
-            this.maxX = getLongCoord(referenceEnvelope.getMax(0), 0);
-            this.minY = getLongCoord(referenceEnvelope.getMin(1), 1);
-            this.maxY = getLongCoord(referenceEnvelope.getMax(1), 1);
+            this.min = getNormalizedCoord(referenceEnvelope.getMin());
+            this.max = getNormalizedCoord(referenceEnvelope.getMax());
+            this.nbrDim = referenceEnvelope.getDimension();
         }
 
-        private SearchEnvelope(long minX, long maxX, long minY, long maxY) {
-            this.minX = minX;
-            this.maxX = maxX;
-            this.minY = minY;
-            this.maxY = maxY;
+        private SearchEnvelope(long[] min, long[] max) {
+            this.min = min;
+            this.max = max;
+            this.nbrDim = min.length;
         }
 
-        private SearchEnvelope quadrant(int x, int y) {
-            long width = (maxX - minX) / 2;
-            long height = (maxY - minY) / 2;
-            return new SearchEnvelope(this.minX + x * width, this.minX + (x + 1) * width, this.minY + y * height, this.minY + (y + 1) * height);
+        private SearchEnvelope(long min, long max, int nbrDim) {
+            this.nbrDim = nbrDim;
+            this.min = new long[nbrDim];
+            this.max = new long[nbrDim];
+
+            for (int dim = 0; dim < nbrDim; dim++) {
+                this.min[dim] = min;
+                this.max[dim] = max;
+            }
+
+        }
+
+        private SearchEnvelope quadrant(int[] quadNbrs) {
+            long[] newMin = new long[nbrDim];
+            long[] newMax = new long[nbrDim];
+
+            for (int dim = 0; dim < nbrDim; dim++) {
+                long extent = (max[dim] - min[dim]) / 2;
+                newMin[dim] = this.min[dim] + quadNbrs[dim] * extent;
+                newMax[dim] = this.min[dim] + (quadNbrs[dim] + 1) * extent;
+            }
+            return new SearchEnvelope(newMin, newMax);
         }
 
         private boolean contains(long[] coord) {
-            return coord[0] >= minX && coord[0] <= maxX && coord[1] >= minY && coord[1] <= maxY;
+            for (int dim = 0; dim < nbrDim; dim++) {
+                if (coord[dim] < min[dim] || coord[dim] > max[dim]) {
+                    return false;
+                }
+            }
+            return true;
         }
 
         private boolean intersects(SearchEnvelope other) {
-            return this.maxX >= other.minX && this.minX <= other.maxX && this.maxY >= other.minY && this.minY <= other.maxY;
+            for (int dim = 0; dim < nbrDim; dim++) {
+                if (max[dim] < other.min[dim] || other.max[dim] < min[dim]) {
+                    return false;
+                }
+            }
+            return true;
         }
     }
-
-    /**
-     * Given an envelope, find a collection of LongRange of tiles intersecting it on maxLevel and merge adjacent ones
-     */
-    public List<LongRange> getTilesIntersectingEnvelope(Envelope referenceEnvelope) {
-        SearchEnvelope search = new SearchEnvelope(referenceEnvelope);
-        ArrayList<LongRange> results = new ArrayList<>();
-
-        addTilesIntersectingEnvelopeAt(search,
-                new SearchEnvelope(0, this.getWidth(), 0, this.getWidth()),
-                curveUp, 0, this.getValueWidth(), results);
-        return results;
-    }
-
-    /**
-     * Given a coordinate, find a long value describing the tile it is located in (1D)
-     */
-    private long getLongCoord(double value, int dimension) {
-        if (value >= range.getMax(dimension)) {
-            return width - 1;
-        } else if (value < range.getMin(dimension)) {
-            return 0;
-        } else {
-            return (long) ((value - range.getMin(dimension)) * scalingFactor[dimension]);
-        }
-    }
-
-    /**
-     * Given a long value describing a tile, find the center coordinate of the tile (1D)
-     */
-    private double getDoubleCoord(long value, int dimension, int level) {
-        double coordinate = ((double) value) / scalingFactor[dimension] + range.getMin(dimension) + getTileWidth(dimension, level) / 2.0;
-        return Math.min(range.getMax(dimension), Math.max(range.getMin(dimension), coordinate));
-    }
-
-    /**
-     * Assert that a given level is valid
-     */
-    private void assertValidLevel(int level) {
-        if (level > maxLevel) {
-            throw new IllegalArgumentException("Level " + level + " greater than max-level " + maxLevel);
-        }
-    }
-
 }

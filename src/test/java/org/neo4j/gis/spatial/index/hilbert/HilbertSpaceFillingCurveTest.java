@@ -15,7 +15,7 @@ public class HilbertSpaceFillingCurveTest {
         Envelope envelope = new Envelope(-8, 8, -8, 8);
         HilbertSpaceFillingCurve curve = new HilbertSpaceFillingCurve(envelope, 1);
         assertAtLevel(curve, envelope);
-        //assertRange("Bottom-left should evaluate to zero", curve, getTileEnvelope(envelope, 0, 0, 2), 0L);
+        assertRange("Bottom-left should evaluate to zero", curve, getTileEnvelope(envelope, 0, 0, 2), 0L);
         assertRange("Top-left should evaluate to one", curve, getTileEnvelope(envelope, 0, 1, 2), 1L);
         assertRange("Top-right should evaluate to two", curve, getTileEnvelope(envelope, 1, 1, 2), 2L);
         assertRange("Bottom-right should evaluate to three", curve, getTileEnvelope(envelope, 1, 0, 2), 3L);
@@ -83,7 +83,7 @@ public class HilbertSpaceFillingCurveTest {
     @Test
     public void shouldCreateHilbertCurveOfThreeLevelsFromExampleInThePaper() {
         HilbertSpaceFillingCurve curve = new HilbertSpaceFillingCurve(new Envelope(0, 8, 0, 8), 3);
-        assertThat("Example should evaluate to 101110", curve.longValueFor(6, 4), equalTo(46L));
+        assertThat("Example should evaluate to 101110", curve.derivedValueFor(new double[]{6, 4}), equalTo(46L));
     }
 
     @Test
@@ -170,7 +170,7 @@ public class HilbertSpaceFillingCurveTest {
                 curve.getTileWidth(0, curve.getMaxLevel()) / 2.0,
                 curve.getTileWidth(1, curve.getMaxLevel()) / 2.0
         };
-        long result = curve.longValueFor(x, y);
+        long result = curve.derivedValueFor(new double[]{x,y});
         double[] coordinate = curve.centerPointFor(result);
         assertThat(message + ": (" + x + "," + y + ")", result, equalTo(value));
         assertThat(message + ": (" + x + "," + y + ")", Math.abs(coordinate[0] - x), lessThanOrEqualTo(halfTileWidths[0]));

@@ -77,7 +77,7 @@ public class LayerHilbertPointIndex extends ExplicitIndexBackedPointIndex<Long> 
         //TODO: Make this code projection aware - currently it assumes lat/lon
         Geometry geom = layer.getGeometryEncoder().decodeGeometry(geomNode);
         Point point = geom.getCentroid();   // Other code is ensuring only point layers use this, but just in case we encode the centroid
-        return getCurve().longValueFor(point.getX(), point.getY());
+        return getCurve().derivedValueFor(new double[]{point.getX(), point.getY()});
     }
 
     private void appendRange(StringBuilder sb, HilbertSpaceFillingCurve.LongRange range) {
