@@ -30,10 +30,10 @@ public abstract class HilbertSpaceFillingCurve {
      * Description of the space filling curve structure
      */
     static abstract class CurveRule {
-        protected final int dimension;
-        protected final int[] npointValues;
+        final int dimension;
+        final int[] npointValues;
 
-        protected CurveRule(int dimension, int[] npointValues) {
+        CurveRule(int dimension, int[] npointValues) {
             this.dimension = dimension;
             this.npointValues = npointValues;
             assert npointValues.length == length();
@@ -65,8 +65,6 @@ public abstract class HilbertSpaceFillingCurve {
         }
     }
 
-    public static final int MAX_LEVEL = 27;
-
     private final Envelope range;
     private final int nbrDim;
     private final int maxLevel;
@@ -77,11 +75,7 @@ public abstract class HilbertSpaceFillingCurve {
 
     private double[] scalingFactor;
 
-    public HilbertSpaceFillingCurve(Envelope range) {
-        this(range, MAX_LEVEL);
-    }
-
-    public HilbertSpaceFillingCurve(Envelope range, int maxLevel) {
+    HilbertSpaceFillingCurve(Envelope range, int maxLevel) {
         this.range = range;
         this.nbrDim = range.getDimension();
         this.maxLevel = maxLevel;
@@ -117,6 +111,10 @@ public abstract class HilbertSpaceFillingCurve {
         return range.getWidth(dimension) / Math.pow(2, level);
     }
 
+    public Envelope getRange() {
+        return range;
+    }
+
     protected abstract CurveRule rootCurve();
 
     /**
@@ -129,7 +127,7 @@ public abstract class HilbertSpaceFillingCurve {
     /**
      * Given a coordinate in multiple dimensions, calculate its derived key for given level
      */
-    public Long derivedValueFor(double[] coord, int level) {
+    private Long derivedValueFor(double[] coord, int level) {
         assertValidLevel(level);
         long[] normalizedValues = getNormalizedCoord(coord);
         long derivedValue = 0;
@@ -168,7 +166,7 @@ public abstract class HilbertSpaceFillingCurve {
     /**
      * Given a derived key, find the center coordinate of the corresponding tile at given level
      */
-    public double[] centerPointFor(long derivedValue, int level) {
+    private double[] centerPointFor(long derivedValue, int level) {
         long[] normalizedCoord = normalizedCoordinateFor(derivedValue, level);
         return getDoubleCoord(normalizedCoord, level);
     }
@@ -176,7 +174,7 @@ public abstract class HilbertSpaceFillingCurve {
     /**
      * Given a derived key, find the normalized coordinate it corresponds to on a specific level
      */
-    public long[] normalizedCoordinateFor(long derivedValue, int level) {
+    private long[] normalizedCoordinateFor(long derivedValue, int level) {
         assertValidLevel(level);
         long mask = initialNormMask;
         long[] coordinate = new long[nbrDim];
@@ -314,16 +312,16 @@ public abstract class HilbertSpaceFillingCurve {
         public final long min;
         public long max;
 
-        public LongRange(long value) {
+        LongRange(long value) {
             this(value, value);
         }
 
-        public LongRange(long min, long max) {
+        LongRange(long min, long max) {
             this.min = min;
             this.max = max;
         }
 
-        public void expandToMax(long other) {
+        void expandToMax(long other) {
             this.max = other;
         }
 

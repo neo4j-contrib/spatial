@@ -57,7 +57,7 @@ public class HilbertSpaceFillingCurve3D extends HilbertSpaceFillingCurve {
 
         private CurveRule3D(int... npointValues) {
             super(3, npointValues);
-            debugNpoints();
+            //debugNpoints();
             assert npointValues[0] == 0 || npointValues[0] == 3 || npointValues[0] == 5 || npointValues[0] == 6;
         }
 
@@ -190,12 +190,15 @@ public class HilbertSpaceFillingCurve3D extends HilbertSpaceFillingCurve {
 
     private static final CurveRule3D curveUFR = addCurveRule(0b000, 0b010, 0b011, 0b001, 0b101, 0b111, 0b110, 0b100);
 
+    public static final int MAX_LEVEL = 63 / 3 - 1;
+
     public HilbertSpaceFillingCurve3D(Envelope range) {
         this(range, MAX_LEVEL);
     }
 
     public HilbertSpaceFillingCurve3D(Envelope range, int maxLevel) {
         super(range, maxLevel);
+        assert maxLevel <= MAX_LEVEL;
         assert range.getDimension() == 3;
     }
 

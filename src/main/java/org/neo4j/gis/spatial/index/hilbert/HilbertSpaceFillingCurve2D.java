@@ -102,12 +102,15 @@ public class HilbertSpaceFillingCurve2D extends HilbertSpaceFillingCurve {
         curveUp = curves.get("U");
     }
 
+    public static final int MAX_LEVEL = 63 / 2 - 1;
+
     public HilbertSpaceFillingCurve2D(Envelope range) {
         this(range, MAX_LEVEL);
     }
 
     public HilbertSpaceFillingCurve2D(Envelope range, int maxLevel) {
         super(range, maxLevel);
+        assert maxLevel <= MAX_LEVEL;
         assert range.getDimension() == 2;
     }
 
