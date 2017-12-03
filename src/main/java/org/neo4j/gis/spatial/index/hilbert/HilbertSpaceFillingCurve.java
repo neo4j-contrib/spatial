@@ -24,22 +24,30 @@ import org.neo4j.gis.spatial.rtree.Envelope;
 import java.util.ArrayList;
 import java.util.List;
 
-public class HilbertSpaceFillingCurve {
-
-    // TODO need to be extended to 3D
+public abstract class HilbertSpaceFillingCurve {
 
     /**
      * Description of the space filling curve structure
      */
-    static class CurveRule {
-        private int[] npointValues;
-        private CurveRule[] children = null;
+    static abstract class CurveRule {
+        protected final int dimension;
+        protected final int[] npointValues;
 
-        private CurveRule(int... npointValues) {
+        protected CurveRule(int dimension, int[] npointValues) {
+            this.dimension = dimension;
             this.npointValues = npointValues;
+            assert npointValues.length == length();
         }
 
-        private int indexForNPoint(int npoint) {
+        int length() {
+            return (int) Math.pow(2, dimension);
+        }
+
+        int npointForIndex(int derivedIndex) {
+            return npointValues[derivedIndex];
+        }
+
+        int indexForNPoint(int npoint) {
             for (int index = 0; index < npointValues.length; index++) {
                 if (npointValues[index] == npoint) {
                     return index;
@@ -48,25 +56,13 @@ public class HilbertSpaceFillingCurve {
             return -1;
         }
 
-        public void setChildren(CurveRule... children) {
-            this.children = children;
+        abstract CurveRule childAt(int npoint);
+
+        abstract String name();
+
+        public String toString() {
+            return name();
         }
-
-        public CurveRule childAt(int npoint) {
-            return children[npoint];
-        }
-    }
-
-    public static final CurveRule curveUp = new CurveRule(0, 1, 3, 2);
-    public static final CurveRule curveRight = new CurveRule(0, 2, 3, 1);
-    public static final CurveRule curveLeft = new CurveRule(3, 1, 0, 2);
-    public static final CurveRule curveDown = new CurveRule(3, 2, 0, 1);
-
-    static {
-        curveUp.setChildren(curveRight, curveUp, curveUp, curveLeft);
-        curveRight.setChildren(curveUp, curveRight, curveRight, curveDown);
-        curveDown.setChildren(curveLeft, curveDown, curveDown, curveRight);
-        curveLeft.setChildren(curveDown, curveLeft, curveLeft, curveUp);
     }
 
     public static final int MAX_LEVEL = 27;
@@ -92,8 +88,8 @@ public class HilbertSpaceFillingCurve {
         if (maxLevel < 1) {
             throw new IllegalArgumentException("Hilbert index needs at least one level");
         }
-        if (range.getDimension() != 2) {
-            throw new IllegalArgumentException("Hilbert index does not yet support more than 2 dimensions");
+        if (range.getDimension() > 3) {
+            throw new IllegalArgumentException("Hilbert index does not yet support more than 3 dimensions");
         }
         this.width = (long) Math.pow(2, maxLevel);
         this.scalingFactor = new double[nbrDim];
@@ -121,6 +117,8 @@ public class HilbertSpaceFillingCurve {
         return range.getWidth(dimension) / Math.pow(2, level);
     }
 
+    protected abstract CurveRule rootCurve();
+
     /**
      * Given a coordinate in multiple dimensions, calculate its derived key for maxLevel
      */
@@ -137,9 +135,8 @@ public class HilbertSpaceFillingCurve {
         long derivedValue = 0;
         long mask = 1L << (maxLevel - 1);
 
-        // First level is a single curveUp
-        // TODO: True in 3D?
-        CurveRule currentCurve = curveUp;
+        // The starting curve depends on the dimensions
+        CurveRule currentCurve = rootCurve();
 
         for (int i = 1; i <= maxLevel; i++) {
             int bitIndex = maxLevel - i;
@@ -177,52 +174,22 @@ public class HilbertSpaceFillingCurve {
     }
 
     /**
-     * Given a derived key, find the normalized coordinate it corresponds to on the maxLevel
-     */
-    public long[] normalizedCoordinateFor(long derivedValue) {
-
-        long mask = initialNormMask;
-        long[] coordinate = new long[nbrDim];
-
-        // First level is a single curveUp
-        // TODO: True in 3D?
-        CurveRule currentCurve = curveUp;
-
-        for (int i = 1; i <= maxLevel; i++) {
-
-            int bitIndex = maxLevel - i;
-            int derivedIndex = (int) ((derivedValue & mask) >> bitIndex * nbrDim);
-            int npoint = currentCurve.npointValues[derivedIndex];
-            int[] bitValues = bitValues(npoint);
-            for (int dim = 0; dim < nbrDim; dim++) {
-                coordinate[dim] = coordinate[dim] << 1 | bitValues[dim];
-            }
-
-            mask = mask >> nbrDim;
-            currentCurve = currentCurve.childAt(derivedIndex);
-        }
-        return coordinate;
-    }
-
-    /**
      * Given a derived key, find the normalized coordinate it corresponds to on a specific level
      */
     public long[] normalizedCoordinateFor(long derivedValue, int level) {
         assertValidLevel(level);
         long mask = initialNormMask;
         long[] coordinate = new long[nbrDim];
-        int levelDiff = maxLevel - level;
 
         // First level is a single curveUp
-        // TODO: True in 3D?
-        CurveRule currentCurve = curveUp;
+        CurveRule currentCurve = rootCurve();
 
         for (int i = 1; i <= level; i++) {
 
             int bitIndex = maxLevel - i;
 
             int derivedIndex = (int) ((derivedValue & mask) >> bitIndex * nbrDim);
-            int npoint = currentCurve.npointValues[derivedIndex];
+            int npoint = currentCurve.npointForIndex(derivedIndex);
             int[] bitValues = bitValues(npoint);
 
             for (int dim = 0; dim < nbrDim; dim++) {
@@ -233,9 +200,9 @@ public class HilbertSpaceFillingCurve {
             currentCurve = currentCurve.childAt(derivedIndex);
         }
 
-        if (levelDiff > 0) {
+        if (level < maxLevel) {
             for (int dim = 0; dim < nbrDim; dim++) {
-                coordinate[dim] = coordinate[dim] << levelDiff;
+                coordinate[dim] = coordinate[dim] << maxLevel - level;
             }
         }
 
@@ -251,13 +218,13 @@ public class HilbertSpaceFillingCurve {
 
         addTilesIntersectingEnvelopeAt(search,
                 new SearchEnvelope(0, this.getWidth(), nbrDim),
-                curveUp, 0, this.getValueWidth(), results);
+                rootCurve(), 0, this.getValueWidth(), results);
         return results;
     }
 
     private void addTilesIntersectingEnvelopeAt(SearchEnvelope search, SearchEnvelope currentExtent, CurveRule curve, long left, long right, ArrayList<LongRange> results) {
         if (right - left == 1) {
-            long[] coord = normalizedCoordinateFor(left);
+            long[] coord = normalizedCoordinateFor(left, maxLevel);
             if (search.contains(coord)) {
                 LongRange current = (results.size() > 0) ? results.get(results.size() - 1) : null;
                 if (current != null && current.max == left - 1) {
@@ -270,10 +237,10 @@ public class HilbertSpaceFillingCurve {
         } else if (search.intersects(currentExtent)) {
             long width = (right - left) / quadFactor;
             for (int i = 0; i < quadFactor; i++) {
-                int npoint = curve.npointValues[i];
+                int npoint = curve.npointForIndex(i);
 
                 SearchEnvelope quadrant = currentExtent.quadrant(bitValues(npoint));
-                addTilesIntersectingEnvelopeAt(search, quadrant, curve.children[i], left + i * width, left + (i + 1) * width, results);
+                addTilesIntersectingEnvelopeAt(search, quadrant, curve.childAt(i), left + i * width, left + (i + 1) * width, results);
             }
         }
     }
@@ -285,7 +252,8 @@ public class HilbertSpaceFillingCurve {
         int[] bitValues = new int[nbrDim];
 
         for (int dim = 0; dim < nbrDim; dim++) {
-            bitValues[dim] = (npoint & (nbrDim - dim)) >> (nbrDim - dim - 1);
+            int shift = nbrDim - dim - 1;
+            bitValues[dim] = (npoint & (1 << shift)) >> shift;
         }
         return bitValues;
     }

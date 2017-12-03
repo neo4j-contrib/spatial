@@ -21,7 +21,7 @@ package org.neo4j.gis.spatial.index;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
-import org.neo4j.gis.spatial.index.hilbert.HilbertSpaceFillingCurve;
+import org.neo4j.gis.spatial.index.hilbert.HilbertSpaceFillingCurve2D;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
@@ -33,14 +33,14 @@ import java.util.List;
 
 public class LayerHilbertPointIndex extends ExplicitIndexBackedPointIndex<Long> {
 
-    private HilbertSpaceFillingCurve curve = null;
+    private HilbertSpaceFillingCurve2D curve = null;
 
     @Override
     protected String indexTypeName() {
         return "hilbert";
     }
 
-    private HilbertSpaceFillingCurve getCurve() {
+    private HilbertSpaceFillingCurve2D getCurve() {
         if (this.curve == null) {
             CoordinateReferenceSystem crs = layer.getCoordinateReferenceSystem();
             if (crs == null) {
@@ -55,7 +55,7 @@ public class LayerHilbertPointIndex extends ExplicitIndexBackedPointIndex<Long> 
                     getMin(crs.getCoordinateSystem().getAxis(1)),
                     getMax(crs.getCoordinateSystem().getAxis(1))
             );
-            this.curve = new HilbertSpaceFillingCurve(envelope, 12);
+            this.curve = new HilbertSpaceFillingCurve2D(envelope, 12);
         }
         return this.curve;
     }
@@ -80,7 +80,7 @@ public class LayerHilbertPointIndex extends ExplicitIndexBackedPointIndex<Long> 
         return getCurve().derivedValueFor(new double[]{point.getX(), point.getY()});
     }
 
-    private void appendRange(StringBuilder sb, HilbertSpaceFillingCurve.LongRange range) {
+    private void appendRange(StringBuilder sb, HilbertSpaceFillingCurve2D.LongRange range) {
         if (range.min == range.max) {
             sb.append(indexTypeName()).append(":").append(range.min);
         } else {
@@ -91,9 +91,9 @@ public class LayerHilbertPointIndex extends ExplicitIndexBackedPointIndex<Long> 
     protected String queryStringFor(SearchFilter filter) {
         if (filter instanceof AbstractSearchEnvelopeIntersection) {
             Envelope referenceEnvelope = ((AbstractSearchEnvelopeIntersection) filter).getReferenceEnvelope();
-            List<HilbertSpaceFillingCurve.LongRange> tiles = getCurve().getTilesIntersectingEnvelope(referenceEnvelope);
+            List<HilbertSpaceFillingCurve2D.LongRange> tiles = getCurve().getTilesIntersectingEnvelope(referenceEnvelope);
             StringBuilder sb = new StringBuilder();
-            for (HilbertSpaceFillingCurve.LongRange range : tiles) {
+            for (HilbertSpaceFillingCurve2D.LongRange range : tiles) {
                 if (sb.length() > 0) {
                     sb.append(" OR ");
                 }
