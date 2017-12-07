@@ -1,10 +1,17 @@
 package org.neo4j.gis.spatial.index.hilbert;
 
+import org.junit.Ignore;
 import org.junit.Test;
+
+import org.neo4j.gis.spatial.index.hilbert.HilbertSpaceFillingCurve3D.CurveRule3D;
 import org.neo4j.gis.spatial.rtree.Envelope;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
@@ -363,9 +370,81 @@ public class HilbertSpaceFillingCurveTest {
         }
     }
 
+    @Ignore
+    public void printMappings() {
+        Envelope envelope = new Envelope(new double[]{-8, -8, -8}, new double[]{8, 8, 8});
+        HilbertSpaceFillingCurve3D mainCurve = new HilbertSpaceFillingCurve3D( envelope );
+        HilbertSpaceFillingCurve.CurveRule c = mainCurve.rootCurve();
+        populateChildren( c, 0 );
+        printMapping();
+    }
+
+    @Test
+    public void shouldNeverStepMoreThanDistanceOne() {
+        Envelope envelope = new Envelope(new double[]{-8, -8, -8}, new double[]{8, 8, 8});
+        for (int level = 1; level < 8; level++) { // more than 8 takes way too long
+            HilbertSpaceFillingCurve3D curve = new HilbertSpaceFillingCurve3D(envelope, level);
+            int badCount = 0;
+            long[] previous = null;
+            for (long derivedValue = 0; derivedValue < curve.getValueWidth(); derivedValue++) {
+                long[] point = curve.normalizedCoordinateFor(derivedValue, level);
+                if (previous != null) {
+                    double distance = 0;
+                    for (int i = 0; i < point.length; i++) {
+                        distance += Math.pow(point[i] - previous[i], 2);
+                    }
+                    distance = Math.sqrt(distance);
+                    if (distance > 1.0){
+                        badCount++;
+                    }
+//                    assertThat("Distance at level:" + level + " between " + strOf(derivedValue, point) + " and " + strOf(derivedValue - 1, previous) + " should be 1.0", distance, equalTo(1.0D));
+                }
+                previous = point;
+            }
+            int badness = (int) (100 * badCount / (curve.getValueWidth() - 1));
+            assertThat("Bad distance percentage should never be greater than 10%", badness, lessThanOrEqualTo(10));
+            System.out.println(String.format("Bad distance count for level: %d (%d/%d = %d%%)", level, badCount, curve.getValueWidth() - 1, badness));
+        }
+    }
+
     //
     // Test utilities and grouped/complex assertions for 2D and 3D Hilbert Curves
     //
+
+    private void populateChildren(HilbertSpaceFillingCurve.CurveRule c, int level) {
+        int sizeBefore = HilbertSpaceFillingCurve3D.curves.size();
+        for (int i = 0; i < c.length(); ++i) {
+            HilbertSpaceFillingCurve.CurveRule curve = c.childAt(i);
+            int sizeAfter = HilbertSpaceFillingCurve3D.curves.size();
+            if (sizeAfter - sizeBefore > 0) {
+                populateChildren(curve, level + 1);
+            }
+        }
+    }
+
+    private void printMapping() {
+        HashMap<Integer, Map<String, CurveRule3D>> map = new HashMap<>();
+        for (Map.Entry<String, CurveRule3D> entry : HilbertSpaceFillingCurve3D.curves.entrySet()) {
+            int start = entry.getValue().npointForIndex(0);
+            Map<String, CurveRule3D> mapEntry;
+            if (map.containsKey(start)) {
+                mapEntry = map.get(start);
+            } else {
+                mapEntry = new HashMap<>();
+                map.put(start, mapEntry);
+            }
+            mapEntry.put(entry.getKey(), entry.getValue());
+        }
+        ArrayList<Integer> sortedKeys = new ArrayList<>();
+        sortedKeys.addAll(map.keySet());
+        Collections.sort(sortedKeys);
+        for (Integer start : sortedKeys) {
+            System.out.println(CurveRule3D.binaryString(start) + ":\t" + map.get(start).size());
+            for (Map.Entry<String, CurveRule3D> mapEntry : map.get(start).entrySet()) {
+                System.out.println("\t" + mapEntry.getKey() + ":\t" + Arrays.toString(mapEntry.getValue().children));
+            }
+        }
+    }
 
     private void assertTiles(List<HilbertSpaceFillingCurve.LongRange> results, HilbertSpaceFillingCurve.LongRange... expected) {
         assertThat("Result differ: " + results + " != " + Arrays.toString(expected), results.size(), equalTo(expected.length));

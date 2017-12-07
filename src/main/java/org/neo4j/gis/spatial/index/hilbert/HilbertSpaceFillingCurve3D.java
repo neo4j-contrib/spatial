@@ -53,7 +53,7 @@ public class HilbertSpaceFillingCurve3D extends HilbertSpaceFillingCurve {
      * Description of the space filling curve structure
      */
     static class CurveRule3D extends CurveRule {
-        private CurveRule[] children = null;
+        CurveRule[] children = null;
 
         private CurveRule3D(int... npointValues) {
             super(3, npointValues);
@@ -62,15 +62,16 @@ public class HilbertSpaceFillingCurve3D extends HilbertSpaceFillingCurve {
         }
 
         private void debugNpoints() {
+            System.out.println("\t" + name());
             for (int i = 0; i < length(); i++) {
-                System.out.println("\t" + i + ": NPoint = " + npointValues[i] + "\t" + binaryString(npointValues[i]));
+                System.out.println("\t\t" + i + ": NPoint = " + npointValues[i] + "\t" + binaryString(npointValues[i]));
                 if (npointValues[i] >= length()) {
                     System.out.println("Invalid npoint: " + npointValues[i]);
                 }
             }
         }
 
-        private String binaryString(int value) {
+        static String binaryString( int value ) {
             String binary = "00"+Integer.toBinaryString(value);
             return binary.substring(binary.length()-3, binary.length());
         }
@@ -177,7 +178,7 @@ public class HilbertSpaceFillingCurve3D extends HilbertSpaceFillingCurve {
         }
     }
 
-    private static HashMap<String, CurveRule3D> curves = new LinkedHashMap<>();
+    static HashMap<String, CurveRule3D> curves = new LinkedHashMap<>();
 
     private static CurveRule3D addCurveRule(int... npointValues) {
         CurveRule3D curve = new CurveRule3D(npointValues);

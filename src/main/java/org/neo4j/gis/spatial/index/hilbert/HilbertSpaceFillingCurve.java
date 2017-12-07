@@ -174,7 +174,7 @@ public abstract class HilbertSpaceFillingCurve {
     /**
      * Given a derived key, find the normalized coordinate it corresponds to on a specific level
      */
-    private long[] normalizedCoordinateFor(long derivedValue, int level) {
+    long[] normalizedCoordinateFor(long derivedValue, int level) {
         assertValidLevel(level);
         long mask = initialNormMask;
         long[] coordinate = new long[nbrDim];
