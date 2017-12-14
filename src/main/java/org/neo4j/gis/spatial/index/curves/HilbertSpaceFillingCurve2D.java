@@ -17,22 +17,22 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.index.hilbert;
+package org.neo4j.gis.spatial.index.curves;
 
 import org.neo4j.gis.spatial.rtree.Envelope;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 
-public class HilbertSpaceFillingCurve2D extends HilbertSpaceFillingCurve {
+public class HilbertSpaceFillingCurve2D extends SpaceFillingCurve {
 
     /**
      * Description of the space filling curve structure
      */
-    static class CurveRule2D extends CurveRule {
+    static class HilbertCurve2D extends CurveRule {
         private CurveRule[] children = null;
 
-        private CurveRule2D(int... npointValues) {
+        private HilbertCurve2D(int... npointValues) {
             super(2, npointValues);
             assert npointValues[0] == 0 || npointValues[0] == 3;
         }
@@ -68,10 +68,10 @@ public class HilbertSpaceFillingCurve2D extends HilbertSpaceFillingCurve {
         }
     }
 
-    private static HashMap<String, CurveRule2D> curves = new LinkedHashMap<>();
+    private static HashMap<String, HilbertCurve2D> curves = new LinkedHashMap<>();
 
-    private static CurveRule2D addCurveRule(int... npointValues) {
-        CurveRule2D curve = new CurveRule2D(npointValues);
+    private static HilbertCurve2D addCurveRule(int... npointValues) {
+        HilbertCurve2D curve = new HilbertCurve2D(npointValues);
         String name = curve.name();
         if (!curves.containsKey(name)) {
             curves.put(name, curve);
@@ -80,15 +80,15 @@ public class HilbertSpaceFillingCurve2D extends HilbertSpaceFillingCurve {
     }
 
     private static void setChildren(String parent, String... children) {
-        CurveRule2D curve = curves.get(parent);
-        CurveRule2D[] childCurves = new CurveRule2D[children.length];
+        HilbertCurve2D curve = curves.get(parent);
+        HilbertCurve2D[] childCurves = new HilbertCurve2D[children.length];
         for (int i = 0; i < children.length; i++) {
             childCurves[i] = curves.get(children[i]);
         }
         curve.setChildren(childCurves);
     }
 
-    private static final CurveRule2D curveUp;
+    private static final HilbertCurve2D curveUp;
 
     static {
         addCurveRule(0, 1, 3, 2);

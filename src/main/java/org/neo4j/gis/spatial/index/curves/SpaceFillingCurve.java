@@ -17,14 +17,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.index.hilbert;
+package org.neo4j.gis.spatial.index.curves;
 
 import org.neo4j.gis.spatial.rtree.Envelope;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class HilbertSpaceFillingCurve {
+public abstract class SpaceFillingCurve {
 
     /**
      * Description of the space filling curve structure
@@ -75,7 +75,7 @@ public abstract class HilbertSpaceFillingCurve {
 
     private double[] scalingFactor;
 
-    HilbertSpaceFillingCurve(Envelope range, int maxLevel) {
+    SpaceFillingCurve(Envelope range, int maxLevel) {
         this.range = range;
         this.nbrDim = range.getDimension();
         this.maxLevel = maxLevel;

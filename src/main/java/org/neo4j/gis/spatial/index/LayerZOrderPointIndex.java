@@ -19,18 +19,18 @@
  */
 package org.neo4j.gis.spatial.index;
 
-import org.neo4j.gis.spatial.index.curves.HilbertSpaceFillingCurve2D;
 import org.neo4j.gis.spatial.index.curves.SpaceFillingCurve;
+import org.neo4j.gis.spatial.index.curves.ZOrderSpaceFillingCurve2D;
 import org.neo4j.gis.spatial.rtree.Envelope;
 
-public class LayerHilbertPointIndex extends LayerSpaceFillingCurvePointIndex {
+public class LayerZOrderPointIndex extends LayerSpaceFillingCurvePointIndex {
 
     @Override
     protected String indexTypeName() {
-        return "hilbert";
+        return "zorder";
     }
 
     protected SpaceFillingCurve makeCurve(Envelope envelope, int maxLevels) {
-        return new HilbertSpaceFillingCurve2D(envelope, maxLevels);
+        return new ZOrderSpaceFillingCurve2D(envelope, maxLevels);
     }
 }

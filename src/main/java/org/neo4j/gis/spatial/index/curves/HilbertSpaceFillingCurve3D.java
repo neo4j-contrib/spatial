@@ -17,16 +17,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.index.hilbert;
+package org.neo4j.gis.spatial.index.curves;
 
 import org.neo4j.gis.spatial.rtree.Envelope;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 
-import static org.neo4j.gis.spatial.index.hilbert.HilbertSpaceFillingCurve3D.BinaryCoordinateRotationUtils3D.*;
+import static org.neo4j.gis.spatial.index.curves.HilbertSpaceFillingCurve3D.BinaryCoordinateRotationUtils3D.*;
 
-public class HilbertSpaceFillingCurve3D extends HilbertSpaceFillingCurve {
+public class HilbertSpaceFillingCurve3D extends SpaceFillingCurve {
 
     /**
      * Utilities for rotating point values in binary about various axes
@@ -52,10 +52,10 @@ public class HilbertSpaceFillingCurve3D extends HilbertSpaceFillingCurve {
     /**
      * Description of the space filling curve structure
      */
-    static class CurveRule3D extends CurveRule {
+    static class HilbertCurve3D extends CurveRule {
         CurveRule[] children = null;
 
-        private CurveRule3D(int... npointValues) {
+        private HilbertCurve3D(int... npointValues) {
             super(3, npointValues);
             //debugNpoints();
             assert npointValues[0] == 0 || npointValues[0] == 3 || npointValues[0] == 5 || npointValues[0] == 6;
@@ -107,7 +107,7 @@ public class HilbertSpaceFillingCurve3D extends HilbertSpaceFillingCurve {
          * rotating the bits of all npoint values either left or right depending on the
          * direction of rotation, normal or reversed (positive or negative).
          */
-        private CurveRule3D rotateOneThirdDiagonalPos(boolean direction) {
+        private HilbertCurve3D rotateOneThirdDiagonalPos(boolean direction) {
             int[] newNpoints = new int[length()];
             for (int i = 0; i < length(); i++) {
                 if (direction) {
@@ -116,7 +116,7 @@ public class HilbertSpaceFillingCurve3D extends HilbertSpaceFillingCurve {
                     newNpoints[i] = rotateNPointLeft(npointValues[i]);
                 }
             }
-            return new CurveRule3D(newNpoints);
+            return new HilbertCurve3D(newNpoints);
         }
 
         /**
@@ -124,7 +124,7 @@ public class HilbertSpaceFillingCurve3D extends HilbertSpaceFillingCurve {
          * normal diagonal rotation, but with x-switched, so we XOR the x value before and after
          * the rotation, and rotate in the opposite direction to specified.
          */
-        private CurveRule3D rotateOneThirdDiagonalNeg(boolean direction) {
+        private HilbertCurve3D rotateOneThirdDiagonalNeg(boolean direction) {
             int[] newNpoints = new int[length()];
             for (int i = 0; i < length(); i++) {
                 if (direction) {
@@ -133,21 +133,21 @@ public class HilbertSpaceFillingCurve3D extends HilbertSpaceFillingCurve {
                     newNpoints[i] = xXOR(rotateNPointRight(xXOR(npointValues[i])));
                 }
             }
-            return new CurveRule3D(newNpoints);
+            return new HilbertCurve3D(newNpoints);
         }
 
         /**
          * Rotate about the x-axis. This involves leaving x values the same, but xOR'ing the rest.
          */
-        private CurveRule3D rotateAboutX() {
+        private HilbertCurve3D rotateAboutX() {
             int[] newNpoints = new int[length()];
             for (int i = 0; i < length(); i++) {
                 newNpoints[i] = rotateYZ(npointValues[i]);
             }
-            return new CurveRule3D(newNpoints);
+            return new HilbertCurve3D(newNpoints);
         }
 
-        private CurveRule3D singleTon(CurveRule3D curve) {
+        private HilbertCurve3D singleTon(HilbertCurve3D curve) {
             String name = curve.name();
             if (curves.containsKey(name)) {
                 return curves.get(name);
@@ -158,7 +158,7 @@ public class HilbertSpaceFillingCurve3D extends HilbertSpaceFillingCurve {
         }
 
         private void makeChildren() {
-            this.children = new CurveRule3D[length()];
+            this.children = new HilbertCurve3D[length()];
             this.children[0] = singleTon(rotateOneThirdDiagonalPos(true));
             this.children[1] = singleTon(rotateOneThirdDiagonalPos(false));
             this.children[2] = singleTon(rotateOneThirdDiagonalPos(false));
@@ -178,10 +178,10 @@ public class HilbertSpaceFillingCurve3D extends HilbertSpaceFillingCurve {
         }
     }
 
-    static HashMap<String, CurveRule3D> curves = new LinkedHashMap<>();
+    static HashMap<String, HilbertCurve3D> curves = new LinkedHashMap<>();
 
-    private static CurveRule3D addCurveRule(int... npointValues) {
-        CurveRule3D curve = new CurveRule3D(npointValues);
+    private static HilbertCurve3D addCurveRule(int... npointValues) {
+        HilbertCurve3D curve = new HilbertCurve3D(npointValues);
         String name = curve.name();
         if (!curves.containsKey(name)) {
             curves.put(name, curve);
@@ -189,7 +189,7 @@ public class HilbertSpaceFillingCurve3D extends HilbertSpaceFillingCurve {
         return curve;
     }
 
-    private static final CurveRule3D curveUFR = addCurveRule(0b000, 0b010, 0b011, 0b001, 0b101, 0b111, 0b110, 0b100);
+    private static final HilbertCurve3D curveUFR = addCurveRule(0b000, 0b010, 0b011, 0b001, 0b101, 0b111, 0b110, 0b100);
 
     public static final int MAX_LEVEL = 63 / 3 - 1;
 

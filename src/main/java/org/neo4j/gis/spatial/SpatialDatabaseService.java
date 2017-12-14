@@ -23,10 +23,7 @@ import java.util.*;
 
 import org.geotools.referencing.crs.AbstractCRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
-import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
-import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
-import org.neo4j.gis.spatial.index.LayerRTreeIndex;
+import org.neo4j.gis.spatial.index.*;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.utilities.LayerUtilities;
@@ -195,6 +192,8 @@ public class SpatialDatabaseService implements Constants {
 				return LayerRTreeIndex.class;
 			case "geohash":
 				return LayerGeohashPointIndex.class;
+			case "zorder":
+				return LayerZOrderPointIndex.class;
 			case "hilbert":
 				return LayerHilbertPointIndex.class;
 		}

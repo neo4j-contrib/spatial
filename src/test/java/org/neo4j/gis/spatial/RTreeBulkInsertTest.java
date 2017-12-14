@@ -6,11 +6,7 @@ import org.apache.commons.io.FileUtils;
 import org.geotools.referencing.crs.DefaultEngineeringCRS;
 import org.junit.*;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
-import org.neo4j.gis.spatial.index.ExplicitIndexBackedPointIndex;
-import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
-import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
-import org.neo4j.gis.spatial.index.ExplicitIndexBackedMonitor;
+import org.neo4j.gis.spatial.index.*;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
@@ -264,6 +260,52 @@ public class RTreeBulkInsertTest {
         }
     }
 
+    private class ZOrderIndexMaker implements IndexMaker {
+        private final String name;
+        private final String insertMode;
+        private final IndexTestConfig config;
+        private List<Node> nodes;
+        private EditableLayer layer;
+
+        private ZOrderIndexMaker(String name, String insertMode, IndexTestConfig config) {
+            this.name = name;
+            this.insertMode = insertMode;
+            this.config = config;
+        }
+
+        @Override
+        public EditableLayer setupLayer() {
+            this.nodes = setup(name, "zorder", config.width);
+            this.layer = (EditableLayer) new SpatialDatabaseService(db).getLayer("Coordinates");
+            return layer;
+        }
+
+        @Override
+        public List<Node> nodes() {
+            return nodes;
+        }
+
+        @Override
+        public TestStats initStats(int blockSize) {
+            return new TestStats(config, insertMode, "Z-Order", blockSize, -1);
+        }
+
+        @Override
+        public TimedLogger initLogger() {
+            return new TimedLogger("Inserting " + config.totalCount + " nodes into Z-Order using " + insertMode + " insert", config.totalCount);
+        }
+
+        @Override
+        public IndexTestConfig getConfig() {
+            return config;
+        }
+
+        @Override
+        public void verifyStructure() {
+            verifyZOrderIndex(layer);
+        }
+    }
+
     private class HilbertIndexMaker implements IndexMaker {
         private final String name;
         private final String insertMode;
@@ -389,6 +431,16 @@ public class RTreeBulkInsertTest {
     }
 
     @Test
+    public void shouldInsertManyNodesIndividuallyWithZOrder_very_small() throws FactoryException, IOException {
+        insertManyNodesIndividually(new ZOrderIndexMaker("Coordinates", "Single", testConfigs.get("very_small")), 5000);
+    }
+
+    @Test
+    public void shouldInsertManyNodesInBulkWithZOrder_very_small() throws FactoryException, IOException {
+        insertManyNodesInBulk(new ZOrderIndexMaker("Coordinates", "Bulk", testConfigs.get("very_small")), 5000);
+    }
+
+    @Test
     public void shouldInsertManyNodesIndividuallyWithHilbert_very_small() throws FactoryException, IOException {
         insertManyNodesIndividually(new HilbertIndexMaker("Coordinates", "Single", testConfigs.get("very_small")), 5000);
     }
@@ -430,6 +482,16 @@ public class RTreeBulkInsertTest {
     @Test
     public void shouldInsertManyNodesInBulkWithGeohash_small() throws FactoryException, IOException {
         insertManyNodesInBulk(new GeohashIndexMaker("Coordinates", "Bulk", testConfigs.get("small")), 5000);
+    }
+
+    @Test
+    public void shouldInsertManyNodesIndividuallyWithZOrder_small() throws FactoryException, IOException {
+        insertManyNodesIndividually(new ZOrderIndexMaker("Coordinates", "Single", testConfigs.get("small")), 5000);
+    }
+
+    @Test
+    public void shouldInsertManyNodesInBulkWithZOrder_small() throws FactoryException, IOException {
+        insertManyNodesInBulk(new ZOrderIndexMaker("Coordinates", "Bulk", testConfigs.get("small")), 5000);
     }
 
     @Test
@@ -498,6 +560,16 @@ public class RTreeBulkInsertTest {
     @Test
     public void shouldInsertManyNodesInBulkWithGeohash_medium() throws FactoryException, IOException {
         insertManyNodesInBulk(new GeohashIndexMaker("Coordinates", "Bulk", testConfigs.get("medium")), 5000);
+    }
+
+    @Test
+    public void shouldInsertManyNodesIndividuallyWithZOrder_medium() throws FactoryException, IOException {
+        insertManyNodesIndividually(new ZOrderIndexMaker("Coordinates", "Single", testConfigs.get("medium")), 5000);
+    }
+
+    @Test
+    public void shouldInsertManyNodesInBulkWithZOrder_medium() throws FactoryException, IOException {
+        insertManyNodesInBulk(new ZOrderIndexMaker("Coordinates", "Bulk", testConfigs.get("medium")), 5000);
     }
 
     @Test
@@ -586,6 +658,16 @@ public class RTreeBulkInsertTest {
     @Test
     public void shouldInsertManyNodesInBulkWithGeohash_large() throws FactoryException, IOException {
         insertManyNodesInBulk(new GeohashIndexMaker("Coordinates", "Bulk", testConfigs.get("large")), 5000);
+    }
+
+    @Test
+    public void shouldInsertManyNodesIndividuallyWithZOrder_large() throws FactoryException, IOException {
+        insertManyNodesIndividually(new ZOrderIndexMaker("Coordinates", "Single", testConfigs.get("large")), 5000);
+    }
+
+    @Test
+    public void shouldInsertManyNodesInBulkWithZOrder_large() throws FactoryException, IOException {
+        insertManyNodesInBulk(new ZOrderIndexMaker("Coordinates", "Bulk", testConfigs.get("large")), 5000);
     }
 
     @Test
@@ -1385,6 +1467,11 @@ public class RTreeBulkInsertTest {
     private void verifyHilbertIndex(Layer layer) {
         LayerIndexReader index = layer.getIndex();
         assertTrue("Index should be a hilbert index", index instanceof LayerHilbertPointIndex);
+    }
+
+    private void verifyZOrderIndex(Layer layer) {
+        LayerIndexReader index = layer.getIndex();
+        assertTrue("Index should be a Z-Order index", index instanceof LayerZOrderPointIndex);
     }
 
     private void verifyTreeStructure(Layer layer, String splitMode, TestStats stats) {

@@ -32,7 +32,7 @@ public class LayerHilbertPointIndexTest extends LayerIndexTestBase {
 
     protected SpatialIndexWriter mockLayerIndex() {
         Layer layer = mockLayer();
-        LayerHilbertPointIndex index = new LayerHilbertPointIndex();
+        LayerSpaceFillingCurvePointIndex index = new LayerHilbertPointIndex();
         try (Transaction tx = graph.beginTx()) {
             index.init(layer);
             tx.success();
