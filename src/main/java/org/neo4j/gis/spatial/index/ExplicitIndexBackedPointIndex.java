@@ -106,12 +106,23 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
 
     @Override
     public void removeAll(boolean deleteGeomNodes, Listener monitor) {
-        throw new UnsupportedOperationException("Not implemented: removeAll(...)");
+        try (Transaction tx = graph.beginTx()) {
+            if(deleteGeomNodes) {
+                Iterator<Node> iter = getAllIndexedNodes().iterator();
+
+                while(iter.hasNext()) {
+                    Node node = iter.next();
+                    remove(node.getId(), true, true);
+                }
+            }
+            index.delete();
+            tx.success();
+        }
     }
 
     @Override
     public void clear(Listener monitor) {
-        throw new UnsupportedOperationException("Not implemented: removeAll(...)");
+        removeAll(false, monitor);
     }
 
     @Override
@@ -141,7 +152,7 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
 
     @Override
     public Iterable<Node> getAllIndexedNodes() {
-        return Iterables.empty();
+        return index.query(indexTypeName(), "*");
     }
 
     @Override
