@@ -24,98 +24,113 @@ import org.neo4j.gis.spatial.rtree.Envelope;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 
-public class HilbertSpaceFillingCurve2D extends SpaceFillingCurve {
+public class HilbertSpaceFillingCurve2D extends SpaceFillingCurve
+{
 
     /**
      * Description of the space filling curve structure
      */
-    static class HilbertCurve2D extends CurveRule {
+    static class HilbertCurve2D extends CurveRule
+    {
         private CurveRule[] children = null;
 
-        private HilbertCurve2D(int... npointValues) {
-            super(2, npointValues);
+        private HilbertCurve2D( int... npointValues )
+        {
+            super( 2, npointValues );
             assert npointValues[0] == 0 || npointValues[0] == 3;
         }
 
-        public char direction(int end) {
+        public char direction( int end )
+        {
             int start = npointValues[0];
             end -= start;
-            switch (end) {
-                case 1:
-                    return 'U'; // move up      00->01
-                case 2:
-                    return 'R'; // move right   00->10
-                case -2:
-                    return 'L'; // move left    11->01
-                case -1:
-                    return 'D'; // move down    11->10
-                default:
-                    return '-';
+            switch ( end )
+            {
+            case 1:
+                return 'U'; // move up      00->01
+            case 2:
+                return 'R'; // move right   00->10
+            case -2:
+                return 'L'; // move left    11->01
+            case -1:
+                return 'D'; // move down    11->10
+            default:
+                return '-';
             }
         }
 
-        public String name() {
-            return String.valueOf(direction(npointValues[1]));
+        public String name()
+        {
+            return String.valueOf( direction( npointValues[1] ) );
         }
 
-        private void setChildren(CurveRule... children) {
+        private void setChildren( CurveRule... children )
+        {
             this.children = children;
         }
 
         @Override
-        public CurveRule childAt(int npoint) {
+        public CurveRule childAt( int npoint )
+        {
             return children[npoint];
         }
     }
 
-    private static HashMap<String, HilbertCurve2D> curves = new LinkedHashMap<>();
+    private static HashMap<String,HilbertCurve2D> curves = new LinkedHashMap<>();
 
-    private static HilbertCurve2D addCurveRule(int... npointValues) {
-        HilbertCurve2D curve = new HilbertCurve2D(npointValues);
+    private static void addCurveRule(int... npointValues )
+    {
+        HilbertCurve2D curve = new HilbertCurve2D( npointValues );
         String name = curve.name();
-        if (!curves.containsKey(name)) {
-            curves.put(name, curve);
+        if ( !curves.containsKey( name ) )
+        {
+            curves.put( name, curve );
         }
-        return curve;
     }
 
-    private static void setChildren(String parent, String... children) {
-        HilbertCurve2D curve = curves.get(parent);
+    private static void setChildren( String parent, String... children )
+    {
+        HilbertCurve2D curve = curves.get( parent );
         HilbertCurve2D[] childCurves = new HilbertCurve2D[children.length];
-        for (int i = 0; i < children.length; i++) {
-            childCurves[i] = curves.get(children[i]);
+        for ( int i = 0; i < children.length; i++ )
+        {
+            childCurves[i] = curves.get( children[i] );
         }
-        curve.setChildren(childCurves);
+        curve.setChildren( childCurves );
     }
 
     private static final HilbertCurve2D curveUp;
 
-    static {
-        addCurveRule(0, 1, 3, 2);
-        addCurveRule(0, 2, 3, 1);
-        addCurveRule(3, 1, 0, 2);
-        addCurveRule(3, 2, 0, 1);
-        setChildren("U", "R", "U", "U", "L");
-        setChildren("R", "U", "R", "R", "D");
-        setChildren("D", "L", "D", "D", "R");
-        setChildren("L", "D", "L", "L", "U");
-        curveUp = curves.get("U");
+    static
+    {
+        addCurveRule( 0, 1, 3, 2 );
+        addCurveRule( 0, 2, 3, 1 );
+        addCurveRule( 3, 1, 0, 2 );
+        addCurveRule( 3, 2, 0, 1 );
+        setChildren( "U", "R", "U", "U", "L" );
+        setChildren( "R", "U", "R", "R", "D" );
+        setChildren( "D", "L", "D", "D", "R" );
+        setChildren( "L", "D", "L", "L", "U" );
+        curveUp = curves.get( "U" );
     }
 
     public static final int MAX_LEVEL = 63 / 2 - 1;
 
-    public HilbertSpaceFillingCurve2D(Envelope range) {
-        this(range, MAX_LEVEL);
+    public HilbertSpaceFillingCurve2D( Envelope range )
+    {
+        this( range, MAX_LEVEL );
     }
 
-    public HilbertSpaceFillingCurve2D(Envelope range, int maxLevel) {
-        super(range, maxLevel);
+    public HilbertSpaceFillingCurve2D( Envelope range, int maxLevel )
+    {
+        super( range, maxLevel );
         assert maxLevel <= MAX_LEVEL;
         assert range.getDimension() == 2;
     }
 
     @Override
-    protected CurveRule rootCurve() {
+    protected CurveRule rootCurve()
+    {
         return curveUp;
     }
 }
