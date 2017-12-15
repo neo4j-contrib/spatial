@@ -213,7 +213,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         this.spatialDatabase = spatialDatabase;
         this.name = name;
         this.layerNode = layerNode;
-        
+
         this.geometryFactory = new GeometryFactory();
         CoordinateReferenceSystem crs = getCoordinateReferenceSystem();
         if (crs != null) {

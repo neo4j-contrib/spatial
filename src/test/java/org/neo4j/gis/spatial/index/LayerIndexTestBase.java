@@ -23,6 +23,7 @@ import com.vividsolutions.jts.geom.*;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
 import org.junit.After;
+import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.junit.Before;
 import org.junit.Test;
 import org.neo4j.gis.spatial.Layer;
@@ -72,6 +73,7 @@ public abstract class LayerIndexTestBase {
         when(layer.getGeometryEncoder()).thenReturn(encoder);
         when(layer.getLayerNode()).thenReturn(layerNode);
         when(layer.getGeometryFactory()).thenReturn(geometryFactory);
+        when(layer.getCoordinateReferenceSystem()).thenReturn(DefaultGeographicCRS.WGS84);
         return layer;
     }
 
