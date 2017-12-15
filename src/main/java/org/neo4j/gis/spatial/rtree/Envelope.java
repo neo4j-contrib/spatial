@@ -272,6 +272,33 @@ public class Envelope {
 		return isValid() ? max[dimension] - min[dimension] : 0;
 	}
 
+	/**
+	 * Return the widths of the envelope at all axes
+	 * @return double array of widths, ie. max[d] - min[d]
+	 */
+	public double[] getWidths() {
+		return getWidths(1);
+	}
+
+	/**
+	 * Return the fractional widths of the envelope at all axes
+	 *
+	 * @param divisor te number of segments to divide by (a 2D envelope will be divided into quadrants using 2)
+	 * @return double array of widths, ie. max[d] - min[d]
+	 */
+	public double[] getWidths(int divisor) {
+		if (isValid()) {
+			double[] widths = Arrays.copyOf(max, max.length);
+			for (int d = 0; d < max.length; d++) {
+				widths[d] -= min[d];
+				widths[d] /= divisor;
+			}
+			return widths;
+		} else {
+			return null;
+		}
+	}
+
 	public double getArea() {
 		double area = 1.0;
 		for (int i = 0; i < min.length; i++) {
