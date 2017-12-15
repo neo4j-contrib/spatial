@@ -23,9 +23,7 @@ import java.util.*;
 
 import org.geotools.referencing.crs.AbstractCRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
-import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
-import org.neo4j.gis.spatial.index.LayerRTreeIndex;
+import org.neo4j.gis.spatial.index.*;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.utilities.LayerUtilities;
@@ -197,6 +195,10 @@ public class SpatialDatabaseService implements Constants {
 				return LayerRTreeIndex.class;
 			case GEOHASH_INDEX_NAME:
 				return LayerGeohashPointIndex.class;
+			case "zorder":
+				return LayerZOrderPointIndex.class;
+			case "hilbert":
+				return LayerHilbertPointIndex.class;
 		}
 		throw new IllegalArgumentException("Unknown index: " + index);
 	}
@@ -317,7 +319,7 @@ public class SpatialDatabaseService implements Constants {
     public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass,
                              Class<? extends Layer> layerClass, Class<? extends LayerIndexReader> indexClass,
                              String encoderConfig) {
-        return createLayer(name, geometryEncoderClass, layerClass, null, encoderConfig, null);
+        return createLayer(name, geometryEncoderClass, layerClass, indexClass, encoderConfig, null);
     }
 
     public Layer createLayer(String name, Class<? extends GeometryEncoder> geometryEncoderClass,
