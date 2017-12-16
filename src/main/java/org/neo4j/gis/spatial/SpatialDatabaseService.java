@@ -213,7 +213,7 @@ public class SpatialDatabaseService implements Constants {
 			String encoderConfig = null;
 			if (xProperty != null && yProperty != null)
 				encoderConfig = xProperty + ":" + yProperty;
-			return (EditableLayer) createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, indexClass, encoderConfig);
+			return (EditableLayer) createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, indexClass, encoderConfig, DefaultGeographicCRS.WGS84);
 		} else if (layer instanceof EditableLayer) {
 			return (EditableLayer) layer;
 		} else {
@@ -481,6 +481,10 @@ public class SpatialDatabaseService implements Constants {
 				SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "longitude:latitude"));
 		addRegisteredLayerType(new RegisteredLayerType("Geohash", SimplePointEncoder.class,
 				SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerGeohashPointIndex.class, "longitude:latitude"));
+		addRegisteredLayerType(new RegisteredLayerType("ZOrder", SimplePointEncoder.class,
+				SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerZOrderPointIndex.class, "longitude:latitude"));
+		addRegisteredLayerType(new RegisteredLayerType("Hilbert", SimplePointEncoder.class,
+				SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerHilbertPointIndex.class, "longitude:latitude"));
 		addRegisteredLayerType(new RegisteredLayerType("WKT", WKTGeometryEncoder.class, EditableLayerImpl.class,
 				DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "geometry"));
 		addRegisteredLayerType(new RegisteredLayerType("WKB", WKBGeometryEncoder.class, EditableLayerImpl.class,
