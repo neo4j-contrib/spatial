@@ -177,6 +177,26 @@ public class SpatialProceduresTest {
     }
 
     @Test
+    public void add_node_and_search_bbox_and_distance_zorder() {
+        execute("CALL spatial.addPointLayerZOrder('geom')");
+        ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node").columnAs("node");
+        Node node = (Node) nodes.next();
+        nodes.close();
+        testCall(db, "CALL spatial.bbox('geom',{lon:15.0,lat:60.0},{lon:15.3, lat:60.2})", r -> assertEquals(node, r.get("node")));
+        testCall(db, "CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)", r -> assertEquals(node, r.get("node")));
+    }
+
+    @Test
+    public void add_node_and_search_bbox_and_distance_hilbert() {
+        execute("CALL spatial.addPointLayerHilbert('geom')");
+        ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node").columnAs("node");
+        Node node = (Node) nodes.next();
+        nodes.close();
+        testCall(db, "CALL spatial.bbox('geom',{lon:15.0,lat:60.0},{lon:15.3, lat:60.2})", r -> assertEquals(node, r.get("node")));
+        testCall(db, "CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)", r -> assertEquals(node, r.get("node")));
+    }
+
+    @Test
     // This tests issue https://github.com/neo4j-contrib/spatial/issues/298
     public void add_node_point_layer_and_search_multiple_points_precision_geohash() {
         execute("CALL spatial.addPointLayerGeohash('bar')");
@@ -329,6 +349,16 @@ public class SpatialProceduresTest {
     }
 
     @Test
+    public void create_a_pointlayer_with_zorder() {
+        testCall(db, "CALL spatial.addPointLayerZOrder('geom')", (r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
+    }
+
+    @Test
+    public void create_a_pointlayer_with_hilbert() {
+        testCall(db, "CALL spatial.addPointLayerHilbert('geom')", (r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
+    }
+
+    @Test
     public void create_a_pointlayer_using_named_encoder() {
         testCall(db, "CALL spatial.addLayerWithEncoder('geom','SimplePointEncoder','')", (r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
     }
@@ -423,6 +453,8 @@ public class SpatialProceduresTest {
             assertEquals("RegisteredLayerType(name='WKT', geometryEncoder=WKTGeometryEncoder, layerClass=EditableLayerImpl, index=LayerRTreeIndex, crs='WGS84(DD)', defaultConfig='geometry')", procs.get("wkt"));
             assertEquals("RegisteredLayerType(name='WKB', geometryEncoder=WKBGeometryEncoder, layerClass=EditableLayerImpl, index=LayerRTreeIndex, crs='WGS84(DD)', defaultConfig='geometry')", procs.get("wkb"));
             assertEquals("RegisteredLayerType(name='Geohash', geometryEncoder=SimplePointEncoder, layerClass=SimplePointLayer, index=LayerGeohashPointIndex, crs='WGS84(DD)', defaultConfig='longitude:latitude')", procs.get("geohash"));
+            assertEquals("RegisteredLayerType(name='ZOrder', geometryEncoder=SimplePointEncoder, layerClass=SimplePointLayer, index=LayerZOrderPointIndex, crs='WGS84(DD)', defaultConfig='longitude:latitude')", procs.get("zorder"));
+            assertEquals("RegisteredLayerType(name='Hilbert', geometryEncoder=SimplePointEncoder, layerClass=SimplePointLayer, index=LayerHilbertPointIndex, crs='WGS84(DD)', defaultConfig='longitude:latitude')", procs.get("hilbert"));
         });
     }
 
@@ -455,6 +487,24 @@ public class SpatialProceduresTest {
     }
 
     @Test
+    public void add_a_node_to_the_spatial_zorder_index() throws Exception {
+        execute("CALL spatial.addPointLayerZOrder('geom')");
+        ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) RETURN n").columnAs("n");
+        Node node = (Node) nodes.next();
+        nodes.close();
+        testCall(db, "MATCH (n:Node) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node", r -> Assert.assertEquals(node, r.get("node")));
+    }
+
+    @Test
+    public void add_a_node_to_the_spatial_hilbert_index() throws Exception {
+        execute("CALL spatial.addPointLayerHilbert('geom')");
+        ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) RETURN n").columnAs("n");
+        Node node = (Node) nodes.next();
+        nodes.close();
+        testCall(db, "MATCH (n:Node) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node", r -> Assert.assertEquals(node, r.get("node")));
+    }
+
+    @Test
     public void testDistanceNode() throws Exception {
         execute("CALL spatial.addPointLayer('geom')");
         ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node").columnAs("node");
@@ -475,6 +525,24 @@ public class SpatialProceduresTest {
     @Test
     public void testDistanceNodeGeohash() throws Exception {
         execute("CALL spatial.addPointLayerGeohash('geom')");
+        ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node").columnAs("node");
+        Node node = (Node) nodes.next();
+        nodes.close();
+        testCall(db, "CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)", r -> assertEquals(node, r.get("node")));
+    }
+
+    @Test
+    public void testDistanceNodeZOrder() throws Exception {
+        execute("CALL spatial.addPointLayerZOrder('geom')");
+        ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node").columnAs("node");
+        Node node = (Node) nodes.next();
+        nodes.close();
+        testCall(db, "CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)", r -> assertEquals(node, r.get("node")));
+    }
+
+    @Test
+    public void testDistanceNodeHilbert() throws Exception {
+        execute("CALL spatial.addPointLayerHilbert('geom')");
         ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node").columnAs("node");
         Node node = (Node) nodes.next();
         nodes.close();
@@ -660,6 +728,42 @@ public class SpatialProceduresTest {
     }
 
     @Test
+    public void find_geometries_in_a_bounding_box_zorder() throws Exception {
+        execute("CALL spatial.addPointLayerZOrder('geom')");
+        ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node").columnAs("node");
+        Node node = (Node) nodes.next();
+        nodes.close();
+        testCall(db, "CALL spatial.bbox('geom',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})",r -> assertEquals(node,r.get("node")));
+    }
+
+    @Test
+    public void find_geometries_in_a_polygon_zorder() throws Exception {
+        execute("CALL spatial.addPointLayerZOrder('geom')");
+        ResourceIterator<Object> results = db.execute("UNWIND [{name:'a',latitude:60.1,longitude:15.2},{name:'b',latitude:60.3,longitude:15.5}] as point CREATE (n:Node) SET n += point WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node.name as name").columnAs("name");
+        results.close();
+        String polygon = "POLYGON((15.3 60.2, 15.3 60.4, 15.7 60.4, 15.7 60.2, 15.3 60.2))";
+        testCall(db, "CALL spatial.intersects('geom','" + polygon + "') YIELD node RETURN node.name as name", r -> assertEquals("b", r.get("name")));
+    }
+
+    @Test
+    public void find_geometries_in_a_bounding_box_hilbert() throws Exception {
+        execute("CALL spatial.addPointLayerHilbert('geom')");
+        ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node").columnAs("node");
+        Node node = (Node) nodes.next();
+        nodes.close();
+        testCall(db, "CALL spatial.bbox('geom',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})",r -> assertEquals(node,r.get("node")));
+    }
+
+    @Test
+    public void find_geometries_in_a_polygon_hilbert() throws Exception {
+        execute("CALL spatial.addPointLayerHilbert('geom')");
+        ResourceIterator<Object> results = db.execute("UNWIND [{name:'a',latitude:60.1,longitude:15.2},{name:'b',latitude:60.3,longitude:15.5}] as point CREATE (n:Node) SET n += point WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node.name as name").columnAs("name");
+        results.close();
+        String polygon = "POLYGON((15.3 60.2, 15.3 60.4, 15.7 60.4, 15.7 60.2, 15.3 60.2))";
+        testCall(db, "CALL spatial.intersects('geom','" + polygon + "') YIELD node RETURN node.name as name", r -> assertEquals("b", r.get("name")));
+    }
+
+    @Test
     public void create_a_WKT_layer() throws Exception {
         testCall(db, "CALL spatial.addWKTLayer('geom','wkt')", r -> assertEquals("wkt",dump(((Node)r.get("node"))).getProperty("geomencoder_config")));
     }
@@ -691,6 +795,22 @@ public class SpatialProceduresTest {
     public void find_geometries_close_to_a_point_geohash() throws Exception {
         String lineString = "POINT (15.2 60.1)";
         execute("CALL spatial.addLayer('geom','geohash','lon:lat')");
+        execute("CALL spatial.addWKT('geom',{wkt})", map("wkt",lineString));
+        testCallCount(db, "CALL spatial.closest('geom',{lon:15.2, lat:60.1}, 1.0)", null, 1);
+    }
+
+    @Test
+    public void find_geometries_close_to_a_point_zorder() throws Exception {
+        String lineString = "POINT (15.2 60.1)";
+        execute("CALL spatial.addLayer('geom','zorder','lon:lat')");
+        execute("CALL spatial.addWKT('geom',{wkt})", map("wkt",lineString));
+        testCallCount(db, "CALL spatial.closest('geom',{lon:15.2, lat:60.1}, 1.0)", null, 1);
+    }
+
+    @Test
+    public void find_geometries_close_to_a_point_hilbert() throws Exception {
+        String lineString = "POINT (15.2 60.1)";
+        execute("CALL spatial.addLayer('geom','hilbert','lon:lat')");
         execute("CALL spatial.addWKT('geom',{wkt})", map("wkt",lineString));
         testCallCount(db, "CALL spatial.closest('geom',{lon:15.2, lat:60.1}, 1.0)", null, 1);
     }
