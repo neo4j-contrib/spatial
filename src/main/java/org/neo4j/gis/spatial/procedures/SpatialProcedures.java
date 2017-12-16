@@ -26,11 +26,14 @@ import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
 import org.neo4j.cypher.internal.compiler.v3_2.GeographicPoint;
+import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.neo4j.gis.spatial.*;
 import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePropertyEncoder;
 import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
+import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
+import org.neo4j.gis.spatial.index.LayerZOrderPointIndex;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
@@ -202,6 +205,7 @@ public class SpatialProcedures {
     }
 
     @Procedure(value="spatial.addPointLayerGeohash", mode=WRITE)
+    @Description("Adds a new simple point layer with geohash based index, returns the layer root node")
     public Stream<NodeResult> addSimplePointLayerGeohash(
             @Name("name") String name,
             @Name(value = "crsName", defaultValue = WGS84_CRS_NAME) String crsName) {
@@ -211,6 +215,30 @@ public class SpatialProcedures {
             return streamNode(sdb.createLayer(name, SimplePointEncoder.class, SimplePointLayer.class,
                     LayerGeohashPointIndex.class, null,
                     selectCRS(crsName)).getLayerNode());
+        } else {
+            throw new IllegalArgumentException("Cannot create existing layer: " + name);
+        }
+    }
+
+    @Procedure(value="spatial.addPointLayerZOrder", mode=WRITE)
+    @Description("Adds a new simple point layer with z-order curve based index, returns the layer root node")
+    public Stream<NodeResult> addSimplePointLayerZOrder(@Name("name") String name) {
+        SpatialDatabaseService sdb = wrap(db);
+        Layer layer = sdb.getLayer(name);
+        if (layer == null) {
+            return streamNode(sdb.createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, LayerZOrderPointIndex.class, null, DefaultGeographicCRS.WGS84).getLayerNode());
+        } else {
+            throw new IllegalArgumentException("Cannot create existing layer: " + name);
+        }
+    }
+
+    @Procedure(value="spatial.addPointLayerHilbert", mode=WRITE)
+    @Description("Adds a new simple point layer with hilbert curve based index, returns the layer root node")
+    public Stream<NodeResult> addSimplePointLayerHilbert(@Name("name") String name) {
+        SpatialDatabaseService sdb = wrap(db);
+        Layer layer = sdb.getLayer(name);
+        if (layer == null) {
+            return streamNode(sdb.createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, LayerHilbertPointIndex.class, null, DefaultGeographicCRS.WGS84).getLayerNode());
         } else {
             throw new IllegalArgumentException("Cannot create existing layer: " + name);
         }

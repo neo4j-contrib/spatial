@@ -72,6 +72,24 @@ public class ServerPluginTest extends Neo4jTestCase {
     }
 
     @Test
+    public void testCreateLayerZOrder() {
+        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+        assertNull(spatialService.getLayer(LAYER));
+        plugin.addSimplePointLayer(graphDb(), LAYER, LAT, LON, "zorder");
+
+        assertNotNull(spatialService.getLayer(LAYER));
+    }
+
+    @Test
+    public void testCreateLayerHilbert() {
+        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+        assertNull(spatialService.getLayer(LAYER));
+        plugin.addSimplePointLayer(graphDb(), LAYER, LAT, LON, "hilbert");
+
+        assertNotNull(spatialService.getLayer(LAYER));
+    }
+
+    @Test
     public void testSearchPointsRTree() {
         testSearchPoints("rtree");
     }
@@ -79,6 +97,16 @@ public class ServerPluginTest extends Neo4jTestCase {
     @Test
     public void testSearchPointsGeohash() {
         testSearchPoints("geohash");
+    }
+
+    @Test
+    public void testSearchPointsZOrder() {
+        testSearchPoints("zorder");
+    }
+
+    @Test
+    public void testSearchPointsHilbert() {
+        testSearchPoints("hilbert");
     }
 
     private void testSearchPoints(String indexType) {
