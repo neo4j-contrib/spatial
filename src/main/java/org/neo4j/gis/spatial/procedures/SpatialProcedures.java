@@ -25,12 +25,15 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
+import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.neo4j.cypher.internal.compiler.v3_0.GeographicPoint;
 import org.neo4j.gis.spatial.*;
 import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePropertyEncoder;
 import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
+import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
+import org.neo4j.gis.spatial.index.LayerZOrderPointIndex;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
@@ -201,6 +204,30 @@ public class SpatialProcedures {
         Layer layer = sdb.getLayer(name);
         if (layer == null) {
             return streamNode(sdb.createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, LayerGeohashPointIndex.class, null).getLayerNode());
+        } else {
+            throw new IllegalArgumentException("Cannot create existing layer: " + name);
+        }
+    }
+
+    @Procedure("spatial.addPointLayerZOrder")
+    @PerformsWrites
+    public Stream<NodeResult> addSimplePointLayerZOrder(@Name("name") String name) {
+        SpatialDatabaseService sdb = wrap(db);
+        Layer layer = sdb.getLayer(name);
+        if (layer == null) {
+            return streamNode(sdb.createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, LayerZOrderPointIndex.class, null, DefaultGeographicCRS.WGS84).getLayerNode());
+        } else {
+            throw new IllegalArgumentException("Cannot create existing layer: " + name);
+        }
+    }
+
+    @Procedure("spatial.addPointLayerHilbert")
+    @PerformsWrites
+    public Stream<NodeResult> addSimplePointLayerHilbert(@Name("name") String name) {
+        SpatialDatabaseService sdb = wrap(db);
+        Layer layer = sdb.getLayer(name);
+        if (layer == null) {
+            return streamNode(sdb.createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, LayerHilbertPointIndex.class, null, DefaultGeographicCRS.WGS84).getLayerNode());
         } else {
             throw new IllegalArgumentException("Cannot create existing layer: " + name);
         }
