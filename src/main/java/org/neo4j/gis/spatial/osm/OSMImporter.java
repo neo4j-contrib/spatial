@@ -59,8 +59,6 @@ import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.index.impl.lucene.explicit.LuceneBatchInserterIndexProviderNewImpl;
 import org.neo4j.unsafe.batchinsert.*;
-import org.neo4j.values.storable.Value;
-import org.neo4j.values.storable.Values;
 
 public class OSMImporter implements Constants
 {
@@ -355,12 +353,12 @@ public class OSMImporter implements Constants
             geometry = -1;
         }
 
-        void expandToIncludeBBox( Map<String, Value> nodeProps )
+        void expandToIncludeBBox( Map<String, Object> nodeProps )
         {
-            double[] sbb = (double[]) nodeProps.get( PROP_BBOX ).asObject();
+            double[] sbb = (double[]) nodeProps.get( PROP_BBOX );
             bbox.expandToInclude( sbb[0], sbb[2] );
             bbox.expandToInclude( sbb[1], sbb[3] );
-            vertices += (Integer) nodeProps.get( "vertices" ).asObject();
+            vertices += (Integer) nodeProps.get( "vertices" );
         }
 
         void checkSupportedGeometry(Integer memGType)
@@ -645,11 +643,11 @@ public class OSMImporter implements Constants
             // Nodes with tags get added to the index as point geometries
             if ( allPoints || currentNodeTags.size() > 0 )
             {
-                Map<String, Value> nodeProps = getNodeProperties( currentNode );
+                Map<String, Object> nodeProps = getNodeProperties( currentNode );
                 Envelope bbox = new Envelope();
                 double[] location = new double[] {
-                        (Double) nodeProps.get( "lon" ).asObject(),
-                        (Double) nodeProps.get( "lat" ).asObject() };
+                        (Double) nodeProps.get( "lon" ),
+                        (Double) nodeProps.get( "lat" ) };
                 bbox.expandToInclude( location[0], location[1] );
                 addNodeGeometry( currentNode, GTYPE_POINT, bbox, 1 );
                 poiCount++;
@@ -659,8 +657,8 @@ public class OSMImporter implements Constants
 
         protected void debugNodeWithId( T node, String idName, long[] idValues )
         {
-            Map<String, Value> nodeProperties = getNodeProperties( node );
-            String node_osm_id = nodeProperties.get( idName ).asObject().toString();
+            Map<String, Object> nodeProperties = getNodeProperties( node );
+            String node_osm_id = nodeProperties.get( idName ).toString();
             for ( long idValue : idValues )
             {
                 if ( node_osm_id.equals( Long.toString( idValue ) ) )
@@ -707,7 +705,7 @@ public class OSMImporter implements Constants
             T firstNode = null;
             T prevNode = null;
             T prevProxy = null;
-            Map<String, Value> prevProps = null;
+            Map<String, Object> prevProps = null;
             LinkedHashMap<String, Object> relProps = new LinkedHashMap<String, Object>();
             HashMap<String, Object> directionProps = new HashMap<String, Object>();
             directionProps.put( "oneway", true );
@@ -736,10 +734,10 @@ public class OSMImporter implements Constants
                 }
                 createRelationship( proxyNode, pointNode, OSMRelation.NODE,
                         null );
-                Map<String, Value> nodeProps = getNodeProperties( pointNode );
+                Map<String, Object> nodeProps = getNodeProperties( pointNode );
                 double[] location = new double[] {
-                        (Double) nodeProps.get( "lon" ).asObject(),
-                        (Double) nodeProps.get( "lat" ).asObject() };
+                        (Double) nodeProps.get( "lon" ),
+                        (Double) nodeProps.get( "lat" ) };
                 bbox.expandToInclude( location[0], location[1] );
                 if ( prevProxy == null )
                 {
@@ -749,8 +747,8 @@ public class OSMImporter implements Constants
                 {
                     relProps.clear();
                     double[] prevLoc = new double[] {
-                            (Double) prevProps.get( "lon" ).asObject(),
-                            (Double) prevProps.get( "lat" ).asObject() };
+                            (Double) prevProps.get( "lon" ),
+                            (Double) prevProps.get( "lat" ) };
 
                     double length = distance( prevLoc[0], prevLoc[1],
                             location[0], location[1] );
@@ -849,12 +847,12 @@ public class OSMImporter implements Constants
                                            + memberProps + "]" );
                         continue;
                     }
-                    Map<String, Value> nodeProps = getNodeProperties( member );
+                    Map<String, Object> nodeProps = getNodeProperties( member );
                     if ( memberType.equals( "node" ) )
                     {
                         double[] location = new double[] {
-                                (Double) nodeProps.get( "lon" ).asObject(),
-                                (Double) nodeProps.get( "lat" ).asObject() };
+                                (Double) nodeProps.get( "lon" ),
+                                (Double) nodeProps.get( "lat" ) };
                         metaGeom.expandToIncludePoint( location );
                     }
                     else if ( memberType.equals( "nodes" ) )
@@ -916,12 +914,12 @@ public class OSMImporter implements Constants
         protected abstract T getSingleNode( String name, String string,
                 Object value );
 
-        protected abstract Map<String, Value> getNodeProperties(T member );
+        protected abstract Map<String, Object> getNodeProperties( T member );
 
         protected abstract T getOSMNode( long osmId, T changesetNode );
 
         protected abstract void updateGeometryMetaDataFromMember( T member,
-                GeometryMetaData metaGeom, Map<String, Value> nodeProps );
+                GeometryMetaData metaGeom, Map<String, Object> nodeProps );
 
         protected abstract void finish();
 
@@ -1156,12 +1154,12 @@ public class OSMImporter implements Constants
         }
 
         @Override
-        protected Map<String, Value> getNodeProperties( Node node )
+        protected Map<String, Object> getNodeProperties( Node node )
         {
-            LinkedHashMap<String, Value> properties = new LinkedHashMap<>();
+            LinkedHashMap<String, Object> properties = new LinkedHashMap<String, Object>();
             for ( String property : node.getPropertyKeys() )
             {
-                properties.put(property, Values.of(node.getProperty(property)));
+                properties.put( property, node.getProperty( property ) );
             }
             return properties;
         }
@@ -1201,12 +1199,12 @@ public class OSMImporter implements Constants
 
         @Override
         protected void updateGeometryMetaDataFromMember( Node member,
-                GeometryMetaData metaGeom, Map<String, Value> nodeProps )
+                GeometryMetaData metaGeom, Map<String, Object> nodeProps )
         {
             for ( Relationship rel : member.getRelationships( OSMRelation.GEOM ) )
             {
                 nodeProps = getNodeProperties( rel.getEndNode() );
-                metaGeom.checkSupportedGeometry( (Integer) nodeProps.get( "gtype" ).asObject() );
+                metaGeom.checkSupportedGeometry( (Integer) nodeProps.get( "gtype" ) );
                 metaGeom.expandToIncludeBBox( nodeProps );
             }
         }
@@ -1391,7 +1389,8 @@ public class OSMImporter implements Constants
                 if ( relationship.getType().name().equals( relType.name() ) )
                 {
                     long node = relationship.getEndNode();
-                    Object nodeName = batchInserter.getNodeProperties(node).get("name").asObject();
+                    Object nodeName = batchInserter.getNodeProperties( node ).get(
+                            "name" );
                     if ( nodeName != null && name.equals( nodeName.toString() ) )
                     {
                         return node;
@@ -1427,17 +1426,9 @@ public class OSMImporter implements Constants
         protected void setDatasetProperties( Map<String, Object> extraProperties )
         {
             LinkedHashMap<String, Object> properties = new LinkedHashMap<String, Object>();
-            properties.putAll(deValuedMap(batchInserter.getNodeProperties(osm_dataset)));
-            properties.putAll(extraProperties);
-            batchInserter.setNodeProperties(osm_dataset, properties);
-        }
-
-        private Map<String, Object> deValuedMap(Map<String, Value> valueMap) {
-            Map<String, Object> map = new LinkedHashMap<>();
-            for (String key : valueMap.keySet()) {
-                map.put(key, valueMap.get(key).asObject());
-            }
-            return map;
+            properties.putAll( batchInserter.getNodeProperties( osm_dataset ) );
+            properties.putAll( extraProperties );
+            batchInserter.setNodeProperties( osm_dataset, properties );
         }
 
         @Override
@@ -1564,7 +1555,7 @@ public class OSMImporter implements Constants
         }
 
         @Override
-        protected Map<String, Value> getNodeProperties( Long member )
+        protected Map<String, Object> getNodeProperties( Long member )
         {
             return batchInserter.getNodeProperties( member );
         }
@@ -1583,11 +1574,11 @@ public class OSMImporter implements Constants
                             OSMRelation.CHANGESET.name() ) )
                     {
                         Long node = rel.getStartNode();
-                        Map<String, Value> props = batchInserter.getNodeProperties( node );
-                        Value nodeOsmId = props.get( "node_osm_id" );
+                        Map<String, Object> props = batchInserter.getNodeProperties( node );
+                        Long nodeOsmId = (Long) props.get( "node_osm_id" );
                         if ( nodeOsmId != null )
                         {
-                            changesetNodes.put((Long) nodeOsmId.asObject(), node);
+                            changesetNodes.put( nodeOsmId, node );
                         }
                     }
                 }
@@ -1607,14 +1598,14 @@ public class OSMImporter implements Constants
 
         @Override
         protected void updateGeometryMetaDataFromMember( Long member,
-                GeometryMetaData metaGeom, Map<String, Value> nodeProps )
+                GeometryMetaData metaGeom, Map<String, Object> nodeProps )
         {
             for ( BatchRelationship rel : batchInserter.getRelationships( member ) )
             {
                 if ( rel.getType().equals( OSMRelation.GEOM ) )
                 {
                     nodeProps = getNodeProperties( rel.getEndNode() );
-                    metaGeom.checkSupportedGeometry( (Integer) nodeProps.get( "gtype" ).asObject() );
+                    metaGeom.checkSupportedGeometry( (Integer) nodeProps.get( "gtype" ) );
                     metaGeom.expandToIncludeBBox( nodeProps );
                 }
             }
@@ -1623,7 +1614,8 @@ public class OSMImporter implements Constants
         @Override
         protected void finish()
         {
-            HashMap<String, Object> dsProps = new HashMap<>(deValuedMap(batchInserter.getNodeProperties(osm_dataset)));
+            HashMap<String, Object> dsProps = new HashMap<String, Object>(
+                    batchInserter.getNodeProperties( osm_dataset ) );
             updateDSCounts( dsProps, "relationCount", relationCount );
             updateDSCounts( dsProps, "wayCount", wayCount );
             updateDSCounts( dsProps, "nodeCount", nodeCount );
