@@ -30,7 +30,7 @@ public abstract class SpaceFillingCurve
     /**
      * Description of the space filling curve structure
      */
-    static abstract class CurveRule
+    abstract static class CurveRule
     {
         final int dimension;
         final int[] npointValues;
@@ -382,6 +382,7 @@ public abstract class SpaceFillingCurve
             this.max = other;
         }
 
+        @Override
         public boolean equals( Object other )
         {
             return (other instanceof LongRange) && this.equals( (LongRange) other );
@@ -392,6 +393,13 @@ public abstract class SpaceFillingCurve
             return this.min == other.min && this.max == other.max;
         }
 
+        @Override
+        public int hashCode()
+        {
+            return (int) (this.min << 16 + this.max);
+        }
+
+        @Override
         public String toString()
         {
             return "LongRange(" + min + "," + max + ")";
@@ -403,8 +411,8 @@ public abstract class SpaceFillingCurve
      */
     private class SearchEnvelope
     {
-        long min[];
-        long max[];
+        long[] min;
+        long[] max;
         int nbrDim;
 
         private SearchEnvelope( Envelope referenceEnvelope )

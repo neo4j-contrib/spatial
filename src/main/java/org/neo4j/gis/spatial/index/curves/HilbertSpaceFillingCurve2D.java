@@ -32,7 +32,7 @@ public class HilbertSpaceFillingCurve2D extends SpaceFillingCurve
      */
     static class HilbertCurve2D extends CurveRule
     {
-        private CurveRule[] children = null;
+        private CurveRule[] children;
 
         private HilbertCurve2D( int... npointValues )
         {
@@ -78,7 +78,7 @@ public class HilbertSpaceFillingCurve2D extends SpaceFillingCurve
 
     private static HashMap<String,HilbertCurve2D> curves = new LinkedHashMap<>();
 
-    private static void addCurveRule(int... npointValues )
+    private static void addCurveRule( int... npointValues )
     {
         HilbertCurve2D curve = new HilbertCurve2D( npointValues );
         String name = curve.name();
