@@ -60,7 +60,7 @@ public class HilbertSpaceFillingCurve3D extends SpaceFillingCurve
      */
     static class HilbertCurve3D extends CurveRule
     {
-        CurveRule[] children = null;
+        CurveRule[] children;
 
         private HilbertCurve3D( int... npointValues )
         {
