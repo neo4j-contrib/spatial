@@ -509,7 +509,7 @@ public class SpaceFillingCurveTest
         Envelope envelope = new Envelope( new double[]{-8, -8, -8}, new double[]{8, 8, 8} );
         HilbertSpaceFillingCurve3D curve = new HilbertSpaceFillingCurve3D( envelope, 2 );
         int[] mid = new int[]{5, 14, 17, 28, 35, 46, 49, 58};
-        SpaceFillingCurve.LongRange midRanges[] = new SpaceFillingCurve.LongRange[mid.length];
+        SpaceFillingCurve.LongRange[] midRanges = new SpaceFillingCurve.LongRange[mid.length];
         for ( int i = 0; i < mid.length; i++ )
         {
             midRanges[i] = new SpaceFillingCurve.LongRange( mid[i], mid[i] );
@@ -558,7 +558,8 @@ public class SpaceFillingCurveTest
                     new SpaceFillingCurve.LongRange( curve.getValueWidth() - 1, curve.getValueWidth() - 1 ) );
             //TODO: There is a performance issue building the full range when the search envelope hits a very wide part of the extent
             // Suggestion to fix this with shallower traversals
-            //assertTiles(curve.getTilesIntersectingEnvelope(new Envelope(new double[]{-8, -8, -8}, new double[]{8, 8, 8})), new HilbertSpaceFillingCurve.LongRange(0, curve.getValueWidth() - 1));
+            //assertTiles(curve.getTilesIntersectingEnvelope(new Envelope(new double[]{-8, -8, -8}, new double[]{8, 8, 8})),
+            // new HilbertSpaceFillingCurve.LongRange(0, curve.getValueWidth() - 1));
             System.out.println( ", took " + (System.currentTimeMillis() - start) + "ms" );
         }
     }
@@ -625,7 +626,8 @@ public class SpaceFillingCurveTest
                 {
                     badCount++;
                 }
-//                    assertThat("Distance at level:" + level + " between " + strOf(derivedValue, point) + " and " + strOf(derivedValue - 1, previous) + " should be 1.0", distance, equalTo(1.0D));
+//                    assertThat("Distance at level:" + level + " between " + strOf(derivedValue, point) + " and " + strOf(derivedValue - 1, previous)
+//                              + " should be 1.0", distance, equalTo(1.0D));
             }
             previous = point;
         }
