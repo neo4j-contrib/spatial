@@ -359,6 +359,38 @@ public class SpatialProceduresTest {
     }
 
     @Test
+    public void create_and_delete_a_pointlayer_with_rtree() {
+        testCall(db, "CALL spatial.addPointLayer('geom')", (r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
+        testCallCount(db, "CALL spatial.layers()", null, 1);
+        execute("CALL spatial.removeLayer('geom')");
+        testCallCount(db, "CALL spatial.layers()", null, 0);
+    }
+
+    @Test
+    public void create_and_delete_a_pointlayer_with_geohash() {
+        testCall(db, "CALL spatial.addPointLayerGeohash('geom')", (r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
+        testCallCount(db, "CALL spatial.layers()", null, 1);
+        execute("CALL spatial.removeLayer('geom')");
+        testCallCount(db, "CALL spatial.layers()", null, 0);
+    }
+
+    @Test
+    public void create_and_delete_a_pointlayer_with_zorder() {
+        testCall(db, "CALL spatial.addPointLayerZOrder('geom')", (r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
+        testCallCount(db, "CALL spatial.layers()", null, 1);
+        execute("CALL spatial.removeLayer('geom')");
+        testCallCount(db, "CALL spatial.layers()", null, 0);
+    }
+
+    @Test
+    public void create_and_delete_a_pointlayer_with_hilbert() {
+        testCall(db, "CALL spatial.addPointLayerHilbert('geom')", (r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
+        testCallCount(db, "CALL spatial.layers()", null, 1);
+        execute("CALL spatial.removeLayer('geom')");
+        testCallCount(db, "CALL spatial.layers()", null, 0);
+    }
+
+    @Test
     public void create_a_pointlayer_using_named_encoder() {
         testCall(db, "CALL spatial.addLayerWithEncoder('geom','SimplePointEncoder','')", (r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
     }
