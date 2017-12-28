@@ -280,7 +280,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
      * Delete Layer
      */
     public void delete(Listener monitor) {
-        indexWriter.removeAll(true, monitor);
+        indexWriter.removeAll(false, monitor);
 
         try (Transaction tx = getDatabase().beginTx()) {
             Node layerNode = getLayerNode();
