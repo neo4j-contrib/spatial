@@ -33,6 +33,7 @@ import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.filter.SearchIntersect;
 import org.neo4j.gis.spatial.filter.SearchIntersectWindow;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
+import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -43,10 +44,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.hasItem;
-import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.*;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -100,6 +100,21 @@ public abstract class LayerIndexTestBase {
         LayerIndexReader index = layer.getIndex();
         assertThat("Should find the same index", index.getLayer().getName(), equalTo(spatial.getLayer("test").getName()));
         assertThat("Index should be of right type", spatial.getLayer("test").getIndex().getClass(), equalTo(getIndexClass()));
+    }
+
+    @Test
+    public void shouldCreateAndFindAndDeleteIndexViaLayer() {
+        spatial.createSimplePointLayer("test", getIndexClass());
+        Layer layer = spatial.getLayer("test");
+        LayerIndexReader index = layer.getIndex();
+        assertThat("Should find the same index", index.getLayer().getName(), equalTo(spatial.getLayer("test").getName()));
+        assertThat("Index should be of right type", spatial.getLayer("test").getIndex().getClass(), equalTo(getIndexClass()));
+        try (Transaction tx = graph.beginTx()) {
+            layer.delete(new NullListener());
+            layer = spatial.getLayer("test");
+            tx.success();
+        }
+        assertThat("Expected no layer to be found", layer, is(nullValue()));
     }
 
     @Test
