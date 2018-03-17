@@ -11,6 +11,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.gis.spatial.rtree.*;
+import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.graphdb.*;
 import org.neo4j.test.TestGraphDatabaseFactory;
 import org.opengis.referencing.FactoryException;

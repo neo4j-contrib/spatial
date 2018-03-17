@@ -153,8 +153,8 @@ public class TestOSMImport extends Neo4jTestCase {
         runSearches(layer, bbox, true);
         org.neo4j.gis.spatial.rtree.Envelope layerBBox = layer.getIndex().getBoundingBox();
         double[] centre = layerBBox.centre();
-        double width = layerBBox.getWidth() / 100.0;
-        double height = layerBBox.getHeight() / 100.0;
+        double width = layerBBox.getWidth(0) / 100.0;
+        double height = layerBBox.getWidth(1) / 100.0;
         bbox = new Envelope(centre[0] - width, centre[0] + width, centre[1] - height, centre[1] + height);
         runSearches(layer, bbox, false);
     }

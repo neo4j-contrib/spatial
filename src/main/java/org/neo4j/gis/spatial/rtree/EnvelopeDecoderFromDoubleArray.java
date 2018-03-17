@@ -43,8 +43,8 @@ public class EnvelopeDecoderFromDoubleArray implements EnvelopeDecoder {
 			double[] bbox = (double[]) propValue;
 			return new Envelope(bbox[0], bbox[2], bbox[1], bbox[3]);
 	    } else {
-	    	// invalid content
-	    	return new Envelope();
+            // invalid content
+            return new Envelope(new double[0]);
 	    }
 	}
 

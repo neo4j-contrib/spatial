@@ -19,12 +19,12 @@
  */
 package org.neo4j.gis.spatial.filter;
 
+import org.neo4j.gis.spatial.index.Envelope;
 import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.Utilities;
 import org.neo4j.graphdb.Node;
 
-import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 
 /**
@@ -37,7 +37,11 @@ public class SearchIntersectWindow extends AbstractSearchEnvelopeIntersection {
 	private Layer layer;
 	private Geometry windowGeom;
 
-	public SearchIntersectWindow(Layer layer, Envelope other) {
+    public SearchIntersectWindow(Layer layer, Envelope envelope) {
+        this(layer, Utilities.fromNeo4jToJts(envelope));
+    }
+
+	public SearchIntersectWindow(Layer layer, com.vividsolutions.jts.geom.Envelope other) {
 		super(layer.getGeometryEncoder(), Utilities.fromJtsToNeo4j(other));
 		this.layer = layer;
 		this.windowGeom = layer.getGeometryFactory().toGeometry(other);

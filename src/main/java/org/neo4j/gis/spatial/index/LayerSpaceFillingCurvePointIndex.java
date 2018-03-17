@@ -22,7 +22,7 @@ package org.neo4j.gis.spatial.index;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
 import org.neo4j.gis.spatial.index.curves.SpaceFillingCurve;
-import org.neo4j.gis.spatial.rtree.Envelope;
+import org.neo4j.gis.spatial.index.curves.StandardConfiguration;
 import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.graphdb.Node;
@@ -92,8 +92,10 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
 
     protected String queryStringFor(SearchFilter filter) {
         if (filter instanceof AbstractSearchEnvelopeIntersection) {
-            Envelope referenceEnvelope = ((AbstractSearchEnvelopeIntersection) filter).getReferenceEnvelope();
-            List<SpaceFillingCurve.LongRange> tiles = getCurve().getTilesIntersectingEnvelope(referenceEnvelope);
+            org.neo4j.gis.spatial.rtree.Envelope referenceEnvelope = ((AbstractSearchEnvelopeIntersection) filter).getReferenceEnvelope();
+            //TODO: Uncomment this version when configurable index PR goes in Neo4j 3.4
+            //List<SpaceFillingCurve.LongRange> tiles = getCurve().getTilesIntersectingEnvelope(referenceEnvelope.getMin(), referenceEnvelope.getMax(), new StandardConfiguration());
+            List<SpaceFillingCurve.LongRange> tiles = getCurve().getTilesIntersectingEnvelope(referenceEnvelope, new StandardConfiguration());
             StringBuilder sb = new StringBuilder();
             for (SpaceFillingCurve.LongRange range : tiles) {
                 if (sb.length() > 0) {

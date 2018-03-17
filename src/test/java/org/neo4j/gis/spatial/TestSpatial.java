@@ -333,8 +333,8 @@ public class TestSpatial extends Neo4jTestCase {
     }
 
 	private void assertEnvelopeEquals(Envelope a, Envelope b) {
-		assertTrue(a.isValid());
-		assertTrue(b.isValid());
+        assertTrue(a != null);
+        assertTrue(b != null);
 		assertEquals(a.getDimension(), b.getDimension());
 		
 		for (int i = 0; i < a.getDimension(); i++) {

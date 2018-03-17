@@ -1094,20 +1094,24 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
     }
 
     private int findLongestDimension(List<NodeWithEnvelope> entries) {
-        Envelope env = new Envelope();
-        for (NodeWithEnvelope entry : entries) {
-            env.expandToInclude(entry.envelope);
-        }
-        int longestDimension = 0;
-        double maxWidth = Double.NEGATIVE_INFINITY;
-        for (int i = 0; i < env.getDimension(); i++) {
-            double width = env.getWidth(i);
-            if (width > maxWidth) {
-                maxWidth = width;
-                longestDimension = i;
+        if (entries.size() > 0) {
+            Envelope env = new Envelope(entries.get(0).envelope);
+            for (NodeWithEnvelope entry : entries) {
+                env.expandToInclude(entry.envelope);
             }
+            int longestDimension = 0;
+            double maxWidth = Double.NEGATIVE_INFINITY;
+            for (int i = 0; i < env.getDimension(); i++) {
+                double width = env.getWidth(i);
+                if (width > maxWidth) {
+                    maxWidth = width;
+                    longestDimension = i;
+                }
+            }
+            return longestDimension;
+        } else {
+            return 0;
         }
-        return longestDimension;
     }
 
     private List<NodeWithEnvelope> extractChildNodesWithEnvelopes(Node indexNode, RelationshipType relationshipType) {
@@ -1362,8 +1366,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 	}
 
 	private double getArea(Envelope e) {
-		return e.getWidth() * e.getHeight();
-		// TODO why not e.getArea(); ?
+		return e.getArea();
 	}
 
 	private void deleteTreeBelow( Node rootNode ) {

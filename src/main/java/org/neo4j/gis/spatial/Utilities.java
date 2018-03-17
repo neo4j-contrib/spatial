@@ -40,27 +40,26 @@ import org.opengis.filter.Filter;
 
 import com.vividsolutions.jts.geom.Geometry;
 
-
 public class Utilities {
 
 	public static Envelope fromJtsToNeo4j(com.vividsolutions.jts.geom.Envelope envelope) {
 		return new Envelope(
-					envelope.getMinX(),
-					envelope.getMaxX(),
-					envelope.getMinY(),
-					envelope.getMaxY()
-				);
+				envelope.getMinX(),
+				envelope.getMaxX(),
+				envelope.getMinY(),
+				envelope.getMaxY()
+		);
 	}
 
-	public static com.vividsolutions.jts.geom.Envelope fromNeo4jToJts(Envelope envelope) {
+	public static com.vividsolutions.jts.geom.Envelope fromNeo4jToJts(org.neo4j.gis.spatial.index.Envelope envelope) {
 		return new com.vividsolutions.jts.geom.Envelope(
-					envelope.getMinX(),
-					envelope.getMaxX(),
-					envelope.getMinY(),
-					envelope.getMaxY()
-				);
-	}	
-	
+				envelope.getMinX(),
+				envelope.getMaxX(),
+				envelope.getMinY(),
+				envelope.getMaxY()
+		);
+	}
+
 	/**
 	 * To create an optimized index search from a Filter we try to extract an Envelope from it.
 	 */

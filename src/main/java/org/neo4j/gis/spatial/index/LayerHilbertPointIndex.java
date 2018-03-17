@@ -21,7 +21,6 @@ package org.neo4j.gis.spatial.index;
 
 import org.neo4j.gis.spatial.index.curves.HilbertSpaceFillingCurve2D;
 import org.neo4j.gis.spatial.index.curves.SpaceFillingCurve;
-import org.neo4j.gis.spatial.rtree.Envelope;
 
 public class LayerHilbertPointIndex extends LayerSpaceFillingCurvePointIndex {
 

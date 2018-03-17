@@ -332,9 +332,14 @@ public class OsmAnalysisTest extends TestOSMImport {
 	private ReferencedEnvelope getEnvelope(Collection<Layer> layers) {
 		CoordinateReferenceSystem crs = null;
 
-		Envelope envelope = new Envelope();
+		Envelope envelope = null;
 		for (Layer layer : layers) {
-			envelope.expandToInclude(layer.getIndex().getBoundingBox());
+			Envelope bbox = layer.getIndex().getBoundingBox();
+			if (envelope == null) {
+				envelope = new Envelope(bbox);
+			} else {
+				envelope.expandToInclude(bbox);
+			}
 			if (crs == null) {
 				crs = layer.getCoordinateReferenceSystem();
 			}

@@ -332,7 +332,7 @@ public class OSMImporter implements Constants
 
     private static class GeometryMetaData
     {
-        private Envelope bbox = new Envelope();
+        private Envelope bbox = null;
         private int vertices = 0;
         private int geometry = -1;
 
@@ -346,9 +346,17 @@ public class OSMImporter implements Constants
             return geometry;
         }
 
+        private void expandToInclude(double[] location) {
+            if (bbox == null) {
+                bbox = new Envelope(location);
+            } else {
+                bbox.expandToInclude(location);
+            }
+        }
+
         void expandToIncludePoint( double[] location )
         {
-            bbox.expandToInclude( location[0], location[1] );
+            expandToInclude(location);
             vertices++;
             geometry = -1;
         }
@@ -356,8 +364,8 @@ public class OSMImporter implements Constants
         void expandToIncludeBBox( Map<String, Object> nodeProps )
         {
             double[] sbb = (double[]) nodeProps.get( PROP_BBOX );
-            bbox.expandToInclude( sbb[0], sbb[2] );
-            bbox.expandToInclude( sbb[1], sbb[3] );
+            expandToInclude(new double[]{sbb[0], sbb[2]});
+            expandToInclude(new double[]{sbb[1], sbb[3]});
             vertices += (Integer) nodeProps.get( "vertices" );
         }
 
@@ -644,12 +652,10 @@ public class OSMImporter implements Constants
             if ( allPoints || currentNodeTags.size() > 0 )
             {
                 Map<String, Object> nodeProps = getNodeProperties( currentNode );
-                Envelope bbox = new Envelope();
                 double[] location = new double[] {
                         (Double) nodeProps.get( "lon" ),
                         (Double) nodeProps.get( "lat" ) };
-                bbox.expandToInclude( location[0], location[1] );
-                addNodeGeometry( currentNode, GTYPE_POINT, bbox, 1 );
+                addNodeGeometry(currentNode, GTYPE_POINT, new Envelope(location), 1);
                 poiCount++;
             }
             addNodeTags( currentNode, currentNodeTags, "node" );
@@ -701,7 +707,7 @@ public class OSMImporter implements Constants
             }
             prev_way = way;
             addNodeTags( way, wayTags, "way" );
-            Envelope bbox = new Envelope();
+            Envelope bbox = null;
             T firstNode = null;
             T prevNode = null;
             T prevProxy = null;
@@ -738,7 +744,11 @@ public class OSMImporter implements Constants
                 double[] location = new double[] {
                         (Double) nodeProps.get( "lon" ),
                         (Double) nodeProps.get( "lat" ) };
-                bbox.expandToInclude( location[0], location[1] );
+                if (bbox == null) {
+                    bbox = new Envelope(location);
+                } else {
+                    bbox.expandToInclude(location);
+                }
                 if ( prevProxy == null )
                 {
                     createRelationship( way, proxyNode, OSMRelation.FIRST_NODE );
@@ -1069,7 +1079,7 @@ public class OSMImporter implements Constants
         protected void addNodeGeometry( Node node, int gtype, Envelope bbox,
                 int vertices )
         {
-            if ( node != null && bbox.isValid() && vertices > 0 )
+            if ( node != null && bbox != null && vertices > 0 )
             {
                 if ( gtype == GTYPE_GEOMETRY )
                     gtype = vertices > 1 ? GTYPE_MULTIPOINT : GTYPE_POINT;
@@ -1450,7 +1460,7 @@ public class OSMImporter implements Constants
         protected void addNodeGeometry( Long node, int gtype, Envelope bbox,
                 int vertices )
         {
-            if ( node > 0 && bbox.isValid() && vertices > 0 )
+            if ( node > 0 && bbox != null && vertices > 0 )
             {
                 LinkedHashMap<String, Object> properties = new LinkedHashMap<String, Object>();
                 if ( gtype == GTYPE_GEOMETRY )

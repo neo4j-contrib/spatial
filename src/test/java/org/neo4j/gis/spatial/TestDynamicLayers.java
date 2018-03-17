@@ -24,7 +24,6 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 
 import org.geotools.data.DataSourceException;
 import org.geotools.data.DataStore;
@@ -43,7 +42,6 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.LinearRing;
 import com.vividsolutions.jts.geom.Polygon;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.helpers.Exceptions;
 
 public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 
@@ -210,8 +208,8 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 	}
 
 	private Envelope scale(Envelope bbox, double fraction) {
-		double xoff = bbox.getWidth() * (1.0 - fraction) / 2.0;
-		double yoff = bbox.getHeight() * (1.0 - fraction)/ 2.0;
+		double xoff = bbox.getWidth(0) * (1.0 - fraction) / 2.0;
+		double yoff = bbox.getWidth(1) * (1.0 - fraction) / 2.0;
 		return new Envelope(bbox.getMinX() + xoff, bbox.getMaxX() - xoff, bbox.getMinY() + yoff, bbox.getMaxY() - yoff);
 	}
 
