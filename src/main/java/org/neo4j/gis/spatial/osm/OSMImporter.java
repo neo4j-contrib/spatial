@@ -32,13 +32,7 @@ import java.nio.charset.Charset;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
+import java.util.*;
 
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
@@ -270,7 +264,7 @@ public class OSMImporter implements Constants
             if ( useWays )
             {
                 beginProgressMonitor( dataset.getWayCount() );
-                for ( Node way : findWays.traverse(database.getNodeById( osm_dataset )).nodes() )
+                for (Node way : toList(findWays.traverse(database.getNodeById(osm_dataset)).nodes()))
                 {
                     updateProgressMonitor( count );
                     incrLogContext();
@@ -295,7 +289,7 @@ public class OSMImporter implements Constants
             else
             {
                 beginProgressMonitor( dataset.getChangesetCount() );
-                for ( Node changeset : dataset.getAllChangesetNodes() )
+                for (Node changeset : toList(dataset.getAllChangesetNodes()))
                 {
                     updateProgressMonitor( count );
                     incrLogContext();
@@ -328,6 +322,17 @@ public class OSMImporter implements Constants
             stats.dumpGeomStats();
         }
         return count;
+    }
+
+    private List<Node> toList(Iterable<Node> iterable)
+    {
+        ArrayList<Node> list = new ArrayList<>();
+        if(iterable != null) {
+            for(Node e: iterable) {
+                list.add(e);
+            }
+        }
+        return list;
     }
 
     private static class GeometryMetaData
