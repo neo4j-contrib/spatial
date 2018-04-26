@@ -684,6 +684,13 @@ public class SpatialProceduresTest {
     }
 
     @Test
+    public void import_osm_to_layer_without_changesets() throws Exception {
+        execute("CALL spatial.addLayer('osm_example','OSM','')");
+        testCountQuery("importShapefileToLayer", "CALL spatial.importOSMToLayer('osm_example','sample.osm')", 1, "count", null);
+        testCallCount(db, "CALL spatial.layers()", null, 1);
+    }
+
+    @Test
     public void import_osm_and_add_geometry() throws Exception {
         execute("CALL spatial.addLayer('geom','OSM','')");
         testCountQuery("importShapefileToLayer", "CALL spatial.importOSMToLayer('geom','map.osm')", 55, "count", null);
