@@ -27,13 +27,9 @@ import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.TreeMonitor;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.NotFoundException;
-import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.index.Index;
 import org.neo4j.graphdb.index.IndexHits;
-import org.neo4j.helpers.collection.Iterables;
 
 import java.util.Iterator;
 import java.util.List;
@@ -92,6 +88,9 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
                 if (geomNode != null) {
                     index.remove(geomNode);
                     if (deleteGeomNode) {
+                        for (Relationship rel : geomNode.getRelationships()) {
+                            rel.delete();
+                        }
                         geomNode.delete();
                     }
                 }
