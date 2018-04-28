@@ -537,6 +537,33 @@ public class SpatialProceduresTest {
     }
 
     @Test
+    public void add_a_node_to_multiple_different_indexes() throws Exception {
+        String[] indexes = new String[]{"Geohash", "ZOrder", "Hilbert", "RTree"};
+        for (String name : indexes) {
+            String layerName = name.toLowerCase();
+            execute("CALL spatial.addPointLayer" + (name.equals("RTree") ? "" : name) + "('" + layerName + "')");
+        }
+        testCallCount(db, "CALL spatial.layers()", null, indexes.length);
+        ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) RETURN n").columnAs("n");
+        Node node = (Node) nodes.next();
+        nodes.close();
+        for (String name : indexes) {
+            String layerName = name.toLowerCase();
+            testCall(db, "MATCH (n:Node) WITH n CALL spatial.addNode('" + layerName + "',n) YIELD node RETURN node", r -> Assert.assertEquals(node, r.get("node")));
+        }
+        for (String name : indexes) {
+            String layerName = name.toLowerCase();
+            testCall(db, "CALL spatial.withinDistance('" + layerName + "',{lon:15.0,lat:60.0},100)", r -> assertEquals(node, r.get("node")));
+        }
+        for (String name : indexes) {
+            String layerName = name.toLowerCase();
+            execute("CALL spatial.removeLayer('" + layerName + "')");
+        }
+        testCallCount(db, "CALL spatial.layers()", null, 0);
+    }
+
+
+    @Test
     public void testDistanceNode() throws Exception {
         execute("CALL spatial.addPointLayer('geom')");
         ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node").columnAs("node");
@@ -680,6 +707,13 @@ public class SpatialProceduresTest {
     public void import_osm_to_layer() throws Exception {
         execute("CALL spatial.addLayer('geom','OSM','')");
         testCountQuery("importShapefileToLayer", "CALL spatial.importOSMToLayer('geom','map.osm')", 55, "count", null);
+        testCallCount(db, "CALL spatial.layers()", null, 1);
+    }
+
+    @Test
+    public void import_osm_to_layer_without_changesets() throws Exception {
+        execute("CALL spatial.addLayer('osm_example','OSM','')");
+        testCountQuery("importShapefileToLayer", "CALL spatial.importOSMToLayer('osm_example','sample.osm')", 1, "count", null);
         testCallCount(db, "CALL spatial.layers()", null, 1);
     }
 
