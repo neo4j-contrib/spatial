@@ -51,9 +51,6 @@ import org.neo4j.procedure.*;
 import static org.neo4j.gis.spatial.SpatialDatabaseService.RTREE_INDEX_NAME;
 import static org.neo4j.procedure.Mode.*;
 
-import org.neo4j.values.storable.CRSTable;
-import org.neo4j.values.storable.PointValue;
-import org.neo4j.values.storable.Values;
 import org.opengis.referencing.ReferenceIdentifier;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
@@ -545,34 +542,26 @@ public class SpatialProcedures {
     }
 
     @Procedure("spatial.decodeGeometry")
-    @Description("Returns a geometry of a layer node as internal cypher geometry type, to be passed to other procedures but not returned to a client")
-    // TODO: This currently returns an internal Cypher type, in order to be able to pass back into
-    // other procedures that only accept internal cypher types due to a bug in Neo4j 3.0
-    // If you need to return Geometries outside (eg. RETURN geometry), then consider spatial.asExternalGeometry(geometry)
+    @Description("Returns a geometry of a layer node as the Neo4j geometry type, to be passed to other procedures or returned to a client")
     public Stream<GeometryResult> decodeGeometry(
             @Name("layerName") String name,
             @Name("node") Node node) {
 
         Layer layer = getLayerOrThrow(name);
-        return Stream.of(layer.getGeometryEncoder().decodeGeometry(node)).map(geom -> new GeometryResult(toCypherGeometry(layer, geom)));
+        return Stream.of(layer.getGeometryEncoder().decodeGeometry(node)).map(geom -> new GeometryResult(toNeo4jGeometry(layer, geom)));
     }
 
     @Procedure("spatial.asGeometry")
-    @Description("Returns a geometry object as an internal cypher geometry type, to be passed to other procedures but not returned to a client")
-    // TODO: This currently returns an internal Cypher type, in order to be able to pass back into
-    // other procedures that only accept internal cypher types due to a bug in Neo4j 3.0
-    // If you need to return Geometries outside (eg. RETURN geometry), then consider spatial.asExternalGeometry(geometry)
+    @Description("Returns a geometry object as the Neo4j geometry type, to be passed to other procedures or returned to a client")
     public Stream<GeometryResult> asGeometry(
             @Name("geometry") Object geometry) {
 
-        return Stream.of(geometry).map(geom -> new GeometryResult(toCypherGeometry(null, geom)));
+        return Stream.of(geometry).map(geom -> new GeometryResult(toNeo4jGeometry(null, geom)));
     }
 
-    @Procedure("spatial.asExternalGeometry")
+    @Procedure(value = "spatial.asExternalGeometry", deprecatedBy = "spatial.asGeometry")
     @Description("Returns a geometry object as an external geometry type to be returned to a client")
-    // TODO: This method only exists (and differs from spatial.asGeometry()) because of a bug in Cypher 3.0
-    // Cypher will emit external geometry types but can only consume internal types. Once that bug is fixed,
-    // We can make both asGeometry() and asExternalGeometry() return the same public type, and deprecate this procedure.
+    // This only existed temporarily because the other method, asGeometry, returned the wrong type due to a bug in Neo4j 3.0
     public Stream<GeometryResult> asExternalGeometry(
             @Name("geometry") Object geometry) {
 
@@ -714,69 +703,6 @@ public class SpatialProcedures {
         throw new RuntimeException("Can't convert " + value + " to a geometry");
     }
 
-    private org.neo4j.graphdb.spatial.Geometry makeCypherGeometry(Geometry geometry, org.neo4j.values.storable.CoordinateReferenceSystem crs) {
-        if (geometry.getGeometryType().toLowerCase().equals("point")) {
-            Coordinate coordinate = geometry.getCoordinates()[0];
-            return Values.pointValue(crs, coordinate.getOrdinate(0), coordinate.getOrdinate(1));
-        } else {
-            throw new RuntimeException("Cypher only accepts POINT geometries, not " + geometry.getGeometryType());
-        }
-    }
-
-    private org.neo4j.graphdb.spatial.Geometry toCypherGeometry(Layer layer, Object value) {
-        if (value instanceof org.neo4j.graphdb.spatial.Geometry) {
-            // Object is already a Neo4j Geometry
-            return (org.neo4j.graphdb.spatial.Geometry) value;
-        }
-        org.neo4j.values.storable.CoordinateReferenceSystem crs = org.neo4j.values.storable.CoordinateReferenceSystem.Cartesian;
-        if (layer != null) {
-            CoordinateReferenceSystem layerCRS = layer.getCoordinateReferenceSystem();
-            if (layerCRS != null) {
-                ReferenceIdentifier crsRef = layer.getCoordinateReferenceSystem().getName();
-                //TODO: Support all CRS, not just Neo4j ones
-                switch (crsRef.toString()) {
-                    case "WGS84":
-                        crs = org.neo4j.values.storable.CoordinateReferenceSystem.WGS84;
-                }
-            }
-        }
-        if (value instanceof Geometry) {
-            // object is a JTS Geometry, needs to be re-constructed as a Neo4j Geometry
-            Geometry geometry = (Geometry) value;
-            if (geometry.getSRID() > 0) {
-                crs = org.neo4j.values.storable.CoordinateReferenceSystem.get(CRSTable.EPSG.getTableId(), geometry.getSRID());
-            }
-            if (geometry instanceof Point) {
-                Point point = (Point) geometry;
-                return Values.pointValue(crs, point.getX(), point.getY());
-            }
-            return makeCypherGeometry(geometry, crs);
-        }
-        if (value instanceof String) {
-            // Object is a string, assumed in WKT format, parse into JTS and re-construct as Neo4j Geometry
-            GeometryFactory factory = (layer == null) ? new GeometryFactory() : layer.getGeometryFactory();
-            WKTReader reader = new WKTReader(factory);
-            try {
-                Geometry geometry = reader.read((String) value);
-                return makeCypherGeometry(geometry, crs);
-            } catch (ParseException e) {
-                throw new IllegalArgumentException("Invalid WKT: " + e.getMessage());
-            }
-        }
-        // if Object is a node, relationship or map, look for lat:lon properties and construct a Neo4j Point
-        Map<String, Object> latLon = null;
-        if (value instanceof PropertyContainer) {
-            latLon = ((PropertyContainer) value).getProperties("latitude", "longitude", "lat", "lon");
-            if (layer == null) {
-                crs = org.neo4j.values.storable.CoordinateReferenceSystem.WGS84;
-            }
-        }
-        if (value instanceof Map) latLon = (Map<String, Object>) value;
-        Coordinate coord = toCoordinate(latLon);
-        if (coord != null) return Values.pointValue(crs, coord.x, coord.y);
-        throw new RuntimeException("Can't convert " + value + " to a geometry");
-    }
-
     private static CRS findCRS(String crs) {
         switch (crs) {
             case "WGS-84":
@@ -808,20 +734,27 @@ public class SpatialProcedures {
         if (value instanceof Coordinate) {
             return (Coordinate) value;
         }
-        if (value instanceof PointValue) {
-            PointValue point = (PointValue) value;
-            return new Coordinate(point.coordinate()[0], point.coordinate()[1]);
+        if (value instanceof org.neo4j.graphdb.spatial.Coordinate) {
+            return toCoordinate((org.neo4j.graphdb.spatial.Coordinate) value);
+        }
+        if (value instanceof org.neo4j.graphdb.spatial.Point) {
+            return toCoordinate(((org.neo4j.graphdb.spatial.Point) value).getCoordinate());
         }
         if (value instanceof PropertyContainer) {
             return toCoordinate(((PropertyContainer) value).getProperties("latitude", "longitude", "lat", "lon"));
         }
         if (value instanceof Map) {
-            return toCoordinate((Map<String, Object>) value);
+            return toCoordinate((Map) value);
         }
         throw new RuntimeException("Can't convert " + value + " to a coordinate");
     }
 
-    private Coordinate toCoordinate(Map<String, Object> map) {
+    private Coordinate toCoordinate(org.neo4j.graphdb.spatial.Coordinate point) {
+        List<Double> coordinate = point.getCoordinate();
+        return new Coordinate(coordinate.get(0), coordinate.get(1));
+    }
+
+    private Coordinate toCoordinate(Map map) {
         if (map == null) return null;
         Coordinate coord = toCoordinate(map, "longitude", "latitude");
         if (coord == null) return toCoordinate(map, "lon", "lat");
