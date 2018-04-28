@@ -93,9 +93,7 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
     protected String queryStringFor(SearchFilter filter) {
         if (filter instanceof AbstractSearchEnvelopeIntersection) {
             org.neo4j.gis.spatial.rtree.Envelope referenceEnvelope = ((AbstractSearchEnvelopeIntersection) filter).getReferenceEnvelope();
-            //TODO: Uncomment this version when configurable index PR goes in Neo4j 3.4
-            //List<SpaceFillingCurve.LongRange> tiles = getCurve().getTilesIntersectingEnvelope(referenceEnvelope.getMin(), referenceEnvelope.getMax(), new StandardConfiguration());
-            List<SpaceFillingCurve.LongRange> tiles = getCurve().getTilesIntersectingEnvelope(referenceEnvelope, new StandardConfiguration());
+            List<SpaceFillingCurve.LongRange> tiles = getCurve().getTilesIntersectingEnvelope(referenceEnvelope.getMin(), referenceEnvelope.getMax(), new StandardConfiguration());
             StringBuilder sb = new StringBuilder();
             for (SpaceFillingCurve.LongRange range : tiles) {
                 if (sb.length() > 0) {
