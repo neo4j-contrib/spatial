@@ -92,7 +92,7 @@ This is more complex because the current OSMImporter class runs in two phases, t
     config.put("neostore.nodestore.db.mapped_memory", "90M" );
     config.put("dump_configuration", "true");
     config.put("use_memory_mapped_buffers", "true");
-    BatchInserter batchInserter = new BatchInserterImpl(dir, config);
+    BatchInserter batchInserter = BatchInserters.inserter(new File(dir), config);
     importer.importFile(batchInserter, "sweden.osm", false);
     batchInserter.shutdown();
 
