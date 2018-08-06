@@ -494,7 +494,7 @@ public class SpatialProcedures {
         String layerName = (layer == null) ? osmPath.substring(osmPath.lastIndexOf(File.separator) + 1) : layer.getName();
         OSMImporter importer = new OSMImporter(layerName, new ProgressLoggingListener("Importing " + osmPath, log.debugLogger()));
         importer.importFile( db, osmPath, false, commitInterval, true );
-        return importer.reIndex( db, commitInterval );
+        return importer.reIndex( db, commitInterval, false );
     }
 
     @Procedure(value="spatial.bbox", mode=WRITE)

@@ -127,7 +127,7 @@ public class TestIntersectsPathQueries extends TestCase {
 			}
 		}
 		GraphDatabaseService graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(new File(dbPath)).setConfig(Neo4jTestCase.LARGE_CONFIG ).newGraphDatabase();
-		importer.reIndex(graphDb, 10000, false, false);
+		importer.reIndex(graphDb, 10000, false);
 		TestOSMImport.checkOSMLayer(graphDb, layerName);
 		graphDb.shutdown();
 	}

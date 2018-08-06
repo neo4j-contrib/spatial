@@ -710,6 +710,13 @@ public class SpatialProceduresTest {
         testCallCount(db, "CALL spatial.layers()", null, 1);
     }
 
+    @Ignore
+    public void import_cracow_to_layer() throws Exception {
+        execute("CALL spatial.addLayer('geom','OSM','')");
+        testCountQuery("importOSMToLayer", "CALL spatial.importOSMToLayer('geom','issue-347/cra.osm')", 256253, "count", null);
+        testCallCount(db, "CALL spatial.layers()", null, 1);
+    }
+
     @Test
     public void import_osm_to_layer_without_changesets() throws Exception {
         execute("CALL spatial.addLayer('osm_example','OSM','')");

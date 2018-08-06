@@ -218,16 +218,15 @@ public class OSMImporter implements Constants
 
     public long reIndex( GraphDatabaseService database )
     {
-        return reIndex( database, 10000, true, false );
+        return reIndex( database, 10000, true );
     }
 
     public long reIndex( GraphDatabaseService database, int commitInterval )
     {
-        return reIndex( database, commitInterval, true, false );
+        return reIndex( database, commitInterval, true );
     }
 
-    public long reIndex( GraphDatabaseService database, int commitInterval,
-            boolean includePoints, boolean includeRelations )
+    public long reIndex( GraphDatabaseService database, int commitInterval, boolean includePoints )
     {
         if ( commitInterval < 1 ) {
             throw new IllegalArgumentException( "commitInterval must be >= 1" );
@@ -269,11 +268,31 @@ public class OSMImporter implements Constants
                     stats.addGeomStats( layer.addWay( way, true ) );
                     if ( includePoints )
                     {
+                        long badProxies = 0;
+                        long goodProxies = 0;
                         for ( Node proxy : findNodes.traverse( way ).nodes() )
                         {
-                            Node node = proxy.getSingleRelationship(
-                                    OSMRelation.NODE, Direction.OUTGOING ).getEndNode();
-                            stats.addGeomStats( layer.addWay( node, true ) );
+                            Relationship nodeRel = proxy.getSingleRelationship( OSMRelation.NODE, Direction.OUTGOING );
+                            if ( nodeRel == null )
+                            {
+                                badProxies++;
+                            }
+                            else
+                            {
+                                goodProxies++;
+                                Node node = proxy.getSingleRelationship( OSMRelation.NODE, Direction.OUTGOING ).getEndNode();
+                                stats.addGeomStats( layer.addWay( node, true ) );
+                            }
+                        }
+                        if ( badProxies > 0 )
+                        {
+                            System.out.println( "Unexpected dangling proxies for way: " + way );
+                            if ( way.hasProperty( "way_osm_id" ) )
+                            {
+                                System.out.println( "\tWay:   " + way.getProperty( "way_osm_id" ) );
+                            }
+                            System.out.println( "\tBad Proxies:  " + badProxies );
+                            System.out.println( "\tGood Proxies: " + goodProxies );
                         }
                     }
                     if ( ++count % commitInterval == 0 )

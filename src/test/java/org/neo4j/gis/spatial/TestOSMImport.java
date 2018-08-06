@@ -354,6 +354,6 @@ public class TestOSMImport extends Neo4jTestCase {
                 Thread.sleep(1000);
             }
         }
-        importer.reIndex(graphDb(), commitInterval, includePoints, false);
+        importer.reIndex(graphDb(), commitInterval, includePoints);
     }
 }
