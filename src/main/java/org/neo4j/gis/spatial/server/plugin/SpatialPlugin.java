@@ -24,6 +24,7 @@ import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
 import org.neo4j.gis.spatial.*;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
+import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -279,7 +280,7 @@ public class SpatialPlugin extends ServerPlugin {
 
             List<Node> result = GeoPipeline
                     .startNearestNeighborLatLonSearch(layer, new Coordinate(pointX, pointY), distanceInKm)
-                    .sort("OrthodromicDistance").toNodeList();
+                    .sort(OrthodromicDistance.DISTANCE).toNodeList();
             tx.success();
             return result;
         }

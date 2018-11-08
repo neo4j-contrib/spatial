@@ -33,6 +33,7 @@ import org.geotools.data.shapefile.shp.ShapefileException;
 import org.junit.Test;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
+import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -237,7 +238,7 @@ public class TestIntersectsPathQueries extends TestCase {
 		try (Transaction tx = graphDb.beginTx()) {
 			for (Coordinate coordinate : coordinates) {
 				List<Node> res = GeoPipeline.startNearestNeighborLatLonSearch(layer, coordinate, distanceInKm)
-						.sort("OrthodromicDistance").toNodeList();
+						.sort(OrthodromicDistance.DISTANCE).toNodeList();
 				results.addAll(res);
 			}
 			printResults(results);

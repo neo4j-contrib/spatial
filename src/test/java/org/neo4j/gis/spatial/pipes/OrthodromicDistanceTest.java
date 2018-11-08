@@ -20,6 +20,9 @@
 package org.neo4j.gis.spatial.pipes;
 
 import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.GeometryFactory;
+import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.geom.Polygon;
 import org.junit.Test;
 import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
 
@@ -87,4 +90,31 @@ public class OrthodromicDistanceTest {
         assertThat("Should be zero", OrthodromicDistance.calculateDistance(pointA, pointB), closeTo(0.0, 0.000001));
     }
 
+    @Test
+    public void shouldCalculateDistanceToPolygon() {
+        GeometryFactory factory = new GeometryFactory();
+        Point reference = factory.createPoint(new Coordinate(0, 0));
+        Polygon polygon = factory.createPolygon(new Coordinate[]{
+                new Coordinate(1, -1),
+                new Coordinate(1, 1),
+                new Coordinate(2, 1),
+                new Coordinate(2, -1),
+                new Coordinate(1, -1)
+        });
+        assertThat("Should be positive number", OrthodromicDistance.calculateDistanceToGeometry(reference.getCoordinate(), polygon), closeTo(111, 1));
+    }
+
+    @Test
+    public void shouldCalculateDistanceToEncompassingPolygon() {
+        GeometryFactory factory = new GeometryFactory();
+        Point reference = factory.createPoint(new Coordinate(0, 0));
+        Polygon polygon = factory.createPolygon(new Coordinate[]{
+                new Coordinate(1, -1),
+                new Coordinate(1, 1),
+                new Coordinate(-1, 1),
+                new Coordinate(-1, -1),
+                new Coordinate(1, -1)
+        });
+        assertThat("Should be zero", OrthodromicDistance.calculateDistanceToGeometry(reference.getCoordinate(), polygon), closeTo(0, 0.00001));
+    }
 }

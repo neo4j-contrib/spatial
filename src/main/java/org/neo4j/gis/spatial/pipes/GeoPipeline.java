@@ -364,7 +364,7 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow,GeoPipeFlow> {
 			.calculateOrthodromicDistance(point);
 		
 		if (layer.getGeometryType() != null && layer.getGeometryType() == Constants.GTYPE_POINT) {
-			pipeline = pipeline.propertyFilter("OrthodromicDistance", maxDistanceInKm, FilterPipe.Filter.LESS_THAN_EQUAL);
+			pipeline = pipeline.propertyFilter(OrthodromicDistance.DISTANCE, maxDistanceInKm, FilterPipe.Filter.LESS_THAN_EQUAL);
 		}
 		
 		return pipeline;

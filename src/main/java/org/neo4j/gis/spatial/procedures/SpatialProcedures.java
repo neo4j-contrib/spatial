@@ -37,6 +37,7 @@ import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
+import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
 import org.neo4j.gis.spatial.rtree.ProgressLoggingListener;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -49,6 +50,7 @@ import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
 
 import static org.neo4j.gis.spatial.SpatialDatabaseService.RTREE_INDEX_NAME;
+import static org.neo4j.helpers.collection.MapUtil.map;
 import static org.neo4j.procedure.Mode.*;
 
 import org.opengis.referencing.ReferenceIdentifier;
@@ -70,7 +72,6 @@ TODO:
 
 public class SpatialProcedures {
 
-    public static final String DISTANCE = "OrthodromicDistance";
     @Context
     public GraphDatabaseService db;
 
@@ -125,7 +126,12 @@ public class SpatialProcedures {
         public final Object geometry;
 
         public GeometryResult(org.neo4j.graphdb.spatial.Geometry geometry) {
-            this.geometry = geometry;
+            // Unfortunately Neo4j 3.4 only copes with Points, other types need to be converted to a public type
+            if(geometry instanceof org.neo4j.graphdb.spatial.Point) {
+                this.geometry = geometry;
+            }else{
+                this.geometry = toMap(geometry);
+            }
         }
     }
 
@@ -534,31 +540,48 @@ public class SpatialProcedures {
         Layer layer = getLayerOrThrow(name);
         return GeoPipeline
                 .startNearestNeighborLatLonSearch(layer, toCoordinate(coordinate), distanceInKm)
-                .sort(DISTANCE)
+                .sort(OrthodromicDistance.DISTANCE)
                 .stream().map(r -> {
-                    double distance = r.hasProperty(DISTANCE) ? ((Number) r.getProperty(DISTANCE)).doubleValue() : -1;
+                    double distance = r.hasProperty(OrthodromicDistance.DISTANCE) ? ((Number) r.getProperty(OrthodromicDistance.DISTANCE)).doubleValue() : -1;
                     return new NodeDistanceResult(r.getGeomNode(), distance);
                 });
     }
 
-    @Procedure("spatial.decodeGeometry")
+    @UserFunction("spatial.decodeGeometry")
     @Description("Returns a geometry of a layer node as the Neo4j geometry type, to be passed to other procedures or returned to a client")
-    public Stream<GeometryResult> decodeGeometry(
+    public Object decodeGeometry(
             @Name("layerName") String name,
             @Name("node") Node node) {
 
         Layer layer = getLayerOrThrow(name);
-        return Stream.of(layer.getGeometryEncoder().decodeGeometry(node)).map(geom -> new GeometryResult(toNeo4jGeometry(layer, geom)));
+        GeometryResult result = new GeometryResult(toNeo4jGeometry(layer, layer.getGeometryEncoder().decodeGeometry(node)));
+        return result.geometry;
     }
 
+    @UserFunction("spatial.asMap")
+    @Description("Returns a Map object representing the Geometry, to be passed to other procedures or returned to a client")
+    public Object asMap(@Name("object") Object geometry) {
+        return toGeometryMap(geometry);
+    }
+
+    @UserFunction("spatial.asGeometry")
+    @Description("Returns a geometry object as the Neo4j geometry type, to be passed to other functions or procedures or returned to a client")
+    public Object asGeometry(
+            @Name("geometry") Object geometry) {
+
+        return toNeo4jGeometry(null, geometry);
+    }
+
+    @Deprecated
     @Procedure("spatial.asGeometry")
     @Description("Returns a geometry object as the Neo4j geometry type, to be passed to other procedures or returned to a client")
-    public Stream<GeometryResult> asGeometry(
+    public Stream<GeometryResult> asGeometryProc(
             @Name("geometry") Object geometry) {
 
         return Stream.of(geometry).map(geom -> new GeometryResult(toNeo4jGeometry(null, geom)));
     }
 
+    @Deprecated
     @Procedure(value = "spatial.asExternalGeometry", deprecatedBy = "spatial.asGeometry")
     @Description("Returns a geometry object as an external geometry type to be returned to a client")
     // This only existed temporarily because the other method, asGeometry, returned the wrong type due to a bug in Neo4j 3.0
@@ -647,7 +670,7 @@ public class SpatialProcedures {
         }
     }
 
-    private org.neo4j.graphdb.spatial.Coordinate toNeo4jCoordinate(Coordinate coordinate) {
+    private static org.neo4j.graphdb.spatial.Coordinate toNeo4jCoordinate(Coordinate coordinate) {
         if (coordinate.z == Coordinate.NULL_ORDINATE) {
             return new org.neo4j.graphdb.spatial.Coordinate(coordinate.x, coordinate.y);
         } else {
@@ -655,7 +678,7 @@ public class SpatialProcedures {
         }
     }
 
-    private List<org.neo4j.graphdb.spatial.Coordinate> toNeo4jCoordinates(Coordinate[] coordinates) {
+    private static List<org.neo4j.graphdb.spatial.Coordinate> toNeo4jCoordinates(Coordinate[] coordinates) {
         ArrayList<org.neo4j.graphdb.spatial.Coordinate> converted = new ArrayList<>();
         for (Coordinate coordinate : coordinates) {
             converted.add(toNeo4jCoordinate(coordinate));
@@ -663,7 +686,7 @@ public class SpatialProcedures {
         return converted;
     }
 
-    private org.neo4j.graphdb.spatial.Geometry toNeo4jGeometry(Layer layer, Object value) {
+    private static org.neo4j.graphdb.spatial.Geometry toNeo4jGeometry(Layer layer, Object value) {
         if (value instanceof org.neo4j.graphdb.spatial.Geometry) {
             return (org.neo4j.graphdb.spatial.Geometry) value;
         }
@@ -703,9 +726,71 @@ public class SpatialProcedures {
         throw new RuntimeException("Can't convert " + value + " to a geometry");
     }
 
+    private static Object toPublic(Object obj) {
+        if (obj instanceof Map) {
+            return toPublic((Map) obj);
+        } else if (obj instanceof PropertyContainer) {
+            return toPublic(((PropertyContainer) obj).getProperties());
+        } else if (obj instanceof Geometry) {
+            return toMap((Geometry) obj);
+        } else {
+            return obj;
+        }
+    }
+
+    private static Map<String, Object> toGeometryMap(Object geometry) {
+        return toMap(toNeo4jGeometry(null, geometry));
+    }
+
+    private static Map<String, Object> toMap(Geometry geometry) {
+        return toMap(toNeo4jGeometry(null, geometry));
+    }
+
+    private static double[] toCoordinateArrayFromDoubles(List<Double> coords) {
+        double[] coordinates = new double[coords.size()];
+        for (int i = 0; i < coordinates.length; i++) {
+            coordinates[i] = coords.get(i);
+        }
+        return coordinates;
+    }
+
+    private static double[][] toCoordinateArrayFromCoordinates(List<org.neo4j.graphdb.spatial.Coordinate> coords) {
+        List<double[]> coordinates = new ArrayList<>(coords.size());
+        for (org.neo4j.graphdb.spatial.Coordinate coord : coords) {
+            coordinates.add(toCoordinateArrayFromDoubles(coord.getCoordinate()));
+        }
+        return toCoordinateArray(coordinates);
+    }
+
+    private static double[][] toCoordinateArray(List<double[]> coords) {
+        double[][] coordinates = new double[coords.size()][];
+        for (int i = 0; i < coordinates.length; i++) {
+            coordinates[i] = coords.get(i);
+        }
+        return coordinates;
+    }
+
+    private static Map<String, Object> toMap(org.neo4j.graphdb.spatial.Geometry geometry) {
+        if (geometry instanceof org.neo4j.graphdb.spatial.Point) {
+            org.neo4j.graphdb.spatial.Point point = (org.neo4j.graphdb.spatial.Point) geometry;
+            return map("type", geometry.getGeometryType(), "coordinate", toCoordinateArrayFromDoubles(point.getCoordinate().getCoordinate()));
+        } else {
+            return map("type", geometry.getGeometryType(), "coordinates", toCoordinateArrayFromCoordinates(geometry.getCoordinates()));
+        }
+    }
+
+    private static Map<String, Object> toPublic(Map incoming) {
+        Map<String, Object> map = new HashMap<>(incoming.size());
+        for (Object key : incoming.keySet()) {
+            map.put(key.toString(), toPublic(incoming.get(key)));
+        }
+        return map;
+    }
+
     private static CRS findCRS(String crs) {
         switch (crs) {
-            case "WGS-84":
+            case "WGS-84":      // name in Neo4j CRS table
+            case "WGS84(DD)":   // name in geotools crs library
                 return makeCRS(4326, "WGS-84", "http://spatialreference.org/ref/epsg/4326/");
             case "Cartesian":
                 return makeCRS(7203, "cartesian", "http://spatialreference.org/ref/sr-org/7203/");
@@ -749,19 +834,19 @@ public class SpatialProcedures {
         throw new RuntimeException("Can't convert " + value + " to a coordinate");
     }
 
-    private Coordinate toCoordinate(org.neo4j.graphdb.spatial.Coordinate point) {
+    private static Coordinate toCoordinate(org.neo4j.graphdb.spatial.Coordinate point) {
         List<Double> coordinate = point.getCoordinate();
         return new Coordinate(coordinate.get(0), coordinate.get(1));
     }
 
-    private Coordinate toCoordinate(Map map) {
+    private static Coordinate toCoordinate(Map map) {
         if (map == null) return null;
         Coordinate coord = toCoordinate(map, "longitude", "latitude");
         if (coord == null) return toCoordinate(map, "lon", "lat");
         return coord;
     }
 
-    private Coordinate toCoordinate(Map map, String xName, String yName) {
+    private static Coordinate toCoordinate(Map map, String xName, String yName) {
         if (map.containsKey(xName) && map.containsKey(yName))
             return new Coordinate(((Number) map.get(xName)).doubleValue(), ((Number) map.get(yName)).doubleValue());
         return null;

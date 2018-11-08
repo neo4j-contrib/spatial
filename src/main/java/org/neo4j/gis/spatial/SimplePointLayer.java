@@ -25,6 +25,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 
 import com.vividsolutions.jts.geom.Coordinate;
+import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
 
 public class SimplePointLayer extends EditableLayerImpl {
 
@@ -53,18 +54,18 @@ public class SimplePointLayer extends EditableLayerImpl {
 	public List<GeoPipeFlow> findClosestPointsTo(Coordinate coordinate, double d) {
 		return GeoPipeline
 			.startNearestNeighborLatLonSearch(this, coordinate, d)
-			.sort("OrthodromicDistance").toList();
+			.sort(OrthodromicDistance.DISTANCE).toList();
 	}
 
 	public List<GeoPipeFlow> findClosestPointsTo(Coordinate coordinate, int numberOfItemsToFind) {
 		return GeoPipeline
 			.startNearestNeighborLatLonSearch(this, coordinate, 2 * numberOfItemsToFind)
-			.sort("OrthodromicDistance").next(numberOfItemsToFind);
+			.sort(OrthodromicDistance.DISTANCE).next(numberOfItemsToFind);
 	}
 
 	public List<GeoPipeFlow> findClosestPointsTo(Coordinate coordinate) {
 		return GeoPipeline
 			.startNearestNeighborLatLonSearch(this, coordinate, 2 * LIMIT_RESULTS)
-			.sort("OrthodromicDistance").next(LIMIT_RESULTS);
+			.sort(OrthodromicDistance.DISTANCE).next(LIMIT_RESULTS);
 	}
 }
