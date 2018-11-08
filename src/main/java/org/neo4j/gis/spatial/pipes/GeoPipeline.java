@@ -362,12 +362,7 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow,GeoPipeFlow> {
 		Envelope searchWindow = OrthodromicDistance.suggestSearchWindow(point, maxDistanceInKm);
 		GeoPipeline pipeline = start(layer, new SearchIntersectWindow(layer, searchWindow))
 			.calculateOrthodromicDistance(point);
-		
-		if (layer.getGeometryType() != null && layer.getGeometryType() == Constants.GTYPE_POINT) {
-			pipeline = pipeline.propertyFilter(OrthodromicDistance.DISTANCE, maxDistanceInKm, FilterPipe.Filter.LESS_THAN_EQUAL);
-		}
-		
-		return pipeline;
+    	return pipeline.propertyFilter(OrthodromicDistance.DISTANCE, maxDistanceInKm, FilterPipe.Filter.LESS_THAN_EQUAL);
 	}
 
 	/**
