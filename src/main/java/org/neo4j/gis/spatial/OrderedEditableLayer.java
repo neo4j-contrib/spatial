@@ -27,7 +27,6 @@ import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.traversal.BranchOrderingPolicies;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
-import org.neo4j.shell.kernel.apps.Trav;
 
 import com.vividsolutions.jts.geom.Geometry;
 
