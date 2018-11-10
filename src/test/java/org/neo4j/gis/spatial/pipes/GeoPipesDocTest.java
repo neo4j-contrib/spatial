@@ -802,7 +802,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase
 	    	.createWellKnownText();
         
         assertEquals(
-                "POLYGON ((0 0, 0 5, 2 5, 2 6, 4 6, 4 10, 10 10, 10 4, 6 4, 6 2, 5 2, 5 0, 0 0))",
+                "POLYGON ((4 6, 4 10, 10 10, 10 4, 6 4, 6 2, 5 2, 5 0, 0 0, 0 5, 2 5, 2 6, 4 6))",
                 pipeline.next().getProperty( "WellKnownText" ) );
 
         try
@@ -843,7 +843,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase
 	    	.intersectAll()
 	    	.createWellKnownText();
         
-        assertEquals( "POLYGON ((4 5, 5 5, 5 4, 4 4, 4 5))",
+        assertEquals( "POLYGON ((4 4, 4 5, 5 5, 5 4, 4 4))",
                 pipeline.next().getProperty( "WellKnownText" ) );
         
         try
