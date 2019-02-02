@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <properties>
-        <neo4j.version>3.5.0-SNAPSHOT</neo4j.version>
+        <neo4j.version>3.5.0</neo4j.version>
         <neo4j.java.version>1.8</neo4j.java.version>
         <maven-compiler-plugin.version>3.1</maven-compiler-plugin.version>
         <maven-gpg-plugin.version>1.4</maven-gpg-plugin.version>
@@ -478,14 +478,6 @@
             <id>java.net</id>
             <name>Java.net repo</name>
             <url>https://maven.java.net/service/local/repositories/releases/content/</url>
-        </repository>
-        <repository>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <id>opengeo</id>
-            <name>OpenGeo Maven Repository</name>
-            <url>http://repo.opengeo.org</url>
         </repository>
         <repository>
             <snapshots>
