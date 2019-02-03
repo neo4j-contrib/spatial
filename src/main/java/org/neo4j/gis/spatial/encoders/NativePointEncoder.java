@@ -84,7 +84,7 @@ public class NativePointEncoder extends AbstractGeometryEncoder implements Confi
             String[] fields = configuration.split(":");
             if (fields.length > 0) locationProperty = fields[0];
             if (fields.length > 1) bboxProperty = fields[1];
-            if (fields.length > 2) crs = Neo4jCRS.findCRS(fields[1]);
+            if (fields.length > 2) crs = Neo4jCRS.findCRS(fields[2]);
         }
     }
 

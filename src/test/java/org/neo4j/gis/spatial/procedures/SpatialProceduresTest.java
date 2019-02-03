@@ -36,9 +36,8 @@ import java.util.function.Consumer;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.TestCase.assertFalse;
 import static org.hamcrest.Matchers.*;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
+import static org.neo4j.gis.spatial.Constants.*;
 
 public class SpatialProceduresTest {
     private GraphDatabaseService db;
@@ -85,12 +84,11 @@ public class SpatialProceduresTest {
 
     public static void testCall(GraphDatabaseService db, String call, Map<String, Object> params, Consumer<Map<String, Object>> consumer, boolean onlyOne) {
         testResult(db, call, params, (res) -> {
-            if (res.hasNext()) {
-                Map<String, Object> row = res.next();
-                consumer.accept(row);
-            }
+            Assert.assertTrue("Expect at least one result but got none: " + call, res.hasNext());
+            Map<String, Object> row = res.next();
+            consumer.accept(row);
             if ( onlyOne ) {
-                Assert.assertFalse( res.hasNext() );
+                Assert.assertFalse( "Expected only one result, but there are more", res.hasNext() );
             }
         });
     }
@@ -378,8 +376,69 @@ public class SpatialProceduresTest {
     }
 
     @Test
-    public void create_a_pointlayer_using_named_encoder() {
-        testCall(db, "CALL spatial.addLayerWithEncoder('geom','SimplePointEncoder','')", (r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
+    public void create_a_simple_pointlayer_using_named_encoder() {
+        testCall(db, "CALL spatial.addLayerWithEncoder('geom','SimplePointEncoder','')", (r) -> {
+            Node node = dump((Node) r.get("node"));
+            assertEquals("geom", node.getProperty("layer"));
+            assertEquals("org.neo4j.gis.spatial.encoders.SimplePointEncoder", node.getProperty("geomencoder"));
+            assertEquals("org.neo4j.gis.spatial.SimplePointLayer", node.getProperty("layer_class"));
+            assertFalse(node.hasProperty(PROP_GEOMENCODER_CONFIG));
+        });
+    }
+
+    @Test
+    public void create_a_simple_pointlayer_using_named_and_configured_encoder() {
+        testCall(db, "CALL spatial.addLayerWithEncoder('geom','SimplePointEncoder','x:y:mbr')", (r) -> {
+            Node node = dump((Node) r.get("node"));
+            assertEquals("geom", node.getProperty(PROP_LAYER));
+            assertEquals("org.neo4j.gis.spatial.encoders.SimplePointEncoder", node.getProperty(PROP_GEOMENCODER));
+            assertEquals("org.neo4j.gis.spatial.SimplePointLayer", node.getProperty(PROP_LAYER_CLASS));
+            assertEquals("x:y:mbr", node.getProperty(PROP_GEOMENCODER_CONFIG));
+        });
+    }
+
+    @Test
+    public void create_a_native_pointlayer_using_named_encoder() {
+        testCall(db, "CALL spatial.addLayerWithEncoder('geom','NativePointEncoder','')", (r) -> {
+            Node node = dump((Node) r.get("node"));
+            assertEquals("geom", node.getProperty(PROP_LAYER));
+            assertEquals("org.neo4j.gis.spatial.encoders.NativePointEncoder", node.getProperty(PROP_GEOMENCODER));
+            assertEquals("org.neo4j.gis.spatial.SimplePointLayer", node.getProperty(PROP_LAYER_CLASS));
+            assertFalse(node.hasProperty(PROP_GEOMENCODER_CONFIG));
+        });
+    }
+
+    @Test
+    public void create_a_native_pointlayer_using_named_and_configured_encoder() {
+        testCall(db, "CALL spatial.addLayerWithEncoder('geom','NativePointEncoder','pos:mbr')", (r) -> {
+            Node node = dump((Node) r.get("node"));
+            assertEquals("geom", node.getProperty(PROP_LAYER));
+            assertEquals("org.neo4j.gis.spatial.encoders.NativePointEncoder", node.getProperty(PROP_GEOMENCODER));
+            assertEquals("org.neo4j.gis.spatial.SimplePointLayer", node.getProperty(PROP_LAYER_CLASS));
+            assertEquals("pos:mbr", node.getProperty(PROP_GEOMENCODER_CONFIG));
+        });
+    }
+
+    @Test
+    public void create_a_native_pointlayer_using_named_and_configured_encoder_with_cartesian() {
+        testCall(db, "CALL spatial.addLayerWithEncoder('geom','NativePointEncoder','pos:mbr:Cartesian')", (r) -> {
+            Node node = dump((Node) r.get("node"));
+            assertEquals("geom", node.getProperty(PROP_LAYER));
+            assertEquals("org.neo4j.gis.spatial.encoders.NativePointEncoder", node.getProperty(PROP_GEOMENCODER));
+            assertEquals("org.neo4j.gis.spatial.SimplePointLayer", node.getProperty(PROP_LAYER_CLASS));
+            assertEquals("pos:mbr:Cartesian", node.getProperty(PROP_GEOMENCODER_CONFIG));
+        });
+    }
+
+    @Test
+    public void create_a_native_pointlayer_using_named_and_configured_encoder_with_geographic() {
+        testCall(db, "CALL spatial.addLayerWithEncoder('geom','NativePointEncoder','pos:mbr:WGS-84')", (r) -> {
+            Node node = dump((Node) r.get("node"));
+            assertEquals("geom", node.getProperty(PROP_LAYER));
+            assertEquals("org.neo4j.gis.spatial.encoders.NativePointEncoder", node.getProperty(PROP_GEOMENCODER));
+            assertEquals("org.neo4j.gis.spatial.SimplePointLayer", node.getProperty(PROP_LAYER_CLASS));
+            assertEquals("pos:mbr:WGS-84", node.getProperty(PROP_GEOMENCODER_CONFIG));
+        });
     }
 
     @Test
@@ -469,11 +528,15 @@ public class SpatialProceduresTest {
                 System.out.println(key + ": " + procs.get(key));
             }
             assertEquals("RegisteredLayerType(name='SimplePoint', geometryEncoder=SimplePointEncoder, layerClass=SimplePointLayer, index=LayerRTreeIndex, crs='WGS84(DD)', defaultConfig='longitude:latitude')", procs.get("simplepoint"));
+            assertEquals("RegisteredLayerType(name='NativePoint', geometryEncoder=NativePointEncoder, layerClass=SimplePointLayer, index=LayerRTreeIndex, crs='WGS84(DD)', defaultConfig='location')", procs.get("nativepoint"));
             assertEquals("RegisteredLayerType(name='WKT', geometryEncoder=WKTGeometryEncoder, layerClass=EditableLayerImpl, index=LayerRTreeIndex, crs='WGS84(DD)', defaultConfig='geometry')", procs.get("wkt"));
             assertEquals("RegisteredLayerType(name='WKB', geometryEncoder=WKBGeometryEncoder, layerClass=EditableLayerImpl, index=LayerRTreeIndex, crs='WGS84(DD)', defaultConfig='geometry')", procs.get("wkb"));
             assertEquals("RegisteredLayerType(name='Geohash', geometryEncoder=SimplePointEncoder, layerClass=SimplePointLayer, index=LayerGeohashPointIndex, crs='WGS84(DD)', defaultConfig='longitude:latitude')", procs.get("geohash"));
             assertEquals("RegisteredLayerType(name='ZOrder', geometryEncoder=SimplePointEncoder, layerClass=SimplePointLayer, index=LayerZOrderPointIndex, crs='WGS84(DD)', defaultConfig='longitude:latitude')", procs.get("zorder"));
             assertEquals("RegisteredLayerType(name='Hilbert', geometryEncoder=SimplePointEncoder, layerClass=SimplePointLayer, index=LayerHilbertPointIndex, crs='WGS84(DD)', defaultConfig='longitude:latitude')", procs.get("hilbert"));
+            assertEquals("RegisteredLayerType(name='NativeGeohash', geometryEncoder=NativePointEncoder, layerClass=SimplePointLayer, index=LayerGeohashPointIndex, crs='WGS84(DD)', defaultConfig='location')", procs.get("nativegeohash"));
+            assertEquals("RegisteredLayerType(name='NativeZOrder', geometryEncoder=NativePointEncoder, layerClass=SimplePointLayer, index=LayerZOrderPointIndex, crs='WGS84(DD)', defaultConfig='location')", procs.get("nativezorder"));
+            assertEquals("RegisteredLayerType(name='NativeHilbert', geometryEncoder=NativePointEncoder, layerClass=SimplePointLayer, index=LayerHilbertPointIndex, crs='WGS84(DD)', defaultConfig='location')", procs.get("nativehilbert"));
         });
     }
 
@@ -488,7 +551,7 @@ public class SpatialProceduresTest {
     }
 
     @Test
-    public void add_a_node_to_the_spatial_rtree_index() throws Exception {
+    public void add_a_node_to_the_spatial_rtree_index_for_simple_points() throws Exception {
         execute("CALL spatial.addPointLayer('geom')");
         ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) RETURN n").columnAs("n");
         Node node = (Node) nodes.next();
@@ -497,7 +560,7 @@ public class SpatialProceduresTest {
     }
 
     @Test
-    public void add_a_node_to_the_spatial_geohash_index() throws Exception {
+    public void add_a_node_to_the_spatial_geohash_index_for_simple_points() throws Exception {
         execute("CALL spatial.addPointLayerGeohash('geom')");
         ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) RETURN n").columnAs("n");
         Node node = (Node) nodes.next();
@@ -506,7 +569,7 @@ public class SpatialProceduresTest {
     }
 
     @Test
-    public void add_a_node_to_the_spatial_zorder_index() throws Exception {
+    public void add_a_node_to_the_spatial_zorder_index_for_simple_points() throws Exception {
         execute("CALL spatial.addPointLayerZOrder('geom')");
         ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) RETURN n").columnAs("n");
         Node node = (Node) nodes.next();
@@ -515,7 +578,7 @@ public class SpatialProceduresTest {
     }
 
     @Test
-    public void add_a_node_to_the_spatial_hilbert_index() throws Exception {
+    public void add_a_node_to_the_spatial_hilbert_index_for_simple_points() throws Exception {
         execute("CALL spatial.addPointLayerHilbert('geom')");
         ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) RETURN n").columnAs("n");
         Node node = (Node) nodes.next();
@@ -524,27 +587,41 @@ public class SpatialProceduresTest {
     }
 
     @Test
-    public void add_a_node_to_multiple_different_indexes() throws Exception {
+    public void add_a_node_to_multiple_different_indexes_for_both_simple_and_native_points() throws Exception {
+        String[] encoders = new String[]{"Simple", "Native"};
         String[] indexes = new String[]{"Geohash", "ZOrder", "Hilbert", "RTree"};
-        for (String name : indexes) {
-            String layerName = name.toLowerCase();
-            execute("CALL spatial.addPointLayer" + (name.equals("RTree") ? "" : name) + "('" + layerName + "')");
+        for (String encoder : encoders) {
+            String procName = (encoder.equalsIgnoreCase("Native")) ? "addNativePointLayer" : "addPointLayer";
+            for (String indexType : indexes) {
+                String layerName = (encoder + indexType).toLowerCase();
+                String query = "CALL spatial." + procName + (indexType.equals("RTree") ? "" : indexType) + "('" + layerName + "')";
+                execute(query);
+            }
         }
-        testCallCount(db, "CALL spatial.layers()", null, indexes.length);
-        ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) RETURN n").columnAs("n");
+        testResult(db, "CALL spatial.layers()", (res) -> {
+            while (res.hasNext()) {
+                Map<String, Object> r = res.next();
+                String encoder = r.get("name").toString().contains("native") ? "NativePointEncoder" : "SimplePointEncoder";
+                assertThat("Expect simple:native encoders to appear in simple:native layers", r.get("signature").toString(), containsString(encoder));
+            }
+        });
+        testCallCount(db, "CALL spatial.layers()", null, indexes.length * encoders.length);
+        ResourceIterator<Object> nodes = db.execute("CREATE (n:Node {latitude:60.1,longitude:15.2}) SET n.location=point(n) RETURN n").columnAs("n");
         Node node = (Node) nodes.next();
         nodes.close();
-        for (String name : indexes) {
-            String layerName = name.toLowerCase();
-            testCall(db, "MATCH (n:Node) WITH n CALL spatial.addNode('" + layerName + "',n) YIELD node RETURN node", r -> Assert.assertEquals(node, r.get("node")));
+        for (String encoder : encoders) {
+            for (String indexType : indexes) {
+                String layerName = (encoder + indexType).toLowerCase();
+                testCall(db, "MATCH (node:Node) RETURN node", r -> Assert.assertEquals(node, r.get("node")));
+                testCall(db, "MATCH (n:Node) WITH n CALL spatial.addNode('" + layerName + "',n) YIELD node RETURN node", r -> Assert.assertEquals(node, r.get("node")));
+                testCall(db, "CALL spatial.withinDistance('" + layerName + "',{lon:15.0,lat:60.0},100)", r -> assertEquals(node, r.get("node")));
+            }
         }
-        for (String name : indexes) {
-            String layerName = name.toLowerCase();
-            testCall(db, "CALL spatial.withinDistance('" + layerName + "',{lon:15.0,lat:60.0},100)", r -> assertEquals(node, r.get("node")));
-        }
-        for (String name : indexes) {
-            String layerName = name.toLowerCase();
-            execute("CALL spatial.removeLayer('" + layerName + "')");
+        for (String encoder : encoders) {
+            for (String indexType : indexes) {
+                String layerName = (encoder + indexType).toLowerCase();
+                execute("CALL spatial.removeLayer('" + layerName + "')");
+            }
         }
         testCallCount(db, "CALL spatial.layers()", null, 0);
     }
@@ -634,7 +711,7 @@ public class SpatialProceduresTest {
     }
 
     @Test
-    public void add_many_nodes_to_the_spatial_layer_using_addNodes() throws Exception {
+    public void add_many_nodes_to_the_simple_point_layer_using_addNodes() throws Exception {
         // Playing with this number in both tests leads to rough benchmarking of the addNode/addNodes comparison
         int count = 1000;
         execute("CALL spatial.addLayer('poi','SimplePoint','')");
@@ -647,12 +724,40 @@ public class SpatialProceduresTest {
     }
 
     @Test
-    public void add_many_nodes_to_the_spatial_layer_using_addNode() throws Exception {
+    public void add_many_nodes_to_the_simple_point_layer_using_addNode() throws Exception {
         // Playing with this number in both tests leads to rough benchmarking of the addNode/addNodes comparison
         int count = 1000;
         execute("CALL spatial.addLayer('poi','SimplePoint','')");
         String query = "UNWIND range(1,{count}) as i\n" +
                 "CREATE (n:Point {latitude:(56.0+toFloat(i)/100.0),longitude:(12.0+toFloat(i)/100.0)})\n" +
+                "WITH n\n" +
+                "CALL spatial.addNode('poi',n) YIELD node\n" +
+                "RETURN count(node)";
+        testCountQuery("addNode", query, count, "count(node)", map("count", count));
+    }
+
+    @Test
+    public void add_many_nodes_to_the_native_point_layer_using_addNodes() throws Exception {
+        // Playing with this number in both tests leads to rough benchmarking of the addNode/addNodes comparison
+        int count = 1000;
+        execute("CALL spatial.addLayer('poi','NativePoint','')");
+        String query = "UNWIND range(1,{count}) as i\n" +
+                "WITH Point({latitude:(56.0+toFloat(i)/100.0),longitude:(12.0+toFloat(i)/100.0)}) AS location\n" +
+                "CREATE (n:Point {location:location})\n" +
+                "WITH collect(n) as points\n" +
+                "CALL spatial.addNodes('poi',points) YIELD count\n" +
+                "RETURN count";
+        testCountQuery("addNodes", query, count, "count", map("count", count));
+    }
+
+    @Test
+    public void add_many_nodes_to_the_native_point_layer_using_addNode() throws Exception {
+        // Playing with this number in both tests leads to rough benchmarking of the addNode/addNodes comparison
+        int count = 1000;
+        execute("CALL spatial.addLayer('poi','NativePoint','')");
+        String query = "UNWIND range(1,{count}) as i\n" +
+                "WITH Point({latitude:(56.0+toFloat(i)/100.0),longitude:(12.0+toFloat(i)/100.0)}) AS location\n" +
+                "CREATE (n:Point {location:location})\n" +
                 "WITH n\n" +
                 "CALL spatial.addNode('poi',n) YIELD node\n" +
                 "RETURN count(node)";

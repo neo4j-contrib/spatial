@@ -294,6 +294,104 @@ public class SpatialProcedures {
         }
     }
 
+    @Procedure(value="spatial.addNativePointLayer", mode=WRITE)
+    @Description("Adds a new native point layer, returns the layer root node")
+    public Stream<NodeResult> addNativePointLayer(
+            @Name("name") String name,
+            @Name(value = "indexType", defaultValue = RTREE_INDEX_NAME) String indexType,
+            @Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName) {
+        SpatialDatabaseService sdb = wrap(db);
+        Layer layer = sdb.getLayer(name);
+        if (layer == null) {
+            return streamNode(sdb.createLayer(name, NativePointEncoder.class, SimplePointLayer.class, sdb.resolveIndexClass(indexType), null, selectCRS(crsName)).getLayerNode());
+        } else {
+            throw new IllegalArgumentException("Cannot create existing layer: " + name);
+        }
+    }
+
+    @Procedure(value="spatial.addNativePointLayerGeohash", mode=WRITE)
+    @Description("Adds a new native point layer with geohash based index, returns the layer root node")
+    public Stream<NodeResult> addNativePointLayerGeohash(
+            @Name("name") String name,
+            @Name(value = "crsName", defaultValue = WGS84_CRS_NAME) String crsName) {
+        SpatialDatabaseService sdb = wrap(db);
+        Layer layer = sdb.getLayer(name);
+        if (layer == null) {
+            return streamNode(sdb.createLayer(name, NativePointEncoder.class, SimplePointLayer.class, LayerGeohashPointIndex.class, null, selectCRS(crsName)).getLayerNode());
+        } else {
+            throw new IllegalArgumentException("Cannot create existing layer: " + name);
+        }
+    }
+
+    @Procedure(value="spatial.addNativePointLayerZOrder", mode=WRITE)
+    @Description("Adds a new native point layer with z-order curve based index, returns the layer root node")
+    public Stream<NodeResult> addNativePointLayerZOrder(@Name("name") String name) {
+        SpatialDatabaseService sdb = wrap(db);
+        Layer layer = sdb.getLayer(name);
+        if (layer == null) {
+            return streamNode(sdb.createLayer(name, NativePointEncoder.class, SimplePointLayer.class, LayerZOrderPointIndex.class, null, DefaultGeographicCRS.WGS84).getLayerNode());
+        } else {
+            throw new IllegalArgumentException("Cannot create existing layer: " + name);
+        }
+    }
+
+    @Procedure(value="spatial.addNativePointLayerHilbert", mode=WRITE)
+    @Description("Adds a new native point layer with hilbert curve based index, returns the layer root node")
+    public Stream<NodeResult> addNativePointLayerHilbert(@Name("name") String name) {
+        SpatialDatabaseService sdb = wrap(db);
+        Layer layer = sdb.getLayer(name);
+        if (layer == null) {
+            return streamNode(sdb.createLayer(name, NativePointEncoder.class, SimplePointLayer.class, LayerHilbertPointIndex.class, null, DefaultGeographicCRS.WGS84).getLayerNode());
+        } else {
+            throw new IllegalArgumentException("Cannot create existing layer: " + name);
+        }
+    }
+
+    @Procedure(value="spatial.addNativePointLayerXY", mode=WRITE)
+    @Description("Adds a new native point layer with the given properties for x and y coordinates, returns the layer root node")
+    public Stream<NodeResult> addNativePointLayer(
+            @Name("name") String name,
+            @Name("xProperty") String xProperty,
+            @Name("yProperty") String yProperty,
+            @Name(value = "indexType", defaultValue = RTREE_INDEX_NAME) String indexType,
+            @Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName) {
+        SpatialDatabaseService sdb = wrap(db);
+        Layer layer = sdb.getLayer(name);
+        if (layer == null) {
+            if (xProperty != null && yProperty != null) {
+                return streamNode(sdb.createLayer(name, NativePointEncoder.class, SimplePointLayer.class,
+                        sdb.resolveIndexClass(indexType), sdb.makeEncoderConfig(xProperty, yProperty),
+                        selectCRS(hintCRSName(crsName, yProperty))).getLayerNode());
+            } else {
+                throw new IllegalArgumentException("Cannot create layer '" + name + "': Missing encoder config values: xProperty[" + xProperty + "], yProperty[" + yProperty + "]");
+            }
+        } else {
+            throw new IllegalArgumentException("Cannot create existing layer: " + name);
+        }
+    }
+
+    @Procedure(value="spatial.addNativePointLayerWithConfig", mode=WRITE)
+    @Description("Adds a new native point layer with the given configuration, returns the layer root node")
+    public Stream<NodeResult> addNativePointLayerWithConfig(
+            @Name("name") String name,
+            @Name("encoderConfig") String encoderConfig,
+            @Name(value = "indexType", defaultValue = RTREE_INDEX_NAME) String indexType,
+            @Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName) {
+        SpatialDatabaseService sdb = wrap(db);
+        Layer layer = sdb.getLayer(name);
+        if (layer == null) {
+            if (encoderConfig.indexOf(':') > 0) {
+                return streamNode(sdb.createLayer(name, NativePointEncoder.class, SimplePointLayer.class,
+                        sdb.resolveIndexClass(indexType), encoderConfig,
+                        selectCRS(hintCRSName(crsName, encoderConfig))).getLayerNode());
+            } else {
+                throw new IllegalArgumentException("Cannot create layer '" + name + "': invalid encoder config '" + encoderConfig + "'");
+            }
+        } else {
+            throw new IllegalArgumentException("Cannot create existing layer: " + name);
+        }
+    }
+
     public static final String UNSET_CRS_NAME = "";
     public static final String WGS84_CRS_NAME = "wgs84";
 
