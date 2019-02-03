@@ -117,7 +117,7 @@ public class RTreeBulkInsertTest {
         int blockSize = 10000;
         SpatialDatabaseService sdbs = new SpatialDatabaseService(db);
         CoordinateReferenceSystem crs = DefaultEngineeringCRS.GENERIC_2D;
-        EditableLayer layer = sdbs.getOrCreatePointLayer("Coordinates", "rtree", "lon", "lat");
+        EditableLayer layer = sdbs.getOrCreateSimplePointLayer("Coordinates", "rtree", "lon", "lat");
         try (Transaction tx = db.beginTx()) {
             layer.setCoordinateReferenceSystem(crs);
             tx.success();
@@ -951,7 +951,7 @@ public class RTreeBulkInsertTest {
 //        File dbPath = new File("target/var/BulkTest");
 //        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath.getCanonicalPath());
         SpatialDatabaseService sdbs = new SpatialDatabaseService(db);
-        EditableLayer layer = sdbs.getOrCreatePointLayer("Coordinates", "rtree", "lon", "lat");
+        EditableLayer layer = sdbs.getOrCreateSimplePointLayer("Coordinates", "rtree", "lon", "lat");
 
         final long numNodes = 100000;
         Random rand = new Random();
@@ -1103,7 +1103,7 @@ public class RTreeBulkInsertTest {
                 try (Transaction tx = db.beginTx()) {
 
 
-                    EditableLayer layer = sdbs.getOrCreatePointLayer("BulkLoader", "rtree", "lon", "lat");
+                    EditableLayer layer = sdbs.getOrCreateSimplePointLayer("BulkLoader", "rtree", "lon", "lat");
                     List<Node> coords = new ArrayList<>(N);
                     for (int i = 0; i < N; i++) {
                         Node n = db.createNode(Label.label("Coordinate"));
@@ -1271,7 +1271,7 @@ public class RTreeBulkInsertTest {
         System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to create " + (width * width) + " nodes");
         SpatialDatabaseService sdbs = new SpatialDatabaseService(db);
         CoordinateReferenceSystem crs = DefaultEngineeringCRS.GENERIC_2D;
-        EditableLayer layer = sdbs.getOrCreatePointLayer(name, index, "lon", "lat");
+        EditableLayer layer = sdbs.getOrCreateSimplePointLayer(name, index, "lon", "lat");
         try (Transaction tx = db.beginTx()) {
             layer.setCoordinateReferenceSystem(crs);
             tx.success();

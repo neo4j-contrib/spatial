@@ -19,30 +19,25 @@
  */
 package org.neo4j.gis.spatial;
 
-import java.util.*;
-
+import com.vividsolutions.jts.geom.*;
 import org.geotools.referencing.crs.AbstractCRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
+import org.neo4j.gis.spatial.encoders.Configurable;
+import org.neo4j.gis.spatial.encoders.NativePointEncoder;
+import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.index.*;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMLayer;
+import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.utilities.LayerUtilities;
 import org.neo4j.gis.spatial.utilities.ReferenceNodes;
-import org.neo4j.gis.spatial.rtree.Listener;
-import org.neo4j.gis.spatial.encoders.Configurable;
-import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.graphdb.*;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.MultiLineString;
-import com.vividsolutions.jts.geom.MultiPoint;
-import com.vividsolutions.jts.geom.MultiPolygon;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.geom.Polygon;
-
-import static org.neo4j.helpers.collection.MapUtil.map;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * @author Davide Savazzi
@@ -203,17 +198,18 @@ public class SpatialDatabaseService implements Constants {
 		throw new IllegalArgumentException("Unknown index: " + index);
 	}
 
-	public EditableLayer getOrCreatePointLayer(String name, String index, String xProperty, String yProperty) {
-		return getOrCreatePointLayer(name, resolveIndexClass(index), xProperty, yProperty);
+	public EditableLayer getOrCreateSimplePointLayer(String name, String index, String xProperty, String yProperty) {
+		return getOrCreatePointLayer(name, resolveIndexClass(index), SimplePointEncoder.class, xProperty, yProperty);
 	}
 
-	public EditableLayer getOrCreatePointLayer(String name, Class<? extends LayerIndexReader> indexClass, String xProperty, String yProperty) {
+	public EditableLayer getOrCreateNativePointLayer(String name, String index, String locationProperty) {
+		return getOrCreatePointLayer(name, resolveIndexClass(index), SimplePointEncoder.class, locationProperty);
+	}
+
+	public EditableLayer getOrCreatePointLayer(String name, Class<? extends LayerIndexReader> indexClass, Class<? extends GeometryEncoder> encoderClass, String... encoderConfig) {
 		Layer layer = getLayer(name);
 		if (layer == null) {
-			String encoderConfig = null;
-			if (xProperty != null && yProperty != null)
-				encoderConfig = xProperty + ":" + yProperty;
-			return (EditableLayer) createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, indexClass, encoderConfig, DefaultGeographicCRS.WGS84);
+			return (EditableLayer) createLayer(name, encoderClass, SimplePointLayer.class, indexClass, makeEncoderConfig(encoderConfig), DefaultGeographicCRS.WGS84);
 		} else if (layer instanceof EditableLayer) {
 			return (EditableLayer) layer;
 		} else {
@@ -289,13 +285,25 @@ public class SpatialDatabaseService implements Constants {
 		return createSimplePointLayer(name, xProperty, yProperty, null);
 	}
 
-    public SimplePointLayer createSimplePointLayer(String name, String... xybProperties) {
-        return createSimplePointLayer(name, LayerRTreeIndex.class, xybProperties);
-    }
+	public SimplePointLayer createSimplePointLayer(String name, String... xybProperties) {
+		return createPointLayer(name, LayerRTreeIndex.class, SimplePointEncoder.class, xybProperties);
+	}
 
-    public SimplePointLayer createSimplePointLayer(String name, Class<? extends LayerIndexReader> indexClass, String... xybProperties) {
-        return (SimplePointLayer) createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, indexClass,
-                makeEncoderConfig(xybProperties), org.geotools.referencing.crs.DefaultGeographicCRS.WGS84);
+	public SimplePointLayer createNativePointLayer(String name) {
+		return createNativePointLayer(name, null);
+	}
+
+	public SimplePointLayer createNativePointLayer(String name, String locationProperty, String bboxProperty) {
+		return createNativePointLayer(name, locationProperty, bboxProperty, null);
+	}
+
+	public SimplePointLayer createNativePointLayer(String name, String... encoderConfig) {
+		return createPointLayer(name, LayerRTreeIndex.class, NativePointEncoder.class, encoderConfig);
+	}
+
+	public SimplePointLayer createPointLayer(String name, Class<? extends LayerIndexReader> indexClass, Class<? extends GeometryEncoder> encoderClass, String... encoderConfig) {
+        return (SimplePointLayer) createLayer(name, encoderClass, SimplePointLayer.class, indexClass,
+                makeEncoderConfig(encoderConfig), org.geotools.referencing.crs.DefaultGeographicCRS.WGS84);
     }
 
     public String makeEncoderConfig(String... args) {
@@ -485,6 +493,14 @@ public class SpatialDatabaseService implements Constants {
 				SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerZOrderPointIndex.class, "longitude:latitude"));
 		addRegisteredLayerType(new RegisteredLayerType("Hilbert", SimplePointEncoder.class,
 				SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerHilbertPointIndex.class, "longitude:latitude"));
+		addRegisteredLayerType(new RegisteredLayerType("NativePoint", NativePointEncoder.class,
+				SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "location"));
+		addRegisteredLayerType(new RegisteredLayerType("NativeGeohash", NativePointEncoder.class,
+				SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerGeohashPointIndex.class, "location"));
+		addRegisteredLayerType(new RegisteredLayerType("NativeZOrder", NativePointEncoder.class,
+				SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerZOrderPointIndex.class, "location"));
+		addRegisteredLayerType(new RegisteredLayerType("NativeHilbert", NativePointEncoder.class,
+				SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerHilbertPointIndex.class, "location"));
 		addRegisteredLayerType(new RegisteredLayerType("WKT", WKTGeometryEncoder.class, EditableLayerImpl.class,
 				DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "geometry"));
 		addRegisteredLayerType(new RegisteredLayerType("WKB", WKBGeometryEncoder.class, EditableLayerImpl.class,

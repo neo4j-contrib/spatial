@@ -21,7 +21,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>neo4j-spatial</artifactId>
     <groupId>org.neo4j</groupId>
-    <version>0.25.7-neo4j-3.4.9</version>
+    <version>0.26.0-neo4j-3.4.9</version>
     <name>Neo4j - Spatial Components</name>
     <description>Spatial utilities and components for Neo4j</description>
     <url>http://components.neo4j.org/${project.artifactId}/${project.version}</url>
@@ -472,14 +472,6 @@
             <id>java.net</id>
             <name>Java.net repo</name>
             <url>https://maven.java.net/service/local/repositories/releases/content/</url>
-        </repository>
-        <repository>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <id>opengeo</id>
-            <name>OpenGeo Maven Repository</name>
-            <url>http://repo.opengeo.org</url>
         </repository>
         <repository>
             <snapshots>

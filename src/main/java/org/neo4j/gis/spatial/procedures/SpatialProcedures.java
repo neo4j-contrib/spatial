@@ -20,16 +20,17 @@
 package org.neo4j.gis.spatial.procedures;
 
 import com.vividsolutions.jts.geom.*;
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.neo4j.gis.spatial.*;
+import org.neo4j.gis.spatial.encoders.NativePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePropertyEncoder;
+import org.neo4j.gis.spatial.encoders.neo4j.Neo4jCRS;
+import org.neo4j.gis.spatial.encoders.neo4j.Neo4jGeometry;
+import org.neo4j.gis.spatial.encoders.neo4j.Neo4jPoint;
 import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
 import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
 import org.neo4j.gis.spatial.index.LayerZOrderPointIndex;
@@ -42,17 +43,11 @@ import org.neo4j.gis.spatial.rtree.ProgressLoggingListener;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.PropertyContainer;
-import org.neo4j.graphdb.spatial.CRS;
 import org.neo4j.internal.kernel.api.procs.ProcedureSignature;
 import org.neo4j.kernel.impl.proc.Procedures;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
-
-import static org.neo4j.gis.spatial.SpatialDatabaseService.RTREE_INDEX_NAME;
-import static org.neo4j.helpers.collection.MapUtil.map;
-import static org.neo4j.procedure.Mode.*;
-
 import org.opengis.referencing.ReferenceIdentifier;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
@@ -61,8 +56,12 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.*;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static org.neo4j.gis.spatial.SpatialDatabaseService.RTREE_INDEX_NAME;
+import static org.neo4j.gis.spatial.encoders.neo4j.Neo4jCRS.findCRS;
+import static org.neo4j.helpers.collection.MapUtil.map;
+import static org.neo4j.procedure.Mode.WRITE;
 
 /*
 TODO:
@@ -146,7 +145,8 @@ public class SpatialProcedures {
         // TODO: Make this auto-find classes that implement GeometryEncoder
         for (Class cls : new Class[]{
                 SimplePointEncoder.class, OSMGeometryEncoder.class, SimplePropertyEncoder.class,
-                WKTGeometryEncoder.class, WKBGeometryEncoder.class, SimpleGraphEncoder.class
+                WKTGeometryEncoder.class, WKBGeometryEncoder.class, SimpleGraphEncoder.class,
+                NativePointEncoder.class
         }) {
             if (GeometryEncoder.class.isAssignableFrom(cls)) {
                 String name = cls.getSimpleName();
@@ -628,48 +628,6 @@ public class SpatialProcedures {
         throw new RuntimeException("Can't convert " + value + " to a geometry");
     }
 
-    public static class Neo4jGeometry implements org.neo4j.graphdb.spatial.Geometry {
-        protected final String geometryType;
-        protected final CRS crs;
-        protected final List<org.neo4j.graphdb.spatial.Coordinate> coordinates;
-
-        public Neo4jGeometry(String geometryType, List<org.neo4j.graphdb.spatial.Coordinate> coordinates, CRS crs) {
-            this.geometryType = geometryType;
-            this.coordinates = coordinates;
-            this.crs = crs;
-        }
-
-        public String getGeometryType() {
-            return this.geometryType;
-        }
-
-        public List<org.neo4j.graphdb.spatial.Coordinate> getCoordinates() {
-            return this.coordinates;
-        }
-
-        public CRS getCRS() {
-            return this.crs;
-        }
-
-        public static String coordinateString(List<org.neo4j.graphdb.spatial.Coordinate> coordinates) {
-            return coordinates.stream().map(c -> c.getCoordinate().stream().map(v -> v.toString()).collect(Collectors.joining(", "))).collect(Collectors.joining(", "));
-        }
-
-        public String toString() {
-            return geometryType + "(" + coordinateString(coordinates) + ")[" + crs + "]";
-        }
-    }
-
-    public static class Neo4jPoint extends Neo4jGeometry implements org.neo4j.graphdb.spatial.Point {
-        private final org.neo4j.graphdb.spatial.Coordinate coordinate;
-
-        public Neo4jPoint(double x, double y, CRS crs) {
-            super("Point", new ArrayList(), crs);
-            this.coordinate = new org.neo4j.graphdb.spatial.Coordinate(new double[]{x, y});
-            this.coordinates.add(this.coordinate);
-        }
-    }
-
     private static org.neo4j.graphdb.spatial.Coordinate toNeo4jCoordinate(Coordinate coordinate) {
         if (coordinate.z == Coordinate.NULL_ORDINATE) {
             return new org.neo4j.graphdb.spatial.Coordinate(coordinate.x, coordinate.y);
@@ -690,7 +648,7 @@ public class SpatialProcedures {
         if (value instanceof org.neo4j.graphdb.spatial.Geometry) {
             return (org.neo4j.graphdb.spatial.Geometry) value;
         }
-        CRS crs = findCRS("Cartesian");
+        Neo4jCRS crs = findCRS("Cartesian");
         if (layer != null) {
             CoordinateReferenceSystem layerCRS = layer.getCoordinateReferenceSystem();
             if (layerCRS != null) {
@@ -700,7 +658,7 @@ public class SpatialProcedures {
         }
         if (value instanceof Point) {
             Point point = (Point) value;
-            return new Neo4jPoint(point.getX(), point.getY(), crs);
+            return new Neo4jPoint(point, crs);
         }
         if (value instanceof Geometry) {
             Geometry geometry = (Geometry) value;
@@ -722,7 +680,7 @@ public class SpatialProcedures {
         }
         if (value instanceof Map) latLon = (Map<String, Object>) value;
         Coordinate coord = toCoordinate(latLon);
-        if (coord != null) return new Neo4jPoint(coord.x, coord.y, crs);
+        if (coord != null) return new Neo4jPoint(coord, crs);
         throw new RuntimeException("Can't convert " + value + " to a geometry");
     }
 
@@ -785,34 +743,6 @@ public class SpatialProcedures {
             map.put(key.toString(), toPublic(incoming.get(key)));
         }
         return map;
-    }
-
-    private static CRS findCRS(String crs) {
-        switch (crs) {
-            case "WGS-84":      // name in Neo4j CRS table
-            case "WGS84(DD)":   // name in geotools crs library
-                return makeCRS(4326, "WGS-84", "http://spatialreference.org/ref/epsg/4326/");
-            case "Cartesian":
-                return makeCRS(7203, "cartesian", "http://spatialreference.org/ref/sr-org/7203/");
-            default:
-                throw new IllegalArgumentException("Cypher type system does not support CRS: " + crs);
-        }
-    }
-
-    private static CRS makeCRS(final int code, final String type, final String href) {
-        return new CRS() {
-            public int getCode() {
-                return code;
-            }
-
-            public String getType() {
-                return type;
-            }
-
-            public String getHref() {
-                return href;
-            }
-        };
     }
 
     private Coordinate toCoordinate(Object value) {

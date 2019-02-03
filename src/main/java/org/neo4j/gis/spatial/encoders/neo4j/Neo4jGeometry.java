@@ -1,0 +1,58 @@
+/*
+ * Copyright (c) 2010-2018 "Neo Technology,"
+ * Network Engine for Objects in Lund AB [http://neotechnology.com]
+ * <p>
+ * This file is part of Neo4j Spatial.
+ * <p>
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * <p>
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ * <p>
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+package org.neo4j.gis.spatial.encoders.neo4j;
+
+import org.neo4j.graphdb.spatial.CRS;
+import org.neo4j.graphdb.spatial.Coordinate;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+public class Neo4jGeometry implements org.neo4j.graphdb.spatial.Geometry {
+    protected final String geometryType;
+    protected final CRS crs;
+    protected final List<Coordinate> coordinates;
+
+    public Neo4jGeometry(String geometryType, List<org.neo4j.graphdb.spatial.Coordinate> coordinates, CRS crs) {
+        this.geometryType = geometryType;
+        this.coordinates = coordinates;
+        this.crs = crs;
+    }
+
+    public String getGeometryType() {
+        return this.geometryType;
+    }
+
+    public List<org.neo4j.graphdb.spatial.Coordinate> getCoordinates() {
+        return this.coordinates;
+    }
+
+    public CRS getCRS() {
+        return this.crs;
+    }
+
+    public static String coordinateString(List<org.neo4j.graphdb.spatial.Coordinate> coordinates) {
+        return coordinates.stream().map(c -> c.getCoordinate().stream().map(v -> v.toString()).collect(Collectors.joining(", "))).collect(Collectors.joining(", "));
+    }
+
+    public String toString() {
+        return geometryType + "(" + coordinateString(coordinates) + ")[" + crs + "]";
+    }
+}

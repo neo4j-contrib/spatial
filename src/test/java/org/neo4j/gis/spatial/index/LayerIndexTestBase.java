@@ -20,17 +20,11 @@
 package org.neo4j.gis.spatial.index;
 
 import com.vividsolutions.jts.geom.*;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.geom.Polygon;
-import org.junit.After;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
-import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.SimplePointLayer;
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
-import org.neo4j.gis.spatial.SpatialDatabaseService;
-import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
+import org.neo4j.gis.spatial.*;
 import org.neo4j.gis.spatial.filter.SearchIntersect;
 import org.neo4j.gis.spatial.filter.SearchIntersectWindow;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
@@ -41,7 +35,10 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.test.TestGraphDatabaseFactory;
 
-import java.util.*;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -56,11 +53,26 @@ public abstract class LayerIndexTestBase {
     protected GraphDatabaseService graph;
     protected SpatialDatabaseService spatial;
     protected GeometryFactory geometryFactory = new GeometryFactory();
-    protected SimplePointEncoder encoder = new SimplePointEncoder();
+    protected GeometryEncoder encoder = makeGeometryEncoder();
 
     protected abstract Class<? extends LayerIndexReader> getIndexClass();
 
-    protected abstract SpatialIndexWriter mockLayerIndex();
+    protected abstract Class<? extends GeometryEncoder> getEncoderClass();
+
+    protected abstract LayerIndexReader makeIndex();
+
+    protected abstract GeometryEncoder makeGeometryEncoder();
+
+    protected SpatialIndexWriter mockLayerIndex() {
+        Layer layer = mockLayer();
+        LayerIndexReader index = makeIndex();
+        try (Transaction tx = graph.beginTx()) {
+            index.init(layer);
+            tx.success();
+        }
+        when(layer.getIndex()).thenReturn(index);
+        return (SpatialIndexWriter)index;
+    }
 
     protected Layer mockLayer() {
         Node layerNode;
@@ -81,7 +93,7 @@ public abstract class LayerIndexTestBase {
         try (Transaction tx = graph.beginTx()) {
             Node geomNode = graph.createNode();
             Point point = geometryFactory.createPoint(new Coordinate(x, y));
-            geomNode.setProperty("x", x);
+            geomNode.setProperty("x", x);//TODO Remove these?
             geomNode.setProperty("y", y);
             encoder.encodeGeometry(point, geomNode);
             index.add(geomNode);
@@ -106,7 +118,7 @@ public abstract class LayerIndexTestBase {
 
     @Test
     public void shouldCreateAndFindIndexViaLayer() {
-        SimplePointLayer layer = spatial.createSimplePointLayer("test", getIndexClass());
+        SimplePointLayer layer = spatial.createPointLayer("test", getIndexClass(), getEncoderClass());
         LayerIndexReader index = layer.getIndex();
         assertThat("Should find the same index", index.getLayer().getName(), equalTo(spatial.getLayer("test").getName()));
         assertThat("Index should be of right type", spatial.getLayer("test").getIndex().getClass(), equalTo(getIndexClass()));
@@ -114,7 +126,7 @@ public abstract class LayerIndexTestBase {
 
     @Test
     public void shouldCreateAndFindAndDeleteIndexViaLayer() {
-        spatial.createSimplePointLayer("test", getIndexClass());
+        spatial.createPointLayer("test", getIndexClass(), getEncoderClass());
         Layer layer = spatial.getLayer("test");
         LayerIndexReader index = layer.getIndex();
         assertThat("Should find the same index", index.getLayer().getName(), equalTo(spatial.getLayer("test").getName()));
@@ -129,7 +141,7 @@ public abstract class LayerIndexTestBase {
 
     @Test
     public void shouldFindNodeAddedToIndexViaLayer() {
-        SimplePointLayer layer = spatial.createSimplePointLayer("test", getIndexClass());
+        SimplePointLayer layer = spatial.createPointLayer("test", getIndexClass(), getEncoderClass());
         SpatialDatabaseRecord added = layer.add(1.0, 1.0);
         try (Transaction tx = graph.beginTx()) {
             List<GeoPipeFlow> found = layer.findClosestPointsTo(new Coordinate(1.0, 1.0), 0.5);
@@ -191,7 +203,7 @@ public abstract class LayerIndexTestBase {
     @Test
     public void shouldFindCorrectSetOfNodesInsideAndOnPolygonEdge() {
         int length = 5;  // make 5x5 square to test on
-        SimplePointLayer layer = spatial.createSimplePointLayer("test", getIndexClass());
+        SimplePointLayer layer = spatial.createPointLayer("test", getIndexClass(), getEncoderClass());
         GeometryFactory geometryFactory = layer.getGeometryFactory();
         Polygon polygon = makeTestPolygonInSquare(geometryFactory, length);
         HashSet<Coordinate> notIncluded = new LinkedHashSet<>();
@@ -211,9 +223,9 @@ public abstract class LayerIndexTestBase {
         try (Transaction tx = graph.beginTx()) {
             SearchResults results = layer.getIndex().searchIndex(new SearchIntersect(layer, polygon));
             Set<Coordinate> found = StreamSupport.stream(results.spliterator(), false).map(n ->
-                    encoder.decodeGeometry(n).getCoordinate()
+                    layer.getGeometryEncoder().decodeGeometry(n).getCoordinate()
             ).collect(Collectors.toSet());
-            assertThat("Index should contain one result", found.size(), equalTo(included.size()));
+            assertThat("Index should contain expected number of results", found.size(), equalTo(included.size()));
             assertThat("Should find correct Geometries", found, equalTo(included));
             for (Coordinate shouldNotBeFound : notIncluded) {
                 assertThat("Point should not have been found", found, not(hasItem(shouldNotBeFound)));

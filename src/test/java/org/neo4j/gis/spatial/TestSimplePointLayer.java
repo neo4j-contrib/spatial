@@ -19,27 +19,27 @@
  */
 package org.neo4j.gis.spatial;
 
+import com.vividsolutions.jts.geom.Coordinate;
+import com.vividsolutions.jts.geom.CoordinateList;
+import com.vividsolutions.jts.geom.Point;
+import junit.framework.AssertionFailedError;
+import org.geotools.data.neo4j.StyledImageExporter;
+import org.junit.Test;
+import org.neo4j.gis.spatial.encoders.neo4j.Neo4jCRS;
+import org.neo4j.gis.spatial.encoders.neo4j.Neo4jPoint;
+import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
+import org.neo4j.gis.spatial.pipes.GeoPipeline;
+import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
+import org.neo4j.gis.spatial.rtree.Envelope;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
-import junit.framework.AssertionFailedError;
-
-import org.geotools.data.neo4j.StyledImageExporter;
-import org.junit.Test;
-import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
-import org.neo4j.gis.spatial.rtree.Envelope;
-import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-import org.neo4j.gis.spatial.pipes.GeoPipeline;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Transaction;
-
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.CoordinateList;
-import com.vividsolutions.jts.geom.Point;
 
 
 public class TestSimplePointLayer extends Neo4jTestCase {
@@ -72,22 +72,48 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		SpatialRecord record = layer.add(layer.getGeometryFactory().createPoint(new Coordinate(15.3, 56.2)));
 		assertNotNull(record);
 
-        try (Transaction tx = graphDb().beginTx()) {
-            // finds geometries that contain the given geometry
-            List<SpatialDatabaseRecord> results = GeoPipeline
-                .startContainSearch(layer, layer.getGeometryFactory().toGeometry(new com.vividsolutions.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0)))
-                .toSpatialDatabaseRecordList();
+		try (Transaction tx = graphDb().beginTx()) {
+			// finds geometries that contain the given geometry
+			List<SpatialDatabaseRecord> results = GeoPipeline
+					.startContainSearch(layer, layer.getGeometryFactory().toGeometry(new com.vividsolutions.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0)))
+					.toSpatialDatabaseRecordList();
 
-            // should not be contained
-            assertEquals(0, results.size());
+			// should not be contained
+			assertEquals(0, results.size());
 
-            results = GeoPipeline
-                .startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new com.vividsolutions.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0)))
-                .toSpatialDatabaseRecordList();
+			results = GeoPipeline
+					.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new com.vividsolutions.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0)))
+					.toSpatialDatabaseRecordList();
 
-            assertEquals(1, results.size());
-            tx.success();
-        }
+			assertEquals(1, results.size());
+			tx.success();
+		}
+	}
+
+	@Test
+	public void testNativePointLayer() {
+		SpatialDatabaseService db = new SpatialDatabaseService(graphDb());
+		EditableLayer layer = (EditableLayer) db.createNativePointLayer("test", "location");
+		assertNotNull(layer);
+		SpatialRecord record = layer.add(layer.getGeometryFactory().createPoint(new Coordinate(15.3, 56.2)));
+		assertNotNull(record);
+
+		try (Transaction tx = graphDb().beginTx()) {
+			// finds geometries that contain the given geometry
+			List<SpatialDatabaseRecord> results = GeoPipeline
+					.startContainSearch(layer, layer.getGeometryFactory().toGeometry(new com.vividsolutions.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0)))
+					.toSpatialDatabaseRecordList();
+
+			// should not be contained
+			assertEquals(0, results.size());
+
+			results = GeoPipeline
+					.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new com.vividsolutions.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0)))
+					.toSpatialDatabaseRecordList();
+
+			assertEquals(1, results.size());
+			tx.success();
+		}
 	}
 
 	@Test
@@ -141,10 +167,10 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 	}
 
 	@Test
-	public void testIndexingExistingPointNodes() {
+	public void testIndexingExistingSimplePointNodes() {
 		GraphDatabaseService db = graphDb();
 		SpatialDatabaseService sdb = new SpatialDatabaseService(db);
-		SimplePointLayer layer = sdb.createSimplePointLayer("my-points", "x", "y");
+		SimplePointLayer layer = sdb.createSimplePointLayer("my-simple-points", "x", "y");
 
 		Coordinate[] coords = makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt", testOrigin);
 		try (Transaction tx = db.beginTx()) {
@@ -156,11 +182,34 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 			}
 			tx.success();
 		}
-        saveLayerAsImage(layer, 700, 70);
+		saveLayerAsImage(layer, 700, 70);
 
 		assertEquals(coords.length, layer.getIndex().count());
 	}
-	
+
+	@Test
+	public void testIndexingExistingNativePointNodes() {
+		GraphDatabaseService db = graphDb();
+		SpatialDatabaseService sdb = new SpatialDatabaseService(db);
+		SimplePointLayer layer = sdb.createNativePointLayer("my-native-points", "position");
+		Neo4jCRS crs = Neo4jCRS.findCRS("WGS-84");
+
+		Coordinate[] coords = makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt", testOrigin);
+		try (Transaction tx = db.beginTx()) {
+			for (Coordinate coordinate : coords) {
+				Node n = db.createNode();
+				n.setProperty("x", coordinate.x);
+				n.setProperty("y", coordinate.y);
+				n.setProperty("position", new Neo4jPoint(coordinate, crs));
+				layer.add(n);
+			}
+			tx.success();
+		}
+		saveLayerAsImage(layer, 700, 70);
+
+		assertEquals(coords.length, layer.getIndex().count());
+	}
+
 	@Test
 	public void testIndexingExistingPointNodesWithMultipleLocations() {
 		GraphDatabaseService db = graphDb();
@@ -168,6 +217,8 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		double x_offset = 0.15, y_offset = 0.15;
 		SimplePointLayer layerA = sdb.createSimplePointLayer("my-points-A", "xa", "ya", "bbox_a");
 		SimplePointLayer layerB = sdb.createSimplePointLayer("my-points-B", "xb", "yb", "bbox_b");
+		SimplePointLayer layerC = sdb.createNativePointLayer("my-points-C", "loc", "bbox_c");
+		Neo4jCRS crs = Neo4jCRS.findCRS("WGS-84");
 
 		Coordinate[] coords = makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt", testOrigin);
 		try (Transaction tx = db.beginTx()) {
@@ -177,41 +228,53 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 				n.setProperty("ya", coordinate.y);
 				n.setProperty("xb", coordinate.x + x_offset);
 				n.setProperty("yb", coordinate.y + y_offset);
+				n.setProperty("loc", new Neo4jPoint(new double[]{coordinate.x + 2 * x_offset, coordinate.y + 2 * y_offset}, crs));
 
 				layerA.add(n);
 				layerB.add(n);
+				layerC.add(n);
 
 				tx.success();
 			}
 		}
 		saveLayerAsImage(layerA, 700, 70);
 		saveLayerAsImage(layerB, 700, 70);
+		saveLayerAsImage(layerC, 700, 70);
 		Envelope bboxA = layerA.getIndex().getBoundingBox();
 		Envelope bboxB = layerB.getIndex().getBoundingBox();
+		Envelope bboxC = layerC.getIndex().getBoundingBox();
 		double[] centreA = bboxA.centre();
 		double[] centreB = bboxB.centre();
+		double[] centreC = bboxC.centre();
 
 		List<SpatialDatabaseRecord> resultsA;
 		List<SpatialDatabaseRecord> resultsB;
+		List<SpatialDatabaseRecord> resultsC;
 		try (Transaction tx = db.beginTx()) {
 			resultsA = GeoPipeline.startNearestNeighborLatLonSearch(layerA,
 					new Coordinate(centreA[0] + 0.1, centreA[1]), 10.0).toSpatialDatabaseRecordList();
 			resultsB = GeoPipeline.startNearestNeighborLatLonSearch(layerB,
 					new Coordinate(centreB[0] + 0.1, centreB[1]), 10.0).toSpatialDatabaseRecordList();
+			resultsC = GeoPipeline.startNearestNeighborLatLonSearch(layerC,
+					new Coordinate(centreC[0] + 0.1, centreC[1]), 10.0).toSpatialDatabaseRecordList();
 			tx.success();
 		}
 		List<SpatialDatabaseRecord> results = new ArrayList<SpatialDatabaseRecord>();
 		results.addAll(resultsA);
 		results.addAll(resultsB);
+		results.addAll(resultsC);
         assertEquals(71, resultsA.size());
-        assertEquals(71, resultsB.size());
-        assertEquals(142, results.size());
+		assertEquals(71, resultsB.size());
+		assertEquals(71, resultsC.size());
+        assertEquals(213, results.size());
 		saveResultsAsImage(resultsA, "temporary-results-layer-" + layerA.getName(), 130, 70);
 		saveResultsAsImage(resultsB, "temporary-results-layer-" + layerB.getName(), 130, 70);
-		saveResultsAsImage(results, "temporary-results-layer-" + layerA.getName() + "-" + layerB.getName(), 200, 200);
+		saveResultsAsImage(resultsC, "temporary-results-layer-" + layerC.getName(), 130, 70);
+		saveResultsAsImage(results, "temporary-results-layer-" + layerA.getName() + "-" + layerB.getName() + "-" + layerC.getName(), 200, 200);
 
 		assertEquals(coords.length, layerA.getIndex().count());
 		assertEquals(coords.length, layerB.getIndex().count());
+		assertEquals(coords.length, layerC.getIndex().count());
 	}
 
 	private void checkPointOrder(List<GeoPipeFlow> results) {
