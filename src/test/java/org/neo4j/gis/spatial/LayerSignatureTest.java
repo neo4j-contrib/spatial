@@ -31,6 +31,13 @@ public class LayerSignatureTest extends Neo4jTestCase implements Constants {
     }
 
     @Test
+    public void testNativePointLayer() {
+        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+        Layer layer = spatialService.createNativePointLayer("test", "position", "mbr");
+        assertEquals("EditableLayer(name='test', encoder=NativePointEncoder(geometry='position', bbox='mbr', crs=4326))", layer.getSignature());
+    }
+
+    @Test
     public void testDefaultSimplePointLayer() {
         SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
         Layer layer = spatialService.createSimplePointLayer("test");

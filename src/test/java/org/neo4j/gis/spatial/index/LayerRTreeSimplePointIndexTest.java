@@ -19,25 +19,14 @@
  */
 package org.neo4j.gis.spatial.index;
 
-import org.neo4j.gis.spatial.Layer;
-import org.neo4j.graphdb.Transaction;
-
-import static org.mockito.Mockito.when;
-
-public class LayerGeohashPointIndexTest extends LayerIndexTestBase {
+public class LayerRTreeSimplePointIndexTest extends SimplePointIndexTestBase {
 
     protected Class<? extends LayerIndexReader> getIndexClass() {
-        return LayerGeohashPointIndex.class;
+        return LayerRTreeIndex.class;
     }
 
-    protected SpatialIndexWriter mockLayerIndex() {
-        Layer layer = mockLayer();
-        LayerGeohashPointIndex index = new LayerGeohashPointIndex();
-        try (Transaction tx = graph.beginTx()) {
-            index.init(layer);
-            tx.success();
-        }
-        when(layer.getIndex()).thenReturn(index);
-        return index;
+    @Override
+    protected LayerIndexReader makeIndex() {
+        return new LayerRTreeIndex();
     }
 }

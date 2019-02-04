@@ -51,7 +51,7 @@ public class SpatialPlugin extends ServerPlugin {
             @Description("The type of index to use. Default is 'rtree'") @Parameter(name = "index", optional = true) String index) {
         System.out.println("Creating new layer '" + layer + "' unless it already exists");
         SpatialDatabaseService spatialService = getSpatialDatabaseService(db);
-        return singleton(spatialService.getOrCreatePointLayer(layer, index, lon, lat).getLayerNode());
+        return singleton(spatialService.getOrCreateSimplePointLayer(layer, index, lon, lat).getLayerNode());
     }
 
     @PluginTarget(GraphDatabaseService.class)
