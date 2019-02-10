@@ -708,60 +708,101 @@ public class SpatialProceduresTest {
                     assertEquals(false, res.hasNext());
                 }
         );
+        Result removeResult = db.execute("CALL spatial.removeNode('geom',$node) YIELD node RETURN node", map("node", node1));
+        Assert.assertEquals(node1,removeResult.next().get("node"));
+        removeResult.close();
+        testResult(db, "CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)", res -> {
+                    assertEquals(true, res.hasNext());
+                    assertEquals(node2, res.next().get("node"));
+                    assertEquals(false, res.hasNext());
+                }
+        );
     }
 
     @Test
     public void add_many_nodes_to_the_simple_point_layer_using_addNodes() throws Exception {
         // Playing with this number in both tests leads to rough benchmarking of the addNode/addNodes comparison
         int count = 1000;
-        execute("CALL spatial.addLayer('poi','SimplePoint','')");
+        execute("CALL spatial.addLayer('simple_poi','SimplePoint','')");
         String query = "UNWIND range(1,{count}) as i\n" +
-                "CREATE (n:Point {latitude:(56.0+toFloat(i)/100.0),longitude:(12.0+toFloat(i)/100.0)})\n" +
+                "CREATE (n:Point {id:i, latitude:(56.0+toFloat(i)/100.0),longitude:(12.0+toFloat(i)/100.0)})\n" +
                 "WITH collect(n) as points\n" +
-                "CALL spatial.addNodes('poi',points) YIELD count\n" +
+                "CALL spatial.addNodes('simple_poi',points) YIELD count\n" +
                 "RETURN count";
         testCountQuery("addNodes", query, count, "count", map("count", count));
+        testRemoveNodes("simple_poi", count);
     }
 
     @Test
     public void add_many_nodes_to_the_simple_point_layer_using_addNode() throws Exception {
         // Playing with this number in both tests leads to rough benchmarking of the addNode/addNodes comparison
         int count = 1000;
-        execute("CALL spatial.addLayer('poi','SimplePoint','')");
+        execute("CALL spatial.addLayer('simple_poi','SimplePoint','')");
         String query = "UNWIND range(1,{count}) as i\n" +
-                "CREATE (n:Point {latitude:(56.0+toFloat(i)/100.0),longitude:(12.0+toFloat(i)/100.0)})\n" +
+                "CREATE (n:Point {id:i, latitude:(56.0+toFloat(i)/100.0),longitude:(12.0+toFloat(i)/100.0)})\n" +
                 "WITH n\n" +
-                "CALL spatial.addNode('poi',n) YIELD node\n" +
+                "CALL spatial.addNode('simple_poi',n) YIELD node\n" +
                 "RETURN count(node)";
         testCountQuery("addNode", query, count, "count(node)", map("count", count));
+        testRemoveNode("simple_poi", count);
     }
 
     @Test
     public void add_many_nodes_to_the_native_point_layer_using_addNodes() throws Exception {
         // Playing with this number in both tests leads to rough benchmarking of the addNode/addNodes comparison
         int count = 1000;
-        execute("CALL spatial.addLayer('poi','NativePoint','')");
+        execute("CALL spatial.addLayer('native_poi','NativePoint','')");
         String query = "UNWIND range(1,{count}) as i\n" +
-                "WITH Point({latitude:(56.0+toFloat(i)/100.0),longitude:(12.0+toFloat(i)/100.0)}) AS location\n" +
-                "CREATE (n:Point {location:location})\n" +
+                "WITH i, Point({latitude:(56.0+toFloat(i)/100.0),longitude:(12.0+toFloat(i)/100.0)}) AS location\n" +
+                "CREATE (n:Point {id: i, location:location})\n" +
                 "WITH collect(n) as points\n" +
-                "CALL spatial.addNodes('poi',points) YIELD count\n" +
+                "CALL spatial.addNodes('native_poi',points) YIELD count\n" +
                 "RETURN count";
         testCountQuery("addNodes", query, count, "count", map("count", count));
+        testRemoveNodes("native_poi", count);
     }
 
     @Test
     public void add_many_nodes_to_the_native_point_layer_using_addNode() throws Exception {
         // Playing with this number in both tests leads to rough benchmarking of the addNode/addNodes comparison
         int count = 1000;
-        execute("CALL spatial.addLayer('poi','NativePoint','')");
+        execute("CALL spatial.addLayer('native_poi','NativePoint','')");
         String query = "UNWIND range(1,{count}) as i\n" +
-                "WITH Point({latitude:(56.0+toFloat(i)/100.0),longitude:(12.0+toFloat(i)/100.0)}) AS location\n" +
-                "CREATE (n:Point {location:location})\n" +
+                "WITH i, Point({latitude:(56.0+toFloat(i)/100.0),longitude:(12.0+toFloat(i)/100.0)}) AS location\n" +
+                "CREATE (n:Point {id: i, location:location})\n" +
                 "WITH n\n" +
-                "CALL spatial.addNode('poi',n) YIELD node\n" +
+                "CALL spatial.addNode('native_poi',n) YIELD node\n" +
                 "RETURN count(node)";
         testCountQuery("addNode", query, count, "count(node)", map("count", count));
+        testRemoveNode("native_poi", count);
+    }
+
+    private void testRemoveNode(String layer, int count) {
+        // Check all nodes are there
+        testCountQuery("withinDistance", "CALL spatial.withinDistance('" + layer + "',{lon:15.0,lat:60.0},1000) YIELD node RETURN count(node)", count, "count(node)", null);
+        // Now remove half the points
+        String remove = "UNWIND range(1,{count}) as i\n" +
+                "MATCH (n:Point {id:i})\n" +
+                "WITH n\n" +
+                "CALL spatial.removeNode('" + layer + "',n) YIELD node\n" +
+                "RETURN count(node)";
+        testCountQuery("removeNode", remove, count / 2, "count(node)", map("count", count / 2));
+        // Check that only half remain
+        testCountQuery("withinDistance", "CALL spatial.withinDistance('" + layer + "',{lon:15.0,lat:60.0},1000) YIELD node RETURN count(node)", count / 2, "count(node)", null);
+    }
+
+    private void testRemoveNodes(String layer, int count) {
+        // Check all nodes are there
+        testCountQuery("withinDistance", "CALL spatial.withinDistance('" + layer + "',{lon:15.0,lat:60.0},1000) YIELD node RETURN count(node)", count, "count(node)", null);
+        // Now remove half the points
+        String remove = "UNWIND range(1,{count}) as i\n" +
+                "MATCH (n:Point {id:i})\n" +
+                "WITH collect(n) as points\n" +
+                "CALL spatial.removeNodes('" + layer + "',points) YIELD count\n" +
+                "RETURN count";
+        testCountQuery("removeNodes", remove, count / 2, "count", map("count", count / 2));
+        // Check that only half remain
+        testCountQuery("withinDistance", "CALL spatial.withinDistance('" + layer + "',{lon:15.0,lat:60.0},1000) YIELD node RETURN count(node)", count / 2, "count(node)", null);
     }
 
     @Test

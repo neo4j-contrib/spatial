@@ -517,6 +517,27 @@ public class SpatialProcedures {
         return Stream.of(new CountResult(layer.addAll(nodes)));
     }
 
+    @Procedure(value="spatial.removeNode", mode=WRITE)
+    @Description("Removes the given node from the layer, returns the geometry-node")
+    public Stream<NodeResult> removeNodeFromLayer(@Name("layerName") String name, @Name("node") Node node) {
+        EditableLayer layer = getEditableLayerOrThrow(name);
+        layer.removeFromIndex(node.getId());
+        return streamNode(node);
+    }
+
+    @Procedure(value="spatial.removeNodes", mode=WRITE)
+    @Description("Removes the given nodes from the layer, returns the count of nodes removed")
+    public Stream<CountResult> removeNodesFromLayer(@Name("layerName") String name, @Name("nodes") List<Node> nodes) {
+        EditableLayer layer = getEditableLayerOrThrow(name);
+        //TODO optimize bulk node removal from RTree like we have done for node additions
+        int before = layer.getIndex().count();
+        for (Node node : nodes) {
+            layer.removeFromIndex(node.getId());
+        }
+        int after = layer.getIndex().count();
+        return Stream.of(new CountResult(before - after));
+    }
+
     @Procedure(value="spatial.addWKT", mode=WRITE)
     @Description("Adds the given WKT string to the layer, returns the created geometry node")
     public Stream<NodeResult> addGeometryWKTToLayer(@Name("layerName") String name, @Name("geometry") String geometryWKT) throws ParseException {
