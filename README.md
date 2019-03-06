@@ -153,7 +153,7 @@ Each release of Neo4j Spatial builds against a specific version of GeoTools and 
 * restart geoserver
 * configure a new workspace
 * configure a new datasource neo4j in your workspace. Point the "The directory path of the Neo4j database:" parameter to the relative (form the GeoServer working dir) or aboslute path to a Neo4j Spatial database with layers (see [Neo4j Spatial](https://github.com/neo4j/spatial))
-* in Layers, do "Add new resource" and choose your Neo4j datastore to see the exisitng Neo4j Spatial layers and add them.
+* in Layers, do "Add new resource" and choose your Neo4j datastore to see the existing Neo4j Spatial layers and add them.
 
 ### Testing in GeoServer trunk ###
 
