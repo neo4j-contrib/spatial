@@ -21,7 +21,7 @@ package org.neo4j.gis.spatial;
 
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
-import com.vividsolutions.jts.geom.Geometry;
+import org.locationtech.jts.geom.Geometry;
 
 /**
  * Instances of Layer provide the ability for developers to add/remove and edit geometries

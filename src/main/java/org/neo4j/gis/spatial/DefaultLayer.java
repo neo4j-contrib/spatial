@@ -21,8 +21,8 @@ package org.neo4j.gis.spatial;
 
 import java.util.*;
 
-import com.vividsolutions.jts.geom.PrecisionModel;
-import org.geotools.factory.FactoryRegistryException;
+import org.geotools.util.factory.FactoryRegistryException;
+import org.locationtech.jts.geom.PrecisionModel;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.ReferencingFactoryFinder;
 import org.neo4j.gis.spatial.index.LayerIndexReader;
@@ -40,8 +40,8 @@ import org.neo4j.graphdb.Transaction;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
 
 /**
  * Instances of Layer provide the ability for developers to add/remove and edit

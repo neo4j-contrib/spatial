@@ -25,7 +25,7 @@ import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
 import org.neo4j.graphdb.Node;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
-import com.vividsolutions.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.GeometryFactory;
 
 import java.util.List;
 

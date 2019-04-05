@@ -38,11 +38,11 @@ import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
 import org.neo4j.graphdb.Node;
 import org.opengis.filter.Filter;
 
-import com.vividsolutions.jts.geom.Geometry;
+import org.locationtech.jts.geom.Geometry;
 
 public class Utilities {
 
-	public static Envelope fromJtsToNeo4j(com.vividsolutions.jts.geom.Envelope envelope) {
+	public static Envelope fromJtsToNeo4j(org.locationtech.jts.geom.Envelope envelope) {
 		return new Envelope(
 				envelope.getMinX(),
 				envelope.getMaxX(),
@@ -51,8 +51,8 @@ public class Utilities {
 		);
 	}
 
-	public static com.vividsolutions.jts.geom.Envelope fromNeo4jToJts(org.neo4j.gis.spatial.index.Envelope envelope) {
-		return new com.vividsolutions.jts.geom.Envelope(
+	public static org.locationtech.jts.geom.Envelope fromNeo4jToJts(org.neo4j.gis.spatial.index.Envelope envelope) {
+		return new org.locationtech.jts.geom.Envelope(
 				envelope.getMinX(),
 				envelope.getMaxX(),
 				envelope.getMinY(),

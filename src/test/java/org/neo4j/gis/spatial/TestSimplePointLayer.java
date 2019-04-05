@@ -19,9 +19,9 @@
  */
 package org.neo4j.gis.spatial;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.CoordinateList;
-import com.vividsolutions.jts.geom.Point;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.CoordinateList;
+import org.locationtech.jts.geom.Point;
 import junit.framework.AssertionFailedError;
 import org.geotools.data.neo4j.StyledImageExporter;
 import org.junit.Test;
@@ -75,14 +75,14 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		try (Transaction tx = graphDb().beginTx()) {
 			// finds geometries that contain the given geometry
 			List<SpatialDatabaseRecord> results = GeoPipeline
-					.startContainSearch(layer, layer.getGeometryFactory().toGeometry(new com.vividsolutions.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0)))
+					.startContainSearch(layer, layer.getGeometryFactory().toGeometry(new org.locationtech.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0)))
 					.toSpatialDatabaseRecordList();
 
 			// should not be contained
 			assertEquals(0, results.size());
 
 			results = GeoPipeline
-					.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new com.vividsolutions.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0)))
+					.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new org.locationtech.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0)))
 					.toSpatialDatabaseRecordList();
 
 			assertEquals(1, results.size());
@@ -101,14 +101,14 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		try (Transaction tx = graphDb().beginTx()) {
 			// finds geometries that contain the given geometry
 			List<SpatialDatabaseRecord> results = GeoPipeline
-					.startContainSearch(layer, layer.getGeometryFactory().toGeometry(new com.vividsolutions.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0)))
+					.startContainSearch(layer, layer.getGeometryFactory().toGeometry(new org.locationtech.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0)))
 					.toSpatialDatabaseRecordList();
 
 			// should not be contained
 			assertEquals(0, results.size());
 
 			results = GeoPipeline
-					.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new com.vividsolutions.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0)))
+					.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(new org.locationtech.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0)))
 					.toSpatialDatabaseRecordList();
 
 			assertEquals(1, results.size());

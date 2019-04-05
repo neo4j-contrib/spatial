@@ -24,7 +24,7 @@ import java.util.List;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 
-import com.vividsolutions.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Coordinate;
 import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
 
 public class SimplePointLayer extends EditableLayerImpl {

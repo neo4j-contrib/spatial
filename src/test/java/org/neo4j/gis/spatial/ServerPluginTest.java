@@ -31,7 +31,7 @@ import org.neo4j.gis.spatial.server.plugin.SpatialPlugin;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
-import com.vividsolutions.jts.geom.Envelope;
+import org.locationtech.jts.geom.Envelope;
 
 
 public class ServerPluginTest extends Neo4jTestCase {

@@ -19,8 +19,8 @@
  */
 package org.neo4j.gis.spatial;
 
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;

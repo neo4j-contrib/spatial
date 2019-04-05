@@ -50,21 +50,20 @@ public class Neo4jSpatialDataStoreTest {
     }
 
     @Test
-    public void shouldOpenDataStore() {
+    public void shouldOpenDataStore() throws IOException {
         Neo4jSpatialDataStore store = new Neo4jSpatialDataStore(graph);
-        ReferencedEnvelope bounds = store.getBounds("map");
+        ReferencedEnvelope bounds = store.getFeatureSource("map").getBounds();
         assertThat(bounds, equalTo(new ReferencedEnvelope(12.7856667, 13.2873561, 55.9254241, 56.2179056, DefaultGeographicCRS.WGS84)));
     }
 
-    @Test
-    public void shouldOpenDataStoreOnNonSpatialDatabase() {
+    @Test(expected = java.io.IOException.class)
+    public void shouldOpenDataStoreOnNonSpatialDatabase() throws IOException {
         GraphDatabaseService db = null;
         try {
             db = new TestGraphDatabaseFactory().newImpermanentDatabase(new File("other-db"));
             Neo4jSpatialDataStore store = new Neo4jSpatialDataStore(db);
-            ReferencedEnvelope bounds = store.getBounds("map");
-            // TODO: rather should throw a descriptive exception
-            assertThat(bounds, equalTo(null));
+            //will throw an exception
+            store.getFeatureSource("map").getBounds();
         } finally {
             if (db != null) db.shutdown();
         }

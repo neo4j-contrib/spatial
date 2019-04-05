@@ -22,7 +22,7 @@ package org.neo4j.gis.spatial.pipes.processing;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
-import com.vividsolutions.jts.io.gml2.GMLWriter;
+import org.locationtech.jts.io.gml2.GMLWriter;
 
 
 /**

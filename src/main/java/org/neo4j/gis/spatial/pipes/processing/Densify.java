@@ -22,7 +22,7 @@ package org.neo4j.gis.spatial.pipes.processing;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
-import com.vividsolutions.jts.densify.Densifier;
+import org.locationtech.jts.densify.Densifier;
 
 /**
  * Densify geometries by inserting extra vertices along the line segments in the geometry. 

@@ -30,7 +30,7 @@ import org.neo4j.graphdb.Transaction;
 
 import org.junit.Test;
 
-import com.vividsolutions.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Coordinate;
 
 public class GeoPipesPerformanceTest extends Neo4jTestCase {
 	private int records = 10000;

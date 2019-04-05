@@ -1,7 +1,7 @@
 package org.neo4j.gis.spatial;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
 import org.apache.commons.io.FileUtils;
 import org.geotools.referencing.crs.DefaultEngineeringCRS;
 import org.junit.*;
@@ -1356,7 +1356,7 @@ public class RTreeBulkInsertTest {
         IndexTestConfig config = stats.config;
         long start = System.currentTimeMillis();
         try (Transaction tx = db.beginTx()) {
-            com.vividsolutions.jts.geom.Envelope envelope = new com.vividsolutions.jts.geom.Envelope(config.searchMin, config.searchMax);
+            org.locationtech.jts.geom.Envelope envelope = new org.locationtech.jts.geom.Envelope(config.searchMin, config.searchMax);
             nodes = GeoPipeline.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(envelope)).stream().map(GeoPipeFlow::getGeomNode).collect(Collectors.toList());
             tx.success();
         }

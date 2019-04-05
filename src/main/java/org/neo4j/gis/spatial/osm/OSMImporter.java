@@ -68,7 +68,7 @@ public class OSMImporter implements Constants
     private long osm_dataset = -1;
     private long missingChangesets = 0;
     private Listener monitor;
-    private com.vividsolutions.jts.geom.Envelope filterEnvelope = null;
+    private org.locationtech.jts.geom.Envelope filterEnvelope = null;
 
     private Charset charset = Charset.defaultCharset();
 
@@ -208,7 +208,7 @@ public class OSMImporter implements Constants
         this( layerName, null, null );
     }
 
-    public OSMImporter( String layerName, Listener monitor, com.vividsolutions.jts.geom.Envelope filterEnvelope )
+    public OSMImporter( String layerName, Listener monitor, org.locationtech.jts.geom.Envelope filterEnvelope )
     {
         this.layerName = layerName;
         if ( monitor == null ) monitor = new NullListener();

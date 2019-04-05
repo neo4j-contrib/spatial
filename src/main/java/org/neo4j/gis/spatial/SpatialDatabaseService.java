@@ -19,7 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
-import com.vividsolutions.jts.geom.*;
+import org.locationtech.jts.geom.*;
 import org.geotools.referencing.crs.AbstractCRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.neo4j.gis.spatial.encoders.Configurable;
@@ -381,7 +381,7 @@ public class SpatialDatabaseService implements Constants {
 	public static int convertGeometryNameToType(String geometryName) {
 		if(geometryName == null) return GTYPE_GEOMETRY;
 		try {
-			return convertJtsClassToGeometryType((Class<? extends Geometry>) Class.forName("com.vividsolutions.jts.geom."
+			return convertJtsClassToGeometryType((Class<? extends Geometry>) Class.forName("org.locationtech.jts.geom."
 					+ geometryName));
 		} catch (ClassNotFoundException e) {
 			System.err.println("Unrecognized geometry '" + geometryName + "': " + e);
@@ -390,7 +390,7 @@ public class SpatialDatabaseService implements Constants {
 	}
 
 	public static String convertGeometryTypeToName(Integer geometryType) {
-		return convertGeometryTypeToJtsClass(geometryType).getName().replace("com.vividsolutions.jts.geom.", "");
+		return convertGeometryTypeToJtsClass(geometryType).getName().replace("org.locationtech.jts.geom.", "");
 	}
 
 	public static Class<? extends Geometry> convertGeometryTypeToJtsClass(Integer geometryType) {

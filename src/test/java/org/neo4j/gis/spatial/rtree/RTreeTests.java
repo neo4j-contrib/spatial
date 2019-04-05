@@ -19,8 +19,8 @@
  */
 package org.neo4j.gis.spatial.rtree;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.junit.Before;
 import org.junit.Test;

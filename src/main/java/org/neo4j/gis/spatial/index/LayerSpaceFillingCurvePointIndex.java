@@ -19,8 +19,8 @@
  */
 package org.neo4j.gis.spatial.index;
 
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.Point;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.Point;
 import org.neo4j.gis.spatial.index.curves.SpaceFillingCurve;
 import org.neo4j.gis.spatial.index.curves.StandardConfiguration;
 import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;

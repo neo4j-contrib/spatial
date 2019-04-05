@@ -10,7 +10,7 @@
         <skinGroupId>org.neo4j.maven.skins</skinGroupId>
         <skinArtifactId>default-skin</skinArtifactId>
         <skinVersion>2</skinVersion>
-        <geotools.version>14.4</geotools.version>
+        <geotools.version>21.0</geotools.version>
         <spatial.test.osm.version>20100819</spatial.test.osm.version>
         <spatial.test.shp.version>20100819</spatial.test.shp.version>
         <bundle.namespace>org.neo4j.gis</bundle.namespace>
@@ -21,7 +21,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>neo4j-spatial</artifactId>
     <groupId>org.neo4j</groupId>
-    <version>0.26.2-neo4j-3.5.2</version>
+    <version>0.27-neo4j-3.5.2</version>
     <name>Neo4j - Spatial Components</name>
     <description>Spatial utilities and components for Neo4j</description>
     <url>http://components.neo4j.org/${project.artifactId}/${project.version}</url>

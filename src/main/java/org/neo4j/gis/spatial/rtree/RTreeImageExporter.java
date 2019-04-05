@@ -19,9 +19,9 @@
  */
 package org.neo4j.gis.spatial.rtree;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.geotools.data.memory.MemoryFeatureCollection;
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.data.neo4j.StyledImageExporter;
@@ -60,7 +60,7 @@ public class RTreeImageExporter {
 
     public RTreeImageExporter(Layer layer, RTreeIndex index, Coordinate min, Coordinate max) {
         initialize(layer.getGeometryFactory(), layer.getGeometryEncoder(), layer.getCoordinateReferenceSystem(), Neo4jFeatureBuilder.getTypeFromLayer(layer), index);
-        bounds.expandToInclude(new com.vividsolutions.jts.geom.Envelope(min.x, max.x, min.y, max.y));
+        bounds.expandToInclude(new org.locationtech.jts.geom.Envelope(min.x, max.x, min.y, max.y));
         bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
     }
 
@@ -71,7 +71,7 @@ public class RTreeImageExporter {
 
     public RTreeImageExporter(GeometryFactory geometryFactory, GeometryEncoder geometryEncoder, CoordinateReferenceSystem crs, SimpleFeatureType featureType, RTreeIndex index, Coordinate min, Coordinate max) {
         initialize(geometryFactory, geometryEncoder, crs, featureType, index);
-        bounds.expandToInclude(new com.vividsolutions.jts.geom.Envelope(min.x, max.x, min.y, max.y));
+        bounds.expandToInclude(new org.locationtech.jts.geom.Envelope(min.x, max.x, min.y, max.y));
         bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
     }
 
