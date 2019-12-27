@@ -1,6 +1,6 @@
 language: java
 jdk:
-  - oraclejdk8
+  - openjdk8
 
 # Patch for buffer overflow bug, see https://github.com/travis-ci/travis-ci/issues/5227
 before_install:
