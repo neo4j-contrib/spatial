@@ -25,7 +25,7 @@ import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.Utilities;
 import org.neo4j.graphdb.Node;
 
-import com.vividsolutions.jts.geom.Geometry;
+import org.locationtech.jts.geom.Geometry;
 
 /**
  * Find geometries that intersect with the specified search window.
@@ -41,7 +41,7 @@ public class SearchIntersectWindow extends AbstractSearchEnvelopeIntersection {
         this(layer, Utilities.fromNeo4jToJts(envelope));
     }
 
-	public SearchIntersectWindow(Layer layer, com.vividsolutions.jts.geom.Envelope other) {
+	public SearchIntersectWindow(Layer layer, org.locationtech.jts.geom.Envelope other) {
 		super(layer.getGeometryEncoder(), Utilities.fromJtsToNeo4j(other));
 		this.layer = layer;
 		this.windowGeom = layer.getGeometryFactory().toGeometry(other);
@@ -55,5 +55,4 @@ public class SearchIntersectWindow extends AbstractSearchEnvelopeIntersection {
 		geometry.getEnvelopeInternal();
 		return geometry.intersects(windowGeom);
 	}
-
 }

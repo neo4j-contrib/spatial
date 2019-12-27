@@ -10,7 +10,8 @@
         <skinGroupId>org.neo4j.maven.skins</skinGroupId>
         <skinArtifactId>default-skin</skinArtifactId>
         <skinVersion>2</skinVersion>
-        <geotools.version>14.4</geotools.version>
+        <geotools.version>22.1</geotools.version>
+        <jts.version>1.16.1</jts.version>
         <spatial.test.osm.version>20100819</spatial.test.osm.version>
         <spatial.test.shp.version>20100819</spatial.test.shp.version>
         <bundle.namespace>org.neo4j.gis</bundle.namespace>
@@ -113,6 +114,7 @@
                         </goals>
                         <configuration>
                             <excludeScope>provided</excludeScope>
+                            <includeArtifactIds>lucene-analyzers-common,lucene-queryparser,neo4j,neo4j-common,neo4j-io,neo4j-kernel,neo4j-lucene-index,neo4j-server,neo4j-sproc-compiler</includeArtifactIds>
                         </configuration>
                     </execution>
                     <execution>
@@ -133,6 +135,26 @@
                 <configuration>
                     <descriptors>
                         <descriptor>src/main/assembly/server-plugin.xml</descriptor>
+                    </descriptors>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <!-- this is used for inheritance merges -->
+                        <phase>package</phase>
+                        <!-- bind to the packaging phase -->
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>${maven-assembly-plugin.version}</version>
+                <configuration>
+                    <descriptors>
+                        <descriptor>src/main/assembly/geoserver-plugin.xml</descriptor>
                     </descriptors>
                 </configuration>
                 <executions>
@@ -274,19 +296,16 @@
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j</artifactId>
             <version>${neo4j.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>server-api</artifactId>
             <version>${neo4j.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-spatial-index</artifactId>
             <version>${neo4j.version}</version>
-            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.neo4j</groupId>
@@ -436,6 +455,22 @@
             </exclusions>
         </dependency>
         <dependency>
+            <groupId>org.locationtech.jts</groupId>
+            <artifactId>jts-core</artifactId>
+            <version>${jts.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-analyzers-common</artifactId>
+            <version>5.5.5</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.lucene</groupId>
+            <artifactId>lucene-queryparser</artifactId>
+            <version>5.5.5</version>
+        </dependency>
+
+        <dependency>
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
             <type>jar</type>
@@ -453,7 +488,6 @@
             <artifactId>neo4j-sproc-compiler</artifactId>
             <version>1.2</version>
             <scope>provided</scope>
-            <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.apache.lucene</groupId>

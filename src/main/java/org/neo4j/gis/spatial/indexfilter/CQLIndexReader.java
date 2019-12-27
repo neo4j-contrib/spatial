@@ -34,6 +34,7 @@ import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.graphdb.Node;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.filter.Filter;
+import org.opengis.filter.FilterVisitor;
 
 
 /**
@@ -106,14 +107,20 @@ public class CQLIndexReader extends LayerIndexReaderWrapper {
 		return new SearchFilter() {
 
 			@Override
+			public Object accept(FilterVisitor filterVisitor, Object o) {
+				return null;
+			}
+
+			@Override
 			public boolean needsToVisit(Envelope envelope) {
 				return queryIndexNode(envelope) && 
 					filter.needsToVisit(envelope);
 			}
 
 			@Override
-			public boolean geometryMatches(Node geomNode) {
-				return queryLeafNode(geomNode) && filter.geometryMatches(geomNode);
+			public boolean evaluate(Object o) {
+				Node geomNode = (Node) o;
+				return queryLeafNode(geomNode) && filter.evaluate(geomNode);
 			}	
 		};
 	}

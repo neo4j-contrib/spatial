@@ -49,7 +49,7 @@ public class Neo4jSpatialFeatureReader implements FeatureReader<SimpleFeatureTyp
     private SimpleFeatureBuilder builder;
 	private Iterator<SpatialDatabaseRecord> results;
 	private String[] extraPropertyNames;
-	
+
 	/**
 	 * 
 	 * @param layer

@@ -21,7 +21,7 @@ package org.neo4j.gis.spatial;
 
 import java.util.Map;
 
-import com.vividsolutions.jts.geom.Geometry;
+import org.locationtech.jts.geom.Geometry;
 import org.neo4j.graphdb.Node;
 
 public interface SpatialRecord {

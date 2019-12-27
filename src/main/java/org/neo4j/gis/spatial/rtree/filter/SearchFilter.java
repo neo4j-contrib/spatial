@@ -20,12 +20,10 @@
 package org.neo4j.gis.spatial.rtree.filter;
 
 import org.neo4j.gis.spatial.rtree.Envelope;
-import org.neo4j.graphdb.Node;
+import org.opengis.filter.Filter;
 
-public interface SearchFilter {
+public interface SearchFilter extends Filter {
 	
 	boolean needsToVisit(Envelope envelope);
-	
-	boolean geometryMatches(Node geomNode);
-	
+
 }

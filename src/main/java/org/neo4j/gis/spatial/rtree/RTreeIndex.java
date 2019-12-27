@@ -751,7 +751,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
             }
             else if ( rel.isType( RTreeRelationshipTypes.RTREE_REFERENCE ) )
             {
-				boolean found = filter.geometryMatches( node );
+				boolean found = filter.evaluate( node );
 				monitor.addCase(found ? "Geometry Matches" : "Geometry Does NOT Match");
                 if(found) monitor.setHeight(path.length());
                 return found ?

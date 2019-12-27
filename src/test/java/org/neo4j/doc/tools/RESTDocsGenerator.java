@@ -28,7 +28,6 @@ import org.neo4j.helpers.collection.Pair;
 import org.neo4j.server.rest.JaxRsResponse;
 import org.neo4j.test.GraphDefinition;
 import org.neo4j.test.TestData;
-import org.neo4j.visualization.asciidoc.AsciidocHelper;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;

@@ -30,6 +30,7 @@ import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.Utilities;
 import org.neo4j.graphdb.Node;
 import org.opengis.feature.simple.SimpleFeature;
+import org.opengis.filter.FilterVisitor;
 
 /**
  * Find geometries that have at least one point in common with the given
@@ -66,9 +67,14 @@ public class SearchCQL implements SearchFilter {
 	}
 
 	@Override
-	public boolean geometryMatches(Node geomNode) {
+	public boolean evaluate(Object o) {
+		Node geomNode = (Node) o;
 		SimpleFeature feature = featureBuilder.buildFeature(new SpatialDatabaseRecord(this.layer, geomNode));
 		return filter.evaluate(feature);
 	}
 
+	@Override
+	public Object accept(FilterVisitor filterVisitor, Object o) {
+		return filterVisitor.visitNullFilter(o);
+	}
 }

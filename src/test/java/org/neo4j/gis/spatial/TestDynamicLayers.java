@@ -38,9 +38,9 @@ import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.LinearRing;
-import com.vividsolutions.jts.geom.Polygon;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.LinearRing;
+import org.locationtech.jts.geom.Polygon;
 import org.neo4j.graphdb.Transaction;
 
 public class TestDynamicLayers extends Neo4jTestCase implements Constants {

@@ -1,14 +1,12 @@
 package org.neo4j.gis.spatial;
 
 import org.apache.commons.collections.map.HashedMap;
-import org.junit.Test;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.gis.spatial.rtree.RTreeRelationshipTypes;
 import org.neo4j.graphdb.*;
 
 import java.util.*;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 /**

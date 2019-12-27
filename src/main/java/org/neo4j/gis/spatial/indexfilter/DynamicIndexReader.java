@@ -31,6 +31,7 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.DynamicRelationshipType;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
+import org.opengis.filter.FilterVisitor;
 
 
 /**
@@ -155,14 +156,20 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 
 			@Override
 			public boolean needsToVisit(Envelope envelope) {
-				return queryIndexNode(envelope) && 
-					filter.needsToVisit(envelope);
+				return queryIndexNode(envelope) &&
+						filter.needsToVisit(envelope);
 			}
 
 			@Override
-			public boolean geometryMatches(Node geomNode) {
-				return queryLeafNode(geomNode) && filter.geometryMatches(geomNode);
-			}	
+			public boolean evaluate(Object o) {
+				Node geomNode = (Node) o;
+				return queryLeafNode(geomNode) && filter.evaluate(geomNode);
+			}
+
+			@Override
+			public Object accept(FilterVisitor filterVisitor, Object o) {
+				return filterVisitor.visitNullFilter(o);
+			}
 		};
 	}	
 	

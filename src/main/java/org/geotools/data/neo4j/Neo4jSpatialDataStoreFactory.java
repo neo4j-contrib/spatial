@@ -23,7 +23,6 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
-import org.geotools.data.AbstractDataStoreFactory;
 import org.geotools.data.DataStore;
 import org.geotools.util.KVP;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -35,7 +34,7 @@ import org.neo4j.graphdb.factory.GraphDatabaseFactory;
  * 
  * @author Davide Savazzi, Andreas Wilhelm
  */
-public class Neo4jSpatialDataStoreFactory extends AbstractDataStoreFactory
+public class Neo4jSpatialDataStoreFactory
 		implements org.geotools.data.DataStoreFactorySpi {
 	
 	/**

@@ -58,7 +58,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
-import com.vividsolutions.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Coordinate;
 
 public class OsmAnalysisTest extends TestOSMImport {
 	public static final String spatialTestMode = System.getProperty("spatial.test.mode");

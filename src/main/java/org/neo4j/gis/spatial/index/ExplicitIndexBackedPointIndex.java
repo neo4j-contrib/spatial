@@ -175,7 +175,7 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
             next = null;
             while (inner.hasNext()) {
                 Node node = inner.next();
-                if (filter.geometryMatches(node)) {
+                if (filter.evaluate(node)) {
                     next = node;
                     monitor.hit();
                     break;

@@ -21,8 +21,8 @@ package org.neo4j.gis.spatial;
 
 import java.util.*;
 
-import com.vividsolutions.jts.geom.PrecisionModel;
-import org.geotools.factory.FactoryRegistryException;
+import org.geotools.util.factory.FactoryRegistryException;
+import org.locationtech.jts.geom.PrecisionModel;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.ReferencingFactoryFinder;
 import org.neo4j.gis.spatial.index.LayerIndexReader;
@@ -37,11 +37,12 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.opengis.filter.FilterVisitor;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
 
 /**
  * Instances of Layer provide the ability for developers to add/remove and edit
@@ -156,12 +157,18 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         }
 
         @Override
-    	public boolean geometryMatches(Node geomNode) {
+        public boolean evaluate(Object o) {
+            Node geomNode = (Node) o;
             if (firstFoundType == null) {
                 firstFoundType = (Integer) geomNode.getProperty(PROP_TYPE);
             }
-            
+
             return false;
+        }
+
+        @Override
+        public Object accept(FilterVisitor filterVisitor, Object o) {
+            return filterVisitor.visitNullFilter(o);
         }
     }
 

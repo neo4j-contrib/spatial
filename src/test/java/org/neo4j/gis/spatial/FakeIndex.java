@@ -145,7 +145,7 @@ public class FakeIndex implements LayerIndexReader, Constants {
 			Node nn = null;
 			while(nodes.hasNext()){
 				Node node = nodes.next();
-				if(filter.geometryMatches(node)){
+				if(filter.evaluate(node)){
 					nn = node;
 					break;
 				}

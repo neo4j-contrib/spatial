@@ -37,9 +37,10 @@ import org.neo4j.gis.spatial.indexfilter.DynamicIndexReader;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.opengis.filter.FilterVisitor;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
-import com.vividsolutions.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.GeometryFactory;
 
 public class DynamicLayerConfig implements Layer, Constants {
 
@@ -143,31 +144,12 @@ public class DynamicLayerConfig implements Layer, Constants {
 		public PropertyUsageSearch(Layer layer) {
 			this.layer = layer;
 		}
-		
+
 		@Override
 		public boolean needsToVisit(Envelope indexNodeEnvelope) {
 			return nodeCount < MAX_COUNT;
 		}
 
-		@Override
-		public boolean geometryMatches(Node geomNode) {
-			if (nodeCount++ < MAX_COUNT) {
-				SpatialDatabaseRecord record = new SpatialDatabaseRecord(layer, geomNode);
-				for (String name : record.getPropertyNames()) {
-					Object value = record.getProperty(name);
-					if (value != null) {
-						Integer count = names.get(name);
-						if (count == null)
-							count = 0;
-						names.put(name, count + 1);
-					}
-				}
-			}
-			
-			// no need to collect nodes
-			return false;
-		}
-		
 		public String[] getNames() {
 			return names.keySet().toArray(new String[] {});				
 		}
@@ -180,6 +162,31 @@ public class DynamicLayerConfig implements Layer, Constants {
 			for (String name : names.keySet()) {
 				System.out.println(name + "\t" + names.get(name));
 			}
+		}
+
+		@Override
+		public boolean evaluate(Object o) {
+			Node geomNode = (Node) o;
+			if (nodeCount++ < MAX_COUNT) {
+				SpatialDatabaseRecord record = new SpatialDatabaseRecord(layer, geomNode);
+				for (String name : record.getPropertyNames()) {
+					Object value = record.getProperty(name);
+					if (value != null) {
+						Integer count = names.get(name);
+						if (count == null)
+							count = 0;
+						names.put(name, count + 1);
+					}
+				}
+			}
+
+			// no need to collect nodes
+			return false;
+		}
+
+		@Override
+		public Object accept(FilterVisitor filterVisitor, Object o) {
+			return filterVisitor.visitNullFilter(o);
 		}
 	}
 

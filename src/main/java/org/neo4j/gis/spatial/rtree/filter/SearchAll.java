@@ -20,18 +20,22 @@
 package org.neo4j.gis.spatial.rtree.filter;
 
 import org.neo4j.gis.spatial.rtree.Envelope;
-import org.neo4j.graphdb.Node;
+import org.opengis.filter.FilterVisitor;
 
 public class SearchAll implements SearchFilter {
 
 	@Override
-	public boolean needsToVisit(Envelope indexNodeEnvelope) {
+	public boolean evaluate(Object o) {
 		return true;
 	}
 
 	@Override
-	public boolean geometryMatches(Node geomNode) {
-		return true;
+	public Object accept(FilterVisitor filterVisitor, Object o) {
+		return filterVisitor.visitNullFilter(o);
 	}
 
+	@Override
+	public boolean needsToVisit(Envelope envelope) {
+		return true;
+	}
 }

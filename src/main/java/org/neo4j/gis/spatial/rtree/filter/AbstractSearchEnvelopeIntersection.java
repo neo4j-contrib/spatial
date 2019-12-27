@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial.rtree.filter;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
 import org.neo4j.graphdb.Node;
+import org.opengis.filter.FilterVisitor;
 
 public abstract class AbstractSearchEnvelopeIntersection implements SearchFilter {
 	
@@ -41,17 +42,23 @@ public abstract class AbstractSearchEnvelopeIntersection implements SearchFilter
 	public boolean needsToVisit(Envelope indexNodeEnvelope) {
 		return indexNodeEnvelope.intersects(referenceEnvelope);
 	}
-	
+
 	@Override
-	public final boolean geometryMatches(Node geomNode) {	
+	public boolean evaluate(Object o) {
+		Node geomNode = (Node) o;
 		Envelope geomEnvelope = decoder.decodeEnvelope(geomNode);
 		if (geomEnvelope.intersects(referenceEnvelope)) {
 			return onEnvelopeIntersection(geomNode, geomEnvelope);
 		}
-		
+
 		return false;
 	}
-	
+
+	@Override
+	public Object accept(FilterVisitor filterVisitor, Object o) {
+		return filterVisitor.visitNullFilter(o);
+	}
+
 	@Override
 	public String toString() {
 		return "SearchEnvelopeIntersection[" + referenceEnvelope + "]";
