@@ -77,8 +77,8 @@ import org.neo4j.graphdb.Transaction;
  */
 public class TestSpatial extends Neo4jTestCase {
 	
-    private final String SHP_DIR = "target/shp";
-    private final String OSM_DIR = "target/osm";
+    private final String SHP_DIR = "shp";
+    private final String OSM_DIR = "osm";
     
     private final ArrayList<String> layers = new ArrayList<String>();
     private final HashMap<String, Envelope> layerTestEnvelope = new HashMap<String, Envelope>();

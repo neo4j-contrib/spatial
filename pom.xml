@@ -379,18 +379,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.neo4j.spatial</groupId>
-            <artifactId>osm-test-data</artifactId>
-            <version>${spatial.test.osm.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.neo4j.spatial</groupId>
-            <artifactId>shp-test-data</artifactId>
-            <version>${spatial.test.shp.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
             <groupId>org.geotools</groupId>
             <artifactId>gt-main</artifactId>
             <version>${geotools.version}</version>
