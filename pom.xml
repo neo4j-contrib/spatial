@@ -134,7 +134,7 @@
                 <version>${maven-assembly-plugin.version}</version>
                 <configuration>
                     <descriptors>
-                        <descriptor>src/main/assembly/server-plugin.xml</descriptor>
+                        <descriptor>src/main/assembly/geoserver-plugin.xml</descriptor>
                     </descriptors>
                 </configuration>
                 <executions>
