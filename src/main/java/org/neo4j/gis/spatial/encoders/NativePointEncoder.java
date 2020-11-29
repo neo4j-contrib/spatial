@@ -27,7 +27,7 @@ import org.neo4j.gis.spatial.AbstractGeometryEncoder;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.encoders.neo4j.Neo4jCRS;
 import org.neo4j.gis.spatial.encoders.neo4j.Neo4jPoint;
-import org.neo4j.graphdb.PropertyContainer;
+import org.neo4j.graphdb.Entity;
 
 import java.util.List;
 
@@ -47,7 +47,7 @@ public class NativePointEncoder extends AbstractGeometryEncoder implements Confi
 
     @Override
     protected void encodeGeometryShape(Geometry geometry,
-                                       PropertyContainer container) {
+                                       Entity container) {
         int gtype = SpatialDatabaseService.convertJtsClassToGeometryType(geometry.getClass());
         if (gtype == GTYPE_POINT) {
             container.setProperty("gtype", gtype);
@@ -60,7 +60,7 @@ public class NativePointEncoder extends AbstractGeometryEncoder implements Confi
     }
 
     @Override
-    public Geometry decodeGeometry(PropertyContainer container) {
+    public Geometry decodeGeometry(Entity container) {
         org.neo4j.graphdb.spatial.Point point = ((org.neo4j.graphdb.spatial.Point) container.getProperty(locationProperty));
         if (point.getCRS().getCode() != crs.getCode()) {
             throw new IllegalStateException("Trying to decode geometry with wrong CRS: layer configured to crs=" + crs + ", but geometry has crs=" + point.getCRS().getCode());

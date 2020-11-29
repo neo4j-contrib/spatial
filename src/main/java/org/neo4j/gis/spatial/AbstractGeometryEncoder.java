@@ -22,7 +22,7 @@ package org.neo4j.gis.spatial;
 import org.apache.commons.lang.ArrayUtils;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.PropertyContainer;
+import org.neo4j.graphdb.Entity;
 
 import com.vividsolutions.jts.geom.Geometry;
 
@@ -41,24 +41,24 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 		this.layer = layer;
 	}
 
-	public void encodeEnvelope(Envelope mbb, PropertyContainer container) {
+	public void encodeEnvelope(Envelope mbb, Entity container) {
 		container.setProperty(bboxProperty, new double[] { mbb.getMinX(), mbb.getMinY(), mbb.getMaxX(), mbb.getMaxY() });
 	}
 
 	@Override
-    public void ensureIndexable(Geometry geometry, PropertyContainer container) {
+    public void ensureIndexable(Geometry geometry, Entity container) {
         container.setProperty(PROP_TYPE, encodeGeometryType(geometry.getGeometryType()));
         encodeEnvelope(Utilities.fromJtsToNeo4j(geometry.getEnvelopeInternal()), container);
     }
 
 	@Override
-    public void encodeGeometry(Geometry geometry, PropertyContainer container) {
+    public void encodeGeometry(Geometry geometry, Entity container) {
         ensureIndexable(geometry, container);
         encodeGeometryShape(geometry, container);
     }
 
 	@Override
-	public Envelope decodeEnvelope(PropertyContainer container) {
+	public Envelope decodeEnvelope(Entity container) {
 	    double[] bbox = new double[] { 0,0,0,0 };
 	    Object bboxProp = container.getProperty(bboxProperty);
 		if (bboxProp instanceof Double[]) {
@@ -74,7 +74,7 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 	
 	// Protected methods
 
-	protected abstract void encodeGeometryShape(Geometry geometry, PropertyContainer container);
+	protected abstract void encodeGeometryShape(Geometry geometry, Entity container);
 
 	protected Integer encodeGeometryType(String jtsGeometryType) {
 		// TODO: Consider alternatives for specifying type, like relationship to

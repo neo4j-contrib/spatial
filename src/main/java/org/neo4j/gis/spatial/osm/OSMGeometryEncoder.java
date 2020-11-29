@@ -36,7 +36,7 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Path;
-import org.neo4j.graphdb.PropertyContainer;
+import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 
@@ -65,7 +65,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	 * 
 	 * @author craig
 	 */
-	private final class NullProperties implements PropertyContainer {
+	private final class NullProperties implements Entity {
 		public GraphDatabaseService getGraphDatabase() {
 			return null;
 		}
@@ -122,7 +122,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 		}
 	}
 
-	private static Node testIsNode(PropertyContainer container) {
+	private static Node testIsNode(Entity container) {
 		if (!(container instanceof Node)) {
 			throw new OSMGraphException("Cannot decode non-node geometry: " + container);
 		}
@@ -130,7 +130,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	}
 
 	@Override
-	public Envelope decodeEnvelope(PropertyContainer container) {
+	public Envelope decodeEnvelope(Entity container) {
 		Node geomNode = testIsNode(container);
 		double[] bbox = (double[]) geomNode.getProperty(PROP_BBOX);
 		// double xmin, double xmax, double ymin, double ymax
@@ -138,7 +138,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	}
 
 	@Override
-	public void encodeEnvelope(Envelope mbb, PropertyContainer container) {
+	public void encodeEnvelope(Envelope mbb, Entity container) {
 		container.setProperty(PROP_BBOX, new double[] { mbb.getMinX(), mbb.getMaxX(), mbb.getMinY(), mbb.getMaxY() });
 	}
 	
@@ -190,7 +190,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 		};
 	}
 
-	public Geometry decodeGeometry(PropertyContainer container) {
+	public Geometry decodeGeometry(Entity container) {
 		Node geomNode = testIsNode(container);
 		try {
 			GeometryFactory geomFactory = layer.getGeometryFactory();
@@ -363,7 +363,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	 * For OSM data we can build basic geometry shapes as sub-graphs. This code should produce the same kinds of structures that the utilities in the OSMDataset create. However those structures are created from original OSM data, while here we attempt to create equivalent graphs from JTS Geometries. Note that this code is unable to connect the resulting sub-graph into the OSM data model, since the only node it has is the geometry node. Those connections to the rest of the OSM model need to be done in OSMDataset.
 	 */
 	@Override
-	protected void encodeGeometryShape(Geometry geometry, PropertyContainer container) {
+	protected void encodeGeometryShape(Geometry geometry, Entity container) {
 		Node geomNode = testIsNode(container);
 		vertices = 0;
 		int gtype = SpatialDatabaseService.convertJtsClassToGeometryType(geometry.getClass());
@@ -457,7 +457,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 
 	private class CombinedAttributes {
 		private Node node;
-		private PropertyContainer properties;
+		private Entity properties;
 		private HashMap<String, Object> extra = new HashMap<>();
 
 		CombinedAttributes(Node geomNode) {

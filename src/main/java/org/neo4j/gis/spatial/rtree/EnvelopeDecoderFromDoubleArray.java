@@ -19,7 +19,7 @@
  */
 package org.neo4j.gis.spatial.rtree;
 
-import org.neo4j.graphdb.PropertyContainer;
+import org.neo4j.graphdb.Entity;
 
 
 /**
@@ -33,7 +33,7 @@ public class EnvelopeDecoderFromDoubleArray implements EnvelopeDecoder {
 	}
 	
 	@Override	
-	public Envelope decodeEnvelope(PropertyContainer container) {
+	public Envelope decodeEnvelope(Entity container) {
 	    Object propValue = container.getProperty(propertyName);
 	    
 	    if (propValue instanceof Double[]) {

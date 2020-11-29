@@ -21,7 +21,7 @@ package org.neo4j.gis.spatial;
 
 import org.neo4j.gis.spatial.encoders.AbstractSinglePropertyEncoder;
 import org.neo4j.gis.spatial.encoders.Configurable;
-import org.neo4j.graphdb.PropertyContainer;
+import org.neo4j.graphdb.Entity;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
@@ -35,7 +35,7 @@ public class WKBGeometryEncoder extends AbstractSinglePropertyEncoder implements
 
     // Public methods
 	
-	public Geometry decodeGeometry(PropertyContainer container) {
+	public Geometry decodeGeometry(Entity container) {
 		try {
 			WKBReader reader = new WKBReader(layer.getGeometryFactory());
 			return reader.read((byte[]) container.getProperty(geomProperty));
@@ -46,7 +46,7 @@ public class WKBGeometryEncoder extends AbstractSinglePropertyEncoder implements
 	
 	// Protected methods
 
-	protected void encodeGeometryShape(Geometry geometry, PropertyContainer container) {
+	protected void encodeGeometryShape(Geometry geometry, Entity container) {
         WKBWriter writer = new WKBWriter();
         container.setProperty(geomProperty, writer.write(geometry));
 	}

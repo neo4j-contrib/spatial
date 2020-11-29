@@ -19,11 +19,11 @@
  */
 package org.neo4j.gis.spatial.rtree;
 
-import org.neo4j.graphdb.PropertyContainer;
+import org.neo4j.graphdb.Entity;
 
 
 public interface EnvelopeDecoder {
 
-    Envelope decodeEnvelope(PropertyContainer container);
+    Envelope decodeEnvelope(Entity container);
 
 }

@@ -21,7 +21,7 @@ package org.neo4j.gis.spatial.encoders;
 
 import org.neo4j.gis.spatial.AbstractGeometryEncoder;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
-import org.neo4j.graphdb.PropertyContainer;
+import org.neo4j.graphdb.Entity;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
@@ -49,7 +49,7 @@ public class SimplePointEncoder extends AbstractGeometryEncoder implements
 
     @Override
     protected void encodeGeometryShape( Geometry geometry,
-            PropertyContainer container )
+            Entity container )
     {
         container.setProperty(
                 "gtype",
@@ -60,7 +60,7 @@ public class SimplePointEncoder extends AbstractGeometryEncoder implements
     }
 
     @Override
-    public Geometry decodeGeometry( PropertyContainer container )
+    public Geometry decodeGeometry( Entity container )
     {
         double x = ( (Number) container.getProperty( xProperty ) ).doubleValue();
         double y = ( (Number) container.getProperty( yProperty ) ).doubleValue();

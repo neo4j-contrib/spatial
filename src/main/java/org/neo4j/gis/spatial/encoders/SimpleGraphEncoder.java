@@ -23,7 +23,7 @@ import org.neo4j.gis.spatial.AbstractGeometryEncoder;
 import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.PropertyContainer;
+import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
@@ -52,7 +52,7 @@ public class SimpleGraphEncoder extends AbstractGeometryEncoder {
 		return geometryFactory;
 	}
 
-	private Node testIsNode(PropertyContainer container) {
+	private Node testIsNode(Entity container) {
 		if (!(container instanceof Node)) {
 			throw new SpatialDatabaseException("Cannot decode non-node geometry: " + container);
 		}
@@ -60,7 +60,7 @@ public class SimpleGraphEncoder extends AbstractGeometryEncoder {
 	}
 
 	@Override
-	protected void encodeGeometryShape(Geometry geometry, PropertyContainer container) {
+	protected void encodeGeometryShape(Geometry geometry, Entity container) {
 		Node node = testIsNode(container);
 		node.setProperty("gtype", GTYPE_LINESTRING);
 		Node prev = null;
@@ -78,7 +78,7 @@ public class SimpleGraphEncoder extends AbstractGeometryEncoder {
 		}
 	}
 
-	public Geometry decodeGeometry(PropertyContainer container) {
+	public Geometry decodeGeometry(Entity container) {
 		Node node = testIsNode(container);
 		CoordinateList coordinates = new CoordinateList();
 		TraversalDescription td = node.getGraphDatabase().traversalDescription().depthFirst()

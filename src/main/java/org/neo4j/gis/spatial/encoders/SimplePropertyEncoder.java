@@ -21,7 +21,7 @@ package org.neo4j.gis.spatial.encoders;
 
 import org.neo4j.gis.spatial.AbstractGeometryEncoder;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
-import org.neo4j.graphdb.PropertyContainer;
+import org.neo4j.graphdb.Entity;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
@@ -45,7 +45,7 @@ public class SimplePropertyEncoder extends AbstractGeometryEncoder {
 	}
 
 	@Override
-	protected void encodeGeometryShape(Geometry geometry, PropertyContainer container) {
+	protected void encodeGeometryShape(Geometry geometry, Entity container) {
 		container.setProperty("gtype", SpatialDatabaseService.convertJtsClassToGeometryType(geometry.getClass()));
 		Coordinate[] coords = geometry.getCoordinates();
 		float[] data = new float[coords.length * 2];
@@ -57,7 +57,7 @@ public class SimplePropertyEncoder extends AbstractGeometryEncoder {
 		container.setProperty("data", data);
 	}
 
-	public Geometry decodeGeometry(PropertyContainer container) {
+	public Geometry decodeGeometry(Entity container) {
 		float[] data = (float[]) container.getProperty("data");
 		Coordinate[] coordinates = new Coordinate[data.length / 2];
 		for (int i = 0; i < data.length / 2; i++) {

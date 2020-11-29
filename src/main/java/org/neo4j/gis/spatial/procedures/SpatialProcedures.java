@@ -35,16 +35,13 @@ import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
 import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
 import org.neo4j.gis.spatial.index.LayerZOrderPointIndex;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
-import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
 import org.neo4j.gis.spatial.rtree.ProgressLoggingListener;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.PropertyContainer;
-import org.neo4j.internal.kernel.api.procs.ProcedureSignature;
-import org.neo4j.kernel.impl.proc.Procedures;
+import org.neo4j.graphdb.Entity;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
@@ -60,7 +57,7 @@ import java.util.stream.Stream;
 
 import static org.neo4j.gis.spatial.SpatialDatabaseService.RTREE_INDEX_NAME;
 import static org.neo4j.gis.spatial.encoders.neo4j.Neo4jCRS.findCRS;
-import static org.neo4j.helpers.collection.MapUtil.map;
+import static org.neo4j.internal.helpers.collection.MapUtil.map;
 import static org.neo4j.procedure.Mode.WRITE;
 
 /*
@@ -738,8 +735,8 @@ public class SpatialProcedures {
             }
         }
         Map<String, Object> latLon = null;
-        if (value instanceof PropertyContainer) {
-            latLon = ((PropertyContainer) value).getProperties("latitude", "longitude", "lat", "lon");
+        if (value instanceof Entity) {
+            latLon = ((Entity) value).getProperties("latitude", "longitude", "lat", "lon");
         }
         if (value instanceof Map) latLon = (Map<String, Object>) value;
         Coordinate coord = toCoordinate(latLon);
@@ -794,8 +791,8 @@ public class SpatialProcedures {
             }
         }
         Map<String, Object> latLon = null;
-        if (value instanceof PropertyContainer) {
-            latLon = ((PropertyContainer) value).getProperties("latitude", "longitude", "lat", "lon");
+        if (value instanceof Entity) {
+            latLon = ((Entity) value).getProperties("latitude", "longitude", "lat", "lon");
         }
         if (value instanceof Map) latLon = (Map<String, Object>) value;
         Coordinate coord = toCoordinate(latLon);
@@ -806,8 +803,8 @@ public class SpatialProcedures {
     private static Object toPublic(Object obj) {
         if (obj instanceof Map) {
             return toPublic((Map) obj);
-        } else if (obj instanceof PropertyContainer) {
-            return toPublic(((PropertyContainer) obj).getProperties());
+        } else if (obj instanceof Entity) {
+            return toPublic(((Entity) obj).getProperties());
         } else if (obj instanceof Geometry) {
             return toMap((Geometry) obj);
         } else {
@@ -874,8 +871,8 @@ public class SpatialProcedures {
         if (value instanceof org.neo4j.graphdb.spatial.Point) {
             return toCoordinate(((org.neo4j.graphdb.spatial.Point) value).getCoordinate());
         }
-        if (value instanceof PropertyContainer) {
-            return toCoordinate(((PropertyContainer) value).getProperties("latitude", "longitude", "lat", "lon"));
+        if (value instanceof Entity) {
+            return toCoordinate(((Entity) value).getProperties("latitude", "longitude", "lat", "lon"));
         }
         if (value instanceof Map) {
             return toCoordinate((Map) value);

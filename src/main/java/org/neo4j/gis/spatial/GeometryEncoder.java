@@ -21,7 +21,7 @@ package org.neo4j.gis.spatial;
 
 import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.PropertyContainer;
+import org.neo4j.graphdb.Entity;
 
 import com.vividsolutions.jts.geom.Geometry;
 
@@ -67,7 +67,7 @@ public interface GeometryEncoder extends EnvelopeDecoder {
 	 * @param geometry
 	 * @param container
 	 */
-	void ensureIndexable(Geometry geometry, PropertyContainer container);
+	void ensureIndexable(Geometry geometry, Entity container);
 
 	/**
 	 * This method is called to store a geometry object to the database. It should write it to the
@@ -76,7 +76,7 @@ public interface GeometryEncoder extends EnvelopeDecoder {
 	 * @param geometry
 	 * @param container
 	 */
-	void encodeGeometry(Geometry geometry, PropertyContainer container);
+	void encodeGeometry(Geometry geometry, Entity container);
 
 	/**
      * This method is called on an individual container when we need to extract the geometry. If the
@@ -85,7 +85,7 @@ public interface GeometryEncoder extends EnvelopeDecoder {
      * @param container
      * @return
      */
-    Geometry decodeGeometry(PropertyContainer container);
+    Geometry decodeGeometry(Entity container);
 
 	/**
 	 * Each geometry might have a set of associated attributes, or properties.
