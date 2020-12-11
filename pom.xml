@@ -470,44 +470,22 @@
     </dependencies>
     <repositories>
         <repository>
-            <id>osgeo</id>
-            <name>Open Source Geospatial Foundation Repository</name>
-            <url>http://download.osgeo.org/webdav/geotools/</url>
-        </repository>
-        <repository>
             <id>java.net</id>
             <name>Java.net repo</name>
             <url>https://maven.java.net/service/local/repositories/releases/content/</url>
         </repository>
         <repository>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <id>boundlessgeo</id>
-            <name>BoundlessGeo Maven Repository</name>
-            <url>http://repo.boundlessgeo.com</url>
+            <id>osgeo</id>
+            <name>OSGeo Release Repository</name>
+            <url>https://repo.osgeo.org/repository/release/</url>
+            <releases><enabled>true</enabled></releases>
+            <snapshots><enabled>false</enabled></snapshots>
         </repository>
         <repository>
-            <id>neo4j-snapshot-repository</id>
-            <name>Maven 2 snapshot repository for Neo4j</name>
-            <url>http://m2.neo4j.org/content/repositories/snapshots</url>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-        </repository>
-        <repository>
-            <id>neo4j-release-repository</id>
-            <name>Maven 2 release repository for Neo4j</name>
-            <url>http://m2.neo4j.org/content/repositories/releases</url>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
+            <id>neo4j-contrib-releases</id>
+            <url>https://raw.github.com/neo4j-contrib/m2/master/releases</url>
+            <releases><enabled>true</enabled></releases>
+            <snapshots><enabled>false</enabled></snapshots>
         </repository>
     </repositories>
     <profiles>
