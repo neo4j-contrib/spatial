@@ -28,6 +28,7 @@ import org.geotools.data.FeatureReader;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
@@ -44,20 +45,15 @@ public class Neo4jSpatialFeatureReader implements FeatureReader<SimpleFeatureTyp
     private static final Logger log = Logger.getLogger(Neo4jSpatialFeatureReader.class.getName());
 	protected static final String FEATURE_PROP_GEOM = "the_geom";
 
-	private Layer layer;
+	private final GraphDatabaseService database;
+	private final Layer layer;
 	private SimpleFeatureType featureType;
     private SimpleFeatureBuilder builder;
 	private Iterator<SpatialDatabaseRecord> results;
-	private String[] extraPropertyNames;
+	private final String[] extraPropertyNames;
 	
-	/**
-	 * 
-	 * @param layer
-	 * @param featureType
-	 * @param results
-	 */
-	public Neo4jSpatialFeatureReader(Layer layer, SimpleFeatureType featureType, Iterator<SpatialDatabaseRecord> results) {
-		
+	public Neo4jSpatialFeatureReader(GraphDatabaseService database, Layer layer, SimpleFeatureType featureType, Iterator<SpatialDatabaseRecord> results) {
+		this.database = database;
 		this.layer = layer;
 		this.extraPropertyNames = layer.getExtraPropertyNames();		
 		this.featureType = featureType;
@@ -65,33 +61,23 @@ public class Neo4jSpatialFeatureReader implements FeatureReader<SimpleFeatureTyp
 		this.results = results;
 	}
 	
-	/**
-	 * 
-	 * 
-	 */
 	public SimpleFeatureType getFeatureType() {
 		return featureType;
 	}
 
-	/**
-	 * 
-	 */
 	public boolean hasNext() throws IOException {
 		if (results == null) return false;
-		try (Transaction tx = layer.getSpatialDatabase().getDatabase().beginTx()) {
+		try (Transaction tx = database.beginTx()) {
 			boolean ans = results.hasNext();
-			tx.success();
+			tx.commit();
 			return ans;
 		}
 	}
 
-	/**
-	 * 
-	 */
 	public SimpleFeature next() throws IOException, IllegalArgumentException, NoSuchElementException {
 		if (results == null) return null;
 
-		try (Transaction tx = layer.getSpatialDatabase().getDatabase().beginTx()) {
+		try (Transaction tx = database.beginTx()) {
 			SpatialDatabaseRecord record = results.next();
 			if (record == null) return null;
 
@@ -100,21 +86,18 @@ public class Neo4jSpatialFeatureReader implements FeatureReader<SimpleFeatureTyp
 			builder.set(FEATURE_PROP_GEOM, record.getGeometry());
 
 			if (extraPropertyNames != null) {
-				for (int i = 0; i < extraPropertyNames.length; i++) {
-					if (record.hasProperty(extraPropertyNames[i])) {
-						builder.set(extraPropertyNames[i], record.getProperty(extraPropertyNames[i]));
+				for (String extraPropertyName : extraPropertyNames) {
+					if (record.hasProperty(tx, extraPropertyName)) {
+						builder.set(extraPropertyName, record.getProperty(tx, extraPropertyName));
 					}
 				}
 			}
-			tx.success();
+			tx.commit();
 
 			return builder.buildFeature(record.getId());
 		}
 	}
 	
-	/**
-	 * 
-	 */
 	public void close() throws IOException {
 		log.debug("");
 		featureType = null;
@@ -122,10 +105,6 @@ public class Neo4jSpatialFeatureReader implements FeatureReader<SimpleFeatureTyp
 		results = null;
 	}
 	
-	/**
-	 * 
-	 * @return
-	 */
 	protected Layer getLayer() {
 		return layer;
 	}

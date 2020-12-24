@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -28,6 +28,7 @@ import org.geotools.data.FeatureWriter;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.neo4j.gis.spatial.EditableLayer;
+import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
@@ -37,163 +38,154 @@ import com.vividsolutions.jts.geom.Geometry;
 /**
  * FeatureWriter implementation. Instances of this class are created by
  * Neo4jSpatialDataStore.
- * 
+ *
  * @author Davide Savazzi, Andreas Wilhelm
  */
 public class Neo4jSpatialFeatureWriter implements
-		FeatureWriter<SimpleFeatureType, SimpleFeature> {
+        FeatureWriter<SimpleFeatureType, SimpleFeature> {
 
-	// current for FeatureWriter
-	private SimpleFeature live;
-	// copy of live returned to user
-	private SimpleFeature current;
+    // current for FeatureWriter
+    private SimpleFeature live;
+    // copy of live returned to user
+    private SimpleFeature current;
 
-	private FeatureListenerManager listener;
-	private org.geotools.data.Transaction transaction;
-	private SimpleFeatureType featureType;
-	private FeatureReader<SimpleFeatureType, SimpleFeature> reader;
-	private EditableLayer layer;
-	private boolean closed;
+    private final GraphDatabaseService database;
+    private final FeatureListenerManager listener;
+    private final org.geotools.data.Transaction geoTransaction;
+    private final SimpleFeatureType featureType;
+    private final FeatureReader<SimpleFeatureType, SimpleFeature> reader;
+    private final EditableLayer layer;
+    private boolean closed;
 
-	private static final Logger LOGGER = org.geotools.util.logging.Logging
-			.getLogger("org.neo4j.gis.spatial");
+    private static final Logger LOGGER = org.geotools.util.logging.Logging.getLogger("org.neo4j.gis.spatial");
 
-	/**
-	 * 
-	 * @param listener
-	 * @param transaction
-	 * @param layer
-	 * @param reader
-	 */
-	protected Neo4jSpatialFeatureWriter(FeatureListenerManager listener,
-			org.geotools.data.Transaction transaction, EditableLayer layer,
-			FeatureReader<SimpleFeatureType, SimpleFeature> reader) {
-		this.transaction = transaction;
-		this.listener = listener;
-		this.reader = reader;
-		this.layer = layer;
-		this.featureType = reader.getFeatureType();
-	}
+    protected Neo4jSpatialFeatureWriter(GraphDatabaseService database, FeatureListenerManager listener,
+                                        org.geotools.data.Transaction geoTransaction, EditableLayer layer,
+                                        FeatureReader<SimpleFeatureType, SimpleFeature> reader) {
+        this.database = database;
+        this.geoTransaction = geoTransaction;
+        this.listener = listener;
+        this.reader = reader;
+        this.layer = layer;
+        this.featureType = reader.getFeatureType();
+    }
 
-	/**
-	 * 
-	 */
-	public SimpleFeatureType getFeatureType() {
-		return featureType;
-	}
+    /**
+     *
+     */
+    public SimpleFeatureType getFeatureType() {
+        return featureType;
+    }
 
-	/**
-	 * 
-	 */
-	public boolean hasNext() throws IOException {
-		if (closed) {
-			throw new IOException("Feature writer is closed");
-		}
+    /**
+     *
+     */
+    public boolean hasNext() throws IOException {
+        if (closed) {
+            throw new IOException("Feature writer is closed");
+        }
 
-		return reader != null && reader.hasNext();
-	}
+        return reader != null && reader.hasNext();
+    }
 
-	/**
-	 * 
-	 */
-	public SimpleFeature next() throws IOException {
-		if (closed) {
-			throw new IOException("FeatureWriter has been closed");
-		}
+    /**
+     *
+     */
+    public SimpleFeature next() throws IOException {
+        if (closed) {
+            throw new IOException("FeatureWriter has been closed");
+        }
 
-		SimpleFeatureType featureType = getFeatureType();
+        SimpleFeatureType featureType = getFeatureType();
 
-		if (hasNext()) {
-			live = reader.next();
-			current = SimpleFeatureBuilder.copy(live);
-			LOGGER.finer("Calling next on writer");
-		} else {
-			// new content
-			live = null;
-			current = SimpleFeatureBuilder.template(featureType, null);
-		}
+        if (hasNext()) {
+            live = reader.next();
+            current = SimpleFeatureBuilder.copy(live);
+            LOGGER.finer("Calling next on writer");
+        } else {
+            // new content
+            live = null;
+            current = SimpleFeatureBuilder.template(featureType, null);
+        }
 
-		return current;
-	}
+        return current;
+    }
 
-	/**
-	 * 
-	 */
-	public void remove() throws IOException {
-		if (closed) {
-			throw new IOException("FeatureWriter has been closed");
-		}
+    /**
+     *
+     */
+    public void remove() throws IOException {
+        if (closed) {
+            throw new IOException("FeatureWriter has been closed");
+        }
 
-		if (current == null) {
-			throw new IOException("No feature available to remove");
-		}
+        if (current == null) {
+            throw new IOException("No feature available to remove");
+        }
 
-		if (live != null) {
-			LOGGER.fine("Removing " + live);
+        if (live != null) {
+            LOGGER.fine("Removing " + live);
 
-			try (Transaction tx = layer.getSpatialDatabase().getDatabase().beginTx()) {
-				layer.delete(Long.parseLong(live.getID()));
-				tx.success();
-			}
+            try (Transaction tx = database.beginTx()) {
+                layer.delete(tx, Long.parseLong(live.getID()));
+                tx.commit();
+            }
 
-			listener.fireFeaturesRemoved(featureType.getTypeName(),
-					transaction, new ReferencedEnvelope(live.getBounds()), true);
-		}
+            listener.fireFeaturesRemoved(featureType.getTypeName(), geoTransaction, new ReferencedEnvelope(live.getBounds()), true);
+        }
 
-		live = null;
-		current = null;
-	}
+        live = null;
+        current = null;
+    }
 
-	/**
-	 * 
-	 */
-	public void write() throws IOException {
-		if (closed) {
-			throw new IOException("FeatureWriter has been closed");
-		}
+    /**
+     *
+     */
+    public void write() throws IOException {
+        if (closed) {
+            throw new IOException("FeatureWriter has been closed");
+        }
 
-		if (current == null) {
-			throw new IOException("No feature available to write");
-		}
+        if (current == null) {
+            throw new IOException("No feature available to write");
+        }
 
-		LOGGER.fine("Write called, live is " + live + " and cur is " + current);
+        LOGGER.fine("Write called, live is " + live + " and cur is " + current);
 
-		if (live != null) {
-			if (!live.equals(current)) {
-				LOGGER.fine("Updating " + current);
-				try (Transaction tx = layer.getSpatialDatabase().getDatabase().beginTx()) {
-					layer.update(Long.parseLong(current.getID()),
-							(Geometry) current.getDefaultGeometry());
-					tx.success();
-				}
+        if (live != null) {
+            if (!live.equals(current)) {
+                LOGGER.fine("Updating " + current);
+                try (Transaction tx = database.beginTx()) {
+                    layer.update(tx, Long.parseLong(current.getID()), (Geometry) current.getDefaultGeometry());
+                    tx.commit();
+                }
 
-				listener.fireFeaturesChanged(featureType.getTypeName(),
-						transaction,
-						new ReferencedEnvelope(current.getBounds()), true);
+                listener.fireFeaturesChanged(featureType.getTypeName(),
+                        geoTransaction,
+                        new ReferencedEnvelope(current.getBounds()), true);
 
-			}
-		} else {
-			LOGGER.fine("Inserting " + current);
-			try (Transaction tx = layer.getSpatialDatabase().getDatabase().beginTx()) {
-				layer.add((Geometry) current.getDefaultGeometry());
-				tx.success();
-			}
+            }
+        } else {
+            LOGGER.fine("Inserting " + current);
+            try (Transaction tx = database.beginTx()) {
+                layer.add(tx, (Geometry) current.getDefaultGeometry());
+                tx.commit();
+            }
 
-			listener.fireFeaturesAdded(featureType.getTypeName(), transaction,
-					new ReferencedEnvelope(current.getBounds()), true);
-		}
+            listener.fireFeaturesAdded(featureType.getTypeName(), geoTransaction, new ReferencedEnvelope(current.getBounds()), true);
+        }
 
-		live = null;
-		current = null;
-	}
+        live = null;
+        current = null;
+    }
 
-	/**
-	 * 
-	 */
-	public void close() throws IOException {
-		if (reader != null)
-			reader.close();
-		closed = true;
-	}
+    /**
+     *
+     */
+    public void close() throws IOException {
+        if (reader != null)
+            reader.close();
+        closed = true;
+    }
 
 }

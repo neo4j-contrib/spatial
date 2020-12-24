@@ -28,6 +28,7 @@ import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.encoders.neo4j.Neo4jCRS;
 import org.neo4j.gis.spatial.encoders.neo4j.Neo4jPoint;
 import org.neo4j.graphdb.Entity;
+import org.neo4j.graphdb.Transaction;
 
 import java.util.List;
 
@@ -46,8 +47,7 @@ public class NativePointEncoder extends AbstractGeometryEncoder implements Confi
     }
 
     @Override
-    protected void encodeGeometryShape(Geometry geometry,
-                                       Entity container) {
+    protected void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container) {
         int gtype = SpatialDatabaseService.convertJtsClassToGeometryType(geometry.getClass());
         if (gtype == GTYPE_POINT) {
             container.setProperty("gtype", gtype);

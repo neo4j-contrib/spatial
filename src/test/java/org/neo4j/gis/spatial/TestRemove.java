@@ -21,31 +21,45 @@ package org.neo4j.gis.spatial;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.GeometryFactory;
-import org.neo4j.gis.spatial.index.LayerRTreeIndex;
-
+import org.junit.Test;
+import org.neo4j.graphdb.Transaction;
 
 public class TestRemove extends Neo4jTestCase {
+    private static final String layerName = "TestRemove";
 
-	public void testAddMoreThanMaxNodeRefThenDeleteAll() throws Exception {
-        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+    @Test
+    public void testAddMoreThanMaxNodeRefThenDeleteAll() throws Exception {
+        SpatialDatabaseService spatialService = new SpatialDatabaseService();
 
-        EditableLayer layer = (EditableLayer) spatialService
-        	.createLayer("TestRemove", WKTGeometryEncoder.class, EditableLayerImpl.class);
-        GeometryFactory geomFactory = layer.getGeometryFactory();
-        
+        try (Transaction tx = graphDb().beginTx()) {
+            spatialService.createLayer(tx, layerName, WKTGeometryEncoder.class, EditableLayerImpl.class);
+            tx.commit();
+        }
+
         int rtreeMaxNodeReferences = 100;
-        
+
         long[] ids = new long[rtreeMaxNodeReferences + 1];
-        for (int i = 0; i < ids.length; i++) {
-        	ids[i] = layer.add(geomFactory.createPoint(new Coordinate(i, i))).getNodeId();
+
+        try (Transaction tx = graphDb().beginTx()) {
+            EditableLayer layer = (EditableLayer) spatialService.getLayer(tx, layerName);
+            GeometryFactory geomFactory = layer.getGeometryFactory();
+            for (int i = 0; i < ids.length; i++) {
+                ids[i] = layer.add(tx, geomFactory.createPoint(new Coordinate(i, i))).getNodeId();
+            }
+            tx.commit();
         }
 
-        Neo4jTestUtils.debugIndexTree(graphDb(), (LayerRTreeIndex) layer.getIndex());
-        
-        for (long id : ids) {
-        	layer.delete(id);
+        Neo4jTestUtils.debugIndexTree(graphDb(), layerName);
+
+        try (Transaction tx = graphDb().beginTx()) {
+            EditableLayer layer = (EditableLayer) spatialService.createLayer(tx, layerName, WKTGeometryEncoder.class, EditableLayerImpl.class);
+            GeometryFactory geomFactory = layer.getGeometryFactory();
+            for (long id : ids) {
+                layer.delete(tx, id);
+            }
+            tx.commit();
         }
 
-        Neo4jTestUtils.debugIndexTree(graphDb(), (LayerRTreeIndex) layer.getIndex());
-    }		
+        Neo4jTestUtils.debugIndexTree(graphDb(), layerName);
+    }
 }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -19,40 +19,34 @@
  */
 package org.neo4j.gis.spatial;
 
-import org.neo4j.gis.spatial.encoders.AbstractSinglePropertyEncoder;
-import org.neo4j.gis.spatial.encoders.Configurable;
-import org.neo4j.graphdb.Entity;
-
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKBReader;
 import com.vividsolutions.jts.io.WKBWriter;
+import org.neo4j.gis.spatial.encoders.AbstractSinglePropertyEncoder;
+import org.neo4j.gis.spatial.encoders.Configurable;
+import org.neo4j.graphdb.Entity;
+import org.neo4j.graphdb.Transaction;
 
-/**
- * @author Davide Savazzi
- */
-public class WKBGeometryEncoder extends AbstractSinglePropertyEncoder implements Configurable{
+public class WKBGeometryEncoder extends AbstractSinglePropertyEncoder implements Configurable {
 
-    // Public methods
-	
-	public Geometry decodeGeometry(Entity container) {
-		try {
-			WKBReader reader = new WKBReader(layer.getGeometryFactory());
-			return reader.read((byte[]) container.getProperty(geomProperty));
-		} catch (ParseException e) {
-			throw new SpatialDatabaseException(e.getMessage(), e);
-		}
-	}
-	
-	// Protected methods
+    public Geometry decodeGeometry(Entity container) {
+        try {
+            WKBReader reader = new WKBReader(layer.getGeometryFactory());
+            return reader.read((byte[]) container.getProperty(geomProperty));
+        } catch (ParseException e) {
+            throw new SpatialDatabaseException(e.getMessage(), e);
+        }
+    }
 
-	protected void encodeGeometryShape(Geometry geometry, Entity container) {
+    @Override
+    protected void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container) {
         WKBWriter writer = new WKBWriter();
         container.setProperty(geomProperty, writer.write(geometry));
-	}
+    }
 
-	@Override
-	public String getSignature() {
-		return "WKB" + super.getSignature();
-	}
+    @Override
+    public String getSignature() {
+        return "WKB" + super.getSignature();
+    }
 }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -30,21 +30,21 @@ import com.vividsolutions.jts.io.gml2.GMLWriter;
  */
 public class GML extends AbstractGeoPipe {
 
-	public GML() {
-	}		
-	
-	/**
-	 * @param resultPropertyName property name to use for geometry output
-	 */	
-	public GML(String resultPropertyName) {
-		super(resultPropertyName);
-	}	
+    public GML() {
+    }
 
-	@Override	
-	protected GeoPipeFlow process(GeoPipeFlow flow) {
-		GMLWriter gmlWriter = new GMLWriter();
-		setProperty(flow, gmlWriter.write(flow.getGeometry()));		
-		return flow;
-	}	
-	
+    /**
+     * @param resultPropertyName property name to use for geometry output
+     */
+    public GML(String resultPropertyName) {
+        super(resultPropertyName);
+    }
+
+    @Override
+    protected GeoPipeFlow process(GeoPipeFlow flow) {
+        GMLWriter gmlWriter = new GMLWriter();
+        setProperty(flow, gmlWriter.write(flow.getGeometry()));
+        return flow;
+    }
+
 }

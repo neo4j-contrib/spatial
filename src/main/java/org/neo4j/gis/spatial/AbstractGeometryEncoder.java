@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -25,118 +25,106 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Entity;
 
 import com.vividsolutions.jts.geom.Geometry;
+import org.neo4j.graphdb.Transaction;
 
-
-/**
- * @author Davide Savazzi
- */
 public abstract class AbstractGeometryEncoder implements GeometryEncoder, Constants {
 
-	protected String bboxProperty = PROP_BBOX;
+    protected String bboxProperty = PROP_BBOX;
 
-	// Public methods
+    // Public methods
 
-	@Override	
-	public void init(Layer layer) {
-		this.layer = layer;
-	}
+    @Override
+    public void init(Layer layer) {
+        this.layer = layer;
+    }
 
-	public void encodeEnvelope(Envelope mbb, Entity container) {
-		container.setProperty(bboxProperty, new double[] { mbb.getMinX(), mbb.getMinY(), mbb.getMaxX(), mbb.getMaxY() });
-	}
+    public void encodeEnvelope(Envelope mbb, Entity container) {
+        container.setProperty(bboxProperty, new double[]{mbb.getMinX(), mbb.getMinY(), mbb.getMaxX(), mbb.getMaxY()});
+    }
 
-	@Override
+    @Override
     public void ensureIndexable(Geometry geometry, Entity container) {
         container.setProperty(PROP_TYPE, encodeGeometryType(geometry.getGeometryType()));
         encodeEnvelope(Utilities.fromJtsToNeo4j(geometry.getEnvelopeInternal()), container);
     }
 
-	@Override
-    public void encodeGeometry(Geometry geometry, Entity container) {
+    @Override
+    public void encodeGeometry(Transaction tx, Geometry geometry, Entity container) {
         ensureIndexable(geometry, container);
-        encodeGeometryShape(geometry, container);
+        encodeGeometryShape(tx, geometry, container);
     }
 
-	@Override
-	public Envelope decodeEnvelope(Entity container) {
-	    double[] bbox = new double[] { 0,0,0,0 };
-	    Object bboxProp = container.getProperty(bboxProperty);
-		if (bboxProp instanceof Double[]) {
-		    bbox = ArrayUtils.toPrimitive((Double[]) bboxProp);
-		} else if (bboxProp instanceof double[]) {
-	        bbox = (double[]) bboxProp;
-	    }
-		
-		// Envelope parameters: xmin, xmax, ymin, ymax
-		return new Envelope(bbox[0], bbox[2], bbox[1], bbox[3]);
-	}
+    @Override
+    public Envelope decodeEnvelope(Entity container) {
+        double[] bbox = new double[]{0, 0, 0, 0};
+        Object bboxProp = container.getProperty(bboxProperty);
+        if (bboxProp instanceof Double[]) {
+            bbox = ArrayUtils.toPrimitive((Double[]) bboxProp);
+        } else if (bboxProp instanceof double[]) {
+            bbox = (double[]) bboxProp;
+        }
 
-	
-	// Protected methods
+        // Envelope parameters: xmin, xmax, ymin, ymax
+        return new Envelope(bbox[0], bbox[2], bbox[1], bbox[3]);
+    }
 
-	protected abstract void encodeGeometryShape(Geometry geometry, Entity container);
 
-	protected Integer encodeGeometryType(String jtsGeometryType) {
-		// TODO: Consider alternatives for specifying type, like relationship to
-		// type category
-		// objects (or similar indexing structure)
-		if ("Point".equals(jtsGeometryType)) {
-			return GTYPE_POINT;
-		} else if ("MultiPoint".equals(jtsGeometryType)) {
-			return GTYPE_MULTIPOINT;
-		} else if ("LineString".equals(jtsGeometryType)) {
-			return GTYPE_LINESTRING;
-		} else if ("MultiLineString".equals(jtsGeometryType)) {
-			return GTYPE_MULTILINESTRING;
-		} else if ("Polygon".equals(jtsGeometryType)) {
-			return GTYPE_POLYGON;
-		} else if ("MultiPolygon".equals(jtsGeometryType)) {
-			return GTYPE_MULTIPOLYGON;
-		} else {
-			throw new IllegalArgumentException("unknown type:" + jtsGeometryType);
-		}
-	}
+    // Protected methods
 
-	/**
-	 * This method wraps the hasProperty(String) method on the geometry node.
-	 * This means the default way of storing attributes is simply as properties
-	 * of the geometry node. This behaviour can be changed by other domain
-	 * models with different encodings.
-	 * 
-	 * @param geomNode
-	 * @param attribute
-	 *            to test
-	 * @return
-	 */
-	public boolean hasAttribute(Node geomNode, String name) {
-		return geomNode.hasProperty(name);
-	}
+    protected abstract void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container);
 
-	/**
-	 * This method wraps the getProperty(String,null) method on the geometry
-	 * node. This means the default way of storing attributes is simply as
-	 * properties of the geometry node. This behaviour can be changed by other
-	 * domain models with different encodings. If the property does not exist,
-	 * the method returns null.
-	 * 
-	 * @param geomNode
-	 * @param attribute
-	 *            to test
-	 * @return attribute, or null
-	 */
-	public Object getAttribute(Node geomNode, String name) {
-		return geomNode.getProperty(name, null);
-	}
+    protected Integer encodeGeometryType(String jtsGeometryType) {
+        // TODO: Consider alternatives for specifying type, like relationship to
+        // type category
+        // objects (or similar indexing structure)
+        if ("Point".equals(jtsGeometryType)) {
+            return GTYPE_POINT;
+        } else if ("MultiPoint".equals(jtsGeometryType)) {
+            return GTYPE_MULTIPOINT;
+        } else if ("LineString".equals(jtsGeometryType)) {
+            return GTYPE_LINESTRING;
+        } else if ("MultiLineString".equals(jtsGeometryType)) {
+            return GTYPE_MULTILINESTRING;
+        } else if ("Polygon".equals(jtsGeometryType)) {
+            return GTYPE_POLYGON;
+        } else if ("MultiPolygon".equals(jtsGeometryType)) {
+            return GTYPE_MULTIPOLYGON;
+        } else {
+            throw new IllegalArgumentException("unknown type:" + jtsGeometryType);
+        }
+    }
 
-	/**
-	 * For external expression of the configuration of this geometry encoder
-	 * @return descriptive signature of encoder, type and configuration
-	 */
-	public String getSignature() {
-		return "GeometryEncoder(bbox='" + bboxProperty + "')";
-	}
+    /**
+     * This method wraps the hasProperty(String) method on the geometry node.
+     * This means the default way of storing attributes is simply as properties
+     * of the geometry node. This behaviour can be changed by other domain
+     * models with different encodings.
+     */
+    public boolean hasAttribute(Node geomNode, String name) {
+        return geomNode.hasProperty(name);
+    }
 
-	// Attributes
+    /**
+     * This method wraps the getProperty(String,null) method on the geometry
+     * node. This means the default way of storing attributes is simply as
+     * properties of the geometry node. This behaviour can be changed by other
+     * domain models with different encodings. If the property does not exist,
+     * the method returns null.
+     */
+    public Object getAttribute(Node geomNode, String name) {
+        return geomNode.getProperty(name, null);
+    }
 
-	protected Layer layer;
+    /**
+     * For external expression of the configuration of this geometry encoder
+     *
+     * @return descriptive signature of encoder, type and configuration
+     */
+    public String getSignature() {
+        return "GeometryEncoder(bbox='" + bboxProperty + "')";
+    }
+
+    // Attributes
+
+    protected Layer layer;
 }

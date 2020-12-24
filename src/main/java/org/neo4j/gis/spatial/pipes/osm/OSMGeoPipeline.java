@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -19,8 +19,6 @@
  */
 package org.neo4j.gis.spatial.pipes.osm;
 
-import org.neo4j.gis.spatial.rtree.filter.SearchAll;
-import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
@@ -28,6 +26,9 @@ import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.pipes.impl.FilterPipe;
 import org.neo4j.gis.spatial.pipes.osm.filtering.FilterOSMAttributes;
 import org.neo4j.gis.spatial.pipes.osm.processing.ExtractOSMPoints;
+import org.neo4j.gis.spatial.rtree.filter.SearchAll;
+import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
+import org.neo4j.graphdb.Transaction;
 
 public class OSMGeoPipeline extends GeoPipeline {
 	
@@ -35,17 +36,17 @@ public class OSMGeoPipeline extends GeoPipeline {
 		super(layer);
 	}
 
-    public static OSMGeoPipeline startOsm(Layer layer, final SearchRecords records) {
+    public static OSMGeoPipeline startOsm(Transaction tx, Layer layer, final SearchRecords records) {
     	OSMGeoPipeline pipeline = new OSMGeoPipeline(layer);
     	return (OSMGeoPipeline) pipeline.add(createStartPipe(records));    	
     }
     
-    public static OSMGeoPipeline startOsm(Layer layer, SearchFilter searchFilter) {
-    	return startOsm(layer, layer.getIndex().search(searchFilter));    	
+    public static OSMGeoPipeline startOsm(Transaction tx, Layer layer, SearchFilter searchFilter) {
+    	return startOsm(tx, layer, layer.getIndex().search(tx, searchFilter));
     }
 
-    public static OSMGeoPipeline startOsm(Layer layer) {
-    	return startOsm(layer, new SearchAll());  	
+    public static OSMGeoPipeline startOsm(Transaction tx, Layer layer) {
+    	return startOsm(tx, layer, new SearchAll());
     }    
     
     public OSMGeoPipeline addOsmPipe(AbstractGeoPipe geoPipe) {

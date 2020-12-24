@@ -13,10 +13,6 @@ include::procedures.txt[]
 
 :leveloffset: 1
 
-include::server-plugin.txt[]
-
-:leveloffset: 1
-
 include::querying.txt[]
 
 :leveloffset: 1

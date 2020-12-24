@@ -23,6 +23,7 @@ import java.util.Map;
 
 import com.vividsolutions.jts.geom.Geometry;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 
 public interface SpatialRecord {
 
@@ -30,13 +31,13 @@ public interface SpatialRecord {
 	
 	Geometry getGeometry();
 
-	boolean hasProperty(String name);
+	boolean hasProperty(Transaction tx, String name);
 
 	String[] getPropertyNames();
 
-	Object getProperty(String name);
+	Object getProperty(Transaction tx, String name);
 
-	Map<String, Object> getProperties();
+	Map<String, Object> getProperties(Transaction tx);
 
 	Node getGeomNode();
 }

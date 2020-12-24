@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -23,38 +23,37 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 
-
 /**
  * Abstract pipe for GeoPipelines that extract or create new items from every given item.
  */
 public class AbstractExtractGeoPipe extends AbstractGeoPipe {
 
-	protected List<GeoPipeFlow> extracts = new ArrayList<GeoPipeFlow>();
-	protected Iterator<GeoPipeFlow> extractIterator = null;
-	
-	@Override
-	public GeoPipeFlow processNextStart() {
-		if (extractIterator != null) {
-			if (extractIterator.hasNext()) {
-				return extractIterator.next();
-			} else {
-				extractIterator = null;
-				extracts.clear();
-			}
-		}
-		
-		do {
-			extract(process(starts.next()));
-		} while (extracts.size() == 0);
+    protected List<GeoPipeFlow> extracts = new ArrayList<GeoPipeFlow>();
+    protected Iterator<GeoPipeFlow> extractIterator = null;
 
-		extractIterator = extracts.iterator();
-		return extractIterator.next();
-	}
-	
-	/**
-	 * Subclasses should override this method
-	 */
-	protected void extract(GeoPipeFlow flow) {
-		extracts.add(flow);
-	}
+    @Override
+    public GeoPipeFlow processNextStart() {
+        if (extractIterator != null) {
+            if (extractIterator.hasNext()) {
+                return extractIterator.next();
+            } else {
+                extractIterator = null;
+                extracts.clear();
+            }
+        }
+
+        do {
+            extract(process(starts.next()));
+        } while (extracts.size() == 0);
+
+        extractIterator = extracts.iterator();
+        return extractIterator.next();
+    }
+
+    /**
+     * Subclasses should override this method
+     */
+    protected void extract(GeoPipeFlow flow) {
+        extracts.add(flow);
+    }
 }

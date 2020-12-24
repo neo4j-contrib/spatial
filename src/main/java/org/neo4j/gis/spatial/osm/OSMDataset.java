@@ -28,10 +28,7 @@ import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.SpatialDataset;
 import org.neo4j.gis.spatial.SpatialRelationshipTypes;
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
@@ -39,6 +36,7 @@ import org.neo4j.graphdb.traversal.TraversalDescription;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
+import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 
 public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Iterator<OSMDataset.Way> {
     private OSMLayer layer;
@@ -49,10 +47,10 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
      * This method is used to construct the dataset on an existing node when the node id is known,
      * which is the case with OSM importers.
      */
-    public OSMDataset(SpatialDatabaseService spatialDatabase, OSMLayer osmLayer, Node layerNode, long datasetId) {
-        try (Transaction tx = spatialDatabase.getDatabase().beginTx()) {
+    public OSMDataset(GraphDatabaseService database, OSMLayer osmLayer, Node layerNode, long datasetId) {
+        try (Transaction tx = database.beginTx()) {
             this.layer = osmLayer;
-            this.datasetNode = spatialDatabase.getDatabase().getNodeById(datasetId);
+            this.datasetNode = tx.getNodeById(datasetId);
             Relationship rel = layerNode.getSingleRelationship(SpatialRelationshipTypes.LAYERS, Direction.INCOMING);
             if (rel == null) {
                     datasetNode.createRelationshipTo(layerNode, SpatialRelationshipTypes.LAYERS);
@@ -62,7 +60,7 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
                     throw new SpatialDatabaseException("Layer '" + osmLayer + "' already belongs to another dataset: " + node);
                 }
             }
-            tx.success();
+            tx.commit();
         }
 
     }
@@ -71,8 +69,8 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
      * This method is used to construct the dataset when only the layer node is known, and the
      * dataset node needs to be searched for.
      */
-    public OSMDataset(SpatialDatabaseService spatialDatabase, OSMLayer osmLayer, Node layerNode) {
-        try (Transaction tx = layerNode.getGraphDatabase().beginTx())
+    public OSMDataset(GraphDatabaseService db, OSMLayer osmLayer, Node layerNode) {
+        try (Transaction tx = db.beginTx())
         {
             this.layer = osmLayer;
             Relationship rel = layerNode.getSingleRelationship( SpatialRelationshipTypes.LAYERS, Direction.INCOMING );
@@ -84,12 +82,12 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
             {
                 datasetNode = rel.getStartNode();
             }
-            tx.success();
+            tx.commit();
         }
     }
     
 	public Iterable<Node> getAllUserNodes() {
-		TraversalDescription td = datasetNode.getGraphDatabase().traversalDescription()
+		TraversalDescription td = new MonoDirectionalTraversalDescription()
 				.depthFirst()
 				.relationships( OSMRelation.USERS, Direction.OUTGOING )
 				.relationships( OSMRelation.OSM_USER, Direction.OUTGOING )
@@ -98,7 +96,7 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
 	}
 
 	public Iterable<Node> getAllChangesetNodes() {
-		TraversalDescription td = datasetNode.getGraphDatabase().traversalDescription()
+		TraversalDescription td = new MonoDirectionalTraversalDescription()
 				.depthFirst()
 				.relationships( OSMRelation.USERS, Direction.OUTGOING )
 				.relationships( OSMRelation.OSM_USER, Direction.OUTGOING )
@@ -108,7 +106,7 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
 	}
 
 	public Iterable<Node> getAllWayNodes() {
-		TraversalDescription td = datasetNode.getGraphDatabase().traversalDescription()
+		TraversalDescription td = new MonoDirectionalTraversalDescription()
 				.depthFirst()
 				.relationships( OSMRelation.WAYS, Direction.OUTGOING )
 				.relationships( OSMRelation.NEXT, Direction.OUTGOING )
@@ -117,7 +115,7 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
 	}
 
 	public Iterable<Node> getAllPointNodes() {
-		TraversalDescription td = datasetNode.getGraphDatabase().traversalDescription()
+		TraversalDescription td = new MonoDirectionalTraversalDescription()
 				.depthFirst()
 				.relationships( OSMRelation.WAYS, Direction.OUTGOING )
 				.relationships( OSMRelation.NEXT, Direction.OUTGOING )
@@ -128,7 +126,7 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
 	}
 
 	public Iterable<Node> getWayNodes(Node way) {
-        TraversalDescription td = datasetNode.getGraphDatabase().traversalDescription()
+        TraversalDescription td = new MonoDirectionalTraversalDescription()
                 .depthFirst()
                 .relationships( OSMRelation.NEXT, Direction.OUTGOING )
                 .relationships( OSMRelation.NODE, Direction.OUTGOING )
@@ -148,7 +146,7 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
 	}
 
 	public Node getUser(Node nodeWayOrChangeset) {
-		TraversalDescription td = datasetNode.getGraphDatabase().traversalDescription()
+		TraversalDescription td = new MonoDirectionalTraversalDescription()
 				.depthFirst()
 				.relationships( OSMRelation.CHANGESET, Direction.OUTGOING )
 				.relationships( OSMRelation.USER, Direction.OUTGOING )
@@ -157,12 +155,12 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
 		return results.hasNext() ? results.next() : null;
 	}
 
-	public Way getWayFromId(long id) {
-		return getWayFrom(datasetNode.getGraphDatabase().getNodeById(id));
+	public Way getWayFromId(Transaction tx, long id) {
+		return getWayFrom(tx.getNodeById(id));
 	}
 
 	public Way getWayFrom(Node osmNodeOrWayNodeOrGeomNode) {
-		TraversalDescription td = datasetNode.getGraphDatabase().traversalDescription()
+		TraversalDescription td = new MonoDirectionalTraversalDescription()
 				.depthFirst()
 				.relationships( OSMRelation.NODE, Direction.INCOMING )
 				.relationships( OSMRelation.NEXT, Direction.INCOMING )
@@ -294,9 +292,9 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
         return layer.getAllGeometryNodes();
     }
 
-    public boolean containsGeometryNode(Node geomNode) {
+    public boolean containsGeometryNode(Transaction tx, Node geomNode) {
         //@TODO: support multiple layers
-        return layer.containsGeometryNode(geomNode);
+        return layer.containsGeometryNode(tx, geomNode);
     }
 
     public GeometryEncoder getGeometryEncoder() {

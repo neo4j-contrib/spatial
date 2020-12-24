@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -21,16 +21,15 @@ package org.neo4j.gis.spatial.index;
 
 import org.neo4j.gis.spatial.rtree.SpatialIndexVisitor;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 
 /**
  * Spatial Indexes based on tree structures can implement the following methods common to maintaining and searching tree structures.
- * 
- * @author craig
  */
 public interface LayerTreeIndexReader extends LayerIndexReader {
 	
 	Node getIndexRoot();
 	
-	void visit(SpatialIndexVisitor visitor, Node indexNode);
+	void visit(Transaction tx, SpatialIndexVisitor visitor, Node indexNode);
 	
 }

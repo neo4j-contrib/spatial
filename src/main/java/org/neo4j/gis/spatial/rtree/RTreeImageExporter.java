@@ -1,19 +1,19 @@
-/**
+/*
  * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
- * <p>
+ *
  * This file is part of Neo4j Spatial.
- * <p>
+ *
  * Neo4j is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * <p>
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * <p>
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
@@ -58,14 +58,14 @@ public class RTreeImageExporter {
     private final Color[] colors = new Color[]{Color.BLUE, Color.CYAN, Color.GREEN, Color.RED, Color.YELLOW, Color.PINK, Color.ORANGE};
     ReferencedEnvelope bounds;
 
-    public RTreeImageExporter(Layer layer, RTreeIndex index, Coordinate min, Coordinate max) {
-        initialize(layer.getGeometryFactory(), layer.getGeometryEncoder(), layer.getCoordinateReferenceSystem(), Neo4jFeatureBuilder.getTypeFromLayer(layer), index);
+    public RTreeImageExporter(Layer layer, SimpleFeatureType featureType, RTreeIndex index, Coordinate min, Coordinate max) {
+        initialize(layer.getGeometryFactory(), layer.getGeometryEncoder(), layer.getCoordinateReferenceSystem(), featureType, index);
         bounds.expandToInclude(new com.vividsolutions.jts.geom.Envelope(min.x, max.x, min.y, max.y));
         bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
     }
 
-    public RTreeImageExporter(Layer layer, RTreeIndex index) {
-        initialize(layer.getGeometryFactory(), layer.getGeometryEncoder(), layer.getCoordinateReferenceSystem(), Neo4jFeatureBuilder.getTypeFromLayer(layer), index);
+    public RTreeImageExporter(Layer layer, SimpleFeatureType featureType, RTreeIndex index) {
+        initialize(layer.getGeometryFactory(), layer.getGeometryEncoder(), layer.getCoordinateReferenceSystem(), featureType, index);
         bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
     }
 
@@ -75,7 +75,7 @@ public class RTreeImageExporter {
         bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
     }
 
-    public void initialize(GeometryFactory geometryFactory, GeometryEncoder geometryEncoder, CoordinateReferenceSystem crs, SimpleFeatureType featureType, RTreeIndex index) {
+    private void initialize(GeometryFactory geometryFactory, GeometryEncoder geometryEncoder, CoordinateReferenceSystem crs, SimpleFeatureType featureType, RTreeIndex index) {
         this.geometryFactory = geometryFactory;
         this.geometryEncoder = geometryEncoder;
         this.featureType = featureType;
@@ -133,7 +133,7 @@ public class RTreeImageExporter {
             }
         }
         ArrayList<Node> allIndexedNodes = new ArrayList<>();
-        for(Node node: index.getAllIndexedNodes()) {
+        for (Node node : index.getAllIndexedNodes()) {
             allIndexedNodes.add(node);
         }
         drawGeometryNodes(mapContent, allIndexedNodes, Color.LIGHT_GRAY);

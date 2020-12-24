@@ -35,6 +35,7 @@ import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
 import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
 import org.neo4j.gis.spatial.index.LayerZOrderPointIndex;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
+import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
@@ -42,6 +43,10 @@ import org.neo4j.gis.spatial.rtree.ProgressLoggingListener;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Entity;
+import org.neo4j.graphdb.Transaction;
+import org.neo4j.internal.kernel.api.Procedures;
+import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
+import org.neo4j.internal.kernel.api.procs.ProcedureSignature;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.logging.Log;
 import org.neo4j.procedure.*;
@@ -72,8 +77,13 @@ public class SpatialProcedures {
     public GraphDatabaseService db;
 
     @Context
+    public Transaction tx;
+
+    @Context
     public Log log;
 
+    private final SpatialDatabaseService spatial = new SpatialDatabaseService();
+    
     public static class NodeResult {
         public final Node node;
 
@@ -154,10 +164,10 @@ public class SpatialProcedures {
 
     @Procedure("spatial.procedures")
     @Description("Lists all spatial procedures with name and signature")
-    public Stream<NameResult> listProcedures() {
+    public Stream<NameResult> listProcedures() throws ProcedureException {
         Procedures procedures = ((GraphDatabaseAPI) db).getDependencyResolver().resolveDependency(Procedures.class);
         Stream.Builder<NameResult> builder = Stream.builder();
-        for (ProcedureSignature proc : procedures.getAllProcedures()) {
+        for (ProcedureSignature proc : procedures.proceduresGetAll()) {
             if (proc.name().namespace()[0].equals("spatial")) {
                 builder.accept(new NameResult(proc.name().toString(), proc.toString()));
             }
@@ -169,9 +179,8 @@ public class SpatialProcedures {
     @Description("Returns name, and details for all layers")
     public Stream<NameResult> getAllLayers() {
         Stream.Builder<NameResult> builder = Stream.builder();
-        SpatialDatabaseService spatial = wrap(db);
-        for (String name : spatial.getLayerNames()) {
-            Layer layer = spatial.getLayer(name);
+        for (String name : spatial.getLayerNames(tx)) {
+            Layer layer = spatial.getLayer(tx, name);
             if (layer != null) {
                 builder.accept(new NameResult(name, layer.getSignature()));
             }
@@ -183,7 +192,7 @@ public class SpatialProcedures {
     @Description("Returns the different registered layer types")
     public Stream<NameResult> getAllLayerTypes() {
         Stream.Builder<NameResult> builder = Stream.builder();
-        for (Map.Entry<String, String> entry : wrap(db).getRegisteredLayerTypes().entrySet()) {
+        for (Map.Entry<String, String> entry : spatial.getRegisteredLayerTypes().entrySet()) {
             builder.accept(new NameResult(entry.getKey(), entry.getValue()));
         }
         return builder.build();
@@ -195,10 +204,10 @@ public class SpatialProcedures {
             @Name("name") String name,
             @Name(value = "indexType", defaultValue = RTREE_INDEX_NAME) String indexType,
             @Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName) {
-        SpatialDatabaseService sdb = wrap(db);
-        Layer layer = sdb.getLayer(name);
+        SpatialDatabaseService sdb = spatial;
+        Layer layer = sdb.getLayer(tx, name);
         if (layer == null) {
-            return streamNode(sdb.createLayer(name, SimplePointEncoder.class, SimplePointLayer.class,
+            return streamNode(sdb.createLayer(tx, name, SimplePointEncoder.class, SimplePointLayer.class,
                     sdb.resolveIndexClass(indexType), null,
                     selectCRS(crsName)).getLayerNode());
         } else {
@@ -211,10 +220,10 @@ public class SpatialProcedures {
     public Stream<NodeResult> addSimplePointLayerGeohash(
             @Name("name") String name,
             @Name(value = "crsName", defaultValue = WGS84_CRS_NAME) String crsName) {
-        SpatialDatabaseService sdb = wrap(db);
-        Layer layer = sdb.getLayer(name);
+        SpatialDatabaseService sdb = spatial;
+        Layer layer = sdb.getLayer(tx, name);
         if (layer == null) {
-            return streamNode(sdb.createLayer(name, SimplePointEncoder.class, SimplePointLayer.class,
+            return streamNode(sdb.createLayer(tx, name, SimplePointEncoder.class, SimplePointLayer.class,
                     LayerGeohashPointIndex.class, null,
                     selectCRS(crsName)).getLayerNode());
         } else {
@@ -225,10 +234,10 @@ public class SpatialProcedures {
     @Procedure(value="spatial.addPointLayerZOrder", mode=WRITE)
     @Description("Adds a new simple point layer with z-order curve based index, returns the layer root node")
     public Stream<NodeResult> addSimplePointLayerZOrder(@Name("name") String name) {
-        SpatialDatabaseService sdb = wrap(db);
-        Layer layer = sdb.getLayer(name);
+        SpatialDatabaseService sdb = spatial;
+        Layer layer = sdb.getLayer(tx, name);
         if (layer == null) {
-            return streamNode(sdb.createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, LayerZOrderPointIndex.class, null, DefaultGeographicCRS.WGS84).getLayerNode());
+            return streamNode(sdb.createLayer(tx, name, SimplePointEncoder.class, SimplePointLayer.class, LayerZOrderPointIndex.class, null, DefaultGeographicCRS.WGS84).getLayerNode());
         } else {
             throw new IllegalArgumentException("Cannot create existing layer: " + name);
         }
@@ -237,10 +246,10 @@ public class SpatialProcedures {
     @Procedure(value="spatial.addPointLayerHilbert", mode=WRITE)
     @Description("Adds a new simple point layer with hilbert curve based index, returns the layer root node")
     public Stream<NodeResult> addSimplePointLayerHilbert(@Name("name") String name) {
-        SpatialDatabaseService sdb = wrap(db);
-        Layer layer = sdb.getLayer(name);
+        SpatialDatabaseService sdb = spatial;
+        Layer layer = sdb.getLayer(tx, name);
         if (layer == null) {
-            return streamNode(sdb.createLayer(name, SimplePointEncoder.class, SimplePointLayer.class, LayerHilbertPointIndex.class, null, DefaultGeographicCRS.WGS84).getLayerNode());
+            return streamNode(sdb.createLayer(tx, name, SimplePointEncoder.class, SimplePointLayer.class, LayerHilbertPointIndex.class, null, DefaultGeographicCRS.WGS84).getLayerNode());
         } else {
             throw new IllegalArgumentException("Cannot create existing layer: " + name);
         }
@@ -254,11 +263,11 @@ public class SpatialProcedures {
             @Name("yProperty") String yProperty,
             @Name(value = "indexType", defaultValue = RTREE_INDEX_NAME) String indexType,
             @Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName) {
-        SpatialDatabaseService sdb = wrap(db);
-        Layer layer = sdb.getLayer(name);
+        SpatialDatabaseService sdb = spatial;
+        Layer layer = sdb.getLayer(tx, name);
         if (layer == null) {
             if (xProperty != null && yProperty != null) {
-                return streamNode(sdb.createLayer(name, SimplePointEncoder.class, SimplePointLayer.class,
+                return streamNode(sdb.createLayer(tx, name, SimplePointEncoder.class, SimplePointLayer.class,
                         sdb.resolveIndexClass(indexType), sdb.makeEncoderConfig(xProperty, yProperty),
                         selectCRS(hintCRSName(crsName, yProperty))).getLayerNode());
             } else {
@@ -276,11 +285,11 @@ public class SpatialProcedures {
             @Name("encoderConfig") String encoderConfig,
             @Name(value = "indexType", defaultValue = RTREE_INDEX_NAME) String indexType,
             @Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName) {
-        SpatialDatabaseService sdb = wrap(db);
-        Layer layer = sdb.getLayer(name);
+        SpatialDatabaseService sdb = spatial;
+        Layer layer = sdb.getLayer(tx, name);
         if (layer == null) {
             if (encoderConfig.indexOf(':') > 0) {
-                return streamNode(sdb.createLayer(name, SimplePointEncoder.class, SimplePointLayer.class,
+                return streamNode(sdb.createLayer(tx, name, SimplePointEncoder.class, SimplePointLayer.class,
                         sdb.resolveIndexClass(indexType), encoderConfig,
                         selectCRS(hintCRSName(crsName, encoderConfig))).getLayerNode());
             } else {
@@ -297,10 +306,10 @@ public class SpatialProcedures {
             @Name("name") String name,
             @Name(value = "indexType", defaultValue = RTREE_INDEX_NAME) String indexType,
             @Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName) {
-        SpatialDatabaseService sdb = wrap(db);
-        Layer layer = sdb.getLayer(name);
+        SpatialDatabaseService sdb = spatial;
+        Layer layer = sdb.getLayer(tx, name);
         if (layer == null) {
-            return streamNode(sdb.createLayer(name, NativePointEncoder.class, SimplePointLayer.class, sdb.resolveIndexClass(indexType), null, selectCRS(crsName)).getLayerNode());
+            return streamNode(sdb.createLayer(tx, name, NativePointEncoder.class, SimplePointLayer.class, sdb.resolveIndexClass(indexType), null, selectCRS(crsName)).getLayerNode());
         } else {
             throw new IllegalArgumentException("Cannot create existing layer: " + name);
         }
@@ -311,10 +320,10 @@ public class SpatialProcedures {
     public Stream<NodeResult> addNativePointLayerGeohash(
             @Name("name") String name,
             @Name(value = "crsName", defaultValue = WGS84_CRS_NAME) String crsName) {
-        SpatialDatabaseService sdb = wrap(db);
-        Layer layer = sdb.getLayer(name);
+        SpatialDatabaseService sdb = spatial;
+        Layer layer = sdb.getLayer(tx, name);
         if (layer == null) {
-            return streamNode(sdb.createLayer(name, NativePointEncoder.class, SimplePointLayer.class, LayerGeohashPointIndex.class, null, selectCRS(crsName)).getLayerNode());
+            return streamNode(sdb.createLayer(tx, name, NativePointEncoder.class, SimplePointLayer.class, LayerGeohashPointIndex.class, null, selectCRS(crsName)).getLayerNode());
         } else {
             throw new IllegalArgumentException("Cannot create existing layer: " + name);
         }
@@ -323,10 +332,10 @@ public class SpatialProcedures {
     @Procedure(value="spatial.addNativePointLayerZOrder", mode=WRITE)
     @Description("Adds a new native point layer with z-order curve based index, returns the layer root node")
     public Stream<NodeResult> addNativePointLayerZOrder(@Name("name") String name) {
-        SpatialDatabaseService sdb = wrap(db);
-        Layer layer = sdb.getLayer(name);
+        SpatialDatabaseService sdb = spatial;
+        Layer layer = sdb.getLayer(tx, name);
         if (layer == null) {
-            return streamNode(sdb.createLayer(name, NativePointEncoder.class, SimplePointLayer.class, LayerZOrderPointIndex.class, null, DefaultGeographicCRS.WGS84).getLayerNode());
+            return streamNode(sdb.createLayer(tx, name, NativePointEncoder.class, SimplePointLayer.class, LayerZOrderPointIndex.class, null, DefaultGeographicCRS.WGS84).getLayerNode());
         } else {
             throw new IllegalArgumentException("Cannot create existing layer: " + name);
         }
@@ -335,10 +344,10 @@ public class SpatialProcedures {
     @Procedure(value="spatial.addNativePointLayerHilbert", mode=WRITE)
     @Description("Adds a new native point layer with hilbert curve based index, returns the layer root node")
     public Stream<NodeResult> addNativePointLayerHilbert(@Name("name") String name) {
-        SpatialDatabaseService sdb = wrap(db);
-        Layer layer = sdb.getLayer(name);
+        SpatialDatabaseService sdb = spatial;
+        Layer layer = sdb.getLayer(tx, name);
         if (layer == null) {
-            return streamNode(sdb.createLayer(name, NativePointEncoder.class, SimplePointLayer.class, LayerHilbertPointIndex.class, null, DefaultGeographicCRS.WGS84).getLayerNode());
+            return streamNode(sdb.createLayer(tx, name, NativePointEncoder.class, SimplePointLayer.class, LayerHilbertPointIndex.class, null, DefaultGeographicCRS.WGS84).getLayerNode());
         } else {
             throw new IllegalArgumentException("Cannot create existing layer: " + name);
         }
@@ -352,11 +361,11 @@ public class SpatialProcedures {
             @Name("yProperty") String yProperty,
             @Name(value = "indexType", defaultValue = RTREE_INDEX_NAME) String indexType,
             @Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName) {
-        SpatialDatabaseService sdb = wrap(db);
-        Layer layer = sdb.getLayer(name);
+        SpatialDatabaseService sdb = spatial;
+        Layer layer = sdb.getLayer(tx, name);
         if (layer == null) {
             if (xProperty != null && yProperty != null) {
-                return streamNode(sdb.createLayer(name, NativePointEncoder.class, SimplePointLayer.class,
+                return streamNode(sdb.createLayer(tx, name, NativePointEncoder.class, SimplePointLayer.class,
                         sdb.resolveIndexClass(indexType), sdb.makeEncoderConfig(xProperty, yProperty),
                         selectCRS(hintCRSName(crsName, yProperty))).getLayerNode());
             } else {
@@ -374,11 +383,11 @@ public class SpatialProcedures {
             @Name("encoderConfig") String encoderConfig,
             @Name(value = "indexType", defaultValue = RTREE_INDEX_NAME) String indexType,
             @Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName) {
-        SpatialDatabaseService sdb = wrap(db);
-        Layer layer = sdb.getLayer(name);
+        SpatialDatabaseService sdb = spatial;
+        Layer layer = sdb.getLayer(tx, name);
         if (layer == null) {
             if (encoderConfig.indexOf(':') > 0) {
-                return streamNode(sdb.createLayer(name, NativePointEncoder.class, SimplePointLayer.class,
+                return streamNode(sdb.createLayer(tx, name, NativePointEncoder.class, SimplePointLayer.class,
                         sdb.resolveIndexClass(indexType), encoderConfig,
                         selectCRS(hintCRSName(crsName, encoderConfig))).getLayerNode());
             } else {
@@ -426,13 +435,13 @@ public class SpatialProcedures {
             @Name("name") String name,
             @Name("encoder") String encoderClassName,
             @Name("encoderConfig") String encoderConfig) {
-        SpatialDatabaseService sdb = wrap(db);
-        Layer layer = sdb.getLayer(name);
+        SpatialDatabaseService sdb = spatial;
+        Layer layer = sdb.getLayer(tx, name);
         if (layer == null) {
             Class encoderClass = encoderClasses.get(encoderClassName);
             Class layerClass = sdb.suggestLayerClassForEncoder(encoderClass);
             if (encoderClass != null) {
-                return streamNode(sdb.createLayer(name, encoderClass, layerClass, null, encoderConfig).getLayerNode());
+                return streamNode(sdb.createLayer(tx, name, encoderClass, layerClass, null, encoderConfig).getLayerNode());
             } else {
                 throw new IllegalArgumentException("Cannot create layer '" + name + "': invalid encoder class '" + encoderClassName + "'");
             }
@@ -447,12 +456,12 @@ public class SpatialProcedures {
             @Name("name") String name,
             @Name("type") String type,
             @Name("encoderConfig") String encoderConfig) {
-        SpatialDatabaseService sdb = wrap(db);
-        Layer layer = sdb.getLayer(name);
+        SpatialDatabaseService sdb = spatial;
+        Layer layer = sdb.getLayer(tx, name);
         if (layer == null) {
             Map<String, String> knownTypes = sdb.getRegisteredLayerTypes();
             if (knownTypes.containsKey(type.toLowerCase())) {
-                return streamNode(sdb.getOrCreateRegisteredTypeLayer(name, type, encoderConfig).getLayerNode());
+                return streamNode(sdb.getOrCreateRegisteredTypeLayer(tx, name, type, encoderConfig).getLayerNode());
             } else {
                 throw new IllegalArgumentException("Cannot create layer '" + name + "': unknown type '" + type + "' - supported types are " + knownTypes.toString());
             }
@@ -497,28 +506,28 @@ public class SpatialProcedures {
     @Procedure(value="spatial.removeLayer", mode=WRITE)
     @Description("Removes the given layer")
     public void removeLayer(@Name("name") String name) {
-        wrap(db).deleteLayer(name, new ProgressLoggingListener("Deleting layer '" + name + "'", log.infoLogger()));
+        spatial.deleteLayer(tx, name, new ProgressLoggingListener("Deleting layer '" + name + "'", log.infoLogger()));
     }
 
     @Procedure(value="spatial.addNode", mode=WRITE)
     @Description("Adds the given node to the layer, returns the geometry-node")
     public Stream<NodeResult> addNodeToLayer(@Name("layerName") String name, @Name("node") Node node) {
         EditableLayer layer = getEditableLayerOrThrow(name);
-        return streamNode(layer.add(node).getGeomNode());
+        return streamNode(layer.add(tx, node).getGeomNode());
     }
 
     @Procedure(value="spatial.addNodes", mode=WRITE)
     @Description("Adds the given nodes list to the layer, returns the count")
     public Stream<CountResult> addNodesToLayer(@Name("layerName") String name, @Name("nodes") List<Node> nodes) {
         EditableLayer layer = getEditableLayerOrThrow(name);
-        return Stream.of(new CountResult(layer.addAll(nodes)));
+        return Stream.of(new CountResult(layer.addAll(tx, nodes)));
     }
 
     @Procedure(value="spatial.removeNode", mode=WRITE)
     @Description("Removes the given node from the layer, returns the geometry-node")
     public Stream<NodeResult> removeNodeFromLayer(@Name("layerName") String name, @Name("node") Node node) {
         EditableLayer layer = getEditableLayerOrThrow(name);
-        layer.removeFromIndex(node.getId());
+        layer.removeFromIndex(tx, node.getId());
         return streamNode(node);
     }
 
@@ -527,11 +536,11 @@ public class SpatialProcedures {
     public Stream<CountResult> removeNodesFromLayer(@Name("layerName") String name, @Name("nodes") List<Node> nodes) {
         EditableLayer layer = getEditableLayerOrThrow(name);
         //TODO optimize bulk node removal from RTree like we have done for node additions
-        int before = layer.getIndex().count();
+        int before = layer.getIndex().count(tx);
         for (Node node : nodes) {
-            layer.removeFromIndex(node.getId());
+            layer.removeFromIndex(tx, node.getId());
         }
-        int after = layer.getIndex().count();
+        int after = layer.getIndex().count(tx);
         return Stream.of(new CountResult(before - after));
     }
 
@@ -554,7 +563,7 @@ public class SpatialProcedures {
     private Node addGeometryWkt(EditableLayer layer, WKTReader reader, String geometryWKT) {
         try {
             Geometry geometry = reader.read(geometryWKT);
-            return layer.add(geometry).getGeomNode();
+            return layer.add(tx, geometry).getGeomNode();
         } catch (ParseException e) {
             throw new RuntimeException("Error parsing geometry: " + geometryWKT, e);
         }
@@ -629,7 +638,7 @@ public class SpatialProcedures {
         // TODO why a SearchWithin and not a SearchIntersectWindow?
         Envelope envelope = new Envelope(toCoordinate(min), toCoordinate(max));
         return GeoPipeline
-                .startWithinSearch(layer, layer.getGeometryFactory().toGeometry(envelope))
+                .startWithinSearch(tx, layer, layer.getGeometryFactory().toGeometry(envelope))
                 .stream().map(GeoPipeFlow::getGeomNode).map(NodeResult::new);
     }
 
@@ -642,7 +651,7 @@ public class SpatialProcedures {
         Layer layer = getLayerOrThrow(name);
         GeometryFactory factory = layer.getGeometryFactory();
         Point point = factory.createPoint(toCoordinate(coordinate));
-        List<SpatialTopologyUtils.PointResult> edgeResults = SpatialTopologyUtils.findClosestEdges(point, layer, distanceInKm);
+        List<SpatialTopologyUtils.PointResult> edgeResults = SpatialTopologyUtils.findClosestEdges(tx, point, layer, distanceInKm);
         return edgeResults.stream().map(e -> e.getValue().getGeomNode()).map(NodeResult::new);
     }
 
@@ -655,10 +664,10 @@ public class SpatialProcedures {
 
         Layer layer = getLayerOrThrow(name);
         return GeoPipeline
-                .startNearestNeighborLatLonSearch(layer, toCoordinate(coordinate), distanceInKm)
+                .startNearestNeighborLatLonSearch(tx, layer, toCoordinate(coordinate), distanceInKm)
                 .sort(OrthodromicDistance.DISTANCE)
                 .stream().map(r -> {
-                    double distance = r.hasProperty(OrthodromicDistance.DISTANCE) ? ((Number) r.getProperty(OrthodromicDistance.DISTANCE)).doubleValue() : -1;
+                    double distance = r.hasProperty(tx, OrthodromicDistance.DISTANCE) ? ((Number) r.getProperty(tx, OrthodromicDistance.DISTANCE)).doubleValue() : -1;
                     return new NodeDistanceResult(r.getGeomNode(), distance);
                 });
     }
@@ -715,7 +724,7 @@ public class SpatialProcedures {
 
         Layer layer = getLayerOrThrow(name);
         return GeoPipeline
-                .startIntersectSearch(layer, toJTSGeometry(layer, geometry))
+                .startIntersectSearch(tx, layer, toJTSGeometry(layer, geometry))
                 .stream().map(GeoPipeFlow::getGeomNode).map(NodeResult::new);
     }
 
@@ -899,23 +908,19 @@ public class SpatialProcedures {
     }
 
     private EditableLayerImpl getEditableLayerOrThrow(String name) {
-        return (EditableLayerImpl) getLayerOrThrow(wrap(db), name);
+        return (EditableLayerImpl) getLayerOrThrow(spatial, name);
     }
 
     private Layer getLayerOrThrow(String name) {
-        return getLayerOrThrow(wrap(db), name);
+        return getLayerOrThrow(spatial, name);
     }
 
     private Layer getLayerOrThrow(SpatialDatabaseService spatialService, String name) {
-        EditableLayer layer = (EditableLayer) spatialService.getLayer(name);
+        EditableLayer layer = (EditableLayer) spatialService.getLayer(tx, name);
         if (layer != null) {
             return layer;
         } else {
             throw new IllegalArgumentException("No such layer '" + name + "'");
         }
-    }
-
-    private SpatialDatabaseService wrap(GraphDatabaseService db) {
-        return new SpatialDatabaseService(db);
     }
 }

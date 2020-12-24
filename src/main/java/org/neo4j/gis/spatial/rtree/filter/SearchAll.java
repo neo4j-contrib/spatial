@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2002-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -21,17 +21,18 @@ package org.neo4j.gis.spatial.rtree.filter;
 
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 
 public class SearchAll implements SearchFilter {
 
-	@Override
-	public boolean needsToVisit(Envelope indexNodeEnvelope) {
-		return true;
-	}
+    @Override
+    public boolean needsToVisit(Envelope indexNodeEnvelope) {
+        return true;
+    }
 
-	@Override
-	public boolean geometryMatches(Node geomNode) {
-		return true;
-	}
+    @Override
+    public boolean geometryMatches(Transaction tx, Node geomNode) {
+        return true;
+    }
 
 }

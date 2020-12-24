@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -21,7 +21,7 @@ package org.neo4j.gis.spatial.pipes.processing;
 
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-
+import org.neo4j.graphdb.Transaction;
 
 /**
  * Copies item Node properties to item properties.<br>
@@ -32,28 +32,32 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class CopyDatabaseRecordProperties extends AbstractGeoPipe {
 
-	private String[] keys = null;
-	
-	public CopyDatabaseRecordProperties(String key) {
-		this(new String[] { key });
-	}
-	
-	public CopyDatabaseRecordProperties(String[] keys) {
-		this.keys = keys;
-	}
-	
-	public CopyDatabaseRecordProperties() {
-	}
-	
-	
-	@Override	
-	protected GeoPipeFlow process(GeoPipeFlow flow) {
-		String[] names = keys != null ? keys : flow.getRecord().getPropertyNames();
-		for (String name : names) {
-			flow.getProperties().put(name, flow.getRecord().getProperty(name));
-		}
-		
-		return flow;
-	}	
-	
+    private final String[] keys;
+    private final Transaction tx;
+
+    public CopyDatabaseRecordProperties(Transaction tx) {
+        this.tx = tx;
+        this.keys = null;
+    }
+
+    public CopyDatabaseRecordProperties(Transaction tx, String key) {
+        this.tx = tx;
+        this.keys = new String[]{key};
+    }
+
+    public CopyDatabaseRecordProperties(Transaction tx, String[] keys) {
+        this.tx = tx;
+        this.keys = keys;
+    }
+
+    @Override
+    protected GeoPipeFlow process(GeoPipeFlow flow) {
+        String[] names = keys != null ? keys : flow.getRecord().getPropertyNames();
+        for (String name : names) {
+            flow.getProperties().put(name, flow.getRecord().getProperty(tx, name));
+        }
+
+        return flow;
+    }
+
 }

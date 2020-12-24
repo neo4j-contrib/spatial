@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -19,75 +19,71 @@
  */
 package org.neo4j.gis.spatial.encoders;
 
-import org.neo4j.gis.spatial.AbstractGeometryEncoder;
-import org.neo4j.gis.spatial.SpatialDatabaseException;
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Entity;
-import org.neo4j.graphdb.RelationshipType;
-import org.neo4j.graphdb.traversal.Evaluators;
-import org.neo4j.graphdb.traversal.TraversalDescription;
-
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.CoordinateList;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
+import org.neo4j.gis.spatial.AbstractGeometryEncoder;
+import org.neo4j.gis.spatial.SpatialDatabaseException;
+import org.neo4j.graphdb.*;
+import org.neo4j.graphdb.traversal.Evaluators;
+import org.neo4j.graphdb.traversal.TraversalDescription;
+import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 
 /**
  * Simple encoder that stores geometries as an linked list of point
  * nodes. Only supports LineString geometries.
- * 
- * @TODO: Consider generalizing this code and making a general linked
- *        list geometry store available in the library
- * @author craig
+ *
+ * @TODO: Consider generalizing this code and making a general linked list geometry store available in the library
  */
 public class SimpleGraphEncoder extends AbstractGeometryEncoder {
-	private GeometryFactory geometryFactory;
-	protected enum SimpleRelationshipTypes implements RelationshipType {
-		FIRST, NEXT;
-	}
+    private GeometryFactory geometryFactory;
 
-	private GeometryFactory getGeometryFactory() {
-		if(geometryFactory==null) geometryFactory = new GeometryFactory();
-		return geometryFactory;
-	}
+    protected enum SimpleRelationshipTypes implements RelationshipType {
+        FIRST, NEXT;
+    }
 
-	private Node testIsNode(Entity container) {
-		if (!(container instanceof Node)) {
-			throw new SpatialDatabaseException("Cannot decode non-node geometry: " + container);
-		}
-		return (Node) container;
-	}
+    private GeometryFactory getGeometryFactory() {
+        if (geometryFactory == null) geometryFactory = new GeometryFactory();
+        return geometryFactory;
+    }
 
-	@Override
-	protected void encodeGeometryShape(Geometry geometry, Entity container) {
-		Node node = testIsNode(container);
-		node.setProperty("gtype", GTYPE_LINESTRING);
-		Node prev = null;
-		for (Coordinate coord : geometry.getCoordinates()) {
-			Node point = node.getGraphDatabase().createNode();
-			point.setProperty("x", coord.x);
-			point.setProperty("y", coord.y);
-			point.setProperty("z", coord.z);
-			if (prev == null) {
-				node.createRelationshipTo(point, SimpleRelationshipTypes.FIRST);
-			} else {
-				prev.createRelationshipTo(point, SimpleRelationshipTypes.NEXT);
-			}
-			prev = point;
-		}
-	}
+    private Node testIsNode(Entity container) {
+        if (!(container instanceof Node)) {
+            throw new SpatialDatabaseException("Cannot decode non-node geometry: " + container);
+        }
+        return (Node) container;
+    }
 
-	public Geometry decodeGeometry(Entity container) {
-		Node node = testIsNode(container);
-		CoordinateList coordinates = new CoordinateList();
-		TraversalDescription td = node.getGraphDatabase().traversalDescription().depthFirst()
-				.relationships( SimpleRelationshipTypes.FIRST, Direction.OUTGOING )
-				.relationships( SimpleRelationshipTypes.NEXT, Direction.OUTGOING ).breadthFirst()
-				.evaluator( Evaluators.excludeStartPosition() );
-		for (Node point : td.traverse( node ).nodes()) {
-			coordinates.add(new Coordinate((Double) point.getProperty("x"), (Double) point.getProperty("y"), (Double) point.getProperty("z")), false);
-		}
-		return getGeometryFactory().createLineString(coordinates.toCoordinateArray());
-	}
+    @Override
+    protected void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container) {
+        Node node = testIsNode(container);
+        node.setProperty("gtype", GTYPE_LINESTRING);
+        Node prev = null;
+        for (Coordinate coord : geometry.getCoordinates()) {
+            Node point = tx.createNode();
+            point.setProperty("x", coord.x);
+            point.setProperty("y", coord.y);
+            point.setProperty("z", coord.z);
+            if (prev == null) {
+                node.createRelationshipTo(point, SimpleRelationshipTypes.FIRST);
+            } else {
+                prev.createRelationshipTo(point, SimpleRelationshipTypes.NEXT);
+            }
+            prev = point;
+        }
+    }
+
+    public Geometry decodeGeometry(Entity container) {
+        Node node = testIsNode(container);
+        CoordinateList coordinates = new CoordinateList();
+        TraversalDescription td = new MonoDirectionalTraversalDescription().depthFirst()
+                .relationships(SimpleRelationshipTypes.FIRST, Direction.OUTGOING)
+                .relationships(SimpleRelationshipTypes.NEXT, Direction.OUTGOING).breadthFirst()
+                .evaluator(Evaluators.excludeStartPosition());
+        for (Node point : td.traverse(node).nodes()) {
+            coordinates.add(new Coordinate((Double) point.getProperty("x"), (Double) point.getProperty("y"), (Double) point.getProperty("z")), false);
+        }
+        return getGeometryFactory().createLineString(coordinates.toCoordinateArray());
+    }
 }

@@ -26,8 +26,13 @@ import java.util.Map;
 import org.geotools.data.AbstractDataStoreFactory;
 import org.geotools.data.DataStore;
 import org.geotools.util.KVP;
+import org.neo4j.bolt.dbapi.BoltGraphDatabaseManagementServiceSPI;
+import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 /**
  * DataStoreFactorySpi implementation. It needs an "url" parameter containing a
@@ -75,7 +80,8 @@ public class Neo4jSpatialDataStoreFactory extends AbstractDataStoreFactory
 		
 	    File neodir = (File) DIRECTORY.lookUp(params);
 
-		GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(neodir);
+		DatabaseManagementService databases = new DatabaseManagementServiceBuilder(neodir).build();
+		GraphDatabaseService db = databases.database(DEFAULT_DATABASE_NAME);
 		Neo4jSpatialDataStore dataStore = new Neo4jSpatialDataStore(db);
 
 		return dataStore;

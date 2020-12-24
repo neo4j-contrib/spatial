@@ -3,17 +3,20 @@ package org.neo4j.gis.spatial;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import org.apache.commons.io.FileUtils;
+import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.referencing.crs.DefaultEngineeringCRS;
 import org.junit.*;
+import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.index.*;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
-import org.neo4j.gis.spatial.rtree.*;
 import org.neo4j.gis.spatial.rtree.Envelope;
+import org.neo4j.gis.spatial.rtree.*;
 import org.neo4j.graphdb.*;
-import org.neo4j.test.TestGraphDatabaseFactory;
+import org.neo4j.test.TestDatabaseManagementServiceBuilder;
+import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
@@ -24,14 +27,15 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.*;
-import static org.neo4j.helpers.collection.MapUtil.map;
+import static org.neo4j.gis.spatial.rtree.RTreeIndex.DEFAULT_MAX_NODE_REFERENCES;
+import static org.neo4j.internal.helpers.collection.MapUtil.map;
 
 public class RTreeBulkInsertTest {
 
+    private DatabaseManagementService databases;
     private GraphDatabaseService db;
     private final File storeDir = new File("target/store").getAbsoluteFile();
 
@@ -53,7 +57,7 @@ public class RTreeBulkInsertTest {
         ArrayList<ArrayList<Node>> nodes = new ArrayList<>();
         try (Transaction tx = db.beginTx()) {
             nodes.add(new ArrayList<>());
-            nodes.get(0).add(db.createNode());
+            nodes.get(0).add(tx.createNode());
             nodes.get(0).get(0).setProperty("name", "0-0");
 
             for (int i = 1; i < depth; i++) {
@@ -61,7 +65,7 @@ public class RTreeBulkInsertTest {
                 nodes.add(children);
                 for (Node parent : nodes.get(i - 1)) {
                     for (int j = 0; j < width; j++) {
-                        Node node = db.createNode();
+                        Node node = tx.createNode();
                         node.setProperty("name", "" + i + "-" + j);
                         parent.createRelationshipTo(node, RTreeRelationshipTypes.RTREE_CHILD);
                         children.add(node);
@@ -80,23 +84,23 @@ public class RTreeBulkInsertTest {
             deleteRecursivelySubtree(nodes.get(0).get(0), null);
             System.out.println("Leaf");
             nodes.get(nodes.size() - 1).forEach(System.out::println);
-            tx.success();
+            tx.commit();
         }
         debugRest();
     }
 
     private void debugRest() {
         try (Transaction tx = db.beginTx()) {
-            Result result = db.execute("MATCH (n) OPTIONAL MATCH (n)-[r]-() RETURN ID(n), n.name, count(r)");
+            Result result = tx.execute("MATCH (n) OPTIONAL MATCH (n)-[r]-() RETURN ID(n), n.name, count(r)");
             while (result.hasNext()) {
                 System.out.println(result.next());
             }
-            tx.success();
+            tx.commit();
         }
     }
 
     private void deleteRecursivelySubtree(Node node, Relationship incoming) {
-        for (Relationship relationship : node.getRelationships(RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
+        for (Relationship relationship : node.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD)) {
             deleteRecursivelySubtree(relationship.getEndNode(), relationship);
         }
         if (incoming != null) {
@@ -111,32 +115,37 @@ public class RTreeBulkInsertTest {
         node.delete();
     }
 
+    private EditableLayer getOrCreateSimplePointLayer(String name, String index, String xProperty, String yProperty) {
+        CoordinateReferenceSystem crs = DefaultEngineeringCRS.GENERIC_2D;
+        try (Transaction tx = db.beginTx()) {
+            SpatialDatabaseService sdbs = new SpatialDatabaseService();
+            EditableLayer layer = sdbs.getOrCreateSimplePointLayer(tx, name, index, xProperty, yProperty);
+            layer.setCoordinateReferenceSystem(crs);
+            tx.commit();
+            return layer;
+        }
+    }
+
     @Ignore
     public void shouldInsertSimpleRTree() {
         int width = 20;
         int blockSize = 10000;
-        SpatialDatabaseService sdbs = new SpatialDatabaseService(db);
         CoordinateReferenceSystem crs = DefaultEngineeringCRS.GENERIC_2D;
-        EditableLayer layer = sdbs.getOrCreateSimplePointLayer("Coordinates", "rtree", "lon", "lat");
-        try (Transaction tx = db.beginTx()) {
-            layer.setCoordinateReferenceSystem(crs);
-            tx.success();
-        }
+        EditableLayer layer = getOrCreateSimplePointLayer("Coordinates", "rtree", "lon", "lat");
         List<Node> nodes = new ArrayList<>();
         try (Transaction tx = spatialProcedures().db.beginTx()) {
             for (int i = 0; i < width; i++) {
-                Node node = db.createNode();
+                Node node = tx.createNode();
                 node.addLabel(Label.label("Coordinates"));
                 node.setProperty("lat", i);
                 node.setProperty("lon", 0);
                 nodes.add(node);
                 node.toString();
             }
-            tx.success();
+            tx.commit();
         }
 //        java.util.Collections.shuffle( nodes,new Random( 1 ) );
         TreeMonitor monitor = new RTreeMonitor();
-        layer = (EditableLayer) new SpatialDatabaseService(db).getLayer("Coordinates");
         layer.getIndex().addMonitor(monitor);
         long start = System.currentTimeMillis();
 
@@ -145,22 +154,21 @@ public class RTreeBulkInsertTest {
         System.out.println(list1.toString());
         System.out.println(list2.toString());
         try (Transaction tx = spatialProcedures().db.beginTx()) {
-            layer.addAll(list1);
-
-            tx.success();
+            layer.addAll(tx, list1);
+            tx.commit();
         }
-        Neo4jTestUtils.debugIndexTree(db, (RTreeIndex) layer.getIndex());
+        Neo4jTestUtils.debugIndexTree(db, "Coordinates");
         //TODO add this part to the test
 //        try (Transaction tx = spatialProcedures().db.beginTx()) {
 //            layer.addAll(list2);
-//            tx.success();
+//            tx.commit();
 //        }
 
         System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + (width * width) + " nodes to RTree in bulk");
 
 //        queryRTree(layer);
 //        verifyTreeStructure(layer);
-        Neo4jTestUtils.debugIndexTree(db, (RTreeIndex) layer.getIndex());
+        Neo4jTestUtils.debugIndexTree(db, "Coordinates");
 
     }
 
@@ -207,7 +215,7 @@ public class RTreeBulkInsertTest {
     }
 
     private interface IndexMaker {
-        EditableLayer setupLayer();
+        EditableLayer setupLayer(Transaction tx);
         List<Node> nodes();
         TestStats initStats(int blockSize);
         TimedLogger initLogger();
@@ -229,9 +237,9 @@ public class RTreeBulkInsertTest {
         }
 
         @Override
-        public EditableLayer setupLayer() {
+        public EditableLayer setupLayer(Transaction tx) {
             this.nodes = setup(name, "geohash", config.width);
-            this.layer = (EditableLayer) new SpatialDatabaseService(db).getLayer("Coordinates");
+            this.layer = (EditableLayer) new SpatialDatabaseService().getLayer(tx, "Coordinates");
             return layer;
         }
 
@@ -275,9 +283,9 @@ public class RTreeBulkInsertTest {
         }
 
         @Override
-        public EditableLayer setupLayer() {
+        public EditableLayer setupLayer(Transaction tx) {
             this.nodes = setup(name, "zorder", config.width);
-            this.layer = (EditableLayer) new SpatialDatabaseService(db).getLayer("Coordinates");
+            this.layer = (EditableLayer) new SpatialDatabaseService().getLayer(tx,"Coordinates");
             return layer;
         }
 
@@ -321,9 +329,9 @@ public class RTreeBulkInsertTest {
         }
 
         @Override
-        public EditableLayer setupLayer() {
+        public EditableLayer setupLayer(Transaction tx) {
             this.nodes = setup(name, "hilbert", config.width);
-            this.layer = (EditableLayer) new SpatialDatabaseService(db).getLayer("Coordinates");
+            this.layer = (EditableLayer) new SpatialDatabaseService().getLayer(tx,"Coordinates");
             return layer;
         }
 
@@ -377,9 +385,9 @@ public class RTreeBulkInsertTest {
             this.config = config;
         }
 
-        public EditableLayer setupLayer() {
+        public EditableLayer setupLayer(Transaction tx) {
             this.nodes = setup(name, "rtree", config.width);
-            this.layer = (EditableLayer) new SpatialDatabaseService(db).getLayer(name);
+            this.layer = (EditableLayer) new SpatialDatabaseService().getLayer(tx, name);
             layer.getIndex().configure(map(
                     RTreeIndex.KEY_SPLIT, splitMode,
                     RTreeIndex.KEY_MAX_NODE_REFERENCES, maxNodeReferences,
@@ -757,7 +765,7 @@ public class RTreeBulkInsertTest {
                 imageExporter.saveRTreeLayers(new File("rtree-" + insertMode + "-" + splitMode + "/debug-" + context + "/rtree-" + count + ".png"),
                         rootNode, envelopes, 7);
                 called.put(context, count + 1);
-                tx.success();
+                tx.commit();
             } catch (IOException e) {
                 System.out.println("Failed to print RTree to disk: " + e.getMessage());
                 e.printStackTrace();
@@ -770,10 +778,18 @@ public class RTreeBulkInsertTest {
         insertManyNodesIndividually(new RTreeIndexMaker("Coordinates", splitMode, "Single", maxNodeReferences, config), blockSize);
     }
 
-    private void insertManyNodesIndividually(IndexMaker indexMaker, int blockSize)
-            throws FactoryException, IOException {
+    private EditableLayer setupLayer(IndexMaker indexMaker)
+    {
+        try (Transaction tx = spatialProcedures().db.beginTx()) {
+            EditableLayer layer = indexMaker.setupLayer(tx);
+            tx.commit();
+            return layer;
+        }
+    }
+
+    private void insertManyNodesIndividually(IndexMaker indexMaker, int blockSize) {
         TestStats stats = indexMaker.initStats(blockSize);
-        EditableLayer layer = indexMaker.setupLayer();
+        EditableLayer layer = setupLayer(indexMaker);
         List<Node> nodes = indexMaker.nodes();
         TreeMonitor monitor = new RTreeMonitor();
         layer.getIndex().addMonitor(monitor);
@@ -784,9 +800,9 @@ public class RTreeBulkInsertTest {
             List<Node> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
             try (Transaction tx = spatialProcedures().db.beginTx()) {
                 for (Node node : slice) {
-                    layer.add(node);
+                    layer.add(tx, node);
                 }
-                tx.success();
+                tx.commit();
             }
             log.log("Splits: " + monitor.getNbrSplit(), (i + 1) * blockSize);
         }
@@ -811,14 +827,15 @@ public class RTreeBulkInsertTest {
         String splitMode = RTreeIndex.GREENES_SPLIT;
         IndexMaker indexMaker = new RTreeIndexMaker("Coordinates", splitMode, "Single", maxNodeReferences, config);
         TestStats stats = indexMaker.initStats(blockSize);
-        EditableLayer layer = indexMaker.setupLayer();
+        EditableLayer layer = setupLayer(indexMaker);
         List<Node> nodes = indexMaker.nodes();
 
         RTreeIndex rtree = (RTreeIndex) layer.getIndex();
         RTreeImageExporter imageExporter;
         try (Transaction tx = db.beginTx()) {
-            imageExporter = new RTreeImageExporter(layer, rtree, new Coordinate(0.0, 0.0), new Coordinate(1.0, 1.0));
-            tx.success();
+            SimpleFeatureType featureType = Neo4jFeatureBuilder.getTypeFromLayer(tx, layer);
+            imageExporter = new RTreeImageExporter(layer, featureType, rtree, new Coordinate(0.0, 0.0), new Coordinate(1.0, 1.0));
+            tx.commit();
         }
 
         TreeMonitor monitor = new TreePrintingMonitor(imageExporter, "single", splitMode);
@@ -833,14 +850,14 @@ public class RTreeBulkInsertTest {
             long startIndexing = System.currentTimeMillis();
             try (Transaction tx = spatialProcedures().db.beginTx()) {
                 for (Node node : slice) {
-                    layer.add(node);
+                    layer.add(tx, node);
                 }
-                tx.success();
+                tx.commit();
             }
             log.log("Splits: " + monitor.getNbrSplit(), currBlock);
             try (Transaction tx = db.beginTx()) {
                 imageExporter.saveRTreeLayers(new File("rtree-single-" + splitMode + "/rtree-" + i + ".png"), 7);
-                tx.success();
+                tx.commit();
             }
             i++;
             prevBlock = currBlock;
@@ -870,7 +887,7 @@ public class RTreeBulkInsertTest {
     private void insertManyNodesInBulk(IndexMaker indexMaker, int blockSize)
             throws FactoryException, IOException {
         TestStats stats = indexMaker.initStats(blockSize);
-        EditableLayer layer = indexMaker.setupLayer();
+        EditableLayer layer = setupLayer(indexMaker);
         List<Node> nodes = indexMaker.nodes();
         RTreeMonitor monitor = new RTreeMonitor();
         layer.getIndex().addMonitor(monitor);
@@ -880,8 +897,8 @@ public class RTreeBulkInsertTest {
             List<Node> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
             long startIndexing = System.currentTimeMillis();
             try (Transaction tx = db.beginTx()) {
-                layer.addAll(slice);
-                tx.success();
+                layer.addAll(tx, slice);
+                tx.commit();
             }
             log.log(startIndexing, "Rebuilt: " + monitor.getNbrRebuilt() + ", Splits: " + monitor.getNbrSplit() + ", Cases " + monitor.getCaseCounts(), (i + 1) * blockSize);
         }
@@ -906,15 +923,16 @@ public class RTreeBulkInsertTest {
         int maxNodeReferences = 10;
         String splitMode = RTreeIndex.GREENES_SPLIT;
         IndexMaker indexMaker = new RTreeIndexMaker("Coordinates", splitMode, "Bulk", maxNodeReferences, config);
-        EditableLayer layer = indexMaker.setupLayer();
+        EditableLayer layer = setupLayer(indexMaker);
         List<Node> nodes = indexMaker.nodes();
         TestStats stats = indexMaker.initStats(blockSize);
 
         RTreeIndex rtree = (RTreeIndex) layer.getIndex();
         RTreeImageExporter imageExporter;
         try (Transaction tx = db.beginTx()) {
-            imageExporter = new RTreeImageExporter(layer, rtree, new Coordinate(0.0, 0.0), new Coordinate(1.0, 1.0));
-            tx.success();
+            SimpleFeatureType featureType = Neo4jFeatureBuilder.getTypeFromLayer(tx, layer);
+            imageExporter = new RTreeImageExporter(layer, featureType, rtree, new Coordinate(0.0, 0.0), new Coordinate(1.0, 1.0));
+            tx.commit();
         }
 
         TreeMonitor monitor = new TreePrintingMonitor(imageExporter, "bulk", splitMode);
@@ -925,13 +943,13 @@ public class RTreeBulkInsertTest {
             List<Node> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
             long startIndexing = System.currentTimeMillis();
             try (Transaction tx = db.beginTx()) {
-                layer.addAll(slice);
-                tx.success();
+                layer.addAll(tx, slice);
+                tx.commit();
             }
             log.log(startIndexing, "Rebuilt: " + monitor.getNbrRebuilt() + ", Splits: " + monitor.getNbrSplit() + ", Cases " + monitor.getCaseCounts(), (i + 1) * blockSize);
             try (Transaction tx = db.beginTx()) {
                 imageExporter.saveRTreeLayers(new File("rtree-bulk-" + splitMode + "/rtree-" + i + ".png"), 7);
-                tx.success();
+                tx.commit();
             }
         }
         System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + config.totalCount + " nodes to RTree in bulk");
@@ -950,8 +968,8 @@ public class RTreeBulkInsertTest {
         // Use these two lines if you want to examine the output.
 //        File dbPath = new File("target/var/BulkTest");
 //        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath.getCanonicalPath());
-        SpatialDatabaseService sdbs = new SpatialDatabaseService(db);
-        EditableLayer layer = sdbs.getOrCreateSimplePointLayer("Coordinates", "rtree", "lon", "lat");
+        SpatialDatabaseService sdbs = new SpatialDatabaseService();
+        EditableLayer layer = getOrCreateSimplePointLayer("Coordinates", "rtree", "lon", "lat");
 
         final long numNodes = 100000;
         Random rand = new Random();
@@ -961,29 +979,29 @@ public class RTreeBulkInsertTest {
         try (Transaction tx = db.beginTx()) {
             List<Node> coordinateNodes = new ArrayList<>();
             for (int i = 0; i < numNodes; i++) {
-                Node node = db.createNode();
+                Node node = tx.createNode();
                 node.addLabel(Label.label("Coordinates"));
                 node.setProperty("lat", rand.nextDouble());
                 node.setProperty("lon", rand.nextDouble());
                 coordinateNodes.add(node);
             }
-            layer.addAll(coordinateNodes);
-            tx.success();
+            layer.addAll(tx, coordinateNodes);
+            tx.commit();
         }
         System.out.println("\t" + (System.currentTimeMillis() - start) + "ms");
 
         System.out.println("Searching with spatial.withinDistance");
         start = System.currentTimeMillis();
         try (Transaction tx = db.beginTx()) { // 'points',{longitude:15.0,latitude:60.0},100
-            Result result = db.execute("CALL spatial.withinDistance('Coordinates',{longitude:0.5, latitude:0.5},1000.0) yield node as malmo");
+            Result result = tx.execute("CALL spatial.withinDistance('Coordinates',{longitude:0.5, latitude:0.5},1000.0) yield node as malmo");
             int i = 0;
-            ResourceIterator thing = result.columnAs("malmo");
+            ResourceIterator<Node> thing = result.columnAs("malmo");
             while (thing.hasNext()) {
                 assertNotNull(thing.next());
                 i++;
             }
             assertEquals(i, numNodes);
-            tx.success();
+            tx.commit();
         }
         System.out.println("\t" + (System.currentTimeMillis() - start) + "ms");
 
@@ -992,12 +1010,12 @@ public class RTreeBulkInsertTest {
         try (Transaction tx = db.beginTx()) {
             String cypher = "CALL spatial.withinDistance('Coordinates',{longitude:0.5, latitude:0.5},1000.0) yield node\n" +
                     "RETURN COUNT(node) as count";
-            Result result = db.execute(cypher);
+            Result result = tx.execute(cypher);
 //           System.out.println(result.columns().toString());
             Object obj = result.columnAs("count").next();
             assertTrue(obj instanceof Long);
-            assertTrue(((Long) obj).equals(numNodes));
-            tx.success();
+            assertEquals((long) ((Long) obj), numNodes);
+            tx.commit();
         }
         System.out.println("\t" + (System.currentTimeMillis() - start) + "ms");
 
@@ -1007,161 +1025,142 @@ public class RTreeBulkInsertTest {
             String cypher = "MATCH ()-[:RTREE_ROOT]->(n)\n" +
                     "MATCH (n)-[:RTREE_CHILD*]->(m)-[:RTREE_REFERENCE]->(p)\n" +
                     "RETURN COUNT(p) as count";
-            Result result = db.execute(cypher);
+            Result result = tx.execute(cypher);
 //           System.out.println(result.columns().toString());
             Object obj = result.columnAs("count").next();
             assertTrue(obj instanceof Long);
-            assertTrue(((Long) obj).equals(numNodes));
-            tx.success();
+            assertEquals((long) ((Long) obj), numNodes);
+            tx.commit();
         }
         System.out.println("\t" + (System.currentTimeMillis() - start) + "ms");
-
-        db.shutdown();
     }
 
     @Ignore
     public void shouldBuildTreeFromScratch() throws Exception {
-//        File dbPath = new File("target/var/BulkTest2");
-//        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath);
+        //GraphDatabaseService db = this.databases.database("BultTest2");
         GraphDatabaseService db = this.db;
 
-        SpatialDatabaseService sdbs = new SpatialDatabaseService(db);
-        try {
-            GeometryEncoder encoder = new SimplePointEncoder();
+        SpatialDatabaseService sdbs = new SpatialDatabaseService();
+        GeometryEncoder encoder = new SimplePointEncoder();
 
-            Method decodeEnvelopes = RTreeIndex.class.getDeclaredMethod("decodeEnvelopes", List.class);
-            decodeEnvelopes.setAccessible(true);
+        Method decodeEnvelopes = RTreeIndex.class.getDeclaredMethod("decodeEnvelopes", List.class);
+        decodeEnvelopes.setAccessible(true);
 
-            Method buildRTreeFromScratch = RTreeIndex.class.getDeclaredMethod("buildRtreeFromScratch", Node.class, List.class, double.class);
-            buildRTreeFromScratch.setAccessible(true);
+        Method buildRTreeFromScratch = RTreeIndex.class.getDeclaredMethod("buildRtreeFromScratch", Node.class, List.class, double.class);
+        buildRTreeFromScratch.setAccessible(true);
 
-            Method expectedHeight = RTreeIndex.class.getDeclaredMethod("expectedHeight", double.class, int.class);
-            expectedHeight.setAccessible(true);
+        Method expectedHeight = RTreeIndex.class.getDeclaredMethod("expectedHeight", double.class, int.class);
+        expectedHeight.setAccessible(true);
 
-            Random random = new Random();
-            random.setSeed(42);
+        Random random = new Random();
+        random.setSeed(42);
 
-            List<Integer> range = IntStream.rangeClosed(1, 300).boxed().collect(Collectors.toList());
-            //test over the transiton from two to three deep trees
-            range.addAll(IntStream.rangeClosed(4700, 5000).boxed().collect(Collectors.toList()));
+        List<Integer> range = IntStream.rangeClosed(1, 300).boxed().collect(Collectors.toList());
+        //test over the transiton from two to three deep trees
+        range.addAll(IntStream.rangeClosed(4700, 5000).boxed().collect(Collectors.toList()));
 
-            for (int i : range) {
-                System.out.println("Building a Tree with " + Integer.toString(i) + " nodes");
-                try (Transaction tx = db.beginTx()) {
+        for (int i : range) {
+            System.out.println("Building a Tree with " + Integer.toString(i) + " nodes");
+            try (Transaction tx = db.beginTx()) {
 
-                    RTreeIndex rtree = new RTreeIndex();
-                    rtree.init(sdbs.getDatabase(),
-                            sdbs.getDatabase().createNode(),
-                            encoder
-                    );
-                    List<Node> coords = new ArrayList<>(i);
-                    for (int j = 0; j < i; j++) {
-                        Node n = db.createNode(Label.label("Coordinate"));
-                        n.setProperty(SimplePointEncoder.DEFAULT_X, random.nextDouble() * 90.0);
-                        n.setProperty(SimplePointEncoder.DEFAULT_Y, random.nextDouble() * 90.0);
-                        Geometry geometry = encoder.decodeGeometry(n);
-                        // add BBOX to Node if it's missing
-                        encoder.encodeGeometry(geometry, n);
-                        coords.add(n);
-                        //                   layer.add(n);
-                    }
-
-                    buildRTreeFromScratch.invoke(rtree, rtree.getIndexRoot(), decodeEnvelopes.invoke(rtree, coords), 0.7);
-                    RTreeTestUtils testUtils = new RTreeTestUtils(rtree);
-
-                    Map<Long, Long> results = testUtils.get_height_map(db, rtree.getIndexRoot());
-                    assertEquals(1, results.size());
-                    assertEquals((int) expectedHeight.invoke(rtree, 0.7, coords.size()), results.keySet().iterator().next().intValue());
-                    assertTrue(results.values().iterator().next().intValue() == coords.size());
-                    tx.success();
+                RTreeIndex rtree = new RTreeIndex();
+                rtree.init(tx, tx.createNode(), encoder, DEFAULT_MAX_NODE_REFERENCES);
+                List<Node> coords = new ArrayList<>(i);
+                for (int j = 0; j < i; j++) {
+                    Node n = tx.createNode(Label.label("Coordinate"));
+                    n.setProperty(SimplePointEncoder.DEFAULT_X, random.nextDouble() * 90.0);
+                    n.setProperty(SimplePointEncoder.DEFAULT_Y, random.nextDouble() * 90.0);
+                    Geometry geometry = encoder.decodeGeometry(n);
+                    // add BBOX to Node if it's missing
+                    encoder.encodeGeometry(tx, geometry, n);
+                    coords.add(n);
+                    //                   layer.add(n);
                 }
+
+                buildRTreeFromScratch.invoke(rtree, rtree.getIndexRoot(), decodeEnvelopes.invoke(rtree, coords), 0.7);
+                RTreeTestUtils testUtils = new RTreeTestUtils(rtree);
+
+                Map<Long, Long> results = testUtils.get_height_map(tx, rtree.getIndexRoot());
+                assertEquals(1, results.size());
+                assertEquals((int) expectedHeight.invoke(rtree, 0.7, coords.size()), results.keySet().iterator().next().intValue());
+                assertEquals(results.values().iterator().next().intValue(), coords.size());
+                tx.commit();
             }
-        } finally {
-            sdbs.getDatabase().shutdown();
-//            FileUtils.deleteDirectory(dbPath);
         }
     }
 
     @Ignore
     public void shouldPerformRTreeBulkInsertion() throws Exception {
-        // Use these two lines if you want to examine the output.
-//        File dbPath = new File("target/var/BulkTest");
-//        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath);
+        // Use this line if you want to examine the output.
+        //GraphDatabaseService db = databases.database("BulkTest");
 
-        SpatialDatabaseService sdbs = new SpatialDatabaseService(db);
-        try {
-            int N = 10000;
-            int Q = 40;
-            Random random = new Random();
-            random.setSeed(42);
-            //        random.setSeed(42);
-            // leads to: Caused by: org.neo4j.kernel.impl.store.InvalidRecordException: Node[142794,used=false,rel=-1,prop=-1,labels=Inline(0x0:[]),light,secondaryUnitId=-1] not in use
+        SpatialDatabaseService sdbs = new SpatialDatabaseService();
+        int N = 10000;
+        int Q = 40;
+        Random random = new Random();
+        random.setSeed(42);
+        //        random.setSeed(42);
+        // leads to: Caused by: org.neo4j.kernel.impl.store.InvalidRecordException: Node[142794,used=false,rel=-1,prop=-1,labels=Inline(0x0:[]),light,secondaryUnitId=-1] not in use
 
-            long totalTimeStart = System.currentTimeMillis();
-            for (int j = 1; j < Q + 1; j++) {
-                System.out.println("BulkLoadingTestRun " + j);
-                try (Transaction tx = db.beginTx()) {
+        long totalTimeStart = System.currentTimeMillis();
+        for (int j = 1; j < Q + 1; j++) {
+            System.out.println("BulkLoadingTestRun " + j);
+            try (Transaction tx = db.beginTx()) {
 
 
-                    EditableLayer layer = sdbs.getOrCreateSimplePointLayer("BulkLoader", "rtree", "lon", "lat");
-                    List<Node> coords = new ArrayList<>(N);
-                    for (int i = 0; i < N; i++) {
-                        Node n = db.createNode(Label.label("Coordinate"));
-                        n.setProperty("lat", random.nextDouble() * 90.0);
-                        n.setProperty("lon", random.nextDouble() * 90.0);
-                        coords.add(n);
-                        //                   layer.add(n);
-                    }
-                    long time = System.currentTimeMillis();
-
-                    layer.addAll(coords);
-                    System.out.println("********************** time taken to load " + N + " records: " + (System.currentTimeMillis() - time) + "ms");
-
-                    RTreeIndex rtree = (RTreeIndex) layer.getIndex();
-                    RTreeTestUtils utils = new RTreeTestUtils(rtree);
-                    assertTrue(utils.check_balance(db, rtree.getIndexRoot()));
-
-                    tx.success();
+                EditableLayer layer = sdbs.getOrCreateSimplePointLayer(tx, "BulkLoader", "rtree", "lon", "lat");
+                List<Node> coords = new ArrayList<>(N);
+                for (int i = 0; i < N; i++) {
+                    Node n = tx.createNode(Label.label("Coordinate"));
+                    n.setProperty("lat", random.nextDouble() * 90.0);
+                    n.setProperty("lon", random.nextDouble() * 90.0);
+                    coords.add(n);
+                    //                   layer.add(n);
                 }
-            }
-            System.out.println("Total Time for " + (N * Q) + " Nodes in " + Q + " Batches of " + N + " is: ");
-            System.out.println(((System.currentTimeMillis() - totalTimeStart) / 1000) + " seconds");
+                long time = System.currentTimeMillis();
 
-            try (Transaction tx = db.beginTx()) {
-                String cypher = "MATCH ()-[:RTREE_ROOT]->(n)\n" +
-                        "MATCH (n)-[:RTREE_CHILD]->(m)-[:RTREE_CHILD]->(p)-[:RTREE_CHILD]->(s)-[:RTREE_REFERENCE]->(q)\n" +
-                        "RETURN COUNT(q) as count";
-                Result result = db.execute(cypher);
-                System.out.println(result.columns().toString());
-                long count = result.<Long>columnAs("count").next();
-                assertEquals(N * Q, count);
-                tx.success();
-            }
+                layer.addAll(tx, coords);
+                System.out.println("********************** time taken to load " + N + " records: " + (System.currentTimeMillis() - time) + "ms");
 
-            try (Transaction tx = db.beginTx()) {
-                Layer layer = sdbs.getLayer("BulkLoader");
                 RTreeIndex rtree = (RTreeIndex) layer.getIndex();
-
-                Node root = rtree.getIndexRoot();
-                List<Node> children = new ArrayList<>(100);
-                for (Relationship r : root.getRelationships(RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
-                    children.add(r.getEndNode());
-                }
                 RTreeTestUtils utils = new RTreeTestUtils(rtree);
-                double root_overlap = utils.calculate_overlap(root);
-                assertTrue(root_overlap < 0.01); //less than one percent
-                System.out.println("********* Bulk Overlap Percentage" + Double.toString(root_overlap));
+                assertTrue(utils.check_balance(tx, rtree.getIndexRoot()));
 
-                double average_child_overlap = children.stream().mapToDouble(utils::calculate_overlap).average().getAsDouble();
-                assertTrue(average_child_overlap < 0.02);
-                System.out.println("*********** Bulk Average Child Overlap Percentage" + Double.toString(average_child_overlap));
-                tx.success();
-
-
+                tx.commit();
             }
-        } finally {
-//            sdbs.getDatabase().shutdown();
-//            FileUtils.deleteDirectory(dbPath);
+        }
+        System.out.println("Total Time for " + (N * Q) + " Nodes in " + Q + " Batches of " + N + " is: ");
+        System.out.println(((System.currentTimeMillis() - totalTimeStart) / 1000) + " seconds");
+
+        try (Transaction tx = db.beginTx()) {
+            String cypher = "MATCH ()-[:RTREE_ROOT]->(n)\n" +
+                    "MATCH (n)-[:RTREE_CHILD]->(m)-[:RTREE_CHILD]->(p)-[:RTREE_CHILD]->(s)-[:RTREE_REFERENCE]->(q)\n" +
+                    "RETURN COUNT(q) as count";
+            Result result = tx.execute(cypher);
+            System.out.println(result.columns().toString());
+            long count = result.<Long>columnAs("count").next();
+            assertEquals(N * Q, count);
+            tx.commit();
+        }
+
+        try (Transaction tx = db.beginTx()) {
+            Layer layer = sdbs.getLayer(tx, "BulkLoader");
+            RTreeIndex rtree = (RTreeIndex) layer.getIndex();
+
+            Node root = rtree.getIndexRoot();
+            List<Node> children = new ArrayList<>(100);
+            for (Relationship r : root.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD)) {
+                children.add(r.getEndNode());
+            }
+            RTreeTestUtils utils = new RTreeTestUtils(rtree);
+            double root_overlap = utils.calculate_overlap(root);
+            assertTrue(root_overlap < 0.01); //less than one percent
+            System.out.println("********* Bulk Overlap Percentage" + root_overlap);
+
+            double average_child_overlap = children.stream().mapToDouble(utils::calculate_overlap).average().getAsDouble();
+            assertTrue(average_child_overlap < 0.02);
+            System.out.println("*********** Bulk Average Child Overlap Percentage" + average_child_overlap);
+            tx.commit();
         }
     }
 
@@ -1171,13 +1170,13 @@ public class RTreeBulkInsertTest {
         for (int i = 0; i < width; i++) {
             try (Transaction tx = db.beginTx()) {
                 for (int j = 0; j < width; j++) {
-                    Node node = db.createNode();
+                    Node node = tx.createNode();
                     node.addLabel(Label.label("Coordinates"));
                     node.setProperty("lat", ((double) i / (double) width));
                     node.setProperty("lon", ((double) j / (double) width));
                     nodes.add(node);
                 }
-                tx.success();
+                tx.commit();
             }
         }
         java.util.Collections.shuffle(nodes, new Random(8));
@@ -1191,14 +1190,14 @@ public class RTreeBulkInsertTest {
         for (int i = 0; i < width / 2; i++) {
             try (Transaction tx = db.beginTx()) {
                 for (int j = 0; j < width / 2; j++) {
-                    Node node = db.createNode();
+                    Node node = tx.createNode();
                     node.addLabel(Label.label("Coordinates"));
 
                     node.setProperty("lat", ((double) rand.nextInt(width / 10) / (double) width));
                     node.setProperty("lon", ((double) rand.nextInt(width / 10) / (double) width));
                     nodes.add(node);
                 }
-                tx.success();
+                tx.commit();
             }
         }
         java.util.Collections.shuffle(nodes, new Random(8));
@@ -1211,35 +1210,35 @@ public class RTreeBulkInsertTest {
         for (int i = 1; i < 4; i += 2) {
             try (Transaction tx = db.beginTx()) {
                 for (int j = (int) squareValue * width; j < 2 * squareValue * width; j++) {
-                    Node node = db.createNode();
+                    Node node = tx.createNode();
                     node.addLabel(Label.label("Coordinates"));
                     node.setProperty("lat", i * squareValue);
                     node.setProperty("lon", (j + squareValue) / width + squareValue);
                     nodes.add(node);
-                    Node node2 = db.createNode();
+                    Node node2 = tx.createNode();
                     node2.addLabel(Label.label("Coordinates"));
                     node2.setProperty("lat", (j + squareValue) / width + squareValue);
                     node2.setProperty("lon", i * squareValue);
                     nodes.add(node2);
 
                 }
-                tx.success();
+                tx.commit();
             }
         }
         for (int i = 0; i < width; i++) {
             try (Transaction tx = db.beginTx()) {
 
-                Node node = db.createNode();
+                Node node = tx.createNode();
                 node.addLabel(Label.label("Coordinates"));
                 node.setProperty("lat", ((double) i / (double) width));
                 node.setProperty("lon", ((double) i / (double) width));
                 nodes.add(node);
-                Node node2 = db.createNode();
+                Node node2 = tx.createNode();
                 node2.addLabel(Label.label("Coordinates"));
                 node2.setProperty("lat", ((double) (width - i) / (double) width));
                 node2.setProperty("lon", ((double) i / (double) width));
                 nodes.add(node2);
-                tx.success();
+                tx.commit();
             }
         }
         java.util.Collections.shuffle(nodes, new Random(8));
@@ -1251,15 +1250,15 @@ public class RTreeBulkInsertTest {
         System.out.println("Searching with spatial.withinDistance");
         long start = System.currentTimeMillis();
         try (Transaction tx = db.beginTx()) { // 'points',{longitude:15.0,latitude:60.0},100
-            Result result = db.execute("CALL spatial.withinDistance('Coordinates',{longitude:0.5, latitude:0.5},1000.0) yield node");
+            Result result = tx.execute("CALL spatial.withinDistance('Coordinates',{longitude:0.5, latitude:0.5},1000.0) yield node");
             int i = 0;
-            ResourceIterator thing = result.columnAs("node");
+            ResourceIterator<Node> thing = result.columnAs("node");
             while (thing.hasNext()) {
                 assertNotNull(thing.next());
                 i++;
             }
             //assertEquals(i, numNodes);
-            tx.success();
+            tx.commit();
         }
         System.out.println("\t" + (System.currentTimeMillis() - start) + "ms");
 
@@ -1269,13 +1268,7 @@ public class RTreeBulkInsertTest {
         long start = System.currentTimeMillis();
         List<Node> nodes = populateSquareTestData(width);
         System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to create " + (width * width) + " nodes");
-        SpatialDatabaseService sdbs = new SpatialDatabaseService(db);
-        CoordinateReferenceSystem crs = DefaultEngineeringCRS.GENERIC_2D;
-        EditableLayer layer = sdbs.getOrCreateSimplePointLayer(name, index, "lon", "lat");
-        try (Transaction tx = db.beginTx()) {
-            layer.setCoordinateReferenceSystem(crs);
-            tx.success();
-        }
+        EditableLayer layer = getOrCreateSimplePointLayer(name, index, "lon", "lat");
         return nodes;
     }
 
@@ -1285,7 +1278,7 @@ public class RTreeBulkInsertTest {
         return spatialProcedures;
     }
 
-    class NodeWithEnvelope {
+    private static class NodeWithEnvelope {
         Envelope envelope;
         Node node;
 
@@ -1304,7 +1297,7 @@ public class RTreeBulkInsertTest {
         do {
             ArrayList<NodeWithEnvelope> children = new ArrayList<>();
             for (NodeWithEnvelope parent : nodes.get(nodes.size() - 1)) {
-                for (Relationship rel : parent.node.getRelationships(RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)) {
+                for (Relationship rel : parent.node.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD)) {
                     Node child = rel.getEndNode();
                     children.add(new NodeWithEnvelope(child, index.getIndexNodeEnvelope(child)));
                 }
@@ -1357,17 +1350,19 @@ public class RTreeBulkInsertTest {
         long start = System.currentTimeMillis();
         try (Transaction tx = db.beginTx()) {
             com.vividsolutions.jts.geom.Envelope envelope = new com.vividsolutions.jts.geom.Envelope(config.searchMin, config.searchMax);
-            nodes = GeoPipeline.startWithinSearch(layer, layer.getGeometryFactory().toGeometry(envelope)).stream().map(GeoPipeFlow::getGeomNode).collect(Collectors.toList());
-            tx.success();
+            nodes = GeoPipeline.startWithinSearch(tx, layer, layer.getGeometryFactory().toGeometry(envelope)).stream().map(GeoPipeFlow::getGeomNode).collect(Collectors.toList());
+            tx.commit();
         }
         long countGeometries = nodes.size();
         long queryTime = System.currentTimeMillis() - start;
         allStats.add(stats);
         stats.put("Query Time (ms)", queryTime);
         System.out.println("Took " + queryTime + "ms to find " + countGeometries + " nodes in 4x4 block");
-        int geometrySize = layer.getIndex().count();
-        stats.put("Indexed", geometrySize);
-        System.out.println("Index contains " + geometrySize + " geometries");
+        try (Transaction tx = db.beginTx()) {
+            int geometrySize = layer.getIndex().count(tx);
+            stats.put("Indexed", geometrySize);
+            System.out.println("Index contains " + geometrySize + " geometries");
+        }
         assertEquals("Expected " + config.expectedGeometries + " nodes to be returned", config.expectedGeometries, countGeometries);
         return nodes;
     }
@@ -1383,7 +1378,7 @@ public class RTreeBulkInsertTest {
             for (Node ignored : index.getAllIndexInternalNodes()) {
                 indexSize++;
             }
-            tx.success();
+            tx.commit();
         }
         stats.put("Index Size", indexSize);
         stats.put("Found", matched);
@@ -1495,36 +1490,43 @@ public class RTreeBulkInsertTest {
                         "MATCH p = (root)-[:RTREE_CHILD*0..]->(parent)-[:RTREE_CHILD|:RTREE_REFERENCE]->(child) " +
                         "RETURN parent, length(p) as depth, count (*) as children";
         Map<String, Object> params = Collections.singletonMap("layerNodeId", layerNode.getId());
-        Result resultDepth = db.execute(queryDepthAndGeometries, params);
         int balanced = 0;
         long geometries = 0;
-        while (resultDepth.hasNext()) {
-            balanced++;
-            Map<String, Object> depthMap = resultDepth.next();
-            geometries = (long) depthMap.get("geometries");
-            System.out.println("Tree depth to all geometries: " + depthMap);
+        try (Transaction tx = db.beginTx()) {
+            Result resultDepth = tx.execute(queryDepthAndGeometries, params);
+            while (resultDepth.hasNext()) {
+                balanced++;
+                Map<String, Object> depthMap = resultDepth.next();
+                geometries = (long) depthMap.get("geometries");
+                System.out.println("Tree depth to all geometries: " + depthMap);
+            }
         }
         assertEquals("All geometries should be at the same depth", 1, balanced);
-        Result resultNumChildren = db.execute(queryNumChildren, params);
-        Map<String, Object> leafMap = resultNumChildren.next();
-        System.out.println("Tree depth to all leaves that have geomtries: " + leafMap);
-        Result resultChildrenPerParent = db.execute(queryChildrenPerParent, params);
-        System.out.println("Children per parent: " + resultChildrenPerParent.next());
+        Map<String, Object> leafMap;
+        try (Transaction tx = db.beginTx()) {
+            Result resultNumChildren = tx.execute(queryNumChildren, params);
+            leafMap = resultNumChildren.next();
+            System.out.println("Tree depth to all leaves that have geomtries: " + leafMap);
+            Result resultChildrenPerParent = tx.execute(queryChildrenPerParent, params);
+            System.out.println("Children per parent: " + resultChildrenPerParent.next());
+        }
 
-        Result resultChildrenPerParent2 = db.execute(queryChildrenPerParent2, params);
-        Integer[] histogram = new Integer[11];
         int totalNodes = 0;
         int underfilledNodes = 0;
         int blockSize = Math.max(10, stats.maxNodeReferences) / 10;
-        Arrays.fill(histogram, 0);
-        while (resultChildrenPerParent2.hasNext()) {
-            Map<String, Object> result = resultChildrenPerParent2.next();
-            long children = (long) result.get("children");
-            if (children < blockSize * 3) {
-                underfilledNodes++;
+        Integer[] histogram = new Integer[11];
+        try (Transaction tx = db.beginTx()) {
+            Result resultChildrenPerParent2 = tx.execute(queryChildrenPerParent2, params);
+            Arrays.fill(histogram, 0);
+            while (resultChildrenPerParent2.hasNext()) {
+                Map<String, Object> result = resultChildrenPerParent2.next();
+                long children = (long) result.get("children");
+                if (children < blockSize * 3) {
+                    underfilledNodes++;
+                }
+                totalNodes++;
+                histogram[(int) children / blockSize]++;
             }
-            totalNodes++;
-            histogram[(int) children / blockSize]++;
         }
         allStats.add(stats);
         stats.put("Underfilled%", 100.0 * underfilledNodes / totalNodes);
@@ -1541,43 +1543,46 @@ public class RTreeBulkInsertTest {
         assertThat("In " + splitMode + " we expected leaves to be no more than " + leafCountFactor + "x(geometries/maxNodeReferences)", (long) leafMap.get("leaves"), lessThanOrEqualTo(maxLeafCount));
         try (Transaction tx = db.beginTx()) {
             checkIndexOverlaps(layer, stats);
-            tx.success();
+            tx.commit();
         }
     }
 
     private void restart() throws IOException {
-        if (db != null) {
-            db.shutdown();
+        if (databases != null) {
+            databases.shutdown();
         }
         if (storeDir.exists()) {
             System.out.println("Deleting previous database: " + storeDir);
             FileUtils.deleteDirectory(storeDir);
         }
         FileUtils.forceMkdir(storeDir);
-        TestGraphDatabaseFactory dbFactory = new TestGraphDatabaseFactory();
-        db = dbFactory.newEmbeddedDatabaseBuilder(storeDir).newGraphDatabase();
+        databases = new TestDatabaseManagementServiceBuilder(storeDir).impermanent().build();
+        db = databases.database("rtree");
     }
 
     private void doCleanShutdown() throws IOException {
         try {
             System.out.println("Shutting down database");
-            db.shutdown();
+            if (databases != null) {
+                databases.shutdown();
+            }
             //TODO: Uncomment this once all tests are stable
 //            FileUtils.deleteDirectory(storeDir);
         } finally {
+            databases = null;
             db = null;
         }
     }
 
     private static class TestStats {
-        private IndexTestConfig config;
-        private String insertMode;
-        private int dataSize;
-        private int blockSize;
-        private String splitMode;
-        private int maxNodeReferences;
+        private final IndexTestConfig config;
+        private final String insertMode;
+        private final int dataSize;
+        private final int blockSize;
+        private final String splitMode;
+        private final int maxNodeReferences;
         static LinkedHashSet<String> knownKeys = new LinkedHashSet<>();
-        private HashMap<String, Object> data = new HashMap<>();
+        private final HashMap<String, Object> data = new HashMap<>();
 
         private TestStats(IndexTestConfig config, String insertMode, String splitMode, int blockSize, int maxNodeReferences) {
             this.config = config;
@@ -1623,7 +1628,7 @@ public class RTreeBulkInsertTest {
         private List<Object> asList() {
             ArrayList<Object> fieldList = new ArrayList<>();
             fieldList.addAll(Arrays.asList(fieldArray()));
-            fieldList.addAll(knownKeys.stream().map(k -> data.get(k)).map(v -> (v == null) ? "" : v).collect(Collectors.toList()));
+            fieldList.addAll(knownKeys.stream().map(data::get).map(v -> (v == null) ? "" : v).collect(Collectors.toList()));
             return fieldList;
         }
 
@@ -1631,8 +1636,9 @@ public class RTreeBulkInsertTest {
             return String.join("\t", headerList());
         }
 
+        @Override
         public String toString() {
-            return String.join("\t", asList().stream().map(Object::toString).collect(Collectors.toList()));
+            return asList().stream().map(Object::toString).collect(Collectors.joining("\t"));
         }
     }
 

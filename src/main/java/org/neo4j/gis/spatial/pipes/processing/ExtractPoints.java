@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
+import com.vividsolutions.jts.geom.GeometryFactory;
 import org.neo4j.gis.spatial.pipes.AbstractExtractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
@@ -29,19 +30,19 @@ import com.vividsolutions.jts.geom.GeometryFactory;
  */
 public class ExtractPoints extends AbstractExtractGeoPipe {
 
-	private GeometryFactory geomFactory;
-	
-	public ExtractPoints(GeometryFactory geomFactory) {
-		this.geomFactory = geomFactory;
-	}
-	
-	@Override
-	protected void extract(GeoPipeFlow pipeFlow) {
-		int numPoints = pipeFlow.getGeometry().getCoordinates().length;
-		for (int i = 0; i < numPoints; i++) {
-			GeoPipeFlow newPoint = pipeFlow.makeClone("point" + i);
-			newPoint.setGeometry(geomFactory.createPoint(pipeFlow.getGeometry().getCoordinates()[i]));
-			extracts.add(newPoint);
-		}
-	}
+    private GeometryFactory geomFactory;
+
+    public ExtractPoints(GeometryFactory geomFactory) {
+        this.geomFactory = geomFactory;
+    }
+
+    @Override
+    protected void extract(GeoPipeFlow pipeFlow) {
+        int numPoints = pipeFlow.getGeometry().getCoordinates().length;
+        for (int i = 0; i < numPoints; i++) {
+            GeoPipeFlow newPoint = pipeFlow.makeClone("point" + i);
+            newPoint.setGeometry(geomFactory.createPoint(pipeFlow.getGeometry().getCoordinates()[i]));
+            extracts.add(newPoint);
+        }
+    }
 }

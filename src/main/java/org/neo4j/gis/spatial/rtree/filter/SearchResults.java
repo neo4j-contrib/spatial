@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2002-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -19,31 +19,31 @@
  */
 package org.neo4j.gis.spatial.rtree.filter;
 
-import java.util.Iterator;
-
 import org.neo4j.graphdb.Node;
 
+import java.util.Iterator;
+
 public class SearchResults implements Iterable<Node> {
-	private Iterable<Node> traverser;
-	private int count = -1;
+    private Iterable<Node> traverser;
+    private int count = -1;
 
-	public SearchResults(Iterable<Node> traverser) {
-		this.traverser = traverser;
-	}
+    public SearchResults(Iterable<Node> traverser) {
+        this.traverser = traverser;
+    }
 
-	@Override
-	public Iterator<Node> iterator() {
-		return traverser.iterator();
-	}
+    @Override
+    public Iterator<Node> iterator() {
+        return traverser.iterator();
+    }
 
-	public int count() {
-		if (count < 0) {
-			count = 0;
-			for (@SuppressWarnings("unused")
-			Node node : this) {
-				count++;
-			}
-		}
-		return count;
-	}
+    public int count() {
+        if (count < 0) {
+            count = 0;
+            for (@SuppressWarnings("unused")
+                    Node node : this) {
+                count++;
+            }
+        }
+        return count;
+    }
 }

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -34,42 +34,35 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class Sort extends AbstractGeoPipe {
 
-	private List<GeoPipeFlow> sortedFlow;
-	private Comparator<GeoPipeFlow> comparator;
+	private final List<GeoPipeFlow> sortedFlow;
+	private final Comparator<GeoPipeFlow> comparator;
 	private Iterator<GeoPipeFlow> flowIterator;
 	
 	public Sort(final String property, final Comparator<Object> propertyComparator) {
-		this.sortedFlow = new ArrayList<GeoPipeFlow>();
-		this.comparator = new Comparator<GeoPipeFlow>() {
-			@Override
-			public int compare(GeoPipeFlow o1, GeoPipeFlow o2) {
-				Object p1 = o1.getProperties().get(property);
-				Object p2 = o2.getProperties().get(property);
-				
-				if (p1 == null && p2 == null) {
-					return 0;
-				} else if (p1 == null) {
-					return -1;
-				} else if (p2 == null) {
-					return 1;
-				} else {
-					return propertyComparator.compare(p1, p2);
-				}
-			}		
+        this.sortedFlow = new ArrayList<>();
+		this.comparator = (o1, o2) -> {
+			Object p1 = o1.getProperties().get(property);
+			Object p2 = o2.getProperties().get(property);
+
+			if (p1 == null && p2 == null) {
+				return 0;
+			} else if (p1 == null) {
+				return -1;
+			} else if (p2 == null) {
+				return 1;
+			} else {
+				return propertyComparator.compare(p1, p2);
+			}
 		};
 	}
 	
 	public Sort(String property, final boolean asc) {
-		this(property, new Comparator<Object>() {
-			@SuppressWarnings({ "unchecked", "rawtypes" })
-			@Override
-			public int compare(Object o1, Object o2) {
-				int result = ((Comparable) o1).compareTo(o2);
-				if (!asc) {
-					result *= -1;
-				}
-				return result;
-			}			
+		this(property, (o1, o2) -> {
+			int result = ((Comparable) o1).compareTo(o2);
+			if (!asc) {
+				result *= -1;
+			}
+			return result;
 		});
 	}
 	
@@ -78,7 +71,7 @@ public class Sort extends AbstractGeoPipe {
 		if (flowIterator == null) {
 			try {
 				while (true) {
-					sortedFlow.add((GeoPipeFlow) starts.next());
+					sortedFlow.add(starts.next());
 				}
 			} catch (NoSuchElementException e) {
 		    }

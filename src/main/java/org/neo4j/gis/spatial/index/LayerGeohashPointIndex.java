@@ -21,7 +21,8 @@ package org.neo4j.gis.spatial.index;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
-import org.apache.lucene.spatial.util.GeoHashUtils;
+import org.apache.lucene.spatial.util.GeoRelationUtils;
+import org.apache.lucene.spatial.util.MortonEncoder;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
@@ -39,7 +40,8 @@ public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String
         //TODO: Make this code projection aware - currently it assumes lat/lon
         Geometry geom = layer.getGeometryEncoder().decodeGeometry(geomNode);
         Point point = geom.getCentroid();   // Other code is ensuring only point layers use this, but just in case we encode the centroid
-        return GeoHashUtils.stringEncode(point.getX(), point.getY());
+        long encoded = MortonEncoder.encode(point.getX(), point.getY());
+        return MortonEncoder.geoTermToString(encoded);
     }
 
     private String greatestCommonPrefix(String a, String b) {
@@ -55,8 +57,8 @@ public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String
     protected String queryStringFor(SearchFilter filter) {
         if (filter instanceof AbstractSearchEnvelopeIntersection) {
             Envelope referenceEnvelope = ((AbstractSearchEnvelopeIntersection) filter).getReferenceEnvelope();
-            String maxHash = GeoHashUtils.stringEncode(referenceEnvelope.getMaxX(), referenceEnvelope.getMaxY());
-            String minHash = GeoHashUtils.stringEncode(referenceEnvelope.getMinX(), referenceEnvelope.getMinY());
+            String maxHash = MortonEncoder.geoTermToString(MortonEncoder.encode(referenceEnvelope.getMaxX(), referenceEnvelope.getMaxY()));
+            String minHash = MortonEncoder.geoTermToString(MortonEncoder.encode(referenceEnvelope.getMinX(), referenceEnvelope.getMinY()));
             return greatestCommonPrefix(minHash, maxHash) + "*";
         } else {
             throw new UnsupportedOperationException("Geohash Index only supports searches based on AbstractSearchEnvelopeIntersection, not " + filter.getClass().getCanonicalName());

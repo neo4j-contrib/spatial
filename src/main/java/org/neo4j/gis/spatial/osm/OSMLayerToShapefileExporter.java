@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -19,67 +19,81 @@
  */
 package org.neo4j.gis.spatial.osm;
 
-import java.io.File;
-import java.util.HashMap;
-
+import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.ShapefileExporter;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import org.neo4j.graphdb.Transaction;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
 
 public class OSMLayerToShapefileExporter {
-	/**
-	 * This method allows for a console, command-line application for loading
-	 * accessing an existing database containing an existing OSM model, and
-	 * exporting one or more dynamic layers to shapefiles. The layer
-	 * specifications are key.value pairs (dot separated). If the value is left
-	 * out, all values are accepted (test for existance of key only).
-	 * 
-	 * @param args
-	 *            , the database directory, OSM dataset and layer
-	 *            specifications.
-	 */
-	public static void main(String[] args) {
-		if (args.length < 4) {
-			System.out.println("Usage: osmtoshp databasedir exportdir osmdataset layerspec <..layerspecs..>");
-		} else {
-			GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase((new File(args[0])));
-			SpatialDatabaseService spatial = new SpatialDatabaseService(db);
-			OSMLayer layer = (OSMLayer) spatial.getLayer(args[2]);
-			if (layer != null) {
-				ShapefileExporter exporter = new ShapefileExporter(db);
-				exporter.setExportDir(args[1]+File.separator+layer.getName());
-				for (int i = 3; i < args.length; i++) {
-					String[] fields = args[i].split("[\\.\\-]");
-					HashMap<String, String> tags = new HashMap<String, String>();
-					String key = fields[0];
-					String name = key;
-					if (fields.length > 1) {
-						String value = fields.length > 1 ? fields[1] : null;
-						name = key + "-" + value;
-						tags.put(key, value);
-					}
+    /**
+     * This method allows for a console, command-line application for loading
+     * accessing an existing database containing an existing OSM model, and
+     * exporting one or more dynamic layers to shapefiles. The layer
+     * specifications are key.value pairs (dot separated). If the value is left
+     * out, all values are accepted (test for existance of key only).
+     *
+     * @param args , the database directory, OSM dataset and layer
+     *             specifications.
+     */
+    public static void main(String[] args) {
+        if (args.length < 5) {
+            System.out.println("Usage: osmtoshp neo4jHome database exportdir osmdataset layerspec <..layerspecs..>");
+        } else {
+            String homeDir = args[0];
+            String database = args[1];
+            String exportDir = args[2];
+            String osmdataset = args[3];
+            List<String> layerspecs = new ArrayList<>(Arrays.asList(args).subList(4, args.length));
+            DatabaseManagementService databases = new DatabaseManagementServiceBuilder(new File(homeDir)).build();
+            GraphDatabaseService db = databases.database(database);
+            SpatialDatabaseService spatial = new SpatialDatabaseService();
+            OSMLayer layer;
+            try (Transaction tx = db.beginTx()) {
+                layer = (OSMLayer) spatial.getLayer(tx, osmdataset);
+            }
+            if (layer != null) {
+                ShapefileExporter exporter = new ShapefileExporter(db);
+                exporter.setExportDir(args[1] + File.separator + layer.getName());
+                for (String layerspec : layerspecs) {
+                    String[] fields = layerspec.split("[.\\-]");
+                    HashMap<String, String> tags = new HashMap<>();
+                    String key = fields[0];
+                    String name = key;
+                    if (fields.length > 1) {
+                        String value = fields[1];
+                        name = key + "-" + value;
+                        tags.put(key, value);
+                    }
 
-					try {
-						if (layer.getLayerNames().contains(name)) {
-							System.out.println("Exporting previously existing layer: "+name);
-							exporter.exportLayer(name);
-						} else {
-							System.out.println("Creating and exporting new layer: "+name);
-							layer.addDynamicLayerOnWayTags(name, Constants.GTYPE_LINESTRING, tags);
-							exporter.exportLayer(name);
-						}
-					} catch (Exception e) {
-						System.err.println("Failed to export dynamic layer " + name + ": " + e);
-						e.printStackTrace(System.err);
-					}
-				}
-			} else {
-				System.err.println("No such layer: " + args[2]);
-			}
-			db.shutdown();
-		}
-	}
+                    try (Transaction tx = db.beginTx()) {
+                        if (layer.getLayerNames().contains(name)) {
+                            System.out.println("Exporting previously existing layer: " + name);
+                            exporter.exportLayer(name);
+                        } else {
+                            System.out.println("Creating and exporting new layer: " + name);
+                            layer.addDynamicLayerOnWayTags(tx, name, Constants.GTYPE_LINESTRING, tags);
+                            exporter.exportLayer(name);
+                        }
+                        tx.commit();
+                    } catch (Exception e) {
+                        System.err.println("Failed to export dynamic layer " + name + ": " + e);
+                        e.printStackTrace(System.err);
+                    }
+                }
+            } else {
+                System.err.println("No such layer: " + args[2]);
+            }
+            databases.shutdown();
+        }
+    }
 
 }

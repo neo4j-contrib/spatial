@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  * <p>
@@ -20,60 +20,79 @@
 package org.neo4j.gis.spatial;
 
 import org.junit.Test;
+import org.neo4j.graphdb.Transaction;
+
+import java.util.function.Consumer;
+import java.util.function.Function;
+
+import static org.junit.Assert.assertEquals;
 
 public class LayerSignatureTest extends Neo4jTestCase implements Constants {
+    private final SpatialDatabaseService spatialService = new SpatialDatabaseService();
 
     @Test
     public void testSimplePointLayer() {
-        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-        Layer layer = spatialService.createSimplePointLayer("test", "lng", "lat");
-        assertEquals("EditableLayer(name='test', encoder=SimplePointEncoder(x='lng', y='lat', bbox='bbox'))", layer.getSignature());
+        testLayerSignature("EditableLayer(name='test', encoder=SimplePointEncoder(x='lng', y='lat', bbox='bbox'))",
+                tx -> spatialService.createSimplePointLayer(tx, "test", "lng", "lat"));
     }
 
     @Test
     public void testNativePointLayer() {
-        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-        Layer layer = spatialService.createNativePointLayer("test", "position", "mbr");
-        assertEquals("EditableLayer(name='test', encoder=NativePointEncoder(geometry='position', bbox='mbr', crs=4326))", layer.getSignature());
+        testLayerSignature("EditableLayer(name='test', encoder=NativePointEncoder(geometry='position', bbox='mbr', crs=4326))",
+                tx -> spatialService.createNativePointLayer(tx, "test", "position", "mbr"));
     }
 
     @Test
     public void testDefaultSimplePointLayer() {
-        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-        Layer layer = spatialService.createSimplePointLayer("test");
-        assertEquals("EditableLayer(name='test', encoder=SimplePointEncoder(x='longitude', y='latitude', bbox='bbox'))", layer.getSignature());
+        testLayerSignature("EditableLayer(name='test', encoder=SimplePointEncoder(x='longitude', y='latitude', bbox='bbox'))",
+                tx -> spatialService.createSimplePointLayer(tx, "test"));
     }
 
     @Test
     public void testSimpleWKBLayer() {
-        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-        Layer layer = spatialService.createWKBLayer("test");
-        assertEquals("EditableLayer(name='test', encoder=WKBGeometryEncoder(geom='geometry', bbox='bbox'))", layer.getSignature());
+        testLayerSignature("EditableLayer(name='test', encoder=WKBGeometryEncoder(geom='geometry', bbox='bbox'))",
+                tx -> spatialService.createWKBLayer(tx, "test"));
     }
 
     @Test
     public void testWKBLayer() {
-        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-        Layer layer = spatialService.getOrCreateEditableLayer("test", "wkb", "wkb");
-        assertEquals("EditableLayer(name='test', encoder=WKBGeometryEncoder(geom='wkb', bbox='bbox'))", layer.getSignature());
+        testLayerSignature("EditableLayer(name='test', encoder=WKBGeometryEncoder(geom='wkb', bbox='bbox'))",
+                tx -> spatialService.getOrCreateEditableLayer(tx, "test", "wkb", "wkb"));
     }
 
     @Test
     public void testWKTLayer() {
-        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-        Layer layer = spatialService.getOrCreateEditableLayer("test", "wkt", "wkt");
-        assertEquals("EditableLayer(name='test', encoder=WKTGeometryEncoder(geom='wkt', bbox='bbox'))", layer.getSignature());
+        testLayerSignature("EditableLayer(name='test', encoder=WKTGeometryEncoder(geom='wkt', bbox='bbox'))",
+                tx -> spatialService.getOrCreateEditableLayer(tx, "test", "wkt", "wkt"));
+    }
+
+    private Layer testLayerSignature(String signature, Function<Transaction, Layer> layerMaker) {
+        Layer layer;
+        try (Transaction tx = graphDb().beginTx()) {
+            layer = layerMaker.apply(tx);
+            tx.commit();
+        }
+        assertEquals(signature, layer.getSignature());
+        return layer;
+    }
+
+    private void inTx(Consumer<Transaction> txFunction) {
+        try (Transaction tx = graphDb().beginTx()) {
+            txFunction.accept(tx);
+            tx.commit();
+        }
     }
 
     @Test
     public void testDynamicLayer() {
-        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-        Layer layer = spatialService.getOrCreateEditableLayer("test", "wkt", "wkt");
-        assertEquals("EditableLayer(name='test', encoder=WKTGeometryEncoder(geom='wkt', bbox='bbox'))", layer.getSignature());
-        DynamicLayer dynamic = spatialService.asDynamicLayer(layer);
-        assertEquals("EditableLayer(name='test', encoder=WKTGeometryEncoder(geom='wkt', bbox='bbox'))", dynamic.getSignature());
-        DynamicLayerConfig points = dynamic.addCQLDynamicLayerOnAttribute("is_a", "point", GTYPE_POINT);
-        assertEquals("DynamicLayer(name='CQL:is_a-point', config={layer='CQL:is_a-point', query=\"geometryType(the_geom) = 'Point' AND is_a = 'point'\"})", points.getSignature());
+        Layer layer = testLayerSignature("EditableLayer(name='test', encoder=WKTGeometryEncoder(geom='wkt', bbox='bbox'))",
+                tx -> spatialService.getOrCreateEditableLayer(tx, "test", "wkt", "wkt"));
+        inTx(tx -> {
+            DynamicLayer dynamic = spatialService.asDynamicLayer(tx, layer);
+            assertEquals("EditableLayer(name='test', encoder=WKTGeometryEncoder(geom='wkt', bbox='bbox'))", dynamic.getSignature());
+            DynamicLayerConfig points = dynamic.addCQLDynamicLayerOnAttribute(tx, "is_a", "point", GTYPE_POINT);
+            assertEquals("DynamicLayer(name='CQL:is_a-point', config={layer='CQL:is_a-point', query=\"geometryType(the_geom) = 'Point' AND is_a = 'point'\"})", points.getSignature());
+        });
     }
 
 }

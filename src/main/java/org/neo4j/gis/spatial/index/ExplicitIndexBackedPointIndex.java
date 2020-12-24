@@ -27,9 +27,10 @@ import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.TreeMonitor;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
-import org.neo4j.graphdb.*;
-import org.neo4j.graphdb.index.Index;
-import org.neo4j.graphdb.index.IndexHits;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.NotFoundException;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.Transaction;
 
 import java.util.Iterator;
 import java.util.List;
@@ -39,21 +40,16 @@ import java.util.NoSuchElementException;
 public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexReader, SpatialIndexWriter {
 
     protected Layer layer;
-    private Index<Node> index;
-    private GraphDatabaseService graph;
-    private ExplicitIndexBackedMonitor monitor = new ExplicitIndexBackedMonitor();
+    private NodeIndex<E> index;
+    private final ExplicitIndexBackedMonitor monitor = new ExplicitIndexBackedMonitor();
 
     protected abstract String indexTypeName();
 
     @Override
-    public void init(Layer layer) {
+    public void init(Transaction tx, Layer layer) {
         this.layer = layer;
         String indexName = "_Spatial_" + indexTypeName() + "_Index_" + layer.getName();
-        graph = layer.getSpatialDatabase().getDatabase();
-        try (Transaction tx = graph.beginTx()) {
-            index = graph.index().forNodes(indexName);
-            tx.success();
-        }
+        this.index = new NodeIndex<>(indexName);
     }
 
     @Override
@@ -62,66 +58,58 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
     }
 
     @Override
-    public SearchRecords search(SearchFilter filter) {
-        return new SearchRecords(layer, searchIndex(filter));
+    public SearchRecords search(Transaction tx, SearchFilter filter) {
+        return new SearchRecords(layer, searchIndex(tx, filter));
     }
 
     @Override
-    public void add(Node geomNode) {
+    public void add(Transaction tx, Node geomNode) {
         index.add(geomNode, indexTypeName(), getIndexValueFor(geomNode));
     }
 
     protected abstract E getIndexValueFor(Node geomNode);
 
     @Override
-    public void add(List<Node> geomNodes) {
+    public void add(Transaction tx, List<Node> geomNodes) {
         for (Node node : geomNodes) {
-            add(node);
+            add(tx, node);
         }
     }
 
     @Override
-    public void remove(long geomNodeId, boolean deleteGeomNode, boolean throwExceptionIfNotFound) {
-        try (Transaction tx = graph.beginTx()) {
-            try {
-                Node geomNode = graph.getNodeById(geomNodeId);
-                if (geomNode != null) {
-                    index.remove(geomNode);
-                    if (deleteGeomNode) {
-                        for (Relationship rel : geomNode.getRelationships()) {
-                            rel.delete();
-                        }
-                        geomNode.delete();
+    public void remove(Transaction tx, long geomNodeId, boolean deleteGeomNode, boolean throwExceptionIfNotFound) {
+        try {
+            Node geomNode = tx.getNodeById(geomNodeId);
+            if (geomNode != null) {
+                index.remove(geomNode);
+                if (deleteGeomNode) {
+                    for (Relationship rel : geomNode.getRelationships()) {
+                        rel.delete();
                     }
-                }
-            } catch (NotFoundException nfe) {
-                if (throwExceptionIfNotFound) {
-                    throw nfe;
+                    geomNode.delete();
                 }
             }
-            tx.success();
+        } catch (NotFoundException nfe) {
+            if (throwExceptionIfNotFound) {
+                throw nfe;
+            }
         }
     }
 
     @Override
-    public void removeAll(boolean deleteGeomNodes, Listener monitor) {
-        try (Transaction tx = graph.beginTx()) {
-            if(deleteGeomNodes) {
-                Iterator<Node> iter = getAllIndexedNodes().iterator();
+    public void removeAll(Transaction tx, boolean deleteGeomNodes, Listener monitor) {
+        if (deleteGeomNodes) {
 
-                while(iter.hasNext()) {
-                    Node node = iter.next();
-                    remove(node.getId(), true, true);
-                }
+            for (Node node : getAllIndexedNodes()) {
+                remove(tx, node.getId(), true, true);
             }
-            index.delete();
-            tx.success();
         }
+        index.delete();
     }
 
     @Override
-    public void clear(Listener monitor) {
-        removeAll(false, monitor);
+    public void clear(Transaction tx, Listener monitor) {
+        removeAll(tx, false, monitor);
     }
 
     @Override
@@ -130,12 +118,12 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
     }
 
     @Override
-    public boolean isEmpty() {
+    public boolean isEmpty(Transaction tx) {
         return true;
     }
 
     @Override
-    public int count() {
+    public int count(Transaction ignore) {
         return 0;
     }
 
@@ -145,7 +133,7 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
     }
 
     @Override
-    public boolean isNodeIndexed(Long nodeId) {
+    public boolean isNodeIndexed(Transaction tx, Long nodeId) {
         return false;
     }
 
@@ -155,17 +143,19 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
     }
 
     @Override
-    public SearchResults searchIndex(SearchFilter filter) {
-        IndexHits<Node> indexHits = index.query(indexTypeName(), queryStringFor(filter));
-        return new SearchResults(() -> new FilteredIndexIterator(indexHits, filter));
+    public SearchResults searchIndex(Transaction tx, SearchFilter filter) {
+        Iterable<Node> indexHits = index.query(indexTypeName(), queryStringFor(filter));
+        return new SearchResults(() -> new FilteredIndexIterator(tx, indexHits.iterator(), filter));
     }
 
     private class FilteredIndexIterator implements Iterator<Node> {
-        private Iterator<Node> inner;
-        private SearchFilter filter;
+        private final Transaction tx;
+        private final Iterator<Node> inner;
+        private final SearchFilter filter;
         private Node next = null;
 
-        private FilteredIndexIterator(Iterator<Node> inner, SearchFilter filter) {
+        private FilteredIndexIterator(Transaction tx, Iterator<Node> inner, SearchFilter filter) {
+            this.tx = tx;
             this.inner = inner;
             this.filter = filter;
             prefetch();
@@ -175,7 +165,7 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
             next = null;
             while (inner.hasNext()) {
                 Node node = inner.next();
-                if (filter.geometryMatches(node)) {
+                if (filter.geometryMatches(tx, node)) {
                     next = node;
                     monitor.hit();
                     break;

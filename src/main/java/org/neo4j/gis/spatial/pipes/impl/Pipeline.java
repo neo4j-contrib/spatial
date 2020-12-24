@@ -1,6 +1,6 @@
 package org.neo4j.gis.spatial.pipes.impl;
 
-import org.neo4j.helpers.collection.Iterators;
+import org.neo4j.internal.helpers.collection.Iterators;
 
 import java.util.*;
 

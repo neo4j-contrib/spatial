@@ -2,7 +2,9 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <properties>
         <neo4j.version>4.0.3</neo4j.version>
-        <neo4j.java.version>1.8</neo4j.java.version>
+        <lucene.version>8.2.0</lucene.version>
+        <!-- make sure lucene version is the same as the one the current neo4j depends on -->
+        <neo4j.java.version>11</neo4j.java.version>
         <maven-compiler-plugin.version>3.1</maven-compiler-plugin.version>
         <maven-gpg-plugin.version>1.4</maven-gpg-plugin.version>
         <maven-resources-plugin.version>2.6</maven-resources-plugin.version>
@@ -41,8 +43,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${maven-compiler-plugin.version}</version>
                 <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <source>${neo4j.java.version}</source>
+                    <target>${neo4j.java.version}</target>
                     <compilerArgs>
                         <arg>-AIgnoreContextWarnings</arg>
                         <arg>-AGeneratedDocumentationPath=target/generated-documentation</arg>
@@ -455,16 +457,9 @@
             <type>jar</type>
         </dependency>
         <dependency>
-            <groupId>net.biville.florent</groupId>
-            <artifactId>neo4j-sproc-compiler</artifactId>
-            <version>1.2</version>
-            <scope>provided</scope>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-spatial</artifactId>
-            <version>5.5.0</version>
+            <version>${lucene.version}</version>
             <type>jar</type>
         </dependency>
         <dependency>
@@ -492,26 +487,6 @@
             <url>https://raw.github.com/neo4j-contrib/m2/master/releases</url>
             <releases><enabled>true</enabled></releases>
             <snapshots><enabled>false</enabled></snapshots>
-        </repository>
-        <repository>
-            <id>neo4j-contrib-releases</id>
-            <url>https://raw.github.com/neo4j-contrib/m2/master/releases</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>neo4j-contrib-snapshots</id>
-            <url>https://raw.github.com/neo4j-contrib/m2/master/snapshots</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
         </repository>
     </repositories>
     <profiles>

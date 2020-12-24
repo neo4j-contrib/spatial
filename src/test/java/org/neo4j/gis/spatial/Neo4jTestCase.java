@@ -19,73 +19,78 @@
  */
 package org.neo4j.gis.spatial;
 
+import junit.framework.TestCase;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.neo4j.batchinsert.BatchInserter;
+import org.neo4j.batchinsert.BatchInserters;
+import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
+import org.neo4j.gis.spatial.procedures.SpatialProcedures;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Transaction;
+import org.neo4j.io.fs.FileUtils;
+import org.neo4j.io.layout.DatabaseLayout;
+import org.neo4j.io.layout.Neo4jLayout;
+import org.neo4j.kernel.api.procedure.GlobalProcedures;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.test.rule.fs.EphemeralFileSystemRule;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-
-import junit.framework.TestCase;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.neo4j.gis.spatial.procedures.SpatialProcedures;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.factory.GraphDatabaseFactory;
-import org.neo4j.graphdb.factory.GraphDatabaseSettings;
-import org.neo4j.graphdb.mockfs.EphemeralFileSystemAbstraction;
-import org.neo4j.io.fs.FileUtils;
-import org.neo4j.kernel.impl.proc.Procedures;
-import org.neo4j.kernel.internal.GraphDatabaseAPI;
-import org.neo4j.test.rule.fs.EphemeralFileSystemRule;
-import org.neo4j.unsafe.batchinsert.BatchInserter;
-import org.neo4j.unsafe.batchinsert.BatchInserters;
+import java.util.Objects;
 
 /**
  * Base class for the meta model tests.
  */
-public abstract class Neo4jTestCase extends TestCase {
+public abstract class Neo4jTestCase {
     static final Map<String, String> NORMAL_CONFIG = new HashMap<>();
+
     static {
         //NORMAL_CONFIG.put( GraphDatabaseSettings.nodestore_mapped_memory_size.name(), "50M" );
         //NORMAL_CONFIG.put( GraphDatabaseSettings.relationshipstore_mapped_memory_size.name(), "120M" );
         //NORMAL_CONFIG.put( GraphDatabaseSettings.nodestore_propertystore_mapped_memory_size.name(), "150M" );
         //NORMAL_CONFIG.put( GraphDatabaseSettings.strings_mapped_memory_size.name(), "200M" );
         //NORMAL_CONFIG.put( GraphDatabaseSettings.arrays_mapped_memory_size.name(), "0M" );
-	NORMAL_CONFIG.put( GraphDatabaseSettings.pagecache_memory.name(), "200M" );
-	NORMAL_CONFIG.put( GraphDatabaseSettings.batch_inserter_batch_size.name(), "2" );
-        NORMAL_CONFIG.put( GraphDatabaseSettings.dump_configuration.name(), "false" );
+        NORMAL_CONFIG.put(GraphDatabaseSettings.pagecache_memory.name(), "200M");
+        NORMAL_CONFIG.put(GraphDatabaseSettings.batch_inserter_batch_size.name(), "2");
+        NORMAL_CONFIG.put(GraphDatabaseSettings.dump_configuration.name(), "false");
     }
+
     static final Map<String, String> LARGE_CONFIG = new HashMap<>();
+
     static {
         //LARGE_CONFIG.put( GraphDatabaseSettings.nodestore_mapped_memory_size.name(), "100M" );
         //LARGE_CONFIG.put( GraphDatabaseSettings.relationshipstore_mapped_memory_size.name(), "300M" );
         //LARGE_CONFIG.put( GraphDatabaseSettings.nodestore_propertystore_mapped_memory_size.name(), "400M" );
         //LARGE_CONFIG.put( GraphDatabaseSettings.strings_mapped_memory_size.name(), "800M" );
         //LARGE_CONFIG.put( GraphDatabaseSettings.arrays_mapped_memory_size.name(), "10M" );
-	LARGE_CONFIG.put( GraphDatabaseSettings.pagecache_memory.name(), "100M" );
-	LARGE_CONFIG.put( GraphDatabaseSettings.batch_inserter_batch_size.name(), "2" );
-        LARGE_CONFIG.put( GraphDatabaseSettings.dump_configuration.name(), "true" );
+        LARGE_CONFIG.put(GraphDatabaseSettings.pagecache_memory.name(), "100M");
+        LARGE_CONFIG.put(GraphDatabaseSettings.batch_inserter_batch_size.name(), "2");
+        LARGE_CONFIG.put(GraphDatabaseSettings.dump_configuration.name(), "true");
     }
+
     private static File basePath = new File("target/var");
     private static File dbPath = new File(basePath, "neo4j-db");
+    private DatabaseManagementService databases;
     private GraphDatabaseService graphDb;
     private Transaction tx;
     private BatchInserter batchInserter;
 
     private long storePrefix;
 
-    @Override
     @Before
     protected void setUp() throws Exception {
-        super.setUp();
         updateStorePrefix();
         setUp(true, false, false);
     }
 
-    private void updateStorePrefix()
-    {
+    private void updateStorePrefix() {
         storePrefix++;
     }
 
@@ -95,7 +100,6 @@ public abstract class Neo4jTestCase extends TestCase {
      * delete nodes or use transactions should not use the BatchInserter.
      */
     protected void setUp(boolean deleteDb, boolean useBatchInserter, boolean autoTx) throws Exception {
-        super.setUp();
         reActivateDatabase(deleteDb, useBatchInserter, autoTx);
     }
 
@@ -105,13 +109,14 @@ public abstract class Neo4jTestCase extends TestCase {
      */
     private void shutdownDatabase(boolean deleteDb) {
         if (tx != null) {
-            tx.success();
+            tx.commit();
             tx.close();
             tx = null;
         }
         beforeShutdown();
         if (graphDb != null) {
-            graphDb.shutdown();
+            databases.shutdown();
+            databases = null;
             graphDb = null;
         }
         if (batchInserter != null) {
@@ -119,8 +124,24 @@ public abstract class Neo4jTestCase extends TestCase {
             batchInserter = null;
         }
         if (deleteDb) {
-            deleteDatabase(true);
+            deleteDatabase();
         }
+    }
+
+    private DatabaseLayout prepareLayout(boolean delete) throws IOException {
+        Neo4jLayout homeLayout = Neo4jLayout.of(dbPath);
+        DatabaseLayout databaseLayout = homeLayout.databaseLayout(getDatabaseName());
+        if (delete) {
+            FileUtils.deleteRecursively(databaseLayout.databaseDirectory());
+            FileUtils.deleteRecursively(databaseLayout.getTransactionLogsDirectory());
+        }
+        return databaseLayout;
+    }
+
+    private Config makeConfig(Map<String, String> config) {
+        Config.Builder builder = Config.newBuilder();
+        builder.setRaw(NORMAL_CONFIG);
+        return builder.build();
     }
 
     /**
@@ -129,75 +150,60 @@ public abstract class Neo4jTestCase extends TestCase {
      * (probably only the first time this is called).
      */
     void reActivateDatabase(boolean deleteDb, boolean useBatchInserter, boolean autoTx) throws Exception {
-        shutdownDatabase( deleteDb );
+        shutdownDatabase(deleteDb);
+        DatabaseLayout layout = prepareLayout(true);
         Map<String, String> config = NORMAL_CONFIG;
         String largeMode = System.getProperty("spatial.test.large");
         if (largeMode != null && largeMode.equalsIgnoreCase("true")) {
             config = LARGE_CONFIG;
         }
         if (useBatchInserter) {
-            batchInserter = BatchInserters.inserter(getNeoPath(), config);
+            batchInserter = BatchInserters.inserter(layout, makeConfig(config));
         } else {
-            graphDb = new GraphDatabaseFactory().newEmbeddedDatabaseBuilder(getNeoPath()).setConfig(config).newGraphDatabase();
-            ((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency(Procedures.class).registerProcedure(SpatialProcedures.class);
+            databases = new DatabaseManagementServiceBuilder(dbPath).setConfigRaw(config).build();
+            graphDb = databases.database(getDatabaseName());
+            ((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency(GlobalProcedures.class).registerProcedure(SpatialProcedures.class);
         }
         if (autoTx) {
             // with the batch inserter the tx is a dummy that simply succeeds all the time
             tx = graphDb.beginTx();
         }
     }
-    
+
     @Rule
     public EphemeralFileSystemRule fileSystemRule = new EphemeralFileSystemRule();
 
     @Before
-    public void before() throws Exception
-    {
-        fileSystemRule.get().mkdirs( new File( "target" ) );
+    public void before() throws Exception {
+        fileSystemRule.get().mkdirs(new File("target"));
     }
 
-    @Override
     @After
-    protected void tearDown() throws Exception {
-        shutdownDatabase( true );
-        super.tearDown();
+    public void tearDown() throws Exception {
+        shutdownDatabase(true);
     }
 
     private void beforeShutdown() {
     }
 
     File getNeoPath() {
-        return new File(dbPath.getAbsolutePath(), Long.toString(storePrefix));
+        return new File(dbPath.getAbsolutePath());
     }
 
-    private void deleteDatabase(boolean synchronous) {
-        if (synchronous)
-        {
-            try {
-                FileUtils.deleteRecursively(getNeoPath());
-            } catch (IOException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-        }
-        else
-        {
-            final File oldPath = getNeoPath();
-            new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        FileUtils.deleteRecursively(oldPath);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }).start();
+    String getDatabaseName() {
+        return "test-" + storePrefix;
+    }
+
+    private void deleteDatabase() {
+        try {
+            FileUtils.deleteRecursively(getNeoPath());
+        } catch (IOException e) {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
         }
     }
 
-    static void deleteBaseDir()
-    {
+    static void deleteBaseDir() {
         deleteFileOrDirectory(basePath);
     }
 
@@ -207,32 +213,17 @@ public abstract class Neo4jTestCase extends TestCase {
         }
 
         if (file.isDirectory()) {
-            for (File child : file.listFiles()) {
+            for (File child : Objects.requireNonNull(file.listFiles())) {
                 deleteFileOrDirectory(child);
             }
         } else {
+            //noinspection ResultOfMethodCallIgnored
             file.delete();
         }
     }
 
     void printDatabaseStats() {
         Neo4jTestUtils.printDatabaseStats(graphDb(), getNeoPath());
-    }
-
-    protected void restartTx() {
-        restartTx(true);
-    }
-
-    private void restartTx(boolean success) {
-        if (tx != null) {
-            if (success) {
-                tx.success();
-            } else {
-                tx.failure();
-            }
-            tx.close();
-            tx = graphDb.beginTx();
-        }
     }
 
     protected GraphDatabaseService graphDb() {

@@ -19,22 +19,9 @@
  */
 package org.geotools.data.neo4j;
 
-import static java.awt.RenderingHints.KEY_ANTIALIASING;
-import static java.awt.RenderingHints.KEY_TEXT_ANTIALIASING;
-import static java.awt.RenderingHints.VALUE_ANTIALIAS_ON;
-import static java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_ON;
-import static java.util.Arrays.asList;
-
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.Rectangle;
-import java.awt.RenderingHints;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.IOException;
-
-import javax.imageio.ImageIO;
-
+import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.geom.Polygon;
+import com.vividsolutions.jts.geom.*;
 import org.geotools.data.DataStore;
 import org.geotools.data.simple.SimpleFeatureSource;
 import org.geotools.factory.CommonFactoryFinder;
@@ -45,34 +32,26 @@ import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.map.FeatureLayer;
 import org.geotools.map.MapContent;
 import org.geotools.renderer.lite.StreamingRenderer;
-import org.geotools.styling.FeatureTypeStyle;
-import org.geotools.styling.Fill;
-import org.geotools.styling.Graphic;
-import org.geotools.styling.LineSymbolizer;
-import org.geotools.styling.Mark;
-import org.geotools.styling.PointSymbolizer;
-import org.geotools.styling.PolygonSymbolizer;
-import org.geotools.styling.Rule;
-import org.geotools.styling.SLDParser;
 import org.geotools.styling.Stroke;
-import org.geotools.styling.Style;
-import org.geotools.styling.StyleFactory;
+import org.geotools.styling.*;
+import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.gis.spatial.SpatialTopologyUtils;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.FeatureType;
 import org.opengis.filter.FilterFactory;
 
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.LinearRing;
-import com.vividsolutions.jts.geom.MultiLineString;
-import com.vividsolutions.jts.geom.MultiPoint;
-import com.vividsolutions.jts.geom.MultiPolygon;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.geom.Polygon;
+import javax.imageio.ImageIO;
+import java.awt.*;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+
+import static java.awt.RenderingHints.*;
+import static java.util.Arrays.asList;
 
 public class StyledImageExporter {
 	private GraphDatabaseService db;
@@ -235,7 +214,7 @@ public class StyledImageExporter {
             }
 
             saveMapContentToImageFile(mapContent, imagefile, bounds);
-            tx.success();
+            tx.commit();
         }
 	}
 
@@ -437,14 +416,16 @@ public class StyledImageExporter {
 
     public static void main(String[] args) {
 		if (args.length < 4) {
-			System.err.println("Too few arguments. Provide: 'database' 'exportdir' 'stylefile' zoom layer <layers..>");
+			System.err.println("Too few arguments. Provide: 'homeDir', 'database' 'exportdir' 'stylefile' zoom layer <layers..>");
 			return;
 		}
-		String database = args[0];
-		String exportdir = args[1];
-		String stylefile = args[2];
+		String homeDir = args[0];
+		String database = args[1];
+		String exportdir = args[2];
+		String stylefile = args[3];
 		double zoom = new Double(args[3]);
-		GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(new File(database));
+		DatabaseManagementService databases = new DatabaseManagementServiceBuilder(new File(homeDir)).build();
+		GraphDatabaseService db = databases.database(database);
 		try {
 			StyledImageExporter imageExporter = new StyledImageExporter(db);
 			imageExporter.setExportDir(exportdir);
@@ -457,7 +438,7 @@ public class StyledImageExporter {
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		} finally {
-			db.shutdown();
+			databases.shutdown();
 		}
 	}
 }

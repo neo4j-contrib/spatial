@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2002-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial.rtree.filter;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 
 public abstract class AbstractSearchEnvelopeIntersection implements SearchFilter {
 	
@@ -43,7 +44,7 @@ public abstract class AbstractSearchEnvelopeIntersection implements SearchFilter
 	}
 	
 	@Override
-	public final boolean geometryMatches(Node geomNode) {	
+	public final boolean geometryMatches(Transaction tx, Node geomNode) {
 		Envelope geomEnvelope = decoder.decodeEnvelope(geomNode);
 		if (geomEnvelope.intersects(referenceEnvelope)) {
 			return onEnvelopeIntersection(geomNode, geomEnvelope);

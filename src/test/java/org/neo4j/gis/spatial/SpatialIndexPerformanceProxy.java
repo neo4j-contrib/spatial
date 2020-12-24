@@ -29,99 +29,94 @@ import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 
 /**
- * @author Davide Savazzi
+ * A proxy wrapping the normal spatial index for the purpose of performance measurements.
  */
 public class SpatialIndexPerformanceProxy implements LayerIndexReader {
 
-    // Constructor
+    private final LayerIndexReader spatialIndex;
 
     public SpatialIndexPerformanceProxy(LayerIndexReader spatialIndex) {
         this.spatialIndex = spatialIndex;
     }
 
-    // Public methods
-
     @Override
-    public void init(Layer layer) {
+    public void init(Transaction tx, Layer layer) {
         if (layer != getLayer()) throw new IllegalArgumentException("Cannot change layer associated with this index");
     }
 
+    @Override
     public Layer getLayer() {
-    	return spatialIndex.getLayer();
+        return spatialIndex.getLayer();
     }
 
-    public boolean isEmpty() {
-        long start = System.currentTimeMillis();    	
-    	boolean result = spatialIndex.isEmpty();
-    	long stop = System.currentTimeMillis();
-        System.out.println("# exec time(count): " + (stop - start) + "ms");
-        return result;    	
-    }
-    
-    public int count() {
+    @Override
+    public boolean isEmpty(Transaction tx) {
         long start = System.currentTimeMillis();
-        int count = spatialIndex.count();
+        boolean result = spatialIndex.isEmpty(tx);
+        long stop = System.currentTimeMillis();
+        System.out.println("# exec time(count): " + (stop - start) + "ms");
+        return result;
+    }
+
+    @Override
+    public int count(Transaction tx) {
+        long start = System.currentTimeMillis();
+        int count = spatialIndex.count(tx);
         long stop = System.currentTimeMillis();
         System.out.println("# exec time(count): " + (stop - start) + "ms");
         return count;
     }
 
     public Iterable<Node> getAllGeometryNodes() {
-	    return spatialIndex.getAllIndexedNodes();
+        return spatialIndex.getAllIndexedNodes();
     }
 
-	@Override
-	public EnvelopeDecoder getEnvelopeDecoder() {
-		return spatialIndex.getEnvelopeDecoder();
-	}
-
-	@Override
-	public Envelope getBoundingBox() {
-		long start = System.currentTimeMillis();
-		Envelope result = spatialIndex.getBoundingBox();
-        long stop = System.currentTimeMillis();
-        System.out.println("# exec time(getBoundingBox()): " + (stop - start) + "ms");		
-        return result;
-	}
-
-	@Override
-	public boolean isNodeIndexed(Long nodeId) {
-		long start = System.currentTimeMillis();
-		boolean result = spatialIndex.isNodeIndexed(nodeId);
-        long stop = System.currentTimeMillis();
-        System.out.println("# exec time(isNodeIndexed(" + nodeId + ")): " + (stop - start) + "ms");		
-        return result;		
-	}
-
-	@Override
-	public Iterable<Node> getAllIndexedNodes() {
-		long start = System.currentTimeMillis();
-		Iterable<Node> result = spatialIndex.getAllIndexedNodes();
-        long stop = System.currentTimeMillis();
-        System.out.println("# exec time(getAllIndexedNodes()): " + (stop - start) + "ms");		
-        return result;
-	}
-    
-	
-    // Attributes
-
-    private LayerIndexReader spatialIndex;
-
-
-	@Override
-	public SearchResults searchIndex(SearchFilter filter) {
-        long start = System.currentTimeMillis();
-        SearchResults results = spatialIndex.searchIndex(filter);
-        long stop = System.currentTimeMillis();
-        System.out.println("# exec time(executeSearch(" + filter + ")): " + (stop - start) + "ms");
-		return results;
-	}
+    @Override
+    public EnvelopeDecoder getEnvelopeDecoder() {
+        return spatialIndex.getEnvelopeDecoder();
+    }
 
     @Override
-    public void addMonitor( TreeMonitor monitor )
-    {
+    public Envelope getBoundingBox() {
+        long start = System.currentTimeMillis();
+        Envelope result = spatialIndex.getBoundingBox();
+        long stop = System.currentTimeMillis();
+        System.out.println("# exec time(getBoundingBox()): " + (stop - start) + "ms");
+        return result;
+    }
+
+    @Override
+    public boolean isNodeIndexed(Transaction tx, Long nodeId) {
+        long start = System.currentTimeMillis();
+        boolean result = spatialIndex.isNodeIndexed(tx, nodeId);
+        long stop = System.currentTimeMillis();
+        System.out.println("# exec time(isNodeIndexed(" + nodeId + ")): " + (stop - start) + "ms");
+        return result;
+    }
+
+    @Override
+    public Iterable<Node> getAllIndexedNodes() {
+        long start = System.currentTimeMillis();
+        Iterable<Node> result = spatialIndex.getAllIndexedNodes();
+        long stop = System.currentTimeMillis();
+        System.out.println("# exec time(getAllIndexedNodes()): " + (stop - start) + "ms");
+        return result;
+    }
+
+    @Override
+    public SearchResults searchIndex(Transaction tx, SearchFilter filter) {
+        long start = System.currentTimeMillis();
+        SearchResults results = spatialIndex.searchIndex(tx, filter);
+        long stop = System.currentTimeMillis();
+        System.out.println("# exec time(executeSearch(" + filter + ")): " + (stop - start) + "ms");
+        return results;
+    }
+
+    @Override
+    public void addMonitor(TreeMonitor monitor) {
 
     }
 
@@ -131,11 +126,11 @@ public class SpatialIndexPerformanceProxy implements LayerIndexReader {
     }
 
     @Override
-	public SearchRecords search(SearchFilter filter) {
+    public SearchRecords search(Transaction tx, SearchFilter filter) {
         long start = System.currentTimeMillis();
-        SearchRecords results = spatialIndex.search(filter);
+        SearchRecords results = spatialIndex.search(tx, filter);
         long stop = System.currentTimeMillis();
         System.out.println("# exec time(executeSearch(" + filter + ")): " + (stop - start) + "ms");
-		return results;
-	}
+        return results;
+    }
 }

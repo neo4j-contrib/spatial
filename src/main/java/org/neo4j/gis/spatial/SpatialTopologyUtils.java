@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -33,27 +33,23 @@ import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.linearref.LengthIndexedLine;
 import com.vividsolutions.jts.linearref.LinearLocation;
 import com.vividsolutions.jts.linearref.LocationIndexedLine;
-
+import org.neo4j.graphdb.Transaction;
 
 /**
  * This class is a temporary location for collecting a number of spatial
  * utilities before we have decided on a more complete analysis structure. Do
  * not rely on this API remaining constant.
- * 
- * @author craig
  */
 public class SpatialTopologyUtils {
 	/**
 	 * Inner class associating points and resulting geometry records to
 	 * facilitate the result set returned.
-	 * 
-	 * @author craig
 	 */
 	public static class PointResult implements
 			Map.Entry<Point, SpatialDatabaseRecord>, Comparable<PointResult> {
-		private Point point;
+		private final Point point;
 		private SpatialDatabaseRecord record;
-		private double distance;
+		private final double distance;
 
 		private PointResult(Point point, SpatialDatabaseRecord record,
 				double distance) {
@@ -79,13 +75,7 @@ public class SpatialTopologyUtils {
 		}
 
 		public int compareTo(PointResult other) {
-			if (this.distance == other.distance) {
-				return 0;
-			} else if (this.distance < other.distance) {
-				return -1;
-			} else {
-				return 1;
-			}
+			return Double.compare(this.distance, other.distance);
 		}
 
 		public String toString() {
@@ -94,14 +84,12 @@ public class SpatialTopologyUtils {
 		}
 	}
 
-	public static List<PointResult> findClosestEdges(Point point,
-			Layer layer) {
-		return findClosestEdges(point, layer, 0.0);
+	public static List<PointResult> findClosestEdges(Transaction tx, Point point, Layer layer) {
+		return findClosestEdges(tx, point, layer, 0.0);
 	}
 
-	public static List<PointResult> findClosestEdges(Point point,
-			Layer layer, double distance) {
-		if (layer.getIndex().isEmpty()) {
+	public static List<PointResult> findClosestEdges(Transaction tx, Point point, Layer layer, double distance) {
+		if (layer.getIndex().isEmpty(tx)) {
 			return new ArrayList<>(0);
 		} else {
 			ReferencedEnvelope env = new ReferencedEnvelope(
@@ -112,22 +100,19 @@ public class SpatialTopologyUtils {
 			Envelope search = new Envelope(point.getCoordinate());
 			search.expandBy(distance);
 			GeometryFactory factory = layer.getGeometryFactory();
-			return findClosestEdges(point, layer, factory.toGeometry(search));
+			return findClosestEdges(tx, point, layer, factory.toGeometry(search));
 		}
 	}
 
     /**
      * Find geometries in the given layer that are closest to the given point while applying the filter
      * currently only handles point and linestrings (projecting them to a point) TODO Craig for other geoms
-     * @param point
-     * @param layer
-     * @param filter
      * @return list of point results containing the matched point on the geometry, the spatial record and the distance each
      */
-	public static List<PointResult> findClosestEdges(Point point, Layer layer, Geometry filter) {
-		ArrayList<PointResult> results = new ArrayList<PointResult>();
+	public static List<PointResult> findClosestEdges(Transaction tx, Point point, Layer layer, Geometry filter) {
+		ArrayList<PointResult> results = new ArrayList<>();
 		
-		Iterator<SpatialDatabaseRecord> records = layer.getIndex().search(new SearchIntersect(layer, filter));
+		Iterator<SpatialDatabaseRecord> records = layer.getIndex().search(tx, new SearchIntersect(layer, filter));
 		while (records.hasNext()) {
 			SpatialDatabaseRecord record = records.next();
 			Geometry geom = record.getGeometry();
@@ -223,9 +208,6 @@ public class SpatialTopologyUtils {
 	 * 
 	 * @see http://download.oracle.com/docs/cd/B13789_01/appdev.101/b10826/sdo_lrs_ref.htm#i85478
 	 * @see http://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/linearref/LengthIndexedLine.html
-	 * @param layer
-	 *            Layer the geometry is contained by, and is used to access the
-	 *            GeometryFactory for creating the Point
 	 * @param geometry
 	 *            Geometry to measure
 	 * @param measure
@@ -318,11 +300,11 @@ public class SpatialTopologyUtils {
 	 * @return an envelope designed to include the estimated number of
 	 *         geometries
 	 */
-	public static Envelope createEnvelopeForGeometryDensityEstimate(Layer layer, Coordinate point, int limit) {
+	public static Envelope createEnvelopeForGeometryDensityEstimate(Transaction tx, Layer layer, Coordinate point, int limit) {
 		if(limit < 1) {
 			return new Envelope(point);
 		}
-		int count = layer.getIndex().count();
+		int count = layer.getIndex().count(tx);
 		if (count > limit) {
 			return createEnvelopeForGeometryDensityEstimate(layer, point,(double) limit / (double) count);
 		} else {

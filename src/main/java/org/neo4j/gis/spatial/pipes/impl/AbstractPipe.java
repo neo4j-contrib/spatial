@@ -34,7 +34,7 @@ public abstract class AbstractPipe<S, E> implements Pipe<S, E> {
         if (starts instanceof Pipe)
             this.starts = starts;
         else
-            this.starts = new LastElementIterator<S>(starts);
+            this.starts = new LastElementIterator<>(starts);
     }
 
     public void setStarts(final Iterable<S> starts) {
@@ -50,8 +50,8 @@ public abstract class AbstractPipe<S, E> implements Pipe<S, E> {
         this.available = false;
     }
 
-    public List getPath() {
-        final List pathElements = getPathToHere();
+    public List<E> getPath() {
+        final List<E> pathElements = getPathToHere();
         final int size = pathElements.size();
         // do not repeat filters as they dup the object
         if (size == 0 || pathElements.get(size - 1) != this.currentEnd) {
@@ -102,15 +102,15 @@ public abstract class AbstractPipe<S, E> implements Pipe<S, E> {
 
     protected abstract E processNextStart() throws NoSuchElementException;
 
-    protected List getPathToHere() {
+    protected List<E> getPathToHere() {
         if (this.starts instanceof Pipe) {
             return ((Pipe) this.starts).getPath();
         } else if (this.starts instanceof LastElementIterator) {
-            final List list = new ArrayList();
-            list.add(((LastElementIterator) starts).lastElement());
+            final List<E> list = new ArrayList<>();
+            list.add((E) ((LastElementIterator) starts).lastElement());
             return list;
         } else {
-            return new ArrayList();
+            return new ArrayList<>();
         }
     }
 

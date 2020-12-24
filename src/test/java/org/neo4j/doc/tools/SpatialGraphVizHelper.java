@@ -55,7 +55,7 @@ public class SpatialGraphVizHelper extends org.neo4j.visualization.asciidoc.Asci
 
             String safeTitle = title.replaceAll( ILLEGAL_STRINGS, "" );
 
-            tx.success();
+            tx.commit();
 
             String fontsDir = "target/tools/bin/fonts";
             String colorSet = "neoviz";

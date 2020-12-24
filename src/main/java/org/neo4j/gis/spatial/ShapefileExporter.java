@@ -89,7 +89,7 @@ public class ShapefileExporter {
             shpDataStore.createSchema(featureType);
             FeatureStore store = (FeatureStore) shpDataStore.getFeatureSource();
             store.addFeatures(neo4jDataStore.getFeatureSource(layerName).getFeatures());
-            tx.success();
+            tx.commit();
 		}
         if (crs != null)
             shpDataStore.forceSchemaCRS(crs);

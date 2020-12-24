@@ -23,6 +23,7 @@ import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.GeometryFactory;
@@ -45,12 +46,8 @@ public interface Layer {
      * a no-argument constructor. The real initialization of the layer is then performed by calling
      * this method. The layer implementation can store the passed parameters for later use
      * satisfying the prupose of the layer API (see other Layer methods).
-     * 
-     * @param spatialDatabase
-     * @param name
-     * @param layerNode
      */
-    void initialize(SpatialDatabaseService spatialDatabase, String name, Node layerNode);
+    void initialize(Transaction tx, String name, Node layerNode);
 
     /**
      * Every layer using a specific implementation of the SpatialIndexReader and SpatialIndexWriter
@@ -66,7 +63,7 @@ public interface Layer {
      * @param geomNode
      * @return SpatialDatabaseRecord representation of the geometry added to the database
      */
-    SpatialDatabaseRecord add(Node geomNode);
+    SpatialDatabaseRecord add(Transaction tx, Node geomNode);
 
     /**
      * This method adds existing geometries to the layer for indexing in bulk. After this method is called the geometry should be searchable.
@@ -74,7 +71,7 @@ public interface Layer {
      * @param geomNodes
      * @return the number of geometries added to the database
      */
-    int addAll(List<Node> geomNodes);
+    int addAll(Transaction tx, List<Node> geomNodes);
 
     GeometryFactory getGeometryFactory();
 
@@ -91,7 +88,7 @@ public interface Layer {
      * Others are simply views onto other more complex data models and deleting the geometry nodes
      * might imply damage to the model. Keep this in mind when coding implementations of the Layer.
      */
-    void delete(Listener monitor);
+    void delete(Transaction tx, Listener monitor);
 
     /**
      * Every layer is defined by a unique name. Uniqueness is not enforced, but lack of uniqueness
@@ -132,16 +129,7 @@ public interface Layer {
      * 
      * @return integer key for the geotools geometry type
      */
-    Integer getGeometryType();
-
-    /**
-     * Since the layer is a key object passed around to most code, it is important to be able to
-     * access the generic spatial API from this object.
-     * 
-     * @return instance of the SpatialDatabaseService object for general access to the spatial
-     *         database features
-     */
-    SpatialDatabaseService getSpatialDatabase();
+    Integer getGeometryType(Transaction tx);
 
     /**
      * Each layer is associated with a SpatialDataset. This can be a one-for-one match to the layer,

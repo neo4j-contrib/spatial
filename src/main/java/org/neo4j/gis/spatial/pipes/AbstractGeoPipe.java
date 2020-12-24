@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -25,75 +25,73 @@ import com.vividsolutions.jts.geom.Geometry;
 import org.neo4j.gis.spatial.pipes.impl.AbstractPipe;
 
 /**
- * Abstract pipe for GeoPipelines. 
+ * Abstract pipe for GeoPipelines.
  * Filters, processes, extracts or groups GeoPipeFlow objects.
  */
 public abstract class AbstractGeoPipe extends AbstractPipe<GeoPipeFlow, GeoPipeFlow> {
 
-	protected String resultPropertyName = null;
+    protected String resultPropertyName = null;
 
-	protected AbstractGeoPipe() {
-	}
+    protected AbstractGeoPipe() {
+    }
 
-	/**
-	 * @param resultPropertyName name to use for the property containing Pipe output
-	 */
-	protected AbstractGeoPipe(String resultPropertyName) {
-		this.resultPropertyName = resultPropertyName;
-	}
-	
-	@Override
-	protected GeoPipeFlow processNextStart() throws NoSuchElementException {
-		GeoPipeFlow flow = null;
-		do {
-			flow = process(starts.next());
-		} while (flow == null);
-		
-		return flow;
-	}
-	
-	/**
-	 * Subclasses should override this method.
-	 */
-	protected GeoPipeFlow process(GeoPipeFlow flow) {
-		return flow;
-	}
+    /**
+     * @param resultPropertyName name to use for the property containing Pipe output
+     */
+    protected AbstractGeoPipe(String resultPropertyName) {
+        this();
+        this.resultPropertyName = resultPropertyName;
+    }
 
-	/**
-	 * Puts pipe geometry output in the given GeoPipeFlow.
-	 * 
-	 * @param flow
-	 * @param geometry
-	 */
-	protected void setGeometry(GeoPipeFlow flow, Geometry geometry) {
-		if (resultPropertyName != null) {
-			flow.getProperties().put(resultPropertyName, geometry);
-		} else {
-			flow.setGeometry(geometry);
-		}
-	}
-	
-	/**
-	 * Puts pipe output in the given GeoPipeFlow.
-	 */
-	protected void setProperty(GeoPipeFlow flow, Object result) {
-		if (resultPropertyName != null) {
-			flow.getProperties().put(resultPropertyName, result);
-		} else {
-			flow.getProperties().put(generatePropertyName(), result);
-		}		
-	}
+    @Override
+    protected GeoPipeFlow processNextStart() throws NoSuchElementException {
+        GeoPipeFlow flow;
+        do {
+            flow = process(starts.next());
+        } while (flow == null);
 
-	/**
-	 * Creates a default property name, used if no name has been specified.
-	 */
-	protected String generatePropertyName() {
-		String className = getClass().getName();
-		if (className.indexOf(".") != -1) {
-			className = className.substring(className.lastIndexOf(".") + 1);
-		}
-		
-		resultPropertyName = className;
-		return resultPropertyName;
-	}
+        return flow;
+    }
+
+    /**
+     * Subclasses should override this method.
+     */
+    protected GeoPipeFlow process(GeoPipeFlow flow) {
+        return flow;
+    }
+
+    /**
+     * Puts pipe geometry output in the given GeoPipeFlow.
+     */
+    protected void setGeometry(GeoPipeFlow flow, Geometry geometry) {
+        if (resultPropertyName != null) {
+            flow.getProperties().put(resultPropertyName, geometry);
+        } else {
+            flow.setGeometry(geometry);
+        }
+    }
+
+    /**
+     * Puts pipe output in the given GeoPipeFlow.
+     */
+    protected void setProperty(GeoPipeFlow flow, Object result) {
+        if (resultPropertyName != null) {
+            flow.getProperties().put(resultPropertyName, result);
+        } else {
+            flow.getProperties().put(generatePropertyName(), result);
+        }
+    }
+
+    /**
+     * Creates a default property name, used if no name has been specified.
+     */
+    protected String generatePropertyName() {
+        String className = getClass().getName();
+        if (className.contains(".")) {
+            className = className.substring(className.lastIndexOf(".") + 1);
+        }
+
+        resultPropertyName = className;
+        return resultPropertyName;
+    }
 }

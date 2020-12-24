@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.neo4j.graphdb.Transaction;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import com.vividsolutions.jts.geom.Geometry;
@@ -30,47 +31,33 @@ import com.vividsolutions.jts.geom.Geometry;
  * graph). A Layer can be associated with a dataset. In cases where the dataset contains only one
  * layer, the layer itself is the dataset. See the class DefaultLayer for the standard
  * implementation of that pattern.
- * 
- * @author Davide Savazzi
- * @author Craig Taverner
  */
 public interface EditableLayer extends Layer {
 
     /**
      * Add a new geometry to the layer. This will add the geometry to the index.
-     * 
-     * @param geometry
-     * @return
      */
-    SpatialDatabaseRecord add(Geometry geometry);
+    SpatialDatabaseRecord add(Transaction tx, Geometry geometry);
 
     /**
      * Add a new geometry to the layer. This will add the geometry to the index.
      * @TODO: Rather use a HashMap of properties
-     * 
-     * @param geometry
-     * @return
      */
-    SpatialDatabaseRecord add(Geometry geometry, String[] fieldsName, Object[] fields);
+    SpatialDatabaseRecord add(Transaction tx, Geometry geometry, String[] fieldsName, Object[] fields);
 
     /**
      * Delete the geometry identified by the passed node id. This might be as simple as deleting the
      * geometry node, or it might require extracting and deleting an entire sub-graph.
-     * 
-     * @param geometryNodeId
      */
-    void delete(long geometryNodeId);
+    void delete(Transaction tx, long geometryNodeId);
 
     /**
      * Update the geometry identified by the passed node id. This might be as simple as changing
      * node properties or it might require editing an entire sub-graph.
-     * 
-     * @param geometryNodeId
      */
-    void update(long geometryNodeId, Geometry geometry);
+    void update(Transaction tx, long geometryNodeId, Geometry geometry);
 
-	void setCoordinateReferenceSystem(
-			CoordinateReferenceSystem coordinateReferenceSystem);
+	void setCoordinateReferenceSystem(CoordinateReferenceSystem coordinateReferenceSystem);
 
-    void removeFromIndex(long geomNodeId);
+    void removeFromIndex(Transaction tx, long geomNodeId);
 }

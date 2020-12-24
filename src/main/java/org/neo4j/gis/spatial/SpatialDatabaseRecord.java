@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -19,23 +19,21 @@
  */
 package org.neo4j.gis.spatial;
 
-import java.util.HashMap;
-import java.util.Map;
-
+import com.vividsolutions.jts.geom.Geometry;
 import org.neo4j.gis.spatial.attributes.PropertyMapper;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
-import com.vividsolutions.jts.geom.Geometry;
-
+import java.util.HashMap;
+import java.util.Map;
 
 public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 
 	public SpatialDatabaseRecord(Layer layer, Node geomNode) {
 		this(layer, geomNode, null);
 	}
-	
-	
+
 	// Public methods
 	
 	public String getId() {
@@ -84,13 +82,10 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 	/**
 	 * Not all geometry records have the same attribute set, so we should test
 	 * for each specific record if it contains that property.
-	 * 
-	 * @param name
-	 * @return
-	 */	
+	 */
 	@Override
-	public boolean hasProperty(String name) {
-		PropertyMapper mapper = layer.getPropertyMappingManager().getPropertyMapper(name);
+	public boolean hasProperty(Transaction tx, String name) {
+		PropertyMapper mapper = layer.getPropertyMappingManager().getPropertyMapper(tx, name);
 		return mapper == null ? hasGeometryProperty(name) : hasGeometryProperty(mapper.from());
 	}
 
@@ -103,30 +98,30 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 		return layer.getExtraPropertyNames();
 	}
 	
-	public Object[] getPropertyValues() {
+	public Object[] getPropertyValues(Transaction tx) {
 		String[] names = getPropertyNames();
 		if (names == null) return null;
 		Object[] values = new Object[names.length];
 		for (int i = 0; i < names.length; i++) {
-			values[i] = getProperty(names[i]);
+			values[i] = getProperty(tx, names[i]);
 		}
 		return values;
 	}
 	
-	public Map<String,Object> getProperties() {
+	public Map<String,Object> getProperties(Transaction tx) {
 		Map<String,Object> result = new HashMap<String,Object>();
 		
 		String[] names = getPropertyNames();
 		for (int i = 0; i < names.length; i++) {
-			result.put(names[i], getProperty(names[i]));
+			result.put(names[i], getProperty(tx, names[i]));
 		}
 		
 		return result;
 	}
 	
 	@Override
-	public Object getProperty(String name) {
-		PropertyMapper mapper = layer.getPropertyMappingManager().getPropertyMapper(name);
+	public Object getProperty(Transaction tx, String name) {
+		PropertyMapper mapper = layer.getPropertyMappingManager().getPropertyMapper(tx, name);
 		return mapper == null ? getGeometryProperty(name) : mapper.map(getGeometryProperty(mapper.from()));
 	}
 	

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -22,11 +22,8 @@ package org.neo4j.gis.spatial.index;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.filter.SearchRecords;
+import org.neo4j.graphdb.Transaction;
 
-
-/**
- * @author Davide Savazzi
- */
 public interface LayerIndexReader extends SpatialIndexReader {
 
 	/**
@@ -35,10 +32,10 @@ public interface LayerIndexReader extends SpatialIndexReader {
 	 *
 	 * @param layer object containing and controlling this index
 	 */
-	void init(Layer layer);
+	void init(Transaction tx, Layer layer);
 
 	Layer getLayer();
 
-	SearchRecords search(SearchFilter filter);
+	SearchRecords search(Transaction tx, SearchFilter filter);
 	
 }

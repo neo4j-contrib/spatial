@@ -34,6 +34,7 @@ import org.geotools.resources.Classes;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.SpatialRecord;
+import org.neo4j.graphdb.Transaction;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
@@ -65,10 +66,10 @@ public class Neo4jFeatureBuilder {
     }
     
 	/**
-	 * 
+	 * If it is necessary to lookup the layer type with a transaction, use this factory method to make the feature builder
 	 */
-    public Neo4jFeatureBuilder(Layer layer) { 
-        this(getTypeFromLayer(layer), Arrays.asList(layer.getExtraPropertyNames()));
+    public static Neo4jFeatureBuilder fromLayer(Transaction tx, Layer layer) {
+        return new Neo4jFeatureBuilder(getTypeFromLayer(tx, layer), Arrays.asList(layer.getExtraPropertyNames()));
     } 
     
     public SimpleFeature buildFeature(String id, Geometry geometry, Map<String,Object> properties) {
@@ -83,12 +84,12 @@ public class Neo4jFeatureBuilder {
         return builder.buildFeature(id);    	
     }
     
-    public SimpleFeature buildFeature(SpatialRecord rec) {
-    	return buildFeature(rec.getId(), rec.getGeometry(), rec.getProperties());
+    public SimpleFeature buildFeature(Transaction tx, SpatialRecord rec) {
+    	return buildFeature(rec.getId(), rec.getGeometry(), rec.getProperties(tx));
     }
 
-    public static SimpleFeatureType getTypeFromLayer(Layer layer) {    
-    	return getType(layer.getName(), layer.getGeometryType(), layer.getCoordinateReferenceSystem(), layer.getExtraPropertyNames());
+    public static SimpleFeatureType getTypeFromLayer(Transaction tx, Layer layer) {
+    	return getType(layer.getName(), layer.getGeometryType(tx), layer.getCoordinateReferenceSystem(), layer.getExtraPropertyNames());
     }
     
     public static SimpleFeatureType getType(String name, Integer geometryTypeId, CoordinateReferenceSystem crs, String[] extraPropertyNames) {

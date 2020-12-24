@@ -25,6 +25,7 @@ import org.neo4j.gis.spatial.rtree.TreeMonitor;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 
 import java.util.Map;
 
@@ -32,17 +33,17 @@ public interface SpatialIndexReader {
 
     EnvelopeDecoder getEnvelopeDecoder();
 
-    boolean isEmpty();
+    boolean isEmpty(Transaction tx);
 
-    int count();
+    int count(Transaction tx);
 
     Envelope getBoundingBox();
 
-    boolean isNodeIndexed(Long nodeId);
+    boolean isNodeIndexed(Transaction tx, Long nodeId);
 
     Iterable<Node> getAllIndexedNodes();
 
-    SearchResults searchIndex(SearchFilter filter);
+    SearchResults searchIndex(Transaction tx, SearchFilter filter);
 
     void addMonitor(TreeMonitor monitor);
 

@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -19,90 +19,82 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
-import java.util.ArrayList;
-
-import org.neo4j.gis.spatial.Neo4jTestCase;
-import org.neo4j.gis.spatial.SimplePointLayer;
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
-import org.neo4j.gis.spatial.SpatialDatabaseService;
-import org.neo4j.gis.spatial.Layer;
+import com.vividsolutions.jts.geom.Coordinate;
+import org.junit.Test;
+import org.neo4j.gis.spatial.*;
 import org.neo4j.graphdb.Transaction;
 
-import org.junit.Test;
+import java.util.ArrayList;
 
-import com.vividsolutions.jts.geom.Coordinate;
+import static org.junit.Assert.assertTrue;
 
 public class GeoPipesPerformanceTest extends Neo4jTestCase {
-	private int records = 10000;
-	private int chunkSize = records / 10;
+    private int records = 10000;
+    private int chunkSize = records / 10;
 
-	public void setUp() throws Exception {
-		super.setUp(true, false, false);
-		loadSamplePointData();
-	}
+    public void setUp() throws Exception {
+        super.setUp(true, false, false);
+        loadSamplePointData();
+    }
 
-	private void loadSamplePointData() {
-		Transaction tx = graphDb().beginTx();
-		try {
-			SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb());
-			SimplePointLayer layer = spatial.createSimplePointLayer("GeoPipesPerformanceTest");
-			System.out.println("Creating database of " + records + " point records");
-			for (int i = 0; i < records; i++) {
-				double x = 10.0 + Math.random() * 10.0;
-				double y = 10.0 + Math.random() * 10.0;
-				String name = "Fake Geometry " + i;
-				// System.out.println("Creating point '" + name +
-				// "' at location x:" + x + " y:" + y);
-				SpatialDatabaseRecord record = layer.add(x, y);
-				record.getGeomNode().setProperty("name", name);
-			}
-			tx.success();
-			tx.close();
-			System.out.println("Finished writing " + records + " point records to database");
-		} catch (Exception e) {
-			System.err.println("Error initializing database: " + e);
-			tx.failure();
-		}
-	}
-
-	class TimeRecord {
-		int chunk;
-		int time;
-		int count;
-
-		TimeRecord(int chunk, int time, int count) {
-			this.chunk = chunk;
-			this.time = time;
-			this.count = count;
-		}
-
-		public float average() {
-			if (count > 0) {
-				return (float) time / (float) count;
-			} else {
-				return 0;
-			}
-		}
-
-		public String toString() {
-			if (count > 0) {
-				return "" + chunk + ": " + average() + "ms per record (" + count + " records over " + time + "ms)";
-			} else {
-				return "" + chunk + ": INVALID (" + count + " records over " + time + "ms)";
-			}
-		}
-	}
-
-	@Test
-	public void testQueryPerformance() {
-		SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb());
+    private void loadSamplePointData() {
         try (Transaction tx = graphDb().beginTx()) {
-            Layer layer = spatial.getLayer("GeoPipesPerformanceTest");
+            SpatialDatabaseService spatial = new SpatialDatabaseService();
+            SimplePointLayer layer = spatial.createSimplePointLayer(tx, "GeoPipesPerformanceTest");
+            System.out.println("Creating database of " + records + " point records");
+            for (int i = 0; i < records; i++) {
+                double x = 10.0 + Math.random() * 10.0;
+                double y = 10.0 + Math.random() * 10.0;
+                String name = "Fake Geometry " + i;
+                // System.out.println("Creating point '" + name +
+                // "' at location x:" + x + " y:" + y);
+                SpatialDatabaseRecord record = layer.add(tx, x, y);
+                record.getGeomNode().setProperty("name", name);
+            }
+            tx.commit();
+            System.out.println("Finished writing " + records + " point records to database");
+        } catch (Exception e) {
+            System.err.println("Error initializing database: " + e);
+        }
+    }
+
+    class TimeRecord {
+        int chunk;
+        int time;
+        int count;
+
+        TimeRecord(int chunk, int time, int count) {
+            this.chunk = chunk;
+            this.time = time;
+            this.count = count;
+        }
+
+        public float average() {
+            if (count > 0) {
+                return (float) time / (float) count;
+            } else {
+                return 0;
+            }
+        }
+
+        public String toString() {
+            if (count > 0) {
+                return "" + chunk + ": " + average() + "ms per record (" + count + " records over " + time + "ms)";
+            } else {
+                return "" + chunk + ": INVALID (" + count + " records over " + time + "ms)";
+            }
+        }
+    }
+
+    @Test
+    public void testQueryPerformance() {
+        SpatialDatabaseService spatial = new SpatialDatabaseService();
+        try (Transaction tx = graphDb().beginTx()) {
+            Layer layer = spatial.getLayer(tx, "GeoPipesPerformanceTest");
             // String[] keys = {"id","name","address","city","state","zip"};
-            String[] keys = { "id", "name" };
+            String[] keys = {"id", "name"};
             Coordinate loc = new Coordinate(15.0, 15.0);
-            GeoPipeline flowList = ((GeoPipeline) GeoPipeline.startNearestNeighborLatLonSearch(layer, loc, records))
-                    .copyDatabaseRecordProperties(keys);
+            GeoPipeline flowList = GeoPipeline.startNearestNeighborLatLonSearch(tx, layer, loc, records).copyDatabaseRecordProperties(tx, keys);
             int i = 0;
             ArrayList<TimeRecord> totals = new ArrayList<TimeRecord>();
             long prevTime = System.currentTimeMillis();
@@ -134,25 +126,24 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
                 assertTrue("Expected record average of " + rec.average() + " to not be substantially larger than running average "
                         + average, rec.average() < 2 * average);
             }
-            tx.success();
+            tx.commit();
         }
-	}
+    }
 
-	@Test
-	public void testPagingPerformance() {
-		SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb());
+    @Test
+    public void testPagingPerformance() {
+        SpatialDatabaseService spatial = new SpatialDatabaseService();
         try (Transaction tx = graphDb().beginTx()) {
-            Layer layer = spatial.getLayer("GeoPipesPerformanceTest");
+            Layer layer = spatial.getLayer(tx, "GeoPipesPerformanceTest");
             // String[] keys = {"id","name","address","city","state","zip"};
-            String[] keys = { "id", "name" };
+            String[] keys = {"id", "name"};
             Coordinate loc = new Coordinate(15.0, 15.0);
             ArrayList<TimeRecord> totals = new ArrayList<TimeRecord>();
             long prevTime = System.currentTimeMillis();
             for (int chunk = 0; chunk < 20; chunk++) {
                 int low = chunk * chunkSize;
                 int high = (chunk + 1) * chunkSize - 1;
-                GeoPipeline flowList = ((GeoPipeline) GeoPipeline.startNearestNeighborLatLonSearch(layer, loc, records)
-                        .range(low, high)).copyDatabaseRecordProperties(keys);
+                GeoPipeline flowList = GeoPipeline.startNearestNeighborLatLonSearch(tx, layer, loc, records).range(low, high).copyDatabaseRecordProperties(tx, keys);
                 if (!flowList.hasNext())
                     break;
                 int count = 0;
@@ -178,7 +169,7 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
                 // " to not be substantially larger than running average "
                 // + average, rec.average() < 2 * average);
             }
-            tx.success();
+            tx.commit();
         }
-	}
+    }
 }

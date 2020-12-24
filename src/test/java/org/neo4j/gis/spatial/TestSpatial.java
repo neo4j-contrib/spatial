@@ -20,13 +20,13 @@
 package org.neo4j.gis.spatial;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import org.geotools.data.shapefile.shp.ShapefileException;
+import org.junit.Before;
+import org.junit.Test;
 import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.NullListener;
@@ -36,6 +36,7 @@ import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
+import static org.junit.Assert.*;
 
 /**
  * <p>
@@ -71,25 +72,20 @@ import org.neo4j.graphdb.Transaction;
  * out neo4j-spatial</dd>
  * </dl>
  * </p>
- *
- * @author Davide Savazzi
- * @author Craig Taverner
  */
 public class TestSpatial extends Neo4jTestCase {
-	
-    private final String SHP_DIR = "target/shp";
-    private final String OSM_DIR = "target/osm";
-    
-    private final ArrayList<String> layers = new ArrayList<String>();
-    private final HashMap<String, Envelope> layerTestEnvelope = new HashMap<String, Envelope>();
-    private final HashMap<String, ArrayList<TestGeometry>> layerTestGeometries = new HashMap<String, ArrayList<TestGeometry>>();
-    private final HashMap<String, DataFormat> layerTestFormats = new HashMap<String, DataFormat>();
-    private final HashMap<Integer,Integer> geomStats = new HashMap<Integer,Integer>();    
-    private String spatialTestMode = System.getProperty("spatial.test.mode");
 
+    private final ArrayList<String> layers = new ArrayList<>();
+    private final HashMap<String, Envelope> layerTestEnvelope = new HashMap<>();
+    private final HashMap<String, ArrayList<TestGeometry>> layerTestGeometries = new HashMap<>();
+    private final HashMap<String, DataFormat> layerTestFormats = new HashMap<>();
+    private final HashMap<Integer, Integer> geomStats = new HashMap<>();
+    private final String spatialTestMode = System.getProperty("spatial.test.mode");
+
+    @Before
     public void setUp() throws Exception {
-    	super.setUp();
-    	
+        super.setUp();
+
         // TODO: Rather load this from a configuration file, properties file or JRuby test code
 
         Envelope bbox = new Envelope(12.9, 12.99, 56.05, 56.07); // covers half of Billesholm
@@ -98,7 +94,7 @@ public class TestSpatial extends Neo4jTestCase {
         addTestGeometry(70423036, "Ljungsgårdsvägen", "outside top left", "(12.9599540,56.0570692), (12.9624780,56.0716282)");
         addTestGeometry(67835020, "Villagatan", "in the middle", "(12.9776065,56.0561477), (12.9814421,56.0572131)");
         addTestGeometry(60966388, "Storgatan", "crossing left edge", "(12.9682980,56.0524546), (12.9710302,56.0538436)");
-        
+
         bbox = new Envelope(12.5, 14.1, 55.0, 56.3); // cover central Skåne
         // Bounds for sweden_administrative: 11.1194502 : 24.1585511, 55.3550515 : 69.0600767
         // Envelope bbox = new Envelope(12.85, 13.25, 55.5, 55.65); // cover Malmö
@@ -107,7 +103,7 @@ public class TestSpatial extends Neo4jTestCase {
 
         addTestLayer("sweden.osm", DataFormat.OSM, bbox);
         addTestLayer("sweden.osm.administrative", DataFormat.OSM, bbox);
-        
+
         addTestLayer("sweden_administrative", DataFormat.SHP, bbox);
         addTestGeometry(1055, "Söderåsens nationalpark", "near top edge", "(13.167721,56.002416), (13.289724,56.047099)");
         addTestGeometry(1067, "", "inside", "(13.2122907,55.6969478), (13.5614499,55.7835819)");
@@ -137,7 +133,7 @@ public class TestSpatial extends Neo4jTestCase {
         layers.add(layer);
         layerTestEnvelope.put(layer, bbox);
         layerTestFormats.put(layer, format);
-        layerTestGeometries.put(layer, new ArrayList<TestGeometry>());
+        layerTestGeometries.put(layer, new ArrayList<>());
     }
 
     private void addTestGeometry(Integer id, String name, String comments, String bounds) {
@@ -146,102 +142,116 @@ public class TestSpatial extends Neo4jTestCase {
         geoms.add(new TestGeometry(id, name, comments, bounds));
     }
 
+    @Test
     public void testShpSwedenAdministrative() throws Exception {
         if ("long".equals(spatialTestMode))
             testLayer("sweden_administrative");
     }
-    
+
+    @Test
     public void testShpSwedenNatural() throws Exception {
         if ("long".equals(spatialTestMode))
             testLayer("sweden_natural");
     }
-    
+
+    @Test
     public void testShpSwedenWater() throws Exception {
         if ("long".equals(spatialTestMode))
             testLayer("sweden_water");
     }
 
+    @Test
     public void testOsmBillesholm() throws Exception {
-    	testLayer("billesholm.osm");
-    }    
+        testLayer("billesholm.osm");
+    }
 
+    @Test
     public void testOsmSwedenAdministrative() throws Exception {
-    	if ("long".equals(spatialTestMode))
-    		testLayer("sweden.osm.administrative");
-    }    
+        if ("long".equals(spatialTestMode))
+            testLayer("sweden.osm.administrative");
+    }
 
+    @Test
     public void testOsmSweden() throws Exception {
-    	if ("long".equals(spatialTestMode))
-    		testLayer("sweden.osm");
-    }     
-    
-	// TODO missing file
+        if ("long".equals(spatialTestMode))
+            testLayer("sweden.osm");
+    }
+
+    // TODO missing file
     /* 
     public void testShpSwedenHighway() throws Exception {
     	if ("long".equals(spatialTestMode))
     		testLayer("sweden_highway");
-    } */   
+    } */
 
     private void testLayer(String layerName) throws Exception {
         testImport(layerName);
-        testSpatialIndex(layerName);    	
+        testSpatialIndex(layerName);
     }
-    
+
+    private long countLayerIndex(String layerName) {
+        long count = 0;
+        try (Transaction tx = graphDb().beginTx()) {
+            SpatialDatabaseService spatialService = new SpatialDatabaseService();
+            Layer layer = spatialService.getLayer(tx, layerName);
+            if (layer != null && layer.getIndex() != null) {
+                count = layer.getIndex().count(tx);
+            }
+            tx.commit();
+        }
+        return count;
+    }
+
     private void testImport(String layerName) throws Exception {
         long start = System.currentTimeMillis();
         System.out.println("\n===========\n=========== Import Test: " + layerName + "\n===========");
-        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-        Layer layer = spatialService.getLayer(layerName);
-        if (layer == null || layer.getIndex() == null || layer.getIndex().count() < 1) {
+        if (countLayerIndex(layerName) < 1) {
             switch (layerTestFormats.get(layerName)) {
-            case SHP:
-                loadTestShpData(layerName, 1000);
-                break;
-            case OSM:
-                //TODO: enable batch again
-                loadTestOsmData(layerName, 1000, false);
-                break;
-            default:
-                fail("Unknown format: " + layerTestFormats.get(layerName));
+                case SHP:
+                    loadTestShpData(layerName);
+                    break;
+                case OSM:
+                    //TODO: enable batch again
+                    loadTestOsmData(layerName);
+                    break;
+                default:
+                    fail("Unknown format: " + layerTestFormats.get(layerName));
             }
         } else {
-        	fail("Layer already present: " + layerName);
+            fail("Layer already present: " + layerName);
         }
-        
+
         System.out.println("Total time for load: " + 1.0 * (System.currentTimeMillis() - start) / 1000.0 + "s");
     }
 
-    private void loadTestShpData(String layerName, int commitInterval) throws ShapefileException, FileNotFoundException, IOException {
+    private void loadTestShpData(String layerName) throws IOException {
+        String SHP_DIR = "target/shp";
         String shpPath = SHP_DIR + File.separator + layerName;
         System.out.println("\n=== Loading layer " + layerName + " from " + shpPath + " ===");
-        ShapefileImporter importer = new ShapefileImporter(graphDb(), new NullListener(), commitInterval, true);
-        importer.importFile(shpPath, layerName, Charset.forName("UTF-8"));
+        ShapefileImporter importer = new ShapefileImporter(graphDb(), new NullListener(), 1000, true);
+        importer.importFile(shpPath, layerName, StandardCharsets.UTF_8);
     }
 
-    private void loadTestOsmData(String layerName, int commitInterval, boolean useBatch) throws Exception {
+    private void loadTestOsmData(String layerName) throws Exception {
+        String OSM_DIR = "target/osm";
         String osmPath = OSM_DIR + File.separator + layerName;
         System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
-        reActivateDatabase(false, useBatch, false);
+        reActivateDatabase(false, false, false);
         OSMImporter importer = new OSMImporter(layerName);
-		importer.setCharset(Charset.forName("UTF-8"));
-        if (useBatch) {
-	        importer.importFile(getBatchInserter(), osmPath);
-	        reActivateDatabase(false, false, false);
-        } else {
-            importer.importFile(graphDb(), osmPath);
-            reActivateDatabase(false, false, false);
-        }
-        importer.reIndex(graphDb(), commitInterval);
+        importer.setCharset(StandardCharsets.UTF_8);
+        importer.importFile(graphDb(), osmPath);
+        reActivateDatabase(false, false, false);
+        importer.reIndex(graphDb(), 1000);
     }
 
     private void testSpatialIndex(String layerName) {
         System.out.println("\n=== Spatial Index Test: " + layerName + " ===");
         long start = System.currentTimeMillis();
 
-        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+        SpatialDatabaseService spatialService = new SpatialDatabaseService();
         try (Transaction tx = graphDb().beginTx()) {
-            Layer layer = spatialService.getLayer(layerName);
-            if (layer == null || layer.getIndex() == null || layer.getIndex().count() < 1) {
+            Layer layer = spatialService.getLayer(tx, layerName);
+            if (layer == null || layer.getIndex() == null || layer.getIndex().count(tx) < 1) {
                 fail("Layer not loaded: " + layerName);
             }
 
@@ -252,54 +262,52 @@ public class TestSpatial extends Neo4jTestCase {
             System.out.println("FakeIndex bounds: " + fakeIndex.getBoundingBox());
             assertEnvelopeEquals(fakeIndex.getBoundingBox(), rtreeIndex.getBoundingBox());
 
-            System.out.println("RTreeIndex count: " + rtreeIndex.count());
-            assertEquals(fakeIndex.count(), rtreeIndex.count());
+            System.out.println("RTreeIndex count: " + rtreeIndex.count(tx));
+            assertEquals(fakeIndex.count(tx), rtreeIndex.count(tx));
 
             Envelope bbox = layerTestEnvelope.get(layerName);
 
             System.out.println("Displaying test geometries for layer '" + layerName + "' including expected search results");
             for (TestGeometry testData : layerTestGeometries.get(layerName)) {
-                System.out.println("\tGeometry: " + testData + " " + (testData.inOrIntersects(bbox) ? "is" : "is NOT")
-                        + " inside search region");
+                System.out.println("\tGeometry: " + testData + " " + (testData.inOrIntersects(bbox) ? "is" : "is NOT") + " inside search region");
             }
 
-            for (LayerIndexReader index : new LayerIndexReader[] { rtreeIndex, fakeIndex }) {
-                ArrayList<TestGeometry> foundData = new ArrayList<TestGeometry>();
+            for (LayerIndexReader index : new LayerIndexReader[]{rtreeIndex, fakeIndex}) {
+                ArrayList<TestGeometry> foundData = new ArrayList<>();
 
                 SearchIntersect searchQuery = new SearchIntersect(layer, layer.getGeometryFactory().toGeometry(Utilities.fromNeo4jToJts(bbox)));
-                SearchRecords results = index.search(searchQuery);
+                SearchRecords results = index.search(tx, searchQuery);
 
                 int count = 0;
                 int ri = 0;
                 for (SpatialDatabaseRecord r : results) {
                     count++;
                     if (ri++ < 10) {
-                        StringBuffer props = new StringBuffer();
+                        StringBuilder props = new StringBuilder();
                         for (String prop : r.getPropertyNames()) {
                             if (props.length() > 0) props.append(", ");
-                            props.append(prop + ": " + r.getProperty(prop));
+                            props.append(prop).append(": ").append(r.getProperty(tx, prop));
                         }
 
-                        System.out.println("\tRTreeIndex result[" + ri + "]: " + r.getNodeId() + ":" + r.getType() + " - " + r.toString() + ": PROPS["+props+"]");
+                        System.out.println("\tRTreeIndex result[" + ri + "]: " + r.getNodeId() + ":" + r.getType() + " - " + r.toString() + ": PROPS[" + props + "]");
                     } else if (ri == 10) {
-                        // System.out.println("\t.. and " + (count - ri) + " more ..");
+                        System.out.println("\t.. and " + (count - ri) + " more ..");
                     }
 
                     addGeomStats(r.getGeomNode());
 
-                    String name = (String) r.getProperty("NAME");
-                    if (name == null) name = (String) r.getProperty("name");
+                    String name = (String) r.getProperty(tx, "NAME");
+                    if (name == null) name = (String) r.getProperty(tx, "name");
 
-                    Integer id = (Integer) r.getProperty("ID");
+                    Integer id = (Integer) r.getProperty(tx, "ID");
                     if ((name != null && name.length() > 0) || id != null) {
-                        for (TestGeometry testData : layerTestGeometries.get(layerName)) {
-                            if ((name != null && name.length() > 0 && testData.name.equals(name)) || (id != null && testData.id.equals(id))) {
+                        for (TestGeometry testData : layerTestGeometries.get(layerName))
+                            if ((name != null && name.length() > 0 && testData.name.equals(name)) || (testData.id.equals(id))) {
                                 System.out.println("\tFound match in test data: test[" + testData + "] == result[" + r + "]");
                                 foundData.add(testData);
                             } /* else if(name != null && name.length()>0 && name.startsWith(testData.name.substring(0,1))) {
                                 System.out.println("\tOnly first character matched: test[" + testData + "] == result[" + r + "]");
                             } */
-                        }
                     } else {
                         System.err.println("\tNo name or id in RTreeIndex result: " + r.getNodeId() + ":" + r.getType() + " - "
                                 + r.toString());
@@ -328,23 +336,23 @@ public class TestSpatial extends Neo4jTestCase {
             }
 
             System.out.println("Total time for index test: " + 1.0 * (System.currentTimeMillis() - start) / 1000.0 + "s");
-            tx.success();
+            tx.commit();
         }
     }
 
-	private void assertEnvelopeEquals(Envelope a, Envelope b) {
-        assertTrue(a != null);
-        assertTrue(b != null);
-		assertEquals(a.getDimension(), b.getDimension());
-		
-		for (int i = 0; i < a.getDimension(); i++) {
-			assertEquals(a.getMin(i), b.getMin(i), 0);
-			assertEquals(a.getMax(i), b.getMax(i), 0);
-		}
-	}    
-    
+    private void assertEnvelopeEquals(Envelope a, Envelope b) {
+        assertNotNull(a);
+        assertNotNull(b);
+        assertEquals(a.getDimension(), b.getDimension());
+
+        for (int i = 0; i < a.getDimension(); i++) {
+            assertEquals(a.getMin(i), b.getMin(i), 0);
+            assertEquals(a.getMax(i), b.getMax(i), 0);
+        }
+    }
+
     private void addGeomStats(Node geomNode) {
-        addGeomStats((Integer)geomNode.getProperty(Constants.PROP_TYPE, null));
+        addGeomStats((Integer) geomNode.getProperty(Constants.PROP_TYPE, null));
     }
 
     private void addGeomStats(Integer geom) {
@@ -354,17 +362,17 @@ public class TestSpatial extends Neo4jTestCase {
 
     private void dumpGeomStats() {
         System.out.println("Geometry statistics for " + geomStats.size() + " geometry types:");
-        for (Object key : geomStats.keySet()) {
+        for (Integer key : geomStats.keySet()) {
             Integer count = geomStats.get(key);
-            System.out.println("\t" + SpatialDatabaseService.convertGeometryTypeToName((Integer)key) + ": " + count);
+            System.out.println("\t" + SpatialDatabaseService.convertGeometryTypeToName(key) + ": " + count);
         }
         geomStats.clear();
     }
 
     private enum DataFormat {
         SHP("ESRI Shapefile"), OSM("OpenStreetMap");
-        
-        private String description;
+
+        private final String description;
 
         DataFormat(String description) {
             this.description = description;
@@ -381,13 +389,10 @@ public class TestSpatial extends Neo4jTestCase {
      * testing against real geometries. We have a few hard-coded test geometries we expect to find
      * stored in predictable ways in the test database. Currently we only test for bounding box so
      * this class only contains that information.
-     *
-     * @author craig
-     * @since 1.0.0
      */
     private static class TestGeometry {
-        
-    	private final Integer id;
+
+        private final Integer id;
         private final String name;
         private final String comments;
         protected Envelope bounds;
@@ -396,10 +401,10 @@ public class TestSpatial extends Neo4jTestCase {
             this.id = id;
             this.name = name == null ? "" : name;
             this.comments = comments;
-            
-            float bf[] = new float[4];
+
+            float[] bf = new float[4];
             int bi = 0;
-            for (String bound : bounds.replaceAll("[\\(\\)\\s]+", "").split(",")) {
+            for (String bound : bounds.replaceAll("[()\\s]+", "").split(",")) {
                 bf[bi++] = Float.parseFloat(bound);
             }
             this.bounds = new Envelope(bf[0], bf[2], bf[1], bf[3]);
@@ -414,5 +419,4 @@ public class TestSpatial extends Neo4jTestCase {
             return env.intersects(bounds);
         }
     }
-        
 }

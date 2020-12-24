@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -21,10 +21,9 @@ package org.neo4j.gis.spatial;
 
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
-
 import junit.framework.Test;
+import junit.framework.TestResult;
 import junit.framework.TestSuite;
-
 import org.geotools.data.DataStore;
 import org.geotools.data.neo4j.Neo4jSpatialDataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
@@ -35,19 +34,36 @@ import org.neo4j.graphdb.*;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 
+import static org.junit.Assert.*;
 
-public class TestOSMImport extends Neo4jTestCase {
+
+public class TestOSMImport extends Neo4jTestCase implements Test {
     public static final String spatialTestMode = System.getProperty("spatial.test.mode");
-    public static final String spatialTestModeX = System.getProperty("spatial.test.mode.extra");
+    private String testName;
 
-    public TestOSMImport(String layerName, boolean includePoints, boolean useBatchInserter) {
-        setName("OSM-Import[points:" + includePoints + ", batch:" + useBatchInserter + "]: " + layerName);
+    public TestOSMImport(String layerName, boolean includePoints) {
+        // TODO figure out how to set test name in JUnit4
+        testName = "OSM-Import[points:" + includePoints + "]: " + layerName;
+    }
+
+    protected void setName(String testName) {
+        this.testName = testName;
+    }
+
+    @Override
+    public int countTestCases() {
+        return 0;
+    }
+
+    @Override
+    public void run(TestResult testResult) {
+
     }
 
     public static Test suite() {
@@ -59,9 +75,8 @@ public class TestOSMImport extends Neo4jTestCase {
         String[] largeModels = new String[]{"cyprus.osm", "croatia.osm", "denmark.osm"};
 
         // Setup default test cases (short or medium only, no long cases)
-        ArrayList<String> layersToTest = new ArrayList<String>();
-//		layersToTest.addAll(Arrays.asList(smallModels));
-        layersToTest.addAll(Arrays.asList(mediumModels));
+        //		layersToTest.addAll(Arrays.asList(smallModels));
+        ArrayList<String> layersToTest = new ArrayList<>(Arrays.asList(mediumModels));
 
         // Now modify the test cases based on the spatial.test.mode setting
         if (spatialTestMode != null && spatialTestMode.equals("long")) {
@@ -78,31 +93,23 @@ public class TestOSMImport extends Neo4jTestCase {
             layersToTest.addAll(Arrays.asList(largeModels));
         }
         boolean[] pointsTestModes = new boolean[]{true, false};
-        boolean[] batchTestModes = new boolean[]{true, false};
-        if (spatialTestModeX != null) {
-            if (spatialTestModeX.equals("suppressBatch")) {
-                batchTestModes = new boolean[]{false};
-            } else if (spatialTestModeX.equals("suppressGraph")) {
-                batchTestModes = new boolean[]{true};
-            }
-        }
 
         // Finally build the set of complete test cases based on the collection
         // above
         for (final String layerName : layersToTest) {
             for (final boolean includePoints : pointsTestModes) {
-                for (final boolean useBatchInserter : batchTestModes) {
-                    suite.addTest(new TestOSMImport(layerName, includePoints, useBatchInserter) {
-                        public void runTest() {
-                            try {
-                                runImport(layerName, includePoints, useBatchInserter);
-                            } catch (Exception e) {
-                                e.printStackTrace();
-                                throw new SpatialDatabaseException(e.getMessage(), e);
-                            }
+                suite.addTest(new TestOSMImport(layerName, includePoints) {
+                    @Override
+                    public void run(TestResult testResult) {
+                        try {
+                            runImport(layerName, includePoints);
+                            testResult.endTest(this);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                            throw new SpatialDatabaseException(e.getMessage(), e);
                         }
-                    });
-                }
+                    }
+                });
             }
         }
         System.out.println("This suite has " + suite.testCount() + " tests");
@@ -124,22 +131,24 @@ public class TestOSMImport extends Neo4jTestCase {
     }
 
     protected static void checkOSMLayer(GraphDatabaseService graphDatabaseService, String layerName) throws IOException {
+        int indexCount;
         try (Transaction tx = graphDatabaseService.beginTx()) {
-            SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDatabaseService);
-            OSMLayer layer = (OSMLayer) spatialService.getOrCreateLayer(layerName, OSMGeometryEncoder.class, OSMLayer.class);
+            SpatialDatabaseService spatialService = new SpatialDatabaseService();
+            OSMLayer layer = (OSMLayer) spatialService.getOrCreateLayer(tx, layerName, OSMGeometryEncoder.class, OSMLayer.class);
             assertNotNull("OSM Layer index should not be null", layer.getIndex());
             assertNotNull("OSM Layer index envelope should not be null", layer.getIndex().getBoundingBox());
             Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox());
             debugEnvelope(bbox, layerName, Constants.PROP_BBOX);
             // ((RTreeIndex)layer.getIndex()).debugIndexTree();
-            checkIndexAndFeatureCount(layer);
-            checkChangesetsAndUsers(layer);
-            checkOSMSearch(layer);
-            tx.success();
+            indexCount = checkIndexCount(tx, layer);
+            checkChangesetsAndUsers(tx, layer);
+            checkOSMSearch(tx, layer);
+            tx.commit();
         }
+        checkFeatureCount(graphDatabaseService, indexCount, layerName);
     }
 
-    public static void checkOSMSearch(OSMLayer layer) throws IOException {
+    public static void checkOSMSearch(Transaction tx, OSMLayer layer) {
         OSMDataset osm = (OSMDataset) layer.getDataset();
         Way way = null;
         int count = 0;
@@ -150,27 +159,26 @@ public class TestOSMImport extends Neo4jTestCase {
         }
         assertNotNull("Should be at least one way", way);
         Envelope bbox = way.getEnvelope();
-        runSearches(layer, bbox, true);
+        runSearches(tx, layer, bbox, true);
         org.neo4j.gis.spatial.rtree.Envelope layerBBox = layer.getIndex().getBoundingBox();
         double[] centre = layerBBox.centre();
         double width = layerBBox.getWidth(0) / 100.0;
         double height = layerBBox.getWidth(1) / 100.0;
         bbox = new Envelope(centre[0] - width, centre[0] + width, centre[1] - height, centre[1] + height);
-        runSearches(layer, bbox, false);
+        runSearches(tx, layer, bbox, false);
     }
 
-    private static void runSearches(OSMLayer layer, Envelope bbox, boolean willHaveResult) {
+    private static void runSearches(Transaction tx, OSMLayer layer, Envelope bbox, boolean willHaveResult) {
         for (int i = 0; i < 4; i++) {
             Geometry searchArea = layer.getGeometryFactory().toGeometry(bbox);
-            runWithinSearch(layer, searchArea, willHaveResult);
+            runWithinSearch(tx, layer, searchArea, willHaveResult);
             bbox.expandBy(bbox.getWidth(), bbox.getHeight());
         }
     }
 
-    private static void runWithinSearch(OSMLayer layer, Geometry searchArea, boolean willHaveResult) {
+    private static void runWithinSearch(Transaction tx, OSMLayer layer, Geometry searchArea, boolean willHaveResult) {
         long start = System.currentTimeMillis();
-        List<SpatialDatabaseRecord> results = OSMGeoPipeline
-                .startWithinSearch(layer, searchArea).toSpatialDatabaseRecordList();
+        List<SpatialDatabaseRecord> results = OSMGeoPipeline.startWithinSearch(tx, layer, searchArea).toSpatialDatabaseRecordList();
         long time = System.currentTimeMillis() - start;
         System.out.println("Took " + time + "ms to find " + results.size() + " search results in layer " + layer.getName()
                 + " using search within " + searchArea);
@@ -184,25 +192,23 @@ public class TestOSMImport extends Neo4jTestCase {
         System.out.println("\tY: [" + bbox.getMinY() + ":" + bbox.getMaxY() + "]");
     }
 
-    public static void checkIndexAndFeatureCount(Layer layer) throws IOException {
-        if (layer.getIndex().count() < 1) {
+    public static int checkIndexCount(Transaction tx, Layer layer) {
+        if (layer.getIndex().count(tx) < 1) {
             System.out.println("Warning: index count zero: " + layer.getName());
         }
-		System.out.println("Layer '" + layer.getName() + "' has " + layer.getIndex().count() + " entries in the index");
-		GraphDatabaseService graphDb = layer.getSpatialDatabase().getDatabase();
-		DataStore store = new Neo4jSpatialDataStore(graphDb);
-		try (Transaction tx = graphDb.beginTx()) {
-			SimpleFeatureCollection features = store.getFeatureSource(layer.getName()).getFeatures();
-			int featuresSize = features.size();
-			int indexCount = layer.getIndex().count();
-			System.out.println("Layer '" + layer.getName() + "' has " + featuresSize + " features");
-			assertEquals("FeatureCollection.size for layer '" + layer.getName() + "' not the same as index count",
-					indexCount, featuresSize);
-			tx.success();
-		}
+        System.out.println("Layer '" + layer.getName() + "' has " + layer.getIndex().count(tx) + " entries in the index");
+        return layer.getIndex().count(tx);
     }
 
-    public static void checkChangesetsAndUsers(OSMLayer layer) {
+    public static void checkFeatureCount(GraphDatabaseService db, int indexCount, String layerName) throws IOException {
+        DataStore store = new Neo4jSpatialDataStore(db);
+        SimpleFeatureCollection features = store.getFeatureSource(layerName).getFeatures();
+        int featuresSize = features.size();
+        System.out.println("Layer '" + layerName + "' has " + featuresSize + " features");
+        assertEquals("FeatureCollection.size for layer '" + layerName + "' not the same as index count", indexCount, featuresSize);
+    }
+
+    private static void checkChangesetsAndUsers(Transaction tx, OSMLayer layer) {
         double totalMatch = 0.0;
         int waysMatched = 0;
         int waysCounted = 0;
@@ -212,9 +218,9 @@ public class TestOSMImport extends Neo4jTestCase {
         int usersMissing = 0;
         float maxMatch = 0.0f;
         float minMatch = 1.0f;
-        HashMap<Long, Integer> userNodeCount = new HashMap<Long, Integer>();
-        HashMap<Long, String> userNames = new HashMap<Long, String>();
-        HashMap<Long, Long> userIds = new HashMap<Long, Long>();
+        HashMap<Long, Integer> userNodeCount = new HashMap<>();
+        HashMap<Long, String> userNames = new HashMap<>();
+        HashMap<Long, Long> userIds = new HashMap<>();
         OSMDataset dataset = (OSMDataset) layer.getDataset();
         for (Node way : dataset.getAllWayNodes()) {
             int node_count = 0;
@@ -233,8 +239,7 @@ public class TestOSMImport extends Neo4jTestCase {
                         if (nodeChangeset.equals(wayChangeset)) {
                             match_count++;
                         } else {
-                            assertFalse("Two changeset nodes should not have the same changeset number: way(" + wayCS + ")==node("
-                                    + nodeCS + ")", wayCS == nodeCS);
+                            assertNotEquals("Two changeset nodes should not have the same changeset number: way(" + wayCS + ")==node(" + nodeCS + ")", wayCS, nodeCS);
                         }
                         Node user = dataset.getUser(nodeChangeset);
                         if (user != null) {
@@ -274,7 +279,7 @@ public class TestOSMImport extends Neo4jTestCase {
         System.out.println("\tWays missing changsets: " + waysMissing);
         System.out.println("\tNodes missing changsets: " + nodesMissing + " (~" + (nodesMissing / waysMatched) + " / way)");
         System.out.println("\tUnique users: " + userNodeCount.size() + " (with " + usersMissing + " changeset missing users)");
-        ArrayList<ArrayList<Long>> userCounts = new ArrayList<ArrayList<Long>>();
+        ArrayList<ArrayList<Long>> userCounts = new ArrayList<>();
         for (long user : userNodeCount.keySet()) {
             int count = userNodeCount.get(user);
             userCounts.ensureCapacity(count);
@@ -283,7 +288,7 @@ public class TestOSMImport extends Neo4jTestCase {
             }
             ArrayList<Long> userSet = userCounts.get(count);
             if (userSet == null) {
-                userSet = new ArrayList<Long>();
+                userSet = new ArrayList<>();
             }
             userSet.add(user);
             userCounts.set(count, userSet);
@@ -294,12 +299,12 @@ public class TestOSMImport extends Neo4jTestCase {
                 ArrayList<Long> userSet = userCounts.get(ui);
                 if (userSet != null && userSet.size() > 0) {
                     i++;
-                    StringBuffer us = new StringBuffer();
+                    StringBuilder us = new StringBuilder();
                     for (long user : userSet) {
-                        Node userNode = layer.getSpatialDatabase().getDatabase().getNodeById(user);
+                        Node userNode = tx.getNodeById(user);
                         int csCount = 0;
                         for (@SuppressWarnings("unused")
-                        Relationship rel : userNode.getRelationships(OSMRelation.USER, Direction.INCOMING)) {
+                                Relationship rel : userNode.getRelationships(Direction.INCOMING, OSMRelation.USER)) {
                             csCount++;
                         }
                         String name = userNames.get(user);
@@ -307,7 +312,7 @@ public class TestOSMImport extends Neo4jTestCase {
                         if (us.length() > 0) {
                             us.append(", ");
                         }
-                        us.append("" + name + " (uid=" + uid + ", id=" + user + ", changesets=" + csCount + ")");
+                        us.append(String.format("%s (uid=%d, id=%d, changesets=%d)", name, uid, user, csCount));
                     }
                     System.out.println("\t\t" + ui + ": " + us.toString());
                 }
@@ -315,7 +320,7 @@ public class TestOSMImport extends Neo4jTestCase {
         }
     }
 
-    protected void runImport(String osm, boolean includePoints, boolean useBatchInserter) throws Exception {
+    protected void runImport(String osm, boolean includePoints) throws Exception {
         // TODO: Consider merits of using dependency data in target/osm,
         // downloaded by maven, as done in TestSpatial, versus the test data
         // commited to source code as done here
@@ -324,28 +329,18 @@ public class TestOSMImport extends Neo4jTestCase {
             return;
         }
         printDatabaseStats();
-        loadTestOsmData(osm, osmPath, includePoints, useBatchInserter, 1000);
+        loadTestOsmData(osm, osmPath, includePoints);
         checkOSMLayer(graphDb(), osm);
         printDatabaseStats();
     }
 
-    protected void loadTestOsmData(String layerName, String osmPath, boolean includePoints, boolean useBatchInserter,
-                                   int commitInterval) throws Exception {
-        System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + ", includePoints=" + includePoints
-                + ", useBatchInserter=" + useBatchInserter + " ===");
-        if (useBatchInserter) {
-            reActivateDatabase(false, true, false);
-        }
+    protected void loadTestOsmData(String layerName, String osmPath, boolean includePoints) throws Exception {
+        System.out.printf("\n=== Loading layer '%s' from %s, includePoints=%b ===", layerName, osmPath, includePoints);
         long start = System.currentTimeMillis();
         // tag::importOsm[] START SNIPPET: importOsm
         OSMImporter importer = new OSMImporter(layerName, new ConsoleListener());
-        importer.setCharset(Charset.forName("UTF-8"));
-        if (useBatchInserter) {
-            importer.importFile(getBatchInserter(), osmPath, includePoints);
-            reActivateDatabase(false, false, false);
-        } else {
-            importer.importFile(graphDb(), osmPath, includePoints, 5000, true);
-        }
+        importer.setCharset(StandardCharsets.UTF_8);
+        importer.importFile(graphDb(), osmPath, includePoints, 5000, true);
         // end::importOsm[] END SNIPPET: importOsm
         // Weird hack to force GC on large loads
         if (System.currentTimeMillis() - start > 300000) {
@@ -354,6 +349,6 @@ public class TestOSMImport extends Neo4jTestCase {
                 Thread.sleep(1000);
             }
         }
-        importer.reIndex(graphDb(), commitInterval, includePoints);
+        importer.reIndex(graphDb(), 1000, includePoints);
     }
 }

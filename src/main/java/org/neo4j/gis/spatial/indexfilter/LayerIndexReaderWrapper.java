@@ -31,6 +31,7 @@ import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.index.LayerTreeIndexReader;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 
 
 /**
@@ -50,7 +51,7 @@ public class LayerIndexReaderWrapper implements LayerIndexReader {
 	}
 
 	@Override
-	public void init(Layer layer) {
+	public void init(Transaction tx, Layer layer) {
 		if (layer != getLayer()) throw new IllegalArgumentException("Cannot change layer associated with this index");
 	}
 
@@ -65,13 +66,13 @@ public class LayerIndexReaderWrapper implements LayerIndexReader {
 	}
 
 	@Override
-	public int count() {
-		return index.count();
+	public int count(Transaction tx) {
+		return index.count(tx);
 	}
 
 	@Override
-	public boolean isNodeIndexed(Long nodeId) {
-		return index.isNodeIndexed(nodeId);
+	public boolean isNodeIndexed(Transaction tx, Long nodeId) {
+		return index.isNodeIndexed(tx, nodeId);
 	}
 
 	@Override
@@ -80,8 +81,8 @@ public class LayerIndexReaderWrapper implements LayerIndexReader {
 	}
 
 	@Override
-	public boolean isEmpty() {
-		return index.isEmpty();
+	public boolean isEmpty(Transaction tx) {
+		return index.isEmpty(tx);
 	}
 
 	@Override
@@ -90,8 +91,8 @@ public class LayerIndexReaderWrapper implements LayerIndexReader {
 	}
 
 	@Override
-	public SearchResults searchIndex(SearchFilter filter) {
-		return index.searchIndex(filter);
+	public SearchResults searchIndex(Transaction tx, SearchFilter filter) {
+		return index.searchIndex(tx, filter);
 	}
 
 	@Override
@@ -106,7 +107,7 @@ public class LayerIndexReaderWrapper implements LayerIndexReader {
 	}
 
 	@Override
-	public SearchRecords search(SearchFilter filter) {
-		return index.search(filter);
+	public SearchRecords search(Transaction tx, SearchFilter filter) {
+		return index.search(tx, filter);
 	}
 }

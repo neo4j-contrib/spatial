@@ -23,9 +23,14 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Rule;
+import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.doc.tools.JavaTestDocsGenerator;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
-import org.neo4j.test.*;
+import org.neo4j.test.GraphDatabaseServiceCleaner;
+import org.neo4j.test.GraphDescription;
+import org.neo4j.test.GraphHolder;
+import org.neo4j.test.TestData;
 
 import java.util.Map;
 
@@ -37,20 +42,22 @@ public abstract class AbstractJavaDocTestBase implements GraphHolder {
     public TestData<JavaTestDocsGenerator> gen;
     @Rule
     public TestData<Map<String, Node>> data;
+    protected static DatabaseManagementService databases;
     protected static GraphDatabaseService db;
 
     public AbstractJavaDocTestBase() {
         this.gen = TestData.producedThrough(JavaTestDocsGenerator.PRODUCER);
-        this.data = TestData.producedThrough(GraphDescription.createGraphFor(this, true));
+        this.data = TestData.producedThrough(GraphDescription.createGraphFor(this));
     }
 
     @AfterClass
     public static void shutdownDb() {
         try {
-            if(db != null) {
-                db.shutdown();
+            if (databases != null) {
+                databases.shutdown();
             }
         } finally {
+            databases = null;
             db = null;
         }
 
