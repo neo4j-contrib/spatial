@@ -236,11 +236,9 @@ public class TestSpatial extends Neo4jTestCase {
         String OSM_DIR = "target/osm";
         String osmPath = OSM_DIR + File.separator + layerName;
         System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
-        reActivateDatabase(false, false, false);
         OSMImporter importer = new OSMImporter(layerName);
         importer.setCharset(StandardCharsets.UTF_8);
         importer.importFile(graphDb(), osmPath);
-        reActivateDatabase(false, false, false);
         importer.reIndex(graphDb(), 1000);
     }
 
@@ -258,9 +256,9 @@ public class TestSpatial extends Neo4jTestCase {
             LayerIndexReader fakeIndex = new SpatialIndexPerformanceProxy(new FakeIndex(layer));
             LayerIndexReader rtreeIndex = new SpatialIndexPerformanceProxy(layer.getIndex());
 
-            System.out.println("RTreeIndex bounds: " + rtreeIndex.getBoundingBox());
-            System.out.println("FakeIndex bounds: " + fakeIndex.getBoundingBox());
-            assertEnvelopeEquals(fakeIndex.getBoundingBox(), rtreeIndex.getBoundingBox());
+            System.out.println("RTreeIndex bounds: " + rtreeIndex.getBoundingBox(tx));
+            System.out.println("FakeIndex bounds: " + fakeIndex.getBoundingBox(tx));
+            assertEnvelopeEquals(fakeIndex.getBoundingBox(tx), rtreeIndex.getBoundingBox(tx));
 
             System.out.println("RTreeIndex count: " + rtreeIndex.count(tx));
             assertEquals(fakeIndex.count(tx), rtreeIndex.count(tx));
@@ -284,7 +282,7 @@ public class TestSpatial extends Neo4jTestCase {
                     count++;
                     if (ri++ < 10) {
                         StringBuilder props = new StringBuilder();
-                        for (String prop : r.getPropertyNames()) {
+                        for (String prop : r.getPropertyNames(tx)) {
                             if (props.length() > 0) props.append(", ");
                             props.append(prop).append(": ").append(r.getProperty(tx, prop));
                         }

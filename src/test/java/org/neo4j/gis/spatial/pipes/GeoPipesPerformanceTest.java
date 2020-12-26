@@ -33,7 +33,7 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
     private int chunkSize = records / 10;
 
     public void setUp() throws Exception {
-        super.setUp(true, false, false);
+        super.setUp(true);
         loadSamplePointData();
     }
 

@@ -22,9 +22,6 @@ package org.neo4j.gis.spatial;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.PrecisionModel;
-import org.geotools.factory.FactoryRegistryException;
-import org.geotools.referencing.CRS;
-import org.geotools.referencing.ReferencingFactoryFinder;
 import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
 import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.gis.spatial.index.LayerIndexReader;
@@ -33,10 +30,10 @@ import org.neo4j.gis.spatial.index.SpatialIndexWriter;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
+import org.neo4j.gis.spatial.utilities.GeotoolsAdapter;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
-import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import java.util.*;
@@ -98,26 +95,22 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         return geometryFactory;
     }
 
-    public void setCoordinateReferenceSystem(CoordinateReferenceSystem crs) {
-        Node layerNode = getLayerNode();
+    public void setCoordinateReferenceSystem(Transaction tx, CoordinateReferenceSystem crs) {
+        Node layerNode = getLayerNode(tx);
         layerNode.setProperty(PROP_CRS, crs.toWKT());
     }
 
-    public CoordinateReferenceSystem getCoordinateReferenceSystem() {
-        Node layerNode = getLayerNode();
+    public CoordinateReferenceSystem getCoordinateReferenceSystem(Transaction tx) {
+        Node layerNode = getLayerNode(tx);
         if (layerNode.hasProperty(PROP_CRS)) {
-            try {
-                return ReferencingFactoryFinder.getCRSFactory(null).createFromWKT((String) layerNode.getProperty(PROP_CRS));
-            } catch (FactoryRegistryException | FactoryException e) {
-                throw new SpatialDatabaseException(e);
-            }
+            return GeotoolsAdapter.getCRS((String) layerNode.getProperty(PROP_CRS));
         } else {
             return null;
         }
     }
 
-    public void setGeometryType(int geometryType) {
-        Node layerNode = getLayerNode();
+    public void setGeometryType(Transaction tx, int geometryType) {
+        Node layerNode = getLayerNode(tx);
         if (geometryType < GTYPE_POINT || geometryType > GTYPE_MULTIPOLYGON) {
             throw new IllegalArgumentException("Unknown geometry type: " + geometryType);
         }
@@ -126,7 +119,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
     }
 
     public Integer getGeometryType(Transaction tx) {
-        Node layerNode = getLayerNode();
+        Node layerNode = getLayerNode(tx);
         if (layerNode.hasProperty(PROP_TYPE)) {
             return (Integer) layerNode.getProperty(PROP_TYPE);
         } else {
@@ -157,8 +150,8 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         }
     }
 
-    public String[] getExtraPropertyNames() {
-        Node layerNode = getLayerNode();
+    public String[] getExtraPropertyNames(Transaction tx) {
+        Node layerNode = getLayerNode(tx);
         String[] extraPropertyNames;
         if (layerNode.hasProperty(PROP_LAYERNODEEXTRAPROPS)) {
             extraPropertyNames = (String[]) layerNode.getProperty(PROP_LAYERNODEEXTRAPROPS);
@@ -168,12 +161,12 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         return extraPropertyNames;
     }
 
-    public void setExtraPropertyNames(String[] names) {
-        getLayerNode().setProperty(PROP_LAYERNODEEXTRAPROPS, names);
+    public void setExtraPropertyNames(String[] names, Transaction tx) {
+        getLayerNode(tx).setProperty(PROP_LAYERNODEEXTRAPROPS, names);
     }
 
-    void mergeExtraPropertyNames(String[] names) {
-        Node layerNode = getLayerNode();
+    void mergeExtraPropertyNames(Transaction tx, String[] names) {
+        Node layerNode = getLayerNode(tx);
         if (layerNode.hasProperty(PROP_LAYERNODEEXTRAPROPS)) {
             String[] actualNames = (String[]) layerNode.getProperty(PROP_LAYERNODEEXTRAPROPS);
 
@@ -199,19 +192,15 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
     public void initialize(Transaction tx, String name, Node layerNode) {
         //this.spatialDatabase = spatialDatabase;
         this.name = name;
-        this.layerNode = layerNode;
+        this.layerNodeId = layerNode.getId();
 
         this.geometryFactory = new GeometryFactory();
-        CoordinateReferenceSystem crs = getCoordinateReferenceSystem();
+        CoordinateReferenceSystem crs = getCoordinateReferenceSystem(tx);
         if (crs != null) {
             // TODO: Verify this code works for general cases to read SRID from layer properties and use them to construct GeometryFactory
-            try {
-                Integer code = CRS.lookupEpsgCode(crs, true);
-                if (code != null) {
-                    this.geometryFactory = new GeometryFactory(new PrecisionModel(), code);
-                }
-            } catch (FactoryException e) {
-                System.err.println("Failed to lookup CRS: " + e.getMessage());
+            Integer code = GeotoolsAdapter.getEPSGCode(crs);
+            if (code != null) {
+                this.geometryFactory = new GeometryFactory(new PrecisionModel(), code);
             }
         }
 
@@ -259,8 +248,8 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
      * All layers are associated with a single node in the database. This node will have properties,
      * relationships (sub-graph) or both to describe the contents of the layer
      */
-    public Node getLayerNode() {
-        return layerNode;
+    public Node getLayerNode(Transaction tx) {
+        return tx.getNodeById(layerNodeId);
     }
 
     /**
@@ -268,9 +257,10 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
      */
     public void delete(Transaction tx, Listener monitor) {
         indexWriter.removeAll(tx, true, monitor);
-        Node layerNode = getLayerNode();
+        Node layerNode = getLayerNode(tx);
         layerNode.getSingleRelationship(SpatialRelationshipTypes.LAYER, Direction.INCOMING).delete();
         layerNode.delete();
+        layerNodeId = -1L;
     }
 
     // Private methods
@@ -284,7 +274,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 
     //private SpatialDatabaseService spatialDatabase;
     private String name;
-    protected Node layerNode;
+    protected Long layerNodeId = -1L;
     private GeometryEncoder geometryEncoder;
     private GeometryFactory geometryFactory;
     protected LayerIndexReader indexReader;
@@ -294,7 +284,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         return this;
     }
 
-    public Iterable<Node> getAllGeometryNodes() {
+    public Iterable<Node> getAllGeometryNodes(Transaction tx) {
         return indexReader.getAllIndexedNodes();
     }
 
@@ -309,8 +299,8 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
      *
      * @return iterable over geometries in the dataset
      */
-    public Iterable<? extends Geometry> getAllGeometries() {
-        return new NodeToGeometryIterable(getAllGeometryNodes());
+    public Iterable<? extends Geometry> getAllGeometries(Transaction tx) {
+        return new NodeToGeometryIterable(getAllGeometryNodes(tx));
     }
 
     /**

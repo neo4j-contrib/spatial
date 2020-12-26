@@ -47,8 +47,9 @@ public interface SpatialDataset {
      * multiple layers within the same dataset.
      * 
      * @return iterable over geometry nodes in the dataset
+     * @param tx
      */
-    public Iterable<Node> getAllGeometryNodes();
+    public Iterable<Node> getAllGeometryNodes(Transaction tx);
 
     /**
      * Provides a method for iterating over all geometries in this dataset. This is similar to the
@@ -56,7 +57,7 @@ public interface SpatialDataset {
      * 
      * @return iterable over geometries in the dataset
      */
-    public Iterable< ? extends Geometry> getAllGeometries();
+    public Iterable< ? extends Geometry> getAllGeometries(Transaction tx);
 
     /**
      * Return the geometry encoder used by this SpatialDataset to convert individual geometries to

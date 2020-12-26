@@ -37,6 +37,7 @@ import java.util.function.Consumer;
 
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.gis.spatial.Constants.*;
 
 public class SpatialProceduresTest {
@@ -46,7 +47,7 @@ public class SpatialProceduresTest {
     @Before
     public void setUp() throws KernelException {
         databases = new TestDatabaseManagementServiceBuilder(new File("target/procedures")).impermanent().build();
-        db = databases.database("procedures");
+        db = databases.database(DEFAULT_DATABASE_NAME);
         registerProceduresAndFunctions(db, SpatialProcedures.class);
     }
 
@@ -129,7 +130,7 @@ public class SpatialProceduresTest {
     public void add_node_to_non_existing_layer() {
         execute("CALL spatial.addPointLayer('some_name')");
         Node node = createNode("CREATE (n:Point {latitude:60.1,longitude:15.2}) RETURN n", "n");
-        testCallFails(db, "CALL spatial.addNode('wrong_name',{node})", map("node", node), "No such layer 'wrong_name'");
+        testCallFails(db, "CALL spatial.addNode('wrong_name',$node)", map("node", node), "No such layer 'wrong_name'");
     }
 
     @Test
@@ -244,7 +245,7 @@ public class SpatialProceduresTest {
     public void create_node_and_convert_to_geometry() {
         execute("CALL spatial.addWKTLayer('geom','geom')");
         Geometry geom = (Geometry) executeObject("CREATE (n:Node {geom:'POINT(4.0 5.0)'}) RETURN spatial.decodeGeometry('geom',n) AS geometry", "geometry");
-        double distance = (Double) executeObject("RETURN distance({geom}, point({y: 6.0, x: 4.0})) as distance", map("geom", geom), "distance");
+        double distance = (Double) executeObject("RETURN distance($geom, point({y: 6.0, x: 4.0})) as distance", map("geom", geom), "distance");
         assertThat("Expected the cartesian distance of 1.0", distance, closeTo(1.0, 0.00001));
     }
 
@@ -252,19 +253,23 @@ public class SpatialProceduresTest {
     // TODO: Currently this only works for point geometries because Neo4j 3.4 can only return Point geometries from procedures
     public void create_point_and_pass_as_param() {
         Geometry geom = (Geometry) executeObject("RETURN point({latitude: 5.0, longitude: 4.0}) as geometry", "geometry");
-        double distance = (Double) executeObject("WITH spatial.asGeometry({geom}) AS geometry RETURN distance(geometry, point({latitude: 5.1, longitude: 4.0})) as distance", map("geom", geom), "distance");
+        double distance = (Double) executeObject("WITH spatial.asGeometry($geom) AS geometry RETURN distance(geometry, point({latitude: 5.1, longitude: 4.0})) as distance", map("geom", geom), "distance");
         assertThat("Expected the geographic distance of 11132km", distance, closeTo(11132.0, 1.0));
     }
 
     private long execute(String statement) {
         try (Transaction tx = db.beginTx()) {
-            return Iterators.count(tx.execute(statement));
+            long count = Iterators.count(tx.execute(statement));
+            tx.commit();
+            return count;
         }
     }
 
     private long execute(String statement, Map<String, Object> params) {
         try (Transaction tx = db.beginTx()) {
-            return Iterators.count(tx.execute(statement, params));
+            long count = Iterators.count(tx.execute(statement, params));
+            tx.commit();
+            return count;
         }
     }
 
@@ -468,7 +473,7 @@ public class SpatialProceduresTest {
     public void list_layer_names() {
         String wkt = "LINESTRING (15.2 60.1, 15.3 60.1)";
         execute("CALL spatial.addWKTLayer('geom','wkt')");
-        execute("CALL spatial.addWKT('geom',{wkt})", map("wkt", wkt));
+        execute("CALL spatial.addWKT('geom',$wkt)", map("wkt", wkt));
 
         testCall(db, "CALL spatial.layers()", (r) -> {
             assertEquals("geom", r.get("name"));
@@ -491,14 +496,14 @@ public class SpatialProceduresTest {
         for (int i = 0; i < NUM_LAYERS; i++) {
             String name = "wktLayer_" + i;
             testCallCount(db, "CALL spatial.layers()", null, i);
-            execute("CALL spatial.addWKTLayer({layerName},'wkt')", map("layerName", name));
-            execute("CALL spatial.addWKT({layerName},{wkt})", map("wkt", wkt, "layerName", name));
+            execute("CALL spatial.addWKTLayer($layerName,'wkt')", map("layerName", name));
+            execute("CALL spatial.addWKT($layerName,$wkt)", map("wkt", wkt, "layerName", name));
             testCallCount(db, "CALL spatial.layers()", null, i + 1);
         }
         for (int i = 0; i < NUM_LAYERS; i++) {
             String name = "wktLayer_" + i;
             testCallCount(db, "CALL spatial.layers()", null, NUM_LAYERS - i);
-            execute("CALL spatial.removeLayer({layerName})", map("layerName", name));
+            execute("CALL spatial.removeLayer($layerName)", map("layerName", name));
             testCallCount(db, "CALL spatial.layers()", null, NUM_LAYERS - i - 1);
         }
         testCallCount(db, "CALL spatial.layers()", null, 0);
@@ -562,7 +567,7 @@ public class SpatialProceduresTest {
     public void find_layer() {
         String wkt = "LINESTRING (15.2 60.1, 15.3 60.1)";
         execute("CALL spatial.addWKTLayer('geom','wkt')");
-        execute("CALL spatial.addWKT('geom',{wkt})", map("wkt", wkt));
+        execute("CALL spatial.addWKT('geom',$wkt)", map("wkt", wkt));
 
         testCall(db, "CALL spatial.layer('geom')", (r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
         testCallFails(db, "CALL spatial.layer('badname')", null, "No such layer 'badname'");
@@ -726,7 +731,7 @@ public class SpatialProceduresTest {
         // Playing with this number in both tests leads to rough benchmarking of the addNode/addNodes comparison
         int count = 1000;
         execute("CALL spatial.addLayer('simple_poi','SimplePoint','')");
-        String query = "UNWIND range(1,{count}) as i\n" +
+        String query = "UNWIND range(1,$count) as i\n" +
                 "CREATE (n:Point {id:i, latitude:(56.0+toFloat(i)/100.0),longitude:(12.0+toFloat(i)/100.0)})\n" +
                 "WITH collect(n) as points\n" +
                 "CALL spatial.addNodes('simple_poi',points) YIELD count\n" +
@@ -740,7 +745,7 @@ public class SpatialProceduresTest {
         // Playing with this number in both tests leads to rough benchmarking of the addNode/addNodes comparison
         int count = 1000;
         execute("CALL spatial.addLayer('simple_poi','SimplePoint','')");
-        String query = "UNWIND range(1,{count}) as i\n" +
+        String query = "UNWIND range(1,$count) as i\n" +
                 "CREATE (n:Point {id:i, latitude:(56.0+toFloat(i)/100.0),longitude:(12.0+toFloat(i)/100.0)})\n" +
                 "WITH n\n" +
                 "CALL spatial.addNode('simple_poi',n) YIELD node\n" +
@@ -754,7 +759,7 @@ public class SpatialProceduresTest {
         // Playing with this number in both tests leads to rough benchmarking of the addNode/addNodes comparison
         int count = 1000;
         execute("CALL spatial.addLayer('native_poi','NativePoint','')");
-        String query = "UNWIND range(1,{count}) as i\n" +
+        String query = "UNWIND range(1,$count) as i\n" +
                 "WITH i, Point({latitude:(56.0+toFloat(i)/100.0),longitude:(12.0+toFloat(i)/100.0)}) AS location\n" +
                 "CREATE (n:Point {id: i, location:location})\n" +
                 "WITH collect(n) as points\n" +
@@ -769,7 +774,7 @@ public class SpatialProceduresTest {
         // Playing with this number in both tests leads to rough benchmarking of the addNode/addNodes comparison
         int count = 1000;
         execute("CALL spatial.addLayer('native_poi','NativePoint','')");
-        String query = "UNWIND range(1,{count}) as i\n" +
+        String query = "UNWIND range(1,$count) as i\n" +
                 "WITH i, Point({latitude:(56.0+toFloat(i)/100.0),longitude:(12.0+toFloat(i)/100.0)}) AS location\n" +
                 "CREATE (n:Point {id: i, location:location})\n" +
                 "WITH n\n" +
@@ -783,7 +788,7 @@ public class SpatialProceduresTest {
         // Check all nodes are there
         testCountQuery("withinDistance", "CALL spatial.withinDistance('" + layer + "',{lon:15.0,lat:60.0},1000) YIELD node RETURN count(node)", count, "count(node)", null);
         // Now remove half the points
-        String remove = "UNWIND range(1,{count}) as i\n" +
+        String remove = "UNWIND range(1,$count) as i\n" +
                 "MATCH (n:Point {id:i})\n" +
                 "WITH n\n" +
                 "CALL spatial.removeNode('" + layer + "',n) YIELD node\n" +
@@ -797,7 +802,7 @@ public class SpatialProceduresTest {
         // Check all nodes are there
         testCountQuery("withinDistance", "CALL spatial.withinDistance('" + layer + "',{lon:15.0,lat:60.0},1000) YIELD node RETURN count(node)", count, "count(node)", null);
         // Now remove half the points
-        String remove = "UNWIND range(1,{count}) as i\n" +
+        String remove = "UNWIND range(1,$count) as i\n" +
                 "MATCH (n:Point {id:i})\n" +
                 "WITH collect(n) as points\n" +
                 "CALL spatial.removeNodes('" + layer + "',points) YIELD count\n" +
@@ -1023,7 +1028,7 @@ public class SpatialProceduresTest {
         String lineString = "LINESTRING (15.2 60.1, 15.3 60.1)";
 
         execute("CALL spatial.addWKTLayer('geom','wkt')");
-        testCall(db, "CALL spatial.addWKT('geom',{wkt})", map("wkt", lineString),
+        testCall(db, "CALL spatial.addWKT('geom',$wkt)", map("wkt", lineString),
                 r -> assertEquals(lineString, dump(((Node) r.get("node"))).getProperty("wkt")));
     }
 
@@ -1031,7 +1036,7 @@ public class SpatialProceduresTest {
     public void find_geometries_close_to_a_point_wkt() {
         String lineString = "LINESTRING (15.2 60.1, 15.3 60.1)";
         execute("CALL spatial.addLayer('geom','WKT','wkt')");
-        execute("CALL spatial.addWKT('geom',{wkt})", map("wkt", lineString));
+        execute("CALL spatial.addWKT('geom',$wkt)", map("wkt", lineString));
         testCall(db, "CALL spatial.closest('geom',{lon:15.2, lat:60.1}, 1.0)", r -> assertEquals(lineString, (dump((Node) r.get("node"))).getProperty("wkt")));
     }
 
@@ -1039,7 +1044,7 @@ public class SpatialProceduresTest {
     public void find_geometries_close_to_a_point_geohash() {
         String lineString = "POINT (15.2 60.1)";
         execute("CALL spatial.addLayer('geom','geohash','lon:lat')");
-        execute("CALL spatial.addWKT('geom',{wkt})", map("wkt", lineString));
+        execute("CALL spatial.addWKT('geom',$wkt)", map("wkt", lineString));
         testCallCount(db, "CALL spatial.closest('geom',{lon:15.2, lat:60.1}, 1.0)", null, 1);
     }
 
@@ -1047,7 +1052,7 @@ public class SpatialProceduresTest {
     public void find_geometries_close_to_a_point_zorder() {
         String lineString = "POINT (15.2 60.1)";
         execute("CALL spatial.addLayer('geom','zorder','lon:lat')");
-        execute("CALL spatial.addWKT('geom',{wkt})", map("wkt", lineString));
+        execute("CALL spatial.addWKT('geom',$wkt)", map("wkt", lineString));
         testCallCount(db, "CALL spatial.closest('geom',{lon:15.2, lat:60.1}, 1.0)", null, 1);
     }
 
@@ -1055,7 +1060,7 @@ public class SpatialProceduresTest {
     public void find_geometries_close_to_a_point_hilbert() {
         String lineString = "POINT (15.2 60.1)";
         execute("CALL spatial.addLayer('geom','hilbert','lon:lat')");
-        execute("CALL spatial.addWKT('geom',{wkt})", map("wkt", lineString));
+        execute("CALL spatial.addWKT('geom',$wkt)", map("wkt", lineString));
         testCallCount(db, "CALL spatial.closest('geom',{lon:15.2, lat:60.1}, 1.0)", null, 1);
     }
 

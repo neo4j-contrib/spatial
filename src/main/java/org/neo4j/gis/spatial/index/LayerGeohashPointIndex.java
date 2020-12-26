@@ -21,12 +21,12 @@ package org.neo4j.gis.spatial.index;
 
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.Point;
-import org.apache.lucene.spatial.util.GeoRelationUtils;
 import org.apache.lucene.spatial.util.MortonEncoder;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 
 public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String> {
 
@@ -36,7 +36,7 @@ public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String
     }
 
     @Override
-    protected String getIndexValueFor(Node geomNode) {
+    protected String getIndexValueFor(Transaction tx, Node geomNode) {
         //TODO: Make this code projection aware - currently it assumes lat/lon
         Geometry geom = layer.getGeometryEncoder().decodeGeometry(geomNode);
         Point point = geom.getCentroid();   // Other code is ensuring only point layers use this, but just in case we encode the centroid
@@ -54,7 +54,7 @@ public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String
         return a.substring(0, minLength);
     }
 
-    protected String queryStringFor(SearchFilter filter) {
+    protected String queryStringFor(Transaction tx, SearchFilter filter) {
         if (filter instanceof AbstractSearchEnvelopeIntersection) {
             Envelope referenceEnvelope = ((AbstractSearchEnvelopeIntersection) filter).getReferenceEnvelope();
             String maxHash = MortonEncoder.geoTermToString(MortonEncoder.encode(referenceEnvelope.getMaxX(), referenceEnvelope.getMaxY()));

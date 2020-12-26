@@ -47,32 +47,22 @@ import java.util.Map;
  */
 public class SpatialDatabaseService implements Constants {
 
-    private Node spatialRoot;
+    private long spatialRoot = -1;
 
     private Node getSpatialRoot(Transaction tx) {
-        if (!isValid(spatialRoot)) {
-            spatialRoot = ReferenceNodes.getReferenceNode(tx, "spatial_root");
+        if (spatialRoot < 0) {
+            spatialRoot = ReferenceNodes.getReferenceNode(tx, "spatial_root").getId();
         }
-        return spatialRoot;
-    }
-
-    private boolean isValid(Node node) {
-        if (node == null) return false;
-        try {
-            node.getPropertyKeys().iterator().hasNext();
-            return true;
-        } catch (NotFoundException nfe) {
-            return false;
-        }
+        return tx.getNodeById(spatialRoot);
     }
 
     public String[] getLayerNames(Transaction tx) {
-        List<String> names = new ArrayList<String>();
+        List<String> names = new ArrayList<>();
 
         for (Relationship relationship : getSpatialRoot(tx).getRelationships(Direction.OUTGOING, SpatialRelationshipTypes.LAYER)) {
             Layer layer = LayerUtilities.makeLayerFromNode(tx, relationship.getEndNode());
             if (layer instanceof DynamicLayer) {
-                names.addAll(((DynamicLayer) layer).getLayerNames());
+                names.addAll(((DynamicLayer) layer).getLayerNames(tx));
             } else {
                 names.add(layer.getName());
             }
@@ -92,7 +82,7 @@ public class SpatialDatabaseService implements Constants {
     }
 
     public Layer getDynamicLayer(Transaction tx, String name) {
-        ArrayList<DynamicLayer> dynamicLayers = new ArrayList<DynamicLayer>();
+        ArrayList<DynamicLayer> dynamicLayers = new ArrayList<>();
         for (Relationship relationship : getSpatialRoot(tx).getRelationships(Direction.OUTGOING, SpatialRelationshipTypes.LAYER)) {
             Node node = relationship.getEndNode();
             if (!node.getProperty(PROP_LAYER_CLASS, "").toString().startsWith("DefaultLayer")) {
@@ -103,9 +93,9 @@ public class SpatialDatabaseService implements Constants {
             }
         }
         for (DynamicLayer layer : dynamicLayers) {
-            for (String dynLayerName : layer.getLayerNames()) {
+            for (String dynLayerName : layer.getLayerNames(tx)) {
                 if (name.equals(dynLayerName)) {
-                    return layer.getLayer(dynLayerName);
+                    return layer.getLayer(tx, dynLayerName);
                 }
             }
         }
@@ -122,7 +112,7 @@ public class SpatialDatabaseService implements Constants {
         if (layer instanceof DynamicLayer) {
             return (DynamicLayer) layer;
         } else {
-            Node node = layer.getLayerNode();
+            Node node = layer.getLayerNode(tx);
             node.setProperty(PROP_LAYER_CLASS, DynamicLayer.class.getCanonicalName());
             return (DynamicLayer) LayerUtilities.makeLayerFromNode(tx, node);
         }
@@ -304,19 +294,19 @@ public class SpatialDatabaseService implements Constants {
             throw new SpatialDatabaseException("Layer " + name + " already exists");
 
         Layer layer = LayerUtilities.makeLayerAndNode(tx, name, geometryEncoderClass, layerClass, indexClass);
-        getSpatialRoot(tx).createRelationshipTo(layer.getLayerNode(), SpatialRelationshipTypes.LAYER);
+        getSpatialRoot(tx).createRelationshipTo(layer.getLayerNode(tx), SpatialRelationshipTypes.LAYER);
         if (encoderConfig != null && encoderConfig.length() > 0) {
             GeometryEncoder encoder = layer.getGeometryEncoder();
             if (encoder instanceof Configurable) {
                 ((Configurable) encoder).setConfiguration(encoderConfig);
-                layer.getLayerNode().setProperty(PROP_GEOMENCODER_CONFIG, encoderConfig);
+                layer.getLayerNode(tx).setProperty(PROP_GEOMENCODER_CONFIG, encoderConfig);
             } else {
                 System.out.println("Warning: encoder configuration '" + encoderConfig
                         + "' passed to non-configurable encoder: " + geometryEncoderClass);
             }
         }
         if (crs != null && layer instanceof EditableLayer) {
-            ((EditableLayer) layer).setCoordinateReferenceSystem(crs);
+            ((EditableLayer) layer).setCoordinateReferenceSystem(tx, crs);
         }
         return layer;
     }
@@ -326,10 +316,6 @@ public class SpatialDatabaseService implements Constants {
         if (layer == null) throw new SpatialDatabaseException("Layer " + name + " does not exist");
         layer.delete(tx, monitor);
     }
-
-//	public GraphDatabaseService getDatabase() {
-//		return database;
-//	}
 
     @SuppressWarnings("unchecked")
     public static int convertGeometryNameToType(String geometryName) {
@@ -446,7 +432,7 @@ public class SpatialDatabaseService implements Constants {
         }
     }
 
-    private static Map<String, RegisteredLayerType> registeredLayerTypes = new LinkedHashMap<>();
+    private static final Map<String, RegisteredLayerType> registeredLayerTypes = new LinkedHashMap<>();
 
     static {
         addRegisteredLayerType(new RegisteredLayerType("SimplePoint", SimplePointEncoder.class,
@@ -493,7 +479,7 @@ public class SpatialDatabaseService implements Constants {
         return results;
     }
 
-    public Class suggestLayerClassForEncoder(Class encoderClass) {
+    public Class<? extends Layer> suggestLayerClassForEncoder(Class<? extends GeometryEncoder> encoderClass) {
         for (RegisteredLayerType type : registeredLayerTypes.values()) {
             if (type.geometryEncoder == encoderClass) {
                 return type.layerClass;

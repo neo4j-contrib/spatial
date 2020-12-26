@@ -10,6 +10,7 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import java.io.File;
 
 import static org.junit.Assert.assertEquals;
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 public class TryWithResourceTest {
 
@@ -19,7 +20,7 @@ public class TryWithResourceTest {
     public void testSuppressedException() {
         try {
             DatabaseManagementService databases = new TestDatabaseManagementServiceBuilder(new File("target/resource")).impermanent().build();
-            GraphDatabaseService db = databases.database("resource");
+            GraphDatabaseService db = databases.database(DEFAULT_DATABASE_NAME);
             try (Transaction tx = db.beginTx()) {
                 Node n = tx.createNode();
                 try (Transaction tx2 = db.beginTx()) {
@@ -40,7 +41,7 @@ public class TryWithResourceTest {
     public void testSuppressedExceptionTopLevel() {
         try {
             DatabaseManagementService databases = new TestDatabaseManagementServiceBuilder(new File("target/resource")).impermanent().build();
-            GraphDatabaseService db = databases.database("resource");
+            GraphDatabaseService db = databases.database(DEFAULT_DATABASE_NAME);
             try (Transaction tx = db.beginTx()) {
                 Node n = tx.createNode();
                 n.setProperty("foo", "bar");

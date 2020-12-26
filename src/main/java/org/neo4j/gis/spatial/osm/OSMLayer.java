@@ -43,7 +43,7 @@ public class OSMLayer extends DynamicLayer {
 
     public SpatialDataset getDataset(GraphDatabaseService database) {
         if (osmDataset == null) {
-            osmDataset = new OSMDataset(database, this, layerNode);
+            osmDataset = new OSMDataset(database, this);
         }
         return osmDataset;
     }
@@ -55,7 +55,7 @@ public class OSMLayer extends DynamicLayer {
      */
     public OSMDataset getDataset(GraphDatabaseService database, long datasetId) {
         if (osmDataset == null) {
-            osmDataset = new OSMDataset(database, this, layerNode, datasetId);
+            osmDataset = new OSMDataset(database, this, datasetId);
         }
         return osmDataset;
     }
@@ -68,8 +68,9 @@ public class OSMLayer extends DynamicLayer {
 
     /**
      * OSM always uses WGS84 CRS; so we return that.
+     * @param tx
      */
-    public CoordinateReferenceSystem getCoordinateReferenceSystem() {
+    public CoordinateReferenceSystem getCoordinateReferenceSystem(Transaction tx) {
         try {
             return DefaultGeographicCRS.WGS84;
         } catch (Exception e) {
@@ -122,13 +123,14 @@ public class OSMLayer extends DynamicLayer {
      * multiple layers within the same dataset.
      *
      * @return iterable over geometry nodes in the dataset
+     * @param tx
      */
-    public Iterable<Node> getAllGeometryNodes() {
+    public Iterable<Node> getAllGeometryNodes(Transaction tx) {
         return indexReader.getAllIndexedNodes();
     }
 
-    public boolean removeDynamicLayer(String name) {
-        return removeLayerConfig(name);
+    public boolean removeDynamicLayer(Transaction tx, String name) {
+        return removeLayerConfig(tx, name);
     }
 
     /**

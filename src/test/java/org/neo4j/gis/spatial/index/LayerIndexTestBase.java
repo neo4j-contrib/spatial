@@ -24,6 +24,7 @@ import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Matchers;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.gis.spatial.*;
 import org.neo4j.gis.spatial.filter.SearchIntersect;
@@ -85,9 +86,9 @@ public abstract class LayerIndexTestBase {
         }
         Layer layer = mock(Layer.class);
         when(layer.getGeometryEncoder()).thenReturn(encoder);
-        when(layer.getLayerNode()).thenReturn(layerNode);
+        when(layer.getLayerNode(Matchers.any(Transaction.class))).thenReturn(layerNode);
         when(layer.getGeometryFactory()).thenReturn(geometryFactory);
-        when(layer.getCoordinateReferenceSystem()).thenReturn(DefaultGeographicCRS.WGS84);
+        when(layer.getCoordinateReferenceSystem(Matchers.any(Transaction.class))).thenReturn(DefaultGeographicCRS.WGS84);
         return layer;
     }
 

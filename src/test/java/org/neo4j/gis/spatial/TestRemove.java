@@ -28,7 +28,7 @@ public class TestRemove extends Neo4jTestCase {
     private static final String layerName = "TestRemove";
 
     @Test
-    public void testAddMoreThanMaxNodeRefThenDeleteAll() throws Exception {
+    public void testAddMoreThanMaxNodeRefThenDeleteAll() {
         SpatialDatabaseService spatialService = new SpatialDatabaseService();
 
         try (Transaction tx = graphDb().beginTx()) {
@@ -52,8 +52,7 @@ public class TestRemove extends Neo4jTestCase {
         Neo4jTestUtils.debugIndexTree(graphDb(), layerName);
 
         try (Transaction tx = graphDb().beginTx()) {
-            EditableLayer layer = (EditableLayer) spatialService.createLayer(tx, layerName, WKTGeometryEncoder.class, EditableLayerImpl.class);
-            GeometryFactory geomFactory = layer.getGeometryFactory();
+            EditableLayer layer = (EditableLayer) spatialService.getLayer(tx, layerName);
             for (long id : ids) {
                 layer.delete(tx, id);
             }

@@ -79,7 +79,7 @@ public interface Layer {
      * All layers are associated with a single node in the database. This node will have properties,
      * relationships (sub-graph) or both to describe the contents of the layer
      */
-    Node getLayerNode();
+    Node getLayerNode(Transaction tx);
 
     /**
      * Delete the entire layer, including the index. The specific layer implementation will decide
@@ -93,8 +93,6 @@ public interface Layer {
     /**
      * Every layer is defined by a unique name. Uniqueness is not enforced, but lack of uniqueness
      * will not guarrantee the right layer returned from a search.
-     * 
-     * @return
      */
     String getName();
 
@@ -112,17 +110,16 @@ public interface Layer {
     /**
      * Each layer can represent data stored in a specific coordinate refernece system, or
      * projection.
-     * 
-     * @return
      */
-    CoordinateReferenceSystem getCoordinateReferenceSystem();
+    CoordinateReferenceSystem getCoordinateReferenceSystem(Transaction tx);
 
     /**
      * Each layer contains geometries with optional attributes.
      * 
      * @return String array of all attribute names
+     * @param tx
      */
-    String[] getExtraPropertyNames();
+    String[] getExtraPropertyNames(Transaction tx);
 
     /**
      * The layer conforms with the Geotools pattern of only allowing a single geometry per layer.

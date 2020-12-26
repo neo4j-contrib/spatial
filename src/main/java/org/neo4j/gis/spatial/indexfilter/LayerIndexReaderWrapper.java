@@ -76,8 +76,8 @@ public class LayerIndexReaderWrapper implements LayerIndexReader {
 	}
 
 	@Override
-	public Envelope getBoundingBox() {
-		return index.getBoundingBox();
+	public Envelope getBoundingBox(Transaction tx) {
+		return index.getBoundingBox(tx);
 	}
 
 	@Override

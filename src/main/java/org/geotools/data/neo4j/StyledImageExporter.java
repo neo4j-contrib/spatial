@@ -417,7 +417,8 @@ public class StyledImageExporter {
     public static void main(String[] args) {
 		if (args.length < 4) {
 			System.err.println("Too few arguments. Provide: 'homeDir', 'database' 'exportdir' 'stylefile' zoom layer <layers..>");
-			return;
+			System.err.println("\tNote: 'database' can only be something other than 'neo4j' in Neo4j Enterprise Edition.");
+			System.exit(1);
 		}
 		String homeDir = args[0];
 		String database = args[1];

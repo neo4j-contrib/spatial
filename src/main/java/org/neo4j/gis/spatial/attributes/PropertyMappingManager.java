@@ -1,39 +1,38 @@
-/**
+/*
  * Copyright (c) 2010-2017 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
- * <p>
+ *
  * This file is part of Neo4j Spatial.
- * <p>
+ *
  * Neo4j is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * <p>
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * <p>
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 package org.neo4j.gis.spatial.attributes;
+
+import org.neo4j.gis.spatial.Layer;
+import org.neo4j.gis.spatial.SpatialRelationshipTypes;
+import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.Transaction;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.SpatialRelationshipTypes;
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.Transaction;
-
 public class PropertyMappingManager {
-    private Layer layer;
+    private final Layer layer;
     private LinkedHashMap<String, PropertyMapper> propertyMappers;
 
     public PropertyMappingManager(Layer layer) {
@@ -43,16 +42,16 @@ public class PropertyMappingManager {
     private LinkedHashMap<String, PropertyMapper> getPropertyMappers(Transaction tx) {
         if (propertyMappers == null) {
             propertyMappers = new LinkedHashMap<>();
-            for (PropertyMapper mapper : loadMappers().values()) {
+            for (PropertyMapper mapper : loadMappers(tx).values()) {
                 addPropertyMapper(tx, mapper);
             }
         }
         return propertyMappers;
     }
 
-    private Map<Node, PropertyMapper> loadMappers() {
-        HashMap<Node, PropertyMapper> mappers = new HashMap<Node, PropertyMapper>();
-        for (Relationship rel : layer.getLayerNode().getRelationships(Direction.OUTGOING, SpatialRelationshipTypes.PROPERTY_MAPPING)) {
+    private Map<Node, PropertyMapper> loadMappers(Transaction tx) {
+        HashMap<Node, PropertyMapper> mappers = new HashMap<>();
+        for (Relationship rel : layer.getLayerNode(tx).getRelationships(Direction.OUTGOING, SpatialRelationshipTypes.PROPERTY_MAPPING)) {
             Node node = rel.getEndNode();
             mappers.put(node, PropertyMapper.fromNode(node));
         }
@@ -60,9 +59,9 @@ public class PropertyMappingManager {
     }
 
     private void save(Transaction tx) {
-        ArrayList<PropertyMapper> toSave = new ArrayList<PropertyMapper>(getPropertyMappers(tx).values());
-        ArrayList<Node> toDelete = new ArrayList<Node>();
-        for (Map.Entry<Node, PropertyMapper> entry : loadMappers().entrySet()) {
+        ArrayList<PropertyMapper> toSave = new ArrayList<>(getPropertyMappers(tx).values());
+        ArrayList<Node> toDelete = new ArrayList<>();
+        for (Map.Entry<Node, PropertyMapper> entry : loadMappers(tx).entrySet()) {
             if (!toSave.remove(entry.getValue())) {
                 toDelete.add(entry.getKey());
             }
@@ -76,7 +75,7 @@ public class PropertyMappingManager {
         for (PropertyMapper mapper : toSave) {
             Node node = tx.createNode();
             mapper.save(tx, node);
-            layer.getLayerNode().createRelationshipTo(node, SpatialRelationshipTypes.PROPERTY_MAPPING);
+            layer.getLayerNode(tx).createRelationshipTo(node, SpatialRelationshipTypes.PROPERTY_MAPPING);
         }
     }
 

@@ -26,6 +26,7 @@ import org.neo4j.gis.spatial.index.curves.StandardConfiguration;
 import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.cs.CoordinateSystemAxis;
 
@@ -40,9 +41,9 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
         return "hilbert";
     }
 
-    private SpaceFillingCurve getCurve() {
+    private SpaceFillingCurve getCurve(Transaction tx) {
         if (this.curve == null) {
-            CoordinateReferenceSystem crs = layer.getCoordinateReferenceSystem();
+            CoordinateReferenceSystem crs = layer.getCoordinateReferenceSystem(tx);
             if (crs == null) {
                 throw new IllegalArgumentException("HilbertPointIndex cannot support layers without CRS");
             }
@@ -75,11 +76,11 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
     }
 
     @Override
-    protected Long getIndexValueFor(Node geomNode) {
+    protected Long getIndexValueFor(Transaction tx, Node geomNode) {
         //TODO: Make this code projection aware - currently it assumes lat/lon
         Geometry geom = layer.getGeometryEncoder().decodeGeometry(geomNode);
         Point point = geom.getCentroid();   // Other code is ensuring only point layers use this, but just in case we encode the centroid
-        return getCurve().derivedValueFor(new double[]{point.getX(), point.getY()});
+        return getCurve(tx).derivedValueFor(new double[]{point.getX(), point.getY()});
     }
 
     private void appendRange(StringBuilder sb, SpaceFillingCurve.LongRange range) {
@@ -90,10 +91,10 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
         }
     }
 
-    protected String queryStringFor(SearchFilter filter) {
+    protected String queryStringFor(Transaction tx, SearchFilter filter) {
         if (filter instanceof AbstractSearchEnvelopeIntersection) {
             org.neo4j.gis.spatial.rtree.Envelope referenceEnvelope = ((AbstractSearchEnvelopeIntersection) filter).getReferenceEnvelope();
-            List<SpaceFillingCurve.LongRange> tiles = getCurve().getTilesIntersectingEnvelope(referenceEnvelope.getMin(), referenceEnvelope.getMax(), new StandardConfiguration());
+            List<SpaceFillingCurve.LongRange> tiles = getCurve(tx).getTilesIntersectingEnvelope(referenceEnvelope.getMin(), referenceEnvelope.getMax(), new StandardConfiguration());
             StringBuilder sb = new StringBuilder();
             for (SpaceFillingCurve.LongRange range : tiles) {
                 if (sb.length() > 0) {

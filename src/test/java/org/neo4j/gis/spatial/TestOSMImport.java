@@ -136,8 +136,8 @@ public class TestOSMImport extends Neo4jTestCase implements Test {
             SpatialDatabaseService spatialService = new SpatialDatabaseService();
             OSMLayer layer = (OSMLayer) spatialService.getOrCreateLayer(tx, layerName, OSMGeometryEncoder.class, OSMLayer.class);
             assertNotNull("OSM Layer index should not be null", layer.getIndex());
-            assertNotNull("OSM Layer index envelope should not be null", layer.getIndex().getBoundingBox());
-            Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox());
+            assertNotNull("OSM Layer index envelope should not be null", layer.getIndex().getBoundingBox(tx));
+            Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox(tx));
             debugEnvelope(bbox, layerName, Constants.PROP_BBOX);
             // ((RTreeIndex)layer.getIndex()).debugIndexTree();
             indexCount = checkIndexCount(tx, layer);
@@ -160,7 +160,7 @@ public class TestOSMImport extends Neo4jTestCase implements Test {
         assertNotNull("Should be at least one way", way);
         Envelope bbox = way.getEnvelope();
         runSearches(tx, layer, bbox, true);
-        org.neo4j.gis.spatial.rtree.Envelope layerBBox = layer.getIndex().getBoundingBox();
+        org.neo4j.gis.spatial.rtree.Envelope layerBBox = layer.getIndex().getBoundingBox(tx);
         double[] centre = layerBBox.centre();
         double width = layerBBox.getWidth(0) / 100.0;
         double height = layerBBox.getWidth(1) / 100.0;

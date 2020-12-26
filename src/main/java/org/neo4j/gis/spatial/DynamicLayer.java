@@ -53,11 +53,11 @@ public class DynamicLayer extends EditableLayerImpl {
 
     private LinkedHashMap<String, Layer> layers;
 
-    private synchronized Map<String, Layer> getLayerMap() {
+    private synchronized Map<String, Layer> getLayerMap(Transaction tx) {
         if (layers == null) {
             layers = new LinkedHashMap<>();
             layers.put(getName(), this);
-            for (Relationship rel : layerNode.getRelationships(Direction.OUTGOING, SpatialRelationshipTypes.LAYER_CONFIG)) {
+            for (Relationship rel : getLayerNode(tx).getRelationships(Direction.OUTGOING, SpatialRelationshipTypes.LAYER_CONFIG)) {
                 DynamicLayerConfig config = new DynamicLayerConfig(this, rel.getEndNode());
                 layers.put(config.getName(), config);
             }
@@ -65,8 +65,8 @@ public class DynamicLayer extends EditableLayerImpl {
         return layers;
     }
 
-    protected boolean removeLayerConfig(String name) {
-        Layer layer = getLayerMap().get(name);
+    protected boolean removeLayerConfig(Transaction tx, String name) {
+        Layer layer = getLayerMap(tx).get(name);
         if (layer instanceof DynamicLayerConfig) {
             synchronized (this) {
                 DynamicLayerConfig config = (DynamicLayerConfig) layer;
@@ -146,7 +146,7 @@ public class DynamicLayer extends EditableLayerImpl {
             }
         }
 
-        Layer layer = getLayerMap().get(name);
+        Layer layer = getLayerMap(tx).get(name);
         if (layer != null) {
             if (layer instanceof DynamicLayerConfig) {
                 DynamicLayerConfig config = (DynamicLayerConfig) layer;
@@ -178,7 +178,7 @@ public class DynamicLayer extends EditableLayerImpl {
      * @param names to use for attributes
      */
     public DynamicLayerConfig restrictLayerProperties(Transaction tx, String name, String[] names) {
-        Layer layer = getLayerMap().get(name);
+        Layer layer = getLayerMap(tx).get(name);
         if (layer != null) {
             if (layer instanceof DynamicLayerConfig) {
                 DynamicLayerConfig config = (DynamicLayerConfig) layer;
@@ -208,15 +208,15 @@ public class DynamicLayer extends EditableLayerImpl {
         return restrictLayerProperties(tx, name, null);
     }
 
-    public List<String> getLayerNames() {
-        return new ArrayList<>(getLayerMap().keySet());
+    public List<String> getLayerNames(Transaction tx) {
+        return new ArrayList<>(getLayerMap(tx).keySet());
     }
 
-    public List<Layer> getLayers() {
-        return new ArrayList<>(getLayerMap().values());
+    public List<Layer> getLayers(Transaction tx) {
+        return new ArrayList<>(getLayerMap(tx).values());
     }
 
-    public Layer getLayer(String name) {
-        return getLayerMap().get(name);
+    public Layer getLayer(Transaction tx, String name) {
+        return getLayerMap(tx).get(name);
     }
 }

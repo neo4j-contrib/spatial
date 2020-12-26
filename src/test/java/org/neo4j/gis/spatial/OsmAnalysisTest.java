@@ -27,7 +27,6 @@ import org.apache.commons.io.FileUtils;
 import org.geotools.data.neo4j.StyledImageExporter;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.neo4j.dbms.api.DatabaseManagementService;
-import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMLayer;
@@ -36,6 +35,7 @@ import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.filter.SearchAll;
 import org.neo4j.gis.spatial.utilities.ReferenceNodes;
 import org.neo4j.graphdb.*;
+import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import java.io.File;
@@ -43,6 +43,8 @@ import java.io.IOException;
 import java.sql.Date;
 import java.util.*;
 import java.util.Map.Entry;
+
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 public class OsmAnalysisTest extends TestOSMImport {
     public static final String spatialTestMode = System.getProperty("spatial.test.mode");
@@ -130,7 +132,7 @@ public class OsmAnalysisTest extends TestOSMImport {
         if (db != null) {
             shutdownDatabase();
         }
-        File dbDir = new File("var");
+        File dbDir = new File("var", dataset);
         if (dbDir.exists()) {
             try {
                 FileUtils.deleteDirectory(dbDir);
@@ -138,17 +140,20 @@ public class OsmAnalysisTest extends TestOSMImport {
                 System.out.println("Failed to delete previous database directory '" + dbDir + "': " + e.getMessage());
             }
         }
-        db = databases.database(dataset);
+        databases = new TestDatabaseManagementServiceBuilder(dbDir).impermanent().build();
+        db = databases.database(DEFAULT_DATABASE_NAME);
         return new SpatialDatabaseService();
     }
 
     protected void runAnalysis(String osm, int years, int days) throws Exception {
         SpatialDatabaseService spatial = setDataset(osm);
+        boolean alreadyImported;
         try (Transaction tx = graphDb().beginTx()) {
-            if (spatial.getLayer(tx, osm) == null) {
-                runImport(osm, usePoints);
-            }
+            alreadyImported = spatial.getLayer(tx, osm) != null;
             tx.commit();
+        }
+        if (!alreadyImported) {
+            runImport(osm, usePoints);
         }
         try (Transaction tx = graphDb().beginTx()) {
             testAnalysis2(tx, osm, years, days);
@@ -246,7 +251,7 @@ public class OsmAnalysisTest extends TestOSMImport {
                 SearchRecords records = layerToExport.getIndex().search(tx, new SearchAll());
                 for (SpatialRecord record : records) {
                     System.out.println("Got record " + i + ": " + record);
-                    for (String name : record.getPropertyNames()) {
+                    for (String name : record.getPropertyNames(tx)) {
                         System.out.println("\t" + name + ":\t" + record.getProperty(tx, name));
                         checkedOne = true;
                     }
@@ -273,7 +278,7 @@ public class OsmAnalysisTest extends TestOSMImport {
             SortedMap<String, Layer> layers = exportPoints(tx, osm, spatialService, topTen);
 
             layers = removeEmptyLayers(tx, layers);
-            ReferencedEnvelope bbox = getEnvelope(layers.values());
+            ReferencedEnvelope bbox = getEnvelope(tx, layers.values());
 
             StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
             String exportDir = "target/export/" + osm + "/analysis";
@@ -306,19 +311,19 @@ public class OsmAnalysisTest extends TestOSMImport {
         }
     }
 
-    private ReferencedEnvelope getEnvelope(Collection<Layer> layers) {
+    private ReferencedEnvelope getEnvelope(Transaction tx, Collection<Layer> layers) {
         CoordinateReferenceSystem crs = null;
 
         Envelope envelope = null;
         for (Layer layer : layers) {
-            Envelope bbox = layer.getIndex().getBoundingBox();
+            Envelope bbox = layer.getIndex().getBoundingBox(tx);
             if (envelope == null) {
                 envelope = new Envelope(bbox);
             } else {
                 envelope.expandToInclude(bbox);
             }
             if (crs == null) {
-                crs = layer.getCoordinateReferenceSystem();
+                crs = layer.getCoordinateReferenceSystem(tx);
             }
         }
 
@@ -355,7 +360,7 @@ public class OsmAnalysisTest extends TestOSMImport {
                     name += "0" + w;
 
                 EditableLayerImpl layer = (EditableLayerImpl) spatialService.createLayer(tx, name, WKBGeometryEncoder.class, EditableLayerImpl.class);
-                layer.setExtraPropertyNames(new String[]{"user_id", "user_name", "year", "month", "dayOfMonth", "weekOfYear"});
+                layer.setExtraPropertyNames(new String[]{"user_id", "user_name", "year", "month", "dayOfMonth", "weekOfYear"}, tx);
 
                 // EditableLayerImpl layer = (EditableLayerImpl)
                 // spatialService.getLayer(name);

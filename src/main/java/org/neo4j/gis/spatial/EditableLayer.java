@@ -57,7 +57,7 @@ public interface EditableLayer extends Layer {
      */
     void update(Transaction tx, long geometryNodeId, Geometry geometry);
 
-	void setCoordinateReferenceSystem(CoordinateReferenceSystem coordinateReferenceSystem);
+	void setCoordinateReferenceSystem(Transaction tx, CoordinateReferenceSystem coordinateReferenceSystem);
 
     void removeFromIndex(Transaction tx, long geomNodeId);
 }

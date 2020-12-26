@@ -137,12 +137,12 @@ public class ShapefileImporter implements Constants {
                 try {
                     CoordinateReferenceSystem crs = readCRS(shpFiles, shpReader);
                     if (crs != null) {
-                        layer.setCoordinateReferenceSystem(crs);
+                        layer.setCoordinateReferenceSystem(tx, crs);
                     }
 
-                    layer.setGeometryType(geometryType);
+                    layer.setGeometryType(tx, geometryType);
 
-                    layer.mergeExtraPropertyNames(fieldsName);
+                    layer.mergeExtraPropertyNames(tx, fieldsName);
                     tx.commit();
                 } finally {
                     tx.close();
@@ -258,7 +258,9 @@ public class ShapefileImporter implements Constants {
         int commitInterval = 1000;
 
         if (args.length < 3 || args.length > 5) {
-            throw new IllegalArgumentException("Parameters: neo4jDirectory database shapefile [layerName commitInterval]");
+            System.err.println("Parameters: neo4jDirectory database shapefile [layerName commitInterval]");
+            System.err.println("\tNote: 'database' can only be something other than 'neo4j' in Neo4j Enterprise Edition.");
+            System.exit(1);
         }
 
         neoPath = args[0];

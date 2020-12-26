@@ -52,10 +52,10 @@ public class Neo4jSpatialFeatureReader implements FeatureReader<SimpleFeatureTyp
 	private Iterator<SpatialDatabaseRecord> results;
 	private final String[] extraPropertyNames;
 	
-	public Neo4jSpatialFeatureReader(GraphDatabaseService database, Layer layer, SimpleFeatureType featureType, Iterator<SpatialDatabaseRecord> results) {
+	public Neo4jSpatialFeatureReader(GraphDatabaseService database, Layer layer, SimpleFeatureType featureType, Iterator<SpatialDatabaseRecord> results, String[] extraPropertyNames) {
 		this.database = database;
 		this.layer = layer;
-		this.extraPropertyNames = layer.getExtraPropertyNames();		
+		this.extraPropertyNames = extraPropertyNames;
 		this.featureType = featureType;
 		this.builder = new SimpleFeatureBuilder(featureType);
 		this.results = results;

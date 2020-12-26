@@ -80,9 +80,9 @@ public class SpatialIndexPerformanceProxy implements LayerIndexReader {
     }
 
     @Override
-    public Envelope getBoundingBox() {
+    public Envelope getBoundingBox(Transaction tx) {
         long start = System.currentTimeMillis();
-        Envelope result = spatialIndex.getBoundingBox();
+        Envelope result = spatialIndex.getBoundingBox(tx);
         long stop = System.currentTimeMillis();
         System.out.println("# exec time(getBoundingBox()): " + (stop - start) + "ms");
         return result;

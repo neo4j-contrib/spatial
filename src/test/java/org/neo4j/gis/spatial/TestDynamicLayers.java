@@ -32,7 +32,6 @@ import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.NullListener;
-import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.graphdb.Transaction;
 
 import java.io.File;
@@ -81,7 +80,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
             layers.add(shpLayer.addCQLDynamicLayerOnAttribute(tx, "highway", "residential", GTYPE_MULTILINESTRING));
             layers.add(shpLayer.addCQLDynamicLayerOnAttribute(tx, "highway", "path", GTYPE_MULTILINESTRING));
             layers.add(shpLayer.addCQLDynamicLayerOnAttribute(tx, "highway", "track", GTYPE_MULTILINESTRING));
-            assertEquals(layers.size() + 1, shpLayer.getLayerNames().size());
+            assertEquals(layers.size() + 1, shpLayer.getLayerNames(tx).size());
             tx.commit();
         }
         try (Transaction tx = graphDb().beginTx()) {
@@ -162,7 +161,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
             layers.add(osmLayer.addSimpleDynamicLayer(tx, GTYPE_POINT));
             layers.add(osmLayer.addCQLDynamicLayerOnGeometryType(tx, GTYPE_POLYGON));
             layers.add(osmLayer.addCQLDynamicLayerOnGeometryType(tx, GTYPE_POINT));
-            assertEquals(layers.size() + 1, osmLayer.getLayerNames().size());
+            assertEquals(layers.size() + 1, osmLayer.getLayerNames(tx).size());
             tx.commit();
         }
         // Now export the layers to files
@@ -250,11 +249,9 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 
     private void loadTestOsmData(String layerName) throws Exception {
         System.out.println("\n=== Loading layer " + layerName + " from " + layerName + " ===");
-        reActivateDatabase(false, true, false);
         OSMImporter importer = new OSMImporter(layerName);
         importer.setCharset(StandardCharsets.UTF_8);
         importer.importFile(graphDb(), layerName, 1000, false);
-        reActivateDatabase(false, false, false);
         importer.reIndex(graphDb(), 1000);
     }
 
@@ -272,8 +269,11 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
             layer = spatialService.getLayer(tx, layerName);
         }
         assertNotNull("Layer index should not be null", layer.getIndex());
-        assertNotNull("Layer index envelope should not be null", layer.getIndex().getBoundingBox());
-        Envelope bbox = layer.getIndex().getBoundingBox();
+        Envelope bbox;
+        try (Transaction tx = graphDb().beginTx()) {
+            bbox = layer.getIndex().getBoundingBox(tx);
+        }
+        assertNotNull("Layer index envelope should not be null", bbox);
         System.out.println("Layer has bounding box: " + bbox);
         Neo4jTestUtils.debugIndexTree(graphDb(), layerName);
         return bbox;

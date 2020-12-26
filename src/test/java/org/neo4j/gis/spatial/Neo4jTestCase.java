@@ -19,19 +19,16 @@
  */
 package org.neo4j.gis.spatial;
 
-import junit.framework.TestCase;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.neo4j.batchinsert.BatchInserter;
-import org.neo4j.batchinsert.BatchInserters;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Transaction;
 import org.neo4j.io.fs.FileUtils;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.Neo4jLayout;
@@ -44,6 +41,8 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 /**
  * Base class for the meta model tests.
@@ -75,19 +74,17 @@ public abstract class Neo4jTestCase {
         LARGE_CONFIG.put(GraphDatabaseSettings.dump_configuration.name(), "true");
     }
 
-    private static File basePath = new File("target/var");
-    private static File dbPath = new File(basePath, "neo4j-db");
+    private static final File basePath = new File("target/var");
+    private static final File dbPath = new File(basePath, "neo4j-db");
     private DatabaseManagementService databases;
     private GraphDatabaseService graphDb;
-    private Transaction tx;
-    private BatchInserter batchInserter;
 
     private long storePrefix;
 
     @Before
-    protected void setUp() throws Exception {
+    public void setUp() throws Exception {
         updateStorePrefix();
-        setUp(true, false, false);
+        setUp(true);
     }
 
     private void updateStorePrefix() {
@@ -99,8 +96,17 @@ public abstract class Neo4jTestCase {
      * or without using the BatchInserter for higher creation speeds. Note that tests that need to
      * delete nodes or use transactions should not use the BatchInserter.
      */
-    protected void setUp(boolean deleteDb, boolean useBatchInserter, boolean autoTx) throws Exception {
-        reActivateDatabase(deleteDb, useBatchInserter, autoTx);
+    protected void setUp(boolean deleteDb) throws Exception {
+        shutdownDatabase(deleteDb);
+        DatabaseLayout layout = prepareLayout(true);
+        Map<String, String> config = NORMAL_CONFIG;
+        String largeMode = System.getProperty("spatial.test.large");
+        if (largeMode != null && largeMode.equalsIgnoreCase("true")) {
+            config = LARGE_CONFIG;
+        }
+        databases = new DatabaseManagementServiceBuilder(getDbPath()).setConfigRaw(config).build();
+        graphDb = databases.database(DEFAULT_DATABASE_NAME);
+        ((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency(GlobalProcedures.class).registerProcedure(SpatialProcedures.class);
     }
 
     /**
@@ -108,20 +114,11 @@ public abstract class Neo4jTestCase {
      * shutdown the current one.
      */
     private void shutdownDatabase(boolean deleteDb) {
-        if (tx != null) {
-            tx.commit();
-            tx.close();
-            tx = null;
-        }
         beforeShutdown();
         if (graphDb != null) {
             databases.shutdown();
             databases = null;
             graphDb = null;
-        }
-        if (batchInserter != null) {
-            batchInserter.shutdown();
-            batchInserter = null;
         }
         if (deleteDb) {
             deleteDatabase();
@@ -130,7 +127,7 @@ public abstract class Neo4jTestCase {
 
     private DatabaseLayout prepareLayout(boolean delete) throws IOException {
         Neo4jLayout homeLayout = Neo4jLayout.of(dbPath);
-        DatabaseLayout databaseLayout = homeLayout.databaseLayout(getDatabaseName());
+        DatabaseLayout databaseLayout = homeLayout.databaseLayout(DEFAULT_DATABASE_NAME);
         if (delete) {
             FileUtils.deleteRecursively(databaseLayout.databaseDirectory());
             FileUtils.deleteRecursively(databaseLayout.getTransactionLogsDirectory());
@@ -142,32 +139,6 @@ public abstract class Neo4jTestCase {
         Config.Builder builder = Config.newBuilder();
         builder.setRaw(NORMAL_CONFIG);
         return builder.build();
-    }
-
-    /**
-     * Some tests require switching between normal EmbeddedGraphDatabase and BatchInserter, so we
-     * allow that with this method. We also allow deleting the previous database, if that is desired
-     * (probably only the first time this is called).
-     */
-    void reActivateDatabase(boolean deleteDb, boolean useBatchInserter, boolean autoTx) throws Exception {
-        shutdownDatabase(deleteDb);
-        DatabaseLayout layout = prepareLayout(true);
-        Map<String, String> config = NORMAL_CONFIG;
-        String largeMode = System.getProperty("spatial.test.large");
-        if (largeMode != null && largeMode.equalsIgnoreCase("true")) {
-            config = LARGE_CONFIG;
-        }
-        if (useBatchInserter) {
-            batchInserter = BatchInserters.inserter(layout, makeConfig(config));
-        } else {
-            databases = new DatabaseManagementServiceBuilder(dbPath).setConfigRaw(config).build();
-            graphDb = databases.database(getDatabaseName());
-            ((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency(GlobalProcedures.class).registerProcedure(SpatialProcedures.class);
-        }
-        if (autoTx) {
-            // with the batch inserter the tx is a dummy that simply succeeds all the time
-            tx = graphDb.beginTx();
-        }
     }
 
     @Rule
@@ -190,8 +161,8 @@ public abstract class Neo4jTestCase {
         return new File(dbPath.getAbsolutePath());
     }
 
-    String getDatabaseName() {
-        return "test-" + storePrefix;
+    File getDbPath() {
+        return new File(dbPath.getAbsolutePath(), "test-" + storePrefix);
     }
 
     private void deleteDatabase() {
@@ -223,19 +194,10 @@ public abstract class Neo4jTestCase {
     }
 
     void printDatabaseStats() {
-        Neo4jTestUtils.printDatabaseStats(graphDb(), getNeoPath());
+        Neo4jTestUtils.printDatabaseStats(graphDb(), getDbPath());
     }
 
     protected GraphDatabaseService graphDb() {
         return graphDb;
     }
-
-    BatchInserter getBatchInserter() {
-        return batchInserter;
-    }
-
-    protected boolean isUsingBatchInserter() {
-        return batchInserter != null;
-    }
-
 }

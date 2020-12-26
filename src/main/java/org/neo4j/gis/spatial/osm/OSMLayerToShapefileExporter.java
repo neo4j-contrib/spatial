@@ -47,6 +47,7 @@ public class OSMLayerToShapefileExporter {
     public static void main(String[] args) {
         if (args.length < 5) {
             System.out.println("Usage: osmtoshp neo4jHome database exportdir osmdataset layerspec <..layerspecs..>");
+            System.out.println("\tNote: 'database' can only be something other than 'neo4j' in Neo4j Enterprise Edition.");
         } else {
             String homeDir = args[0];
             String database = args[1];
@@ -75,14 +76,13 @@ public class OSMLayerToShapefileExporter {
                     }
 
                     try (Transaction tx = db.beginTx()) {
-                        if (layer.getLayerNames().contains(name)) {
+                        if (layer.getLayerNames(tx).contains(name)) {
                             System.out.println("Exporting previously existing layer: " + name);
-                            exporter.exportLayer(name);
                         } else {
                             System.out.println("Creating and exporting new layer: " + name);
                             layer.addDynamicLayerOnWayTags(tx, name, Constants.GTYPE_LINESTRING, tags);
-                            exporter.exportLayer(name);
                         }
+                        exporter.exportLayer(name);
                         tx.commit();
                     } catch (Exception e) {
                         System.err.println("Failed to export dynamic layer " + name + ": " + e);

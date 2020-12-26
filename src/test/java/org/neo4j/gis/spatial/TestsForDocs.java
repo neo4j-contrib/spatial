@@ -48,6 +48,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 /**
  * Some test code written specifically for the user manual. This normally means
@@ -63,7 +64,7 @@ public class TestsForDocs {
     @Before
     public void setUp() throws Exception {
         this.databases = new DatabaseManagementServiceBuilder(new File("target/docs-db")).build();
-        this.graphDb = databases.database("docs");
+        this.graphDb = databases.database(DEFAULT_DATABASE_NAME);
     }
 
     @After
@@ -141,7 +142,7 @@ public class TestsForDocs {
         try (Transaction tx = database.beginTx()) {
             Layer layer = spatialService.getLayer(tx, "map.osm");
             LayerIndexReader spatialIndex = layer.getIndex();
-            System.out.println("Have " + spatialIndex.count(tx) + " geometries in " + spatialIndex.getBoundingBox());
+            System.out.println("Have " + spatialIndex.count(tx) + " geometries in " + spatialIndex.getBoundingBox(tx));
 
             Envelope bbox = new Envelope(12.94, 12.96, 56.04, 56.06);
             List<SpatialDatabaseRecord> results = GeoPipeline
@@ -198,7 +199,7 @@ public class TestsForDocs {
         try (Transaction tx = database.beginTx()) {
             Layer layer = spatialService.getLayer(tx, "map.osm");
             LayerIndexReader spatialIndex = layer.getIndex();
-            System.out.println("Have " + spatialIndex.count(tx) + " geometries in " + spatialIndex.getBoundingBox());
+            System.out.println("Have " + spatialIndex.count(tx) + " geometries in " + spatialIndex.getBoundingBox(tx));
 
             results = GeoPipeline
                     .startIntersectWindowSearch(tx, layer, bbox)

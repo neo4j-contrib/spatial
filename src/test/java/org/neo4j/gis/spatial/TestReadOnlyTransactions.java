@@ -15,6 +15,7 @@ import java.io.File;
 import java.io.IOException;
 
 import static org.junit.Assert.assertEquals;
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 /**
  * This test was written to test the subtle behavior of nested transactions in the Neo4j 1.x-3.x code.
@@ -38,8 +39,8 @@ public class TestReadOnlyTransactions {
     @Before
     public void setUp() throws Exception {
         storePrefix++;
-        this.databases = new TestDatabaseManagementServiceBuilder(basePath).impermanent().build();
-        this.graph = databases.database(getDatabaseName());
+        this.databases = new TestDatabaseManagementServiceBuilder(new File(basePath, dbPrefix + storePrefix)).impermanent().build();
+        this.graph = databases.database(DEFAULT_DATABASE_NAME);
         buildDataModel();
     }
 
@@ -65,10 +66,6 @@ public class TestReadOnlyTransactions {
             n2Id = n2.getId();
             tx.commit();
         }
-    }
-
-    protected String getDatabaseName() {
-        return dbPrefix + storePrefix;
     }
 
     private void readNames(Transaction tx) {

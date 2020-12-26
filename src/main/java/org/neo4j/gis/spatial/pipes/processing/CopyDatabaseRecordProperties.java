@@ -52,7 +52,7 @@ public class CopyDatabaseRecordProperties extends AbstractGeoPipe {
 
     @Override
     protected GeoPipeFlow process(GeoPipeFlow flow) {
-        String[] names = keys != null ? keys : flow.getRecord().getPropertyNames();
+        String[] names = keys != null ? keys : flow.getRecord().getPropertyNames(tx);
         for (String name : names) {
             flow.getProperties().put(name, flow.getRecord().getProperty(tx, name));
         }

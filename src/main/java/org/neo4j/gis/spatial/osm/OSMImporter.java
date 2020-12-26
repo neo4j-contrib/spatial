@@ -226,7 +226,7 @@ public class OSMImporter implements Constants {
         boolean useWays = missingChangesets > 0;
         int count = 0;
         try {
-            layer.setExtraPropertyNames(stats.getTagStats("all").getTags());
+            layer.setExtraPropertyNames(stats.getTagStats("all").getTags(), tx);
             if (useWays) {
                 beginProgressMonitor(dataset.getWayCount());
                 for (Node way : toList(findWays.traverse(tx.getNodeById(osm_dataset)).nodes())) {
@@ -395,8 +395,8 @@ public class OSMImporter implements Constants {
             createRelationship(from, to, relType, null);
         }
 
-        HashMap<String, Integer> stats = new HashMap<String, Integer>();
-        HashMap<String, LogCounter> nodeFindStats = new HashMap<String, LogCounter>();
+        HashMap<String, Integer> stats = new HashMap<>();
+        HashMap<String, LogCounter> nodeFindStats = new HashMap<>();
         long logTime = 0;
         long findTime = 0;
         long firstFindTime = 0;
@@ -808,18 +808,16 @@ public class OSMImporter implements Constants {
     }
 
     private static class OSMGraphWriter extends OSMWriter<Node> {
-        private GraphDatabaseService graphDb;
-        private Node osm_root;
+        private final GraphDatabaseService graphDb;
         private long currentChangesetId = -1;
         private Node currentChangesetNode;
         private long currentUserId = -1;
         private Node currentUserNode;
         private Node usersNode;
-        private HashMap<Long, Node> changesetNodes = new HashMap<>();
+        private final HashMap<Long, Node> changesetNodes = new HashMap<>();
         private Transaction tx;
         private int checkCount = 0;
-        private int txInterval;
-        private boolean relatxedTxFlush = false;
+        private final int txInterval;
 
         private OSMGraphWriter(GraphDatabaseService graphDb,
                                StatsManager statsManager, OSMImporter osmImporter,
@@ -827,11 +825,10 @@ public class OSMImporter implements Constants {
             super(statsManager, osmImporter);
             this.graphDb = graphDb;
             this.txInterval = txInterval;
-            this.relatxedTxFlush = relatxedTxFlush;
             if (this.txInterval < 100) {
                 System.err.println("Warning: Unusually short txInterval, expect bad insert performance");
             }
-            checkTx(); // Opens transaction for future writes
+            checkTx(null); // Opens transaction for future writes
         }
 
         private void successTx() {
@@ -843,14 +840,32 @@ public class OSMImporter implements Constants {
             }
         }
 
-        private void checkTx() {
-            if (checkCount++ > txInterval || tx == null) {
+        private Node checkTx(Node previous) {
+            if (checkCount++ > txInterval || tx == null || checkCount > 10) {
                 successTx();
                 tx = graphDb.beginTx();
+                osm_dataset = recoverNode(osm_dataset);
+                currentNode = recoverNode(currentNode);
+                prev_relation = recoverNode(prev_relation);
+                prev_way = recoverNode(prev_way);
+                currentChangesetNode = recoverNode(currentChangesetNode);
+                currentUserNode = recoverNode(currentUserNode);
+                usersNode = recoverNode(usersNode);
+                previous = recoverNode(previous);
+            }
+            return previous;
+        }
+
+        private Node recoverNode(Node outOfTx) {
+            if (outOfTx == null) {
+                return null;
+            } else {
+                long id = outOfTx.getId();
+                return tx.getNodeById(id);
             }
         }
 
-        private NodeIndex<String> indexFor(String indexName) {
+        private NodeIndex<Object> indexFor(String indexName) {
             return new NodeIndex<>(indexName);
         }
 
@@ -872,7 +887,7 @@ public class OSMImporter implements Constants {
                 node.setProperty("name", name);
                 node.setProperty("type", type);
                 parent.createRelationshipTo(node, relType);
-                checkTx();
+                node = checkTx(node);
             }
             return node;
         }
@@ -880,11 +895,8 @@ public class OSMImporter implements Constants {
         @Override
         protected Node getOrCreateOSMDataset(String name) {
             if (osm_dataset == null) {
-                try (Transaction tx = graphDb.beginTx()) {
-                    osm_root = ReferenceNodes.getReferenceNode(tx, "osm_root");
-                    osm_dataset = getOrCreateNode(name, "osm", osm_root, OSMRelation.OSM);
-                    tx.commit();
-                }
+                Node osm_root = ReferenceNodes.getReferenceNode(tx, "osm_root");
+                osm_dataset = getOrCreateNode(name, "osm", osm_root, OSMRelation.OSM);
             }
             return osm_dataset;
         }
@@ -931,12 +943,11 @@ public class OSMImporter implements Constants {
         protected Node addNode(String name, Map<String, Object> properties, String indexKey) {
             Node node = tx.createNode();
             if (indexKey != null && properties.containsKey(indexKey)) {
-                indexFor(name).add(node, indexKey, (String) properties.get(indexKey));
+                indexFor(name).add(node, indexKey, properties.get(indexKey));
                 properties.put(indexKey, Long.parseLong(properties.get(indexKey).toString()));
             }
             addProperties(node, properties);
-            checkTx();
-            return node;
+            return checkTx(node);
         }
 
         protected Node addNodeWithCheck(String name, Map<String, Object> properties, String indexKey) {
@@ -952,7 +963,7 @@ public class OSMImporter implements Constants {
                     indexFor(name).add(node, indexKey, (String) properties.get(indexKey));
                 }
                 createdNodes++;
-                checkTx();
+                node = checkTx(node);
             } else {
                 foundNodes++;
             }
@@ -1052,7 +1063,7 @@ public class OSMImporter implements Constants {
                         LinkedHashMap<String, Object> changesetProps = new LinkedHashMap<>();
                         changesetProps.put(INDEX_NAME_CHANGESET, currentChangesetId);
                         changesetProps.put("timestamp", nodeProps.get("timestamp"));
-                        currentChangesetNode = (Node) addNode(INDEX_NAME_CHANGESET, changesetProps, INDEX_NAME_CHANGESET);
+                        currentChangesetNode = addNode(INDEX_NAME_CHANGESET, changesetProps, INDEX_NAME_CHANGESET);
                         changesetCount++;
                         if (userNode != null) {
                             createRelationship(currentChangesetNode, userNode, OSMRelation.USER);
@@ -1083,7 +1094,7 @@ public class OSMImporter implements Constants {
                         userProps.put("uid", currentUserId);
                         userProps.put("name", name);
                         userProps.put("timestamp", nodeProps.get("timestamp"));
-                        currentUserNode = (Node) addNode(INDEX_NAME_USER, userProps, "uid");
+                        currentUserNode = addNode(INDEX_NAME_USER, userProps, "uid");
                         userCount++;
                         if (usersNode == null) {
                             usersNode = tx.createNode();
@@ -1501,7 +1512,7 @@ public class OSMImporter implements Constants {
         private DatabaseManagementService databases;
         private GraphDatabaseService graphDb;
         private File dbPath;
-        private String databaseName = "osm";
+        private String databaseName = "neo4j";  // can only be something other than neo4j in enterprise edition
 
         public OSMImportManager(String path) {
             setDbPath(path);
@@ -1520,7 +1531,7 @@ public class OSMImporter implements Constants {
 
         private void loadTestOsmData(String layerName, int commitInterval) throws Exception {
             String osmPath = layerName;
-            System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
+            System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===\n");
             long start = System.currentTimeMillis();
             OSMImporter importer = new OSMImporter(layerName);
             prepareDatabase(true);

@@ -249,7 +249,7 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
             try (Transaction tx = database.beginTx()) {
                 Layer layer = spatialDatabase.getLayer(tx, typeName);
                 if (layer != null) {
-                    Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox());
+                    Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox(tx));
                     result = convertEnvelopeToRefEnvelope(typeName, bbox);
                     boundsIndex.put(typeName, result);
                 }
@@ -308,21 +308,24 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
     protected FeatureReader<SimpleFeatureType, SimpleFeature> getFeatureReader(String typeName, Filter filter) throws IOException {
         Layer layer;
         Iterator<SpatialDatabaseRecord> records;
+        String[] extraPropertyNames;
         try (Transaction tx = database.beginTx()) {
             layer = spatialDatabase.getLayer(tx, typeName);
             if (filter.equals(Filter.EXCLUDE)) {
                 // filter that excludes everything: create an empty FeatureReader
                 records = null;
+                extraPropertyNames = new String[0];
             } else if (filter instanceof FidFilterImpl) {
                 // filter by Feature unique id
                 throw new UnsupportedOperationException("Unsupported use of FidFilterImpl in Neo4jSpatialDataStore");
             } else {
                 records = layer.getIndex().search(tx, new SearchCQL(tx, layer, filter));
+                extraPropertyNames = layer.getExtraPropertyNames(tx);
             }
 
             tx.commit();
         }
-        return new Neo4jSpatialFeatureReader(database, layer, getSchema(typeName), records);
+        return new Neo4jSpatialFeatureReader(database, layer, getSchema(typeName), records, extraPropertyNames);
     }
 
     protected ResourceInfo getInfo(String typeName) {
@@ -341,12 +344,14 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
     private FeatureReader<SimpleFeatureType, SimpleFeature> getFeatureReader(String typeName, SearchFilter search) throws IOException {
         Layer layer;
         SearchRecords results;
+        String[] extraPropertyNames;
         try (Transaction tx = database.beginTx()) {
             layer = spatialDatabase.getLayer(tx, typeName);
             results = layer.getIndex().search(tx, search);
+            extraPropertyNames = layer.getExtraPropertyNames(tx);
             tx.commit();
         }
-        return new Neo4jSpatialFeatureReader(database, layer, getSchema(typeName), results);
+        return new Neo4jSpatialFeatureReader(database, layer, getSchema(typeName), results, extraPropertyNames);
     }
 
     private ReferencedEnvelope convertEnvelopeToRefEnvelope(String typeName, Envelope bbox) {
@@ -358,7 +363,7 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
         if (result == null) {
             try (Transaction tx = database.beginTx()) {
                 Layer layer = spatialDatabase.getLayer(tx, typeName);
-                result = layer.getCoordinateReferenceSystem();
+                result = layer.getCoordinateReferenceSystem(tx);
                 crsIndex.put(typeName, result);
                 tx.commit();
             }

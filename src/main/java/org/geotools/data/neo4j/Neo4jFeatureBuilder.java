@@ -69,7 +69,7 @@ public class Neo4jFeatureBuilder {
 	 * If it is necessary to lookup the layer type with a transaction, use this factory method to make the feature builder
 	 */
     public static Neo4jFeatureBuilder fromLayer(Transaction tx, Layer layer) {
-        return new Neo4jFeatureBuilder(getTypeFromLayer(tx, layer), Arrays.asList(layer.getExtraPropertyNames()));
+        return new Neo4jFeatureBuilder(getTypeFromLayer(tx, layer), Arrays.asList(layer.getExtraPropertyNames(tx)));
     } 
     
     public SimpleFeature buildFeature(String id, Geometry geometry, Map<String,Object> properties) {
@@ -89,7 +89,7 @@ public class Neo4jFeatureBuilder {
     }
 
     public static SimpleFeatureType getTypeFromLayer(Transaction tx, Layer layer) {
-    	return getType(layer.getName(), layer.getGeometryType(tx), layer.getCoordinateReferenceSystem(), layer.getExtraPropertyNames());
+    	return getType(layer.getName(), layer.getGeometryType(tx), layer.getCoordinateReferenceSystem(tx), layer.getExtraPropertyNames(tx));
     }
     
     public static SimpleFeatureType getType(String name, Integer geometryTypeId, CoordinateReferenceSystem crs, String[] extraPropertyNames) {

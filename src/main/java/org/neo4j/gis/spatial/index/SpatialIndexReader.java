@@ -37,7 +37,7 @@ public interface SpatialIndexReader {
 
     int count(Transaction tx);
 
-    Envelope getBoundingBox();
+    Envelope getBoundingBox(Transaction tx);
 
     boolean isNodeIndexed(Transaction tx, Long nodeId);
 

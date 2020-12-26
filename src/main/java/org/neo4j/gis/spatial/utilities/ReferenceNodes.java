@@ -1,4 +1,4 @@
-/**
+/*
  * Copyright (c) 2002-2013 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
@@ -30,7 +30,7 @@ import static org.neo4j.internal.helpers.collection.MapUtil.map;
 public class ReferenceNodes {
 
     public static Node getReferenceNode(Transaction tx, String name) {
-        Result result = tx.execute("MERGE (ref:ReferenceNode {name:{name}}) RETURN ref", map("name", name));
-        return Iterators.single(result.<Node>columnAs("ref"));
+        Result result = tx.execute("MERGE (ref:ReferenceNode {name:$name}) RETURN ref", map("name", name));
+        return Iterators.single(result.columnAs("ref"));
     }
 }

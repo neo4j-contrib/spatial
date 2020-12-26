@@ -24,10 +24,7 @@ import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.filter.SearchRecords;
-import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
-
-import javax.swing.table.TableRowSorter;
 
 /**
  * The RTreeIndex is the first and still standard index for Neo4j Spatial. It
@@ -46,7 +43,7 @@ public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader,
     }
 
     public void init(Transaction tx, Layer layer, int maxNodeReferences) {
-        super.init(tx, layer.getLayerNode(), layer.getGeometryEncoder(), maxNodeReferences);
+        super.init(tx, layer.getLayerNode(tx), layer.getGeometryEncoder(), maxNodeReferences);
         this.layer = layer;
     }
 

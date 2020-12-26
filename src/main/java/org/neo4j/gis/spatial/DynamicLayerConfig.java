@@ -34,7 +34,6 @@ import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
 import org.neo4j.gis.spatial.indexfilter.CQLIndexReader;
 import org.neo4j.gis.spatial.indexfilter.DynamicIndexReader;
-import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -75,7 +74,7 @@ public class DynamicLayerConfig implements Layer, Constants {
 		node.setProperty(PROP_LAYER, name);
 		node.setProperty(PROP_TYPE, geometryType);
 		node.setProperty(PROP_QUERY, query);
-		parent.getLayerNode().createRelationshipTo(node, SpatialRelationshipTypes.LAYER_CONFIG);
+		parent.getLayerNode(tx).createRelationshipTo(node, SpatialRelationshipTypes.LAYER_CONFIG);
 		configNode = node;
 	}
 
@@ -104,8 +103,8 @@ public class DynamicLayerConfig implements Layer, Constants {
 	}
 
 	@Override
-	public CoordinateReferenceSystem getCoordinateReferenceSystem() {
-		return parent.getCoordinateReferenceSystem();
+	public CoordinateReferenceSystem getCoordinateReferenceSystem(Transaction tx) {
+		return parent.getCoordinateReferenceSystem(tx);
 	}
 
 	@Override
@@ -114,11 +113,11 @@ public class DynamicLayerConfig implements Layer, Constants {
 	}
 
 	@Override
-	public String[] getExtraPropertyNames() {
+	public String[] getExtraPropertyNames(Transaction tx) {
 		if (propertyNames != null && propertyNames.length > 0) {
 			return propertyNames;
 		} else {
-			return parent.getExtraPropertyNames();
+			return parent.getExtraPropertyNames(tx);
 		}
 	}
 
@@ -142,7 +141,7 @@ public class DynamicLayerConfig implements Layer, Constants {
 		public boolean geometryMatches(Transaction tx, Node geomNode) {
 			if (nodeCount++ < MAX_COUNT) {
 				SpatialDatabaseRecord record = new SpatialDatabaseRecord(layer, geomNode);
-				for (String name : record.getPropertyNames()) {
+				for (String name : record.getPropertyNames(tx)) {
 					Object value = record.getProperty(tx, name);
 					if (value != null) {
 						Integer count = names.get(name);
@@ -180,13 +179,13 @@ public class DynamicLayerConfig implements Layer, Constants {
 		if (propertyNames != null && propertyNames.length > 0) {
 			System.out.println("Restricted property names already exists - will be overwritten");
 		}
-		System.out.println("Before property scan we have " + getExtraPropertyNames().length + " known attributes for layer " + getName());
+		System.out.println("Before property scan we have " + getExtraPropertyNames(tx).length + " known attributes for layer " + getName());
 		
 		PropertyUsageSearch search = new PropertyUsageSearch(this);
 		getIndex().searchIndex(tx, search).count();
 		setExtraPropertyNames(search.getNames());
 
-		System.out.println("After property scan of " + search.getNodeCount() + " nodes, we have " + getExtraPropertyNames().length + " known attributes for layer " + getName());
+		System.out.println("After property scan of " + search.getNodeCount() + " nodes, we have " + getExtraPropertyNames(tx).length + " known attributes for layer " + getName());
 		// search.describeUsage(System.out);
 	}
 
@@ -231,11 +230,11 @@ public class DynamicLayerConfig implements Layer, Constants {
 	}
 
 	@Override
-	public Node getLayerNode() {
+	public Node getLayerNode(Transaction tx) {
 		// TODO: Make sure that the mismatch between the name on the dynamic
 		// layer node and the dynamic layer translates into the correct
 		// object being returned
-		return parent.getLayerNode();
+		return parent.getLayerNode(tx);
 	}
 
 	@Override

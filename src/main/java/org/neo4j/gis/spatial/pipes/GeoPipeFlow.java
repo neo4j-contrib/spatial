@@ -106,7 +106,7 @@ public class GeoPipeFlow implements SpatialRecord {
     }
 
     @Override
-    public String[] getPropertyNames() {
+    public String[] getPropertyNames(Transaction tx) {
         return properties.keySet().toArray(new String[]{});
     }
 

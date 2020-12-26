@@ -52,10 +52,12 @@ public class RTreeTests {
             this.rtree = new TestRTreeIndex(tx);
             tx.commit();
         }
-        Coordinate min = new Coordinate(0.0, 0.0);
-        Coordinate max = new Coordinate(1.0, 1.0);
         SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("test", Constants.GTYPE_POINT, null, new String[]{});
-        imageExporter = new RTreeImageExporter(new GeometryFactory(), new SimplePointEncoder(), null, featureType, rtree, min, max);
+        imageExporter = new RTreeImageExporter(new GeometryFactory(), new SimplePointEncoder(), null, featureType, rtree);
+        try (Transaction tx = db.beginTx()) {
+            imageExporter.initialize(tx, new Coordinate(0.0, 0.0), new Coordinate(1.0, 1.0));
+            tx.commit();
+        }
     }
 
     @After

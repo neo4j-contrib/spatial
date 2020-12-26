@@ -53,6 +53,7 @@ import java.util.function.Consumer;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.Assert.*;
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 public class LayersTest {
     private DatabaseManagementService databases;
@@ -60,8 +61,8 @@ public class LayersTest {
 
     @Before
     public void setup() throws KernelException {
-        this.databases = new TestDatabaseManagementServiceBuilder(new File("target/layers")).impermanent().build();
-        graphDb = databases.database("layers");
+        databases = new TestDatabaseManagementServiceBuilder(new File("target/layers")).impermanent().build();
+        graphDb = databases.database(DEFAULT_DATABASE_NAME);
         ((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency(GlobalProcedures.class).registerProcedure(SpatialProcedures.class);
     }
 
@@ -83,8 +84,6 @@ public class LayersTest {
             assertNotNull(layer);
             assertThat("Should be a default layer", layer instanceof DefaultLayer);
         });
-        inTx(tx -> spatial.deleteLayer(tx, layerName, new ProgressLoggingListener("deleting layer '" + layerName + "'", System.out)));
-        inTx(tx -> assertNull(spatial.getLayer(tx, layerName)));
         inTx(tx -> spatial.deleteLayer(tx, layerName, new ProgressLoggingListener("deleting layer '" + layerName + "'", System.out)));
         inTx(tx -> assertNull(spatial.getLayer(tx, layerName)));
     }
@@ -113,7 +112,7 @@ public class LayersTest {
         String layerName = "points";
         SpatialDatabaseService spatial = new SpatialDatabaseService();
         inTx(tx -> {
-            EditableLayer layer = (EditableLayer) spatial.createLayer(tx, "test", encoderClass, EditableLayerImpl.class, indexClass, null);
+            EditableLayer layer = (EditableLayer) spatial.createLayer(tx, layerName, encoderClass, EditableLayerImpl.class, indexClass, null);
             assertNotNull(layer);
         });
         inTx(tx -> {

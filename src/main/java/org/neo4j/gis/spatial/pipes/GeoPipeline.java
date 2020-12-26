@@ -499,8 +499,8 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
     /**
      * @see OrthodromicLength
      */
-    public GeoPipeline calculateOrthodromicLength() {
-        return addPipe(new OrthodromicLength(layer.getCoordinateReferenceSystem()));
+    public GeoPipeline calculateOrthodromicLength(Transaction tx) {
+        return addPipe(new OrthodromicLength(layer.getCoordinateReferenceSystem(tx)));
     }
 
     /**
@@ -782,7 +782,7 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 
             @Override
             public ReferencedEnvelope getBounds() {
-                return new ReferencedEnvelope(bounds, layer.getCoordinateReferenceSystem());
+                return new ReferencedEnvelope(bounds, layer.getCoordinateReferenceSystem(tx));
             }
         };
     }
@@ -804,9 +804,9 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
         }
 
         final Iterator<GeoPipeFlow> recordsIterator = records.iterator();
-        final ReferencedEnvelope refBounds = new ReferencedEnvelope(bounds, layer.getCoordinateReferenceSystem());
+        final ReferencedEnvelope refBounds = new ReferencedEnvelope(bounds, layer.getCoordinateReferenceSystem(tx));
 
-        final Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, Arrays.asList(layer.getExtraPropertyNames()));
+        final Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, Arrays.asList(layer.getExtraPropertyNames(tx)));
         return new AbstractFeatureCollection(featureType) {
             @Override
             public int size() {

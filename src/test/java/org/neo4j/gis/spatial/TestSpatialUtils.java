@@ -141,11 +141,11 @@ public class TestSpatialUtils extends Neo4jTestCase {
             GeometryFactory factory = osmLayer.getGeometryFactory();
             EditableLayerImpl resultsLayer = (EditableLayerImpl) spatialService.getOrCreateEditableLayer(tx, "testSnapping_results");
             String[] fieldsNames = new String[]{"snap-id", "description", "distance"};
-            resultsLayer.setExtraPropertyNames(fieldsNames);
+            resultsLayer.setExtraPropertyNames(fieldsNames, tx);
             Point point = factory.createPoint(new Coordinate(12.9777, 56.0555));
             resultsLayer.add(tx, point, fieldsNames, new Object[]{0L, "Point to snap", 0L});
             for (String layerName : new String[]{"railway", "highway-residential"}) {
-                Layer layer = osmLayer.getLayer(layerName);
+                Layer layer = osmLayer.getLayer(tx, layerName);
                 assertNotNull("Missing layer: " + layerName, layer);
                 System.out.println("Closest features in " + layerName + " to point " + point + ":");
                 List<PointResult> edgeResults = SpatialTopologyUtils.findClosestEdges(tx, point, layer);

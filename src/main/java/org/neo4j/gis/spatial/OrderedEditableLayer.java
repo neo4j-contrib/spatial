@@ -51,6 +51,7 @@ public class OrderedEditableLayer extends EditableLayerImpl {
 
     protected Node addGeomNode(Transaction tx, Geometry geom, String[] fieldsName, Object[] fields) {
         Node geomNode = super.addGeomNode(tx, geom, fieldsName, fields);
+        Node layerNode = getLayerNode(tx);
         if (previousGeomNode == null) {
             TraversalDescription traversalDescription = new MonoDirectionalTraversalDescription()
                     .order(BranchOrderingPolicies.POSTORDER_BREADTH_FIRST)
@@ -78,13 +79,14 @@ public class OrderedEditableLayer extends EditableLayerImpl {
      * multiple layers within the same dataset.
      *
      * @return iterable over geometry nodes in the dataset
+     * @param tx
      */
-    public Iterable<Node> getAllGeometryNodes() {
+    public Iterable<Node> getAllGeometryNodes(Transaction tx) {
         TraversalDescription td = new MonoDirectionalTraversalDescription()
                 .depthFirst()
                 .evaluator(Evaluators.excludeStartPosition())
                 .relationships(OrderedRelationshipTypes.GEOMETRIES, Direction.OUTGOING)
                 .relationships(OrderedRelationshipTypes.NEXT_GEOM, Direction.OUTGOING);
-        return td.traverse(layerNode).nodes();
+        return td.traverse(getLayerNode(tx)).nodes();
     }
 }

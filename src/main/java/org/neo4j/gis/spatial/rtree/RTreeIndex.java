@@ -23,7 +23,6 @@ import java.util.stream.Collectors;
 
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
-import org.neo4j.gis.spatial.index.LayerTreeIndexReader;
 import org.neo4j.gis.spatial.index.SpatialIndexWriter;
 import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
@@ -678,7 +677,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
     }
 
     @Override
-    public Envelope getBoundingBox() {
+    public Envelope getBoundingBox(Transaction tx) {
         return getIndexNodeEnvelope(getIndexRoot());
     }
 
@@ -767,7 +766,6 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
     }
 
     public void visit(Transaction tx, SpatialIndexVisitor visitor, Node indexNode) {
-        ((LayerTreeIndexReader) this).visit(tx, visitor, indexNode);
         if (!visitor.needsToVisit(getIndexNodeEnvelope(indexNode))) {
             return;
         }

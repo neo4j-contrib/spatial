@@ -71,8 +71,8 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 		return geometry;
 	}
 	
-	public CoordinateReferenceSystem getCoordinateReferenceSystem() {
-		return layer.getCoordinateReferenceSystem();
+	public CoordinateReferenceSystem getCoordinateReferenceSystem(Transaction tx) {
+		return layer.getCoordinateReferenceSystem(tx);
 	}
 	
 	public String getLayerName() {
@@ -94,12 +94,12 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 	}
 
 	@Override
-	public String[] getPropertyNames() {
-		return layer.getExtraPropertyNames();
+	public String[] getPropertyNames(Transaction tx) {
+		return layer.getExtraPropertyNames(tx);
 	}
 	
 	public Object[] getPropertyValues(Transaction tx) {
-		String[] names = getPropertyNames();
+		String[] names = getPropertyNames(tx);
 		if (names == null) return null;
 		Object[] values = new Object[names.length];
 		for (int i = 0; i < names.length; i++) {
@@ -109,11 +109,11 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 	}
 	
 	public Map<String,Object> getProperties(Transaction tx) {
-		Map<String,Object> result = new HashMap<String,Object>();
+		Map<String,Object> result = new HashMap<>();
 		
-		String[] names = getPropertyNames();
-		for (int i = 0; i < names.length; i++) {
-			result.put(names[i], getProperty(tx, names[i]));
+		String[] names = getPropertyNames(tx);
+		for (String name : names) {
+			result.put(name, getProperty(tx, name));
 		}
 		
 		return result;
@@ -133,18 +133,21 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 		checkIsNotReservedProperty(name);
 		geomNode.setProperty(name, value);
 	}
-	
-	public int hashcode() {
+
+	@Override
+	public int hashCode() {
 		return ((Long) geomNode.getId()).hashCode();
 	}
 	
+	@Override
 	public boolean equals(Object anotherObject) {
 		if (!(anotherObject instanceof SpatialDatabaseRecord)) return false;
 		
 		SpatialDatabaseRecord anotherRecord = (SpatialDatabaseRecord) anotherObject;
 		return getNodeId() == anotherRecord.getNodeId();
 	}
-	
+
+	@Override
 	public String toString() {
 	    return "SpatialDatabaseRecord[" + getNodeId() + "]: type='" + getType() + "', props[" + getPropString() + "]";
 	}
@@ -170,7 +173,7 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 	}
 	
 	private String getPropString() {
-	    StringBuffer text = new StringBuffer();
+	    StringBuilder text = new StringBuilder();
 	    for (String key : geomNode.getPropertyKeys()) {
 	        if (text.length() > 0) text.append(", ");
             text.append(key).append(": ").append(geomNode.getProperty(key).toString());
@@ -181,7 +184,7 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 	
 	// Attributes
 	
-	private Node geomNode;
+	private final Node geomNode;
 	private Geometry geometry;
-	private Layer layer;
+	private final Layer layer;
 }

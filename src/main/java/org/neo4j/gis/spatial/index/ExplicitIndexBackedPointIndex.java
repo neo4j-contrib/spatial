@@ -64,10 +64,10 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
 
     @Override
     public void add(Transaction tx, Node geomNode) {
-        index.add(geomNode, indexTypeName(), getIndexValueFor(geomNode));
+        index.add(geomNode, indexTypeName(), getIndexValueFor(tx, geomNode));
     }
 
-    protected abstract E getIndexValueFor(Node geomNode);
+    protected abstract E getIndexValueFor(Transaction tx, Node geomNode);
 
     @Override
     public void add(Transaction tx, List<Node> geomNodes) {
@@ -128,7 +128,7 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
     }
 
     @Override
-    public Envelope getBoundingBox() {
+    public Envelope getBoundingBox(Transaction tx) {
         return null;
     }
 
@@ -144,7 +144,7 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
 
     @Override
     public SearchResults searchIndex(Transaction tx, SearchFilter filter) {
-        Iterable<Node> indexHits = index.query(indexTypeName(), queryStringFor(filter));
+        Iterable<Node> indexHits = index.query(indexTypeName(), queryStringFor(tx, filter));
         return new SearchResults(() -> new FilteredIndexIterator(tx, indexHits.iterator(), filter));
     }
 
@@ -192,7 +192,7 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
         }
     }
 
-    protected abstract String queryStringFor(SearchFilter filter);
+    protected abstract String queryStringFor(Transaction tx, SearchFilter filter);
 
     @Override
     public void addMonitor(TreeMonitor monitor) {

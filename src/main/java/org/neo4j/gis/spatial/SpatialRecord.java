@@ -33,7 +33,7 @@ public interface SpatialRecord {
 
 	boolean hasProperty(Transaction tx, String name);
 
-	String[] getPropertyNames();
+	String[] getPropertyNames(Transaction tx);
 
 	Object getProperty(Transaction tx, String name);
 

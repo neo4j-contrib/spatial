@@ -48,6 +48,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 import static org.junit.Assert.assertNotNull;
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 public class TestIntersectsPathQueries {
 
@@ -214,8 +215,8 @@ public class TestIntersectsPathQueries {
                     //OSMLayer layer = (OSMLayer) spatial.getOrCreateLayer(layerName, OSMGeometryEncoder.class, OSMLayer.class);
                     Layer layer = spatial.getLayer(tx, layerName);
                     assertNotNull("Layer index should not be null", layer.getIndex());
-                    assertNotNull("Layer index envelope should not be null", layer.getIndex().getBoundingBox());
-                    Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox());
+                    assertNotNull("Layer index envelope should not be null", layer.getIndex().getBoundingBox(tx));
+                    Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox(tx));
                     TestOSMImport.debugEnvelope(bbox, layerName, Constants.PROP_BBOX);
                     indexCount = TestOSMImport.checkIndexCount(tx, layer);
                     tx.commit();
@@ -332,9 +333,9 @@ public class TestIntersectsPathQueries {
     }
 
     private static void withDatabase(String dbRoot, String dbName, Map<String, String> rawConfig, Function<GraphDatabaseService, Exception> withDb) throws RuntimeException {
-        DatabaseManagementService databases = new DatabaseManagementServiceBuilder(new File(dbRoot)).setConfigRaw(rawConfig).build();
+        DatabaseManagementService databases = new DatabaseManagementServiceBuilder(new File(dbRoot, dbName)).setConfigRaw(rawConfig).build();
         try {
-            GraphDatabaseService graphDb = databases.database(dbName);
+            GraphDatabaseService graphDb = databases.database(DEFAULT_DATABASE_NAME);
             Exception e = withDb.apply(graphDb);
             if (e != null) throw new RuntimeException(e);
         } finally {

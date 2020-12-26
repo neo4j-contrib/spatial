@@ -145,7 +145,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 
         try (Transaction tx = graphDb().beginTx()) {
             SimplePointLayer layer = (SimplePointLayer) spatial.getLayer(tx, layerName);
-            Envelope bbox = layer.getIndex().getBoundingBox();
+            Envelope bbox = layer.getIndex().getBoundingBox(tx);
             double[] centre = bbox.centre();
 
             List<GeoPipeFlow> results = GeoPipeline
@@ -255,9 +255,8 @@ public class TestSimplePointLayer extends Neo4jTestCase {
                 layerA.add(tx, n);
                 layerB.add(tx, n);
                 layerC.add(tx, n);
-
-                tx.commit();
             }
+            tx.commit();
         }
         saveLayerAsImage(layerNameA, 700, 70);
         saveLayerAsImage(layerNameB, 700, 70);
@@ -268,9 +267,9 @@ public class TestSimplePointLayer extends Neo4jTestCase {
             Layer layerA = spatial.getLayer(tx, layerNameA);
             Layer layerB = spatial.getLayer(tx, layerNameB);
             Layer layerC = spatial.getLayer(tx, layerNameC);
-            Envelope bboxA = layerA.getIndex().getBoundingBox();
-            Envelope bboxB = layerB.getIndex().getBoundingBox();
-            Envelope bboxC = layerC.getIndex().getBoundingBox();
+            Envelope bboxA = layerA.getIndex().getBoundingBox(tx);
+            Envelope bboxB = layerB.getIndex().getBoundingBox(tx);
+            Envelope bboxC = layerC.getIndex().getBoundingBox(tx);
             double[] centreA = bboxA.centre();
             double[] centreB = bboxB.centre();
             double[] centreC = bboxC.centre();
@@ -327,7 +326,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 
         inTx(tx -> {
             Layer layer = spatial.getLayer(tx, layerName);
-            Envelope bbox = layer.getIndex().getBoundingBox();
+            Envelope bbox = layer.getIndex().getBoundingBox(tx);
             double[] centre = bbox.centre();
 
             List<SpatialDatabaseRecord> results = GeoPipeline

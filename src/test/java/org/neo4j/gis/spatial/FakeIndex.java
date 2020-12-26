@@ -45,16 +45,18 @@ public class FakeIndex implements LayerIndexReader, Constants {
         this.layer = layer;
     }
 
+    @Override
     public Layer getLayer() {
         return layer;
     }
 
-    public int count(Transaction ignored) {
+    @Override
+    public int count(Transaction tx) {
         int count = 0;
 
         // @TODO: Consider adding a count method to Layer or SpatialDataset to allow for
         // optimization of this if this kind of code gets used elsewhere
-        for (@SuppressWarnings("unused") Node node : layer.getDataset().getAllGeometryNodes()) {
+        for (@SuppressWarnings("unused") Node node : layer.getDataset().getAllGeometryNodes(tx)) {
             count++;
         }
 
@@ -66,11 +68,12 @@ public class FakeIndex implements LayerIndexReader, Constants {
         return count(tx) == 0;
     }
 
-    public Envelope getBoundingBox() {
+    @Override
+    public Envelope getBoundingBox(Transaction tx) {
         Envelope bbox = null;
 
         GeometryEncoder geomEncoder = layer.getGeometryEncoder();
-        for (Node node : layer.getDataset().getAllGeometryNodes()) {
+        for (Node node : layer.getDataset().getAllGeometryNodes(tx)) {
             if (bbox == null) {
                 bbox = geomEncoder.decodeEnvelope(node);
             } else {
@@ -166,7 +169,7 @@ public class FakeIndex implements LayerIndexReader, Constants {
 
     @Override
     public SearchResults searchIndex(Transaction tx, SearchFilter filter) {
-        return new SearchResults(new NodeFilter(tx, filter, layer.getDataset().getAllGeometryNodes()));
+        return new SearchResults(new NodeFilter(tx, filter, layer.getDataset().getAllGeometryNodes(tx)));
     }
 
     @Override

@@ -29,8 +29,12 @@ import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.map.MapContent;
 import org.geotools.renderer.lite.StreamingRenderer;
 import org.geotools.styling.Style;
-import org.neo4j.gis.spatial.*;
+import org.neo4j.gis.spatial.Constants;
+import org.neo4j.gis.spatial.GeometryEncoder;
+import org.neo4j.gis.spatial.SpatialTopologyUtils;
+import org.neo4j.gis.spatial.Utilities;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
@@ -39,7 +43,8 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -58,34 +63,30 @@ public class RTreeImageExporter {
     private final Color[] colors = new Color[]{Color.BLUE, Color.CYAN, Color.GREEN, Color.RED, Color.YELLOW, Color.PINK, Color.ORANGE};
     ReferencedEnvelope bounds;
 
-    public RTreeImageExporter(Layer layer, SimpleFeatureType featureType, RTreeIndex index, Coordinate min, Coordinate max) {
-        initialize(layer.getGeometryFactory(), layer.getGeometryEncoder(), layer.getCoordinateReferenceSystem(), featureType, index);
-        bounds.expandToInclude(new com.vividsolutions.jts.geom.Envelope(min.x, max.x, min.y, max.y));
-        bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
-    }
-
-    public RTreeImageExporter(Layer layer, SimpleFeatureType featureType, RTreeIndex index) {
-        initialize(layer.getGeometryFactory(), layer.getGeometryEncoder(), layer.getCoordinateReferenceSystem(), featureType, index);
-        bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
-    }
-
-    public RTreeImageExporter(GeometryFactory geometryFactory, GeometryEncoder geometryEncoder, CoordinateReferenceSystem crs, SimpleFeatureType featureType, RTreeIndex index, Coordinate min, Coordinate max) {
-        initialize(geometryFactory, geometryEncoder, crs, featureType, index);
-        bounds.expandToInclude(new com.vividsolutions.jts.geom.Envelope(min.x, max.x, min.y, max.y));
-        bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
-    }
-
-    private void initialize(GeometryFactory geometryFactory, GeometryEncoder geometryEncoder, CoordinateReferenceSystem crs, SimpleFeatureType featureType, RTreeIndex index) {
+    public RTreeImageExporter(GeometryFactory geometryFactory, GeometryEncoder geometryEncoder, CoordinateReferenceSystem crs, SimpleFeatureType featureType, RTreeIndex index) {
         this.geometryFactory = geometryFactory;
         this.geometryEncoder = geometryEncoder;
         this.featureType = featureType;
         this.index = index;
         this.crs = crs;
         this.bounds = new ReferencedEnvelope(crs);
-        Envelope bbox = index.getBoundingBox();
+    }
+
+    public void initialize(Transaction tx) {
+        Envelope bbox = index.getBoundingBox(tx);
         if (bbox != null) {
             bounds.expandToInclude(Utilities.fromNeo4jToJts(bbox));
         }
+        bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
+    }
+
+    public void initialize(Transaction tx, Coordinate min, Coordinate max) {
+        Envelope bbox = index.getBoundingBox(tx);
+        if (bbox != null) {
+            bounds.expandToInclude(Utilities.fromNeo4jToJts(bbox));
+        }
+        bounds.expandToInclude(new com.vividsolutions.jts.geom.Envelope(min.x, max.x, min.y, max.y));
+        bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
     }
 
     public void saveRTreeLayers(File imagefile, int levels) throws IOException {
@@ -108,8 +109,7 @@ public class RTreeImageExporter {
         saveRTreeLayers(imagefile, index.getIndexRoot(), levels, monitor, foundNodes, new ArrayList<>(), min, max);
     }
 
-    public void saveRTreeLayers(File imagefile, Node rootNode, int levels, TreeMonitor monitor, List<Node> foundNodes, List<Envelope> envelopes
-            , Coordinate min, Coordinate max) throws IOException {
+    public void saveRTreeLayers(File imagefile, Node rootNode, int levels, TreeMonitor monitor, List<Node> foundNodes, List<Envelope> envelopes, Coordinate min, Coordinate max) throws IOException {
         MapContent mapContent = new MapContent();
         drawBounds(mapContent, bounds, Color.WHITE);
 

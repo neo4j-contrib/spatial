@@ -27,6 +27,7 @@ import java.util.Set;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertThat;
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 public class Neo4jSpatialDataStoreTest {
 
@@ -36,7 +37,7 @@ public class Neo4jSpatialDataStoreTest {
     @Before
     public void setup() throws IOException, XMLStreamException {
         this.databases = new TestDatabaseManagementServiceBuilder(new File("target/test")).impermanent().build();
-        this.graph = databases.database("datastore");
+        this.graph = databases.database(DEFAULT_DATABASE_NAME);
         OSMImporter importer = new OSMImporter("map", new ConsoleListener());
         importer.setCharset(StandardCharsets.UTF_8);
         importer.setVerbose(false);
@@ -65,7 +66,7 @@ public class Neo4jSpatialDataStoreTest {
         DatabaseManagementService otherDatabases = null;
         try {
             otherDatabases = new TestDatabaseManagementServiceBuilder(new File("target/other-db")).impermanent().build();
-            GraphDatabaseService otherGraph = databases.database("other-db");
+            GraphDatabaseService otherGraph = databases.database(DEFAULT_DATABASE_NAME);
             Neo4jSpatialDataStore store = new Neo4jSpatialDataStore(otherGraph);
             ReferencedEnvelope bounds = store.getBounds("map");
             // TODO: rather should throw a descriptive exception
