@@ -62,13 +62,12 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
     public static final int DEFAULT_MAX_NODE_REFERENCES = 100;
 
     private TreeMonitor monitor;
-    private Node rootNode;
+    private long rootNodeId;
     private EnvelopeDecoder envelopeDecoder;
     private int maxNodeReferences;
     private String splitMode = GREENES_SPLIT;
     private boolean shouldMergeTrees = false;
 
-    private Node metadataNode;
     private int totalGeometryCount = 0;
     private boolean countSaved = false;
 
@@ -77,7 +76,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
     }
 
     public void init(Transaction tx, Node layerNode, EnvelopeDecoder envelopeDecoder, int maxNodeReferences) {
-        this.rootNode = layerNode;
+        this.rootNodeId = layerNode.getId();
         this.envelopeDecoder = envelopeDecoder;
         this.maxNodeReferences = maxNodeReferences;
         monitor = new EmptyMonitor();
@@ -148,7 +147,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
     @Override
     public void add(Transaction tx, Node geomNode) {
         // initialize the search with root
-        Node parent = getIndexRoot();
+        Node parent = getIndexRoot(tx);
         addBelow(tx, parent, geomNode);
         countSaved = false;
         totalGeometryCount++;
@@ -209,19 +208,19 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
         //If the insertion is large relative to the size of the tree, simply rebuild the whole tree.
         if (geomNodes.size() > totalGeometryCount * 0.4) {
             List<Node> nodesToAdd = new ArrayList<>(geomNodes.size() + totalGeometryCount);
-            for (Node n : getAllIndexedNodes()) {
+            for (Node n : getAllIndexedNodes(tx)) {
                 nodesToAdd.add(n);
             }
             nodesToAdd.addAll(geomNodes);
-            detachGeometryNodes(tx, false, getIndexRoot(), new NullListener());
-            deleteTreeBelow(tx, getIndexRoot());
-            buildRtreeFromScratch(tx, getIndexRoot(), decodeGeometryNodeEnvelopes(nodesToAdd), 0.7);
+            detachGeometryNodes(tx, false, getIndexRoot(tx), new NullListener());
+            deleteTreeBelow(tx, getIndexRoot(tx));
+            buildRtreeFromScratch(tx, getIndexRoot(tx), decodeGeometryNodeEnvelopes(nodesToAdd), 0.7);
             countSaved = false;
             totalGeometryCount = nodesToAdd.size();
-            monitor.addNbrRebuilt(this);
+            monitor.addNbrRebuilt(this, tx);
         } else {
 
-            List<NodeWithEnvelope> outliers = bulkInsertion(tx, getIndexRoot(), getHeight(getIndexRoot(), 0), decodeGeometryNodeEnvelopes(geomNodes), 0.7);
+            List<NodeWithEnvelope> outliers = bulkInsertion(tx, getIndexRoot(tx), getHeight(getIndexRoot(tx), 0), decodeGeometryNodeEnvelopes(geomNodes), 0.7);
             countSaved = false;
             totalGeometryCount = totalGeometryCount + (geomNodes.size() - outliers.size());
             for (NodeWithEnvelope n : outliers) {
@@ -574,7 +573,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
             Node indexNode = findLeafContainingGeometryNode(geomNode);
 
             // be sure geomNode is inside this RTree
-            if (isIndexNodeInThisIndex(indexNode)) {
+            if (isIndexNodeInThisIndex(tx, indexNode)) {
 
                 // remove the entry
                 final Relationship geometryRtreeReference = geomNode.getSingleRelationship(RTreeRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING);
@@ -649,7 +648,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 
     @Override
     public void removeAll(Transaction tx, final boolean deleteGeomNodes, final Listener monitor) {
-        Node indexRoot = getIndexRoot();
+        Node indexRoot = getIndexRoot(tx);
 
         detachGeometryNodes(tx, deleteGeomNodes, indexRoot, monitor);
 
@@ -660,7 +659,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
         deleteRecursivelySubtree(indexRoot, null);
 
         // delete tree metadata
-        Relationship metadataNodeRelationship = getRootNode().getSingleRelationship(RTreeRelationshipTypes.RTREE_METADATA, Direction.OUTGOING);
+        Relationship metadataNodeRelationship = getRootNode(tx).getSingleRelationship(RTreeRelationshipTypes.RTREE_METADATA, Direction.OUTGOING);
         Node metadataNode = metadataNodeRelationship.getEndNode();
         metadataNodeRelationship.delete();
         metadataNode.delete();
@@ -678,7 +677,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 
     @Override
     public Envelope getBoundingBox(Transaction tx) {
-        return getIndexNodeEnvelope(getIndexRoot());
+        return getIndexNodeEnvelope(getIndexRoot(tx));
     }
 
     @Override
@@ -689,7 +688,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 
     @Override
     public boolean isEmpty(Transaction tx) {
-        Node indexRoot = getIndexRoot();
+        Node indexRoot = getIndexRoot(tx);
         return !indexRoot.hasProperty(INDEX_PROP_BBOX);
     }
 
@@ -697,25 +696,25 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
     public boolean isNodeIndexed(Transaction tx, Long geomNodeId) {
         Node geomNode = tx.getNodeById(geomNodeId);
         // be sure geomNode is inside this RTree
-        return geomNode != null && isGeometryNodeIndexed(geomNode) && isIndexNodeInThisIndex(findLeafContainingGeometryNode(geomNode));
+        return geomNode != null && isGeometryNodeIndexed(geomNode) && isIndexNodeInThisIndex(tx, findLeafContainingGeometryNode(geomNode));
     }
 
     public void warmUp(Transaction tx) {
-        visit(tx, new WarmUpVisitor(), getIndexRoot());
+        visit(tx, new WarmUpVisitor(), getIndexRoot(tx));
     }
 
-    public Iterable<Node> getAllIndexInternalNodes() {
+    public Iterable<Node> getAllIndexInternalNodes(Transaction tx) {
         MonoDirectionalTraversalDescription traversal = new MonoDirectionalTraversalDescription();
         TraversalDescription td = traversal
                 .breadthFirst()
                 .relationships(RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)
                 .evaluator(Evaluators.all());
-        return td.traverse(getIndexRoot()).nodes();
+        return td.traverse(getIndexRoot(tx)).nodes();
     }
 
     @Override
-    public Iterable<Node> getAllIndexedNodes() {
-        return new IndexNodeToGeometryNodeIterable(getAllIndexInternalNodes());
+    public Iterable<Node> getAllIndexedNodes(Transaction tx) {
+        return new IndexNodeToGeometryNodeIterable(getAllIndexInternalNodes(tx));
     }
 
     private class SearchEvaluator implements Evaluator {
@@ -761,7 +760,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
                 .relationships(RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)
                 .relationships(RTreeRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)
                 .evaluator(searchEvaluator);
-        Traverser traverser = td.traverse(getIndexRoot());
+        Traverser traverser = td.traverse(getIndexRoot(tx));
         return new SearchResults(traverser.nodes());
     }
 
@@ -785,8 +784,8 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
         }
     }
 
-    public Node getIndexRoot() {
-        return getRootNode().getSingleRelationship(RTreeRelationshipTypes.RTREE_ROOT, Direction.OUTGOING).getEndNode();
+    public Node getIndexRoot(Transaction tx) {
+        return getRootNode(tx).getSingleRelationship(RTreeRelationshipTypes.RTREE_ROOT, Direction.OUTGOING).getEndNode();
     }
 
     // Private methods
@@ -817,9 +816,6 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
      * structure for decoding the envelope.
      */
     public Envelope getIndexNodeEnvelope(Node indexNode) {
-        if (indexNode == null) {
-            indexNode = getIndexRoot();
-        }
         if (!indexNode.hasProperty(INDEX_PROP_BBOX)) {
             // this is ok after an index node split
             return null;
@@ -859,15 +855,15 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
     }
 
     private void initIndexMetadata(Transaction tx) {
-        Node layerNode = getRootNode();
+        Node layerNode = getRootNode(tx);
         if (layerNode.hasRelationship(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_METADATA)) {
             // metadata already present
-            metadataNode = layerNode.getSingleRelationship(RTreeRelationshipTypes.RTREE_METADATA, Direction.OUTGOING).getEndNode();
+            Node metadataNode = layerNode.getSingleRelationship(RTreeRelationshipTypes.RTREE_METADATA, Direction.OUTGOING).getEndNode();
 
             maxNodeReferences = (Integer) metadataNode.getProperty("maxNodeReferences");
         } else {
             // metadata initialization
-            metadataNode = tx.createNode();
+            Node metadataNode = tx.createNode();
             layerNode.createRelationshipTo(metadataNode, RTreeRelationshipTypes.RTREE_METADATA);
 
             metadataNode.setProperty("maxNodeReferences", maxNodeReferences);
@@ -877,7 +873,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
     }
 
     private void initIndexRoot(Transaction tx) {
-        Node layerNode = getRootNode();
+        Node layerNode = getRootNode(tx);
         if (!layerNode.hasRelationship(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_ROOT)) {
             // index initialization
             Node root = tx.createNode();
@@ -885,12 +881,8 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
         }
     }
 
-    private Node getMetadataNode() {
-        if (metadataNode == null) {
-            metadataNode = getRootNode().getSingleRelationship(RTreeRelationshipTypes.RTREE_METADATA, Direction.OUTGOING).getEndNode();
-        }
-
-        return metadataNode;
+    private Node getMetadataNode(Transaction tx) {
+        return getRootNode(tx).getSingleRelationship(RTreeRelationshipTypes.RTREE_METADATA, Direction.OUTGOING).getEndNode();
     }
 
     /**
@@ -901,15 +893,15 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
     private void saveCount(Transaction tx) {
         if (totalGeometryCount == 0) {
             SpatialIndexRecordCounter counter = new SpatialIndexRecordCounter();
-            visit(tx, counter, getIndexRoot());
+            visit(tx, counter, getIndexRoot(tx));
             totalGeometryCount = counter.getResult();
 
-            int savedGeometryCount = (int) getMetadataNode().getProperty("totalGeometryCount", 0);
+            int savedGeometryCount = (int) getMetadataNode(tx).getProperty("totalGeometryCount", 0);
             countSaved = savedGeometryCount == totalGeometryCount;
         }
 
         if (!countSaved) {
-            getMetadataNode().setProperty("totalGeometryCount", totalGeometryCount);
+            getMetadataNode(tx).setProperty("totalGeometryCount", totalGeometryCount);
             countSaved = true;
         }
     }
@@ -1209,7 +1201,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
         addChild(newRoot, RTreeRelationshipTypes.RTREE_CHILD, oldRoot);
         addChild(newRoot, RTreeRelationshipTypes.RTREE_CHILD, newIndexNode);
 
-        Node layerNode = getRootNode();
+        Node layerNode = getRootNode(tx);
         layerNode.getSingleRelationship(RTreeRelationshipTypes.RTREE_ROOT, Direction.OUTGOING).delete();
         layerNode.createRelationshipTo(newRoot, RTreeRelationshipTypes.RTREE_ROOT);
     }
@@ -1362,7 +1354,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
         return geomNode.getSingleRelationship(RTreeRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING).getStartNode();
     }
 
-    protected boolean isIndexNodeInThisIndex(Node indexNode) {
+    protected boolean isIndexNodeInThisIndex(Transaction tx, Node indexNode) {
         Node child = indexNode;
         Node root = null;
         while (root == null) {
@@ -1373,7 +1365,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
                 child = parent;
             }
         }
-        return root.getId() == getIndexRoot().getId();
+        return root.getId() == getIndexRoot(tx).getId();
     }
 
     private void deleteNode(Node node) {
@@ -1383,8 +1375,8 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
         node.delete();
     }
 
-    private Node getRootNode() {
-        return rootNode;
+    private Node getRootNode(Transaction tx) {
+        return tx.getNodeById(rootNodeId);
     }
 
     /**

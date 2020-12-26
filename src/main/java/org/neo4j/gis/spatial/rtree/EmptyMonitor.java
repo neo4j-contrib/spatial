@@ -21,6 +21,7 @@
 package org.neo4j.gis.spatial.rtree;
 
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -39,7 +40,7 @@ public class EmptyMonitor implements TreeMonitor
     }
 
     @Override
-    public void addNbrRebuilt(RTreeIndex rtree)
+    public void addNbrRebuilt(RTreeIndex rtree, Transaction tx)
     {
     }
 

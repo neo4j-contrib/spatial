@@ -739,9 +739,9 @@ public class RTreeBulkInsertTest {
         }
 
         @Override
-        public void addNbrRebuilt(RTreeIndex rtree) {
-            super.addNbrRebuilt(rtree);
-            printRTreeImage("rebuilt", rtree.getIndexRoot(), new ArrayList<>());
+        public void addNbrRebuilt(RTreeIndex rtree, Transaction tx) {
+            super.addNbrRebuilt(rtree, tx);
+            printRTreeImage("rebuilt", rtree.getIndexRoot(tx), new ArrayList<>());
         }
 
         @Override
@@ -768,7 +768,8 @@ public class RTreeBulkInsertTest {
         private void printRTreeImage(String context, Node rootNode, List<Envelope> envelopes) {
             try (Transaction tx = db.beginTx()) {
                 int count = getCalled(context);
-                imageExporter.saveRTreeLayers(new File("rtree-" + insertMode + "-" + splitMode + "/debug-" + context + "/rtree-" + count + ".png"),
+                imageExporter.saveRTreeLayers(tx,
+                        new File("rtree-" + insertMode + "-" + splitMode + "/debug-" + context + "/rtree-" + count + ".png"),
                         rootNode, envelopes, 7);
                 called.put(context, count + 1);
                 tx.commit();
@@ -863,7 +864,7 @@ public class RTreeBulkInsertTest {
             }
             log.log("Splits: " + monitor.getNbrSplit(), currBlock);
             try (Transaction tx = db.beginTx()) {
-                imageExporter.saveRTreeLayers(new File("rtree-single-" + splitMode + "/rtree-" + i + ".png"), 7);
+                imageExporter.saveRTreeLayers(tx, new File("rtree-single-" + splitMode + "/rtree-" + i + ".png"), 7);
                 tx.commit();
             }
             i++;
@@ -878,7 +879,10 @@ public class RTreeBulkInsertTest {
         monitor.reset();
         List<Node> found = queryRTree(layer, monitor, stats, false);
         verifyTreeStructure(layer, splitMode, stats);
-        imageExporter.saveRTreeLayers(new File("rtree-single-" + splitMode + "/rtree.png"), 7, monitor, found, config.searchMin, config.searchMax);
+        try (Transaction tx = db.beginTx()) {
+            imageExporter.saveRTreeLayers(tx, new File("rtree-single-" + splitMode + "/rtree.png"), 7, monitor, found, config.searchMin, config.searchMax);
+            tx.commit();
+        }
     }
 
     private void insertManyNodesInBulk(String splitMode, int blockSize, int maxNodeReferences, IndexTestConfig config)
@@ -955,7 +959,7 @@ public class RTreeBulkInsertTest {
             }
             log.log(startIndexing, "Rebuilt: " + monitor.getNbrRebuilt() + ", Splits: " + monitor.getNbrSplit() + ", Cases " + monitor.getCaseCounts(), (i + 1) * blockSize);
             try (Transaction tx = db.beginTx()) {
-                imageExporter.saveRTreeLayers(new File("rtree-bulk-" + splitMode + "/rtree-" + i + ".png"), 7);
+                imageExporter.saveRTreeLayers(tx, new File("rtree-bulk-" + splitMode + "/rtree-" + i + ".png"), 7);
                 tx.commit();
             }
         }
@@ -966,7 +970,10 @@ public class RTreeBulkInsertTest {
         monitor.reset();
         List<Node> found = queryRTree(layer, monitor, stats, false);
         indexMaker.verifyStructure();
-        imageExporter.saveRTreeLayers(new File("rtree-bulk-" + splitMode + "/rtree.png"), 7, monitor, found, config.searchMin, config.searchMax);
+        try (Transaction tx = db.beginTx()) {
+            imageExporter.saveRTreeLayers(tx, new File("rtree-bulk-" + splitMode + "/rtree.png"), 7, monitor, found, config.searchMin, config.searchMax);
+            tx.commit();
+        }
 //        debugIndexTree((RTreeIndex) layer.getIndex());
     }
 
@@ -1084,10 +1091,10 @@ public class RTreeBulkInsertTest {
                     //                   layer.add(n);
                 }
 
-                buildRTreeFromScratch.invoke(rtree, rtree.getIndexRoot(), decodeEnvelopes.invoke(rtree, coords), 0.7);
+                buildRTreeFromScratch.invoke(rtree, rtree.getIndexRoot(tx), decodeEnvelopes.invoke(rtree, coords), 0.7);
                 RTreeTestUtils testUtils = new RTreeTestUtils(rtree);
 
-                Map<Long, Long> results = testUtils.get_height_map(tx, rtree.getIndexRoot());
+                Map<Long, Long> results = testUtils.get_height_map(tx, rtree.getIndexRoot(tx));
                 assertEquals(1, results.size());
                 assertEquals((int) expectedHeight.invoke(rtree, 0.7, coords.size()), results.keySet().iterator().next().intValue());
                 assertEquals(results.values().iterator().next().intValue(), coords.size());
@@ -1131,7 +1138,7 @@ public class RTreeBulkInsertTest {
 
                 RTreeIndex rtree = (RTreeIndex) layer.getIndex();
                 RTreeTestUtils utils = new RTreeTestUtils(rtree);
-                assertTrue(utils.check_balance(tx, rtree.getIndexRoot()));
+                assertTrue(utils.check_balance(tx, rtree.getIndexRoot(tx)));
 
                 tx.commit();
             }
@@ -1154,7 +1161,7 @@ public class RTreeBulkInsertTest {
             Layer layer = sdbs.getLayer(tx, "BulkLoader");
             RTreeIndex rtree = (RTreeIndex) layer.getIndex();
 
-            Node root = rtree.getIndexRoot();
+            Node root = rtree.getIndexRoot(tx);
             List<Node> children = new ArrayList<>(100);
             for (Relationship r : root.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD)) {
                 children.add(r.getEndNode());
@@ -1289,9 +1296,9 @@ public class RTreeBulkInsertTest {
         }
     }
 
-    private void checkIndexOverlaps(Layer layer, TestStats stats) {
+    private void checkIndexOverlaps(Transaction tx, Layer layer, TestStats stats) {
         RTreeIndex index = (RTreeIndex) layer.getIndex();
-        Node root = index.getIndexRoot();
+        Node root = index.getIndexRoot(tx);
         ArrayList<ArrayList<NodeWithEnvelope>> nodes = new ArrayList<>();
         nodes.add(new ArrayList<>());
         nodes.get(0).add(new NodeWithEnvelope(root, index.getIndexNodeEnvelope(root)));
@@ -1376,7 +1383,7 @@ public class RTreeBulkInsertTest {
         int matched = monitor.getCaseCounts().get("Geometry Matches");
         int indexSize = 0;
         try (Transaction tx = db.beginTx()) {
-            for (Node ignored : index.getAllIndexInternalNodes()) {
+            for (Node ignored : index.getAllIndexInternalNodes(tx)) {
                 indexSize++;
             }
             tx.commit();
@@ -1548,7 +1555,7 @@ public class RTreeBulkInsertTest {
         long maxLeafCount = leafCountFactor * geometries / stats.maxNodeReferences;
         assertThat("In " + splitMode + " we expected leaves to be no more than " + leafCountFactor + "x(geometries/maxNodeReferences)", (long) leafMap.get("leaves"), lessThanOrEqualTo(maxLeafCount));
         try (Transaction tx = db.beginTx()) {
-            checkIndexOverlaps(layer, stats);
+            checkIndexOverlaps(tx, layer, stats);
             tx.commit();
         }
     }

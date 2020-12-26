@@ -48,7 +48,7 @@ public class Neo4jTestUtils {
         try (Transaction tx = db.beginTx()) {
             Layer layer = new SpatialDatabaseService().getLayer(tx, layerName);
             RTreeIndex index = (RTreeIndex) layer.getIndex();
-            printTree(index.getIndexRoot(), 0);
+            printTree(index.getIndexRoot(tx), 0);
             tx.commit();
         }
 

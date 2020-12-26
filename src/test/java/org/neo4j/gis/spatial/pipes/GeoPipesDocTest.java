@@ -55,6 +55,7 @@ import java.nio.charset.Charset;
 import java.util.NoSuchElementException;
 
 import static org.junit.Assert.*;
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 public class GeoPipesDocTest extends AbstractJavaDocTestBase {
     private static Layer osmLayer;
@@ -1030,7 +1031,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
     @BeforeClass
     public static void init() {
         databases = new TestDatabaseManagementServiceBuilder(new File("target/docs")).impermanent().build();
-        db = databases.database("docs");
+        db = databases.database(DEFAULT_DATABASE_NAME);
         try {
             load();
         } catch (Exception e) {

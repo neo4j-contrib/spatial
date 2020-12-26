@@ -342,14 +342,4 @@ public class TestIntersectsPathQueries {
             databases.shutdown();
         }
     }
-
-    private static void withDatabase(String dbRoot, String dbName, Map<String, String> rawConfig, Consumer<GraphDatabaseService> withDb) {
-        DatabaseManagementService databases = new DatabaseManagementServiceBuilder(new File(dbRoot)).setConfigRaw(rawConfig).build();
-        try {
-            GraphDatabaseService graphDb = databases.database(dbName);
-            withDb.accept(graphDb);
-        } finally {
-            databases.shutdown();
-        }
-    }
 }

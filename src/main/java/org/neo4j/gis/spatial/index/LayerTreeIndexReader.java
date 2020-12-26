@@ -28,7 +28,7 @@ import org.neo4j.graphdb.Transaction;
  */
 public interface LayerTreeIndexReader extends LayerIndexReader {
 	
-	Node getIndexRoot();
+	Node getIndexRoot(Transaction tx);
 	
 	void visit(Transaction tx, SpatialIndexVisitor visitor, Node indexNode);
 	

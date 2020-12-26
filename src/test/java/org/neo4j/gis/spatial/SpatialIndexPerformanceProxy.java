@@ -70,8 +70,8 @@ public class SpatialIndexPerformanceProxy implements LayerIndexReader {
         return count;
     }
 
-    public Iterable<Node> getAllGeometryNodes() {
-        return spatialIndex.getAllIndexedNodes();
+    public Iterable<Node> getAllGeometryNodes(Transaction tx) {
+        return spatialIndex.getAllIndexedNodes(tx);
     }
 
     @Override
@@ -98,9 +98,9 @@ public class SpatialIndexPerformanceProxy implements LayerIndexReader {
     }
 
     @Override
-    public Iterable<Node> getAllIndexedNodes() {
+    public Iterable<Node> getAllIndexedNodes(Transaction tx) {
         long start = System.currentTimeMillis();
-        Iterable<Node> result = spatialIndex.getAllIndexedNodes();
+        Iterable<Node> result = spatialIndex.getAllIndexedNodes(tx);
         long stop = System.currentTimeMillis();
         System.out.println("# exec time(getAllIndexedNodes()): " + (stop - start) + "ms");
         return result;

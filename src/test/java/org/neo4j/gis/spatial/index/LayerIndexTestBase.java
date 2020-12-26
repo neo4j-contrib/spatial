@@ -50,6 +50,7 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 public abstract class LayerIndexTestBase {
 
@@ -106,8 +107,8 @@ public abstract class LayerIndexTestBase {
 
     @Before
     public void setup() {
-        databases = new TestDatabaseManagementServiceBuilder(new File("target")).impermanent().build();
-        graph = databases.database("test");
+        databases = new TestDatabaseManagementServiceBuilder(new File("target/layers")).impermanent().build();
+        graph = databases.database(DEFAULT_DATABASE_NAME);
         spatial = new SpatialDatabaseService();
     }
 

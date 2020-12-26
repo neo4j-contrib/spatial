@@ -86,8 +86,8 @@ public class LayerIndexReaderWrapper implements LayerIndexReader {
 	}
 
 	@Override
-	public Iterable<Node> getAllIndexedNodes() {
-		return index.getAllIndexedNodes();
+	public Iterable<Node> getAllIndexedNodes(Transaction tx) {
+		return index.getAllIndexedNodes(tx);
 	}
 
 	@Override

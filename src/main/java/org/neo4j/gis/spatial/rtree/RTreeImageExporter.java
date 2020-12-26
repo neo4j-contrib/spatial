@@ -89,27 +89,27 @@ public class RTreeImageExporter {
         bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
     }
 
-    public void saveRTreeLayers(File imagefile, int levels) throws IOException {
-        saveRTreeLayers(imagefile, levels, new EmptyMonitor(), new ArrayList<>(), null, null);
+    public void saveRTreeLayers(Transaction tx, File imagefile, int levels) throws IOException {
+        saveRTreeLayers(tx, imagefile, levels, new EmptyMonitor(), new ArrayList<>(), null, null);
     }
 
-    public void saveRTreeLayers(File imagefile, Node rootNode, int levels) throws IOException {
-        saveRTreeLayers(imagefile, rootNode, levels, new EmptyMonitor(), new ArrayList<>(), new ArrayList<>(), null, null);
+    public void saveRTreeLayers(Transaction tx, File imagefile, Node rootNode, int levels) throws IOException {
+        saveRTreeLayers(tx, imagefile, rootNode, levels, new EmptyMonitor(), new ArrayList<>(), new ArrayList<>(), null, null);
     }
 
-    public void saveRTreeLayers(File imagefile, Node rootNode, List<Envelope> envelopes, int levels) throws IOException {
-        saveRTreeLayers(imagefile, rootNode, levels, new EmptyMonitor(), new ArrayList<>(), envelopes, null, null);
+    public void saveRTreeLayers(Transaction tx, File imagefile, Node rootNode, List<Envelope> envelopes, int levels) throws IOException {
+        saveRTreeLayers(tx, imagefile, rootNode, levels, new EmptyMonitor(), new ArrayList<>(), envelopes, null, null);
     }
 
-    public void saveRTreeLayers(File imagefile, int levels, TreeMonitor monitor) throws IOException {
-        saveRTreeLayers(imagefile, levels, monitor, new ArrayList<>(), null, null);
+    public void saveRTreeLayers(Transaction tx, File imagefile, int levels, TreeMonitor monitor) throws IOException {
+        saveRTreeLayers(tx, imagefile, levels, monitor, new ArrayList<>(), null, null);
     }
 
-    public void saveRTreeLayers(File imagefile, int levels, TreeMonitor monitor, List<Node> foundNodes, Coordinate min, Coordinate max) throws IOException {
-        saveRTreeLayers(imagefile, index.getIndexRoot(), levels, monitor, foundNodes, new ArrayList<>(), min, max);
+    public void saveRTreeLayers(Transaction tx, File imagefile, int levels, TreeMonitor monitor, List<Node> foundNodes, Coordinate min, Coordinate max) throws IOException {
+        saveRTreeLayers(tx, imagefile, index.getIndexRoot(tx), levels, monitor, foundNodes, new ArrayList<>(), min, max);
     }
 
-    public void saveRTreeLayers(File imagefile, Node rootNode, int levels, TreeMonitor monitor, List<Node> foundNodes, List<Envelope> envelopes, Coordinate min, Coordinate max) throws IOException {
+    public void saveRTreeLayers(Transaction tx, File imagefile, Node rootNode, int levels, TreeMonitor monitor, List<Node> foundNodes, List<Envelope> envelopes, Coordinate min, Coordinate max) throws IOException {
         MapContent mapContent = new MapContent();
         drawBounds(mapContent, bounds, Color.WHITE);
 
@@ -133,7 +133,7 @@ public class RTreeImageExporter {
             }
         }
         ArrayList<Node> allIndexedNodes = new ArrayList<>();
-        for (Node node : index.getAllIndexedNodes()) {
+        for (Node node : index.getAllIndexedNodes(tx)) {
             allIndexedNodes.add(node);
         }
         drawGeometryNodes(mapContent, allIndexedNodes, Color.LIGHT_GRAY);

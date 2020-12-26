@@ -37,6 +37,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
+
 public class RTreeTests {
 
     private DatabaseManagementService databases;
@@ -46,8 +48,8 @@ public class RTreeTests {
 
     @Before
     public void setup() {
-        databases = new TestDatabaseManagementServiceBuilder(new File(".")).impermanent().build();
-        db = databases.database("rtree");
+        databases = new TestDatabaseManagementServiceBuilder(new File("target/rtree")).impermanent().build();
+        db = databases.database(DEFAULT_DATABASE_NAME);
         try (Transaction tx = db.beginTx()) {
             this.rtree = new TestRTreeIndex(tx);
             tx.commit();
@@ -79,8 +81,8 @@ public class RTreeTests {
         }
         System.out.println("Created two trees");
         try (Transaction tx = db.beginTx()) {
-            imageExporter.saveRTreeLayers(new File("target/rtree-test/rtree-left.png"), rootLeft.node, 7);
-            imageExporter.saveRTreeLayers(new File("target/rtree-test/rtree-right.png"), rootRight.node, 7);
+            imageExporter.saveRTreeLayers(tx, new File("target/rtree-test/rtree-left.png"), rootLeft.node, 7);
+            imageExporter.saveRTreeLayers(tx, new File("target/rtree-test/rtree-right.png"), rootRight.node, 7);
             tx.commit();
         }
         try (Transaction tx = db.beginTx()) {
@@ -89,7 +91,7 @@ public class RTreeTests {
         }
         System.out.println("Merged two trees");
         try (Transaction tx = db.beginTx()) {
-            imageExporter.saveRTreeLayers(new File("target/rtree-test/rtree-merged.png"), rootLeft.node, 7);
+            imageExporter.saveRTreeLayers(tx, new File("target/rtree-test/rtree-merged.png"), rootLeft.node, 7);
             tx.commit();
         }
     }

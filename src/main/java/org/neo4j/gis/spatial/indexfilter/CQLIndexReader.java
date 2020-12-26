@@ -102,7 +102,7 @@ public class CQLIndexReader extends LayerIndexReaderWrapper {
     @Override
     public int count(Transaction tx) {
         Counter counter = new Counter(tx);
-        index.visit(tx, counter, index.getIndexRoot());
+        index.visit(tx, counter, index.getIndexRoot(tx));
         return counter.getResult();
     }
 

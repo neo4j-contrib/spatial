@@ -41,7 +41,7 @@ public interface SpatialIndexReader {
 
     boolean isNodeIndexed(Transaction tx, Long nodeId);
 
-    Iterable<Node> getAllIndexedNodes();
+    Iterable<Node> getAllIndexedNodes(Transaction tx);
 
     SearchResults searchIndex(Transaction tx, SearchFilter filter);
 

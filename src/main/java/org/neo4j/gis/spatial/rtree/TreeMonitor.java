@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial.rtree;
 
 
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 
 import java.util.List;
 import java.util.Map;
@@ -32,7 +33,7 @@ public interface TreeMonitor
 
     int getHeight();
 
-    void addNbrRebuilt(RTreeIndex rtree);
+    void addNbrRebuilt(RTreeIndex rtree, Transaction tx);
 
     int getNbrRebuilt();
 

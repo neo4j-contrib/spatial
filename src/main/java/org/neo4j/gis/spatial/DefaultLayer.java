@@ -285,7 +285,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
     }
 
     public Iterable<Node> getAllGeometryNodes(Transaction tx) {
-        return indexReader.getAllIndexedNodes();
+        return indexReader.getAllIndexedNodes(tx);
     }
 
     @Override

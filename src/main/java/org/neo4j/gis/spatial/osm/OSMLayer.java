@@ -126,7 +126,7 @@ public class OSMLayer extends DynamicLayer {
      * @param tx
      */
     public Iterable<Node> getAllGeometryNodes(Transaction tx) {
-        return indexReader.getAllIndexedNodes();
+        return indexReader.getAllIndexedNodes(tx);
     }
 
     public boolean removeDynamicLayer(Transaction tx, String name) {

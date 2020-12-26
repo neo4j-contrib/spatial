@@ -99,8 +99,8 @@ public class FakeIndex implements LayerIndexReader, Constants {
     }
 
     @Override
-    public Iterable<Node> getAllIndexedNodes() {
-        return layer.getIndex().getAllIndexedNodes();
+    public Iterable<Node> getAllIndexedNodes(Transaction tx) {
+        return layer.getIndex().getAllIndexedNodes(tx);
     }
 
     @Override

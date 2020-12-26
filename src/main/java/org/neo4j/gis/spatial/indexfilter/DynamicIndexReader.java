@@ -143,7 +143,7 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 	@Override
 	public int count(Transaction tx) {
 		DynamicRecordCounter counter = new DynamicRecordCounter();
-		index.visit(tx, counter, index.getIndexRoot());
+		index.visit(tx, counter, index.getIndexRoot(tx));
 		return counter.getResult();
 	}
 	

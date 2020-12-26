@@ -100,7 +100,7 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
     public void removeAll(Transaction tx, boolean deleteGeomNodes, Listener monitor) {
         if (deleteGeomNodes) {
 
-            for (Node node : getAllIndexedNodes()) {
+            for (Node node : getAllIndexedNodes(tx)) {
                 remove(tx, node.getId(), true, true);
             }
         }
@@ -138,7 +138,7 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
     }
 
     @Override
-    public Iterable<Node> getAllIndexedNodes() {
+    public Iterable<Node> getAllIndexedNodes(Transaction tx) {
         return index.query(indexTypeName(), "*");
     }
 
