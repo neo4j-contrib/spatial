@@ -63,7 +63,7 @@ public class Neo4jSpatialDataStore extends AbstractDataStore implements Constant
         super(true);
 
         this.database = database;
-        this.spatialDatabase = new SpatialDatabaseService();
+        this.spatialDatabase = new SpatialDatabaseService(database);
     }
 
     /**

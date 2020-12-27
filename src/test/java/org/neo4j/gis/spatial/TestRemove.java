@@ -29,7 +29,7 @@ public class TestRemove extends Neo4jTestCase {
 
     @Test
     public void testAddMoreThanMaxNodeRefThenDeleteAll() {
-        SpatialDatabaseService spatialService = new SpatialDatabaseService();
+        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
 
         try (Transaction tx = graphDb().beginTx()) {
             spatialService.createLayer(tx, layerName, WKTGeometryEncoder.class, EditableLayerImpl.class);

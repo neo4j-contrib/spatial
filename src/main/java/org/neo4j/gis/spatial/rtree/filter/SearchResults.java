@@ -24,7 +24,7 @@ import org.neo4j.graphdb.Node;
 import java.util.Iterator;
 
 public class SearchResults implements Iterable<Node> {
-    private Iterable<Node> traverser;
+    private final Iterable<Node> traverser;
     private int count = -1;
 
     public SearchResults(Iterable<Node> traverser) {

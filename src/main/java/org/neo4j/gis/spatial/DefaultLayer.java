@@ -24,6 +24,7 @@ import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.PrecisionModel;
 import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
 import org.neo4j.gis.spatial.encoders.Configurable;
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.gis.spatial.index.SpatialIndexWriter;
@@ -189,7 +190,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
     }
 
     @Override
-    public void initialize(Transaction tx, String name, Node layerNode) {
+    public void initialize(Transaction tx, IndexManager indexManager, String name, Node layerNode) {
         //this.spatialDatabase = spatialDatabase;
         this.name = name;
         this.layerNodeId = layerNode.getId();
@@ -241,7 +242,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
             this.indexReader = index;
             this.indexWriter = index;
         }
-        this.indexReader.init(tx, this);
+        this.indexReader.init(tx, indexManager, this);
     }
 
     /**

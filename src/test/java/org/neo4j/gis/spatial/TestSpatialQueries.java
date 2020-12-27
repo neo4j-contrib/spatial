@@ -42,7 +42,7 @@ public class TestSpatialQueries extends Neo4jTestCase {
     @Test
     public void testSearchClosestWithShortLongLineStrings() throws ParseException {
         String layerName = "test";
-        SpatialDatabaseService spatial = new SpatialDatabaseService();
+        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb());
         Geometry shortLineString;
         Geometry longLineString;
         Geometry point;

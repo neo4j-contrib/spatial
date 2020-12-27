@@ -32,6 +32,7 @@ import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.utilities.LayerUtilities;
 import org.neo4j.gis.spatial.utilities.ReferenceNodes;
 import org.neo4j.graphdb.*;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import java.util.ArrayList;
@@ -47,7 +48,12 @@ import java.util.Map;
  */
 public class SpatialDatabaseService implements Constants {
 
+    public final IndexManager indexManager;
     private long spatialRoot = -1;
+
+    public SpatialDatabaseService(GraphDatabaseService service) {
+        this.indexManager = new IndexManager(((GraphDatabaseAPI) service).databaseLayout());
+    }
 
     private Node getSpatialRoot(Transaction tx) {
         if (spatialRoot < 0) {
@@ -60,7 +66,7 @@ public class SpatialDatabaseService implements Constants {
         List<String> names = new ArrayList<>();
 
         for (Relationship relationship : getSpatialRoot(tx).getRelationships(Direction.OUTGOING, SpatialRelationshipTypes.LAYER)) {
-            Layer layer = LayerUtilities.makeLayerFromNode(tx, relationship.getEndNode());
+            Layer layer = LayerUtilities.makeLayerFromNode(tx, indexManager, relationship.getEndNode());
             if (layer instanceof DynamicLayer) {
                 names.addAll(((DynamicLayer) layer).getLayerNames(tx));
             } else {
@@ -75,7 +81,7 @@ public class SpatialDatabaseService implements Constants {
         for (Relationship relationship : getSpatialRoot(tx).getRelationships(Direction.OUTGOING, SpatialRelationshipTypes.LAYER)) {
             Node node = relationship.getEndNode();
             if (name.equals(node.getProperty(PROP_LAYER))) {
-                return LayerUtilities.makeLayerFromNode(tx, node);
+                return LayerUtilities.makeLayerFromNode(tx, indexManager, node);
             }
         }
         return getDynamicLayer(tx, name);
@@ -86,9 +92,9 @@ public class SpatialDatabaseService implements Constants {
         for (Relationship relationship : getSpatialRoot(tx).getRelationships(Direction.OUTGOING, SpatialRelationshipTypes.LAYER)) {
             Node node = relationship.getEndNode();
             if (!node.getProperty(PROP_LAYER_CLASS, "").toString().startsWith("DefaultLayer")) {
-                Layer layer = LayerUtilities.makeLayerFromNode(tx, node);
+                Layer layer = LayerUtilities.makeLayerFromNode(tx, indexManager, node);
                 if (layer instanceof DynamicLayer) {
-                    dynamicLayers.add((DynamicLayer) LayerUtilities.makeLayerFromNode(tx, node));
+                    dynamicLayers.add((DynamicLayer) LayerUtilities.makeLayerFromNode(tx, indexManager, node));
                 }
             }
         }
@@ -114,7 +120,7 @@ public class SpatialDatabaseService implements Constants {
         } else {
             Node node = layer.getLayerNode(tx);
             node.setProperty(PROP_LAYER_CLASS, DynamicLayer.class.getCanonicalName());
-            return (DynamicLayer) LayerUtilities.makeLayerFromNode(tx, node);
+            return (DynamicLayer) LayerUtilities.makeLayerFromNode(tx, indexManager, node);
         }
     }
 
@@ -220,7 +226,7 @@ public class SpatialDatabaseService implements Constants {
         if (indexRel != null) {
             Node layerNode = indexRel.getStartNode();
             if (layerNode.hasProperty(PROP_LAYER)) {
-                return LayerUtilities.makeLayerFromNode(tx, layerNode);
+                return LayerUtilities.makeLayerFromNode(tx, indexManager, layerNode);
             }
         }
         return null;
@@ -293,7 +299,7 @@ public class SpatialDatabaseService implements Constants {
         if (containsLayer(tx, name))
             throw new SpatialDatabaseException("Layer " + name + " already exists");
 
-        Layer layer = LayerUtilities.makeLayerAndNode(tx, name, geometryEncoderClass, layerClass, indexClass);
+        Layer layer = LayerUtilities.makeLayerAndNode(tx, indexManager, name, geometryEncoderClass, layerClass, indexClass);
         getSpatialRoot(tx).createRelationshipTo(layer.getLayerNode(tx), SpatialRelationshipTypes.LAYER);
         if (encoderConfig != null && encoderConfig.length() > 0) {
             GeometryEncoder encoder = layer.getGeometryEncoder();

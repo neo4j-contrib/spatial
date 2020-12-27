@@ -52,7 +52,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
     @Test
     public void testNearestNeighborSearchOnEmptyLayer() {
         String layerName = "test";
-        SpatialDatabaseService spatial = new SpatialDatabaseService();
+        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb());
         try (Transaction tx = graphDb().beginTx()) {
             EditableLayer layer = spatial.createSimplePointLayer(tx, layerName, "Longitude", "Latitude");
             assertNotNull(layer);
@@ -76,7 +76,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
     @Test
     public void testSimplePointLayer() {
         String layerName = "test";
-        SpatialDatabaseService spatial = new SpatialDatabaseService();
+        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb());
         try (Transaction tx = graphDb().beginTx()) {
             EditableLayer layer = spatial.createSimplePointLayer(tx, layerName, "Longitude", "Latitude");
             assertNotNull(layer);
@@ -104,7 +104,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
     @Test
     public void testNativePointLayer() {
         String layerName = "test";
-        SpatialDatabaseService spatial = new SpatialDatabaseService();
+        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb());
         inTx(tx -> {
             EditableLayer layer = spatial.createNativePointLayer(tx, layerName, "location");
             assertNotNull(layer);
@@ -131,7 +131,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
     @Test
     public void testNeoTextLayer() {
         String layerName = "neo-text";
-        SpatialDatabaseService spatial = new SpatialDatabaseService();
+        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb());
         inTx(tx -> {
             SimplePointLayer layer = spatial.createSimplePointLayer(tx, layerName);
             assertNotNull(layer);
@@ -185,7 +185,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
     @Test
     public void testIndexingExistingSimplePointNodes() {
         String layerName = "my-simple-points";
-        SpatialDatabaseService spatial = new SpatialDatabaseService();
+        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb());
         inTx(tx -> spatial.createSimplePointLayer(tx, layerName, "x", "y"));
 
         Coordinate[] coords = makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt", testOrigin);
@@ -205,7 +205,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
     @Test
     public void testIndexingExistingNativePointNodes() {
         String layerName = "my-native-points";
-        SpatialDatabaseService spatial = new SpatialDatabaseService();
+        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb());
         inTx(tx -> spatial.createNativePointLayer(tx, "my-native-points", "position"));
         Neo4jCRS crs = Neo4jCRS.findCRS("WGS-84");
 
@@ -230,7 +230,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
         String layerNameB = "my-points-B";
         String layerNameC = "my-points-C";
         GraphDatabaseService db = graphDb();
-        SpatialDatabaseService spatial = new SpatialDatabaseService();
+        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb());
         double x_offset = 0.15, y_offset = 0.15;
         inTx(tx -> {
             spatial.createSimplePointLayer(tx, layerNameA, "xa", "ya", "bbox_a");
@@ -311,7 +311,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
     @Test
     public void testDensePointLayer() {
         String layerName = "neo-dense";
-        SpatialDatabaseService spatial = new SpatialDatabaseService();
+        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb());
         inTx(tx -> {
             SimplePointLayer layer = spatial.createSimplePointLayer(tx, layerName, "lon", "lat");
             assertNotNull(layer);
@@ -368,7 +368,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
         imageExporter.setExportDir("target/export/SimplePointTests");
         imageExporter.setZoom(0.9);
         imageExporter.setSize(width, height);
-        SpatialDatabaseService spatial = new SpatialDatabaseService();
+        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb());
         inTx(tx -> {
             EditableLayer tmpLayer = spatial.createSimplePointLayer(tx, layerName, "lon", "lat");
             for (SpatialRecord record : results) {
@@ -421,7 +421,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
     }
 
     private void assertIndexCountSameAs(String layerName, int count) {
-        SpatialDatabaseService spatial = new SpatialDatabaseService();
+        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb());
         try (Transaction tx = graphDb().beginTx()) {
             int indexCount = spatial.getLayer(tx, layerName).getIndex().count(tx);
             assertEquals(count, indexCount);

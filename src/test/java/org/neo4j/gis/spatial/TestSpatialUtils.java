@@ -43,7 +43,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
 
     @Test
     public void testJTSLinearRef() {
-        SpatialDatabaseService spatialService = new SpatialDatabaseService();
+        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
         Geometry geometry;
         try (Transaction tx = graphDb().beginTx()) {
             EditableLayer layer = spatialService.getOrCreateEditableLayer(tx, "jts");
@@ -119,7 +119,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
 
         // Define dynamic layers
         List<Layer> layers = new ArrayList<>();
-        SpatialDatabaseService spatialService = new SpatialDatabaseService();
+        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
         try(Transaction tx = graphDb().beginTx()) {
             OSMLayer osmLayer = (OSMLayer) spatialService.getLayer(tx, osm);
             layers.add(osmLayer.addSimpleDynamicLayer(tx, "highway", "primary"));

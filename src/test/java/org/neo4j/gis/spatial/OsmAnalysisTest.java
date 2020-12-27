@@ -142,7 +142,7 @@ public class OsmAnalysisTest extends TestOSMImport {
         }
         databases = new TestDatabaseManagementServiceBuilder(dbDir).impermanent().build();
         db = databases.database(DEFAULT_DATABASE_NAME);
-        return new SpatialDatabaseService();
+        return new SpatialDatabaseService(db);
     }
 
     protected void runAnalysis(String osm, int years, int days) throws Exception {
@@ -163,7 +163,7 @@ public class OsmAnalysisTest extends TestOSMImport {
     }
 
     public void testAnalysis2(Transaction tx, String osm, int years, int days) throws IOException {
-        SpatialDatabaseService spatial = new SpatialDatabaseService();
+        SpatialDatabaseService spatial = new SpatialDatabaseService(db);
         OSMLayer layer = (OSMLayer) spatial.getLayer(tx, osm);;
         OSMDataset dataset = (OSMDataset) layer.getDataset();
         Map<String, User> userIndex = new HashMap<>();
@@ -274,7 +274,7 @@ public class OsmAnalysisTest extends TestOSMImport {
             Map<String, User> userIndex = collectUserChangesetData(usersNode);
             SortedSet<User> topTen = getTopTen(userIndex);
 
-            SpatialDatabaseService spatialService = new SpatialDatabaseService();
+            SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
             SortedMap<String, Layer> layers = exportPoints(tx, osm, spatialService, topTen);
 
             layers = removeEmptyLayers(tx, layers);

@@ -24,6 +24,7 @@ import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.index.NodeIndex;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.Listener;
@@ -36,6 +37,7 @@ import org.neo4j.io.fs.FileUtils;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
@@ -196,7 +198,7 @@ public class OSMImporter implements Constants {
         log("Re-indexing with GraphDatabaseService: " + database + " (class: " + database.getClass() + ")");
 
         setLogContext("Index");
-        SpatialDatabaseService spatialDatabase = new SpatialDatabaseService();
+        SpatialDatabaseService spatialDatabase = new SpatialDatabaseService(database);
         OSMLayer layer;
         try (Transaction tx = database.beginTx()) {
             layer = (OSMLayer) spatialDatabase.getOrCreateLayer(tx, layerName, OSMGeometryEncoder.class, OSMLayer.class);
@@ -615,8 +617,8 @@ public class OSMImporter implements Constants {
             T prevNode = null;
             T prevProxy = null;
             Map<String, Object> prevProps = null;
-            LinkedHashMap<String, Object> relProps = new LinkedHashMap<String, Object>();
-            HashMap<String, Object> directionProps = new HashMap<String, Object>();
+            LinkedHashMap<String, Object> relProps = new LinkedHashMap<>();
+            HashMap<String, Object> directionProps = new HashMap<>();
             directionProps.put("oneway", true);
             for (long nd_ref : wayNodes) {
                 // long pointNode =
@@ -809,6 +811,7 @@ public class OSMImporter implements Constants {
 
     private static class OSMGraphWriter extends OSMWriter<Node> {
         private final GraphDatabaseService graphDb;
+        private final IndexManager indexManager;
         private long currentChangesetId = -1;
         private Node currentChangesetNode;
         private long currentUserId = -1;
@@ -824,6 +827,7 @@ public class OSMImporter implements Constants {
                                int txInterval, boolean relatxedTxFlush) {
             super(statsManager, osmImporter);
             this.graphDb = graphDb;
+            this.indexManager = new IndexManager(((GraphDatabaseAPI) graphDb).databaseLayout());
             this.txInterval = txInterval;
             if (this.txInterval < 100) {
                 System.err.println("Warning: Unusually short txInterval, expect bad insert performance");
@@ -866,7 +870,7 @@ public class OSMImporter implements Constants {
         }
 
         private NodeIndex<Object> indexFor(String indexName) {
-            return new NodeIndex<>(indexName);
+            return new NodeIndex<>(indexName, indexManager);
         }
 
         private Node findNode(String name, Node parent, RelationshipType relType) {
@@ -954,7 +958,8 @@ public class OSMImporter implements Constants {
             Node node = null;
             Object indexValue = (indexKey == null) ? null : properties.get(indexKey);
             if (indexValue != null && (createdNodes + foundNodes < 100 || foundNodes > 10)) {
-                node = indexFor(name).get(indexKey, properties.get(indexKey)).getSingle();
+                Long nodeId = indexFor(name).get(indexKey, properties.get(indexKey)).getSingle();
+                node = tx.getNodeById(nodeId);
             }
             if (node == null) {
                 node = tx.createNode();
@@ -987,7 +992,8 @@ public class OSMImporter implements Constants {
 
         @Override
         protected Node getSingleNode(String name, String string, Object value) {
-            return indexFor(name).get(string, value).getSingle();
+            Long nodeId = indexFor(name).get(string, value).getSingle();
+            return tx.getNodeById(nodeId);
         }
 
         @Override
@@ -1017,7 +1023,8 @@ public class OSMImporter implements Constants {
             Node node = changesetNodes.get(osmId);
             if (node == null) {
                 logNodeFoundFrom("node-index");
-                return indexFor("node").get("node_osm_id", osmId).getSingle();
+                Long nodeId = indexFor("node").get("node_osm_id", osmId).getSingle();
+                return tx.getNodeById(nodeId);
             } else {
                 logNodeFoundFrom(INDEX_NAME_CHANGESET);
                 return node;
@@ -1058,7 +1065,7 @@ public class OSMImporter implements Constants {
                     currentChangesetId = changeset;
                     NodeIndex.IndexHits result = indexFor(INDEX_NAME_CHANGESET).get(INDEX_NAME_CHANGESET, currentChangesetId);
                     if (result.size() > 0) {
-                        currentChangesetNode = (Node) result.getSingle();
+                        currentChangesetNode = tx.getNodeById(result.getSingle());
                     } else {
                         LinkedHashMap<String, Object> changesetProps = new LinkedHashMap<>();
                         changesetProps.put(INDEX_NAME_CHANGESET, currentChangesetId);
@@ -1088,7 +1095,8 @@ public class OSMImporter implements Constants {
                     currentUserId = uid;
                     NodeIndex.IndexHits result = indexFor(INDEX_NAME_USER).get("uid", currentUserId);
                     if (result.size() > 0) {
-                        currentUserNode = indexFor(INDEX_NAME_USER).get("uid", currentUserId).getSingle();
+                        Long nodeId = indexFor(INDEX_NAME_USER).get("uid", currentUserId).getSingle();
+                        currentUserNode = tx.getNodeById(nodeId);
                     } else {
                         LinkedHashMap<String, Object> userProps = new LinkedHashMap<String, Object>();
                         userProps.put("uid", currentUserId);

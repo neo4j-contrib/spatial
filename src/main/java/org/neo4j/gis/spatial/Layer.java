@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
@@ -47,7 +48,7 @@ public interface Layer {
      * this method. The layer implementation can store the passed parameters for later use
      * satisfying the prupose of the layer API (see other Layer methods).
      */
-    void initialize(Transaction tx, String name, Node layerNode);
+    void initialize(Transaction tx, IndexManager indexManager, String name, Node layerNode);
 
     /**
      * Every layer using a specific implementation of the SpatialIndexReader and SpatialIndexWriter

@@ -20,9 +20,9 @@
 package org.neo4j.gis.spatial.utilities;
 
 import org.neo4j.gis.spatial.*;
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
-import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
@@ -38,7 +38,7 @@ public class LayerUtilities implements Constants {
      * @return new layer instance from existing layer node
      */
     @SuppressWarnings("unchecked")
-    public static Layer makeLayerFromNode(Transaction tx, Node layerNode) {
+    public static Layer makeLayerFromNode(Transaction tx, IndexManager indexManager, Node layerNode) {
         try {
             String name = (String) layerNode.getProperty(PROP_LAYER);
             if (name == null) {
@@ -51,7 +51,7 @@ public class LayerUtilities implements Constants {
             }
 
             Class<? extends Layer> layerClass = className == null ? Layer.class : (Class<? extends Layer>) Class.forName(className);
-            return makeLayerInstance(tx, name, layerNode, layerClass);
+            return makeLayerInstance(tx, indexManager, name, layerNode, layerClass);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -63,7 +63,7 @@ public class LayerUtilities implements Constants {
      *
      * @return new Layer instance based on newly created layer Node
      */
-    public static Layer makeLayerAndNode(Transaction tx, String name,
+    public static Layer makeLayerAndNode(Transaction tx, IndexManager indexManager, String name,
                                          Class<? extends GeometryEncoder> geometryEncoderClass,
                                          Class<? extends Layer> layerClass,
                                          Class<? extends LayerIndexReader> indexClass) {
@@ -77,16 +77,16 @@ public class LayerUtilities implements Constants {
             layerNode.setProperty(PROP_GEOMENCODER, geometryEncoderClass.getCanonicalName());
             layerNode.setProperty(PROP_INDEX_CLASS, indexClass.getCanonicalName());
             layerNode.setProperty(PROP_LAYER_CLASS, layerClass.getCanonicalName());
-            return makeLayerInstance(tx, name, layerNode, layerClass);
+            return makeLayerInstance(tx, indexManager, name, layerNode, layerClass);
         } catch (Exception e) {
             throw new SpatialDatabaseException(e);
         }
     }
 
-    private static Layer makeLayerInstance(Transaction tx, String name, Node layerNode, Class<? extends Layer> layerClass) throws InstantiationException, IllegalAccessException {
+    private static Layer makeLayerInstance(Transaction tx, IndexManager indexManager, String name, Node layerNode, Class<? extends Layer> layerClass) throws InstantiationException, IllegalAccessException {
         if (layerClass == null) layerClass = Layer.class;
         Layer layer = layerClass.newInstance();
-        layer.initialize(tx, name, layerNode);
+        layer.initialize(tx, indexManager, name, layerNode);
         return layer;
     }
 

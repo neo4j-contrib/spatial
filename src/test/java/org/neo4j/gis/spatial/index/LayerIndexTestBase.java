@@ -35,9 +35,11 @@ import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.io.fs.FileUtils;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -72,7 +74,7 @@ public abstract class LayerIndexTestBase {
         Layer layer = mockLayer();
         LayerIndexReader index = makeIndex();
         try (Transaction tx = graph.beginTx()) {
-            index.init(tx, layer);
+            index.init(tx, spatial.indexManager, layer);
             tx.commit();
         }
         when(layer.getIndex()).thenReturn(index);
@@ -106,10 +108,12 @@ public abstract class LayerIndexTestBase {
     }
 
     @Before
-    public void setup() {
-        databases = new TestDatabaseManagementServiceBuilder(new File("target/layers")).impermanent().build();
+    public void setup() throws IOException {
+        File baseDir = new File("target/layers");
+        FileUtils.deleteRecursively(baseDir);
+        databases = new TestDatabaseManagementServiceBuilder(baseDir).impermanent().build();
         graph = databases.database(DEFAULT_DATABASE_NAME);
-        spatial = new SpatialDatabaseService();
+        spatial = new SpatialDatabaseService(graph);
     }
 
     @After

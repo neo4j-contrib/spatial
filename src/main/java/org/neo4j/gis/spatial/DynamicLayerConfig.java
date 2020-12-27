@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.geotools.filter.text.cql2.CQLException;
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.index.LayerTreeIndexReader;
 import org.neo4j.gis.spatial.rtree.Envelope;
@@ -238,7 +239,7 @@ public class DynamicLayerConfig implements Layer, Constants {
 	}
 
 	@Override
-	public void initialize(Transaction tx, String name, Node layerNode) {
+	public void initialize(Transaction tx, IndexManager indexManager, String name, Node layerNode) {
 		throw new SpatialDatabaseException("Cannot initialize the layer config, initialize only the dynamic layer node");
 	}
 

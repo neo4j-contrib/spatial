@@ -919,7 +919,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
     }
 
     private static void load() throws Exception {
-        SpatialDatabaseService spatialService = new SpatialDatabaseService();
+        SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
 
         try (Transaction tx = db.beginTx()) {
             loadTestOsmData("two-street.osm", 100);

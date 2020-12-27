@@ -118,7 +118,7 @@ public class RTreeBulkInsertTest {
     private EditableLayer getOrCreateSimplePointLayer(String name, String index, String xProperty, String yProperty) {
         CoordinateReferenceSystem crs = DefaultEngineeringCRS.GENERIC_2D;
         try (Transaction tx = db.beginTx()) {
-            SpatialDatabaseService sdbs = new SpatialDatabaseService();
+            SpatialDatabaseService sdbs = new SpatialDatabaseService(db);
             EditableLayer layer = sdbs.getOrCreateSimplePointLayer(tx, name, index, xProperty, yProperty);
             layer.setCoordinateReferenceSystem(tx, crs);
             tx.commit();
@@ -243,7 +243,7 @@ public class RTreeBulkInsertTest {
         @Override
         public EditableLayer setupLayer(Transaction tx) {
             this.nodes = setup(name, "geohash", config.width);
-            this.layer = (EditableLayer) new SpatialDatabaseService().getLayer(tx, "Coordinates");
+            this.layer = (EditableLayer) new SpatialDatabaseService(db).getLayer(tx, "Coordinates");
             return layer;
         }
 
@@ -274,7 +274,7 @@ public class RTreeBulkInsertTest {
     }
 
     private class ZOrderIndexMaker implements IndexMaker {
-        private final SpatialDatabaseService spatial = new SpatialDatabaseService();
+        private final SpatialDatabaseService spatial = new SpatialDatabaseService(db);
         private final String name;
         private final String insertMode;
         private final IndexTestConfig config;
@@ -290,7 +290,7 @@ public class RTreeBulkInsertTest {
         @Override
         public EditableLayer setupLayer(Transaction tx) {
             this.nodes = setup(name, "zorder", config.width);
-            this.layer = (EditableLayer) new SpatialDatabaseService().getLayer(tx,"Coordinates");
+            this.layer = (EditableLayer) new SpatialDatabaseService(db).getLayer(tx,"Coordinates");
             return layer;
         }
 
@@ -336,7 +336,7 @@ public class RTreeBulkInsertTest {
         @Override
         public EditableLayer setupLayer(Transaction tx) {
             this.nodes = setup(name, "hilbert", config.width);
-            this.layer = (EditableLayer) new SpatialDatabaseService().getLayer(tx,"Coordinates");
+            this.layer = (EditableLayer) new SpatialDatabaseService(db).getLayer(tx,"Coordinates");
             return layer;
         }
 
@@ -367,7 +367,7 @@ public class RTreeBulkInsertTest {
     }
 
     private class RTreeIndexMaker implements IndexMaker {
-        private final SpatialDatabaseService spatial = new SpatialDatabaseService();
+        private final SpatialDatabaseService spatial = new SpatialDatabaseService(db);
         private final String splitMode;
         private final String insertMode;
         private final boolean shouldMergeTrees;
@@ -982,7 +982,7 @@ public class RTreeBulkInsertTest {
         // Use these two lines if you want to examine the output.
 //        File dbPath = new File("target/var/BulkTest");
 //        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath.getCanonicalPath());
-        SpatialDatabaseService sdbs = new SpatialDatabaseService();
+        SpatialDatabaseService sdbs = new SpatialDatabaseService(db);
         EditableLayer layer = getOrCreateSimplePointLayer("Coordinates", "rtree", "lon", "lat");
 
         final long numNodes = 100000;
@@ -1054,7 +1054,7 @@ public class RTreeBulkInsertTest {
         //GraphDatabaseService db = this.databases.database("BultTest2");
         GraphDatabaseService db = this.db;
 
-        SpatialDatabaseService sdbs = new SpatialDatabaseService();
+        SpatialDatabaseService sdbs = new SpatialDatabaseService(db);
         GeometryEncoder encoder = new SimplePointEncoder();
 
         Method decodeEnvelopes = RTreeIndex.class.getDeclaredMethod("decodeEnvelopes", List.class);
@@ -1108,7 +1108,7 @@ public class RTreeBulkInsertTest {
         // Use this line if you want to examine the output.
         //GraphDatabaseService db = databases.database("BulkTest");
 
-        SpatialDatabaseService sdbs = new SpatialDatabaseService();
+        SpatialDatabaseService sdbs = new SpatialDatabaseService(db);
         int N = 10000;
         int Q = 40;
         Random random = new Random();

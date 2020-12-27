@@ -39,7 +39,7 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 
     private void loadSamplePointData() {
         try (Transaction tx = graphDb().beginTx()) {
-            SpatialDatabaseService spatial = new SpatialDatabaseService();
+            SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb());
             SimplePointLayer layer = spatial.createSimplePointLayer(tx, "GeoPipesPerformanceTest");
             System.out.println("Creating database of " + records + " point records");
             for (int i = 0; i < records; i++) {
@@ -88,7 +88,7 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 
     @Test
     public void testQueryPerformance() {
-        SpatialDatabaseService spatial = new SpatialDatabaseService();
+        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb());
         try (Transaction tx = graphDb().beginTx()) {
             Layer layer = spatial.getLayer(tx, "GeoPipesPerformanceTest");
             // String[] keys = {"id","name","address","city","state","zip"};
@@ -132,7 +132,7 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 
     @Test
     public void testPagingPerformance() {
-        SpatialDatabaseService spatial = new SpatialDatabaseService();
+        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb());
         try (Transaction tx = graphDb().beginTx()) {
             Layer layer = spatial.getLayer(tx, "GeoPipesPerformanceTest");
             // String[] keys = {"id","name","address","city","state","zip"};

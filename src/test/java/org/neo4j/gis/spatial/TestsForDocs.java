@@ -76,7 +76,7 @@ public class TestsForDocs {
 
     private void checkIndexAndFeatureCount(String layerName) throws IOException {
         try (Transaction tx = graphDb.beginTx()) {
-            SpatialDatabaseService spatial = new SpatialDatabaseService();
+            SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb);
             Layer layer = spatial.getLayer(tx, layerName);
             if (layer.getIndex().count(tx) < 1) {
                 System.out.println("Warning: index count zero: " + layer.getName());
@@ -138,7 +138,7 @@ public class TestsForDocs {
         importMapOSM(graphDb);
         GraphDatabaseService database = graphDb;
         // START SNIPPET: searchBBox tag::searchBBox[]
-        SpatialDatabaseService spatialService = new SpatialDatabaseService();
+        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb);
         try (Transaction tx = database.beginTx()) {
             Layer layer = spatialService.getLayer(tx, "map.osm");
             LayerIndexReader spatialIndex = layer.getIndex();
@@ -176,7 +176,7 @@ public class TestsForDocs {
         importMapOSM(graphDb);
         GraphDatabaseService database = graphDb;
         // START SNIPPET: exportShapefileFromOSM tag::exportShapefileFromOSM[]
-        SpatialDatabaseService spatialService = new SpatialDatabaseService();
+        SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
         try (Transaction tx = database.beginTx()) {
             OSMLayer layer = (OSMLayer) spatialService.getLayer(tx, "map.osm");
             DynamicLayerConfig wayLayer = layer.addSimpleDynamicLayer(tx, Constants.GTYPE_LINESTRING);
@@ -193,7 +193,7 @@ public class TestsForDocs {
         importMapOSM(graphDb);
         GraphDatabaseService database = graphDb;
         // START SNIPPET: exportShapefileFromQuery tag::exportShapefileFromQuery[]
-        SpatialDatabaseService spatialService = new SpatialDatabaseService();
+        SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
         Envelope bbox = new Envelope(12.94, 12.96, 56.04, 56.06);
         List<SpatialDatabaseRecord> results;
         try (Transaction tx = database.beginTx()) {

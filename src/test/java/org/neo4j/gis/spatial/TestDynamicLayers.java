@@ -68,7 +68,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
         // Define dynamic layers
         ArrayList<Layer> layers = new ArrayList<>();
         try (Transaction tx = graphDb().beginTx()) {
-            SpatialDatabaseService spatialService = new SpatialDatabaseService();
+            SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
             DynamicLayer shpLayer = spatialService.asDynamicLayer(tx, spatialService.getLayer(tx, shpFile));
             layers.add(shpLayer.addLayerConfig(tx, "CQL0-highway", GTYPE_GEOMETRY, "highway is not null"));
             layers.add(shpLayer.addLayerConfig(tx, "CQL1-highway", GTYPE_POINT, "geometryType(the_geom) = 'MultiLineString'"));
@@ -119,7 +119,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
         // Define dynamic layers
         ArrayList<Layer> layers = new ArrayList<>();
         try (Transaction tx = graphDb().beginTx()) {
-            SpatialDatabaseService spatialService = new SpatialDatabaseService();
+            SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
             OSMLayer osmLayer = (OSMLayer) spatialService.getLayer(tx, osmFile);
             LinearRing ring = osmLayer.getGeometryFactory().createLinearRing(
                     new Coordinate[]{new Coordinate(bbox.getMinX(), bbox.getMinY()), new Coordinate(bbox.getMinX(), bbox.getMaxY()),
@@ -263,7 +263,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
     }
 
     private Envelope checkLayer(String layerName) {
-        SpatialDatabaseService spatialService = new SpatialDatabaseService();
+        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
         Layer layer;
         try (Transaction tx = graphDb().beginTx()) {
             layer = spatialService.getLayer(tx, layerName);

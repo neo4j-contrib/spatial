@@ -38,7 +38,7 @@ public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader,
     private Layer layer;
 
     @Override
-    public void init(Transaction tx, Layer layer) {
+    public void init(Transaction tx, IndexManager indexManager, Layer layer) {
         init(tx, layer, 100);
     }
 

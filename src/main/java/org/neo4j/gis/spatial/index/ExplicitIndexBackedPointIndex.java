@@ -37,6 +37,20 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 
+/**
+ * 2D Point data can be indexed against a 1D backing index using a 2D->1D mapper.
+ * Some mappers, like Geohash mapping, can produce a String value encoding the 2D space
+ * such as two points close together in 1D space (the strings) are also likely to be
+ * close together in 2D space. The Geohash has the same space filling curve as the Z-Order
+ * index, which uses a Long value in 1D space. A space filling curve with more efficient
+ * space use is the Hilbert space filling curve where the probability fo being close in
+ * 2D space when close in 1D is even higher.
+ * <p>
+ * All three of these mappings will be backed by the ExplicitIndexBackedPointIndex of
+ * type `E` where `E` is either a string (for geohash) or a long (for zorder and hilber).
+ *
+ * @param <E> either a String or a Long depending on whether the index is geohash or space-filling curve.
+ */
 public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexReader, SpatialIndexWriter {
 
     protected Layer layer;
@@ -46,10 +60,10 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
     protected abstract String indexTypeName();
 
     @Override
-    public void init(Transaction tx, Layer layer) {
+    public void init(Transaction tx, IndexManager indexManager, Layer layer) {
         this.layer = layer;
         String indexName = "_Spatial_" + indexTypeName() + "_Index_" + layer.getName();
-        this.index = new NodeIndex<>(indexName);
+        this.index = new NodeIndex<>(indexName, indexManager);
     }
 
     @Override
@@ -139,12 +153,12 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
 
     @Override
     public Iterable<Node> getAllIndexedNodes(Transaction tx) {
-        return index.query(indexTypeName(), "*");
+        return index.queryAll().asNodes(tx);
     }
 
     @Override
     public SearchResults searchIndex(Transaction tx, SearchFilter filter) {
-        Iterable<Node> indexHits = index.query(indexTypeName(), queryStringFor(tx, filter));
+        Iterable<Node> indexHits = index.query(indexTypeName(), queryStringFor(tx, filter)).asNodes(tx);
         return new SearchResults(() -> new FilteredIndexIterator(tx, indexHits.iterator(), filter));
     }
 

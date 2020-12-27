@@ -199,8 +199,8 @@ public class TestIntersectsPathQueries {
     }
 
     private void runTestPointSetGeoptimaIntersection(String tracePath, String dbRoot, String dbName, String layerName, boolean testMultiPoint) {
-        SpatialDatabaseService spatial = new SpatialDatabaseService();
         withDatabase(dbRoot, dbName, Neo4jTestCase.NORMAL_CONFIG, graphDb -> {
+            SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb);
             try {
                 int indexCount;
                 try (Transaction tx = graphDb.beginTx()) {

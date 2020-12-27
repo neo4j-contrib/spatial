@@ -19,47 +19,47 @@
  */
 package org.neo4j.gis.spatial.filter;
 
-import java.util.Iterator;
-
-import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.graphdb.Node;
 
+import java.util.Iterator;
+
 public class SearchRecords implements Iterable<SpatialDatabaseRecord>, Iterator<SpatialDatabaseRecord> {
-	
-	private SearchResults results;
-	private Iterator<Node> nodeIterator;
-	private Layer layer;
 
-	public SearchRecords(Layer layer, SearchResults results) {
-		this.layer = layer;
-		this.results = results;
-		nodeIterator = results.iterator();
-	}
+    private final SearchResults results;
+    private final Iterator<Node> nodeIterator;
+    private final Layer layer;
 
-	@Override
-	public Iterator<SpatialDatabaseRecord> iterator() {
-		return this;
-	}
+    public SearchRecords(Layer layer, SearchResults results) {
+        this.layer = layer;
+        this.results = results;
+        nodeIterator = results.iterator();
+    }
 
-	@Override
-	public boolean hasNext() {
-		return nodeIterator.hasNext();
-	}
+    @Override
+    public Iterator<SpatialDatabaseRecord> iterator() {
+        return this;
+    }
 
-	@Override
-	public SpatialDatabaseRecord next() {
-		return new SpatialDatabaseRecord(layer, nodeIterator.next());
-	}
+    @Override
+    public boolean hasNext() {
+        return nodeIterator.hasNext();
+    }
 
-	@Override
-	public void remove() {
-		throw new UnsupportedOperationException("Cannot remove from results");
-	}
+    @Override
+    public SpatialDatabaseRecord next() {
+        return new SpatialDatabaseRecord(layer, nodeIterator.next());
+    }
 
-	public int count() {
-		return results.count();
-	}
+    @Override
+    public void remove() {
+        throw new UnsupportedOperationException("Cannot remove from results");
+    }
+
+    public int count() {
+        return results.count();
+    }
 
 }

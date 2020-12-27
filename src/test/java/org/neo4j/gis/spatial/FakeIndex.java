@@ -21,6 +21,7 @@ package org.neo4j.gis.spatial;
 
 import java.util.*;
 
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
@@ -36,12 +37,12 @@ import org.neo4j.graphdb.Transaction;
  */
 public class FakeIndex implements LayerIndexReader, Constants {
 
-    public FakeIndex(Layer layer) {
-        init(null, layer);
+    public FakeIndex(Layer layer, IndexManager indexManager) {
+        init(null, indexManager, layer);
     }
 
     @Override
-    public void init(Transaction ignored, Layer layer) {
+    public void init(Transaction ignored, IndexManager indexManager, Layer layer) {
         this.layer = layer;
     }
 

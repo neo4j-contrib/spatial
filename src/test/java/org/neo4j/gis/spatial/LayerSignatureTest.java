@@ -28,7 +28,7 @@ import java.util.function.Function;
 import static org.junit.Assert.assertEquals;
 
 public class LayerSignatureTest extends Neo4jTestCase implements Constants {
-    private final SpatialDatabaseService spatialService = new SpatialDatabaseService();
+    private final SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
 
     @Test
     public void testSimplePointLayer() {

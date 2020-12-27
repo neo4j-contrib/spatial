@@ -30,9 +30,10 @@ public interface LayerIndexReader extends SpatialIndexReader {
 	 * The index used by a layer is dynamically constructed from a property of the layer node. As such it needs to be
 	 * constructed with a default, no-arg constructor and then initialized with necessary parameters, such as the layer.
 	 *
+	 * @param indexManager for setting up index files on disk
 	 * @param layer object containing and controlling this index
 	 */
-	void init(Transaction tx, Layer layer);
+	void init(Transaction tx, IndexManager indexManager, Layer layer);
 
 	Layer getLayer();
 

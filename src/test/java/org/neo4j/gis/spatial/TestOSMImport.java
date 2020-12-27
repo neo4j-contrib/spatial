@@ -133,7 +133,7 @@ public class TestOSMImport extends Neo4jTestCase implements Test {
     protected static void checkOSMLayer(GraphDatabaseService graphDatabaseService, String layerName) throws IOException {
         int indexCount;
         try (Transaction tx = graphDatabaseService.beginTx()) {
-            SpatialDatabaseService spatialService = new SpatialDatabaseService();
+            SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDatabaseService);
             OSMLayer layer = (OSMLayer) spatialService.getOrCreateLayer(tx, layerName, OSMGeometryEncoder.class, OSMLayer.class);
             assertNotNull("OSM Layer index should not be null", layer.getIndex());
             assertNotNull("OSM Layer index envelope should not be null", layer.getIndex().getBoundingBox(tx));

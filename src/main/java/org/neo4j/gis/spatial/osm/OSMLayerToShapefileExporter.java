@@ -56,7 +56,7 @@ public class OSMLayerToShapefileExporter {
             List<String> layerspecs = new ArrayList<>(Arrays.asList(args).subList(4, args.length));
             DatabaseManagementService databases = new DatabaseManagementServiceBuilder(new File(homeDir)).build();
             GraphDatabaseService db = databases.database(database);
-            SpatialDatabaseService spatial = new SpatialDatabaseService();
+            SpatialDatabaseService spatial = new SpatialDatabaseService(db);
             OSMLayer layer;
             try (Transaction tx = db.beginTx()) {
                 layer = (OSMLayer) spatial.getLayer(tx, osmdataset);

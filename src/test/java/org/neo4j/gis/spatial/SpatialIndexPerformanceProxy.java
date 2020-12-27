@@ -21,6 +21,7 @@ package org.neo4j.gis.spatial;
 
 import java.util.Map;
 
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
@@ -43,7 +44,7 @@ public class SpatialIndexPerformanceProxy implements LayerIndexReader {
     }
 
     @Override
-    public void init(Transaction tx, Layer layer) {
+    public void init(Transaction tx, IndexManager indexManager, Layer layer) {
         if (layer != getLayer()) throw new IllegalArgumentException("Cannot change layer associated with this index");
     }
 

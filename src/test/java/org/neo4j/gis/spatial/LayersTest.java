@@ -74,7 +74,7 @@ public class LayersTest {
     @Test
     public void testBasicLayerOperations() {
         String layerName = "test";
-        SpatialDatabaseService spatial = new SpatialDatabaseService();
+        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb);
         inTx(tx -> {
             Layer layer = spatial.getLayer(tx, layerName);
             assertNull(layer);
@@ -110,7 +110,7 @@ public class LayersTest {
 
     private void testPointLayer(Class<? extends LayerIndexReader> indexClass, Class<? extends GeometryEncoder> encoderClass) {
         String layerName = "points";
-        SpatialDatabaseService spatial = new SpatialDatabaseService();
+        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb);
         inTx(tx -> {
             EditableLayer layer = (EditableLayer) spatial.createLayer(tx, layerName, encoderClass, EditableLayerImpl.class, indexClass, null);
             assertNotNull(layer);
@@ -153,7 +153,7 @@ public class LayersTest {
 
     private void testDeleteGeometry(Class<? extends GeometryEncoder> encoderClass) {
         String layerName = "test";
-        SpatialDatabaseService spatial = new SpatialDatabaseService();
+        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb);
         inTx(tx -> {
             EditableLayer layer = (EditableLayer) spatial.createLayer(tx, layerName, encoderClass, EditableLayerImpl.class, null, null);
             assertNotNull(layer);
@@ -170,7 +170,7 @@ public class LayersTest {
     @Test
     public void testEditableLayer() {
         String layerName = "test";
-        SpatialDatabaseService spatial = new SpatialDatabaseService();
+        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb);
         inTx(tx -> {
             EditableLayer layer = spatial.getOrCreateEditableLayer(tx, layerName);
             assertNotNull(layer);
@@ -203,7 +203,7 @@ public class LayersTest {
 
     @Test
     public void testSnapToLine() {
-        SpatialDatabaseService spatial = new SpatialDatabaseService();
+        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb);
         inTx(tx -> {
             EditableLayer layer = spatial.getOrCreateEditableLayer(tx, "roads");
             Coordinate crossing_bygg_forstadsgatan = new Coordinate(13.0171471, 55.6074148);
@@ -232,7 +232,7 @@ public class LayersTest {
     }
 
     private String testSpecificEditableLayer(String layerName, Class<? extends GeometryEncoder> geometryEncoderClass, Class<? extends Layer> layerClass) {
-        SpatialDatabaseService spatial = new SpatialDatabaseService();
+        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb);
         inTx(tx -> {
             Layer layer = spatial.createLayer(tx, layerName, geometryEncoderClass, layerClass);
             assertNotNull(layer);
@@ -316,7 +316,7 @@ public class LayersTest {
         // Use these two lines if you want to examine the output.
 //        File dbPath = new File("target/var/BulkTest");
 //        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath.getCanonicalPath());
-        SpatialDatabaseService spatial = new SpatialDatabaseService();
+        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb);
         inTx(tx -> spatial.getOrCreateSimplePointLayer(tx, "Coordinates", "rtree", "lat", "lon"));
 
         Random rand = new Random();

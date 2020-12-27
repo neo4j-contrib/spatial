@@ -192,7 +192,7 @@ public class TestSpatial extends Neo4jTestCase {
     private long countLayerIndex(String layerName) {
         long count = 0;
         try (Transaction tx = graphDb().beginTx()) {
-            SpatialDatabaseService spatialService = new SpatialDatabaseService();
+            SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
             Layer layer = spatialService.getLayer(tx, layerName);
             if (layer != null && layer.getIndex() != null) {
                 count = layer.getIndex().count(tx);
@@ -246,14 +246,14 @@ public class TestSpatial extends Neo4jTestCase {
         System.out.println("\n=== Spatial Index Test: " + layerName + " ===");
         long start = System.currentTimeMillis();
 
-        SpatialDatabaseService spatialService = new SpatialDatabaseService();
+        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
         try (Transaction tx = graphDb().beginTx()) {
             Layer layer = spatialService.getLayer(tx, layerName);
             if (layer == null || layer.getIndex() == null || layer.getIndex().count(tx) < 1) {
                 fail("Layer not loaded: " + layerName);
             }
 
-            LayerIndexReader fakeIndex = new SpatialIndexPerformanceProxy(new FakeIndex(layer));
+            LayerIndexReader fakeIndex = new SpatialIndexPerformanceProxy(new FakeIndex(layer, spatialService.indexManager));
             LayerIndexReader rtreeIndex = new SpatialIndexPerformanceProxy(layer.getIndex());
 
             System.out.println("RTreeIndex bounds: " + rtreeIndex.getBoundingBox(tx));

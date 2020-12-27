@@ -46,7 +46,7 @@ public class Neo4jTestUtils {
 
     public static void debugIndexTree(GraphDatabaseService db, String layerName) {
         try (Transaction tx = db.beginTx()) {
-            Layer layer = new SpatialDatabaseService().getLayer(tx, layerName);
+            Layer layer = new SpatialDatabaseService(db).getLayer(tx, layerName);
             RTreeIndex index = (RTreeIndex) layer.getIndex();
             printTree(index.getIndexRoot(tx), 0);
             tx.commit();

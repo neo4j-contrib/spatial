@@ -64,7 +64,7 @@ public class ShapefileImporter implements Constants {
         }
         this.commitInterval = commitInterval;
         this.database = database;
-        this.spatialDatabase = new SpatialDatabaseService();
+        this.spatialDatabase = new SpatialDatabaseService(database);
 
         if (monitor == null) monitor = new NullListener();
         this.monitor = monitor;
