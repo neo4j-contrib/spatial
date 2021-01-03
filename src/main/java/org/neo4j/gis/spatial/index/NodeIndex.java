@@ -4,10 +4,7 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.IndexWriter;
-import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.*;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.*;
@@ -88,7 +85,7 @@ public class NodeIndex<E> {
 
     public IndexHits query(String indexKey, String query) {
         try {
-            // the "node" arg specifies the default field to use
+            // the "indexKey" arg specifies the default field to use
             // when no field is explicitly specified in the query.
             return query(new QueryParser(indexKey, analyzer).parse(query));
         } catch (ParseException e) {
@@ -136,11 +133,9 @@ public class NodeIndex<E> {
             this.reader = reader;
         }
 
-        public IndexHits(IndexSearcher searcher, TopDocs topDocs) throws IOException {
-            for (ScoreDoc hit : topDocs.scoreDocs) {
-                System.out.println("Adding hit: " + hit);
-                add(searcher.doc(hit.doc));
-            }
+        @Override
+        protected void doSetNextReader(LeafReaderContext context) {
+            this.reader = context.reader();
         }
 
         @Override

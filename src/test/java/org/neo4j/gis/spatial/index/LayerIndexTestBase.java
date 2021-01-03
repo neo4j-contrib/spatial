@@ -88,6 +88,7 @@ public abstract class LayerIndexTestBase {
             tx.commit();
         }
         Layer layer = mock(Layer.class);
+        when(layer.getName()).thenReturn("test");
         when(layer.getGeometryEncoder()).thenReturn(encoder);
         when(layer.getLayerNode(Matchers.any(Transaction.class))).thenReturn(layerNode);
         when(layer.getGeometryFactory()).thenReturn(geometryFactory);
@@ -99,8 +100,6 @@ public abstract class LayerIndexTestBase {
         try (Transaction tx = graph.beginTx()) {
             Node geomNode = tx.createNode();
             Point point = geometryFactory.createPoint(new Coordinate(x, y));
-            geomNode.setProperty("x", x);//TODO Remove these?
-            geomNode.setProperty("y", y);
             encoder.encodeGeometry(tx, point, geomNode);
             index.add(tx, geomNode);
             tx.commit();

@@ -40,7 +40,7 @@ public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String
         //TODO: Make this code projection aware - currently it assumes lat/lon
         Geometry geom = layer.getGeometryEncoder().decodeGeometry(geomNode);
         Point point = geom.getCentroid();   // Other code is ensuring only point layers use this, but just in case we encode the centroid
-        long encoded = MortonEncoder.encode(point.getX(), point.getY());
+        long encoded = MortonEncoder.encode(point.getY(), point.getX());
         return MortonEncoder.geoTermToString(encoded);
     }
 
@@ -57,8 +57,8 @@ public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String
     protected String queryStringFor(Transaction tx, SearchFilter filter) {
         if (filter instanceof AbstractSearchEnvelopeIntersection) {
             Envelope referenceEnvelope = ((AbstractSearchEnvelopeIntersection) filter).getReferenceEnvelope();
-            String maxHash = MortonEncoder.geoTermToString(MortonEncoder.encode(referenceEnvelope.getMaxX(), referenceEnvelope.getMaxY()));
-            String minHash = MortonEncoder.geoTermToString(MortonEncoder.encode(referenceEnvelope.getMinX(), referenceEnvelope.getMinY()));
+            String maxHash = MortonEncoder.geoTermToString(MortonEncoder.encode(referenceEnvelope.getMaxY(), referenceEnvelope.getMaxX()));
+            String minHash = MortonEncoder.geoTermToString(MortonEncoder.encode(referenceEnvelope.getMinY(), referenceEnvelope.getMinX()));
             return greatestCommonPrefix(minHash, maxHash) + "*";
         } else {
             throw new UnsupportedOperationException("Geohash Index only supports searches based on AbstractSearchEnvelopeIntersection, not " + filter.getClass().getCanonicalName());
