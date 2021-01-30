@@ -1493,20 +1493,20 @@ public class RTreeBulkInsertTest {
             tx.commit();
         }
         String queryDepthAndGeometries =
-                "MATCH (layer)-[:RTREE_ROOT]->(root) WHERE ID(layer)={layerNodeId} WITH root " +
+                "MATCH (layer)-[:RTREE_ROOT]->(root) WHERE ID(layer)=$layerNodeId WITH root " +
                         "MATCH p = (root)-[:RTREE_CHILD*]->(child)-[:RTREE_REFERENCE]->(geometry) " +
                         "RETURN length(p) as depth, count(*) as geometries";
 
-        String queryNumChildren = "MATCH (layer)-[:RTREE_ROOT]->(root) WHERE ID(layer)={layerNodeId} WITH root " +
+        String queryNumChildren = "MATCH (layer)-[:RTREE_ROOT]->(root) WHERE ID(layer)=$layerNodeId WITH root " +
                 "MATCH p = (root)-[:RTREE_CHILD*]->(child) " +
                 "WHERE exists((child)-[:RTREE_REFERENCE]->()) " +
                 "RETURN length(p) as depth, count (*) as leaves";
-        String queryChildrenPerParent = "MATCH (layer)-[:RTREE_ROOT]->(root) WHERE ID(layer)={layerNodeId} WITH root " +
+        String queryChildrenPerParent = "MATCH (layer)-[:RTREE_ROOT]->(root) WHERE ID(layer)=$layerNodeId WITH root " +
                 "MATCH p = (root)-[:RTREE_CHILD*0..]->(parent)-[:RTREE_CHILD]->(child) " +
                 "WITH parent, count (*) as children RETURN avg(children) as childrenPerParent,min(children) as " +
                 "MinChildrenPerParent,max(children) as MaxChildrenPerParent";
         String queryChildrenPerParent2 =
-                "MATCH (layer)-[:RTREE_ROOT]->(root) WHERE ID(layer)={layerNodeId} WITH root " +
+                "MATCH (layer)-[:RTREE_ROOT]->(root) WHERE ID(layer)=$layerNodeId WITH root " +
                         "MATCH p = (root)-[:RTREE_CHILD*0..]->(parent)-[:RTREE_CHILD|:RTREE_REFERENCE]->(child) " +
                         "RETURN parent, length(p) as depth, count (*) as children";
         Map<String, Object> params = Collections.singletonMap("layerNodeId", layerNodeId);
