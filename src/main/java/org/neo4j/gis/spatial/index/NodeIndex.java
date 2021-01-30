@@ -7,13 +7,16 @@ import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.*;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
-import org.apache.lucene.search.*;
-import org.apache.lucene.store.Directory;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreMode;
+import org.apache.lucene.search.SimpleCollector;
 import org.apache.lucene.store.NIOFSDirectory;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -29,22 +32,29 @@ import static java.lang.String.format;
  * @param <E> either a String or a Long depending on whether the index is geohash or space-filling curve.
  */
 public class NodeIndex<E> {
-    private final Directory indexDir;
+    private NIOFSDirectory indexDir;
     private final StandardAnalyzer analyzer;
     private final String indexName;
+    private final Path indexPath;
 
     public NodeIndex(String indexName, IndexManager indexManager) {
         this.indexName = indexName;
-        Path path = indexManager.makePathFor(indexName);
-        try {
-            indexDir = new NIOFSDirectory(path);
-            analyzer = new StandardAnalyzer();
-        } catch (IOException e) {
-            throw new NodeIndexException(indexName, "initialize", e);
+        this.indexPath = indexManager.makePathFor(indexName);
+        this.analyzer = new StandardAnalyzer();
+    }
+
+    private void ensureIndexDir() {
+        if (indexDir == null) {
+            try {
+                this.indexDir = new NIOFSDirectory(indexPath);
+            } catch (IOException e) {
+                throw new NodeIndexException(indexName, "initialize", e);
+            }
         }
     }
 
     public void add(Node geomNode, String indexKey, E indexValueFor) {
+        ensureIndexDir();
         IndexWriterConfig config = new IndexWriterConfig(analyzer);
         try (IndexWriter writer = new IndexWriter(indexDir, config)) {
             addNodeAsDoc(writer, indexKey, geomNode, indexValueFor);
@@ -69,6 +79,7 @@ public class NodeIndex<E> {
     }
 
     public IndexHits queryAll() {
+        ensureIndexDir();
         try {
             if (DirectoryReader.indexExists(indexDir)) {
                 try (IndexReader reader = DirectoryReader.open(indexDir)) {
@@ -84,6 +95,7 @@ public class NodeIndex<E> {
     }
 
     public IndexHits query(String indexKey, String query) {
+        ensureIndexDir();
         try {
             // the "indexKey" arg specifies the default field to use
             // when no field is explicitly specified in the query.
@@ -94,6 +106,7 @@ public class NodeIndex<E> {
     }
 
     public IndexHits query(Query query) {
+        ensureIndexDir();
         try {
             if (DirectoryReader.indexExists(indexDir)) {
                 try (IndexReader reader = DirectoryReader.open(indexDir)) {
@@ -115,7 +128,16 @@ public class NodeIndex<E> {
     }
 
     public void delete() {
-        // TODO delete lucene index
+        if (this.indexDir != null) {
+            try {
+                this.indexDir.close();
+                Files.delete(this.indexPath);
+            } catch (IOException e) {
+                throw new NodeIndexException(indexName, "delete", e);
+            } finally {
+                this.indexDir = null;
+            }
+        }
     }
 
     /**

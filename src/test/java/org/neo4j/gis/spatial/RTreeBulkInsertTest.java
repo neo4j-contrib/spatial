@@ -39,6 +39,9 @@ public class RTreeBulkInsertTest {
     private GraphDatabaseService db;
     private final File storeDir = new File("target/store").getAbsoluteFile();
 
+    // While the current lucene index implmentation is so slow (16n/s) we disable all benchmarks for lucene backed indexes
+    private static final boolean enableLucene =false;
+
     @Before
     public void before() throws IOException {
         restart();
@@ -795,30 +798,32 @@ public class RTreeBulkInsertTest {
     }
 
     private void insertManyNodesIndividually(IndexMaker indexMaker, int blockSize) {
-        TestStats stats = indexMaker.initStats(blockSize);
-        EditableLayer layer = setupLayer(indexMaker);
-        List<Long> nodes = indexMaker.nodes();
-        TreeMonitor monitor = new RTreeMonitor();
-        layer.getIndex().addMonitor(monitor);
-        TimedLogger log = indexMaker.initLogger();
-        IndexTestConfig config = indexMaker.getConfig();
-        long start = System.currentTimeMillis();
-        for (int i = 0; i < config.totalCount / blockSize; i++) {
-            List<Long> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
-            try (Transaction tx = db.beginTx()) {
-                for (Long node : slice) {
-                    layer.add(tx, tx.getNodeById(node));
+        if (enableLucene || indexMaker instanceof RTreeIndexMaker) {
+            TestStats stats = indexMaker.initStats(blockSize);
+            EditableLayer layer = setupLayer(indexMaker);
+            List<Long> nodes = indexMaker.nodes();
+            TreeMonitor monitor = new RTreeMonitor();
+            layer.getIndex().addMonitor(monitor);
+            TimedLogger log = indexMaker.initLogger();
+            IndexTestConfig config = indexMaker.getConfig();
+            long start = System.currentTimeMillis();
+            for (int i = 0; i < config.totalCount / blockSize; i++) {
+                List<Long> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
+                try (Transaction tx = db.beginTx()) {
+                    for (Long node : slice) {
+                        layer.add(tx, tx.getNodeById(node));
+                    }
+                    tx.commit();
                 }
-                tx.commit();
+                log.log("Splits: " + monitor.getNbrSplit(), (i + 1) * blockSize);
             }
-            log.log("Splits: " + monitor.getNbrSplit(), (i + 1) * blockSize);
-        }
-        System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + config.totalCount + " nodes to RTree in bulk");
-        stats.setInsertTime(start);
-        stats.put("Insert Splits", monitor.getNbrSplit());
+            System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + config.totalCount + " nodes to RTree in bulk");
+            stats.setInsertTime(start);
+            stats.put("Insert Splits", monitor.getNbrSplit());
 
-        queryRTree(layer, monitor, stats);
-        indexMaker.verifyStructure();
+            queryRTree(layer, monitor, stats);
+            indexMaker.verifyStructure();
+        }
     }
 
     /*
@@ -896,30 +901,32 @@ public class RTreeBulkInsertTest {
     }
 
     private void insertManyNodesInBulk(IndexMaker indexMaker, int blockSize) {
-        TestStats stats = indexMaker.initStats(blockSize);
-        EditableLayer layer = setupLayer(indexMaker);
-        List<Long> nodes = indexMaker.nodes();
-        RTreeMonitor monitor = new RTreeMonitor();
-        layer.getIndex().addMonitor(monitor);
-        TimedLogger log = indexMaker.initLogger();
-        long start = System.currentTimeMillis();
-        for (int i = 0; i < indexMaker.getConfig().totalCount / blockSize; i++) {
-            List<Long> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
-            long startIndexing = System.currentTimeMillis();
-            try (Transaction tx = db.beginTx()) {
-                layer.addAll(tx, idsToNodes(tx, slice));
-                tx.commit();
+        if (enableLucene || indexMaker instanceof RTreeIndexMaker) {
+            TestStats stats = indexMaker.initStats(blockSize);
+            EditableLayer layer = setupLayer(indexMaker);
+            List<Long> nodes = indexMaker.nodes();
+            RTreeMonitor monitor = new RTreeMonitor();
+            layer.getIndex().addMonitor(monitor);
+            TimedLogger log = indexMaker.initLogger();
+            long start = System.currentTimeMillis();
+            for (int i = 0; i < indexMaker.getConfig().totalCount / blockSize; i++) {
+                List<Long> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
+                long startIndexing = System.currentTimeMillis();
+                try (Transaction tx = db.beginTx()) {
+                    layer.addAll(tx, idsToNodes(tx, slice));
+                    tx.commit();
+                }
+                log.log(startIndexing, "Rebuilt: " + monitor.getNbrRebuilt() + ", Splits: " + monitor.getNbrSplit() + ", Cases " + monitor.getCaseCounts(), (i + 1) * blockSize);
             }
-            log.log(startIndexing, "Rebuilt: " + monitor.getNbrRebuilt() + ", Splits: " + monitor.getNbrSplit() + ", Cases " + monitor.getCaseCounts(), (i + 1) * blockSize);
-        }
-        System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + indexMaker.getConfig().totalCount + " nodes to RTree in bulk");
-        stats.setInsertTime(start);
-        stats.put("Insert Splits", monitor.getNbrSplit());
+            System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + indexMaker.getConfig().totalCount + " nodes to RTree in bulk");
+            stats.setInsertTime(start);
+            stats.put("Insert Splits", monitor.getNbrSplit());
 
-        monitor.reset();
-        queryRTree(layer, monitor, stats);
-        indexMaker.verifyStructure();
+            monitor.reset();
+            queryRTree(layer, monitor, stats);
+            indexMaker.verifyStructure();
 //        debugIndexTree((RTreeIndex) layer.getIndex());
+        }
     }
 
     /*
