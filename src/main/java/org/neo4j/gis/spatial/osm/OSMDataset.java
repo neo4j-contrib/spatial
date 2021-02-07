@@ -23,7 +23,10 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
 import org.neo4j.gis.spatial.*;
-import org.neo4j.graphdb.*;
+import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
@@ -32,79 +35,78 @@ import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 import java.util.Collections;
 import java.util.Iterator;
 
-public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Iterator<OSMDataset.Way> {
+public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
     private final OSMLayer layer;
-    private final Node datasetNode;
+    private final long datasetNodeId;
     private Iterator<Node> wayNodeIterator;
+
+    public OSMDataset(OSMLayer layer, long datasetNodeId) {
+        this.layer = layer;
+        this.datasetNodeId = datasetNodeId;
+    }
 
     /**
      * This method is used to construct the dataset on an existing node when the node id is known,
      * which is the case with OSM importers.
      */
-    public OSMDataset(GraphDatabaseService database, OSMLayer osmLayer, long datasetId) {
-        try (Transaction tx = database.beginTx()) {
-            this.layer = osmLayer;
-            this.datasetNode = tx.getNodeById(datasetId);
-            Node layerNode = layer.getLayerNode(tx);
-            Relationship rel = layerNode.getSingleRelationship(SpatialRelationshipTypes.LAYERS, Direction.INCOMING);
-            if (rel == null) {
-                datasetNode.createRelationshipTo(layerNode, SpatialRelationshipTypes.LAYERS);
-            } else {
-                Node node = rel.getStartNode();
-                if (!node.equals(datasetNode)) {
-                    throw new SpatialDatabaseException("Layer '" + osmLayer + "' already belongs to another dataset: " + node);
-                }
+    public static OSMDataset withDatasetId(Transaction tx, OSMLayer layer, long datasetNodeId) {
+        Node datasetNode = tx.getNodeById(datasetNodeId);
+        Node layerNode = layer.getLayerNode(tx);
+        Relationship rel = layerNode.getSingleRelationship(SpatialRelationshipTypes.LAYERS, Direction.INCOMING);
+        if (rel == null) {
+            datasetNode.createRelationshipTo(layerNode, SpatialRelationshipTypes.LAYERS);
+        } else {
+            Node node = rel.getStartNode();
+            if (!node.equals(datasetNode)) {
+                throw new SpatialDatabaseException("Layer '" + layer + "' already belongs to another dataset: " + node);
             }
-            tx.commit();
         }
+        return new OSMDataset(layer, datasetNodeId);
     }
 
     /**
      * This method is used to construct the dataset when only the layer node is known, and the
      * dataset node needs to be searched for.
      */
-    public OSMDataset(GraphDatabaseService db, OSMLayer osmLayer) {
-        try (Transaction tx = db.beginTx()) {
-            this.layer = osmLayer;
-            Relationship rel = this.layer.getLayerNode(tx).getSingleRelationship(SpatialRelationshipTypes.LAYERS, Direction.INCOMING);
-            if (rel == null) {
-                throw new SpatialDatabaseException("Layer '" + osmLayer + "' does not have an associated dataset");
-            } else {
-                datasetNode = rel.getStartNode();
-            }
-            tx.commit();
+    public static OSMDataset fromLayer(Transaction tx, OSMLayer layer) {
+        Relationship rel = layer.getLayerNode(tx).getSingleRelationship(SpatialRelationshipTypes.LAYERS, Direction.INCOMING);
+        if (rel == null) {
+            throw new SpatialDatabaseException("Layer '" + layer + "' does not have an associated dataset");
+        } else {
+            long datasetNodeId = rel.getStartNode().getId();
+            return new OSMDataset(layer, datasetNodeId);
         }
     }
 
-    public Iterable<Node> getAllUserNodes() {
+    public Iterable<Node> getAllUserNodes(Transaction tx) {
         TraversalDescription td = new MonoDirectionalTraversalDescription()
                 .depthFirst()
                 .relationships(OSMRelation.USERS, Direction.OUTGOING)
                 .relationships(OSMRelation.OSM_USER, Direction.OUTGOING)
                 .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(OSMRelation.OSM_USER));
-        return td.traverse(datasetNode).nodes();
+        return td.traverse(tx.getNodeById(datasetNodeId)).nodes();
     }
 
-    public Iterable<Node> getAllChangesetNodes() {
+    public Iterable<Node> getAllChangesetNodes(Transaction tx) {
         TraversalDescription td = new MonoDirectionalTraversalDescription()
                 .depthFirst()
                 .relationships(OSMRelation.USERS, Direction.OUTGOING)
                 .relationships(OSMRelation.OSM_USER, Direction.OUTGOING)
                 .relationships(OSMRelation.USER, Direction.INCOMING)
                 .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(OSMRelation.USER));
-        return td.traverse(datasetNode).nodes();
+        return td.traverse(tx.getNodeById(datasetNodeId)).nodes();
     }
 
-    public Iterable<Node> getAllWayNodes() {
+    public Iterable<Node> getAllWayNodes(Transaction tx) {
         TraversalDescription td = new MonoDirectionalTraversalDescription()
                 .depthFirst()
                 .relationships(OSMRelation.WAYS, Direction.OUTGOING)
                 .relationships(OSMRelation.NEXT, Direction.OUTGOING)
                 .evaluator(Evaluators.excludeStartPosition());
-        return td.traverse(datasetNode).nodes();
+        return td.traverse(tx.getNodeById(datasetNodeId)).nodes();
     }
 
-    public Iterable<Node> getAllPointNodes() {
+    public Iterable<Node> getAllPointNodes(Transaction tx) {
         TraversalDescription td = new MonoDirectionalTraversalDescription()
                 .depthFirst()
                 .relationships(OSMRelation.WAYS, Direction.OUTGOING)
@@ -112,7 +114,7 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
                 .relationships(OSMRelation.FIRST_NODE, Direction.OUTGOING)
                 .relationships(OSMRelation.NODE, Direction.OUTGOING)
                 .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(OSMRelation.NODE));
-        return td.traverse(datasetNode).nodes();
+        return td.traverse(tx.getNodeById(datasetNodeId)).nodes();
     }
 
     public Iterable<Node> getWayNodes(Node way) {
@@ -302,14 +304,13 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
         return Collections.singletonList(layer);
     }
 
-    public Iterable<Way> getWays() {
-        return this;
+    public Iterable<Way> getWays(final Transaction tx) {
+        return () -> OSMDataset.this.iterator(tx);
     }
 
-    @Override
-    public Iterator<Way> iterator() {
+    public Iterator<Way> iterator(Transaction tx) {
         if (wayNodeIterator == null || !wayNodeIterator.hasNext()) {
-            wayNodeIterator = getAllWayNodes().iterator();
+            wayNodeIterator = getAllWayNodes(tx).iterator();
         }
         return this;
     }
@@ -329,27 +330,27 @@ public class OSMDataset implements SpatialDataset, Iterable<OSMDataset.Way>, Ite
         throw new UnsupportedOperationException("Cannot modify way collection");
     }
 
-    public int getPoiCount() {
-        return (Integer) this.datasetNode.getProperty("poiCount", 0);
+    public int getPoiCount(Transaction tx) {
+        return (Integer) tx.getNodeById(this.datasetNodeId).getProperty("poiCount", 0);
     }
 
-    public int getNodeCount() {
-        return (Integer) this.datasetNode.getProperty("nodeCount", 0);
+    public int getNodeCount(Transaction tx) {
+        return (Integer) tx.getNodeById(this.datasetNodeId).getProperty("nodeCount", 0);
     }
 
-    public int getWayCount() {
-        return (Integer) this.datasetNode.getProperty("wayCount", 0);
+    public int getWayCount(Transaction tx) {
+        return (Integer) tx.getNodeById(this.datasetNodeId).getProperty("wayCount", 0);
     }
 
-    public int getRelationCount() {
-        return (Integer) this.datasetNode.getProperty("relationCount", 0);
+    public int getRelationCount(Transaction tx) {
+        return (Integer) tx.getNodeById(this.datasetNodeId).getProperty("relationCount", 0);
     }
 
-    public int getChangesetCount() {
-        return (Integer) this.datasetNode.getProperty("changesetCount", 0);
+    public int getChangesetCount(Transaction tx) {
+        return (Integer) tx.getNodeById(this.datasetNodeId).getProperty("changesetCount", 0);
     }
 
-    public int getUserCount() {
-        return (Integer) this.datasetNode.getProperty("userCount", 0);
+    public int getUserCount(Transaction tx) {
+        return (Integer) tx.getNodeById(this.datasetNodeId).getProperty("userCount", 0);
     }
 }

@@ -24,12 +24,8 @@ import java.util.HashMap;
 
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.json.simple.JSONObject;
+import org.neo4j.gis.spatial.*;
 import org.neo4j.gis.spatial.rtree.NullListener;
-import org.neo4j.gis.spatial.Constants;
-import org.neo4j.gis.spatial.DynamicLayer;
-import org.neo4j.gis.spatial.DynamicLayerConfig;
-import org.neo4j.gis.spatial.SpatialDatabaseService;
-import org.neo4j.gis.spatial.SpatialDataset;
 import org.neo4j.graphdb.*;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
@@ -41,23 +37,13 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
 public class OSMLayer extends DynamicLayer {
     private OSMDataset osmDataset;
 
-    public SpatialDataset getDataset(GraphDatabaseService database) {
-        if (osmDataset == null) {
-            osmDataset = new OSMDataset(database, this);
-        }
+    @Override
+    public SpatialDataset getDataset() {
         return osmDataset;
     }
 
-    /**
-     * This method is used to find or construct the necessary dataset object on
-     * an existing dataset node and layer. This will create the relationships
-     * between the two if it is missing.
-     */
-    public OSMDataset getDataset(GraphDatabaseService database, long datasetId) {
-        if (osmDataset == null) {
-            osmDataset = new OSMDataset(database, this, datasetId);
-        }
-        return osmDataset;
+    public void setDataset(OSMDataset osmDataset) {
+        this.osmDataset = osmDataset;
     }
 
     public Integer getGeometryType() {
@@ -68,6 +54,7 @@ public class OSMLayer extends DynamicLayer {
 
     /**
      * OSM always uses WGS84 CRS; so we return that.
+     *
      * @param tx
      */
     public CoordinateReferenceSystem getCoordinateReferenceSystem(Transaction tx) {
@@ -122,8 +109,8 @@ public class OSMLayer extends DynamicLayer {
      * generate a Geometry. There is no restriction on a node belonging to multiple datasets, or
      * multiple layers within the same dataset.
      *
-     * @return iterable over geometry nodes in the dataset
      * @param tx
+     * @return iterable over geometry nodes in the dataset
      */
     public Iterable<Node> getAllGeometryNodes(Transaction tx) {
         return indexReader.getAllIndexedNodes(tx);

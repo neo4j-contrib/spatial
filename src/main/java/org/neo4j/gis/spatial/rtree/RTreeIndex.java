@@ -241,6 +241,12 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
             this.node = node;
             this.envelope = envelope;
         }
+
+        /** Ensure this node is valid in the specified transaction */
+        public NodeWithEnvelope refresh(Transaction tx) {
+            this.node = tx.getNodeById(this.node.getId());
+            return this;
+        }
     }
 
     public class GeometryNodeWithEnvelope extends NodeWithEnvelope {

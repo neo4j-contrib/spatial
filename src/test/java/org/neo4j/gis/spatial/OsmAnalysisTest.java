@@ -20,12 +20,11 @@
 package org.neo4j.gis.spatial;
 
 import com.vividsolutions.jts.geom.Coordinate;
-import junit.framework.Test;
-import junit.framework.TestResult;
-import junit.framework.TestSuite;
 import org.apache.commons.io.FileUtils;
 import org.geotools.data.neo4j.StyledImageExporter;
 import org.geotools.geometry.jts.ReferencedEnvelope;
+import org.junit.Test;
+import org.junit.runners.Parameterized;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.osm.OSMDataset;
@@ -40,7 +39,6 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import java.io.File;
 import java.io.IOException;
-import java.sql.Date;
 import java.util.*;
 import java.util.Map.Entry;
 
@@ -49,15 +47,18 @@ import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAM
 public class OsmAnalysisTest extends TestOSMImport {
     public static final String spatialTestMode = System.getProperty("spatial.test.mode");
     public static final boolean usePoints = true;
+    private final int years;
+    private final int days;
 
-    public OsmAnalysisTest(String layerName) {
-        super(layerName, usePoints);
-        setName("DavideOsmAnalysisTest: " + layerName);
+    public OsmAnalysisTest(String layerName, int years, int days) {
+        super(layerName, true);
+        this.years = years;
+        this.days = days;
     }
 
-    public static Test suite() {
+    @Parameterized.Parameters(name = "{index}-{0}: years={1}, days={2}")
+    public static Collection parameters() {
         deleteBaseDir();
-        TestSuite suite = new TestSuite();
         String[] smallModels = new String[]{"one-street.osm", "two-street.osm"};
         //String[] mediumModels = new String[]{"map.osm", "map2.osm"};
         String[] largeModels = new String[]{"cyprus.osm", "croatia.osm", "denmark.osm"};
@@ -86,31 +87,25 @@ public class OsmAnalysisTest extends TestOSMImport {
         int years[] = new int[]{3};
         int days[] = new int[]{1};
 
-        // Finally build the set of complete test cases based on the collection
-        // above
+        // Finally build the set of complete test cases based on the collection above
+        ArrayList<Object[]> suite = new ArrayList<>();
         for (final String layerName : layersToTest) {
             for (final int y : years) {
                 for (final int d : days) {
-                    suite.addTest(new OsmAnalysisTest(layerName) {
-                        public void run(TestResult testResult) {
-                            try {
-                                runAnalysis(layerName, y, d);
-                                testResult.endTest(this);
-                            } catch (Exception e) {
-                                // assertTrue("Failed to run import test due to exception: "
-                                // + e, false);
-                                throw new SpatialDatabaseException(e.getMessage(), e);
-                            }
-                        }
-                    });
+                    suite.add(new Object[]{layerName, y, d});
                 }
             }
         }
-        System.out.println("This suite has " + suite.testCount() + " tests");
-        for (int i = 0; i < suite.testCount(); i++) {
-            System.out.println("\t" + suite.testAt(i).toString());
+        System.out.println("This suite has " + suite.size() + " tests");
+        for (Object[] params : suite) {
+            System.out.println("\t" + Arrays.toString(params));
         }
         return suite;
+    }
+
+    @Test
+    public void runTest() throws Exception {
+        runAnalysis(layerName, years, days);
     }
 
     private DatabaseManagementService databases;
@@ -164,13 +159,13 @@ public class OsmAnalysisTest extends TestOSMImport {
 
     public void testAnalysis2(Transaction tx, String osm, int years, int days) throws IOException {
         SpatialDatabaseService spatial = new SpatialDatabaseService(db);
-        OSMLayer layer = (OSMLayer) spatial.getLayer(tx, osm);;
+        OSMLayer layer = (OSMLayer) spatial.getLayer(tx, osm);
         OSMDataset dataset = (OSMDataset) layer.getDataset();
         Map<String, User> userIndex = new HashMap<>();
         long latestTimestamp = 0L;
         long firstTimestamp = Long.MAX_VALUE;
 
-        for (Node cNode : dataset.getAllChangesetNodes()) {
+        for (Node cNode : dataset.getAllChangesetNodes(tx)) {
             long timestamp = (Long) cNode.getProperty("timestamp", 0L);
             Node userNode = dataset.getUser(cNode);
             String name = (String) userNode.getProperty("name");

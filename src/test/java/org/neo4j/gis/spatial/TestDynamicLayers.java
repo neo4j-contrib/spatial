@@ -251,7 +251,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
         System.out.println("\n=== Loading layer " + layerName + " from " + layerName + " ===");
         OSMImporter importer = new OSMImporter(layerName);
         importer.setCharset(StandardCharsets.UTF_8);
-        importer.importFile(graphDb(), layerName, 1000, false);
+        importer.importFile(graphDb(), layerName, 1000);
         importer.reIndex(graphDb(), 1000);
     }
 

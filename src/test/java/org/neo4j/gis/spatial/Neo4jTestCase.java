@@ -22,7 +22,6 @@ package org.neo4j.gis.spatial;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
-import org.neo4j.batchinsert.BatchInserter;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;

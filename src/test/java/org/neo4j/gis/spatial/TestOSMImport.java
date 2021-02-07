@@ -21,12 +21,12 @@ package org.neo4j.gis.spatial;
 
 import com.vividsolutions.jts.geom.Envelope;
 import com.vividsolutions.jts.geom.Geometry;
-import junit.framework.Test;
-import junit.framework.TestResult;
-import junit.framework.TestSuite;
 import org.geotools.data.DataStore;
 import org.geotools.data.neo4j.Neo4jSpatialDataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 import org.neo4j.gis.spatial.osm.*;
 import org.neo4j.gis.spatial.osm.OSMDataset.Way;
 import org.neo4j.gis.spatial.pipes.osm.OSMGeoPipeline;
@@ -35,40 +35,24 @@ import org.neo4j.graphdb.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 import static org.junit.Assert.*;
 
-
-public class TestOSMImport extends Neo4jTestCase implements Test {
+@RunWith(Parameterized.class)
+public class TestOSMImport extends Neo4jTestCase {
     public static final String spatialTestMode = System.getProperty("spatial.test.mode");
-    private String testName;
+    protected final String layerName;
+    private final boolean includePoints;
 
     public TestOSMImport(String layerName, boolean includePoints) {
-        // TODO figure out how to set test name in JUnit4
-        testName = "OSM-Import[points:" + includePoints + "]: " + layerName;
+        this.layerName = layerName;
+        this.includePoints = includePoints;
     }
 
-    protected void setName(String testName) {
-        this.testName = testName;
-    }
-
-    @Override
-    public int countTestCases() {
-        return 0;
-    }
-
-    @Override
-    public void run(TestResult testResult) {
-
-    }
-
-    public static Test suite() {
+    @Parameterized.Parameters(name = "{index}-{0}: includePoints={1}")
+    public static Collection parameters() {
         deleteBaseDir();
-        TestSuite suite = new TestSuite();
         String[] smallModels = new String[]{"one-street.osm", "two-street.osm"};
 //		String[] mediumModels = new String[] { "map.osm", "map2.osm" };
         String[] mediumModels = new String[]{"map.osm"};
@@ -94,29 +78,23 @@ public class TestOSMImport extends Neo4jTestCase implements Test {
         }
         boolean[] pointsTestModes = new boolean[]{true, false};
 
-        // Finally build the set of complete test cases based on the collection
-        // above
+        // Finally build the set of complete test cases based on the collection above
+        ArrayList<Object[]> suite = new ArrayList<>();
         for (final String layerName : layersToTest) {
             for (final boolean includePoints : pointsTestModes) {
-                suite.addTest(new TestOSMImport(layerName, includePoints) {
-                    @Override
-                    public void run(TestResult testResult) {
-                        try {
-                            runImport(layerName, includePoints);
-                            testResult.endTest(this);
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            throw new SpatialDatabaseException(e.getMessage(), e);
-                        }
-                    }
-                });
+                suite.add(new Object[]{layerName, includePoints});
             }
         }
-        System.out.println("This suite has " + suite.testCount() + " tests");
-        for (int i = 0; i < suite.testCount(); i++) {
-            System.out.println("\t" + suite.testAt(i).toString());
+        System.out.println("This suite has " + suite.size() + " tests");
+        for (Object[] params : suite) {
+            System.out.println("\t" + Arrays.toString(params));
         }
         return suite;
+    }
+
+    @Test
+    public void runTest() throws Exception {
+        runImport(layerName, includePoints);
     }
 
     protected static String checkOSMFile(String osm) {
@@ -149,10 +127,10 @@ public class TestOSMImport extends Neo4jTestCase implements Test {
     }
 
     public static void checkOSMSearch(Transaction tx, OSMLayer layer) {
-        OSMDataset osm = (OSMDataset) layer.getDataset();
+        OSMDataset osm = OSMDataset.fromLayer(tx, layer);
         Way way = null;
         int count = 0;
-        for (Way wayNode : osm.getWays()) {
+        for (Way wayNode : osm.getWays(tx)) {
             way = wayNode;
             if (count++ > 100)
                 break;
@@ -221,8 +199,8 @@ public class TestOSMImport extends Neo4jTestCase implements Test {
         HashMap<Long, Integer> userNodeCount = new HashMap<>();
         HashMap<Long, String> userNames = new HashMap<>();
         HashMap<Long, Long> userIds = new HashMap<>();
-        OSMDataset dataset = (OSMDataset) layer.getDataset();
-        for (Node way : dataset.getAllWayNodes()) {
+        OSMDataset dataset = OSMDataset.fromLayer(tx, layer);
+        for (Node way : dataset.getAllWayNodes(tx)) {
             int node_count = 0;
             int match_count = 0;
             assertNull("Way has changeset property", way.getProperty("changeset", null));
@@ -335,12 +313,12 @@ public class TestOSMImport extends Neo4jTestCase implements Test {
     }
 
     protected void loadTestOsmData(String layerName, String osmPath, boolean includePoints) throws Exception {
-        System.out.printf("\n=== Loading layer '%s' from %s, includePoints=%b ===", layerName, osmPath, includePoints);
+        System.out.printf("\n=== Loading layer '%s' from %s, includePoints=%b ===\n", layerName, osmPath, includePoints);
         long start = System.currentTimeMillis();
         // tag::importOsm[] START SNIPPET: importOsm
         OSMImporter importer = new OSMImporter(layerName, new ConsoleListener());
         importer.setCharset(StandardCharsets.UTF_8);
-        importer.importFile(graphDb(), osmPath, includePoints, 5000, true);
+        importer.importFile(graphDb(), osmPath, includePoints, 5000);
         // end::importOsm[] END SNIPPET: importOsm
         // Weird hack to force GC on large loads
         if (System.currentTimeMillis() - start > 300000) {

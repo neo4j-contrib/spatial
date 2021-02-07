@@ -173,7 +173,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
         System.out.println("\n=== Loading layer " + layerName + " from " + layerName + " ===");
         OSMImporter importer = new OSMImporter(layerName);
         importer.setCharset(StandardCharsets.UTF_8);
-        importer.importFile(graphDb(), layerName, commitInterval, false);
+        importer.importFile(graphDb(), layerName, commitInterval);
         importer.reIndex(graphDb(), commitInterval);
     }
 

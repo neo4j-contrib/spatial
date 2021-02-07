@@ -117,7 +117,7 @@ public class TestIntersectsPathQueries {
         OSMImporter importer = new OSMImporter(layerName, new ConsoleListener(), makeFilterEnvelope());
         withDatabase(dbRoot, dbName, Neo4jTestCase.LARGE_CONFIG, graphDb -> {
             try {
-                importer.importFile(graphDb, osmPath, 10000, false);
+                importer.importFile(graphDb, osmPath, 10000);
                 return null;
             } catch (Exception e) {
                 return e;

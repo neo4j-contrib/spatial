@@ -97,7 +97,7 @@ public class TestsForDocs {
         long mostCommon = 0;
         int mostCount = 0;
         OSMDataset osm = (OSMDataset) layer.getDataset();
-        Node wayNode = osm.getAllWayNodes().iterator().next();
+        Node wayNode = osm.getAllWayNodes(tx).iterator().next();
         Way way = osm.getWayFrom(wayNode);
         System.out.println("Got first way " + way);
         for (WayPoint n : way.getWayPoints()) {

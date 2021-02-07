@@ -40,7 +40,7 @@ import java.util.ArrayList;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 public class RTreeTests {
-
+    private static final boolean exportImages = false;    // TODO: This can be enabled once we port to newer GeoTools that works with Java11
     private DatabaseManagementService databases;
     private GraphDatabaseService db;
     private TestRTreeIndex rtree;
@@ -54,11 +54,13 @@ public class RTreeTests {
             this.rtree = new TestRTreeIndex(tx);
             tx.commit();
         }
-        SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("test", Constants.GTYPE_POINT, null, new String[]{});
-        imageExporter = new RTreeImageExporter(new GeometryFactory(), new SimplePointEncoder(), null, featureType, rtree);
-        try (Transaction tx = db.beginTx()) {
-            imageExporter.initialize(tx, new Coordinate(0.0, 0.0), new Coordinate(1.0, 1.0));
-            tx.commit();
+        if (exportImages) {
+            SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("test", Constants.GTYPE_POINT, null, new String[]{});
+            imageExporter = new RTreeImageExporter(new GeometryFactory(), new SimplePointEncoder(), null, featureType, rtree);
+            try (Transaction tx = db.beginTx()) {
+                imageExporter.initialize(tx, new Coordinate(0.0, 0.0), new Coordinate(1.0, 1.0));
+                tx.commit();
+            }
         }
     }
 
@@ -80,19 +82,23 @@ public class RTreeTests {
             tx.commit();
         }
         System.out.println("Created two trees");
-        try (Transaction tx = db.beginTx()) {
-            imageExporter.saveRTreeLayers(tx, new File("target/rtree-test/rtree-left.png"), rootLeft.node, 7);
-            imageExporter.saveRTreeLayers(tx, new File("target/rtree-test/rtree-right.png"), rootRight.node, 7);
-            tx.commit();
+        if (exportImages) {
+            try (Transaction tx = db.beginTx()) {
+                imageExporter.saveRTreeLayers(tx, new File("target/rtree-test/rtree-left.png"), rootLeft.node, 7);
+                imageExporter.saveRTreeLayers(tx, new File("target/rtree-test/rtree-right.png"), rootRight.node, 7);
+                tx.commit();
+            }
         }
         try (Transaction tx = db.beginTx()) {
-            rtree.mergeTwoTrees(tx, rootLeft, rootRight);
+            rtree.mergeTwoTrees(tx, rootLeft.refresh(tx), rootRight.refresh(tx));
             tx.commit();
         }
         System.out.println("Merged two trees");
-        try (Transaction tx = db.beginTx()) {
-            imageExporter.saveRTreeLayers(tx, new File("target/rtree-test/rtree-merged.png"), rootLeft.node, 7);
-            tx.commit();
+        if (exportImages) {
+            try (Transaction tx = db.beginTx()) {
+                imageExporter.saveRTreeLayers(tx, new File("target/rtree-test/rtree-merged.png"), rootLeft.node, 7);
+                tx.commit();
+            }
         }
     }
 
