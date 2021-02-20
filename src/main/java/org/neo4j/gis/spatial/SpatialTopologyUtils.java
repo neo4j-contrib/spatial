@@ -19,10 +19,10 @@
  */
 package org.neo4j.gis.spatial;
 
-import com.vividsolutions.jts.geom.*;
-import com.vividsolutions.jts.linearref.LengthIndexedLine;
-import com.vividsolutions.jts.linearref.LinearLocation;
-import com.vividsolutions.jts.linearref.LocationIndexedLine;
+import org.locationtech.jts.geom.*;
+import org.locationtech.jts.linearref.LengthIndexedLine;
+import org.locationtech.jts.linearref.LinearLocation;
+import org.locationtech.jts.linearref.LocationIndexedLine;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.neo4j.gis.spatial.filter.SearchIntersect;
 import org.neo4j.graphdb.Transaction;

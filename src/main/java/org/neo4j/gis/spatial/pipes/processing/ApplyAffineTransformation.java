@@ -22,7 +22,7 @@ package org.neo4j.gis.spatial.pipes.processing;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
-import com.vividsolutions.jts.geom.util.AffineTransformation;
+import org.locationtech.jts.geom.util.AffineTransformation;
 
 /**
  * Applies an Affine Transformation to every geometry.

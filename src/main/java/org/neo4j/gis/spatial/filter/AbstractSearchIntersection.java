@@ -24,7 +24,7 @@ import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.Utilities;
 import org.neo4j.graphdb.Node;
 
-import com.vividsolutions.jts.geom.Geometry;
+import org.locationtech.jts.geom.Geometry;
 
 /**
  * @author Craig Taverner

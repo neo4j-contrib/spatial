@@ -66,7 +66,7 @@ public class Neo4jSpatialDataStoreTest {
         DatabaseManagementService otherDatabases = null;
         try {
             otherDatabases = new TestDatabaseManagementServiceBuilder(new File("target/other-db")).impermanent().build();
-            GraphDatabaseService otherGraph = databases.database(DEFAULT_DATABASE_NAME);
+            GraphDatabaseService otherGraph = otherDatabases.database(DEFAULT_DATABASE_NAME);
             Neo4jSpatialDataStore store = new Neo4jSpatialDataStore(otherGraph);
             ReferencedEnvelope bounds = store.getBounds("map");
             // TODO: rather should throw a descriptive exception
@@ -78,7 +78,7 @@ public class Neo4jSpatialDataStoreTest {
     }
 
     @Test
-    public void shouldBeAbleToListLayers() {
+    public void shouldBeAbleToListLayers() throws IOException {
         Neo4jSpatialDataStore store = new Neo4jSpatialDataStore(graph);
         String[] layers = store.getTypeNames();
         assertThat("Expected one layer", layers.length, equalTo(1));

@@ -19,7 +19,7 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
-import com.vividsolutions.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Coordinate;
 import org.junit.Test;
 import org.neo4j.gis.spatial.*;
 import org.neo4j.graphdb.Transaction;

@@ -1,6 +1,5 @@
 package org.neo4j.gis.spatial.utilities;
 
-import org.geotools.factory.FactoryRegistryException;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.ReferencingFactoryFinder;
 import org.neo4j.gis.spatial.SpatialDatabaseException;
@@ -27,7 +26,7 @@ public class GeotoolsAdapter {
                 System.out.println("Attempting to use geotools to lookup CRS - might fail with Java11: " + crsText);
                 return ReferencingFactoryFinder.getCRSFactory(null).createFromWKT(crsText);
             }
-        } catch (FactoryRegistryException | FactoryException e) {
+        } catch (FactoryException e) {
             throw new SpatialDatabaseException(e);
         }
     }

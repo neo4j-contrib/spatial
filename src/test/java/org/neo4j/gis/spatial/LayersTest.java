@@ -19,10 +19,10 @@
  */
 package org.neo4j.gis.spatial;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.CoordinateList;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.LineString;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.CoordinateList;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.LineString;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -302,7 +302,7 @@ public class LayersTest {
                 exporter.exportLayer(layerName);
             }
         } catch (Exception e) {
-            if (e.getMessage().contains("com.vividsolutions.jts.geom.Geometry")) {
+            if (e.getMessage().contains("org.locationtech.jts.geom.Geometry")) {
                 osmExportException = e;
             } else {
                 throw e;

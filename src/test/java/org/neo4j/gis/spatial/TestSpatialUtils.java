@@ -19,12 +19,12 @@
  */
 package org.neo4j.gis.spatial;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.linearref.LengthIndexedLine;
-import com.vividsolutions.jts.linearref.LocationIndexedLine;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.linearref.LengthIndexedLine;
+import org.locationtech.jts.linearref.LocationIndexedLine;
 import org.junit.Test;
 import org.neo4j.gis.spatial.SpatialTopologyUtils.PointResult;
 import org.neo4j.gis.spatial.osm.OSMDataset;
@@ -80,7 +80,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
      * assertions are made.
      */
     private void debugLRS(Geometry geometry) {
-        LengthIndexedLine line = new com.vividsolutions.jts.linearref.LengthIndexedLine(geometry);
+        LengthIndexedLine line = new org.locationtech.jts.linearref.LengthIndexedLine(geometry);
         double length = line.getEndIndex() - line.getStartIndex();
         System.out.println("Have Geometry: " + geometry);
         System.out.println("Have LengthIndexedLine: " + line);

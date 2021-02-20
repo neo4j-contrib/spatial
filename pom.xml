@@ -12,7 +12,7 @@
         <skinGroupId>org.neo4j.maven.skins</skinGroupId>
         <skinArtifactId>default-skin</skinArtifactId>
         <skinVersion>2</skinVersion>
-        <geotools.version>14.4</geotools.version>
+        <geotools.version>24.2</geotools.version>
         <osm.version>0.2.3-neo4j-4.0.0</osm.version>
         <spatial.test.osm.version>20100819</spatial.test.osm.version>
         <spatial.test.shp.version>20100819</spatial.test.shp.version>

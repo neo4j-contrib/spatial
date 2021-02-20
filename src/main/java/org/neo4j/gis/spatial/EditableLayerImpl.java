@@ -22,7 +22,7 @@ package org.neo4j.gis.spatial;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
-import com.vividsolutions.jts.geom.Geometry;
+import org.locationtech.jts.geom.Geometry;
 
 public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 

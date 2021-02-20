@@ -19,9 +19,9 @@
  */
 package org.neo4j.gis.spatial.osm;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.*;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;

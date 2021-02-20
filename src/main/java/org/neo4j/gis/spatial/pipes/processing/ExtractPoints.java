@@ -19,11 +19,9 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
-import com.vividsolutions.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.neo4j.gis.spatial.pipes.AbstractExtractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-
-import com.vividsolutions.jts.geom.GeometryFactory;
 
 /**
  * Extracts every point from a geometry.

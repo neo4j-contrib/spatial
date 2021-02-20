@@ -21,7 +21,7 @@ package org.neo4j.gis.spatial.pipes;
 
 import java.util.NoSuchElementException;
 
-import com.vividsolutions.jts.geom.Geometry;
+import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.pipes.impl.AbstractPipe;
 
 /**

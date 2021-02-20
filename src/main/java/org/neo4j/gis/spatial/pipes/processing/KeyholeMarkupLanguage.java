@@ -23,7 +23,7 @@ import java.io.IOException;
 
 import org.geotools.kml.KML;
 import org.geotools.kml.KMLConfiguration;
-import org.geotools.xml.Encoder;
+import org.geotools.xsd.Encoder;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
