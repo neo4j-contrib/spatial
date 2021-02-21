@@ -43,6 +43,7 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
     public OSMDataset(OSMLayer layer, long datasetNodeId) {
         this.layer = layer;
         this.datasetNodeId = datasetNodeId;
+        this.layer.setDataset(this);
     }
 
     /**

@@ -31,7 +31,7 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 /**
  * Instances of this class represent the primary layer of the OSM Dataset. It
- * extends the DynamicLayer class becauase the OSM dataset can have many layers.
+ * extends the DynamicLayer class because the OSM dataset can have many layers.
  * Only one is primary, the layer containing all ways. Other layers are dynamic.
  */
 public class OSMLayer extends DynamicLayer {

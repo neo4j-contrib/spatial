@@ -38,6 +38,7 @@ import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 
 import java.io.File;
@@ -65,6 +66,14 @@ public class TestsForDocs {
     public void setUp() throws Exception {
         this.databases = new DatabaseManagementServiceBuilder(new File("target/docs-db")).build();
         this.graphDb = databases.database(DEFAULT_DATABASE_NAME);
+        try (Transaction tx = this.graphDb.beginTx()) {
+            tx.getAllRelationships().forEach(Relationship::delete);
+            tx.commit();
+        }
+        try (Transaction tx = this.graphDb.beginTx()) {
+            tx.getAllNodes().forEach(Node::delete);
+            tx.commit();
+        }
     }
 
     @After
@@ -75,28 +84,32 @@ public class TestsForDocs {
     }
 
     private void checkIndexAndFeatureCount(String layerName) throws IOException {
+        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb);
         try (Transaction tx = graphDb.beginTx()) {
-            SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb);
             Layer layer = spatial.getLayer(tx, layerName);
             if (layer.getIndex().count(tx) < 1) {
                 System.out.println("Warning: index count zero: " + layer.getName());
             }
             System.out.println("Layer '" + layer.getName() + "' has " + layer.getIndex().count(tx) + " entries in the index");
-            DataStore store = new Neo4jSpatialDataStore(graphDb);
-            SimpleFeatureCollection features = store.getFeatureSource(layer.getName()).getFeatures();
-            System.out.println("Layer '" + layer.getName() + "' has " + features.size() + " features");
+            tx.commit();
+        }
+        DataStore store = new Neo4jSpatialDataStore(graphDb);
+        SimpleFeatureCollection features = store.getFeatureSource(layerName).getFeatures();
+        System.out.println("Layer '" + layerName + "' has " + features.size() + " features");
+        try (Transaction tx = graphDb.beginTx()) {
+            Layer layer = spatial.getLayer(tx, layerName);
             assertEquals("FeatureCollection.size for layer '" + layer.getName() + "' not the same as index count", layer.getIndex().count(tx), features.size());
             if (layer instanceof OSMLayer)
-                checkOSMAPI(tx, layer);
+                checkOSMAPI(tx, (OSMLayer) layer);
             tx.commit();
         }
     }
 
-    private void checkOSMAPI(Transaction tx, Layer layer) {
+    private void checkOSMAPI(Transaction tx, OSMLayer layer) {
         HashMap<Long, Integer> waysFound = new HashMap<>();
         long mostCommon = 0;
         int mostCount = 0;
-        OSMDataset osm = (OSMDataset) layer.getDataset();
+        OSMDataset osm = OSMDataset.fromLayer(tx, layer);
         Node wayNode = osm.getAllWayNodes(tx).iterator().next();
         Way way = osm.getWayFrom(wayNode);
         System.out.println("Got first way " + way);
@@ -177,13 +190,15 @@ public class TestsForDocs {
         GraphDatabaseService database = graphDb;
         // START SNIPPET: exportShapefileFromOSM tag::exportShapefileFromOSM[]
         SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
+        String wayLayerName;
         try (Transaction tx = database.beginTx()) {
             OSMLayer layer = (OSMLayer) spatialService.getLayer(tx, "map.osm");
             DynamicLayerConfig wayLayer = layer.addSimpleDynamicLayer(tx, Constants.GTYPE_LINESTRING);
-            ShapefileExporter shpExporter = new ShapefileExporter(database);
-            shpExporter.exportLayer(wayLayer.getName());
+            wayLayerName = wayLayer.getName();
             tx.commit();
         }
+        ShapefileExporter shpExporter = new ShapefileExporter(database);
+        shpExporter.exportLayer(wayLayerName);
         // END SNIPPET: exportShapefileFromOSM end::exportShapefileFromOSM[]
     }
 
@@ -206,11 +221,11 @@ public class TestsForDocs {
                     .toSpatialDatabaseRecordList();
 
             spatialService.createResultsLayer(tx, "results", results);
-            ShapefileExporter shpExporter = new ShapefileExporter(database);
-            shpExporter.exportLayer("results");
             tx.commit();
 
         }
+        ShapefileExporter shpExporter = new ShapefileExporter(database);
+        shpExporter.exportLayer("results");
         // END SNIPPET: exportShapefileFromQuery end::exportShapefileFromQuery[]
         doGeometryTestsOnResults(bbox, results);
     }
