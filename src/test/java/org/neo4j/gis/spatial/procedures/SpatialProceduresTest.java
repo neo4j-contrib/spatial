@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial.procedures;
 
 import org.junit.*;
+import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.*;
@@ -32,6 +33,7 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
 import java.io.File;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
@@ -46,7 +48,7 @@ public class SpatialProceduresTest {
 
     @Before
     public void setUp() throws KernelException {
-        databases = new TestDatabaseManagementServiceBuilder(new File("target/procedures")).impermanent().build();
+        databases = new TestDatabaseManagementServiceBuilder(new File("target/procedures")).setConfig(GraphDatabaseSettings.procedure_unrestricted, List.of("spatial.*")).impermanent().build();
         db = databases.database(DEFAULT_DATABASE_NAME);
         registerProceduresAndFunctions(db, SpatialProcedures.class);
     }
@@ -839,7 +841,7 @@ public class SpatialProceduresTest {
 
     @Test
     public void import_osm_without_extension() {
-        testCountQuery("importOSM", "CALL spatial.importOSM('map.osm')", 55, "count", null);
+        testCountQuery("importOSM", "CALL spatial.importOSM('map')", 55, "count", null);
         testCallCount(db, "CALL spatial.layers()", null, 1);
     }
 

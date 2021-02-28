@@ -28,6 +28,8 @@ import java.util.HashMap;
 import org.junit.Before;
 import org.junit.Test;
 import org.neo4j.gis.spatial.index.LayerIndexReader;
+import org.neo4j.gis.spatial.osm.OSMDataset;
+import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.gis.spatial.filter.SearchIntersect;
@@ -249,6 +251,7 @@ public class TestSpatial extends Neo4jTestCase {
         SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
         try (Transaction tx = graphDb().beginTx()) {
             Layer layer = spatialService.getLayer(tx, layerName);
+            OSMDataset.fromLayer(tx, (OSMLayer) layer); // force lookup
             if (layer == null || layer.getIndex() == null || layer.getIndex().count(tx) < 1) {
                 fail("Layer not loaded: " + layerName);
             }

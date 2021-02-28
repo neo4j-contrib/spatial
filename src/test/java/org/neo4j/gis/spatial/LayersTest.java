@@ -236,12 +236,12 @@ public class LayersTest {
         inTx(tx -> {
             Layer layer = spatial.createLayer(tx, layerName, geometryEncoderClass, layerClass);
             assertNotNull(layer);
-            assertTrue("Should be a dynamic layer", layer instanceof EditableLayer);
+            assertTrue("Should be an editable layer", layer instanceof EditableLayer);
         });
         inTx(tx -> {
             Layer layer = spatial.getLayer(tx, layerName);
             assertNotNull(layer);
-            assertTrue("Should be a dynamic layer", layer instanceof EditableLayer);
+            assertTrue("Should be an editable layer", layer instanceof EditableLayer);
             EditableLayer editableLayer = (EditableLayer) layer;
 
             CoordinateList coordinates = new CoordinateList();
@@ -278,9 +278,7 @@ public class LayersTest {
     }
 
     private void printResults(Layer layer, List<SpatialDatabaseRecord> results) {
-        System.out.println("\tTesting layer '" + layer.getName() + "' (class "
-                + layer.getClass() + "), found results: "
-                + results.size());
+        System.out.println("\tTesting layer '" + layer.getName() + "' (class " + layer.getClass() + "), found results: " + results.size());
         for (SpatialDatabaseRecord r : results) {
             System.out.println("\t\tGeometry: " + r);
         }
@@ -296,19 +294,9 @@ public class LayersTest {
         layers.add(testSpecificEditableLayer("test dynamic layer with graph encoder", SimpleGraphEncoder.class, DynamicLayer.class));
         layers.add(testSpecificEditableLayer("test dynamic layer with OSM encoder", OSMGeometryEncoder.class, OSMLayer.class));
 
-        Exception osmExportException = null;
-        try {
-            for (String layerName : layers) {
-                exporter.exportLayer(layerName);
-            }
-        } catch (Exception e) {
-            if (e.getMessage().contains("org.locationtech.jts.geom.Geometry")) {
-                osmExportException = e;
-            } else {
-                throw e;
-            }
+        for (String layerName : layers) {
+            exporter.exportLayer(layerName);
         }
-        assertNotNull("Missing expected shapefile export exception from multi-geometry OSM layer", osmExportException);
     }
 
     @Test

@@ -138,6 +138,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
         // Now test snapping to a layer
         try(Transaction tx = graphDb().beginTx()) {
             OSMLayer osmLayer = (OSMLayer) spatialService.getLayer(tx, osm);
+            OSMDataset.fromLayer(tx, osmLayer); // cache for future usage below
             GeometryFactory factory = osmLayer.getGeometryFactory();
             EditableLayerImpl resultsLayer = (EditableLayerImpl) spatialService.getOrCreateEditableLayer(tx, "testSnapping_results");
             String[] fieldsNames = new String[]{"snap-id", "description", "distance"};

@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial;
 import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.filter.text.ecql.ECQL;
 import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 
@@ -71,8 +72,9 @@ public class DynamicLayer extends EditableLayerImpl {
             synchronized (this) {
                 DynamicLayerConfig config = (DynamicLayerConfig) layer;
                 layers = null; // force recalculation of layers cache
-                config.configNode.getSingleRelationship(SpatialRelationshipTypes.LAYER_CONFIG, Direction.INCOMING).delete();
-                config.configNode.delete();
+                Node configNode = config.configNode(tx);
+                configNode.getSingleRelationship(SpatialRelationshipTypes.LAYER_CONFIG, Direction.INCOMING).delete();
+                configNode.delete();
                 return true;
             }
         } else if (layer == null) {
@@ -185,7 +187,7 @@ public class DynamicLayer extends EditableLayerImpl {
                 if (names == null) {
                     config.restrictLayerProperties(tx);
                 } else {
-                    config.setExtraPropertyNames(names);
+                    config.setExtraPropertyNames(tx, names);
                 }
                 return config;
             } else {

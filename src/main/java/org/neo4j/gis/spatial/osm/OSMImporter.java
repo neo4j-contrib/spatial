@@ -32,10 +32,15 @@ import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
+import org.neo4j.internal.kernel.api.security.AccessMode;
+import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.io.fs.FileUtils;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.Neo4jLayout;
+import org.neo4j.kernel.api.KernelTransaction;
+import org.neo4j.kernel.impl.api.security.OverriddenAccessMode;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
@@ -76,6 +81,7 @@ public class OSMImporter implements Constants {
     private long missingChangesets = 0;
     private final Listener monitor;
     private final org.locationtech.jts.geom.Envelope filterEnvelope;
+    private SecurityContext securityContext = SecurityContext.AUTH_DISABLED;
 
     private Charset charset = Charset.defaultCharset();
 
@@ -147,8 +153,7 @@ public class OSMImporter implements Constants {
         }
 
         void printTagStats() {
-            System.out.println("Tag statistics for " + tagStats.size()
-                    + " types:");
+            System.out.println("Tag statistics for " + tagStats.size() + " types:");
             for (String key : tagStats.keySet()) {
                 TagStats stats = tagStats.get(key);
                 System.out.println("\t" + key + ": " + stats);
@@ -167,13 +172,10 @@ public class OSMImporter implements Constants {
         }
 
         void dumpGeomStats() {
-            System.out.println("Geometry statistics for " + geomStats.size()
-                    + " geometry types:");
+            System.out.println("Geometry statistics for " + geomStats.size() + " geometry types:");
             for (Integer key : geomStats.keySet()) {
                 Integer count = geomStats.get(key);
-                System.out.println("\t"
-                        + SpatialDatabaseService.convertGeometryTypeToName(key)
-                        + ": " + count);
+                System.out.println("\t" + SpatialDatabaseService.convertGeometryTypeToName(key) + ": " + count);
             }
             geomStats.clear();
         }
@@ -195,6 +197,13 @@ public class OSMImporter implements Constants {
         this.filterEnvelope = filterEnvelope;
     }
 
+    private Transaction beginTx(GraphDatabaseService database) {
+        if (!(database instanceof GraphDatabaseAPI)) {
+            throw new IllegalArgumentException("database must implement GraphDatabaseAPI");
+        }
+        return ((GraphDatabaseAPI) database).beginTransaction(KernelTransaction.Type.explicit, securityContext);
+    }
+
     public long reIndex(GraphDatabaseService database) {
         return reIndex(database, 10000, true);
     }
@@ -213,12 +222,12 @@ public class OSMImporter implements Constants {
         SpatialDatabaseService spatialDatabase = new SpatialDatabaseService(database);
         OSMLayer layer;
         OSMDataset dataset;
-        try (Transaction tx = database.beginTx()) {
+        try (Transaction tx = beginTx(database)) {
             layer = (OSMLayer) spatialDatabase.getOrCreateLayer(tx, layerName, OSMGeometryEncoder.class, OSMLayer.class);
             dataset = OSMDataset.withDatasetId(tx, layer, osm_dataset);
             tx.commit();
         }
-        try (Transaction tx = database.beginTx()) {
+        try (Transaction tx = beginTx(database)) {
             layer.clear(tx); // clear the index without destroying underlying data
             tx.commit();
         }
@@ -234,7 +243,7 @@ public class OSMImporter implements Constants {
                 .relationships(OSMRelation.FIRST_NODE, Direction.OUTGOING)
                 .relationships(OSMRelation.NEXT, Direction.OUTGOING);
 
-        Transaction tx = database.beginTx();
+        Transaction tx = beginTx(database);
         boolean useWays = missingChangesets > 0;
         int count = 0;
         try {
@@ -270,12 +279,14 @@ public class OSMImporter implements Constants {
                     if (++count % commitInterval == 0) {
                         tx.commit();
                         tx.close();
-                        tx = database.beginTx();
+                        tx = beginTx(database);
                     }
                 } // TODO ask charset to user?
             } else {
                 beginProgressMonitor(dataset.getChangesetCount(tx));
-                for (Node changeset : toList(dataset.getAllChangesetNodes(tx))) {
+                for (Node unsafeNode : toList(dataset.getAllChangesetNodes(tx))) {
+                    WrappedNode changeset = new WrappedNode(unsafeNode);
+                    changeset.refresh(tx);
                     updateProgressMonitor(count);
                     incrLogContext();
                     for (Relationship rel : changeset.getRelationships(Direction.INCOMING, OSMRelation.CHANGESET)) {
@@ -284,7 +295,7 @@ public class OSMImporter implements Constants {
                     if (++count % commitInterval == 0) {
                         tx.commit();
                         tx.close();
-                        tx = database.beginTx();
+                        tx = beginTx(database);
                     }
                 } // TODO ask charset to user?
             }
@@ -296,8 +307,7 @@ public class OSMImporter implements Constants {
 
         if (verboseLog) {
             long stopTime = System.currentTimeMillis();
-            log("info | Re-indexing elapsed time in seconds: "
-                    + (1.0 * (stopTime - startTime) / 1000.0));
+            log("info | Re-indexing elapsed time in seconds: " + (1.0 * (stopTime - startTime) / 1000.0));
             stats.dumpGeomStats();
         }
         return count;
@@ -316,7 +326,7 @@ public class OSMImporter implements Constants {
     private static class GeometryMetaData {
         private Envelope bbox = null;
         private int vertices = 0;
-        private int geometry = -1;
+        private int geometry;
 
         GeometryMetaData(int type) {
             this.geometry = type;
@@ -383,15 +393,13 @@ public class OSMImporter implements Constants {
             this.osmImporter = osmImporter;
         }
 
-        static OSMWriter<WrappedNode> fromGraphDatabase(GraphDatabaseService graphDb, StatsManager stats, OSMImporter osmImporter, int txInterval) {
-            return new OSMGraphWriter(graphDb, stats, osmImporter, txInterval);
+        static OSMWriter<WrappedNode> fromGraphDatabase(GraphDatabaseService graphDb, SecurityContext securityContext, StatsManager stats, OSMImporter osmImporter, int txInterval) {
+            return new OSMGraphWriter(graphDb, securityContext, stats, osmImporter, txInterval);
         }
 
         protected abstract void startWays();
 
         protected abstract void startRelations();
-
-        protected abstract T getOrCreateNode(Label label, String name, String type, T parent, RelationshipType relType);
 
         protected abstract T getOrCreateOSMDataset(String name);
 
@@ -403,9 +411,9 @@ public class OSMImporter implements Constants {
 
         protected abstract T addNode(Label label, Map<String, Object> properties, String indexKey);
 
-        protected abstract void createRelationship(T from, T to, RelationshipType relType, LinkedHashMap<String, Object> relProps);
+        protected abstract void createRelationship(T from, T to, OSMRelation relType, LinkedHashMap<String, Object> relProps);
 
-        void createRelationship(T from, T to, RelationshipType relType) {
+        void createRelationship(T from, T to, OSMRelation relType) {
             createRelationship(from, to, relType, null);
         }
 
@@ -626,8 +634,6 @@ public class OSMImporter implements Constants {
             HashMap<String, Object> directionProps = new HashMap<>();
             directionProps.put("oneway", true);
             for (long nd_ref : wayNodes) {
-                // long pointNode =
-                // batchIndexService.getSingleNode("node_osm_id", nd_ref);
                 T pointNode = getOSMNode(nd_ref, changesetNode);
                 if (pointNode == null) {
                     /*
@@ -644,8 +650,7 @@ public class OSMImporter implements Constants {
                 if (prevNode == pointNode) {
                     continue;
                 }
-                createRelationship(proxyNode, pointNode, OSMRelation.NODE,
-                        null);
+                createRelationship(proxyNode, pointNode, OSMRelation.NODE, null);
                 Map<String, Object> nodeProps = getNodeProperties(pointNode);
                 double[] location = new double[]{
                         (Double) nodeProps.get("lon"),
@@ -659,35 +664,23 @@ public class OSMImporter implements Constants {
                     createRelationship(way, proxyNode, OSMRelation.FIRST_NODE);
                 } else {
                     relProps.clear();
-                    double[] prevLoc = new double[]{
-                            (Double) prevProps.get("lon"),
-                            (Double) prevProps.get("lat")};
-
-                    double length = distance(prevLoc[0], prevLoc[1],
-                            location[0], location[1]);
+                    double[] prevLoc = new double[]{(Double) prevProps.get("lon"), (Double) prevProps.get("lat")};
+                    double length = distance(prevLoc[0], prevLoc[1], location[0], location[1]);
                     relProps.put("length", length);
-
-                    // We default to bi-directional (and don't store direction
-                    // in the
-                    // way node), but if it is one-way we mark it as such, and
-                    // define
-                    // the direction using the relationship direction
+                    /*
+                     * We default to bi-directional (and don't store direction in the way node),
+                     * but if it is one-way we mark it as such, and define the direction using the relationship direction
+                     */
                     if (direction == RoadDirection.BACKWARD) {
-                        createRelationship(proxyNode, prevProxy,
-                                OSMRelation.NEXT, relProps);
+                        createRelationship(proxyNode, prevProxy, OSMRelation.NEXT, relProps);
                     } else {
-                        createRelationship(prevProxy, proxyNode,
-                                OSMRelation.NEXT, relProps);
+                        createRelationship(prevProxy, proxyNode, OSMRelation.NEXT, relProps);
                     }
                 }
                 prevNode = pointNode;
                 prevProxy = proxyNode;
                 prevProps = nodeProps;
             }
-            // if (prevNode > 0) {
-            // batchGraphDb.createRelationship(way, prevNode,
-            // OSMRelation.LAST_NODE, null);
-            // }
             if (firstNode != null && prevNode == firstNode) {
                 geometry = GTYPE_POLYGON;
             }
@@ -703,15 +696,12 @@ public class OSMImporter implements Constants {
                                        LinkedHashMap<String, Object> relationTags) {
             String name = (String) relationTags.get("name");
             if (name != null) {
-                // Copy name tag to way because this seems like a valuable
-                // location for
-                // such a property
+                /* Copy name tag to way because this seems like a valuable location for such a property */
                 relationProperties.put("name", name);
             }
             T relation = addNode(LABEL_RELATION, relationProperties, PROP_RELATION_ID);
             if (prev_relation == null) {
-                createRelationship(osm_dataset, relation,
-                        OSMRelation.RELATIONS);
+                createRelationship(osm_dataset, relation, OSMRelation.RELATIONS);
             } else {
                 createRelationship(prev_relation, relation, OSMRelation.NEXT);
             }
@@ -767,16 +757,6 @@ public class OSMImporter implements Constants {
                         }
                     }
                     createRelationship(relation, member, OSMRelation.MEMBER, relProps);
-                    // members can belong to multiple relations, in multiple
-                    // orders, so NEXT will clash (also with NEXT between ways
-                    // in original way load)
-                    // if (prevMember < 0) {
-                    // batchGraphDb.createRelationship(relation, member,
-                    // OSMRelation.MEMBERS, null);
-                    // } else {
-                    // batchGraphDb.createRelationship(prevMember, member,
-                    // OSMRelation.NEXT, null);
-                    // }
                     prevMember = member;
                 } else {
                     System.err.println("Cannot process invalid relation member: " + memberProps.toString());
@@ -850,17 +830,30 @@ public class OSMImporter implements Constants {
             return inner.getId();
         }
 
-        public void createRelationshipTo(WrappedNode usersNode, OSMRelation users) {
-            inner.createRelationshipTo(usersNode.inner, users);
+        public Relationship createRelationshipTo(WrappedNode usersNode, OSMRelation users) {
+            return inner.createRelationshipTo(usersNode.inner, users);
+        }
+
+        public Relationship createRelationshipTo(Node usersNode, OSMRelation users) {
+            return inner.createRelationshipTo(usersNode, users);
         }
 
         public Iterable<String> getPropertyKeys() {
             return inner.getPropertyKeys();
         }
+
+        public Iterable<Relationship> getRelationships(Direction direction, OSMRelation relType) {
+            return inner.getRelationships(direction, relType);
+        }
+
+        public Iterable<Relationship> getRelationships(OSMRelation geom) {
+            return inner.getRelationships(geom);
+        }
     }
 
     private static class OSMGraphWriter extends OSMWriter<WrappedNode> {
         private final GraphDatabaseService graphDb;
+        private final SecurityContext securityContext;
         private long currentChangesetId = -1;
         private WrappedNode currentChangesetNode;
         private long currentUserId = -1;
@@ -876,9 +869,10 @@ public class OSMImporter implements Constants {
         private IndexDefinition changesetIndex;
         private IndexDefinition userIndex;
 
-        private OSMGraphWriter(GraphDatabaseService graphDb, StatsManager statsManager, OSMImporter osmImporter, int txInterval) {
+        private OSMGraphWriter(GraphDatabaseService graphDb, SecurityContext securityContext, StatsManager statsManager, OSMImporter osmImporter, int txInterval) {
             super(statsManager, osmImporter);
             this.graphDb = graphDb;
+            this.securityContext = securityContext;
             this.txInterval = txInterval;
             if (this.txInterval < 100) {
                 System.err.println("Warning: Unusually short txInterval, expect bad insert performance");
@@ -895,8 +889,24 @@ public class OSMImporter implements Constants {
             }
         }
 
+        private Transaction beginTx(GraphDatabaseService database) {
+            return beginTx(database, securityContext);
+        }
+
+        private Transaction beginIndexTx(GraphDatabaseService database) {
+            SecurityContext withSchema = securityContext.withMode(new OverriddenAccessMode(securityContext.mode(), AccessMode.Static.FULL));
+            return beginTx(database, withSchema);
+        }
+
+        private static Transaction beginTx(GraphDatabaseService database, SecurityContext securityContext) {
+            if (!(database instanceof GraphDatabaseAPI)) {
+                throw new IllegalArgumentException("database must implement GraphDatabaseAPI");
+            }
+            return ((GraphDatabaseAPI) database).beginTransaction(KernelTransaction.Type.explicit, securityContext);
+        }
+
         private void beginTx() {
-            tx = graphDb.beginTx();
+            tx = beginTx(graphDb);
             recoverNode(osm_dataset);
             recoverNode(currentNode);
             recoverNode(prev_relation);
@@ -904,6 +914,7 @@ public class OSMImporter implements Constants {
             recoverNode(currentChangesetNode);
             recoverNode(currentUserNode);
             recoverNode(usersNode);
+            changesetNodes.forEach((id, node) -> node.refresh(tx));
         }
 
         private WrappedNode checkTx(WrappedNode previous) {
@@ -921,8 +932,8 @@ public class OSMImporter implements Constants {
             }
         }
 
-        private WrappedNode findNode(String name, WrappedNode parent, RelationshipType relType) {
-            for (Relationship relationship : parent.inner.getRelationships(Direction.OUTGOING, relType)) {
+        private WrappedNode findNode(String name, WrappedNode parent, OSMRelation relType) {
+            for (Relationship relationship : parent.getRelationships(Direction.OUTGOING, relType)) {
                 Node node = relationship.getEndNode();
                 if (name.equals(node.getProperty("name"))) {
                     return WrappedNode.fromNode(node);
@@ -965,7 +976,7 @@ public class OSMImporter implements Constants {
             IndexDefinition index = findIndex(tx, label, propertyKey);
             if (index == null) {
                 successTx();
-                try (Transaction indexTx = graphDb.beginTx()) {
+                try (Transaction indexTx = beginIndexTx(graphDb)) {
                     index = indexTx.schema().indexFor(label).on(propertyKey).create();
                     indexTx.commit();
                 }
@@ -993,8 +1004,7 @@ public class OSMImporter implements Constants {
             return null;
         }
 
-        @Override
-        protected WrappedNode getOrCreateNode(Label label, String name, String type, WrappedNode parent, RelationshipType relType) {
+        private WrappedNode getOrCreateNode(Label label, String name, String type, WrappedNode parent, OSMRelation relType) {
             WrappedNode node = findNode(name, parent, relType);
             if (node == null) {
                 Node n = tx.createNode(label);
@@ -1035,7 +1045,7 @@ public class OSMImporter implements Constants {
                 statsManager.addToTagStats(type, tags.keySet());
                 Node tagsNode = tx.createNode(LABEL_TAGS);
                 addProperties(tagsNode, tags);
-                node.inner.createRelationshipTo(tagsNode, OSMRelation.TAGS);
+                node.createRelationshipTo(new WrappedNode(tagsNode), OSMRelation.TAGS);
                 tags.clear();
             }
         }
@@ -1048,7 +1058,7 @@ public class OSMImporter implements Constants {
                 geomNode.setProperty("gtype", gtype);
                 geomNode.setProperty("vertices", vertices);
                 geomNode.setProperty(PROP_BBOX, new double[]{bbox.getMinX(), bbox.getMaxX(), bbox.getMinY(), bbox.getMaxY()});
-                node.inner.createRelationshipTo(geomNode, OSMRelation.GEOM);
+                node.createRelationshipTo(geomNode, OSMRelation.GEOM);
                 statsManager.addGeomStats(gtype);
             }
         }
@@ -1064,9 +1074,9 @@ public class OSMImporter implements Constants {
         }
 
         @Override
-        protected void createRelationship(WrappedNode from, WrappedNode to, RelationshipType relType, LinkedHashMap<String, Object> relProps) {
+        protected void createRelationship(WrappedNode from, WrappedNode to, OSMRelation relType, LinkedHashMap<String, Object> relProps) {
             if (from != null & to != null) {
-                Relationship rel = from.inner.createRelationshipTo(to.inner, relType);
+                Relationship rel = from.createRelationshipTo(to, relType);
                 if (relProps != null && relProps.size() > 0) {
                     addProperties(rel, relProps);
                 }
@@ -1099,7 +1109,7 @@ public class OSMImporter implements Constants {
                 currentChangesetNode = changesetNode;
                 changesetNodes.clear();
                 if (changesetNode != null) {
-                    for (Relationship rel : changesetNode.inner.getRelationships(Direction.INCOMING, OSMRelation.CHANGESET)) {
+                    for (Relationship rel : changesetNode.getRelationships(Direction.INCOMING, OSMRelation.CHANGESET)) {
                         Node node = rel.getStartNode();
                         Long nodeOsmId = (Long) node.getProperty(PROP_NODE_ID, null);
                         if (nodeOsmId != null) {
@@ -1112,16 +1122,15 @@ public class OSMImporter implements Constants {
             if (node == null) {
                 logNodeFoundFrom("node-index");
                 node = WrappedNode.fromNode(tx.findNode(LABEL_NODE, PROP_NODE_ID, osmId));
-                return node;
             } else {
                 logNodeFoundFrom(PROP_CHANGESET);
-                return node;
             }
+            return node;
         }
 
         @Override
         protected void updateGeometryMetaDataFromMember(WrappedNode member, GeometryMetaData metaGeom, Map<String, Object> nodeProps) {
-            for (Relationship rel : member.inner.getRelationships(OSMRelation.GEOM)) {
+            for (Relationship rel : member.getRelationships(OSMRelation.GEOM)) {
                 nodeProps = getNodeProperties(WrappedNode.fromNode(rel.getEndNode()));
                 metaGeom.checkSupportedGeometry((Integer) nodeProps.get("gtype"));
                 metaGeom.expandToIncludeBBox(nodeProps);
@@ -1130,6 +1139,7 @@ public class OSMImporter implements Constants {
 
         @Override
         protected void finish() {
+            if (tx == null) beginTx();
             osm_dataset.setProperty("relationCount", (Integer) osm_dataset.getProperty("relationCount", 0) + relationCount);
             osm_dataset.setProperty("wayCount", (Integer) osm_dataset.getProperty("wayCount", 0) + wayCount);
             osm_dataset.setProperty("nodeCount", (Integer) osm_dataset.getProperty("nodeCount", 0) + nodeCount);
@@ -1222,7 +1232,7 @@ public class OSMImporter implements Constants {
     }
 
     public void importFile(GraphDatabaseService database, String dataset, boolean allPoints, int txInterval) throws IOException, XMLStreamException {
-        importFile(OSMWriter.fromGraphDatabase(database, stats, this, txInterval), dataset, allPoints, charset);
+        importFile(OSMWriter.fromGraphDatabase(database, securityContext, stats, this, txInterval), dataset, allPoints, charset);
     }
 
     public static class CountedFileReader extends InputStreamReader {
@@ -1232,11 +1242,6 @@ public class OSMImporter implements Constants {
         public CountedFileReader(String path, Charset charset) throws FileNotFoundException {
             super(new FileInputStream(path), charset);
             this.length = (new File(path)).length();
-        }
-
-        public CountedFileReader(File file, Charset charset) throws FileNotFoundException {
-            super(new FileInputStream(file), charset);
-            this.length = file.length();
         }
 
         public long getCharsRead() {
@@ -1289,6 +1294,10 @@ public class OSMImporter implements Constants {
         progressTime = 0;
     }
 
+    public void setSecurityContext(SecurityContext securityContext) {
+        this.securityContext = securityContext;
+    }
+
     public void setCharset(Charset charset) {
         this.charset = charset;
     }
@@ -1306,18 +1315,16 @@ public class OSMImporter implements Constants {
         int countXMLTags = 0;
         beginProgressMonitor(100);
         setLogContext(dataset);
-        IndexDefinition nodeIndex = null;
-        IndexDefinition wayIndex = null;
         boolean startedWays = false;
         boolean startedRelations = false;
         try {
-            ArrayList<String> currentXMLTags = new ArrayList<String>();
+            ArrayList<String> currentXMLTags = new ArrayList<>();
             int depth = 0;
             Map<String, Object> wayProperties = null;
-            ArrayList<Long> wayNodes = new ArrayList<Long>();
+            ArrayList<Long> wayNodes = new ArrayList<>();
             Map<String, Object> relationProperties = null;
-            ArrayList<Map<String, Object>> relationMembers = new ArrayList<Map<String, Object>>();
-            LinkedHashMap<String, Object> currentNodeTags = new LinkedHashMap<String, Object>();
+            ArrayList<Map<String, Object>> relationMembers = new ArrayList<>();
+            LinkedHashMap<String, Object> currentNodeTags = new LinkedHashMap<>();
             while (true) {
                 updateProgressMonitor(reader.getPercentRead());
                 incrLogContext();
@@ -1334,10 +1341,7 @@ public class OSMImporter implements Constants {
                         } else if (tagPath.equals("[osm, bounds]")) {
                             osmWriter.addOSMBBox(extractProperties(PROP_BBOX, parser));
                         } else if (tagPath.equals("[osm, node]")) {
-                            // <node id="269682538" lat="56.0420950"
-                            // lon="12.9693483" user="sanna" uid="31450"
-                            // visible="true" version="1" changeset="133823"
-                            // timestamp="2008-06-11T12:36:28Z"/>
+                            /* <node id="269682538" lat="56.0420950" lon="12.9693483" user="sanna" uid="31450" visible="true" version="1" changeset="133823" timestamp="2008-06-11T12:36:28Z"/> */
                             boolean includeNode = true;
                             Map<String, Object> nodeProperties = extractProperties("node", parser);
                             if (filterEnvelope != null) {
@@ -1347,9 +1351,7 @@ public class OSMImporter implements Constants {
                                 osmWriter.createOSMNode(nodeProperties);
                             }
                         } else if (tagPath.equals("[osm, way]")) {
-                            // <way id="27359054" user="spull" uid="61533"
-                            // visible="true" version="8" changeset="4707351"
-                            // timestamp="2010-05-15T15:39:57Z">
+                            /* <way id="27359054" user="spull" uid="61533" visible="true" version="8" changeset="4707351" timestamp="2010-05-15T15:39:57Z"> */
                             if (!startedWays) {
                                 startedWays = true;
                                 osmWriter.startWays();
@@ -1367,9 +1369,7 @@ public class OSMImporter implements Constants {
                             currentNodeTags.put(properties.get("k").toString(),
                                     properties.get("v").toString());
                         } else if (tagPath.equals("[osm, relation]")) {
-                            // <relation id="77965" user="Grillo" uid="13957"
-                            // visible="true" version="24" changeset="5465617"
-                            // timestamp="2010-08-11T19:25:46Z">
+                            /* <relation id="77965" user="Grillo" uid="13957" visible="true" version="24" changeset="5465617" timestamp="2010-08-11T19:25:46Z"> */
                             if (!startedRelations) {
                                 startedRelations = true;
                                 osmWriter.startRelations();
@@ -1414,7 +1414,6 @@ public class OSMImporter implements Constants {
                         }
                         depth--;
                         currentXMLTags.remove(depth);
-                        // log("Ending tag at depth "+depth+": "+currentTags.get(depth));
                         break;
                     default:
                         break;
@@ -1433,8 +1432,7 @@ public class OSMImporter implements Constants {
             osmWriter.describeLoaded();
 
             long stopTime = System.currentTimeMillis();
-            log("info | Elapsed time in seconds: "
-                    + (1.0 * (stopTime - startTime) / 1000.0));
+            log("info | Elapsed time in seconds: " + (1.0 * (stopTime - startTime) / 1000.0));
             stats.dumpGeomStats();
             stats.printTagStats();
         }
@@ -1455,13 +1453,11 @@ public class OSMImporter implements Constants {
     }
 
     private Map<String, Object> extractProperties(String name, XMLStreamReader parser) {
-        // <node id="269682538" lat="56.0420950" lon="12.9693483" user="sanna"
-        // uid="31450" visible="true" version="1" changeset="133823"
-        // timestamp="2008-06-11T12:36:28Z"/>
-        // <way id="27359054" user="spull" uid="61533" visible="true"
-        // version="8" changeset="4707351" timestamp="2010-05-15T15:39:57Z">
-        // <relation id="77965" user="Grillo" uid="13957" visible="true"
-        // version="24" changeset="5465617" timestamp="2010-08-11T19:25:46Z">
+        /*
+          <node id="269682538" lat="56.0420950" lon="12.9693483" user="sanna" uid="31450" visible="true" version="1" changeset="133823" timestamp="2008-06-11T12:36:28Z"/>
+          <way id="27359054" user="spull" uid="61533" visible="true" version="8" changeset="4707351" timestamp="2010-05-15T15:39:57Z">
+          <relation id="77965" user="Grillo" uid="13957" visible="true" version="24" changeset="5465617" timestamp="2010-08-11T19:25:46Z">
+         */
         LinkedHashMap<String, Object> properties = new LinkedHashMap<String, Object>();
         for (int i = 0; i < parser.getAttributeCount(); i++) {
             String prop = parser.getAttributeLocalName(i);
