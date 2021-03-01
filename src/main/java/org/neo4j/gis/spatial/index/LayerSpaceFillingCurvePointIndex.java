@@ -21,16 +21,29 @@ package org.neo4j.gis.spatial.index;
 
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.Point;
+import org.neo4j.exceptions.KernelException;
 import org.neo4j.gis.spatial.index.curves.SpaceFillingCurve;
 import org.neo4j.gis.spatial.index.curves.StandardConfiguration;
 import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.*;
+import org.neo4j.internal.helpers.collection.Iterators;
+import org.neo4j.internal.kernel.api.*;
+import org.neo4j.internal.schema.IndexDescriptor;
+import org.neo4j.internal.schema.IndexOrder;
+import org.neo4j.internal.schema.IndexType;
+import org.neo4j.internal.schema.SchemaDescriptor;
+import org.neo4j.kernel.api.KernelTransaction;
+import org.neo4j.kernel.impl.core.NodeEntity;
+import org.neo4j.kernel.impl.coreapi.internal.NodeCursorResourceIterator;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.cs.CoordinateSystemAxis;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
+
+import static org.neo4j.internal.helpers.collection.Iterators.emptyResourceIterator;
 
 public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBackedPointIndex<Long> {
 
@@ -83,28 +96,65 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
         return getCurve(tx).derivedValueFor(new double[]{point.getX(), point.getY()});
     }
 
-    private void appendRange(StringBuilder sb, SpaceFillingCurve.LongRange range) {
-        if (range.min == range.max) {
-            sb.append(indexTypeName()).append(":").append(range.min);
-        } else {
-            sb.append(indexTypeName()).append(":[").append(range.min).append(" TO ").append(range.max).append("]");
-        }
-    }
-
-    protected String queryStringFor(Transaction tx, SearchFilter filter) {
+    protected Neo4jIndexSearcher searcherFor(Transaction tx, SearchFilter filter) {
         if (filter instanceof AbstractSearchEnvelopeIntersection) {
             org.neo4j.gis.spatial.rtree.Envelope referenceEnvelope = ((AbstractSearchEnvelopeIntersection) filter).getReferenceEnvelope();
-            List<SpaceFillingCurve.LongRange> tiles = getCurve(tx).getTilesIntersectingEnvelope(referenceEnvelope.getMin(), referenceEnvelope.getMax(), new StandardConfiguration());
-            StringBuilder sb = new StringBuilder();
-            for (SpaceFillingCurve.LongRange range : tiles) {
-                if (sb.length() > 0) {
-                    sb.append(" OR ");
-                }
-                appendRange(sb, range);
-            }
-            return sb.toString();
+            return new RangeSearcher(getCurve(tx).getTilesIntersectingEnvelope(referenceEnvelope.getMin(), referenceEnvelope.getMax(), new StandardConfiguration()));
         } else {
             throw new UnsupportedOperationException("Hilbert Index only supports searches based on AbstractSearchEnvelopeIntersection, not " + filter.getClass().getCanonicalName());
+        }
+    }
+    public static class RangeSearcher implements Neo4jIndexSearcher {
+        private final List<SpaceFillingCurve.LongRange> tiles;
+
+        RangeSearcher(List<SpaceFillingCurve.LongRange> tiles) {
+            this.tiles = tiles;
+        }
+
+        public Iterator<Node> search(KernelTransaction ktx, Label label, String propertyKey) {
+            int labelId = ktx.tokenRead().nodeLabel(label.name());
+            int propId = ktx.tokenRead().propertyKey(propertyKey);
+            ArrayList<Iterator<Node>> results = new ArrayList<>();
+            for(SpaceFillingCurve.LongRange range:tiles) {
+                IndexQuery indexQuery = IndexQuery.range(propId, range.min, true, range.max, true);
+                results.add(nodesByLabelAndProperty(ktx, labelId, indexQuery));
+            }
+            return Iterators.concat(results.iterator());
+        }
+
+        private ResourceIterator<Node> nodesByLabelAndProperty(KernelTransaction transaction, int labelId, IndexQuery query )
+        {
+            Read read = transaction.dataRead();
+
+            if ( query.propertyKeyId() == TokenRead.NO_TOKEN || labelId == TokenRead.NO_TOKEN )
+            {
+                return emptyResourceIterator();
+            }
+            Iterator<IndexDescriptor> iterator = transaction.schemaRead().index( SchemaDescriptor.forLabel( labelId, query.propertyKeyId() ) );
+            while ( iterator.hasNext() )
+            {
+                IndexDescriptor index = iterator.next();
+                if ( index.getIndexType() != IndexType.BTREE )
+                {
+                    // Skip special indexes, such as the full-text indexes, because they can't handle all the queries we might throw at them.
+                    continue;
+                }
+                // Ha! We found an index - let's use it to find matching nodes
+                try
+                {
+                    NodeValueIndexCursor cursor = transaction.cursors().allocateNodeValueIndexCursor();
+                    IndexReadSession indexSession = read.indexReadSession( index );
+                    read.nodeIndexSeek( indexSession, cursor, IndexOrder.NONE, false, query );
+
+                    return new NodeCursorResourceIterator<>( cursor, (id) -> new NodeEntity(transaction.internalTransaction(), id) );
+                }
+                catch ( KernelException e )
+                {
+                    // weird at this point but ignore and fallback to a label scan
+                }
+            }
+
+            return Iterators.emptyResourceIterator();
         }
     }
 }

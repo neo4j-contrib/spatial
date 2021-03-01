@@ -29,6 +29,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMDataset.Way;
@@ -40,6 +41,8 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 import java.io.File;
 import java.io.IOException;
@@ -84,7 +87,7 @@ public class TestsForDocs {
     }
 
     private void checkIndexAndFeatureCount(String layerName) throws IOException {
-        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb);
+        SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
         try (Transaction tx = graphDb.beginTx()) {
             Layer layer = spatial.getLayer(tx, layerName);
             if (layer.getIndex().count(tx) < 1) {
@@ -151,9 +154,9 @@ public class TestsForDocs {
         importMapOSM(graphDb);
         GraphDatabaseService database = graphDb;
         // START SNIPPET: searchBBox tag::searchBBox[]
-        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb);
+        SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
         try (Transaction tx = database.beginTx()) {
-            Layer layer = spatialService.getLayer(tx, "map.osm");
+            Layer layer = spatial.getLayer(tx, "map.osm");
             LayerIndexReader spatialIndex = layer.getIndex();
             System.out.println("Have " + spatialIndex.count(tx) + " geometries in " + spatialIndex.getBoundingBox(tx));
 
@@ -189,10 +192,10 @@ public class TestsForDocs {
         importMapOSM(graphDb);
         GraphDatabaseService database = graphDb;
         // START SNIPPET: exportShapefileFromOSM tag::exportShapefileFromOSM[]
-        SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
+        SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
         String wayLayerName;
         try (Transaction tx = database.beginTx()) {
-            OSMLayer layer = (OSMLayer) spatialService.getLayer(tx, "map.osm");
+            OSMLayer layer = (OSMLayer) spatial.getLayer(tx, "map.osm");
             DynamicLayerConfig wayLayer = layer.addSimpleDynamicLayer(tx, Constants.GTYPE_LINESTRING);
             wayLayerName = wayLayer.getName();
             tx.commit();
@@ -208,11 +211,11 @@ public class TestsForDocs {
         importMapOSM(graphDb);
         GraphDatabaseService database = graphDb;
         // START SNIPPET: exportShapefileFromQuery tag::exportShapefileFromQuery[]
-        SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
+        SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
         Envelope bbox = new Envelope(12.94, 12.96, 56.04, 56.06);
         List<SpatialDatabaseRecord> results;
         try (Transaction tx = database.beginTx()) {
-            Layer layer = spatialService.getLayer(tx, "map.osm");
+            Layer layer = spatial.getLayer(tx, "map.osm");
             LayerIndexReader spatialIndex = layer.getIndex();
             System.out.println("Have " + spatialIndex.count(tx) + " geometries in " + spatialIndex.getBoundingBox(tx));
 
@@ -220,7 +223,7 @@ public class TestsForDocs {
                     .startIntersectWindowSearch(tx, layer, bbox)
                     .toSpatialDatabaseRecordList();
 
-            spatialService.createResultsLayer(tx, "results", results);
+            spatial.createResultsLayer(tx, "results", results);
             tx.commit();
 
         }

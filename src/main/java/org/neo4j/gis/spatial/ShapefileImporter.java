@@ -32,11 +32,14 @@ import org.geotools.data.shapefile.shp.ShapefileReader;
 import org.geotools.data.shapefile.shp.ShapefileReader.Record;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
@@ -64,7 +67,7 @@ public class ShapefileImporter implements Constants {
         }
         this.commitInterval = commitInterval;
         this.database = database;
-        this.spatialDatabase = new SpatialDatabaseService(database);
+        this.spatialDatabase = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) database, SecurityContext.AUTH_DISABLED));
 
         if (monitor == null) monitor = new NullListener();
         this.monitor = monitor;

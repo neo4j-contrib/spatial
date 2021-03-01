@@ -21,7 +21,10 @@ package org.neo4j.gis.spatial;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -29,48 +32,48 @@ import java.util.function.Function;
 import static org.junit.Assert.assertEquals;
 
 public class LayerSignatureTest extends Neo4jTestCase implements Constants {
-    private SpatialDatabaseService spatialService;
+    private SpatialDatabaseService spatial;
 
     @Before
     public void setup() throws Exception {
         super.setUp();
-        spatialService = new SpatialDatabaseService(graphDb());
+        spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
     }
 
     @Test
     public void testSimplePointLayer() {
         testLayerSignature("EditableLayer(name='test', encoder=SimplePointEncoder(x='lng', y='lat', bbox='bbox'))",
-                tx -> spatialService.createSimplePointLayer(tx, "test", "lng", "lat"));
+                tx -> spatial.createSimplePointLayer(tx, "test", "lng", "lat"));
     }
 
     @Test
     public void testNativePointLayer() {
         testLayerSignature("EditableLayer(name='test', encoder=NativePointEncoder(geometry='position', bbox='mbr', crs=4326))",
-                tx -> spatialService.createNativePointLayer(tx, "test", "position", "mbr"));
+                tx -> spatial.createNativePointLayer(tx, "test", "position", "mbr"));
     }
 
     @Test
     public void testDefaultSimplePointLayer() {
         testLayerSignature("EditableLayer(name='test', encoder=SimplePointEncoder(x='longitude', y='latitude', bbox='bbox'))",
-                tx -> spatialService.createSimplePointLayer(tx, "test"));
+                tx -> spatial.createSimplePointLayer(tx, "test"));
     }
 
     @Test
     public void testSimpleWKBLayer() {
         testLayerSignature("EditableLayer(name='test', encoder=WKBGeometryEncoder(geom='geometry', bbox='bbox'))",
-                tx -> spatialService.createWKBLayer(tx, "test"));
+                tx -> spatial.createWKBLayer(tx, "test"));
     }
 
     @Test
     public void testWKBLayer() {
         testLayerSignature("EditableLayer(name='test', encoder=WKBGeometryEncoder(geom='wkb', bbox='bbox'))",
-                tx -> spatialService.getOrCreateEditableLayer(tx, "test", "wkb", "wkb"));
+                tx -> spatial.getOrCreateEditableLayer(tx, "test", "wkb", "wkb"));
     }
 
     @Test
     public void testWKTLayer() {
         testLayerSignature("EditableLayer(name='test', encoder=WKTGeometryEncoder(geom='wkt', bbox='bbox'))",
-                tx -> spatialService.getOrCreateEditableLayer(tx, "test", "wkt", "wkt"));
+                tx -> spatial.getOrCreateEditableLayer(tx, "test", "wkt", "wkt"));
     }
 
     private Layer testLayerSignature(String signature, Function<Transaction, Layer> layerMaker) {
@@ -93,9 +96,9 @@ public class LayerSignatureTest extends Neo4jTestCase implements Constants {
     @Test
     public void testDynamicLayer() {
         Layer layer = testLayerSignature("EditableLayer(name='test', encoder=WKTGeometryEncoder(geom='wkt', bbox='bbox'))",
-                tx -> spatialService.getOrCreateEditableLayer(tx, "test", "wkt", "wkt"));
+                tx -> spatial.getOrCreateEditableLayer(tx, "test", "wkt", "wkt"));
         inTx(tx -> {
-            DynamicLayer dynamic = spatialService.asDynamicLayer(tx, layer);
+            DynamicLayer dynamic = spatial.asDynamicLayer(tx, layer);
             assertEquals("EditableLayer(name='test', encoder=WKTGeometryEncoder(geom='wkt', bbox='bbox'))", dynamic.getSignature());
             DynamicLayerConfig points = dynamic.addCQLDynamicLayerOnAttribute(tx, "is_a", "point", GTYPE_POINT);
             assertEquals("DynamicLayer(name='CQL:is_a-point', config={layer='CQL:is_a-point', query=\"geometryType(the_geom) = 'Point' AND is_a = 'point'\"})", points.getSignature());

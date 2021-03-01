@@ -22,7 +22,10 @@ package org.neo4j.gis.spatial.pipes;
 import org.locationtech.jts.geom.Coordinate;
 import org.junit.Test;
 import org.neo4j.gis.spatial.*;
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 import java.util.ArrayList;
 
@@ -39,7 +42,7 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 
     private void loadSamplePointData() {
         try (Transaction tx = graphDb().beginTx()) {
-            SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb());
+            SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
             SimplePointLayer layer = spatial.createSimplePointLayer(tx, "GeoPipesPerformanceTest");
             System.out.println("Creating database of " + records + " point records");
             for (int i = 0; i < records; i++) {
@@ -88,7 +91,7 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 
     @Test
     public void testQueryPerformance() {
-        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb());
+        SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
         try (Transaction tx = graphDb().beginTx()) {
             Layer layer = spatial.getLayer(tx, "GeoPipesPerformanceTest");
             // String[] keys = {"id","name","address","city","state","zip"};
@@ -132,7 +135,7 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 
     @Test
     public void testPagingPerformance() {
-        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb());
+        SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
         try (Transaction tx = graphDb().beginTx()) {
             Layer layer = spatial.getLayer(tx, "GeoPipesPerformanceTest");
             // String[] keys = {"id","name","address","city","state","zip"};

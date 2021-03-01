@@ -51,8 +51,8 @@ public class SpatialDatabaseService implements Constants {
     public final IndexManager indexManager;
     private long spatialRoot = -1;
 
-    public SpatialDatabaseService(GraphDatabaseService service) {
-        this.indexManager = new IndexManager(((GraphDatabaseAPI) service).databaseLayout());
+    public SpatialDatabaseService(IndexManager indexManager) {
+        this.indexManager = indexManager;
     }
 
     private Node getSpatialRoot(Transaction tx) {

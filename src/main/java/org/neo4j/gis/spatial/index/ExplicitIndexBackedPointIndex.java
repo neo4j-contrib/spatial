@@ -27,10 +27,8 @@ import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.TreeMonitor;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.NotFoundException;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.*;
+import org.neo4j.kernel.api.KernelTransaction;
 
 import java.util.Iterator;
 import java.util.List;
@@ -54,7 +52,7 @@ import java.util.NoSuchElementException;
 public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexReader, SpatialIndexWriter {
 
     protected Layer layer;
-    private NodeIndex<E> index;
+    private PropertyEncodingNodeIndex<E> index;
     private final ExplicitIndexBackedMonitor monitor = new ExplicitIndexBackedMonitor();
 
     protected abstract String indexTypeName();
@@ -62,8 +60,9 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
     @Override
     public void init(Transaction tx, IndexManager indexManager, Layer layer) {
         this.layer = layer;
-        String indexName = "_Spatial_" + indexTypeName() + "_Index_" + layer.getName();
-        this.index = new NodeIndex<>(indexName, indexManager);
+        String indexName = "_SpatialIndex_" + indexTypeName() + "_" + layer.getName();
+        Label label = Label.label("SpatialIndex_" + indexTypeName() + "_" + layer.getName());
+        this.index = new PropertyEncodingNodeIndex<>(indexManager, indexName, label, indexName.toLowerCase());
     }
 
     @Override
@@ -78,7 +77,7 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
 
     @Override
     public void add(Transaction tx, Node geomNode) {
-        index.add(geomNode, indexTypeName(), getIndexValueFor(tx, geomNode));
+        index.add(geomNode, getIndexValueFor(tx, geomNode));
     }
 
     protected abstract E getIndexValueFor(Transaction tx, Node geomNode);
@@ -113,12 +112,11 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
     @Override
     public void removeAll(Transaction tx, boolean deleteGeomNodes, Listener monitor) {
         if (deleteGeomNodes) {
-
             for (Node node : getAllIndexedNodes(tx)) {
                 remove(tx, node.getId(), true, true);
             }
         }
-        index.delete();
+        index.delete(tx);
     }
 
     @Override
@@ -153,13 +151,13 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
 
     @Override
     public Iterable<Node> getAllIndexedNodes(Transaction tx) {
-        return index.queryAll().asNodes(tx);
+        return index.queryAll(tx);
     }
 
     @Override
     public SearchResults searchIndex(Transaction tx, SearchFilter filter) {
-        Iterable<Node> indexHits = index.query(indexTypeName(), queryStringFor(tx, filter)).asNodes(tx);
-        return new SearchResults(() -> new FilteredIndexIterator(tx, indexHits.iterator(), filter));
+        Iterator<Node> indexHits = index.query(tx, searcherFor(tx, filter));
+        return new SearchResults(() -> new FilteredIndexIterator(tx, indexHits, filter));
     }
 
     private class FilteredIndexIterator implements Iterator<Node> {
@@ -206,7 +204,14 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
         }
     }
 
-    protected abstract String queryStringFor(Transaction tx, SearchFilter filter);
+    /**
+     * Create a class capable of performing a specific search based on a custom 2D to 1D conversion.
+     */
+    protected abstract Neo4jIndexSearcher searcherFor(Transaction tx, SearchFilter filter);
+
+    public interface Neo4jIndexSearcher {
+        Iterator<Node> search(KernelTransaction ktx, Label label, String propertyKey);
+    }
 
     @Override
     public void addMonitor(TreeMonitor monitor) {

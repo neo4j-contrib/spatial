@@ -27,6 +27,7 @@ import org.junit.Test;
 import org.junit.runners.Parameterized;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.gis.spatial.filter.SearchRecords;
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.osm.OSMRelation;
@@ -34,6 +35,8 @@ import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.filter.SearchAll;
 import org.neo4j.gis.spatial.utilities.ReferenceNodes;
 import org.neo4j.graphdb.*;
+import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
@@ -137,7 +140,7 @@ public class OsmAnalysisTest extends TestOSMImport {
         }
         databases = new TestDatabaseManagementServiceBuilder(dbDir).impermanent().build();
         db = databases.database(DEFAULT_DATABASE_NAME);
-        return new SpatialDatabaseService(db);
+        return new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
     }
 
     protected void runAnalysis(String osm, int years, int days) throws Exception {
@@ -155,7 +158,7 @@ public class OsmAnalysisTest extends TestOSMImport {
     }
 
     public void testAnalysis2(String osm, int years, int days) throws IOException {
-        SpatialDatabaseService spatial = new SpatialDatabaseService(db);
+        SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
         LinkedHashMap<DynamicLayerConfig, Long> slides = new LinkedHashMap<>();
         Map<String, User> userIndex = new HashMap<>();
         int user_rank = 1;
@@ -276,8 +279,8 @@ public class OsmAnalysisTest extends TestOSMImport {
             Map<String, User> userIndex = collectUserChangesetData(usersNode);
             SortedSet<User> topTen = getTopTen(userIndex);
 
-            SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
-            layers = exportPoints(tx, osm, spatialService, topTen);
+            SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
+            layers = exportPoints(tx, osm, spatial, topTen);
 
             layers = removeEmptyLayers(tx, layers);
             bbox = getEnvelope(tx, layers.values());

@@ -32,9 +32,12 @@ import org.geotools.xml.styling.SLDParser;
 import org.locationtech.jts.geom.Envelope;
 import org.neo4j.gis.spatial.*;
 import org.neo4j.gis.spatial.filter.SearchRecords;
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.rtree.filter.SearchAll;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.Name;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -60,7 +63,7 @@ public class Neo4jSpatialDataStore extends ContentDataStore implements Constants
 
     public Neo4jSpatialDataStore(GraphDatabaseService database) {
         this.database = database;
-        this.spatialDatabase = new SpatialDatabaseService(database);
+        this.spatialDatabase = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) database, SecurityContext.AUTH_DISABLED));
     }
 
     /**

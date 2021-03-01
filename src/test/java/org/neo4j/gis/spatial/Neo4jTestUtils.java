@@ -19,9 +19,12 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.gis.spatial.rtree.RTreeRelationshipTypes;
 import org.neo4j.graphdb.*;
+import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -46,7 +49,8 @@ public class Neo4jTestUtils {
 
     public static void debugIndexTree(GraphDatabaseService db, String layerName) {
         try (Transaction tx = db.beginTx()) {
-            Layer layer = new SpatialDatabaseService(db).getLayer(tx, layerName);
+            SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
+            Layer layer = spatial.getLayer(tx, layerName);
             RTreeIndex index = (RTreeIndex) layer.getIndex();
             printTree(index.getIndexRoot(tx), 0);
             tx.commit();

@@ -39,12 +39,15 @@ import org.junit.Test;
 import org.neo4j.annotations.documented.Documented;
 import org.neo4j.gis.spatial.*;
 import org.neo4j.gis.spatial.filter.SearchIntersectWindow;
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.pipes.filtering.FilterCQL;
 import org.neo4j.gis.spatial.pipes.osm.OSMGeoPipeline;
 import org.neo4j.gis.spatial.rtree.filter.SearchAll;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestData.Title;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
@@ -919,13 +922,13 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
     }
 
     private static void load() throws Exception {
-        SpatialDatabaseService spatialService = new SpatialDatabaseService(db);
+        SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
 
         try (Transaction tx = db.beginTx()) {
             loadTestOsmData("two-street.osm", 100);
-            osmLayer = spatialService.getLayer(tx, "two-street.osm");
+            osmLayer = spatial.getLayer(tx, "two-street.osm");
 
-            boxesLayer = (EditableLayerImpl) spatialService.getOrCreateEditableLayer(tx, "boxes");
+            boxesLayer = (EditableLayerImpl) spatial.getOrCreateEditableLayer(tx, "boxes");
             boxesLayer.setExtraPropertyNames(new String[]{"name"}, tx);
             boxesLayer.setCoordinateReferenceSystem(tx, DefaultEngineeringCRS.GENERIC_2D);
             WKTReader reader = new WKTReader(boxesLayer.getGeometryFactory());
@@ -936,19 +939,19 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
                     reader.read("POLYGON ((2 3, 2 5, 6 5, 6 3, 2 3))"),
                     new String[]{"name"}, new Object[]{"B"});
 
-            concaveLayer = (EditableLayerImpl) spatialService.getOrCreateEditableLayer(tx, "concave");
+            concaveLayer = (EditableLayerImpl) spatial.getOrCreateEditableLayer(tx, "concave");
             concaveLayer.setCoordinateReferenceSystem(tx, DefaultEngineeringCRS.GENERIC_2D);
             reader = new WKTReader(concaveLayer.getGeometryFactory());
             concaveLayer.add(tx, reader.read("POLYGON ((0 0, 2 5, 0 10, 10 10, 10 0, 0 0))"));
 
-            intersectionLayer = (EditableLayerImpl) spatialService.getOrCreateEditableLayer(tx, "intersection");
+            intersectionLayer = (EditableLayerImpl) spatial.getOrCreateEditableLayer(tx, "intersection");
             intersectionLayer.setCoordinateReferenceSystem(tx, DefaultEngineeringCRS.GENERIC_2D);
             reader = new WKTReader(intersectionLayer.getGeometryFactory());
             intersectionLayer.add(tx, reader.read("POLYGON ((0 0, 0 5, 5 5, 5 0, 0 0))"));
             intersectionLayer.add(tx, reader.read("POLYGON ((4 4, 4 10, 10 10, 10 4, 4 4))"));
             intersectionLayer.add(tx, reader.read("POLYGON ((2 2, 2 6, 6 6, 6 2, 2 2))"));
 
-            equalLayer = (EditableLayerImpl) spatialService.getOrCreateEditableLayer(tx, "equal");
+            equalLayer = (EditableLayerImpl) spatial.getOrCreateEditableLayer(tx, "equal");
             equalLayer.setExtraPropertyNames(new String[]{"id", "name"}, tx);
             equalLayer.setCoordinateReferenceSystem(tx, DefaultEngineeringCRS.GENERIC_2D);
             reader = new WKTReader(intersectionLayer.getGeometryFactory());
@@ -963,7 +966,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
                     reader.read("POLYGON ((0 0, 0 2, 0 4, 0 5, 5 5, 5 3, 5 2, 5 0, 0 0))"),
                     new String[]{"id", "name"}, new Object[]{4, "topo equal"});
 
-            linesLayer = (EditableLayerImpl) spatialService.getOrCreateEditableLayer(tx, "lines");
+            linesLayer = (EditableLayerImpl) spatial.getOrCreateEditableLayer(tx, "lines");
             linesLayer.setCoordinateReferenceSystem(tx, DefaultEngineeringCRS.GENERIC_2D);
             reader = new WKTReader(intersectionLayer.getGeometryFactory());
             linesLayer.add(tx, reader.read("LINESTRING (12 26, 15 27, 18 32, 20 38, 23 34)"));

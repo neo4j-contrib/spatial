@@ -27,6 +27,7 @@ import java.util.HashMap;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMLayer;
@@ -37,6 +38,8 @@ import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 import static org.junit.Assert.*;
 
@@ -194,8 +197,8 @@ public class TestSpatial extends Neo4jTestCase {
     private long countLayerIndex(String layerName) {
         long count = 0;
         try (Transaction tx = graphDb().beginTx()) {
-            SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-            Layer layer = spatialService.getLayer(tx, layerName);
+            SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+            Layer layer = spatial.getLayer(tx, layerName);
             if (layer != null && layer.getIndex() != null) {
                 count = layer.getIndex().count(tx);
             }
@@ -248,15 +251,15 @@ public class TestSpatial extends Neo4jTestCase {
         System.out.println("\n=== Spatial Index Test: " + layerName + " ===");
         long start = System.currentTimeMillis();
 
-        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+        SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
         try (Transaction tx = graphDb().beginTx()) {
-            Layer layer = spatialService.getLayer(tx, layerName);
+            Layer layer = spatial.getLayer(tx, layerName);
             OSMDataset.fromLayer(tx, (OSMLayer) layer); // force lookup
             if (layer == null || layer.getIndex() == null || layer.getIndex().count(tx) < 1) {
                 fail("Layer not loaded: " + layerName);
             }
 
-            LayerIndexReader fakeIndex = new SpatialIndexPerformanceProxy(new FakeIndex(layer, spatialService.indexManager));
+            LayerIndexReader fakeIndex = new SpatialIndexPerformanceProxy(new FakeIndex(layer, spatial.indexManager));
             LayerIndexReader rtreeIndex = new SpatialIndexPerformanceProxy(layer.getIndex());
 
             System.out.println("RTreeIndex bounds: " + rtreeIndex.getBoundingBox(tx));

@@ -24,8 +24,11 @@ import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.ShapefileExporter;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -56,7 +59,7 @@ public class OSMLayerToShapefileExporter {
             List<String> layerspecs = new ArrayList<>(Arrays.asList(args).subList(4, args.length));
             DatabaseManagementService databases = new DatabaseManagementServiceBuilder(new File(homeDir)).build();
             GraphDatabaseService db = databases.database(database);
-            SpatialDatabaseService spatial = new SpatialDatabaseService(db);
+            SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
             OSMLayer layer;
             try (Transaction tx = db.beginTx()) {
                 layer = (OSMLayer) spatial.getLayer(tx, osmdataset);

@@ -27,10 +27,13 @@ import org.locationtech.jts.linearref.LengthIndexedLine;
 import org.locationtech.jts.linearref.LocationIndexedLine;
 import org.junit.Test;
 import org.neo4j.gis.spatial.SpatialTopologyUtils.PointResult;
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -43,10 +46,10 @@ public class TestSpatialUtils extends Neo4jTestCase {
 
     @Test
     public void testJTSLinearRef() {
-        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+        SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
         Geometry geometry;
         try (Transaction tx = graphDb().beginTx()) {
-            EditableLayer layer = spatialService.getOrCreateEditableLayer(tx, "jts");
+            EditableLayer layer = spatial.getOrCreateEditableLayer(tx, "jts");
             Coordinate[] coordinates = new Coordinate[]{new Coordinate(0, 0), new Coordinate(0, 1), new Coordinate(1, 1)};
             geometry = layer.getGeometryFactory().createLineString(coordinates);
             layer.add(tx, geometry);
@@ -56,7 +59,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
 
         try(Transaction tx = graphDb().beginTx()) {
             double delta = 0.0001;
-            Layer layer = spatialService.getLayer(tx, "jts");
+            Layer layer = spatial.getLayer(tx, "jts");
             // Now test the new API in the topology utils
             Point point = SpatialTopologyUtils.locatePoint(layer, geometry, 1.5, 0.5);
             assertEquals("X location incorrect", 0.5, point.getX(), delta);
@@ -119,9 +122,9 @@ public class TestSpatialUtils extends Neo4jTestCase {
 
         // Define dynamic layers
         List<Layer> layers = new ArrayList<>();
-        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+        SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
         try(Transaction tx = graphDb().beginTx()) {
-            OSMLayer osmLayer = (OSMLayer) spatialService.getLayer(tx, osm);
+            OSMLayer osmLayer = (OSMLayer) spatial.getLayer(tx, osm);
             layers.add(osmLayer.addSimpleDynamicLayer(tx, "highway", "primary"));
             layers.add(osmLayer.addSimpleDynamicLayer(tx, "highway", "secondary"));
             layers.add(osmLayer.addSimpleDynamicLayer(tx, "highway", "tertiary"));
@@ -137,10 +140,10 @@ public class TestSpatialUtils extends Neo4jTestCase {
 
         // Now test snapping to a layer
         try(Transaction tx = graphDb().beginTx()) {
-            OSMLayer osmLayer = (OSMLayer) spatialService.getLayer(tx, osm);
+            OSMLayer osmLayer = (OSMLayer) spatial.getLayer(tx, osm);
             OSMDataset.fromLayer(tx, osmLayer); // cache for future usage below
             GeometryFactory factory = osmLayer.getGeometryFactory();
-            EditableLayerImpl resultsLayer = (EditableLayerImpl) spatialService.getOrCreateEditableLayer(tx, "testSnapping_results");
+            EditableLayerImpl resultsLayer = (EditableLayerImpl) spatial.getOrCreateEditableLayer(tx, "testSnapping_results");
             String[] fieldsNames = new String[]{"snap-id", "description", "distance"};
             resultsLayer.setExtraPropertyNames(fieldsNames, tx);
             Point point = factory.createPoint(new Coordinate(12.9777, 56.0555));

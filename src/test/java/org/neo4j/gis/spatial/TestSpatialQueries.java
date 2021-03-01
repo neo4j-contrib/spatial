@@ -24,8 +24,11 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
 import org.junit.Test;
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.*;
@@ -42,7 +45,7 @@ public class TestSpatialQueries extends Neo4jTestCase {
     @Test
     public void testSearchClosestWithShortLongLineStrings() throws ParseException {
         String layerName = "test";
-        SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb());
+        SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
         Geometry shortLineString;
         Geometry longLineString;
         Geometry point;

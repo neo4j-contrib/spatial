@@ -35,7 +35,9 @@ import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.io.fs.FileUtils;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
 import java.io.File;
@@ -112,7 +114,7 @@ public abstract class LayerIndexTestBase {
         FileUtils.deleteRecursively(baseDir);
         databases = new TestDatabaseManagementServiceBuilder(baseDir).impermanent().build();
         graph = databases.database(DEFAULT_DATABASE_NAME);
-        spatial = new SpatialDatabaseService(graph);
+        spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graph, SecurityContext.AUTH_DISABLED));
     }
 
     @After

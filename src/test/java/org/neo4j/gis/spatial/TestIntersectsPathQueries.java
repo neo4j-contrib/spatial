@@ -29,12 +29,15 @@ import org.locationtech.jts.simplify.TopologyPreservingSimplifier;
 import org.junit.Test;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 import javax.xml.stream.XMLStreamException;
 import java.io.BufferedReader;
@@ -200,7 +203,7 @@ public class TestIntersectsPathQueries {
 
     private void runTestPointSetGeoptimaIntersection(String tracePath, String dbRoot, String dbName, String layerName, boolean testMultiPoint) {
         withDatabase(dbRoot, dbName, Neo4jTestCase.NORMAL_CONFIG, graphDb -> {
-            SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb);
+            SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
             try {
                 int indexCount;
                 try (Transaction tx = graphDb.beginTx()) {

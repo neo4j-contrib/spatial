@@ -19,14 +19,19 @@
  */
 package org.neo4j.gis.spatial.index;
 
+import org.apache.lucene.spatial.util.MortonEncoder;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.Point;
-import org.apache.lucene.spatial.util.MortonEncoder;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
+import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.StringSearchMode;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.kernel.api.KernelTransaction;
+
+import java.util.Iterator;
 
 public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String> {
 
@@ -54,14 +59,26 @@ public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String
         return a.substring(0, minLength);
     }
 
-    protected String queryStringFor(Transaction tx, SearchFilter filter) {
+    protected Neo4jIndexSearcher searcherFor(Transaction tx, SearchFilter filter) {
         if (filter instanceof AbstractSearchEnvelopeIntersection) {
             Envelope referenceEnvelope = ((AbstractSearchEnvelopeIntersection) filter).getReferenceEnvelope();
             String maxHash = MortonEncoder.geoTermToString(MortonEncoder.encode(referenceEnvelope.getMaxY(), referenceEnvelope.getMaxX()));
             String minHash = MortonEncoder.geoTermToString(MortonEncoder.encode(referenceEnvelope.getMinY(), referenceEnvelope.getMinX()));
-            return greatestCommonPrefix(minHash, maxHash) + "*";
+            return new PrefixSearcher(greatestCommonPrefix(minHash, maxHash));
         } else {
             throw new UnsupportedOperationException("Geohash Index only supports searches based on AbstractSearchEnvelopeIntersection, not " + filter.getClass().getCanonicalName());
+        }
+    }
+
+    public static class PrefixSearcher implements Neo4jIndexSearcher {
+        final String prefix;
+
+        PrefixSearcher(String prefix) {
+            this.prefix = prefix;
+        }
+
+        public Iterator<Node> search(KernelTransaction ktx, Label label, String propertyKey) {
+            return ktx.internalTransaction().findNodes(label, propertyKey, prefix, StringSearchMode.PREFIX);
         }
     }
 }

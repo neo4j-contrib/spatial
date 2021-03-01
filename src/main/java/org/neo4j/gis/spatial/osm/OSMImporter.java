@@ -24,6 +24,7 @@ import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.NullListener;
@@ -219,7 +220,7 @@ public class OSMImporter implements Constants {
         log("Re-indexing with GraphDatabaseService: " + database + " (class: " + database.getClass() + ")");
 
         setLogContext("Index");
-        SpatialDatabaseService spatialDatabase = new SpatialDatabaseService(database);
+        SpatialDatabaseService spatialDatabase = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) database, SecurityContext.AUTH_DISABLED));
         OSMLayer layer;
         OSMDataset dataset;
         try (Transaction tx = beginTx(database)) {

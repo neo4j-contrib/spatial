@@ -27,10 +27,13 @@ import org.geotools.data.simple.SimpleFeatureCollection;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.osm.*;
 import org.neo4j.gis.spatial.osm.OSMDataset.Way;
 import org.neo4j.gis.spatial.pipes.osm.OSMGeoPipeline;
 import org.neo4j.graphdb.*;
+import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 import java.io.File;
 import java.io.IOException;
@@ -108,11 +111,11 @@ public class TestOSMImport extends Neo4jTestCase {
         return osmFile.getPath();
     }
 
-    protected static void checkOSMLayer(GraphDatabaseService graphDatabaseService, String layerName) throws IOException {
+    protected static void checkOSMLayer(GraphDatabaseService db, String layerName) throws IOException {
         int indexCount;
-        try (Transaction tx = graphDatabaseService.beginTx()) {
-            SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDatabaseService);
-            OSMLayer layer = (OSMLayer) spatialService.getOrCreateLayer(tx, layerName, OSMGeometryEncoder.class, OSMLayer.class);
+        try (Transaction tx = db.beginTx()) {
+            SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
+            OSMLayer layer = (OSMLayer) spatial.getOrCreateLayer(tx, layerName, OSMGeometryEncoder.class, OSMLayer.class);
             assertNotNull("OSM Layer index should not be null", layer.getIndex());
             assertNotNull("OSM Layer index envelope should not be null", layer.getIndex().getBoundingBox(tx));
             Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox(tx));
@@ -123,7 +126,7 @@ public class TestOSMImport extends Neo4jTestCase {
             checkOSMSearch(tx, layer);
             tx.commit();
         }
-        checkFeatureCount(graphDatabaseService, indexCount, layerName);
+        checkFeatureCount(db, indexCount, layerName);
     }
 
     public static void checkOSMSearch(Transaction tx, OSMLayer layer) {
