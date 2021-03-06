@@ -141,6 +141,7 @@ public class LayersTest {
         }
         inTx(tx -> spatial.deleteLayer(tx, layerName, new ProgressLoggingListener("deleting layer '" + layerName + "'", System.out)));
         inTx(tx -> assertNull(spatial.getLayer(tx, layerName)));
+        spatial.indexManager.waitForDeletions();
     }
 
     @Test

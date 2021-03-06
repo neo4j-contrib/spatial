@@ -63,6 +63,7 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
         String indexName = "_SpatialIndex_" + indexTypeName() + "_" + layer.getName();
         Label label = Label.label("SpatialIndex_" + indexTypeName() + "_" + layer.getName());
         this.index = new PropertyEncodingNodeIndex<>(indexManager, indexName, label, indexName.toLowerCase());
+        this.index.initialize(tx);
     }
 
     @Override

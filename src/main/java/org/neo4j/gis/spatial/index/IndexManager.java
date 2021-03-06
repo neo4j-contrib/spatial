@@ -20,33 +20,90 @@ public class IndexManager {
         this.securityContext = securityContext;
     }
 
-    public IndexDefinition indexFor(String indexName, Label label, String propertyKey) {
-        IndexMaker indexMaker = new IndexMaker(indexName, label, propertyKey);
-        Thread indexMakerThread = new Thread(indexMaker, "IndexMaker(" + indexName + ")");
-        indexMakerThread.start();
-        try {
-            indexMakerThread.join();
-            if (indexMaker.e != null) {
-                throw new RuntimeException("Failed to make index " + indexMaker.description(), indexMaker.e);
+    public IndexDefinition indexFor(Transaction tx, String indexName, Label label, String propertyKey) {
+        for (IndexDefinition exists : tx.schema().getIndexes(label)) {
+            if (exists.getName().equals(indexName)) {
+                return exists;
             }
-            return indexMaker.index;
-        } catch (InterruptedException e) {
-            throw new RuntimeException("Failed to make index " + indexMaker.description(), e);
+        }
+        String name = "IndexMaker(" + indexName + ")";
+        Thread exists = findThread(name);
+        if (exists != null) {
+            throw new IllegalStateException("Already have thread: " + exists.getName());
+        } else {
+            IndexMaker indexMaker = new IndexMaker(indexName, label, propertyKey);
+            Thread indexMakerThread = new Thread(indexMaker, name);
+            indexMakerThread.start();
+            try {
+                indexMakerThread.join();
+                if (indexMaker.e != null) {
+                    throw new RuntimeException("Failed to make index " + indexMaker.description(), indexMaker.e);
+                }
+                return indexMaker.index;
+            } catch (InterruptedException e) {
+                throw new RuntimeException("Failed to make index " + indexMaker.description(), e);
+            }
         }
     }
 
     public void deleteIndex(IndexDefinition index) {
-        IndexRemover indexRemover = new IndexRemover(index);
-        Thread indexRemoverThread = new Thread(indexRemover, "IndexRemover(" + index.getName() + ")");
-        indexRemoverThread.start();
-        try {
-            indexRemoverThread.join();
-            if (indexRemover.e != null) {
-                throw new RuntimeException("Failed to remove index " + index.getName(), indexRemover.e);
-            }
-        } catch (InterruptedException e) {
-            throw new RuntimeException("Failed to remove index " + index.getName(), e);
+        String name = "IndexRemover(" + index.getName() + ")";
+        Thread exists = findThread(name);
+        if (exists != null) {
+            System.out.println("Already have thread: " + exists.getName());
+        } else {
+            IndexRemover indexRemover = new IndexRemover(index);
+            Thread indexRemoverThread = new Thread(indexRemover, name);
+            indexRemoverThread.start();
         }
+    }
+
+    public void waitForDeletions() {
+        waitForThreads("IndexMaker");
+        waitForThreads("IndexRemover");
+    }
+
+    private void waitForThreads(String prefix) {
+        Thread found;
+        while ((found = findThread(prefix)) != null) {
+            try {
+                found.join();
+            } catch (InterruptedException e) {
+                throw new RuntimeException("Wait for thread " + found.getName(), e);
+            }
+        }
+    }
+
+    private Thread findThread(String prefix) {
+        ThreadGroup rootGroup = Thread.currentThread().getThreadGroup();
+        Thread found = findThread(rootGroup, prefix);
+        if (found != null) {
+            System.out.println("Found thread in current group[" + rootGroup.getName() + "}: " + prefix);
+            return found;
+        }
+        ThreadGroup parentGroup;
+        while ((parentGroup = rootGroup.getParent()) != null) {
+            rootGroup = parentGroup;
+        }
+        found = findThread(rootGroup, prefix);
+        if (found != null) {
+            System.out.println("Found thread in root group[" + rootGroup.getName() + "}: " + prefix);
+            return found;
+        }
+        return null;
+    }
+
+    private Thread findThread(ThreadGroup group, String prefix) {
+        Thread[] threads = new Thread[group.activeCount()];
+        while (group.enumerate(threads, true) == threads.length) {
+            threads = new Thread[threads.length * 2];
+        }
+        for (Thread thread : threads) {
+            if (thread != null && thread.getName() != null && thread.getName().startsWith(prefix)) {
+                return thread;
+            }
+        }
+        return null;
     }
 
     private class IndexMaker implements Runnable {

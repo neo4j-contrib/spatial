@@ -19,16 +19,21 @@ import java.util.Iterator;
  * @param <E> either a String or a Long depending on whether the index is geohash or space-filling curve.
  */
 public class PropertyEncodingNodeIndex<E> {
-    private final IndexDefinition index;
+    private IndexDefinition index;
+    private final String indexName;
     private final Label label;
     private final String propertyKey;
     private final IndexManager indexManager;
 
     public PropertyEncodingNodeIndex(IndexManager indexManager, String indexName, Label label, String propertyKey) {
+        this.indexName = indexName;
         this.label = label;
         this.propertyKey = propertyKey;
         this.indexManager = indexManager;
-        index = indexManager.indexFor(indexName, label, propertyKey);
+    }
+
+    public void initialize(Transaction tx) {
+        index = indexManager.indexFor(tx, indexName, label, propertyKey);
     }
 
     public void add(Node geomNode, E indexValueFor) {
