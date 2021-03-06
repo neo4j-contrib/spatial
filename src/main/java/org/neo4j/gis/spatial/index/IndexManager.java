@@ -3,8 +3,10 @@ package org.neo4j.gis.spatial.index;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.schema.IndexDefinition;
+import org.neo4j.internal.kernel.api.security.PrivilegeAction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.api.KernelTransaction;
+import org.neo4j.kernel.impl.api.security.OverriddenAccessMode;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 import java.util.List;
@@ -15,9 +17,34 @@ public class IndexManager {
     private final GraphDatabaseAPI db;
     private final SecurityContext securityContext;
 
+    public static class IndexAccessMode extends OverriddenAccessMode {
+        public static SecurityContext withIndexCreate(SecurityContext securityContext) {
+            return securityContext.withMode(new IndexAccessMode(securityContext));
+        }
+
+        private IndexAccessMode(SecurityContext securityContext) {
+            super(Static.ACCESS, securityContext.mode());
+        }
+
+        @Override
+        public boolean allowsTokenCreates(PrivilegeAction action) {
+            return true;
+        }
+
+        @Override
+        public boolean allowsSchemaWrites() {
+            return true;
+        }
+
+        @Override
+        public boolean allowsSchemaWrites(PrivilegeAction action) {
+            return true;
+        }
+    }
+
     public IndexManager(GraphDatabaseAPI db, SecurityContext securityContext) {
         this.db = db;
-        this.securityContext = securityContext;
+        this.securityContext = IndexAccessMode.withIndexCreate(securityContext);
     }
 
     public IndexDefinition indexFor(Transaction tx, String indexName, Label label, String propertyKey) {

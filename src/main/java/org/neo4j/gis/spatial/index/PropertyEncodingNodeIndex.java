@@ -6,7 +6,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.kernel.api.KernelTransaction;
-import org.neo4j.kernel.impl.coreapi.TransactionImpl;
+import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 
 import java.util.Iterator;
 
@@ -51,7 +51,7 @@ public class PropertyEncodingNodeIndex<E> {
     }
 
     public Iterator<Node> query(Transaction tx, ExplicitIndexBackedPointIndex.Neo4jIndexSearcher searcher) {
-        KernelTransaction ktx = ((TransactionImpl) tx).kernelTransaction();
+        KernelTransaction ktx = ((InternalTransaction) tx).kernelTransaction();
         return searcher.search(ktx, label, propertyKey);
     }
 

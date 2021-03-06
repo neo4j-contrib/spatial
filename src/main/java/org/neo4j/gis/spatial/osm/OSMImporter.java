@@ -895,8 +895,7 @@ public class OSMImporter implements Constants {
         }
 
         private Transaction beginIndexTx(GraphDatabaseService database) {
-            SecurityContext withSchema = securityContext.withMode(new OverriddenAccessMode(securityContext.mode(), AccessMode.Static.FULL));
-            return beginTx(database, withSchema);
+            return beginTx(database, IndexManager.IndexAccessMode.withIndexCreate(securityContext));
         }
 
         private static Transaction beginTx(GraphDatabaseService database, SecurityContext securityContext) {
