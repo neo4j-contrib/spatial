@@ -38,29 +38,30 @@ highlighted the need for a new approach to spatial libraries for Neo4j.
 
 ## Neo4j 4.x Support
 
-Since this library was originally written in 2010 when Neo4j was still releasing early 1.x versions,
-it made use of internal Java API's that were deprecated over the years, some as early as Neo4j 2.x.
-When Neo4j 4.0 was released, it entirely removed a number of deprecated API's, and completely changed
-the Transaction API.
-This meant that the spatial library needed a major refactoring to work with Neo4j 4.x:
+This library was originally written in 2010 when Neo4j was still releasing early 1.x versions.
+This means it made use of internal Java API's that were deprecated over the years, some as early as Neo4j 2.x.
+When Neo4j 4.0 was released, many deprecated API's were entirely removed.
+And the transaction API was changed in a fundamental way.
+This has meant that the spatial library needed a major refactoring to work with Neo4j 4.x:
 
-* The library previously depended on outer and inner transactions, so code that was called
-  within a transaction (like procedures) could be common with code that was not (Java API).
+* The library previously depended on nested transactions. This allowed code that was called
+  within a transaction (like procedures) to be the same as code that was not (Java API).
   The removal of this support required that all internal API's needed to include parameters
-  for the current transaction, and only the specific surface designed for embedded use not.
+  for the current transaction, and only the specific surface designed for embedded use not have that.
 * The library made use of Lucene based explicit indexes in many places.
-  The removal of support for explicit indexes required new solutions in sevaral places:
-  * The `OSMImporter` used instead normal Neo4j schema indexes (introduced in 2.0), but these
-    can only be created in separate index transactions. Due to the new transaction model this
-    required stopping the import transaction, starting an index transaction, and then restarting
-    the import transaction. All of this is incompatible with procedures, which already have
-    an incoming, non-stoppable transaction. The solution was to run the actual import in another
-    thread, retaining the original batch-processing capabilities, but requiring modifying the 
-    security model of the procedure context.
-  * The `ExplicitIndexBackedPointIndex` needed to be modified to instead use a schema index.
-    This required similar tricks as employed in the `OSMImporter`.
-* Neo4j 4.0 runs only in Java 11, and GeoTools only supported up to Java 1.8 until recently.
-  This required an upgrade to the GeoTools and JTS libraries to version 24.2.
+  The removal of support for explicit indexes required completely new solutions in sevaral places:
+  * The `OSMImporter` will instead now use normal Neo4j schema indexes (introduced in 2.0).
+    However, these can only be created in separate index transactions.
+    Due to the new transaction model this requires stopping the import transaction,
+    starting an index transaction, and then restarting the import transaction.
+    All of this is incompatible with procedures, which already have an incoming, non-stoppable transaction.
+    The solution to this second problem was to run the actual import in another thread.
+    This has the additional benefit of retaining the original batch-processing capabilities.
+    The negative consequence of this it that it requires modifying the security model of the procedure context.
+  * The `ExplicitIndexBackedPointIndex` has been modified to instead use a schema index.
+    This required similar tricks to those employed in the `OSMImporter` described above.
+* Neo4j 4.0 runs only in Java 11, and until recently GeoTools did not support newer Java versions.
+  It was therefor necessary to upgrade the GeoTools libraries to version 24.2.
   This in turn required a re-write of the Neo4jDataStore interface since the older API had
   long been deprecated, and was entirely unavailable in newer versions.
 
@@ -68,15 +69,26 @@ Consequences of this port:
 
 * The large number of changes mean that the 0.27.0 version should be considered very alpha.
 * Many API's have changed and client code might need to be adapted to take the changes into account.
-* The new GeoServer API is entirely untested, besides the existing unit and integration tests.
+* The new DataStore API is entirely untested in GeoServer, besides the existing unit and integration tests.
 * The need to manage threads and create schema indexes results in the procedures requiring
   unrestricted access to internal API's of Neo4j.
   
-This part point means that you need to set the following in your `neo4j.conf` file:
+This last point means that you need to set the following in your `neo4j.conf` file:
 
 ```
 dbms.security.procedures.unrestricted=spatial.*
 ```
+
+If you are concerned about the security implications of unrestricted access, my best advice is to review
+the code and decide for yourself the level of risk you face. See, for example, the method `IndexAccessMode.withIndexCreate`,
+which adds index create capabilities to the security model.
+This means that users without index creation privileges will be able to create the necessary spatial support indexes
+described above.
+This code was not written because we wanted to allow for that case, it was written because in the Neo4j security model,
+procedures that can write data (mode=`WRITE`) are not allowed to create indexes.
+So this security-fix was required even in the Community Edition of Neo4j.
+
+---
 
 The rest of the README might have information that is no longer accurate for the current version of this library.
 Please report any mistakes as issues, or consider raising a pull-request with an appropriate fix.
