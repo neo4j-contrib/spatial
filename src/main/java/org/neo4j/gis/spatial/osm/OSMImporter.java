@@ -980,6 +980,7 @@ public class OSMImporter implements Constants {
                     index = indexTx.schema().indexFor(label).on(propertyKey).create();
                     indexTx.commit();
                 }
+                System.out.println("Created index " + index.getName());
                 beginTx();
             }
             return index;
