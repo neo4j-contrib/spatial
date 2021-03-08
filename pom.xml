@@ -13,7 +13,6 @@
         <skinArtifactId>default-skin</skinArtifactId>
         <skinVersion>2</skinVersion>
         <geotools.version>24.2</geotools.version>
-        <osm.version>0.2.3-neo4j-4.0.0</osm.version>
         <spatial.test.osm.version>20100819</spatial.test.osm.version>
         <spatial.test.shp.version>20100819</spatial.test.shp.version>
         <bundle.namespace>org.neo4j.gis</bundle.namespace>
@@ -324,11 +323,6 @@
             <version>${neo4j.version}</version>
             <type>test-jar</type>
             <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.neo4j.gis</groupId>
-            <artifactId>osm</artifactId>
-            <version>${osm.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.code.gson</groupId>
