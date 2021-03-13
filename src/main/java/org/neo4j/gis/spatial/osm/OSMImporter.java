@@ -33,13 +33,11 @@ import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
-import org.neo4j.internal.kernel.api.security.AccessMode;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.io.fs.FileUtils;
 import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.kernel.api.KernelTransaction;
-import org.neo4j.kernel.impl.api.security.OverriddenAccessMode;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
@@ -202,7 +200,7 @@ public class OSMImporter implements Constants {
         if (!(database instanceof GraphDatabaseAPI)) {
             throw new IllegalArgumentException("database must implement GraphDatabaseAPI");
         }
-        return ((GraphDatabaseAPI) database).beginTransaction(KernelTransaction.Type.explicit, securityContext);
+        return ((GraphDatabaseAPI) database).beginTransaction(KernelTransaction.Type.EXPLICIT, securityContext);
     }
 
     public long reIndex(GraphDatabaseService database) {
@@ -902,7 +900,7 @@ public class OSMImporter implements Constants {
             if (!(database instanceof GraphDatabaseAPI)) {
                 throw new IllegalArgumentException("database must implement GraphDatabaseAPI");
             }
-            return ((GraphDatabaseAPI) database).beginTransaction(KernelTransaction.Type.explicit, securityContext);
+            return ((GraphDatabaseAPI) database).beginTransaction(KernelTransaction.Type.EXPLICIT, securityContext);
         }
 
         private void beginTx() {

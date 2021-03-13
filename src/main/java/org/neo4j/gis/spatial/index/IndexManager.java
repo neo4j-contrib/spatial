@@ -150,14 +150,14 @@ public class IndexManager {
         @Override
         public void run() {
             try {
-                try (Transaction tx = db.beginTransaction(KernelTransaction.Type.explicit, securityContext)) {
+                try (Transaction tx = db.beginTransaction(KernelTransaction.Type.EXPLICIT, securityContext)) {
                     index = findIndex(tx);
                     if (index == null) {
                         index = tx.schema().indexFor(label).withName(indexName).on(propertyKey).create();
                     }
                     tx.commit();
                 }
-                try (Transaction tx = db.beginTransaction(KernelTransaction.Type.explicit, securityContext)) {
+                try (Transaction tx = db.beginTransaction(KernelTransaction.Type.EXPLICIT, securityContext)) {
                     tx.schema().awaitIndexOnline(indexName, 30, TimeUnit.SECONDS);
                 }
             } catch (Exception e) {
@@ -208,7 +208,7 @@ public class IndexManager {
         @Override
         public void run() {
             try {
-                try (Transaction tx = db.beginTransaction(KernelTransaction.Type.explicit, securityContext)) {
+                try (Transaction tx = db.beginTransaction(KernelTransaction.Type.EXPLICIT, securityContext)) {
                     // Need to find and drop in the same transaction due to saved state in the index definition implementation
                     IndexDefinition found = tx.schema().getIndexByName(index.getName());
                     if (found != null) {

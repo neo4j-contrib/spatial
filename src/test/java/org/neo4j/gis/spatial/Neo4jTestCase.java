@@ -56,8 +56,6 @@ public abstract class Neo4jTestCase {
         //NORMAL_CONFIG.put( GraphDatabaseSettings.strings_mapped_memory_size.name(), "200M" );
         //NORMAL_CONFIG.put( GraphDatabaseSettings.arrays_mapped_memory_size.name(), "0M" );
         NORMAL_CONFIG.put(GraphDatabaseSettings.pagecache_memory.name(), "200M");
-        NORMAL_CONFIG.put(GraphDatabaseSettings.batch_inserter_batch_size.name(), "2");
-        NORMAL_CONFIG.put(GraphDatabaseSettings.dump_configuration.name(), "false");
     }
 
     static final Map<String, String> LARGE_CONFIG = new HashMap<>();
@@ -69,8 +67,6 @@ public abstract class Neo4jTestCase {
         //LARGE_CONFIG.put( GraphDatabaseSettings.strings_mapped_memory_size.name(), "800M" );
         //LARGE_CONFIG.put( GraphDatabaseSettings.arrays_mapped_memory_size.name(), "10M" );
         LARGE_CONFIG.put(GraphDatabaseSettings.pagecache_memory.name(), "100M");
-        LARGE_CONFIG.put(GraphDatabaseSettings.batch_inserter_batch_size.name(), "2");
-        LARGE_CONFIG.put(GraphDatabaseSettings.dump_configuration.name(), "true");
     }
 
     private static final File basePath = new File("target/var");

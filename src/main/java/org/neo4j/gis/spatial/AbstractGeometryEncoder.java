@@ -19,7 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
-import org.apache.commons.lang.ArrayUtils;
+import org.apache.commons.lang3.ArrayUtils;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Entity;

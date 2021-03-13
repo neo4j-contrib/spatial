@@ -26,13 +26,16 @@ import org.neo4j.gis.spatial.index.curves.SpaceFillingCurve;
 import org.neo4j.gis.spatial.index.curves.StandardConfiguration;
 import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
-import org.neo4j.graphdb.*;
+import org.neo4j.graphdb.Label;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.ResourceIterator;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.kernel.api.*;
 import org.neo4j.internal.schema.IndexDescriptor;
-import org.neo4j.internal.schema.IndexOrder;
 import org.neo4j.internal.schema.IndexType;
 import org.neo4j.internal.schema.SchemaDescriptor;
+import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracer;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.core.NodeEntity;
 import org.neo4j.kernel.impl.coreapi.internal.NodeCursorResourceIterator;
@@ -142,9 +145,9 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
                 // Ha! We found an index - let's use it to find matching nodes
                 try
                 {
-                    NodeValueIndexCursor cursor = transaction.cursors().allocateNodeValueIndexCursor();
+                    NodeValueIndexCursor cursor = transaction.cursors().allocateNodeValueIndexCursor(PageCursorTracer.NULL);
                     IndexReadSession indexSession = read.indexReadSession( index );
-                    read.nodeIndexSeek( indexSession, cursor, IndexOrder.NONE, false, query );
+                    read.nodeIndexSeek( indexSession, cursor, IndexQueryConstraints.unordered(false), query );
 
                     return new NodeCursorResourceIterator<>( cursor, (id) -> new NodeEntity(transaction.internalTransaction(), id) );
                 }

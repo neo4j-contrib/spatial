@@ -64,10 +64,14 @@ This has meant that the spatial library needed a major refactoring to work with 
   It was therefor necessary to upgrade the GeoTools libraries to version 24.2.
   This in turn required a re-write of the Neo4jDataStore interface since the older API had
   long been deprecated, and was entirely unavailable in newer versions.
+* Neo4j 4.1 was slightly stricter with regards to passing nodes as parameters, requiring the nodes
+  objects to have been created in the current transaction.
+  To work around this we added `.byId` versions of the `spatial.addNode` and `spatial.removeNode` procedures.
+  We also changed the `spatial.removeNode` procedures to return `nodeId` instead of `node`.
 
-Consequences of this port:
+Consequences of the port to Neo4j 4.x:
 
-* The large number of changes mean that the 0.27.0 version should be considered very alpha.
+* The large number of changes mean that the 0.27.x versions should be considered very alpha.
 * Many API's have changed and client code might need to be adapted to take the changes into account.
 * The new DataStore API is entirely untested in GeoServer, besides the existing unit and integration tests.
 * The need to manage threads and create schema indexes results in the procedures requiring
@@ -335,6 +339,7 @@ The Neo4j Spatial Plugin is available for inclusion in the server version of Neo
   * [v0.26.2 for Neo4j 3.5.2](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.26.2-neo4j-3.5.2/neo4j-spatial-0.26.2-neo4j-3.5.2-server-plugin.jar?raw=true)
 * Using GeoTools 24.2 (for GeoServer 2.18.x):
   * [v0.27.0 for Neo4j 4.0.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.27.0-neo4j-4.0.3/neo4j-spatial-0.27.0-neo4j-4.0.3-server-plugin.jar?raw=true)
+  * [v0.27.1 for Neo4j 4.1.7](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.27.1-neo4j-4.1.7/neo4j-spatial-0.27.1-neo4j-4.1.7-server-plugin.jar?raw=true)
 
 For versions up to 0.15-neo4j-2.3.4:
 
@@ -451,7 +456,7 @@ Add the following repositories and dependency to your project's pom.xml:
     <dependency>
         <groupId>org.neo4j</groupId>
         <artifactId>neo4j-spatial</artifactId>
-        <version>0.27.0-neo4j-4.0.3</version>
+        <version>0.27.1-neo4j-4.1.7</version>
     </dependency>
 ~~~
 

@@ -64,6 +64,7 @@ import java.nio.charset.Charset;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import static org.neo4j.gis.spatial.SpatialDatabaseService.RTREE_INDEX_NAME;
@@ -103,6 +104,14 @@ public class SpatialProcedures {
 
         public NodeResult(Node node) {
             this.node = node;
+        }
+    }
+
+    public static class NodeIdResult {
+        public final long nodeId;
+
+        public NodeIdResult(long nodeId) {
+            this.nodeId = nodeId;
         }
     }
 
@@ -490,6 +499,10 @@ public class SpatialProcedures {
         return Stream.of(new NodeResult(node));
     }
 
+    private Stream<NodeIdResult> streamNode(long nodeId) {
+        return Stream.of(new NodeIdResult(nodeId));
+    }
+
     @Procedure(value="spatial.addWKTLayer", mode=WRITE)
     @Description("Adds a new WKT layer with the given node property to hold the WKT string, returns the layer root node")
     public Stream<NodeResult> addWKTLayer(@Name("name") String name,
@@ -540,12 +553,27 @@ public class SpatialProcedures {
         return Stream.of(new CountResult(layer.addAll(tx, nodes)));
     }
 
+    @Procedure(value="spatial.addNode.byId", mode=WRITE)
+    @Description("Adds the given node to the layer, returns the geometry-node")
+    public Stream<NodeResult> addNodeIdToLayer(@Name("layerName") String name, @Name("nodeId") long nodeId) {
+        EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
+        return streamNode(layer.add(tx, tx.getNodeById(nodeId)).getGeomNode());
+    }
+
+    @Procedure(value="spatial.addNodes.byId", mode=WRITE)
+    @Description("Adds the given nodes list to the layer, returns the count")
+    public Stream<CountResult> addNodeIdsToLayer(@Name("layerName") String name, @Name("nodeIds") List<Long> nodeIds) {
+        EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
+        List<Node> nodes = nodeIds.stream().map(id -> tx.getNodeById(id)).collect(Collectors.toList());
+        return Stream.of(new CountResult(layer.addAll(tx, nodes)));
+    }
+
     @Procedure(value="spatial.removeNode", mode=WRITE)
     @Description("Removes the given node from the layer, returns the geometry-node")
-    public Stream<NodeResult> removeNodeFromLayer(@Name("layerName") String name, @Name("node") Node node) {
+    public Stream<NodeIdResult> removeNodeFromLayer(@Name("layerName") String name, @Name("node") Node node) {
         EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
         layer.removeFromIndex(tx, node.getId());
-        return streamNode(node);
+        return streamNode(node.getId());
     }
 
     @Procedure(value="spatial.removeNodes", mode=WRITE)
@@ -556,6 +584,27 @@ public class SpatialProcedures {
         int before = layer.getIndex().count(tx);
         for (Node node : nodes) {
             layer.removeFromIndex(tx, node.getId());
+        }
+        int after = layer.getIndex().count(tx);
+        return Stream.of(new CountResult(before - after));
+    }
+
+    @Procedure(value="spatial.removeNode.byId", mode=WRITE)
+    @Description("Removes the given node from the layer, returns the geometry-node")
+    public Stream<NodeIdResult> removeNodeFromLayer(@Name("layerName") String name, @Name("nodeId") long nodeId) {
+        EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
+        layer.removeFromIndex(tx, nodeId);
+        return streamNode(nodeId);
+    }
+
+    @Procedure(value="spatial.removeNodes.byId", mode=WRITE)
+    @Description("Removes the given nodes from the layer, returns the count of nodes removed")
+    public Stream<CountResult> removeNodeIdsFromLayer(@Name("layerName") String name, @Name("nodeIds") List<Long> nodeIds) {
+        EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
+        //TODO optimize bulk node removal from RTree like we have done for node additions
+        int before = layer.getIndex().count(tx);
+        for (long nodeId : nodeIds) {
+            layer.removeFromIndex(tx, nodeId);
         }
         int after = layer.getIndex().count(tx);
         return Stream.of(new CountResult(before - after));
@@ -682,7 +731,7 @@ public class SpatialProcedures {
         public void run() {
             // Create the layer in the same thread as doing the import, otherwise we have an outer thread doing a create,
             // and the inner thread repeating it, resulting in duplicates
-            try (Transaction tx = db.beginTransaction(KernelTransaction.Type.explicit, securityContext)) {
+            try (Transaction tx = db.beginTransaction(KernelTransaction.Type.EXPLICIT, securityContext)) {
                 layerMaker.apply(tx, layerName);
                 tx.commit();
             }
