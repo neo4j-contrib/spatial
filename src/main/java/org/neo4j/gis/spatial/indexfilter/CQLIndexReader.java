@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -22,16 +22,17 @@ package org.neo4j.gis.spatial.indexfilter;
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.filter.text.ecql.ECQL;
+import org.neo4j.gis.spatial.Layer;
+import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import org.neo4j.gis.spatial.Utilities;
+import org.neo4j.gis.spatial.filter.SearchRecords;
+import org.neo4j.gis.spatial.index.LayerTreeIndexReader;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.SpatialIndexRecordCounter;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
-import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.index.LayerTreeIndexReader;
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
-import org.neo4j.gis.spatial.Utilities;
-import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.filter.Filter;
 
@@ -51,35 +52,37 @@ import org.opengis.filter.Filter;
  * know your graph structure well to write a complex JSON query. For simple
  * single-node property matches, this is the easiest solution.</li>
  * </ul>
- * 
+ *
  * @author dwins
  */
 public class CQLIndexReader extends LayerIndexReaderWrapper {
 
     private final Filter filter;
-	private final Envelope filterEnvelope;    
-    private final Neo4jFeatureBuilder builder;
+    private final Envelope filterEnvelope;
     private final Layer layer;
 
     public CQLIndexReader(LayerTreeIndexReader index, Layer layer, String query) throws CQLException {
         super(index);
         this.filter = ECQL.toFilter(query);
-        this.builder = new Neo4jFeatureBuilder(layer);
         this.layer = layer;
-        
         this.filterEnvelope = Utilities.extractEnvelopeFromFilter(filter);
     }
 
     private class Counter extends SpatialIndexRecordCounter {
+        private final Transaction tx;
 
-    	@Override
+        private Counter(Transaction tx) {
+            this.tx = tx;
+        }
+
+        @Override
         public boolean needsToVisit(Envelope indexNodeEnvelope) {
             return queryIndexNode(indexNodeEnvelope);
         }
 
-    	@Override
+        @Override
         public void onIndexReference(Node geomNode) {
-            if (queryLeafNode(geomNode)) {
+            if (queryLeafNode(tx, geomNode)) {
                 super.onIndexReference(geomNode);
             }
         }
@@ -89,42 +92,43 @@ public class CQLIndexReader extends LayerIndexReaderWrapper {
         return filterEnvelope == null || filterEnvelope.intersects(indexNodeEnvelope);
     }
 
-	private boolean queryLeafNode(Node indexNode) {
-		SpatialDatabaseRecord dbRecord = new SpatialDatabaseRecord(layer, indexNode);
-		SimpleFeature feature = builder.buildFeature(dbRecord);
-		return filter.evaluate(feature);
-	}
-	
-	@Override
-	public int count() {
-		Counter counter = new Counter();
-		index.visit(counter, index.getIndexRoot());
-		return counter.getResult();
-	}
-	
-	private SearchFilter wrapSearchFilter(final SearchFilter filter) {
-		return new SearchFilter() {
+    private boolean queryLeafNode(Transaction tx, Node indexNode) {
+        SpatialDatabaseRecord dbRecord = new SpatialDatabaseRecord(layer, indexNode);
+        Neo4jFeatureBuilder builder = Neo4jFeatureBuilder.fromLayer(tx, layer);
+        SimpleFeature feature = builder.buildFeature(tx, dbRecord);
+        return filter.evaluate(feature);
+    }
 
-			@Override
-			public boolean needsToVisit(Envelope envelope) {
-				return queryIndexNode(envelope) && 
-					filter.needsToVisit(envelope);
-			}
+    @Override
+    public int count(Transaction tx) {
+        Counter counter = new Counter(tx);
+        index.visit(tx, counter, index.getIndexRoot(tx));
+        return counter.getResult();
+    }
 
-			@Override
-			public boolean geometryMatches(Node geomNode) {
-				return queryLeafNode(geomNode) && filter.geometryMatches(geomNode);
-			}	
-		};
-	}
-	
-	@Override
-	public SearchResults searchIndex(SearchFilter filter) {
-		return index.searchIndex(wrapSearchFilter(filter));
-	}
-	
-	@Override
-	public SearchRecords search(SearchFilter filter) {
-		return index.search(wrapSearchFilter(filter));
-	}
+    private SearchFilter wrapSearchFilter(final SearchFilter filter) {
+        return new SearchFilter() {
+
+            @Override
+            public boolean needsToVisit(Envelope envelope) {
+                return queryIndexNode(envelope) &&
+                        filter.needsToVisit(envelope);
+            }
+
+            @Override
+            public boolean geometryMatches(Transaction tx, Node geomNode) {
+                return queryLeafNode(tx, geomNode) && filter.geometryMatches(tx, geomNode);
+            }
+        };
+    }
+
+    @Override
+    public SearchResults searchIndex(Transaction tx, SearchFilter filter) {
+        return index.searchIndex(tx, wrapSearchFilter(filter));
+    }
+
+    @Override
+    public SearchRecords search(Transaction tx, SearchFilter filter) {
+        return index.search(tx, wrapSearchFilter(filter));
+    }
 }

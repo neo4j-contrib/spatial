@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -19,17 +19,17 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.geotools.filter.text.cql2.CQLException;
+import org.geotools.filter.text.ecql.ECQL;
+import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.Transaction;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.geotools.filter.text.cql2.CQLException;
-import org.geotools.filter.text.ecql.ECQL;
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.Transaction;
-
 
 /**
  * <p>
@@ -49,192 +49,176 @@ import org.neo4j.graphdb.Transaction;
  * GeometryEncoder, and also does not extend to the sub-layers provided. Those
  * are read-only views.
  * </p>
- * 
- * @author craig
- * @since 1.0.0
  */
 public class DynamicLayer extends EditableLayerImpl {
 
-	private LinkedHashMap<String, Layer> layers;
+    private LinkedHashMap<String, Layer> layers;
 
-	private synchronized Map<String, Layer> getLayerMap() {
-		if (layers == null) {
-			layers = new LinkedHashMap<String, Layer>();
-			layers.put(getName(), this);
-			try (Transaction tx = getDatabase().beginTx())
-			{
-				for ( Relationship rel : layerNode
-						.getRelationships( SpatialRelationshipTypes.LAYER_CONFIG, Direction.OUTGOING ) )
-				{
-					DynamicLayerConfig config = new DynamicLayerConfig( this, rel.getEndNode() );
-					layers.put( config.getName(), config );
-				}
-				tx.success();
-			}
-		}
-		return layers;
-	}
-	
-	protected boolean removeLayerConfig(String name) {
-		Layer layer = getLayerMap().get(name);
-		if (layer != null && layer instanceof DynamicLayerConfig) {
-			synchronized (this) {
-				DynamicLayerConfig config = (DynamicLayerConfig) layer;
-				layers = null; // force recalculation of layers cache
-				try ( Transaction tx = getDatabase().beginTx() )
-				{
-					config.configNode.getSingleRelationship( SpatialRelationshipTypes.LAYER_CONFIG, Direction.INCOMING ).delete();
-					config.configNode.delete();
-					tx.success();
-				}
-				return true;
-			}
-		} else if (layer == null) {
-			System.out.println("Dynamic layer not found: " + name);
-			return false;
-		} else {
-			System.out.println("Layer is not dynamic and cannot be deleted: " + name);
-			return false;
-		}
-	}
+    private synchronized Map<String, Layer> getLayerMap(Transaction tx) {
+        if (layers == null) {
+            layers = new LinkedHashMap<>();
+            layers.put(getName(), this);
+            for (Relationship rel : getLayerNode(tx).getRelationships(Direction.OUTGOING, SpatialRelationshipTypes.LAYER_CONFIG)) {
+                DynamicLayerConfig config = new DynamicLayerConfig(this, rel.getEndNode());
+                layers.put(config.getName(), config);
+            }
+        }
+        return layers;
+    }
 
-	private static String makeGeometryName(int gtype) {
-		return SpatialDatabaseService.convertGeometryTypeToName(gtype);
-	}
+    protected boolean removeLayerConfig(Transaction tx, String name) {
+        Layer layer = getLayerMap(tx).get(name);
+        if (layer instanceof DynamicLayerConfig) {
+            synchronized (this) {
+                DynamicLayerConfig config = (DynamicLayerConfig) layer;
+                layers = null; // force recalculation of layers cache
+                Node configNode = config.configNode(tx);
+                configNode.getSingleRelationship(SpatialRelationshipTypes.LAYER_CONFIG, Direction.INCOMING).delete();
+                configNode.delete();
+                return true;
+            }
+        } else if (layer == null) {
+            System.out.println("Dynamic layer not found: " + name);
+            return false;
+        } else {
+            System.out.println("Layer is not dynamic and cannot be deleted: " + name);
+            return false;
+        }
+    }
 
-	private static String makeGeometryCQL(int gtype) {
-		return "geometryType(the_geom) = '" + makeGeometryName(gtype) + "'";
-	}
+    private static String makeGeometryName(int gtype) {
+        return SpatialDatabaseService.convertGeometryTypeToName(gtype);
+    }
 
-	public DynamicLayerConfig addCQLDynamicLayerOnGeometryType(int gtype) {
-		return addLayerConfig("CQL:" + makeGeometryName(gtype), gtype, makeGeometryCQL(gtype));
-	}
+    private static String makeGeometryCQL(int gtype) {
+        return "geometryType(the_geom) = '" + makeGeometryName(gtype) + "'";
+    }
 
-	public DynamicLayerConfig addCQLDynamicLayerOnAttribute(String key, String value, int gtype) {
-		if (value == null) {
-			return addLayerConfig("CQL:" + key, gtype, key + " IS NOT NULL AND " + makeGeometryCQL(gtype));
-		} else {
-			// TODO: Better escaping here
-			//return addLayerConfig("CQL:" + key + "-" + value, gtype, key + " = '" + value + "' AND " + makeGeometryCQL(gtype));
-			return addCQLDynamicLayerOnAttributes(new String[] { key, value }, gtype);
-		}
-	}
+    public DynamicLayerConfig addCQLDynamicLayerOnGeometryType(Transaction tx, int gtype) {
+        return addLayerConfig(tx, "CQL:" + makeGeometryName(gtype), gtype, makeGeometryCQL(gtype));
+    }
 
-	public DynamicLayerConfig addCQLDynamicLayerOnAttributes(String[] attributes, int gtype) {
-		if (attributes == null) {
-			return addCQLDynamicLayerOnGeometryType(gtype);
-		} else {
-			StringBuffer name = new StringBuffer();
-			StringBuffer query = new StringBuffer();
-			if (gtype != GTYPE_GEOMETRY) {
-				query.append(makeGeometryCQL(gtype));
-			}
-			for (int i = 0; i < attributes.length; i += 2) {
-				String key = attributes[i];
-				if (name.length() > 0) {
-					name.append("-");
-				}
-				if (query.length() > 0) {
-					query.append(" AND ");
-				}
-				if (attributes.length > i) {
-					String value = attributes[i + 1];
-					name.append(key).append("-").append(value);
-					query.append(key).append(" = '").append(value).append("'");
-				} else {
-					name.append(key);
-					query.append(key).append(" IS NOT NULL");
-				}
-			}
-			return addLayerConfig("CQL:" + name.toString(), gtype, query.toString());
-		}
-	}
-	
-	public DynamicLayerConfig addLayerConfig(String name, int type, String query) {
-		if (!query.startsWith("{")) {
-			// Not a JSON query, must be CQL, so check the syntax
-	        try {
-	            ECQL.toFilter(query);
-	        } catch (CQLException e) {
-	            throw new SpatialDatabaseException("DynamicLayer query is not JSON and not valid CQL: " + query, e);
-	        }
-		}
+    public DynamicLayerConfig addCQLDynamicLayerOnAttribute(Transaction tx, String key, String value, int gtype) {
+        if (value == null) {
+            return addLayerConfig(tx, "CQL:" + key, gtype, key + " IS NOT NULL AND " + makeGeometryCQL(gtype));
+        } else {
+            // TODO: Better escaping here
+            //return addLayerConfig("CQL:" + key + "-" + value, gtype, key + " = '" + value + "' AND " + makeGeometryCQL(gtype));
+            return addCQLDynamicLayerOnAttributes(tx, new String[]{key, value}, gtype);
+        }
+    }
 
-		Layer layer = getLayerMap().get(name);
-		if (layer != null) {
-			if (layer instanceof DynamicLayerConfig) {
-				DynamicLayerConfig config = (DynamicLayerConfig) layer;
-				if (config.getGeometryType() != type || !config.getQuery().equals(query)) {
-					System.err.println("Existing LayerConfig with different geometry type or query: " + config);
-					return null;
-				} else {
-					return config;
-				}
-			} else {
-				System.err.println("Existing Layer has same name as requested LayerConfig: " + layer.getName());
-				return null;
-			}
-		} else synchronized (this) {
-			DynamicLayerConfig config = new DynamicLayerConfig(this, name, type, query);
-			layers = null;	// force recalculation of layers cache
-			return config;
-		}
-	}
-	
-	/**
-	 * Restrict specified layers attributes to the specified set. This will simply
-	 * save the quest to the LayerConfig node, so that future queries will only return
-	 * attributes that are within the named list. If you want to have it perform 
-	 * and automatic search, pass null for the names list, but be warned, this can
-	 * take a long time on large datasets.
-	 * 
-	 * @param name of layer to restrict
-	 * @param names to use for attributes
-	 * @return
-	 */
-	public DynamicLayerConfig restrictLayerProperties(String name, String[] names) {
-		Layer layer = getLayerMap().get(name);
-		if (layer != null) {
-			if (layer instanceof DynamicLayerConfig) {
-				DynamicLayerConfig config = (DynamicLayerConfig) layer;
-				if (names == null) {
-					config.restrictLayerProperties();
-				} else {
-					config.setExtraPropertyNames(names);
-				}
-				return config;
-			} else {
-				System.err.println("Existing Layer has same name as requested LayerConfig: " + layer.getName());
-				return null;
-			}
-		} else {
-			System.err.println("No such layer: " + name);
-			return null;
-		}
-	}
+    public DynamicLayerConfig addCQLDynamicLayerOnAttributes(Transaction tx, String[] attributes, int gtype) {
+        if (attributes == null) {
+            return addCQLDynamicLayerOnGeometryType(tx, gtype);
+        } else {
+            StringBuilder name = new StringBuilder();
+            StringBuilder query = new StringBuilder();
+            if (gtype != GTYPE_GEOMETRY) {
+                query.append(makeGeometryCQL(gtype));
+            }
+            for (int i = 0; i < attributes.length; i += 2) {
+                String key = attributes[i];
+                if (name.length() > 0) {
+                    name.append("-");
+                }
+                if (query.length() > 0) {
+                    query.append(" AND ");
+                }
+                if (attributes.length > i + 1) {
+                    String value = attributes[i + 1];
+                    name.append(key).append("-").append(value);
+                    query.append(key).append(" = '").append(value).append("'");
+                } else {
+                    name.append(key);
+                    query.append(key).append(" IS NOT NULL");
+                }
+            }
+            return addLayerConfig(tx, "CQL:" + name.toString(), gtype, query.toString());
+        }
+    }
 
-	/**
-	 * Restrict specified layers attributes to only those that are actually
-	 * found to be used. This does an exhaustive search and can be time
-	 * consuming. For large layers, consider manually setting the properties
-	 * instead.
-	 * 
-	 * @param name
-	 * @return
-	 */
-	public DynamicLayerConfig restrictLayerProperties(String name) {
-		return restrictLayerProperties(name, null);
-	}
-	
-	public List<String> getLayerNames() {
-		return new ArrayList<String>(getLayerMap().keySet());
-	}
+    public DynamicLayerConfig addLayerConfig(Transaction tx, String name, int type, String query) {
+        if (!query.startsWith("{")) {
+            // Not a JSON query, must be CQL, so check the syntax
+            try {
+                ECQL.toFilter(query);
+            } catch (CQLException e) {
+                throw new SpatialDatabaseException("DynamicLayer query is not JSON and not valid CQL: " + query, e);
+            }
+        }
 
-	public List<Layer> getLayers() {
-		return new ArrayList<Layer>(getLayerMap().values());
-	}
+        Layer layer = getLayerMap(tx).get(name);
+        if (layer != null) {
+            if (layer instanceof DynamicLayerConfig) {
+                DynamicLayerConfig config = (DynamicLayerConfig) layer;
+                if (config.getGeometryType(tx) != type || !config.getQuery().equals(query)) {
+                    System.err.println("Existing LayerConfig with different geometry type or query: " + config);
+                    return null;
+                } else {
+                    return config;
+                }
+            } else {
+                System.err.println("Existing Layer has same name as requested LayerConfig: " + layer.getName());
+                return null;
+            }
+        } else synchronized (this) {
+            DynamicLayerConfig config = new DynamicLayerConfig(tx, this, name, type, query);
+            layers = null;    // force recalculation of layers cache
+            return config;
+        }
+    }
 
-	public Layer getLayer(String name) {
-		return getLayerMap().get(name);
-	}
+    /**
+     * Restrict specified layers attributes to the specified set. This will simply
+     * save the quest to the LayerConfig node, so that future queries will only return
+     * attributes that are within the named list. If you want to have it perform
+     * and automatic search, pass null for the names list, but be warned, this can
+     * take a long time on large datasets.
+     *
+     * @param name  of layer to restrict
+     * @param names to use for attributes
+     */
+    public DynamicLayerConfig restrictLayerProperties(Transaction tx, String name, String[] names) {
+        Layer layer = getLayerMap(tx).get(name);
+        if (layer != null) {
+            if (layer instanceof DynamicLayerConfig) {
+                DynamicLayerConfig config = (DynamicLayerConfig) layer;
+                if (names == null) {
+                    config.restrictLayerProperties(tx);
+                } else {
+                    config.setExtraPropertyNames(tx, names);
+                }
+                return config;
+            } else {
+                System.err.println("Existing Layer has same name as requested LayerConfig: " + layer.getName());
+                return null;
+            }
+        } else {
+            System.err.println("No such layer: " + name);
+            return null;
+        }
+    }
+
+    /**
+     * Restrict specified layers attributes to only those that are actually
+     * found to be used. This does an exhaustive search and can be time
+     * consuming. For large layers, consider manually setting the properties
+     * instead.
+     */
+    public DynamicLayerConfig restrictLayerProperties(Transaction tx, String name) {
+        return restrictLayerProperties(tx, name, null);
+    }
+
+    public List<String> getLayerNames(Transaction tx) {
+        return new ArrayList<>(getLayerMap(tx).keySet());
+    }
+
+    public List<Layer> getLayers(Transaction tx) {
+        return new ArrayList<>(getLayerMap(tx).values());
+    }
+
+    public Layer getLayer(Transaction tx, String name) {
+        return getLayerMap(tx).get(name);
+    }
 }

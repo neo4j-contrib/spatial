@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -19,13 +19,19 @@
  */
 package org.neo4j.gis.spatial.index;
 
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.Point;
-import org.apache.lucene.spatial.util.GeoHashUtils;
+import org.apache.lucene.spatial.util.MortonEncoder;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.Point;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
+import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.StringSearchMode;
+import org.neo4j.graphdb.Transaction;
+import org.neo4j.kernel.api.KernelTransaction;
+
+import java.util.Iterator;
 
 public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String> {
 
@@ -35,11 +41,12 @@ public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String
     }
 
     @Override
-    protected String getIndexValueFor(Node geomNode) {
+    protected String getIndexValueFor(Transaction tx, Node geomNode) {
         //TODO: Make this code projection aware - currently it assumes lat/lon
         Geometry geom = layer.getGeometryEncoder().decodeGeometry(geomNode);
         Point point = geom.getCentroid();   // Other code is ensuring only point layers use this, but just in case we encode the centroid
-        return GeoHashUtils.stringEncode(point.getX(), point.getY());
+        long encoded = MortonEncoder.encode(point.getY(), point.getX());
+        return MortonEncoder.geoTermToString(encoded);
     }
 
     private String greatestCommonPrefix(String a, String b) {
@@ -52,14 +59,26 @@ public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String
         return a.substring(0, minLength);
     }
 
-    protected String queryStringFor(SearchFilter filter) {
+    protected Neo4jIndexSearcher searcherFor(Transaction tx, SearchFilter filter) {
         if (filter instanceof AbstractSearchEnvelopeIntersection) {
             Envelope referenceEnvelope = ((AbstractSearchEnvelopeIntersection) filter).getReferenceEnvelope();
-            String maxHash = GeoHashUtils.stringEncode(referenceEnvelope.getMaxX(), referenceEnvelope.getMaxY());
-            String minHash = GeoHashUtils.stringEncode(referenceEnvelope.getMinX(), referenceEnvelope.getMinY());
-            return greatestCommonPrefix(minHash, maxHash) + "*";
+            String maxHash = MortonEncoder.geoTermToString(MortonEncoder.encode(referenceEnvelope.getMaxY(), referenceEnvelope.getMaxX()));
+            String minHash = MortonEncoder.geoTermToString(MortonEncoder.encode(referenceEnvelope.getMinY(), referenceEnvelope.getMinX()));
+            return new PrefixSearcher(greatestCommonPrefix(minHash, maxHash));
         } else {
             throw new UnsupportedOperationException("Geohash Index only supports searches based on AbstractSearchEnvelopeIntersection, not " + filter.getClass().getCanonicalName());
+        }
+    }
+
+    public static class PrefixSearcher implements Neo4jIndexSearcher {
+        final String prefix;
+
+        PrefixSearcher(String prefix) {
+            this.prefix = prefix;
+        }
+
+        public Iterator<Node> search(KernelTransaction ktx, Label label, String propertyKey) {
+            return ktx.internalTransaction().findNodes(label, propertyKey, prefix, StringSearchMode.PREFIX);
         }
     }
 }

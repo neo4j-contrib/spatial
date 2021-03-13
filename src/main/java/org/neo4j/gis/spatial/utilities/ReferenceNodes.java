@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2002-2013 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -20,16 +20,17 @@
 
 package org.neo4j.gis.spatial.utilities;
 
-import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Result;
-import org.neo4j.helpers.collection.Iterators;
-import static org.neo4j.helpers.collection.MapUtil.map;
+import org.neo4j.graphdb.Transaction;
+import org.neo4j.internal.helpers.collection.Iterators;
+
+import static org.neo4j.internal.helpers.collection.MapUtil.map;
 
 public class ReferenceNodes {
 
-    public static Node getReferenceNode(GraphDatabaseService db, String name) {
-        Result result = db.execute("MERGE (ref:ReferenceNode {name:{name}}) RETURN ref", map("name", name));
-        return Iterators.single(result.<Node>columnAs("ref"));
+    public static Node getReferenceNode(Transaction tx, String name) {
+        Result result = tx.execute("MERGE (ref:ReferenceNode {name:$name}) RETURN ref", map("name", name));
+        return Iterators.single(result.columnAs("ref"));
     }
 }

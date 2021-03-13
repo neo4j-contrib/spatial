@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -19,102 +19,87 @@
  */
 package org.geotools.data.neo4j;
 
+import org.geotools.data.DataStore;
+import org.geotools.util.KVP;
+import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
+import org.neo4j.graphdb.GraphDatabaseService;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.Map;
 
-import org.geotools.data.AbstractDataStoreFactory;
-import org.geotools.data.DataStore;
-import org.geotools.util.KVP;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 /**
  * DataStoreFactorySpi implementation. It needs an "url" parameter containing a
  * path of a Neo4j neostore.id file.
- * 
- * @author Davide Savazzi, Andreas Wilhelm
  */
-public class Neo4jSpatialDataStoreFactory extends AbstractDataStoreFactory
-		implements org.geotools.data.DataStoreFactorySpi {
-	
-	/**
-	 * url to the neostore.id file.
-	 */
-	public static final Param DIRECTORY = new Param("The directory path of the Neo4j database: ", File.class,
-			"db", true);
+public class Neo4jSpatialDataStoreFactory implements org.geotools.data.DataStoreFactorySpi {
 
-	public static final Param DBTYPE = new Param("dbtype", String.class,
-			"must be 'neo4j'", true, "neo4j", new KVP(Param.LEVEL, "program"));
+    // TODO: This should change to Neo4j 4.x directory layout and possible multiple databases
+    /**
+     * url to the neostore.id file.
+     */
+    public static final Param DIRECTORY = new Param("The directory path of the Neo4j database: ", File.class,
+            "db", true);
 
-	/**
-	 * Creates a new instance of Neo4jSpatialDataStoreFactory
-	 */
-	public Neo4jSpatialDataStoreFactory() {
-	}
+    public static final Param DBTYPE = new Param("dbtype", String.class,
+            "must be 'neo4j'", true, "neo4j", new KVP(Param.LEVEL, "program"));
 
-	public boolean canProcess(Map params) {
-	    String type = (String) params.get("dbtype");
-	    if(type != null)
-        {
-            if (!(type.equalsIgnoreCase("neo4j"))) {
-            	return false;
-            } else {
-            	return true;
-            }
+    /**
+     * Creates a new instance of Neo4jSpatialDataStoreFactory
+     */
+    public Neo4jSpatialDataStoreFactory() {
+    }
+
+    @Override
+    public boolean canProcess(Map params) {
+        String type = (String) params.get("dbtype");
+        if (type != null) {
+            return type.equalsIgnoreCase("neo4j");
         }
-	    return false;
-	}
+        return false;
+    }
 
-	
-	public DataStore createDataStore(Map params) throws IOException {
+    @Override
+    public DataStore createDataStore(Map<String, java.io.Serializable> params) throws IOException {
 
-		if (!canProcess(params)) {
-			throw new IOException("The parameters map isn't correct!!");
-		}
-		
-	    File neodir = (File) DIRECTORY.lookUp(params);
+        if (!canProcess(params)) {
+            throw new IOException("The parameters map isn't correct!!");
+        }
 
-		GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(neodir);
-		Neo4jSpatialDataStore dataStore = new Neo4jSpatialDataStore(db);
+        File neodir = (File) DIRECTORY.lookUp(params);
 
-		return dataStore;
-	}
+        DatabaseManagementService databases = new DatabaseManagementServiceBuilder(neodir).build();
+        GraphDatabaseService db = databases.database(DEFAULT_DATABASE_NAME);
 
-	public DataStore createNewDataStore(Map params) throws IOException {
-		throw new UnsupportedOperationException(
-				"Neo4j Spatial cannot create a new database!");
-	}
+        return new Neo4jSpatialDataStore(db);
+    }
 
-	
-	/**
-	 * 
-	 */
-	public String getDisplayName() {
-		return "Neo4j";
-	}
+    @Override
+    public DataStore createNewDataStore(Map params) throws IOException {
+        throw new UnsupportedOperationException("Neo4j Spatial cannot create a new database!");
+    }
 
+    @Override
+    public String getDisplayName() {
+        return "Neo4j";
+    }
 
-	/**
-	 * 
-	 */
-	public String getDescription() {
-		return "A datasource backed by a Neo4j Spatial datasource";
-	}
+    @Override
+    public String getDescription() {
+        return "A datasource backed by a Neo4j Spatial database";
+    }
 
+    @Override
+    public boolean isAvailable() {
+        return true;
+    }
 
-	/**
-	 * 
-	 */
-	public boolean isAvailable() {
-		return true;
-	}
-
-	/*
-	 * @see org.geotools.data.DataStoreFactorySpi#getParametersInfo()
-	 */
-	public Param[] getParametersInfo() {
-		return new Param[] { DBTYPE, DIRECTORY };
-	}
+    @Override
+    public Param[] getParametersInfo() {
+        return new Param[]{DBTYPE, DIRECTORY};
+    }
 
 }

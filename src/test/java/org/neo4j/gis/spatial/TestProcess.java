@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -19,49 +19,50 @@
  */
 package org.neo4j.gis.spatial;
 
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
-
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.io.ParseException;
+import org.locationtech.jts.io.WKTReader;
 import org.geotools.data.Parameter;
 import org.geotools.feature.NameImpl;
 import org.geotools.process.ProcessExecutor;
 import org.geotools.process.Processors;
 import org.geotools.process.Progress;
 import org.geotools.util.KVP;
+import org.junit.Test;
 import org.opengis.feature.type.Name;
 
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import com.vividsolutions.jts.io.ParseException;
-import com.vividsolutions.jts.io.WKTReader;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 public class TestProcess extends Neo4jTestCase {
 
-	public void testProcess() throws ParseException, InterruptedException, ExecutionException {
-		WKTReader wktReader = new WKTReader(new GeometryFactory());
-		Geometry geom = wktReader.read("MULTIPOINT (1 1, 5 4, 7 9, 5 5, 2 2)");
+    @Test
+    public void testProcess() throws ParseException, InterruptedException, ExecutionException {
+        WKTReader wktReader = new WKTReader(new GeometryFactory());
+        Geometry geom = wktReader.read("MULTIPOINT (1 1, 5 4, 7 9, 5 5, 2 2)");
 
-		Name name = new NameImpl("spatial", "octagonalEnvelope");
-		org.geotools.process.Process process = Processors.createProcess(name);
-		System.out.println("Executing process: " + name);
-		for (Map.Entry<String, Parameter<?>> entry : Processors.getParameterInfo(name).entrySet()) {
-			System.out.println("\t" + entry.getKey() + ":\t" + entry.getValue());
-		}
+        Name name = new NameImpl("spatial", "octagonalEnvelope");
+        org.geotools.process.Process process = Processors.createProcess(name);
+        System.out.println("Executing process: " + name);
+        for (Map.Entry<String, Parameter<?>> entry : Processors.getParameterInfo(name).entrySet()) {
+            System.out.println("\t" + entry.getKey() + ":\t" + entry.getValue());
+        }
 
-		ProcessExecutor engine = Processors.newProcessExecutor(2);
+        ProcessExecutor engine = Processors.newProcessExecutor(2);
 
-		// quick map of inputs
-		Map<String, Object> input = new KVP("geom", geom);
-		Progress working = engine.submit(process, input);
+        // quick map of inputs
+        Map<String, Object> input = new KVP("geom", geom);
+        Progress working = engine.submit(process, input);
 
-		// you could do other stuff whle working is doing its thing
-		if (working.isCancelled()) {
-			return;
-		}
+        // you could do other stuff whle working is doing its thing
+        if (working.isCancelled()) {
+            return;
+        }
 
-		Map<String, Object> result = working.get(); // get is BLOCKING
-		Geometry octo = (Geometry) result.get("result");
+        Map<String, Object> result = working.get(); // get is BLOCKING
+        Geometry octo = (Geometry) result.get("result");
 
-		System.out.println(octo);
-	}
+        System.out.println(octo);
+    }
 }

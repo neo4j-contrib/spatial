@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2002-2013 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -19,11 +19,11 @@
  */
 package org.neo4j.gis.spatial.rtree;
 
-import org.neo4j.graphdb.PropertyContainer;
+import org.neo4j.graphdb.Entity;
 
 
 public interface EnvelopeDecoder {
 
-    Envelope decodeEnvelope(PropertyContainer container);
+    Envelope decodeEnvelope(Entity container);
 
 }

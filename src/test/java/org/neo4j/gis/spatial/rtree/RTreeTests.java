@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2002-2013 "Neo Technology," Network Engine for Objects in Lund
- * AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -19,39 +19,54 @@
  */
 package org.neo4j.gis.spatial.rtree;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.test.TestGraphDatabaseFactory;
+import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.opengis.feature.simple.SimpleFeatureType;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
-public class RTreeTests {
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
+public class RTreeTests {
+    private static final boolean exportImages = false;    // TODO: This can be enabled once we port to newer GeoTools that works with Java11
+    private DatabaseManagementService databases;
     private GraphDatabaseService db;
     private TestRTreeIndex rtree;
     private RTreeImageExporter imageExporter;
 
     @Before
     public void setup() {
-        this.db = new TestGraphDatabaseFactory().newImpermanentDatabase();
+        databases = new TestDatabaseManagementServiceBuilder(new File("target/rtree")).impermanent().build();
+        db = databases.database(DEFAULT_DATABASE_NAME);
         try (Transaction tx = db.beginTx()) {
-            this.rtree = new TestRTreeIndex(this.db);
-            tx.success();
+            this.rtree = new TestRTreeIndex(tx);
+            tx.commit();
         }
-        Coordinate min = new Coordinate(0.0, 0.0);
-        Coordinate max = new Coordinate(1.0, 1.0);
-        SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("test", Constants.GTYPE_POINT, null, new String[]{});
-        imageExporter = new RTreeImageExporter(new GeometryFactory(), new SimplePointEncoder(), null, featureType, rtree, min, max);
+        if (exportImages) {
+            SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("test", Constants.GTYPE_POINT, null, new String[]{});
+            imageExporter = new RTreeImageExporter(new GeometryFactory(), new SimplePointEncoder(), null, featureType, rtree);
+            try (Transaction tx = db.beginTx()) {
+                imageExporter.initialize(tx, new Coordinate(0.0, 0.0), new Coordinate(1.0, 1.0));
+                tx.commit();
+            }
+        }
+    }
+
+    @After
+    public void teardown() {
+        databases.shutdown();
     }
 
     @Test
@@ -60,26 +75,30 @@ public class RTreeTests {
         RTreeIndex.NodeWithEnvelope rootRight;
         try (Transaction tx = db.beginTx()) {
             rootLeft = createSimpleRTree(0.01, 0.81, 5);
-            tx.success();
+            tx.commit();
         }
         try (Transaction tx = db.beginTx()) {
             rootRight = createSimpleRTree(0.19, 0.99, 5);
-            tx.success();
+            tx.commit();
         }
         System.out.println("Created two trees");
-        try (Transaction tx = db.beginTx()) {
-            imageExporter.saveRTreeLayers(new File("target/rtree-test/rtree-left.png"), rootLeft.node, 7);
-            imageExporter.saveRTreeLayers(new File("target/rtree-test/rtree-right.png"), rootRight.node, 7);
-            tx.success();
+        if (exportImages) {
+            try (Transaction tx = db.beginTx()) {
+                imageExporter.saveRTreeLayers(tx, new File("target/rtree-test/rtree-left.png"), rootLeft.node, 7);
+                imageExporter.saveRTreeLayers(tx, new File("target/rtree-test/rtree-right.png"), rootRight.node, 7);
+                tx.commit();
+            }
         }
         try (Transaction tx = db.beginTx()) {
-            rtree.mergeTwoTrees(rootLeft, rootRight);
-            tx.success();
+            rtree.mergeTwoTrees(tx, rootLeft.refresh(tx), rootRight.refresh(tx));
+            tx.commit();
         }
         System.out.println("Merged two trees");
-        try (Transaction tx = db.beginTx()) {
-            imageExporter.saveRTreeLayers(new File("target/rtree-test/rtree-merged.png"), rootLeft.node, 7);
-            tx.success();
+        if (exportImages) {
+            try (Transaction tx = db.beginTx()) {
+                imageExporter.saveRTreeLayers(tx, new File("target/rtree-test/rtree-merged.png"), rootLeft.node, 7);
+                tx.commit();
+            }
         }
     }
 
@@ -87,7 +106,7 @@ public class RTreeTests {
         double[] min = new double[]{minx, minx};
         double[] max = new double[]{maxx, maxx};
         try (Transaction tx = db.beginTx()) {
-            RTreeIndex.NodeWithEnvelope rootNode = new RTreeIndex.NodeWithEnvelope(db.createNode(), new Envelope(min, max));
+            RTreeIndex.NodeWithEnvelope rootNode = new RTreeIndex.NodeWithEnvelope(tx.createNode(), new Envelope(min, max));
             rtree.setIndexNodeEnvelope(rootNode);
             ArrayList<RTreeIndex.NodeWithEnvelope> parents = new ArrayList<>();
             ArrayList<RTreeIndex.NodeWithEnvelope> children = new ArrayList<>();
@@ -101,7 +120,7 @@ public class RTreeTests {
                             makeEnvelope(parent.envelope, 0.5, 0.0, 1.0)
                     };
                     for (Envelope env : envs) {
-                        RTreeIndex.NodeWithEnvelope child = rtree.makeChildIndexNode(parent, env);
+                        RTreeIndex.NodeWithEnvelope child = rtree.makeChildIndexNode(tx, parent, env);
                         children.add(child);
                     }
                 }
@@ -109,7 +128,7 @@ public class RTreeTests {
                 parents.addAll(children);
                 children.clear();
             }
-            tx.success();
+            tx.commit();
             return rootNode;
         }
     }

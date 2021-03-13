@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -22,7 +22,7 @@ package org.neo4j.gis.spatial.pipes.processing;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
-import com.vividsolutions.jts.io.gml2.GMLWriter;
+import org.locationtech.jts.io.gml2.GMLWriter;
 
 
 /**
@@ -30,21 +30,21 @@ import com.vividsolutions.jts.io.gml2.GMLWriter;
  */
 public class GML extends AbstractGeoPipe {
 
-	public GML() {
-	}		
-	
-	/**
-	 * @param resultPropertyName property name to use for geometry output
-	 */	
-	public GML(String resultPropertyName) {
-		super(resultPropertyName);
-	}	
+    public GML() {
+    }
 
-	@Override	
-	protected GeoPipeFlow process(GeoPipeFlow flow) {
-		GMLWriter gmlWriter = new GMLWriter();
-		setProperty(flow, gmlWriter.write(flow.getGeometry()));		
-		return flow;
-	}	
-	
+    /**
+     * @param resultPropertyName property name to use for geometry output
+     */
+    public GML(String resultPropertyName) {
+        super(resultPropertyName);
+    }
+
+    @Override
+    protected GeoPipeFlow process(GeoPipeFlow flow) {
+        GMLWriter gmlWriter = new GMLWriter();
+        setProperty(flow, gmlWriter.write(flow.getGeometry()));
+        return flow;
+    }
+
 }

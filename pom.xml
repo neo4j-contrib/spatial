@@ -1,8 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <properties>
-        <neo4j.version>3.5.2</neo4j.version>
-        <neo4j.java.version>1.8</neo4j.java.version>
+        <neo4j.version>4.0.3</neo4j.version>
+        <lucene.version>8.2.0</lucene.version>
+        <!-- make sure lucene version is the same as the one the current neo4j depends on -->
+        <neo4j.java.version>11</neo4j.java.version>
         <maven-compiler-plugin.version>3.1</maven-compiler-plugin.version>
         <maven-gpg-plugin.version>1.4</maven-gpg-plugin.version>
         <maven-resources-plugin.version>2.6</maven-resources-plugin.version>
@@ -10,7 +12,7 @@
         <skinGroupId>org.neo4j.maven.skins</skinGroupId>
         <skinArtifactId>default-skin</skinArtifactId>
         <skinVersion>2</skinVersion>
-        <geotools.version>14.4</geotools.version>
+        <geotools.version>24.2</geotools.version>
         <spatial.test.osm.version>20100819</spatial.test.osm.version>
         <spatial.test.shp.version>20100819</spatial.test.shp.version>
         <bundle.namespace>org.neo4j.gis</bundle.namespace>
@@ -21,7 +23,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>neo4j-spatial</artifactId>
     <groupId>org.neo4j</groupId>
-    <version>0.26.2-neo4j-3.5.2</version>
+    <version>0.27.0-neo4j-4.0.3</version>
     <name>Neo4j - Spatial Components</name>
     <description>Spatial utilities and components for Neo4j</description>
     <url>http://components.neo4j.org/${project.artifactId}/${project.version}</url>
@@ -40,8 +42,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${maven-compiler-plugin.version}</version>
                 <configuration>
-                    <source>1.8</source>
-                    <target>1.8</target>
+                    <source>${neo4j.java.version}</source>
+                    <target>${neo4j.java.version}</target>
                     <compilerArgs>
                         <arg>-AIgnoreContextWarnings</arg>
                         <arg>-AGeneratedDocumentationPath=target/generated-documentation</arg>
@@ -243,7 +245,7 @@
         <developer>
             <id>peterneubauer</id>
             <name>Peter Neubauer</name>
-            <email>peter [at] neotechnology.com</email>
+            <email>neubauer.peter [at] gmail.com</email>
             <timezone>+1</timezone>
             <roles>
                 <role>Developer</role>
@@ -254,14 +256,14 @@
         <license>
             <name>GNU General Public License, Version 3</name>
             <url>http://www.gnu.org/licenses/gpl-3.0-standalone.html</url>
-            <comments>The software ("Software") developed and owned by Network Engine for
-                Objects in Lund AB (referred to in this notice as "Neo Technology") is
-                licensed under the GNU GENERAL PUBLIC LICENSE Version 3 to all third
-                parties and that license is included below.
+            <comments>The software ("Software") developed and owned by Neo4j Sweden AB
+                (referred to in this notice as "Neo4j") is licensed under the GNU
+                GENERAL PUBLIC LICENSE Version 3 to all third parties and that license
+                is included below.
 
                 However, if you have executed an End User Software License and Services
                 Agreement or an OEM Software License and Support Services Agreement, or
-                another commercial license agreement with Neo Technology or one of its
+                another commercial license agreement with Neo4j or one of its
                 affiliates (each, a "Commercial Agreement"), the terms of the license in
                 such Commercial Agreement will supersede the GNU GENERAL PUBLIC LICENSE
                 Version 3 and you may use the Software solely pursuant to the terms of
@@ -449,16 +451,9 @@
             <type>jar</type>
         </dependency>
         <dependency>
-            <groupId>net.biville.florent</groupId>
-            <artifactId>neo4j-sproc-compiler</artifactId>
-            <version>1.2</version>
-            <scope>provided</scope>
-            <optional>true</optional>
-        </dependency>
-        <dependency>
             <groupId>org.apache.lucene</groupId>
             <artifactId>lucene-spatial</artifactId>
-            <version>5.5.0</version>
+            <version>${lucene.version}</version>
             <type>jar</type>
         </dependency>
         <dependency>

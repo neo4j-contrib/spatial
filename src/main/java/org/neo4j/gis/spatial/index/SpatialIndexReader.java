@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2002-2013 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -25,6 +25,7 @@ import org.neo4j.gis.spatial.rtree.TreeMonitor;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 
 import java.util.Map;
 
@@ -32,17 +33,17 @@ public interface SpatialIndexReader {
 
     EnvelopeDecoder getEnvelopeDecoder();
 
-    boolean isEmpty();
+    boolean isEmpty(Transaction tx);
 
-    int count();
+    int count(Transaction tx);
 
-    Envelope getBoundingBox();
+    Envelope getBoundingBox(Transaction tx);
 
-    boolean isNodeIndexed(Long nodeId);
+    boolean isNodeIndexed(Transaction tx, Long nodeId);
 
-    Iterable<Node> getAllIndexedNodes();
+    Iterable<Node> getAllIndexedNodes(Transaction tx);
 
-    SearchResults searchIndex(SearchFilter filter);
+    SearchResults searchIndex(Transaction tx, SearchFilter filter);
 
     void addMonitor(TreeMonitor monitor);
 

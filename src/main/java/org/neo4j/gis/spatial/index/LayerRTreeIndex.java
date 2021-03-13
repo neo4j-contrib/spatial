@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -24,6 +24,7 @@ import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.filter.SearchRecords;
+import org.neo4j.graphdb.Transaction;
 
 /**
  * The RTreeIndex is the first and still standard index for Neo4j Spatial. It
@@ -36,12 +37,13 @@ public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader,
 
     private Layer layer;
 
-    public void init(Layer layer) {
-        init(layer, 100);
+    @Override
+    public void init(Transaction tx, IndexManager indexManager, Layer layer) {
+        init(tx, layer, 100);
     }
 
-    public void init(Layer layer, int maxNodeReferences) {
-        super.init(layer.getSpatialDatabase().getDatabase(), layer.getLayerNode(), layer.getGeometryEncoder(), maxNodeReferences);
+    public void init(Transaction tx, Layer layer, int maxNodeReferences) {
+        super.init(tx, layer.getLayerNode(tx), layer.getGeometryEncoder(), maxNodeReferences);
         this.layer = layer;
     }
 
@@ -51,8 +53,8 @@ public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader,
     }
 
     @Override
-    public SearchRecords search(SearchFilter filter) {
-        return new SearchRecords(layer, searchIndex(filter));
+    public SearchRecords search(Transaction tx, SearchFilter filter) {
+        return new SearchRecords(layer, searchIndex(tx, filter));
     }
 
 }

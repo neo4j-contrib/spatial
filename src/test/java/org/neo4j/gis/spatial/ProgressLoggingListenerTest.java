@@ -1,32 +1,31 @@
-/**
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
- * <p>
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
+ *
  * This file is part of Neo4j Spatial.
- * <p>
+ *
  * Neo4j is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * <p>
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * <p>
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 package org.neo4j.gis.spatial;
 
 import org.junit.Test;
-
-import static org.mockito.Mockito.*;
-
 import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.ProgressLoggingListener;
 
 import java.io.PrintStream;
+
+import static org.mockito.Mockito.*;
 
 public class ProgressLoggingListenerTest {
 
@@ -46,7 +45,7 @@ public class ProgressLoggingListenerTest {
         testProgressLoggingListenerWithSpecifiedWaits(unitsOfWork, timeWait, throttle, 3);
     }
 
-    private void testProgressLoggingListenerWithSpecifiedWaits(int unitsOfWork, long timeWait, long throttle, int expectedLogCount){
+    private void testProgressLoggingListenerWithSpecifiedWaits(int unitsOfWork, long timeWait, long throttle, int expectedLogCount) {
         PrintStream out = spy(System.out);
         Listener listener = new ProgressLoggingListener("test", out).setTimeWait(timeWait);
         listener.begin(unitsOfWork);

@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -19,16 +19,17 @@
  */
 package org.neo4j.gis.spatial;
 
-import static org.neo4j.gis.spatial.utilities.TraverserFactory.createTraverserInBackwardsCompatibleWay;
-
+import org.locationtech.jts.geom.Geometry;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.traversal.BranchOrderingPolicies;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
+import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 
-import com.vividsolutions.jts.geom.Geometry;
+import static org.neo4j.gis.spatial.utilities.TraverserFactory.createTraverserInBackwardsCompatibleWay;
 
 /**
  * This class extends the EditableLayerImpl in a way that allows for the
@@ -40,35 +41,35 @@ import com.vividsolutions.jts.geom.Geometry;
  * moved it to this class, and made it optional. The Java API should not suffer
  * the performance penalty of this, but we decided to make the default behavior
  * non-ordered for a simpler data structure.
- * 
- * @author craig
  */
 public class OrderedEditableLayer extends EditableLayerImpl {
-	private Node previousGeomNode;
-	enum OrderedRelationshipTypes implements RelationshipType {
-		GEOMETRIES, NEXT_GEOM
-	}
+    private Node previousGeomNode;
 
-	protected Node addGeomNode(Geometry geom, String[] fieldsName, Object[] fields) {
-		Node geomNode = super.addGeomNode(geom, fieldsName, fields);
-		if (previousGeomNode == null) {
-			TraversalDescription traversalDescription = getDatabase().traversalDescription()
-					.order( BranchOrderingPolicies.POSTORDER_BREADTH_FIRST )
-					.relationships(OrderedRelationshipTypes.GEOMETRIES, Direction.INCOMING)
-					.relationships(OrderedRelationshipTypes.NEXT_GEOM, Direction.INCOMING)
-					.evaluator(Evaluators.excludeStartPosition());
-			for (Node node : createTraverserInBackwardsCompatibleWay(traversalDescription, layerNode).nodes()) {
-				previousGeomNode = node;
-			}
-		}
-		if (previousGeomNode != null) {
-			previousGeomNode.createRelationshipTo(geomNode, OrderedRelationshipTypes.NEXT_GEOM);
-		} else {
-			layerNode.createRelationshipTo(geomNode, OrderedRelationshipTypes.GEOMETRIES);
-		}
-		previousGeomNode = geomNode;
-		return geomNode;
-	}
+    enum OrderedRelationshipTypes implements RelationshipType {
+        GEOMETRIES, NEXT_GEOM
+    }
+
+    protected Node addGeomNode(Transaction tx, Geometry geom, String[] fieldsName, Object[] fields) {
+        Node geomNode = super.addGeomNode(tx, geom, fieldsName, fields);
+        Node layerNode = getLayerNode(tx);
+        if (previousGeomNode == null) {
+            TraversalDescription traversalDescription = new MonoDirectionalTraversalDescription()
+                    .order(BranchOrderingPolicies.POSTORDER_BREADTH_FIRST)
+                    .relationships(OrderedRelationshipTypes.GEOMETRIES, Direction.INCOMING)
+                    .relationships(OrderedRelationshipTypes.NEXT_GEOM, Direction.INCOMING)
+                    .evaluator(Evaluators.excludeStartPosition());
+            for (Node node : createTraverserInBackwardsCompatibleWay(traversalDescription, layerNode).nodes()) {
+                previousGeomNode = node;
+            }
+        }
+        if (previousGeomNode != null) {
+            previousGeomNode.createRelationshipTo(geomNode, OrderedRelationshipTypes.NEXT_GEOM);
+        } else {
+            layerNode.createRelationshipTo(geomNode, OrderedRelationshipTypes.GEOMETRIES);
+        }
+        previousGeomNode = geomNode;
+        return geomNode;
+    }
 
     /**
      * Provides a method for iterating over all nodes that represent geometries in this dataset.
@@ -76,15 +77,16 @@ public class OrderedEditableLayer extends EditableLayerImpl {
      * nodes that this dataset considers its own, and can be passed to the GeometryEncoder to
      * generate a Geometry. There is no restricting on a node belonging to multiple datasets, or
      * multiple layers within the same dataset.
-     * 
+     *
      * @return iterable over geometry nodes in the dataset
+     * @param tx
      */
-	public Iterable<Node> getAllGeometryNodes() {
-		TraversalDescription td = getDatabase().traversalDescription().depthFirst()
-				.evaluator( Evaluators.excludeStartPosition() )
-				.relationships( OrderedRelationshipTypes.GEOMETRIES, Direction.OUTGOING )
-				.relationships( OrderedRelationshipTypes.NEXT_GEOM, Direction.OUTGOING );
-		return td.traverse( layerNode ).nodes();
-	}
-
+    public Iterable<Node> getAllGeometryNodes(Transaction tx) {
+        TraversalDescription td = new MonoDirectionalTraversalDescription()
+                .depthFirst()
+                .evaluator(Evaluators.excludeStartPosition())
+                .relationships(OrderedRelationshipTypes.GEOMETRIES, Direction.OUTGOING)
+                .relationships(OrderedRelationshipTypes.NEXT_GEOM, Direction.OUTGOING);
+        return td.traverse(getLayerNode(tx)).nodes();
+    }
 }

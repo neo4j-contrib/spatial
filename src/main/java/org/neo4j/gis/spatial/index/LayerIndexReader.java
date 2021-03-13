@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -22,23 +22,21 @@ package org.neo4j.gis.spatial.index;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.filter.SearchRecords;
+import org.neo4j.graphdb.Transaction;
 
-
-/**
- * @author Davide Savazzi
- */
 public interface LayerIndexReader extends SpatialIndexReader {
 
 	/**
 	 * The index used by a layer is dynamically constructed from a property of the layer node. As such it needs to be
 	 * constructed with a default, no-arg constructor and then initialized with necessary parameters, such as the layer.
 	 *
+	 * @param indexManager for setting up index files on disk
 	 * @param layer object containing and controlling this index
 	 */
-	void init(Layer layer);
+	void init(Transaction tx, IndexManager indexManager, Layer layer);
 
 	Layer getLayer();
 
-	SearchRecords search(SearchFilter filter);
+	SearchRecords search(Transaction tx, SearchFilter filter);
 	
 }

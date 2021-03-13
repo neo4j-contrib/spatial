@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -21,6 +21,7 @@ package org.neo4j.gis.spatial.indexfilter;
 
 import java.util.Map;
 
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
 import org.neo4j.gis.spatial.rtree.TreeMonitor;
@@ -31,6 +32,7 @@ import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.index.LayerTreeIndexReader;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 
 
 /**
@@ -50,7 +52,7 @@ public class LayerIndexReaderWrapper implements LayerIndexReader {
 	}
 
 	@Override
-	public void init(Layer layer) {
+	public void init(Transaction tx, IndexManager indexManager, Layer layer) {
 		if (layer != getLayer()) throw new IllegalArgumentException("Cannot change layer associated with this index");
 	}
 
@@ -65,33 +67,33 @@ public class LayerIndexReaderWrapper implements LayerIndexReader {
 	}
 
 	@Override
-	public int count() {
-		return index.count();
+	public int count(Transaction tx) {
+		return index.count(tx);
 	}
 
 	@Override
-	public boolean isNodeIndexed(Long nodeId) {
-		return index.isNodeIndexed(nodeId);
+	public boolean isNodeIndexed(Transaction tx, Long nodeId) {
+		return index.isNodeIndexed(tx, nodeId);
 	}
 
 	@Override
-	public Envelope getBoundingBox() {
-		return index.getBoundingBox();
+	public Envelope getBoundingBox(Transaction tx) {
+		return index.getBoundingBox(tx);
 	}
 
 	@Override
-	public boolean isEmpty() {
-		return index.isEmpty();
+	public boolean isEmpty(Transaction tx) {
+		return index.isEmpty(tx);
 	}
 
 	@Override
-	public Iterable<Node> getAllIndexedNodes() {
-		return index.getAllIndexedNodes();
+	public Iterable<Node> getAllIndexedNodes(Transaction tx) {
+		return index.getAllIndexedNodes(tx);
 	}
 
 	@Override
-	public SearchResults searchIndex(SearchFilter filter) {
-		return index.searchIndex(filter);
+	public SearchResults searchIndex(Transaction tx, SearchFilter filter) {
+		return index.searchIndex(tx, filter);
 	}
 
 	@Override
@@ -106,7 +108,7 @@ public class LayerIndexReaderWrapper implements LayerIndexReader {
 	}
 
 	@Override
-	public SearchRecords search(SearchFilter filter) {
-		return index.search(filter);
+	public SearchRecords search(Transaction tx, SearchFilter filter) {
+		return index.search(tx, filter);
 	}
 }

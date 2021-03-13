@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2002-2013 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -21,19 +21,20 @@ package org.neo4j.gis.spatial.index;
 
 import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 
 import java.util.List;
 
 
 public interface SpatialIndexWriter extends SpatialIndexReader {
 
-	void add(Node geomNode);
-	void add(List<Node> geomNodes);
+	void add(Transaction tx, Node geomNode);
+	void add(Transaction tx, List<Node> geomNodes);
 
-	void remove(long geomNodeId, boolean deleteGeomNode, boolean throwExceptionIfNotFound);
+	void remove(Transaction tx, long geomNodeId, boolean deleteGeomNode, boolean throwExceptionIfNotFound);
 	
-	void removeAll(boolean deleteGeomNodes, Listener monitor);
+	void removeAll(Transaction tx, boolean deleteGeomNodes, Listener monitor);
 	
-	void clear(Listener monitor);
+	void clear(Transaction tx, Listener monitor);
 	
 }

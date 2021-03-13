@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2010-2017 "Neo Technology," Network Engine for Objects in Lund
- * AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -22,61 +22,48 @@ package org.neo4j.gis.spatial;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
-import com.vividsolutions.jts.geom.Geometry;
+import org.locationtech.jts.geom.Geometry;
 
 public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 
 	/**
 	 * Add a geometry to this layer.
 	 */
-	public SpatialDatabaseRecord add(Geometry geometry) {
-		return add(geometry, null, null);
+	public SpatialDatabaseRecord add(Transaction tx, Geometry geometry) {
+		return add(tx, geometry, null, null);
 	}
 
 	/**
 	 * Add a geometry to this layer, including properties.
 	 */
 	@Override
-	public SpatialDatabaseRecord add(Geometry geometry, String[] fieldsName, Object[] fields) {
-		try (Transaction tx = getDatabase().beginTx()) {
-			Node geomNode = addGeomNode(geometry, fieldsName, fields);
-			indexWriter.add(geomNode);
-			tx.success();
-			return new SpatialDatabaseRecord(this, geomNode, geometry);
-		}
+	public SpatialDatabaseRecord add(Transaction tx, Geometry geometry, String[] fieldsName, Object[] fields) {
+		Node geomNode = addGeomNode(tx, geometry, fieldsName, fields);
+		indexWriter.add(tx, geomNode);
+		return new SpatialDatabaseRecord(this, geomNode, geometry);
 	}
 
 	@Override
-	public void update(long geomNodeId, Geometry geometry) {
-		try (Transaction tx = getDatabase().beginTx()) {
-			indexWriter.remove(geomNodeId, false, true);
-
-			Node geomNode = getDatabase().getNodeById(geomNodeId);
-			getGeometryEncoder().encodeGeometry(geometry, geomNode);
-			indexWriter.add(geomNode);
-			tx.success();
-		}
+	public void update(Transaction tx, long geomNodeId, Geometry geometry) {
+		indexWriter.remove(tx, geomNodeId, false, true);
+		Node geomNode = tx.getNodeById(geomNodeId);
+		getGeometryEncoder().encodeGeometry(tx, geometry, geomNode);
+		indexWriter.add(tx, geomNode);
 	}
 
 	@Override
-	public void delete(long geomNodeId) {
-		try (Transaction tx = getDatabase().beginTx()) {
-			indexWriter.remove(geomNodeId, true, false);
-			tx.success();
-		}
+	public void delete(Transaction tx, long geomNodeId) {
+		indexWriter.remove(tx, geomNodeId, true, false);
 	}
 
 	@Override
-	public void removeFromIndex(long geomNodeId) {
-		try (Transaction tx = getDatabase().beginTx()) {
-			final boolean deleteGeomNode = false;
-			indexWriter.remove(geomNodeId, deleteGeomNode, false);
-			tx.success();
-		}
+	public void removeFromIndex(Transaction tx, long geomNodeId) {
+		final boolean deleteGeomNode = false;
+		indexWriter.remove(tx, geomNodeId, deleteGeomNode, false);
 	}
 
-	protected Node addGeomNode(Geometry geom, String[] fieldsName, Object[] fields) {
-		Node geomNode = getDatabase().createNode();
+	protected Node addGeomNode(Transaction tx, Geometry geom, String[] fieldsName, Object[] fields) {
+		Node geomNode = tx.createNode();
 		// other properties
 		if (fieldsName != null) {
 			for (int i = 0; i < fieldsName.length; i++) {
@@ -85,7 +72,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 				}
 			}
 		}
-		getGeometryEncoder().encodeGeometry(geom, geomNode);
+		getGeometryEncoder().encodeGeometry(tx, geom, geomNode);
 
 		return geomNode;
 	}

@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -21,6 +21,7 @@ package org.neo4j.gis.spatial;
 
 import java.util.*;
 
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
@@ -29,153 +30,159 @@ import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 
 /**
- * @author Davide Savazzi
+ * An in-memory index used for comparative benchmarking and testing
  */
 public class FakeIndex implements LayerIndexReader, Constants {
 
-	public FakeIndex(Layer layer) {
-		init(layer);
-	}
+    public FakeIndex(Layer layer, IndexManager indexManager) {
+        init(null, indexManager, layer);
+    }
 
-	public void init(Layer layer) {
-		this.layer = layer;
-	}
+    @Override
+    public void init(Transaction ignored, IndexManager indexManager, Layer layer) {
+        this.layer = layer;
+    }
 
-	public Layer getLayer() {
-		return layer;
-	}
-	
-	public int count() {
-		int count = 0;
-		
+    @Override
+    public Layer getLayer() {
+        return layer;
+    }
+
+    @Override
+    public int count(Transaction tx) {
+        int count = 0;
+
         // @TODO: Consider adding a count method to Layer or SpatialDataset to allow for
         // optimization of this if this kind of code gets used elsewhere
-		for (@SuppressWarnings("unused") Node node: layer.getDataset().getAllGeometryNodes()) {
-		    count++;
-		}
-		
-		return count;
-	}
+        for (@SuppressWarnings("unused") Node node : layer.getDataset().getAllGeometryNodes(tx)) {
+            count++;
+        }
 
-	public boolean isEmpty() {
-		return count() == 0;
-	}
-	
-	public Envelope getBoundingBox() {
-		Envelope bbox = null;
-		
-		GeometryEncoder geomEncoder = layer.getGeometryEncoder();
-		for (Node node: layer.getDataset().getAllGeometryNodes()) {
-			if (bbox == null) {
-				bbox = geomEncoder.decodeEnvelope(node);
-			} else {
-				bbox.expandToInclude(geomEncoder.decodeEnvelope(node));
-			}
-		}
-		
-		return bbox;
-	}
+        return count;
+    }
 
-	public SpatialDatabaseRecord get(Long geomNodeId) {
-		return new SpatialDatabaseRecord(layer, layer.getSpatialDatabase().getDatabase().getNodeById(geomNodeId));
-	}
-	
-    public List<SpatialDatabaseRecord> get(Set<Long> geomNodeIds) {
-    	List<SpatialDatabaseRecord> results = new ArrayList<>();
+    @Override
+    public boolean isEmpty(Transaction tx) {
+        return count(tx) == 0;
+    }
 
-    	for (Long geomNodeId : geomNodeIds) {
-    		results.add(get(geomNodeId));
-    	}
-    	
-    	return results;
-    }	
-	
-	public Iterable<Node> getAllIndexedNodes() {
-		return layer.getIndex().getAllIndexedNodes();
-	}
+    @Override
+    public Envelope getBoundingBox(Transaction tx) {
+        Envelope bbox = null;
 
-	@Override
-	public EnvelopeDecoder getEnvelopeDecoder() {
-		return layer.getGeometryEncoder();
-	}
+        GeometryEncoder geomEncoder = layer.getGeometryEncoder();
+        for (Node node : layer.getDataset().getAllGeometryNodes(tx)) {
+            if (bbox == null) {
+                bbox = geomEncoder.decodeEnvelope(node);
+            } else {
+                bbox.expandToInclude(geomEncoder.decodeEnvelope(node));
+            }
+        }
+
+        return bbox;
+    }
+
+    public SpatialDatabaseRecord get(Transaction tx, Long geomNodeId) {
+        return new SpatialDatabaseRecord(layer, tx.getNodeById(geomNodeId));
+    }
+
+    public List<SpatialDatabaseRecord> get(Transaction tx, Set<Long> geomNodeIds) {
+        List<SpatialDatabaseRecord> results = new ArrayList<>();
+
+        for (Long geomNodeId : geomNodeIds) {
+            results.add(get(tx, geomNodeId));
+        }
+
+        return results;
+    }
+
+    @Override
+    public Iterable<Node> getAllIndexedNodes(Transaction tx) {
+        return layer.getIndex().getAllIndexedNodes(tx);
+    }
+
+    @Override
+    public EnvelopeDecoder getEnvelopeDecoder() {
+        return layer.getGeometryEncoder();
+    }
 
 
-	@Override
-	public boolean isNodeIndexed(Long nodeId) {
-		// TODO
-		return true;
-	}
-	
-	
-	// Attributes
-	
-	private Layer layer;
+    @Override
+    public boolean isNodeIndexed(Transaction tx, Long nodeId) {
+        // TODO
+        return true;
+    }
 
-	private class NodeFilter implements Iterable<Node>, Iterator<Node> {
-		private SearchFilter filter;
-		private Node nextNode;
-		private Iterator<Node> nodes;
 
-		NodeFilter(SearchFilter filter, Iterable<Node> nodes) {
-			this.filter = filter;
-			this.nodes = nodes.iterator();
-			nextNode = getNextNode();
-		}
-		
-		@Override
-		public Iterator<Node> iterator() {
-			return this;
-		}
+    // Attributes
 
-		@Override
-		public boolean hasNext() {
-			return nextNode != null;
-		}
+    private Layer layer;
 
-		@Override
-		public Node next() {
-			Node currentNode = nextNode;
-			nextNode = getNextNode();
-			return currentNode;
-		}
+    private class NodeFilter implements Iterable<Node>, Iterator<Node> {
+        private final Transaction tx;
+        private final SearchFilter filter;
+        private Node nextNode;
+        private final Iterator<Node> nodes;
 
-		private Node getNextNode() {
-			Node nn = null;
-			while(nodes.hasNext()){
-				Node node = nodes.next();
-				if(filter.geometryMatches(node)){
-					nn = node;
-					break;
-				}
-			}
-			return nn;
-		}
+        NodeFilter(Transaction tx, SearchFilter filter, Iterable<Node> nodes) {
+            this.tx = tx;
+            this.filter = filter;
+            this.nodes = nodes.iterator();
+            nextNode = getNextNode();
+        }
 
-		@Override
-		public void remove() {
-		}
-	}
-		
-	@Override
-	public SearchResults searchIndex(SearchFilter filter) {
-		return new SearchResults(new NodeFilter(filter, layer.getDataset().getAllGeometryNodes()));
-	}
+        @Override
+        public Iterator<Node> iterator() {
+            return this;
+        }
 
-	@Override
-	public void addMonitor( TreeMonitor monitor )
-	{
+        @Override
+        public boolean hasNext() {
+            return nextNode != null;
+        }
 
-	}
+        @Override
+        public Node next() {
+            Node currentNode = nextNode;
+            nextNode = getNextNode();
+            return currentNode;
+        }
 
-	@Override
-	public void configure(Map<String, Object> config) {
+        private Node getNextNode() {
+            Node nn = null;
+            while (nodes.hasNext()) {
+                Node node = nodes.next();
+                if (filter.geometryMatches(tx, node)) {
+                    nn = node;
+                    break;
+                }
+            }
+            return nn;
+        }
 
-	}
+        @Override
+        public void remove() {
+        }
+    }
 
-	@Override
-	public SearchRecords search(SearchFilter filter) {
-		return new SearchRecords(layer, searchIndex(filter));
-	}
+    @Override
+    public SearchResults searchIndex(Transaction tx, SearchFilter filter) {
+        return new SearchResults(new NodeFilter(tx, filter, layer.getDataset().getAllGeometryNodes(tx)));
+    }
+
+    @Override
+    public void addMonitor(TreeMonitor monitor) {
+    }
+
+    @Override
+    public void configure(Map<String, Object> config) {
+    }
+
+    @Override
+    public SearchRecords search(Transaction tx, SearchFilter filter) {
+        return new SearchRecords(layer, searchIndex(tx, filter));
+    }
 }

@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -25,7 +25,7 @@ import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.Utilities;
 import org.neo4j.graphdb.Node;
 
-import com.vividsolutions.jts.geom.Geometry;
+import org.locationtech.jts.geom.Geometry;
 
 /**
  * Find geometries that intersect with the specified search window.
@@ -41,7 +41,7 @@ public class SearchIntersectWindow extends AbstractSearchEnvelopeIntersection {
         this(layer, Utilities.fromNeo4jToJts(envelope));
     }
 
-	public SearchIntersectWindow(Layer layer, com.vividsolutions.jts.geom.Envelope other) {
+	public SearchIntersectWindow(Layer layer, org.locationtech.jts.geom.Envelope other) {
 		super(layer.getGeometryEncoder(), Utilities.fromJtsToNeo4j(other));
 		this.layer = layer;
 		this.windowGeom = layer.getGeometryFactory().toGeometry(other);

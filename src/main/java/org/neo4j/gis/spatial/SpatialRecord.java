@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -21,8 +21,9 @@ package org.neo4j.gis.spatial;
 
 import java.util.Map;
 
-import com.vividsolutions.jts.geom.Geometry;
+import org.locationtech.jts.geom.Geometry;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 
 public interface SpatialRecord {
 
@@ -30,13 +31,13 @@ public interface SpatialRecord {
 	
 	Geometry getGeometry();
 
-	boolean hasProperty(String name);
+	boolean hasProperty(Transaction tx, String name);
 
-	String[] getPropertyNames();
+	String[] getPropertyNames(Transaction tx);
 
-	Object getProperty(String name);
+	Object getProperty(Transaction tx, String name);
 
-	Map<String, Object> getProperties();
+	Map<String, Object> getProperties(Transaction tx);
 
 	Node getGeomNode();
 }

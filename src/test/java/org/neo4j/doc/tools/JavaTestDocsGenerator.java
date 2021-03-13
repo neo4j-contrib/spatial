@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2002-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -19,79 +19,51 @@
  */
 package org.neo4j.doc.tools;
 
+import org.neo4j.test.TestData.Producer;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
-
-import org.neo4j.test.TestData.Producer;
-import org.neo4j.test.GraphDefinition;
 
 /**
  * This class is supporting the generation of ASCIIDOC documentation
  * from Java JUnit tests. Snippets can be supplied programmatically in the Java-section
  * and will replace their @@snippetName placeholders in the documentation description.
- * 
- * @author peterneubauer
- *
  */
-public class JavaTestDocsGenerator extends AsciiDocGenerator
-{
-    public static final Producer<JavaTestDocsGenerator> PRODUCER = new Producer<JavaTestDocsGenerator>()
-    {
-        @Override
-        public JavaTestDocsGenerator create( GraphDefinition graph,
-                String title, String documentation )
-        {
-            return (JavaTestDocsGenerator) new JavaTestDocsGenerator( title ).description( documentation );
-        }
+public class JavaTestDocsGenerator extends AsciiDocGenerator {
+    public static final Producer<JavaTestDocsGenerator> PRODUCER = (graph, title, documentation) -> (JavaTestDocsGenerator) new JavaTestDocsGenerator(title).description(documentation);
 
-        @Override
-        public void destroy( JavaTestDocsGenerator product, boolean successful )
-        {
-            // TODO: invoke some complete method here?
-        }
-    };
-    
-    public JavaTestDocsGenerator( String title )
-    {
-        super( title, "docs" );
+    public JavaTestDocsGenerator(String title) {
+        super(title, "docs");
     }
 
-    public void document( String directory, String sectionName )
-    {
-        this.setSection( sectionName );
-        String name = title.replace( " ", "-" ).toLowerCase();
-        File dir = new File( new File( directory ), section );
+    public void document(String directory, String sectionName) {
+        this.setSection(sectionName);
+        String name = title.replace(" ", "-").toLowerCase();
+        File dir = new File(new File(directory), section);
         String filename = name + ".asciidoc";
-        Writer fw = getFW( dir, filename );
-        description = replaceSnippets( description, dir, name );
-        try
-        {
-            line( fw,
-                    "[[" + sectionName + "-" + name.replaceAll( "\\(|\\)", "" )
-                            + "]]" );
-            String firstChar = title.substring( 0, 1 ).toUpperCase();
-            line( fw, firstChar + title.substring( 1 ) );
-            for ( int i = 0; i < title.length(); i++ )
-            {
-                fw.append( "=" );
+        Writer fw = getFW(dir, filename);
+        description = replaceSnippets(description, dir, name);
+        try {
+            line(fw, "[[" + sectionName + "-" + name.replaceAll("[()]", "") + "]]");
+            String firstChar = title.substring(0, 1).toUpperCase();
+            line(fw, firstChar + title.substring(1));
+            for (int i = 0; i < title.length(); i++) {
+                fw.append("=");
             }
-            fw.append( "\n" );
-            line( fw, "" );
-            line( fw, description );
-            line( fw, "" );
+            fw.append("\n");
+            line(fw, "");
+            line(fw, description);
+            line(fw, "");
             fw.flush();
             fw.close();
-        }
-        catch ( IOException e )
-        {
+        } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
     }
 
-    public void addImageSnippet( String tagName, String imageName, String title )
-    {
-        this.addSnippet( tagName, "\nimage:" + imageName + "[" + title + "]\n" );
+    public void addImageSnippet(String tagName, String imageName, String title) {
+        this.addSnippet(tagName, "\nimage:" + imageName + "[" + title + "]\n");
     }
 }

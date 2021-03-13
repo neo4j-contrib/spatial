@@ -1,27 +1,27 @@
-/**
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
- * <p>
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
+ *
  * This file is part of Neo4j Spatial.
- * <p>
+ *
  * Neo4j is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * <p>
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * <p>
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 package org.neo4j.gis.spatial.rtree;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.geotools.data.memory.MemoryFeatureCollection;
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.data.neo4j.StyledImageExporter;
@@ -29,8 +29,12 @@ import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.map.MapContent;
 import org.geotools.renderer.lite.StreamingRenderer;
 import org.geotools.styling.Style;
-import org.neo4j.gis.spatial.*;
+import org.neo4j.gis.spatial.Constants;
+import org.neo4j.gis.spatial.GeometryEncoder;
+import org.neo4j.gis.spatial.SpatialTopologyUtils;
+import org.neo4j.gis.spatial.Utilities;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
@@ -39,7 +43,8 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -58,58 +63,53 @@ public class RTreeImageExporter {
     private final Color[] colors = new Color[]{Color.BLUE, Color.CYAN, Color.GREEN, Color.RED, Color.YELLOW, Color.PINK, Color.ORANGE};
     ReferencedEnvelope bounds;
 
-    public RTreeImageExporter(Layer layer, RTreeIndex index, Coordinate min, Coordinate max) {
-        initialize(layer.getGeometryFactory(), layer.getGeometryEncoder(), layer.getCoordinateReferenceSystem(), Neo4jFeatureBuilder.getTypeFromLayer(layer), index);
-        bounds.expandToInclude(new com.vividsolutions.jts.geom.Envelope(min.x, max.x, min.y, max.y));
-        bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
-    }
-
-    public RTreeImageExporter(Layer layer, RTreeIndex index) {
-        initialize(layer.getGeometryFactory(), layer.getGeometryEncoder(), layer.getCoordinateReferenceSystem(), Neo4jFeatureBuilder.getTypeFromLayer(layer), index);
-        bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
-    }
-
-    public RTreeImageExporter(GeometryFactory geometryFactory, GeometryEncoder geometryEncoder, CoordinateReferenceSystem crs, SimpleFeatureType featureType, RTreeIndex index, Coordinate min, Coordinate max) {
-        initialize(geometryFactory, geometryEncoder, crs, featureType, index);
-        bounds.expandToInclude(new com.vividsolutions.jts.geom.Envelope(min.x, max.x, min.y, max.y));
-        bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
-    }
-
-    public void initialize(GeometryFactory geometryFactory, GeometryEncoder geometryEncoder, CoordinateReferenceSystem crs, SimpleFeatureType featureType, RTreeIndex index) {
+    public RTreeImageExporter(GeometryFactory geometryFactory, GeometryEncoder geometryEncoder, CoordinateReferenceSystem crs, SimpleFeatureType featureType, RTreeIndex index) {
         this.geometryFactory = geometryFactory;
         this.geometryEncoder = geometryEncoder;
         this.featureType = featureType;
         this.index = index;
         this.crs = crs;
         this.bounds = new ReferencedEnvelope(crs);
-        Envelope bbox = index.getBoundingBox();
+    }
+
+    public void initialize(Transaction tx) {
+        Envelope bbox = index.getBoundingBox(tx);
         if (bbox != null) {
             bounds.expandToInclude(Utilities.fromNeo4jToJts(bbox));
         }
+        bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
     }
 
-    public void saveRTreeLayers(File imagefile, int levels) throws IOException {
-        saveRTreeLayers(imagefile, levels, new EmptyMonitor(), new ArrayList<>(), null, null);
+    public void initialize(Transaction tx, Coordinate min, Coordinate max) {
+        Envelope bbox = index.getBoundingBox(tx);
+        if (bbox != null) {
+            bounds.expandToInclude(Utilities.fromNeo4jToJts(bbox));
+        }
+        bounds.expandToInclude(new org.locationtech.jts.geom.Envelope(min.x, max.x, min.y, max.y));
+        bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
     }
 
-    public void saveRTreeLayers(File imagefile, Node rootNode, int levels) throws IOException {
-        saveRTreeLayers(imagefile, rootNode, levels, new EmptyMonitor(), new ArrayList<>(), new ArrayList<>(), null, null);
+    public void saveRTreeLayers(Transaction tx, File imagefile, int levels) throws IOException {
+        saveRTreeLayers(tx, imagefile, levels, new EmptyMonitor(), new ArrayList<>(), null, null);
     }
 
-    public void saveRTreeLayers(File imagefile, Node rootNode, List<Envelope> envelopes, int levels) throws IOException {
-        saveRTreeLayers(imagefile, rootNode, levels, new EmptyMonitor(), new ArrayList<>(), envelopes, null, null);
+    public void saveRTreeLayers(Transaction tx, File imagefile, Node rootNode, int levels) throws IOException {
+        saveRTreeLayers(tx, imagefile, rootNode, levels, new EmptyMonitor(), new ArrayList<>(), new ArrayList<>(), null, null);
     }
 
-    public void saveRTreeLayers(File imagefile, int levels, TreeMonitor monitor) throws IOException {
-        saveRTreeLayers(imagefile, levels, monitor, new ArrayList<>(), null, null);
+    public void saveRTreeLayers(Transaction tx, File imagefile, Node rootNode, List<Envelope> envelopes, int levels) throws IOException {
+        saveRTreeLayers(tx, imagefile, rootNode, levels, new EmptyMonitor(), new ArrayList<>(), envelopes, null, null);
     }
 
-    public void saveRTreeLayers(File imagefile, int levels, TreeMonitor monitor, List<Node> foundNodes, Coordinate min, Coordinate max) throws IOException {
-        saveRTreeLayers(imagefile, index.getIndexRoot(), levels, monitor, foundNodes, new ArrayList<>(), min, max);
+    public void saveRTreeLayers(Transaction tx, File imagefile, int levels, TreeMonitor monitor) throws IOException {
+        saveRTreeLayers(tx, imagefile, levels, monitor, new ArrayList<>(), null, null);
     }
 
-    public void saveRTreeLayers(File imagefile, Node rootNode, int levels, TreeMonitor monitor, List<Node> foundNodes, List<Envelope> envelopes
-            , Coordinate min, Coordinate max) throws IOException {
+    public void saveRTreeLayers(Transaction tx, File imagefile, int levels, TreeMonitor monitor, List<Node> foundNodes, Coordinate min, Coordinate max) throws IOException {
+        saveRTreeLayers(tx, imagefile, index.getIndexRoot(tx), levels, monitor, foundNodes, new ArrayList<>(), min, max);
+    }
+
+    public void saveRTreeLayers(Transaction tx, File imagefile, Node rootNode, int levels, TreeMonitor monitor, List<Node> foundNodes, List<Envelope> envelopes, Coordinate min, Coordinate max) throws IOException {
         MapContent mapContent = new MapContent();
         drawBounds(mapContent, bounds, Color.WHITE);
 
@@ -133,7 +133,7 @@ public class RTreeImageExporter {
             }
         }
         ArrayList<Node> allIndexedNodes = new ArrayList<>();
-        for(Node node: index.getAllIndexedNodes()) {
+        for (Node node : index.getAllIndexedNodes(tx)) {
             allIndexedNodes.add(node);
         }
         drawGeometryNodes(mapContent, allIndexedNodes, Color.LIGHT_GRAY);

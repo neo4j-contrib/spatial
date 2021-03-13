@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -19,33 +19,49 @@
  */
 package org.neo4j.gis.spatial;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.GeometryFactory;
-import org.neo4j.gis.spatial.index.LayerRTreeIndex;
-
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.junit.Test;
+import org.neo4j.gis.spatial.index.IndexManager;
+import org.neo4j.graphdb.Transaction;
+import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 public class TestRemove extends Neo4jTestCase {
+    private static final String layerName = "TestRemove";
 
-	public void testAddMoreThanMaxNodeRefThenDeleteAll() throws Exception {
-        SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
+    @Test
+    public void testAddMoreThanMaxNodeRefThenDeleteAll() {
+        SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 
-        EditableLayer layer = (EditableLayer) spatialService
-        	.createLayer("TestRemove", WKTGeometryEncoder.class, EditableLayerImpl.class);
-        GeometryFactory geomFactory = layer.getGeometryFactory();
-        
+        try (Transaction tx = graphDb().beginTx()) {
+            spatial.createLayer(tx, layerName, WKTGeometryEncoder.class, EditableLayerImpl.class);
+            tx.commit();
+        }
+
         int rtreeMaxNodeReferences = 100;
-        
+
         long[] ids = new long[rtreeMaxNodeReferences + 1];
-        for (int i = 0; i < ids.length; i++) {
-        	ids[i] = layer.add(geomFactory.createPoint(new Coordinate(i, i))).getNodeId();
+
+        try (Transaction tx = graphDb().beginTx()) {
+            EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName);
+            GeometryFactory geomFactory = layer.getGeometryFactory();
+            for (int i = 0; i < ids.length; i++) {
+                ids[i] = layer.add(tx, geomFactory.createPoint(new Coordinate(i, i))).getNodeId();
+            }
+            tx.commit();
         }
 
-        Neo4jTestUtils.debugIndexTree(graphDb(), (LayerRTreeIndex) layer.getIndex());
-        
-        for (long id : ids) {
-        	layer.delete(id);
+        Neo4jTestUtils.debugIndexTree(graphDb(), layerName);
+
+        try (Transaction tx = graphDb().beginTx()) {
+            EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName);
+            for (long id : ids) {
+                layer.delete(tx, id);
+            }
+            tx.commit();
         }
 
-        Neo4jTestUtils.debugIndexTree(graphDb(), (LayerRTreeIndex) layer.getIndex());
-    }		
+        Neo4jTestUtils.debugIndexTree(graphDb(), layerName);
+    }
 }

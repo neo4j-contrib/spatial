@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -25,25 +25,27 @@ import org.geotools.filter.text.ecql.ECQL;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
+import org.neo4j.graphdb.Transaction;
 import org.opengis.feature.simple.SimpleFeature;
-
 
 /**
  * Filter geometries using a CQL query.
  */
 public class FilterCQL extends AbstractFilterGeoPipe {
 
-	private Neo4jFeatureBuilder featureBuilder;
-	private org.opengis.filter.Filter filter;
-	
-	public FilterCQL(Layer layer, String cqlPredicate) throws CQLException {
-		this.featureBuilder = new Neo4jFeatureBuilder(layer);
-		this.filter = ECQL.toFilter(cqlPredicate);
-	}
+    private final Neo4jFeatureBuilder featureBuilder;
+    private final org.opengis.filter.Filter filter;
+    private final Transaction tx;
 
-	@Override
-	protected boolean validate(GeoPipeFlow flow) {
-		SimpleFeature feature = featureBuilder.buildFeature(flow.getRecord());
-	    return filter.evaluate(feature);
-	}
+    public FilterCQL(Transaction tx, Layer layer, String cqlPredicate) throws CQLException {
+        this.tx = tx;
+        this.featureBuilder = Neo4jFeatureBuilder.fromLayer(tx, layer);
+        this.filter = ECQL.toFilter(cqlPredicate);
+    }
+
+    @Override
+    protected boolean validate(GeoPipeFlow flow) {
+        SimpleFeature feature = featureBuilder.buildFeature(tx, flow.getRecord());
+        return filter.evaluate(feature);
+    }
 }

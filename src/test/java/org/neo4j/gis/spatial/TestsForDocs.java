@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -19,15 +19,17 @@
  */
 package org.neo4j.gis.spatial;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.Charset;
-import java.util.HashMap;
-import java.util.List;
-
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
 import org.geotools.data.DataStore;
 import org.geotools.data.neo4j.Neo4jSpatialDataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMDataset.Way;
@@ -37,12 +39,20 @@ import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
-import org.neo4j.unsafe.batchinsert.BatchInserter;
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.List;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 /**
  * Some test code written specifically for the user manual. This normally means
@@ -50,215 +60,184 @@ import org.neo4j.unsafe.batchinsert.BatchInserter;
  * complete explanation of how to write the code. Most other test classes rely
  * on infrastructure in the Neo4jTestCase that is unlikely to be relevant to the
  * users own coding experience.
- * 
- * @author craig
  */
-public class TestsForDocs extends Neo4jTestCase {
-	private String databasePath;
-	
-	@Override
-	public void setUp() throws Exception {
-		super.setUp();
-		this.databasePath = getNeoPath().getAbsolutePath();
-	}
+public class TestsForDocs {
+    private DatabaseManagementService databases;
+    private GraphDatabaseService graphDb;
 
-	private void checkIndexAndFeatureCount(String layerName) throws IOException {
-		GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(new File(databasePath));
-		try (Transaction tx = database.beginTx()) {
-			SpatialDatabaseService spatial = new SpatialDatabaseService(database);
-			Layer layer = spatial.getLayer(layerName);
-			if (layer.getIndex().count() < 1) {
-				System.out.println("Warning: index count zero: " + layer.getName());
-			}
-			System.out.println("Layer '" + layer.getName() + "' has " + layer.getIndex().count() + " entries in the index");
-			DataStore store = new Neo4jSpatialDataStore(database);
-			SimpleFeatureCollection features = store.getFeatureSource(layer.getName()).getFeatures();
-			System.out.println("Layer '" + layer.getName() + "' has " + features.size() + " features");
-			assertEquals("FeatureCollection.size for layer '" + layer.getName() + "' not the same as index count", layer.getIndex()
-					.count(), features.size());
-			if (layer instanceof OSMLayer)
-				checkOSMAPI(layer);
-            tx.success();
-		} finally {
-			database.shutdown();
-		}
-	}
+    @Before
+    public void setUp() throws Exception {
+        this.databases = new DatabaseManagementServiceBuilder(new File("target/docs-db")).build();
+        this.graphDb = databases.database(DEFAULT_DATABASE_NAME);
+        try (Transaction tx = this.graphDb.beginTx()) {
+            tx.getAllRelationships().forEach(Relationship::delete);
+            tx.commit();
+        }
+        try (Transaction tx = this.graphDb.beginTx()) {
+            tx.getAllNodes().forEach(Node::delete);
+            tx.commit();
+        }
+    }
 
-	private void checkOSMAPI(Layer layer) {
-		HashMap<Long, Integer> waysFound = new HashMap<Long, Integer>();
-		long mostCommon = 0;
-		int mostCount = 0;
-		OSMDataset osm = (OSMDataset) layer.getDataset();
-		Node wayNode = osm.getAllWayNodes().iterator().next();
-		Way way = osm.getWayFrom(wayNode);
-		System.out.println("Got first way " + way);
-		for (WayPoint n : way.getWayPoints()) {
-			Way w = n.getWay();
-			Long wayId = w.getNode().getId();
-			if (!waysFound.containsKey(wayId)) {
-				waysFound.put(wayId, 0);
-			}
-			waysFound.put(wayId, waysFound.get(wayId) + 1);
-			if (waysFound.get(wayId) > mostCount) {
-				mostCommon = wayId;
-				mostCount = waysFound.get(wayId);
-			}
-		}
-		System.out.println("Found " + waysFound.size() + " ways overlapping '" + way.toString() + "'");
-		for ( long wayId : waysFound.keySet() )
-		{
-			System.out.println( "\t" + wayId + ":\t" + waysFound.get( wayId ) +
-								((wayId == way.getNode().getId()) ? "\t(original way)" : "") );
-		}
-		assertTrue("Start way should be most found way", way.equals(osm.getWayFromId(mostCommon)));
-	}
+    @After
+    public void tearDown() {
+        this.databases.shutdown();
+        this.databases = null;
+        this.graphDb = null;
+    }
 
-	private void importMapOSM() throws Exception {
-		reActivateDatabase(false, true, false);
-		// START SNIPPET: importOsm tag::importOsm[]
-		OSMImporter importer = new OSMImporter("map.osm");
-		importer.setCharset(Charset.forName("UTF-8"));
-		BatchInserter batchInserter = getBatchInserter();
-		importer.importFile(batchInserter, "map.osm", false);
-		//batchInserter.shutdown();
-		//GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath);
-		reActivateDatabase(false, false, false);
-		GraphDatabaseService db = graphDb();
-		importer.reIndex(db);
-		db.shutdown();
-		// END SNIPPET: importOsm end::importOsm[]
-	}
+    private void checkIndexAndFeatureCount(String layerName) throws IOException {
+        SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
+        try (Transaction tx = graphDb.beginTx()) {
+            Layer layer = spatial.getLayer(tx, layerName);
+            if (layer.getIndex().count(tx) < 1) {
+                System.out.println("Warning: index count zero: " + layer.getName());
+            }
+            System.out.println("Layer '" + layer.getName() + "' has " + layer.getIndex().count(tx) + " entries in the index");
+            tx.commit();
+        }
+        DataStore store = new Neo4jSpatialDataStore(graphDb);
+        SimpleFeatureCollection features = store.getFeatureSource(layerName).getFeatures();
+        System.out.println("Layer '" + layerName + "' has " + features.size() + " features");
+        try (Transaction tx = graphDb.beginTx()) {
+            Layer layer = spatial.getLayer(tx, layerName);
+            assertEquals("FeatureCollection.size for layer '" + layer.getName() + "' not the same as index count", layer.getIndex().count(tx), features.size());
+            if (layer instanceof OSMLayer)
+                checkOSMAPI(tx, (OSMLayer) layer);
+            tx.commit();
+        }
+    }
 
-	/**
-	 * Sample code for importing Open Street Map example.
-	 * 
-	 * @throws Exception
-	 */
-	public void testImportOSM() throws Exception {
-		//super.shutdownDatabase(true);
-		//deleteDatabase(true);
-		reActivateDatabase(true, true, false);
+    private void checkOSMAPI(Transaction tx, OSMLayer layer) {
+        HashMap<Long, Integer> waysFound = new HashMap<>();
+        long mostCommon = 0;
+        int mostCount = 0;
+        OSMDataset osm = OSMDataset.fromLayer(tx, layer);
+        Node wayNode = osm.getAllWayNodes(tx).iterator().next();
+        Way way = osm.getWayFrom(wayNode);
+        System.out.println("Got first way " + way);
+        for (WayPoint n : way.getWayPoints()) {
+            Way w = n.getWay();
+            Long wayId = w.getNode().getId();
+            if (!waysFound.containsKey(wayId)) {
+                waysFound.put(wayId, 0);
+            }
+            waysFound.put(wayId, waysFound.get(wayId) + 1);
+            if (waysFound.get(wayId) > mostCount) {
+                mostCommon = wayId;
+                mostCount = waysFound.get(wayId);
+            }
+        }
+        System.out.println("Found " + waysFound.size() + " ways overlapping '" + way.toString() + "'");
+        for (long wayId : waysFound.keySet()) {
+            System.out.println("\t" + wayId + ":\t" + waysFound.get(wayId) +
+                    ((wayId == way.getNode().getId()) ? "\t(original way)" : ""));
+        }
+        assertTrue("Start way should be most found way", way.equals(osm.getWayFromId(tx, mostCommon)));
+    }
 
-		System.out.println("\n=== Simple test map.osm ===");
-		importMapOSM();
-		
-		//GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath);
-		reActivateDatabase(false, false, false);
-		// START SNIPPET: searchBBox tag::searchBBox[]
-		GraphDatabaseService database = graphDb();
-		try {
-			SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
-			Layer layer = spatialService.getLayer("map.osm");
-			LayerIndexReader spatialIndex = layer.getIndex();
-			System.out.println("Have " + spatialIndex.count() + " geometries in " + spatialIndex.getBoundingBox());
+    private void importMapOSM(GraphDatabaseService db) throws Exception {
+        // START SNIPPET: importOsm tag::importOsm[]
+        OSMImporter importer = new OSMImporter("map.osm");
+        importer.setCharset(StandardCharsets.UTF_8);
+        importer.importFile(db, "map.osm");
+        importer.reIndex(db);
+        // END SNIPPET: importOsm end::importOsm[]
+    }
 
-			Envelope bbox = new Envelope(12.94, 12.96, 56.04, 56.06);
-            try (Transaction tx = database.beginTx()) {
-                List<SpatialDatabaseRecord> results = GeoPipeline
-                    .startIntersectWindowSearch(layer, bbox)
+    /**
+     * Sample code for importing Open Street Map example.
+     */
+    @Test
+    public void testImportOSM() throws Exception {
+        System.out.println("\n=== Simple test map.osm ===");
+        importMapOSM(graphDb);
+        GraphDatabaseService database = graphDb;
+        // START SNIPPET: searchBBox tag::searchBBox[]
+        SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
+        try (Transaction tx = database.beginTx()) {
+            Layer layer = spatial.getLayer(tx, "map.osm");
+            LayerIndexReader spatialIndex = layer.getIndex();
+            System.out.println("Have " + spatialIndex.count(tx) + " geometries in " + spatialIndex.getBoundingBox(tx));
+
+            Envelope bbox = new Envelope(12.94, 12.96, 56.04, 56.06);
+            List<SpatialDatabaseRecord> results = GeoPipeline
+                    .startIntersectWindowSearch(tx, layer, bbox)
                     .toSpatialDatabaseRecordList();
 
-                doGeometryTestsOnResults(bbox, results);
-                tx.success();
-            }
-		} finally {
-			database.shutdown();
-		}
-		// END SNIPPET: searchBBox end::searchBBox[]
+            doGeometryTestsOnResults(bbox, results);
+            tx.commit();
+        }
+        // END SNIPPET: searchBBox end::searchBBox[]
 
-		checkIndexAndFeatureCount("map.osm");
-	}
+        checkIndexAndFeatureCount("map.osm");
+    }
 
-	public void testImportShapefile() throws Exception {
-		//super.shutdownDatabase(true);
-		//deleteDatabase(true);
-		reActivateDatabase(true, true, false);
+    @Test
+    public void testImportShapefile() throws Exception {
+        System.out.println("\n=== Test Import Shapefile ===");
+        GraphDatabaseService database = graphDb;
 
-		System.out.println("\n=== Test Import Shapefile ===");
+        // START SNIPPET: importShapefile tag::importShapefile[]
+        ShapefileImporter importer = new ShapefileImporter(database);
+        importer.importFile("shp/highway.shp", "highway", StandardCharsets.UTF_8);
+        // END SNIPPET: importShapefile end::importShapefile[]
 
-		reActivateDatabase(false, false, false);
-		//GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath);
-		// START SNIPPET: importShapefile tag::importShapefile[]
-		GraphDatabaseService database = graphDb();
-		try {
-			ShapefileImporter importer = new ShapefileImporter(database);
-			importer.importFile("shp/highway.shp", "highway", Charset.forName("UTF-8"));
-		} finally {
-			database.shutdown();
-		}
-		// END SNIPPET: importShapefile end::importShapefile[]
+        checkIndexAndFeatureCount("highway");
+    }
 
-		checkIndexAndFeatureCount("highway");
-	}
+    @Test
+    public void testExportShapefileFromOSM() throws Exception {
+        System.out.println("\n=== Test import map.osm, create DynamicLayer and export shapefile ===");
+        importMapOSM(graphDb);
+        GraphDatabaseService database = graphDb;
+        // START SNIPPET: exportShapefileFromOSM tag::exportShapefileFromOSM[]
+        SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
+        String wayLayerName;
+        try (Transaction tx = database.beginTx()) {
+            OSMLayer layer = (OSMLayer) spatial.getLayer(tx, "map.osm");
+            DynamicLayerConfig wayLayer = layer.addSimpleDynamicLayer(tx, Constants.GTYPE_LINESTRING);
+            wayLayerName = wayLayer.getName();
+            tx.commit();
+        }
+        ShapefileExporter shpExporter = new ShapefileExporter(database);
+        shpExporter.exportLayer(wayLayerName);
+        // END SNIPPET: exportShapefileFromOSM end::exportShapefileFromOSM[]
+    }
 
-	public void testExportShapefileFromOSM() throws Exception {
-		//super.shutdownDatabase(true);
-		//deleteDatabase(true);
-		reActivateDatabase(true, true, false);
+    @Test
+    public void testExportShapefileFromQuery() throws Exception {
+        System.out.println("\n=== Test import map.osm, create DynamicLayer and export shapefile ===");
+        importMapOSM(graphDb);
+        GraphDatabaseService database = graphDb;
+        // START SNIPPET: exportShapefileFromQuery tag::exportShapefileFromQuery[]
+        SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
+        Envelope bbox = new Envelope(12.94, 12.96, 56.04, 56.06);
+        List<SpatialDatabaseRecord> results;
+        try (Transaction tx = database.beginTx()) {
+            Layer layer = spatial.getLayer(tx, "map.osm");
+            LayerIndexReader spatialIndex = layer.getIndex();
+            System.out.println("Have " + spatialIndex.count(tx) + " geometries in " + spatialIndex.getBoundingBox(tx));
 
-		System.out.println("\n=== Test import map.osm, create DynamicLayer and export shapefile ===");
-		importMapOSM();
-		reActivateDatabase(false, false, false);
-		//GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath);
-		GraphDatabaseService database = graphDb();
-		try {
-			// START SNIPPET: exportShapefileFromOSM tag::exportShapefileFromOSM[]
-            SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
-            try (Transaction tx = database.beginTx()) {
-    			OSMLayer layer = (OSMLayer) spatialService.getLayer("map.osm");
-	    		DynamicLayerConfig wayLayer = layer.addSimpleDynamicLayer(Constants.GTYPE_LINESTRING);
-		    	ShapefileExporter shpExporter = new ShapefileExporter(database);
-			    shpExporter.exportLayer(wayLayer.getName());
-                tx.success();
-            }
-			// END SNIPPET: exportShapefileFromOSM end::exportShapefileFromOSM[]
-		} finally {
-			database.shutdown();
-		}
-	}
-
-	public void testExportShapefileFromQuery() throws Exception {
-		//super.shutdownDatabase(true);
-		//deleteDatabase(true);
-		reActivateDatabase(true, true, false);
-
-		System.out.println("\n=== Test import map.osm, create DynamicLayer and export shapefile ===");
-		importMapOSM();
-
-		reActivateDatabase(false, false, false);
-		//GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(databasePath);
-		GraphDatabaseService database = graphDb();
-		try {
-			// START SNIPPET: exportShapefileFromQuery tag::exportShapefileFromQuery[]
-			SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
-			Layer layer = spatialService.getLayer("map.osm");
-			LayerIndexReader spatialIndex = layer.getIndex();
-			System.out.println("Have " + spatialIndex.count() + " geometries in " + spatialIndex.getBoundingBox());
-
-			Envelope bbox = new Envelope(12.94, 12.96, 56.04, 56.06);
-            try (Transaction tx = database.beginTx()) {
-                List<SpatialDatabaseRecord> results = GeoPipeline
-                    .startIntersectWindowSearch(layer, bbox)
+            results = GeoPipeline
+                    .startIntersectWindowSearch(tx, layer, bbox)
                     .toSpatialDatabaseRecordList();
 
-                spatialService.createResultsLayer("results", results);
-                ShapefileExporter shpExporter = new ShapefileExporter(database);
-                shpExporter.exportLayer("results");
-                tx.success();
-			// END SNIPPET: exportShapefileFromQuery end::exportShapefileFromQuery[]
+            spatial.createResultsLayer(tx, "results", results);
+            tx.commit();
 
-    			doGeometryTestsOnResults(bbox, results);
-            }
-		} finally {
-			database.shutdown();
-		}
-	}
+        }
+        ShapefileExporter shpExporter = new ShapefileExporter(database);
+        shpExporter.exportLayer("results");
+        // END SNIPPET: exportShapefileFromQuery end::exportShapefileFromQuery[]
+        doGeometryTestsOnResults(bbox, results);
+    }
 
-	private void doGeometryTestsOnResults(Envelope bbox, List<SpatialDatabaseRecord> results) {
-		System.out.println("Found " + results.size() + " geometries in " + bbox);
-		Geometry geometry = results.get(0).getGeometry();
-		System.out.println("First geometry is " + geometry);
-		geometry.buffer(2);
-	}
+    private void doGeometryTestsOnResults(Envelope bbox, List<SpatialDatabaseRecord> results) {
+        System.out.println("Found " + results.size() + " geometries in " + bbox);
+        Geometry geometry = results.get(0).getGeometry();
+        System.out.println("First geometry is " + geometry);
+        geometry.buffer(2);
+    }
 
 }

@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -19,70 +19,59 @@
  */
 package org.neo4j.gis.spatial.encoders;
 
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.neo4j.gis.spatial.AbstractGeometryEncoder;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
-import org.neo4j.graphdb.PropertyContainer;
-
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.GeometryFactory;
+import org.neo4j.graphdb.Entity;
+import org.neo4j.graphdb.Transaction;
 
 /**
  * Simple encoder that stores point geometries as two x/y properties.
- * 
- * @author craig
  */
-public class SimplePointEncoder extends AbstractGeometryEncoder implements
-        Configurable
-{
+public class SimplePointEncoder extends AbstractGeometryEncoder implements Configurable {
     public static final String DEFAULT_X = "longitude";
     public static final String DEFAULT_Y = "latitude";
     protected GeometryFactory geometryFactory;
     protected String xProperty = DEFAULT_X;
     protected String yProperty = DEFAULT_Y;
 
-    protected GeometryFactory getGeometryFactory()
-    {
-        if ( geometryFactory == null ) geometryFactory = new GeometryFactory();
+    protected GeometryFactory getGeometryFactory() {
+        if (geometryFactory == null) geometryFactory = new GeometryFactory();
         return geometryFactory;
     }
 
     @Override
-    protected void encodeGeometryShape( Geometry geometry,
-            PropertyContainer container )
-    {
+    protected void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container) {
         container.setProperty(
                 "gtype",
-                SpatialDatabaseService.convertJtsClassToGeometryType( geometry.getClass() ) );
+                SpatialDatabaseService.convertJtsClassToGeometryType(geometry.getClass()));
         Coordinate[] coords = geometry.getCoordinates();
-        container.setProperty( xProperty, coords[0].x );
-        container.setProperty( yProperty, coords[0].y );
+        container.setProperty(xProperty, coords[0].x);
+        container.setProperty(yProperty, coords[0].y);
     }
 
     @Override
-    public Geometry decodeGeometry( PropertyContainer container )
-    {
-        double x = ( (Number) container.getProperty( xProperty ) ).doubleValue();
-        double y = ( (Number) container.getProperty( yProperty ) ).doubleValue();
-        Coordinate coordinate = new Coordinate( x, y );
-        return getGeometryFactory().createPoint( coordinate );
+    public Geometry decodeGeometry(Entity container) {
+        double x = ((Number) container.getProperty(xProperty)).doubleValue();
+        double y = ((Number) container.getProperty(yProperty)).doubleValue();
+        Coordinate coordinate = new Coordinate(x, y);
+        return getGeometryFactory().createPoint(coordinate);
     }
-    
+
     @Override
-    public String getConfiguration()
-    {
+    public String getConfiguration() {
         return xProperty + ":" + yProperty + ":" + bboxProperty;
     }
 
-    @Override    
-    public void setConfiguration( String configuration )
-    {
-        if ( configuration != null && configuration.trim().length() > 0)
-        {
-            String[] fields = configuration.split( ":" );
-            if ( fields.length > 0 ) xProperty = fields[0];
-            if ( fields.length > 1 ) yProperty = fields[1];
-            if ( fields.length > 2 ) bboxProperty = fields[2];
+    @Override
+    public void setConfiguration(String configuration) {
+        if (configuration != null && configuration.trim().length() > 0) {
+            String[] fields = configuration.split(":");
+            if (fields.length > 0) xProperty = fields[0];
+            if (fields.length > 1) yProperty = fields[1];
+            if (fields.length > 2) bboxProperty = fields[2];
         }
     }
 

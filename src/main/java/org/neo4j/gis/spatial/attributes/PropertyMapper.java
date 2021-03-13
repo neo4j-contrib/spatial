@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -46,17 +46,11 @@ public abstract class PropertyMapper {
 		}
 	}
 
-	public void save(Node node) {
-		Transaction tx = node.getGraphDatabase().beginTx();
-		try {
-			node.setProperty("from", this.from);
-			node.setProperty("to", this.to);
-			node.setProperty("type", this.type);
-			node.setProperty("params", this.params);
-			tx.success();
-		} finally {
-			tx.close();
-		}
+	protected void save(Transaction tx, Node node) {
+		node.setProperty("from", this.from);
+		node.setProperty("to", this.to);
+		node.setProperty("type", this.type);
+		node.setProperty("params", this.params);
 	}
 
 	public abstract Object map(Object value);
@@ -70,8 +64,7 @@ public abstract class PropertyMapper {
 	}
 
 	public String key() {
-		return new StringBuffer().append(from).append("-").append(to).append("-").append(type).append("-").append(params)
-				.toString();
+		return new StringBuffer().append(from).append("-").append(to).append("-").append(type).append("-").append(params).toString();
 	}
 
 	public static PropertyMapper fromNode(Node node) {

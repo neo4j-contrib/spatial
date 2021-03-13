@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -27,10 +27,7 @@ import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.gis.spatial.index.LayerTreeIndexReader;
 import org.neo4j.gis.spatial.filter.SearchRecords;
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.DynamicRelationshipType;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.*;
 
 
 /**
@@ -109,8 +106,8 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 	private boolean stepAndQuery(Node source, JSONObject step) {
 		if (step != null) {
 			JSONObject properties = (JSONObject) step.get("properties");
-			Relationship rel = source.getSingleRelationship(DynamicRelationshipType.withName(step.get("type").toString()), Direction
-			        .valueOf(step.get("direction").toString()));
+			RelationshipType relType = RelationshipType.withName(step.get("type").toString());
+			Relationship rel = source.getSingleRelationship(relType, Direction.valueOf(step.get("direction").toString()));
 			if (rel != null) {
 				Node node = rel.getOtherNode(source);
 				step = (JSONObject) step.get("step");
@@ -144,9 +141,9 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 	}
 
 	@Override
-	public int count() {
+	public int count(Transaction tx) {
 		DynamicRecordCounter counter = new DynamicRecordCounter();
-		index.visit(counter, index.getIndexRoot());
+		index.visit(tx, counter, index.getIndexRoot(tx));
 		return counter.getResult();
 	}
 	
@@ -160,19 +157,19 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 			}
 
 			@Override
-			public boolean geometryMatches(Node geomNode) {
-				return queryLeafNode(geomNode) && filter.geometryMatches(geomNode);
+			public boolean geometryMatches(Transaction tx, Node geomNode) {
+				return queryLeafNode(geomNode) && filter.geometryMatches(tx, geomNode);
 			}	
 		};
 	}	
 	
 	@Override
-	public SearchResults searchIndex(final SearchFilter filter) {
-		return index.searchIndex(wrapSearchFilter(filter));
+	public SearchResults searchIndex(Transaction tx, final SearchFilter filter) {
+		return index.searchIndex(tx, wrapSearchFilter(filter));
 	}
 	
 	@Override
-	public SearchRecords search(SearchFilter filter) {
-		return index.search(wrapSearchFilter(filter));
+	public SearchRecords search(Transaction tx, SearchFilter filter) {
+		return index.search(tx, wrapSearchFilter(filter));
 	}	
 }

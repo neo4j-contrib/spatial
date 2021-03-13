@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -30,10 +30,11 @@ import org.geotools.feature.AttributeTypeBuilder;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.feature.simple.SimpleFeatureTypeBuilder;
 import org.geotools.feature.type.BasicFeatureTypes;
-import org.geotools.resources.Classes;
+import org.geotools.util.Classes;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.SpatialRecord;
+import org.neo4j.graphdb.Transaction;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.feature.type.AttributeDescriptor;
@@ -41,14 +42,14 @@ import org.opengis.feature.type.GeometryDescriptor;
 import org.opengis.feature.type.GeometryType;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.geom.LineString;
-import com.vividsolutions.jts.geom.LinearRing;
-import com.vividsolutions.jts.geom.MultiLineString;
-import com.vividsolutions.jts.geom.MultiPoint;
-import com.vividsolutions.jts.geom.MultiPolygon;
-import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.geom.Polygon;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.LinearRing;
+import org.locationtech.jts.geom.MultiLineString;
+import org.locationtech.jts.geom.MultiPoint;
+import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.Polygon;
 
 public class Neo4jFeatureBuilder {
 	
@@ -65,10 +66,10 @@ public class Neo4jFeatureBuilder {
     }
     
 	/**
-	 * 
+	 * If it is necessary to lookup the layer type with a transaction, use this factory method to make the feature builder
 	 */
-    public Neo4jFeatureBuilder(Layer layer) { 
-        this(getTypeFromLayer(layer), Arrays.asList(layer.getExtraPropertyNames()));
+    public static Neo4jFeatureBuilder fromLayer(Transaction tx, Layer layer) {
+        return new Neo4jFeatureBuilder(getTypeFromLayer(tx, layer), Arrays.asList(layer.getExtraPropertyNames(tx)));
     } 
     
     public SimpleFeature buildFeature(String id, Geometry geometry, Map<String,Object> properties) {
@@ -83,12 +84,12 @@ public class Neo4jFeatureBuilder {
         return builder.buildFeature(id);    	
     }
     
-    public SimpleFeature buildFeature(SpatialRecord rec) {
-    	return buildFeature(rec.getId(), rec.getGeometry(), rec.getProperties());
+    public SimpleFeature buildFeature(Transaction tx, SpatialRecord rec) {
+    	return buildFeature(rec.getId(), rec.getGeometry(), rec.getProperties(tx));
     }
 
-    public static SimpleFeatureType getTypeFromLayer(Layer layer) {    
-    	return getType(layer.getName(), layer.getGeometryType(), layer.getCoordinateReferenceSystem(), layer.getExtraPropertyNames());
+    public static SimpleFeatureType getTypeFromLayer(Transaction tx, Layer layer) {
+    	return getType(layer.getName(), layer.getGeometryType(tx), layer.getCoordinateReferenceSystem(tx), layer.getExtraPropertyNames(tx));
     }
     
     public static SimpleFeatureType getType(String name, Integer geometryTypeId, CoordinateReferenceSystem crs, String[] extraPropertyNames) {

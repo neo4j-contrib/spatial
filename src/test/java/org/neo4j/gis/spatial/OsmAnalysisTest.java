@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -19,482 +19,457 @@
  */
 package org.neo4j.gis.spatial;
 
-import java.io.File;
-import java.io.IOException;
-import java.sql.Date;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.SortedMap;
-import java.util.SortedSet;
-import java.util.TreeMap;
-import java.util.TreeSet;
-
-import junit.framework.Test;
-import junit.framework.TestSuite;
-
+import org.locationtech.jts.geom.Coordinate;
 import org.apache.commons.io.FileUtils;
 import org.geotools.data.neo4j.StyledImageExporter;
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.neo4j.gis.spatial.utilities.ReferenceNodes;
-import org.neo4j.gis.spatial.rtree.Envelope;
-import org.neo4j.gis.spatial.rtree.filter.SearchAll;
+import org.junit.Test;
+import org.junit.runners.Parameterized;
+import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.gis.spatial.filter.SearchRecords;
+import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.osm.OSMRelation;
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.factory.GraphDatabaseFactory;
+import org.neo4j.gis.spatial.rtree.Envelope;
+import org.neo4j.gis.spatial.rtree.filter.SearchAll;
+import org.neo4j.gis.spatial.utilities.ReferenceNodes;
+import org.neo4j.graphdb.*;
+import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
-import com.vividsolutions.jts.geom.Coordinate;
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import java.util.Map.Entry;
+
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 public class OsmAnalysisTest extends TestOSMImport {
-	public static final String spatialTestMode = System.getProperty("spatial.test.mode");
-	public static final boolean usePoints = true;
-	public static final boolean useBatchInserter = false;
+    public static final String spatialTestMode = System.getProperty("spatial.test.mode");
+    public static final boolean usePoints = true;
+    private final int years;
+    private final int days;
 
-	public OsmAnalysisTest(String layerName) {
-		super(layerName, usePoints, useBatchInserter);
-		setName("DavideOsmAnalysisTest: " + layerName);
-	}
+    public OsmAnalysisTest(String layerName, int years, int days) {
+        super(layerName, true);
+        this.years = years;
+        this.days = days;
+    }
 
-	public static Test suite() {
-		deleteBaseDir();
-		TestSuite suite = new TestSuite();
-		String[] smallModels = new String[] { "one-street.osm", "two-street.osm" };
-		String[] mediumModels = new String[] { "map.osm", "map2.osm" };
-		String[] largeModels = new String[] { "cyprus.osm", "croatia.osm", "denmark.osm" };
+    @Parameterized.Parameters(name = "{index}-{0}: years={1}, days={2}")
+    public static Collection parameters() {
+        deleteBaseDir();
+        String[] smallModels = new String[]{"one-street.osm", "two-street.osm"};
+        //String[] mediumModels = new String[]{"map.osm", "map2.osm"};
+        String[] largeModels = new String[]{"cyprus.osm", "croatia.osm", "denmark.osm"};
 
-		// Setup default test cases (short or medium only, no long cases)
-		ArrayList<String> layersToTest = new ArrayList<String>();
-		layersToTest.addAll(Arrays.asList(smallModels));
+        // Setup default test cases (short or medium only, no long cases)
+        ArrayList<String> layersToTest = new ArrayList<>(Arrays.asList(smallModels));
 //		layersToTest.addAll(Arrays.asList(mediumModels));
 
-		// Now modify the test cases based on the spatial.test.mode setting
-		if (spatialTestMode != null && spatialTestMode.equals("long")) {
-			// Very long running tests
-			layersToTest.addAll(Arrays.asList(largeModels));
-		} else if (spatialTestMode != null && spatialTestMode.equals("short")) {
-			// Tests used for a quick check
-			layersToTest.clear();
-			layersToTest.addAll(Arrays.asList(smallModels));
-		} else if (spatialTestMode != null && spatialTestMode.equals("dev")) {
-			// Tests relevant to current development
-			layersToTest.clear();
-			// layersToTest.add("/home/craig/Desktop/AWE/Data/MapData/baden-wurttemberg.osm/baden-wurttemberg.osm");
-			// layersToTest.add("cyprus.osm");
-			// layersToTest.add("croatia.osm");
-			layersToTest.add("cyprus.osm");
-		}
+        // Now modify the test cases based on the spatial.test.mode setting
+        if (spatialTestMode != null && spatialTestMode.equals("long")) {
+            // Very long running tests
+            layersToTest.addAll(Arrays.asList(largeModels));
+        } else if (spatialTestMode != null && spatialTestMode.equals("short")) {
+            // Tests used for a quick check
+            layersToTest.clear();
+            layersToTest.addAll(Arrays.asList(smallModels));
+        } else if (spatialTestMode != null && spatialTestMode.equals("dev")) {
+            // Tests relevant to current development
+            layersToTest.clear();
+            // layersToTest.add("/home/craig/Desktop/AWE/Data/MapData/baden-wurttemberg.osm/baden-wurttemberg.osm");
+            // layersToTest.add("cyprus.osm");
+            // layersToTest.add("croatia.osm");
+            layersToTest.add("cyprus.osm");
+        }
 
-		int years[] = new int[]{3};
-		int days[] = new int[]{1};
+        int[] years = new int[]{3};
+        int[] days = new int[]{1};
 
-		// Finally build the set of complete test cases based on the collection
-		// above
-		for (final String layerName : layersToTest) {
-			for(final int y:years) {
-				for(final int d:days){
-					suite.addTest(new OsmAnalysisTest(layerName) {
-						public void runTest() {
-							try {
-								runAnalysis(layerName, y, d);
-							} catch (Exception e) {
-								// assertTrue("Failed to run import test due to exception: "
-								// + e, false);
-								throw new SpatialDatabaseException(e.getMessage(), e);
-							}
-						}
-					});
-				}
-			}
-		}
-		System.out.println("This suite has " + suite.testCount() + " tests");
-		for (int i = 0; i < suite.testCount(); i++) {
-			System.out.println("\t" + suite.testAt(i).toString());
-		}
-		return suite;
-	}
+        // Finally build the set of complete test cases based on the collection above
+        ArrayList<Object[]> suite = new ArrayList<>();
+        for (final String layerName : layersToTest) {
+            for (final int y : years) {
+                for (final int d : days) {
+                    suite.add(new Object[]{layerName, y, d});
+                }
+            }
+        }
+        System.out.println("This suite has " + suite.size() + " tests");
+        for (Object[] params : suite) {
+            System.out.println("\t" + Arrays.toString(params));
+        }
+        return suite;
+    }
 
-	private String dataset;
-	private GraphDatabaseService db;
-	
-	protected GraphDatabaseService graphDb() {
-		return db==null ? super.graphDb() : db;
-	}
-	
-	protected void shutdownDatabase() {
-		if(db!=null) {
-			db.shutdown();
-			db = null;
-		}
-	}
-	
-	protected SpatialDatabaseService setDataset(String dataset) {
-		this.dataset = dataset;
-		if (db != null) {
-			shutdownDatabase();
-		}
-		File dbDir = new File("var");
-		if (dbDir.exists()) {
-			try {
-				FileUtils.deleteDirectory(dbDir);
-			} catch (IOException e) {
-				System.out.println("Failed to delete previous database directory '" + dbDir + "': " + e.getMessage());
-			}
-		}
-		db = new GraphDatabaseFactory().newEmbeddedDatabase(new File(dbDir, dataset));
-		return new SpatialDatabaseService(db);
-	}
-	
-	protected void runAnalysis(String osm, int years, int days) throws Exception {
-		if(setDataset(osm).getLayer(osm)==null){
-			runImport(osm, usePoints, useBatchInserter);
-		}
-		try (Transaction tx = graphDb().beginTx()) {
-			testAnalysis2(osm, years, days);
-			tx.success();
-		}
-		shutdownDatabase();
-	}
+    @Test
+    public void runTest() throws Exception {
+        runAnalysis(layerName, years, days);
+    }
 
-	public void testAnalysis2(String osm, int years, int days) throws IOException {
-		SpatialDatabaseService spatial = new SpatialDatabaseService(graphDb());
-		OSMLayer layer = (OSMLayer) spatial.getLayer(osm);
-		OSMDataset dataset = (OSMDataset) layer.getDataset();
-		Map<String, User> userIndex = new HashMap<String, User>();
-		long latestTimestamp = 0L;
-		long firstTimestamp = Long.MAX_VALUE;
+    private DatabaseManagementService databases;
+    private GraphDatabaseService db;
 
-		try(Transaction tx = spatial.getDatabase().beginTx())
-		{
-			for ( Node cNode : dataset.getAllChangesetNodes() )
-			{
-				long timestamp = (Long) cNode.getProperty( "timestamp", 0L );
-				Node userNode = dataset.getUser( cNode );
-				String name = (String) userNode.getProperty( "name" );
+    protected GraphDatabaseService graphDb() {
+        return db == null ? super.graphDb() : db;
+    }
 
-				User user = userIndex.get( name );
-				if ( user == null )
-				{
-					user = new User( userNode.getId(), name );
-					userIndex.put( name, user );
-				}
-				user.addChangeset( cNode, timestamp );
-				if ( latestTimestamp < timestamp )
-					latestTimestamp = timestamp;
-				if ( firstTimestamp > timestamp )
-					firstTimestamp = timestamp;
-			}
-			tx.success();
-		}
-		SortedSet<User> topTen = getTopTen(userIndex);
-		
-		Date latest = new Date(latestTimestamp);
-		Calendar time = Calendar.getInstance();
-		time.setTime(latest);
-		int slidesPerYear = 360/days;
-		int slideCount = slidesPerYear * years;
-		long msPerSlide = days * 24 * 3600000;
-		int timeWindow = 15;
-		StringBuffer userQuery = new StringBuffer();
-		int user_rank = 1;
-		for (User user : topTen) {
-			if (userQuery.length() > 0)
-				userQuery.append(" or ");
-			userQuery.append("user = '" + user.name + "'");
-			user_rank++;
-		}
-		LinkedHashMap<DynamicLayerConfig,Long> slides = new LinkedHashMap<DynamicLayerConfig,Long>();
-		for (int i = -timeWindow; i < slideCount; i++) {
-			long timestamp = latestTimestamp - i * msPerSlide;
-			long minTime = timestamp;
-			long maxTime = timestamp + 15 * msPerSlide;
-			time.setTimeInMillis(timestamp);
-			Date date = new Date(timestamp);
-			System.out.println("Preparing slides for " + date);
-			String name = osm + "-" + date;
-			DynamicLayerConfig config = layer.addLayerConfig(name, Constants.GTYPE_GEOMETRY, "timestamp > " + minTime + " and timestamp < "
-					+ maxTime + " and (" + userQuery + ")");
-			System.out.println("Added dynamic layer '"+config.getName()+"' with CQL: "+config.getQuery());
-			slides.put(config, timestamp);
-		}
-		DynamicLayerConfig config = layer.addLayerConfig(osm + "-top-ten", Constants.GTYPE_GEOMETRY, userQuery.toString());
-		System.out.println("Added dynamic layer '"+config.getName()+"' with CQL: "+config.getQuery());
-		slides.clear();
-		slides.put(config, 0L);
+    protected void shutdownDatabase() {
+        if (db != null) {
+            databases.shutdown();
+            databases = null;
+            db = null;
+        }
+    }
 
-		StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
-		String exportDir = "target/export/" + osm + "/analysis";
-		imageExporter.setExportDir(exportDir);
-		imageExporter.setZoom(2.0);
-		imageExporter.setOffset(-0.2, 0.25);
-		imageExporter.setSize(1280, 800);
-		imageExporter.setStyleFiles(new String[] { "sld/background.sld", "sld/rank.sld" });
+    protected SpatialDatabaseService setDataset(String dataset) {
+        if (db != null) {
+            shutdownDatabase();
+        }
+        File dbDir = new File("var", dataset);
+        if (dbDir.exists()) {
+            try {
+                FileUtils.deleteDirectory(dbDir);
+            } catch (IOException e) {
+                System.out.println("Failed to delete previous database directory '" + dbDir + "': " + e.getMessage());
+            }
+        }
+        databases = new TestDatabaseManagementServiceBuilder(dbDir).impermanent().build();
+        db = databases.database(DEFAULT_DATABASE_NAME);
+        return new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
+    }
 
-		String[] layerPropertyNames = new String[]{"name", "timestamp", "user", "days", "user_rank"};
-		StringBuffer userParams = new StringBuffer();
-		user_rank = 1;
-		for (User user : topTen) {
-			if(userParams.length()>0) userParams.append(",");
-			userParams.append(user.name).append(":").append(user_rank);
-			user_rank++;
-		}
-		
-		boolean checkedOne = false;
+    protected void runAnalysis(String osm, int years, int days) throws Exception {
+        SpatialDatabaseService spatial = setDataset(osm);
+        boolean alreadyImported;
+        try (Transaction tx = graphDb().beginTx()) {
+            alreadyImported = spatial.getLayer(tx, osm) != null;
+            tx.commit();
+        }
+        if (!alreadyImported) {
+            runImport(osm, usePoints);
+        }
+        testAnalysis2(osm, years, days);
+        shutdownDatabase();
+    }
 
-		for(DynamicLayerConfig layerToExport:slides.keySet()){
-			layerToExport.setExtraPropertyNames(layerPropertyNames);
-			layerToExport.getPropertyMappingManager().addPropertyMapper("timestamp", "days", "Days", Long.toString(slides.get(layerToExport)));
-			layerToExport.getPropertyMappingManager().addPropertyMapper("user", "user_rank", "Map", userParams.toString());
-			if (!checkedOne) {
-				int i = 0;
-				System.out.println("Checking layer '" + layerToExport + "' in detail");
-				try (Transaction tx = db.beginTx())
-				{
-					SearchRecords records = layerToExport.getIndex().search( new SearchAll() );
-					for ( SpatialRecord record : records )
-					{
-						System.out.println( "Got record " + i + ": " + record );
-						for ( String name : record.getPropertyNames() )
-						{
-							System.out.println( "\t" + name + ":\t" + record.getProperty( name ) );
-							checkedOne = true;
-						}
-						if ( i++ > 10 )
-							break;
-					}
-					tx.success();
-				}
-			}
-			
-			imageExporter.saveLayerImage(new String[] { osm, layerToExport.getName() }, new File(layerToExport.getName() + ".png"));
-			//break;
-		}
-	}
+    public void testAnalysis2(String osm, int years, int days) throws IOException {
+        SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
+        LinkedHashMap<DynamicLayerConfig, Long> slides = new LinkedHashMap<>();
+        Map<String, User> userIndex = new HashMap<>();
+        int user_rank = 1;
+        long latestTimestamp = 0L;
+        long firstTimestamp = Long.MAX_VALUE;
+        try (Transaction tx = graphDb().beginTx()) {
+            OSMLayer layer = (OSMLayer) spatial.getLayer(tx, osm);
+            OSMDataset dataset = OSMDataset.fromLayer(tx, layer);
 
-	public void testAnalysis(String osm, int years, int days) throws Exception {
-		Node osmRoot = ReferenceNodes.getReferenceNode(graphDb(),"osm_root");
-		Node osmImport = osmRoot.getSingleRelationship(OSMRelation.OSM, Direction.OUTGOING).getEndNode();
-		Node usersNode = osmImport.getSingleRelationship(OSMRelation.USERS, Direction.OUTGOING).getEndNode();
+            for (Node cNode : dataset.getAllChangesetNodes(tx)) {
+                long timestamp = (Long) cNode.getProperty("timestamp", 0L);
+                Node userNode = dataset.getUser(cNode);
+                String name = (String) userNode.getProperty("name");
 
-		Map<String, User> userIndex = collectUserChangesetData(usersNode);
-		SortedSet<User> topTen = getTopTen(userIndex);
+                User user = userIndex.get(name);
+                if (user == null) {
+                    user = new User(userNode.getId(), name);
+                    userIndex.put(name, user);
+                }
+                user.addChangeset(cNode, timestamp);
+                if (latestTimestamp < timestamp)
+                    latestTimestamp = timestamp;
+                if (firstTimestamp > timestamp)
+                    firstTimestamp = timestamp;
+            }
+            tx.commit();
+        }
+        SortedSet<User> topTen = getTopTen(userIndex);
+        try (Transaction tx = graphDb().beginTx()) {
+            OSMLayer layer = (OSMLayer) spatial.getLayer(tx, osm);
+            Date latest = new Date(latestTimestamp);
+            Calendar time = Calendar.getInstance();
+            time.setTime(latest);
+            int slidesPerYear = 360 / days;
+            int slideCount = slidesPerYear * years;
+            long msPerSlide = (long) days * 24 * 3600000;
+            int timeWindow = 15;
+            StringBuilder userQuery = new StringBuilder();
+            for (User user : topTen) {
+                if (userQuery.length() > 0)
+                    userQuery.append(" or ");
+                userQuery.append("user = '").append(user.name).append("'");
+                user_rank++;
+            }
+            for (int i = -timeWindow; i < slideCount; i++) {
+                long timestamp = latestTimestamp - i * msPerSlide;
+                long maxTime = timestamp + 15 * msPerSlide;
+                time.setTimeInMillis(timestamp);
+                Date date = new Date(timestamp);
+                System.out.println("Preparing slides for " + date);
+                String name = osm + "-" + date;
+                DynamicLayerConfig config = layer.addLayerConfig(tx, name, Constants.GTYPE_GEOMETRY, "timestamp > " + timestamp + " and timestamp < "
+                        + maxTime + " and (" + userQuery + ")");
+                System.out.println("Added dynamic layer '" + config.getName() + "' with CQL: " + config.getQuery());
+                slides.put(config, timestamp);
+            }
+            DynamicLayerConfig config = layer.addLayerConfig(tx, osm + "-top-ten", Constants.GTYPE_GEOMETRY, userQuery.toString());
+            System.out.println("Added dynamic layer '" + config.getName() + "' with CQL: " + config.getQuery());
+            slides.clear();
+            slides.put(config, 0L);
+            tx.commit();
+        }
 
-		SpatialDatabaseService spatialService = new SpatialDatabaseService(graphDb());
-		SortedMap<String, Layer> layers = exportPoints(osm, spatialService, topTen);
+        StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
+        String exportDir = "target/export/" + osm + "/analysis";
+        imageExporter.setExportDir(exportDir);
+        imageExporter.setZoom(2.0);
+        imageExporter.setOffset(-0.2, 0.25);
+        imageExporter.setSize(1280, 800);
+        imageExporter.setStyleFiles(new String[]{"sld/background.sld", "sld/rank.sld"});
 
-		layers = removeEmptyLayers(layers);
-		ReferencedEnvelope bbox = getEnvelope(layers.values());
+        String[] layerPropertyNames = new String[]{"name", "timestamp", "user", "days", "user_rank"};
+        StringBuilder userParams = new StringBuilder();
+        user_rank = 1;
+        for (User user : topTen) {
+            if (userParams.length() > 0) userParams.append(",");
+            userParams.append(user.name).append(":").append(user_rank);
+            user_rank++;
+        }
 
-		StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
-		String exportDir = "target/export/" + osm + "/analysis";
-		imageExporter.setExportDir(exportDir);
-		imageExporter.setZoom(2.0);
-		imageExporter.setOffset(-0.05, -0.05);
-		imageExporter.setSize(1280, 800);
+        boolean checkedOne = false;
 
-		for (String layerName : layers.keySet()) {
-			SortedMap<String, Layer> layersSubset = new TreeMap<String, Layer>(layers.headMap(layerName));
+        for (DynamicLayerConfig layerToExport : slides.keySet()) {
+            try (Transaction tx = graphDb().beginTx()) {
+                layerToExport.setExtraPropertyNames(tx, layerPropertyNames);
+                layerToExport.getPropertyMappingManager().addPropertyMapper(tx, "timestamp", "days", "Days", Long.toString(slides.get(layerToExport)));
+                layerToExport.getPropertyMappingManager().addPropertyMapper(tx, "user", "user_rank", "Map", userParams.toString());
+                if (!checkedOne) {
+                    int i = 0;
+                    System.out.println("Checking layer '" + layerToExport + "' in detail");
+                    SearchRecords records = layerToExport.getIndex().search(tx, new SearchAll());
+                    for (SpatialRecord record : records) {
+                        System.out.println("Got record " + i + ": " + record);
+                        for (String name : record.getPropertyNames(tx)) {
+                            System.out.println("\t" + name + ":\t" + record.getProperty(tx, name));
+                            checkedOne = true;
+                        }
+                        if (i++ > 10)
+                            break;
+                    }
+                }
+                tx.commit();
+            }
 
-			String[] to_render = new String[Math.min(10, layersSubset.size() + 1)];
-			to_render[0] = layerName;
-			if (layersSubset.size() > 0) {
-				for (int i = 1; i < to_render.length; i++) {
-					String name = layersSubset.lastKey();
-					layersSubset.remove(name);
-					to_render[i] = name;
-				}
-			}
+            imageExporter.saveLayerImage(new String[]{osm, layerToExport.getName()}, new File(layerToExport.getName() + ".png"));
+            //break;
+        }
+    }
 
-			System.out.println("exporting " + layerName);
-			imageExporter.saveLayerImage(
-					to_render, // (String[])
-								// layersSubset.keySet().toArray(new
-								// String[] {}),
-					"/Users/davidesavazzi/Desktop/amanzi/awe trial/osm_germany/germany_poi_small.sld",
-					new File(layerName + ".png"), bbox);
-		}
-	}
+    public void testAnalysis(String osm) throws Exception {
+        SortedMap<String, Layer> layers;
+        ReferencedEnvelope bbox;
+        try (Transaction tx = graphDb().beginTx()) {
+            Node osmRoot = ReferenceNodes.getReferenceNode(tx, "osm_root");
+            Node osmImport = osmRoot.getSingleRelationship(OSMRelation.OSM, Direction.OUTGOING).getEndNode();
+            Node usersNode = osmImport.getSingleRelationship(OSMRelation.USERS, Direction.OUTGOING).getEndNode();
 
-	private ReferencedEnvelope getEnvelope(Collection<Layer> layers) {
-		CoordinateReferenceSystem crs = null;
+            Map<String, User> userIndex = collectUserChangesetData(usersNode);
+            SortedSet<User> topTen = getTopTen(userIndex);
 
-		Envelope envelope = null;
-		for (Layer layer : layers) {
-			Envelope bbox = layer.getIndex().getBoundingBox();
-			if (envelope == null) {
-				envelope = new Envelope(bbox);
-			} else {
-				envelope.expandToInclude(bbox);
-			}
-			if (crs == null) {
-				crs = layer.getCoordinateReferenceSystem();
-			}
-		}
+            SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
+            layers = exportPoints(tx, osm, spatial, topTen);
 
-		return new ReferencedEnvelope(Utilities.fromNeo4jToJts(envelope), crs);
-	}
+            layers = removeEmptyLayers(tx, layers);
+            bbox = getEnvelope(tx, layers.values());
+            tx.commit();
+        }
 
-	private SortedMap<String, Layer> removeEmptyLayers(Map<String, Layer> layers) {
-		SortedMap<String, Layer> result = new TreeMap<String, Layer>();
+        StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
+        String exportDir = "target/export/" + osm + "/analysis";
+        imageExporter.setExportDir(exportDir);
+        imageExporter.setZoom(2.0);
+        imageExporter.setOffset(-0.05, -0.05);
+        imageExporter.setSize(1280, 800);
 
-		for (Entry<String, Layer> entry : layers.entrySet()) {
-			if (entry.getValue().getIndex().count() > 0) {
-				result.put(entry.getKey(), entry.getValue());
-			}
-		}
+        for (String layerName : layers.keySet()) {
+            SortedMap<String, Layer> layersSubset = new TreeMap<>(layers.headMap(layerName));
 
-		return result;
-	}
+            String[] to_render = new String[Math.min(10, layersSubset.size() + 1)];
+            to_render[0] = layerName;
+            if (layersSubset.size() > 0) {
+                for (int i = 1; i < to_render.length; i++) {
+                    String name = layersSubset.lastKey();
+                    layersSubset.remove(name);
+                    to_render[i] = name;
+                }
+            }
 
-	private SortedMap<String, Layer> exportPoints(String layerPrefix, SpatialDatabaseService spatialService,
-			Set<User> users) {
-		SortedMap<String, Layer> layers = new TreeMap<String, Layer>();
-		int startYear = 2009;
-		int endYear = 2011;
+            System.out.println("exporting " + layerName);
+            imageExporter.saveLayerImage(
+                    to_render, // (String[])
+                    // layersSubset.keySet().toArray(new
+                    // String[] {}),
+                    "/Users/davidesavazzi/Desktop/amanzi/awe trial/osm_germany/germany_poi_small.sld",
+                    new File(layerName + ".png"), bbox);
+        }
+    }
 
-		for (int y = startYear; y <= endYear; y++) {
-			for (int w = 1; w <= 52; w++) {
-				if (y == 2011 && w == 36) {
-					break;
-				}
+    private ReferencedEnvelope getEnvelope(Transaction tx, Collection<Layer> layers) {
+        CoordinateReferenceSystem crs = null;
 
-				String name = layerPrefix + "-" + y + "_";
-				if (w >= 10)
-					name += w;
-				else
-					name += "0" + w;
+        Envelope envelope = null;
+        for (Layer layer : layers) {
+            Envelope bbox = layer.getIndex().getBoundingBox(tx);
+            if (envelope == null) {
+                envelope = new Envelope(bbox);
+            } else {
+                envelope.expandToInclude(bbox);
+            }
+            if (crs == null) {
+                crs = layer.getCoordinateReferenceSystem(tx);
+            }
+        }
 
-				EditableLayerImpl layer = (EditableLayerImpl) spatialService.createLayer(name, WKBGeometryEncoder.class,
-						EditableLayerImpl.class);
-				layer.setExtraPropertyNames(new String[] { "user_id", "user_name", "year", "month", "dayOfMonth", "weekOfYear" });
+        return new ReferencedEnvelope(Utilities.fromNeo4jToJts(envelope), crs);
+    }
 
-				// EditableLayerImpl layer = (EditableLayerImpl)
-				// spatialService.getLayer(name);
+    private SortedMap<String, Layer> removeEmptyLayers(Transaction tx, Map<String, Layer> layers) {
+        SortedMap<String, Layer> result = new TreeMap<>();
 
-				layers.put(name, layer);
-			}
-		}
+        for (Entry<String, Layer> entry : layers.entrySet()) {
+            if (entry.getValue().getIndex().count(tx) > 0) {
+                result.put(entry.getKey(), entry.getValue());
+            }
+        }
 
-		for (User user : users) {
-			Node userNode = graphDb().getNodeById(user.id);
-			System.out.println("analyzing user: " + userNode.getProperty("name"));
-			for (Relationship r : userNode.getRelationships(Direction.INCOMING, OSMRelation.USER)) {
-				Node changeset = r.getStartNode();
-				if (changeset.hasProperty("changeset")) {
-					System.out.println("analyzing changeset: " + changeset.getProperty("changeset"));
-					try (Transaction tx = graphDb().beginTx()) {
-						for (Relationship nr : changeset.getRelationships(Direction.INCOMING, OSMRelation.CHANGESET)) {
-							Node changedNode = nr.getStartNode();
-							if (changedNode.hasProperty("node_osm_id") && changedNode.hasProperty("timestamp")) {
-								long timestamp = (Long) changedNode.getProperty("timestamp");
+        return result;
+    }
 
-								Calendar c = Calendar.getInstance();
-								c.setTimeInMillis(timestamp);
-								int nodeYear = c.get(Calendar.YEAR);
-								int nodeWeek = c.get(Calendar.WEEK_OF_YEAR);
+    private SortedMap<String, Layer> exportPoints(Transaction tx, String layerPrefix, SpatialDatabaseService spatialService, Set<User> users) {
+        SortedMap<String, Layer> layers = new TreeMap<>();
+        int startYear = 2009;
+        int endYear = 2011;
 
-								if (layers.containsKey(layerPrefix + "-" + nodeYear + "_" + nodeWeek)) {
-									EditableLayer l = (EditableLayer) layers.get(layerPrefix + "-" + nodeYear + "_" + nodeWeek);
-									l.add(l.getGeometryFactory().createPoint(
-											new Coordinate((Double) changedNode.getProperty("lon"), (Double) changedNode
-													.getProperty("lat"))), new String[] { "user_id", "user_name", "year", "month",
-											"dayOfMonth", "weekOfYear" },
-											new Object[] { user.internalId, user.name, c.get(Calendar.YEAR), c.get(Calendar.MONTH),
-													c.get(Calendar.DAY_OF_MONTH), c.get(Calendar.WEEK_OF_YEAR) });
-								}
-							}
-						}
-						tx.success();
-					}
-				}
-			}
-		}
+        for (int y = startYear; y <= endYear; y++) {
+            for (int w = 1; w <= 52; w++) {
+                if (y == 2011 && w == 36) {
+                    break;
+                }
 
-		return layers;
-	}
+                String name = layerPrefix + "-" + y + "_";
+                if (w >= 10)
+                    name += w;
+                else
+                    name += "0" + w;
 
-	private SortedSet<User> getTopTen(Map<String, User> userIndex) {
-		SortedSet<User> userList = new TreeSet<User>();
-		userList.addAll(userIndex.values());
-//		for (String name : userIndex.keySet()) {
-//			userList.add(userIndex.get(name));
-//		}
+                EditableLayerImpl layer = (EditableLayerImpl) spatialService.createLayer(tx, name, WKBGeometryEncoder.class, EditableLayerImpl.class);
+                layer.setExtraPropertyNames(new String[]{"user_id", "user_name", "year", "month", "dayOfMonth", "weekOfYear"}, tx);
 
-		SortedSet<User> topTen = new TreeSet<User>();
+                layers.put(name, layer);
+            }
+        }
 
-		int count = 0;
-		for (User user : userList) {
-			if (count < 10) {
-				topTen.add(user);
-				user.internalId = count++;
-			} else {
-				break;
-			}
-		}
+        for (User user : users) {
+            Node userNode = tx.getNodeById(user.id);
+            System.out.println("analyzing user: " + userNode.getProperty("name"));
+            for (Relationship r : userNode.getRelationships(Direction.INCOMING, OSMRelation.USER)) {
+                Node changeset = r.getStartNode();
+                if (changeset.hasProperty("changeset")) {
+                    System.out.println("analyzing changeset: " + changeset.getProperty("changeset"));
+                    for (Relationship nr : changeset.getRelationships(Direction.INCOMING, OSMRelation.CHANGESET)) {
+                        Node changedNode = nr.getStartNode();
+                        if (changedNode.hasProperty("node_osm_id") && changedNode.hasProperty("timestamp")) {
+                            long timestamp = (Long) changedNode.getProperty("timestamp");
 
-		for (User user : topTen) {
-			System.out.println(user.id + "# " + user.name + " = " + user.changesets.size());
-		}
+                            Calendar c = Calendar.getInstance();
+                            c.setTimeInMillis(timestamp);
+                            int nodeYear = c.get(Calendar.YEAR);
+                            int nodeWeek = c.get(Calendar.WEEK_OF_YEAR);
 
-		return topTen;
-	}
+                            if (layers.containsKey(layerPrefix + "-" + nodeYear + "_" + nodeWeek)) {
+                                EditableLayer l = (EditableLayer) layers.get(layerPrefix + "-" + nodeYear + "_" + nodeWeek);
+                                l.add(tx, l.getGeometryFactory().createPoint(
+                                        new Coordinate((Double) changedNode.getProperty("lon"), (Double) changedNode
+                                                .getProperty("lat"))), new String[]{"user_id", "user_name", "year", "month",
+                                                "dayOfMonth", "weekOfYear"},
+                                        new Object[]{user.internalId, user.name, c.get(Calendar.YEAR), c.get(Calendar.MONTH),
+                                                c.get(Calendar.DAY_OF_MONTH), c.get(Calendar.WEEK_OF_YEAR)});
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
-	private Map<String, User> collectUserChangesetData(Node usersNode) {
-		Map<String, User> userIndex = new HashMap<String, User>();
-		for (Relationship r : usersNode.getRelationships(Direction.OUTGOING, OSMRelation.OSM_USER)) {
-			Node userNode = r.getEndNode();
-			String name = (String) userNode.getProperty("name");
+        return layers;
+    }
 
-			User user = new User(userNode.getId(), name);
-			userIndex.put(name, user);
+    private SortedSet<User> getTopTen(Map<String, User> userIndex) {
+        SortedSet<User> userList = new TreeSet<>(userIndex.values());
+        SortedSet<User> topTen = new TreeSet<>();
 
-			for (Relationship ur : userNode.getRelationships(Direction.INCOMING, OSMRelation.USER)) {
-				Node node = ur.getStartNode();
-				if (node.hasProperty("changeset")) {
-					user.changesets.add(node.getId());
-				}
-			}
-		}
+        int count = 0;
+        for (User user : userList) {
+            if (count < 10) {
+                topTen.add(user);
+                user.internalId = count++;
+            } else {
+                break;
+            }
+        }
 
-		return userIndex;
-	}
+        for (User user : topTen) {
+            System.out.println(user.id + "# " + user.name + " = " + user.changesets.size());
+        }
 
-	class User implements Comparable<User> {
+        return topTen;
+    }
 
-		long id;
-		int internalId;
-		String name;
-		List<Long> changesets = new ArrayList<Long>();
-		long latestTimestamp = 0L;
+    private Map<String, User> collectUserChangesetData(Node usersNode) {
+        Map<String, User> userIndex = new HashMap<>();
+        for (Relationship r : usersNode.getRelationships(Direction.OUTGOING, OSMRelation.OSM_USER)) {
+            Node userNode = r.getEndNode();
+            String name = (String) userNode.getProperty("name");
 
-		public User(long id, String name) {
-			this.id = id;
-			this.name = name;
-		}
+            User user = new User(userNode.getId(), name);
+            userIndex.put(name, user);
 
-		public void addChangeset(Node cNode, long timestamp) {
-			changesets.add(cNode.getId());
-			if (latestTimestamp < timestamp)
-				latestTimestamp = timestamp;
-		}
+            for (Relationship ur : userNode.getRelationships(Direction.INCOMING, OSMRelation.USER)) {
+                Node node = ur.getStartNode();
+                if (node.hasProperty("changeset")) {
+                    user.changesets.add(node.getId());
+                }
+            }
+        }
 
-		@Override
-		public int compareTo(User other) {
-			return -1 * ((Integer) changesets.size()).compareTo((Integer) other.changesets.size());
-		}
-	}
+        return userIndex;
+    }
+
+    static class User implements Comparable<User> {
+
+        long id;
+        int internalId;
+        String name;
+        List<Long> changesets = new ArrayList<>();
+        long latestTimestamp = 0L;
+
+        public User(long id, String name) {
+            this.id = id;
+            this.name = name;
+        }
+
+        public void addChangeset(Node cNode, long timestamp) {
+            changesets.add(cNode.getId());
+            if (latestTimestamp < timestamp)
+                latestTimestamp = timestamp;
+        }
+
+        @Override
+        public int compareTo(User other) {
+            return -1 * Integer.compare(changesets.size(), other.changesets.size());
+        }
+    }
 }

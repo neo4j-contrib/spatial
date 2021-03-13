@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -27,98 +27,106 @@ import java.util.Map;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialRecord;
 
-import com.vividsolutions.jts.geom.Envelope;
-import com.vividsolutions.jts.geom.Geometry;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
 import org.neo4j.graphdb.Node;
-
+import org.neo4j.graphdb.Transaction;
 
 public class GeoPipeFlow implements SpatialRecord {
 
-	private String id;
-	private List<SpatialDatabaseRecord> records = new ArrayList<SpatialDatabaseRecord>();
-	private Geometry geometry;
-	private Envelope geometryEnvelope;
-	private Map<String,Object> properties = new HashMap<String,Object>();
-	
-	private GeoPipeFlow(String id) {
-		this.id = id;
-	}
-	
-	public GeoPipeFlow(SpatialDatabaseRecord record) {
-		this.id = Long.toString(record.getNodeId());
-		this.records.add(record);
-		this.geometry = record.getGeometry();
-	}
-	
-	public SpatialDatabaseRecord getRecord() {
-		return records.get(0);
-	}
+    private String id;
+    private List<SpatialDatabaseRecord> records = new ArrayList<SpatialDatabaseRecord>();
+    private Geometry geometry;
+    private Envelope geometryEnvelope;
+    private Map<String, Object> properties = new HashMap<>();
 
-	@Override
-	public Node getGeomNode() {
-		return getRecord().getGeomNode();
-	}
+    private GeoPipeFlow(String id) {
+        this.id = id;
+    }
 
-	public int countRecords() {
-		return records.size();
-	}
-	
-	public List<SpatialDatabaseRecord> getRecords() {
-		return records;
-	}
-	
-	@Override
-	public String getId() {
-		return id;
-	}
-	
-	@Override
-	public Geometry getGeometry() {
-		return geometry;
-	}
-	
-	public Envelope getEnvelope() {
-		if (geometryEnvelope == null) {
-			geometryEnvelope = geometry.getEnvelopeInternal();
-		}
-		
-		return geometryEnvelope;
-	}
-	
-	public void setGeometry(Geometry geometry) {
-		this.geometry = geometry;
-		this.geometryEnvelope = null;
-	}
-	
-	public Map<String,Object> getProperties() {
-		return properties;
-	}
-	
-	public boolean hasProperty(String name) {
-		return properties.containsKey(name);
-	}
+    public GeoPipeFlow(SpatialDatabaseRecord record) {
+        this.id = Long.toString(record.getNodeId());
+        this.records.add(record);
+        this.geometry = record.getGeometry();
+    }
 
-	public String[] getPropertyNames() {
-		return properties.keySet().toArray(new String[] {});
-	}
-	
-	@Override
-	public Object getProperty(String name) {
-		return properties.get(name);
-	}
-	
-	public void merge(GeoPipeFlow other) {
-		records.addAll(other.records);
-		// TODO id?
-		// TODO properties?
-	}
-	
-	public GeoPipeFlow makeClone(String idSuffix) {
-		// we don't need a deeper copy at the moment
-		GeoPipeFlow clone = new GeoPipeFlow(id + "-" + idSuffix);
-		clone.records.addAll(records);
-		clone.geometry = geometry;
-		clone.getProperties().putAll(getProperties());
-		return clone;
-	}
+    public SpatialDatabaseRecord getRecord() {
+        return records.get(0);
+    }
+
+    @Override
+    public Node getGeomNode() {
+        return getRecord().getGeomNode();
+    }
+
+    public int countRecords() {
+        return records.size();
+    }
+
+    public List<SpatialDatabaseRecord> getRecords() {
+        return records;
+    }
+
+    @Override
+    public String getId() {
+        return id;
+    }
+
+    @Override
+    public Geometry getGeometry() {
+        return geometry;
+    }
+
+    public Envelope getEnvelope() {
+        if (geometryEnvelope == null) {
+            geometryEnvelope = geometry.getEnvelopeInternal();
+        }
+
+        return geometryEnvelope;
+    }
+
+    public void setGeometry(Geometry geometry) {
+        this.geometry = geometry;
+        this.geometryEnvelope = null;
+    }
+
+    @Override
+    public Map<String, Object> getProperties(Transaction ignored) {
+        return properties;
+    }
+
+    // Alternative method since GeoPipes never work within a transactional context
+    public Map<String, Object> getProperties() {
+        return properties;
+    }
+
+    @Override
+    public boolean hasProperty(Transaction tx, String name) {
+        return properties.containsKey(name);
+    }
+
+    @Override
+    public String[] getPropertyNames(Transaction tx) {
+        return properties.keySet().toArray(new String[]{});
+    }
+
+    @Override
+    public Object getProperty(Transaction ignored, String name) {
+        return properties.get(name);
+    }
+
+    public void merge(GeoPipeFlow other) {
+        records.addAll(other.records);
+        // TODO id?
+        // TODO properties?
+    }
+
+    public GeoPipeFlow makeClone(String idSuffix) {
+        // we don't need a deeper copy at the moment
+        GeoPipeFlow clone = new GeoPipeFlow(id + "-" + idSuffix);
+        clone.records.addAll(records);
+        clone.geometry = geometry;
+        clone.getProperties().putAll(getProperties());
+        return clone;
+    }
 }

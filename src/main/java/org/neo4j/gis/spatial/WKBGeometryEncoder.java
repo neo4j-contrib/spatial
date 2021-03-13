@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -19,40 +19,34 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.io.ParseException;
+import org.locationtech.jts.io.WKBReader;
+import org.locationtech.jts.io.WKBWriter;
 import org.neo4j.gis.spatial.encoders.AbstractSinglePropertyEncoder;
 import org.neo4j.gis.spatial.encoders.Configurable;
-import org.neo4j.graphdb.PropertyContainer;
+import org.neo4j.graphdb.Entity;
+import org.neo4j.graphdb.Transaction;
 
-import com.vividsolutions.jts.geom.Geometry;
-import com.vividsolutions.jts.io.ParseException;
-import com.vividsolutions.jts.io.WKBReader;
-import com.vividsolutions.jts.io.WKBWriter;
+public class WKBGeometryEncoder extends AbstractSinglePropertyEncoder implements Configurable {
 
-/**
- * @author Davide Savazzi
- */
-public class WKBGeometryEncoder extends AbstractSinglePropertyEncoder implements Configurable{
+    public Geometry decodeGeometry(Entity container) {
+        try {
+            WKBReader reader = new WKBReader(layer.getGeometryFactory());
+            return reader.read((byte[]) container.getProperty(geomProperty));
+        } catch (ParseException e) {
+            throw new SpatialDatabaseException(e.getMessage(), e);
+        }
+    }
 
-    // Public methods
-	
-	public Geometry decodeGeometry(PropertyContainer container) {
-		try {
-			WKBReader reader = new WKBReader(layer.getGeometryFactory());
-			return reader.read((byte[]) container.getProperty(geomProperty));
-		} catch (ParseException e) {
-			throw new SpatialDatabaseException(e.getMessage(), e);
-		}
-	}
-	
-	// Protected methods
-
-	protected void encodeGeometryShape(Geometry geometry, PropertyContainer container) {
+    @Override
+    protected void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container) {
         WKBWriter writer = new WKBWriter();
         container.setProperty(geomProperty, writer.write(geometry));
-	}
+    }
 
-	@Override
-	public String getSignature() {
-		return "WKB" + super.getSignature();
-	}
+    @Override
+    public String getSignature() {
+        return "WKB" + super.getSignature();
+    }
 }

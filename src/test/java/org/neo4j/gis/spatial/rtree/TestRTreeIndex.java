@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2002-2013 "Neo Technology," Network Engine for Objects in Lund
- * AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -20,17 +20,18 @@
 package org.neo4j.gis.spatial.rtree;
 
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
-import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 
 public class TestRTreeIndex extends RTreeIndex {
 
-    public TestRTreeIndex(GraphDatabaseService database) {
-        init(database, database.createNode(), new SimplePointEncoder());
+    // TODO: Rather pass tx into init after construction (bad pattern to pass tx to constructor, as if it will be saved)
+    public TestRTreeIndex(Transaction tx) {
+        init(tx, tx.createNode(), new SimplePointEncoder(), DEFAULT_MAX_NODE_REFERENCES);
     }
 
-    public RTreeIndex.NodeWithEnvelope makeChildIndexNode(NodeWithEnvelope parent, Envelope bbox) {
-        Node indexNode = getDatabase().createNode();
+    public RTreeIndex.NodeWithEnvelope makeChildIndexNode(Transaction tx, NodeWithEnvelope parent, Envelope bbox) {
+        Node indexNode = tx.createNode();
         setIndexNodeEnvelope(indexNode, bbox);
         parent.node.createRelationshipTo(indexNode, RTreeRelationshipTypes.RTREE_CHILD);
         expandParentBoundingBoxAfterNewChild(parent.node, new double[]{bbox.getMinX(), bbox.getMinY(), bbox.getMaxX(), bbox.getMaxY()});
@@ -41,7 +42,7 @@ public class TestRTreeIndex extends RTreeIndex {
         setIndexNodeEnvelope(indexNode.node, indexNode.envelope);
     }
 
-    public void mergeTwoTrees(NodeWithEnvelope left, NodeWithEnvelope right) {
-        super.mergeTwoSubtrees(left, this.getIndexChildren(right.node));
+    public void mergeTwoTrees(Transaction tx, NodeWithEnvelope left, NodeWithEnvelope right) {
+        super.mergeTwoSubtrees(tx, left, this.getIndexChildren(right.node));
     }
 }

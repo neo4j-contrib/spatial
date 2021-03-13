@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -22,13 +22,14 @@ package org.neo4j.gis.spatial.filter;
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.filter.text.ecql.ECQL;
-import org.neo4j.gis.spatial.rtree.Envelope;
-import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.Utilities;
+import org.neo4j.gis.spatial.rtree.Envelope;
+import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 import org.opengis.feature.simple.SimpleFeature;
 
 /**
@@ -36,39 +37,42 @@ import org.opengis.feature.simple.SimpleFeature;
  * geometry
  */
 public class SearchCQL implements SearchFilter {
-	
-	private Neo4jFeatureBuilder featureBuilder;
-	private Layer layer;
-	private org.opengis.filter.Filter filter;
-	private Envelope filterEnvelope;
-	
-	public SearchCQL(Layer layer, org.opengis.filter.Filter filter) {
-		this.layer = layer;
-		this.featureBuilder = new Neo4jFeatureBuilder(layer);
-		this.filter = filter;	
-	    this.filterEnvelope = Utilities.extractEnvelopeFromFilter(filter);		
-	}
-	
-	public SearchCQL(Layer layer, String cql) {
-		this.layer = layer;
-		this.featureBuilder = new Neo4jFeatureBuilder(layer);
-		try {
-			this.filter = ECQL.toFilter(cql);
-		    this.filterEnvelope = Utilities.extractEnvelopeFromFilter(filter);					
-		} catch (CQLException e) {
-			throw new SpatialDatabaseException("CQLException: " + e.getMessage());
-		}
-	}
 
-	@Override
-	public boolean needsToVisit(Envelope envelope) {
+    private final Transaction tx;
+    private final Neo4jFeatureBuilder featureBuilder;
+    private final Layer layer;
+    private final org.opengis.filter.Filter filter;
+    private final Envelope filterEnvelope;
+
+    public SearchCQL(Transaction tx, Layer layer, org.opengis.filter.Filter filter) {
+        this.tx = tx;
+        this.layer = layer;
+        this.featureBuilder = Neo4jFeatureBuilder.fromLayer(tx, layer);
+        this.filter = filter;
+        this.filterEnvelope = Utilities.extractEnvelopeFromFilter(filter);
+    }
+
+    public SearchCQL(Transaction tx, Layer layer, String cql) {
+        this.tx = tx;
+        this.layer = layer;
+        this.featureBuilder = Neo4jFeatureBuilder.fromLayer(tx, layer);
+        try {
+            this.filter = ECQL.toFilter(cql);
+            this.filterEnvelope = Utilities.extractEnvelopeFromFilter(filter);
+        } catch (CQLException e) {
+            throw new SpatialDatabaseException("CQLException: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public boolean needsToVisit(Envelope envelope) {
         return filterEnvelope == null || filterEnvelope.intersects(envelope);
-	}
+    }
 
-	@Override
-	public boolean geometryMatches(Node geomNode) {
-		SimpleFeature feature = featureBuilder.buildFeature(new SpatialDatabaseRecord(this.layer, geomNode));
-		return filter.evaluate(feature);
-	}
+    @Override
+    public boolean geometryMatches(Transaction tx, Node geomNode) {
+        SimpleFeature feature = featureBuilder.buildFeature(tx, new SpatialDatabaseRecord(this.layer, geomNode));
+        return filter.evaluate(feature);
+    }
 
 }

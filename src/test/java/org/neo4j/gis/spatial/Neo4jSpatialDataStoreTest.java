@@ -10,32 +10,36 @@ import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.test.TestGraphDatabaseFactory;
+import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 
 import javax.xml.stream.XMLStreamException;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Set;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.junit.Assert.assertThat;
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 public class Neo4jSpatialDataStoreTest {
 
+    private DatabaseManagementService databases;
     public GraphDatabaseService graph;
 
     @Before
     public void setup() throws IOException, XMLStreamException {
-        this.graph = new TestGraphDatabaseFactory().newImpermanentDatabase();
+        this.databases = new TestDatabaseManagementServiceBuilder(new File("target/test")).impermanent().build();
+        this.graph = databases.database(DEFAULT_DATABASE_NAME);
         OSMImporter importer = new OSMImporter("map", new ConsoleListener());
-        importer.setCharset(Charset.forName("UTF-8"));
+        importer.setCharset(StandardCharsets.UTF_8);
         importer.setVerbose(false);
         importer.importFile(graph, "map.osm");
         importer.reIndex(graph);
@@ -43,8 +47,9 @@ public class Neo4jSpatialDataStoreTest {
 
     @After
     public void teardown() {
-        if (this.graph != null) {
-            this.graph.shutdown();
+        if (this.databases != null) {
+            this.databases.shutdown();
+            this.databases = null;
             this.graph = null;
         }
     }
@@ -58,15 +63,17 @@ public class Neo4jSpatialDataStoreTest {
 
     @Test
     public void shouldOpenDataStoreOnNonSpatialDatabase() {
-        GraphDatabaseService db = null;
+        DatabaseManagementService otherDatabases = null;
         try {
-            db = new TestGraphDatabaseFactory().newImpermanentDatabase(new File("other-db"));
-            Neo4jSpatialDataStore store = new Neo4jSpatialDataStore(db);
+            otherDatabases = new TestDatabaseManagementServiceBuilder(new File("target/other-db")).impermanent().build();
+            GraphDatabaseService otherGraph = otherDatabases.database(DEFAULT_DATABASE_NAME);
+            Neo4jSpatialDataStore store = new Neo4jSpatialDataStore(otherGraph);
             ReferencedEnvelope bounds = store.getBounds("map");
             // TODO: rather should throw a descriptive exception
             assertThat(bounds, equalTo(null));
         } finally {
-            if (db != null) db.shutdown();
+            if (otherDatabases != null)
+                otherDatabases.shutdown();
         }
     }
 

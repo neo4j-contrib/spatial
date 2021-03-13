@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -21,9 +21,10 @@ package org.neo4j.gis.spatial;
 
 import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.PropertyContainer;
+import org.neo4j.graphdb.Entity;
 
-import com.vividsolutions.jts.geom.Geometry;
+import org.locationtech.jts.geom.Geometry;
+import org.neo4j.graphdb.Transaction;
 
 
 /**
@@ -45,8 +46,6 @@ import com.vividsolutions.jts.geom.Geometry;
  * GeometryEncoder, and if the Layer needs to be read later, that node will be read, and a Layer
  * created from it, and the Layer will create an instance of the required GeometryEncoder, which in
  * turn should be capable of reading and writing all Geometries supported by that Layer.
- * 
- * @author Davide Savazzi
  */
 public interface GeometryEncoder extends EnvelopeDecoder {
 
@@ -63,29 +62,20 @@ public interface GeometryEncoder extends EnvelopeDecoder {
 	/**
 	 * This method is called to store a bounding box for the geometry to the database. It should write it to the
 	 * container supplied. If the container is a node, it can be the root of an entire sub-graph.
-	 *
-	 * @param geometry
-	 * @param container
 	 */
-	void ensureIndexable(Geometry geometry, PropertyContainer container);
+	void ensureIndexable(Geometry geometry, Entity container);
 
 	/**
 	 * This method is called to store a geometry object to the database. It should write it to the
 	 * container supplied. If the container is a node, it can be the root of an entire sub-graph.
-	 *
-	 * @param geometry
-	 * @param container
 	 */
-	void encodeGeometry(Geometry geometry, PropertyContainer container);
+	void encodeGeometry(Transaction tx, Geometry geometry, Entity container);
 
 	/**
      * This method is called on an individual container when we need to extract the geometry. If the
      * container is a node, this could be the root of a sub-graph containing the geometry.
-     * 
-     * @param container
-     * @return
      */
-    Geometry decodeGeometry(PropertyContainer container);
+    Geometry decodeGeometry(Entity container);
 
 	/**
 	 * Each geometry might have a set of associated attributes, or properties.
@@ -93,10 +83,6 @@ public interface GeometryEncoder extends EnvelopeDecoder {
 	 * should be primitives or Strings. This can be encoded as properties of the
 	 * geometry node itself (default behaviour), or stored in the graph in some
 	 * other way.
-	 * 
-	 * @param geomNode
-	 * @param attribute to test
-	 * @return
 	 */
 	boolean hasAttribute(Node geomNode, String name);
 
@@ -106,10 +92,6 @@ public interface GeometryEncoder extends EnvelopeDecoder {
 	 * should be primitives or Strings. This can be encoded as properties of the
 	 * geometry node itself (default behaviour), or stored in the graph in some
 	 * other way.
-	 * 
-	 * @param geomNode
-	 * @param attribute to test
-	 * @return
 	 */
 	Object getAttribute(Node geomNode, String name);
 

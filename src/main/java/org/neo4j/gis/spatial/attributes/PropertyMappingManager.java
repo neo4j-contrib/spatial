@@ -1,6 +1,6 @@
-/**
- * Copyright (c) 2010-2017 "Neo Technology,"
- * Network Engine for Objects in Lund AB [http://neotechnology.com]
+/*
+ * Copyright (c) 2010-2020 "Neo4j,"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
@@ -19,95 +19,83 @@
  */
 package org.neo4j.gis.spatial.attributes;
 
+import org.neo4j.gis.spatial.Layer;
+import org.neo4j.gis.spatial.SpatialRelationshipTypes;
+import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.Transaction;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.SpatialRelationshipTypes;
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.Transaction;
-
 public class PropertyMappingManager {
-	private Layer layer;
-	private LinkedHashMap<String, PropertyMapper> propertyMappers;
+    private final Layer layer;
+    private LinkedHashMap<String, PropertyMapper> propertyMappers;
 
-	public PropertyMappingManager(Layer layer) {
-		this.layer = layer;
-	}
+    public PropertyMappingManager(Layer layer) {
+        this.layer = layer;
+    }
 
-	public LinkedHashMap<String, PropertyMapper> getPropertyMappers() {
-		if (propertyMappers == null) {
-			propertyMappers = new LinkedHashMap<String, PropertyMapper>();
-			for (PropertyMapper mapper : loadMappers().values()) {
-				addPropertyMapper(mapper);
-			}
-		}
-		return propertyMappers;
-	}
+    private LinkedHashMap<String, PropertyMapper> getPropertyMappers(Transaction tx) {
+        if (propertyMappers == null) {
+            propertyMappers = new LinkedHashMap<>();
+            for (PropertyMapper mapper : loadMappers(tx).values()) {
+                addPropertyMapper(tx, mapper);
+            }
+        }
+        return propertyMappers;
+    }
 
-	private Map<Node, PropertyMapper> loadMappers() {
-		HashMap<Node, PropertyMapper> mappers = new HashMap<Node, PropertyMapper>();
-		try (Transaction tx = layer.getLayerNode().getGraphDatabase().beginTx())
-		{
-			for ( Relationship rel : layer.getLayerNode()
-					.getRelationships( SpatialRelationshipTypes.PROPERTY_MAPPING, Direction.OUTGOING ) )
-			{
-				Node node = rel.getEndNode();
-				mappers.put( node, PropertyMapper.fromNode( node ) );
-			}
-			tx.success();
-		}
-		return mappers;
-	}
+    private Map<Node, PropertyMapper> loadMappers(Transaction tx) {
+        HashMap<Node, PropertyMapper> mappers = new HashMap<>();
+        for (Relationship rel : layer.getLayerNode(tx).getRelationships(Direction.OUTGOING, SpatialRelationshipTypes.PROPERTY_MAPPING)) {
+            Node node = rel.getEndNode();
+            mappers.put(node, PropertyMapper.fromNode(node));
+        }
+        return mappers;
+    }
 
-	public void save() {
-		ArrayList<PropertyMapper> toSave = new ArrayList<PropertyMapper>(getPropertyMappers().values());
-		ArrayList<Node> toDelete = new ArrayList<Node>();
-		for (Map.Entry<Node, PropertyMapper> entry : loadMappers().entrySet()) {
-			if (!toSave.remove(entry.getValue())) {
-				toDelete.add(entry.getKey());
-			}
-		}
-		GraphDatabaseService db = layer.getLayerNode().getGraphDatabase();
-		try (Transaction tx = db.beginTx()) {
-			for (Node node : toDelete) {
-				for (Relationship rel : node.getRelationships()) {
-					rel.delete();
-				}
-				node.delete();
-			}
-			for (PropertyMapper mapper : toSave) {
-				Node node = db.createNode();
-				mapper.save(node);
-				layer.getLayerNode().createRelationshipTo(node, SpatialRelationshipTypes.PROPERTY_MAPPING);
-			}
-			tx.success();
-		}
-	}
+    private void save(Transaction tx) {
+        ArrayList<PropertyMapper> toSave = new ArrayList<>(getPropertyMappers(tx).values());
+        ArrayList<Node> toDelete = new ArrayList<>();
+        for (Map.Entry<Node, PropertyMapper> entry : loadMappers(tx).entrySet()) {
+            if (!toSave.remove(entry.getValue())) {
+                toDelete.add(entry.getKey());
+            }
+        }
+        for (Node node : toDelete) {
+            for (Relationship rel : node.getRelationships()) {
+                rel.delete();
+            }
+            node.delete();
+        }
+        for (PropertyMapper mapper : toSave) {
+            Node node = tx.createNode();
+            mapper.save(tx, node);
+            layer.getLayerNode(tx).createRelationshipTo(node, SpatialRelationshipTypes.PROPERTY_MAPPING);
+        }
+    }
 
-	private void addPropertyMapper(PropertyMapper mapper) {
-		getPropertyMappers().put(mapper.to(), mapper);
-		save();
-	}
+    private void addPropertyMapper(Transaction tx, PropertyMapper mapper) {
+        getPropertyMappers(tx).put(mapper.to(), mapper);
+        save(tx);
+    }
 
-	public PropertyMapper removePropertyMapper(String to) {
-		PropertyMapper mapper = getPropertyMappers().remove(to);
-		if (mapper != null)
-			save();
-		return mapper;
-	}
+    private PropertyMapper removePropertyMapper(Transaction tx, String to) {
+        PropertyMapper mapper = getPropertyMappers(tx).remove(to);
+        if (mapper != null) save(tx);
+        return mapper;
+    }
 
-	public PropertyMapper getPropertyMapper(String to) {
-		return getPropertyMappers().get(to);
-	}
+    public PropertyMapper getPropertyMapper(Transaction tx, String to) {
+        return getPropertyMappers(tx).get(to);
+    }
 
-	public void addPropertyMapper(String from, String to, String type, String params) {
-		addPropertyMapper(PropertyMapper.fromParams(from, to, type, params));
-	}
+    public void addPropertyMapper(Transaction tx, String from, String to, String type, String params) {
+        addPropertyMapper(tx, PropertyMapper.fromParams(from, to, type, params));
+    }
 
 }

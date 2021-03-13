@@ -1,34 +1,36 @@
 package org.neo4j.gis.spatial;
 
 import org.junit.Test;
+import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.test.TestGraphDatabaseFactory;
+import org.neo4j.test.TestDatabaseManagementServiceBuilder;
+
+import java.io.File;
 
 import static org.junit.Assert.assertEquals;
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
-/**
- * @author Michael Hunger @since 24.10.13
- */
 public class TryWithResourceTest {
 
     public static final String MESSAGE = "I want to see this";
 
     @Test
-    public void testSuppressedException() throws Exception {
+    public void testSuppressedException() {
         try {
-            GraphDatabaseService db = new TestGraphDatabaseFactory().newImpermanentDatabase();
+            DatabaseManagementService databases = new TestDatabaseManagementServiceBuilder(new File("target/resource")).impermanent().build();
+            GraphDatabaseService db = databases.database(DEFAULT_DATABASE_NAME);
             try (Transaction tx = db.beginTx()) {
-                Node n = db.createNode();
+                Node n = tx.createNode();
                 try (Transaction tx2 = db.beginTx()) {
                     n.setProperty("foo", "bar");
                     if (true) throw new Exception(MESSAGE);
-                    tx2.success();
+                    tx2.commit();
                 }
-                tx.success();
+                tx.commit();
             } finally {
-                db.shutdown();
+                databases.shutdown();
             }
         } catch (Exception e) {
             assertEquals(MESSAGE, e.getMessage());
@@ -36,16 +38,17 @@ public class TryWithResourceTest {
     }
 
     @Test
-    public void testSuppressedExceptionTopLevel() throws Exception {
+    public void testSuppressedExceptionTopLevel() {
         try {
-            GraphDatabaseService db = new TestGraphDatabaseFactory().newImpermanentDatabase();
+            DatabaseManagementService databases = new TestDatabaseManagementServiceBuilder(new File("target/resource")).impermanent().build();
+            GraphDatabaseService db = databases.database(DEFAULT_DATABASE_NAME);
             try (Transaction tx = db.beginTx()) {
-                Node n = db.createNode();
+                Node n = tx.createNode();
                 n.setProperty("foo", "bar");
                 if (true) throw new Exception(MESSAGE);
-                tx.success();
+                tx.commit();
             } finally {
-                db.shutdown();
+                databases.shutdown();
             }
         } catch (Exception e) {
             assertEquals(MESSAGE, e.getMessage());
