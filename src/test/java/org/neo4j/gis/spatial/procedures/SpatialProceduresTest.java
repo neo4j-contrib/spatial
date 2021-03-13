@@ -132,7 +132,7 @@ public class SpatialProceduresTest {
     public void add_node_to_non_existing_layer() {
         execute("CALL spatial.addPointLayer('some_name')");
         Node node = createNode("CREATE (n:Point {latitude:60.1,longitude:15.2}) RETURN n", "n");
-        testCallFails(db, "CALL spatial.addNode('wrong_name',$node)", map("node", node), "No such layer 'wrong_name'");
+        testCallFails(db, "CALL spatial.addNode.byId('wrong_name',$nodeId)", map("nodeId", node.getId()), "No such layer 'wrong_name'");
     }
 
     @Test
@@ -694,38 +694,46 @@ public class SpatialProceduresTest {
     @Test
     public void add_two_nodes_to_the_spatial_layer() {
         execute("CALL spatial.addPointLayerXY('geom','lon','lat')");
-        Node node1;
-        Node node2;
+        long node1;
+        long node2;
         try (Transaction tx = db.beginTx()) {
             Result result = tx.execute("CREATE (n1:Node {lat:60.1,lon:15.2}),(n2:Node {lat:60.1,lon:15.3}) WITH n1,n2 CALL spatial.addNodes('geom',[n1,n2]) YIELD count RETURN n1,n2,count");
             Map<String, Object> row = result.next();
-            node1 = (Node) row.get("n1");
-            node2 = (Node) row.get("n2");
+            node1 = ((Node) row.get("n1")).getId();
+            node2 = ((Node) row.get("n2")).getId();
             long count = (Long) row.get("count");
             Assert.assertEquals(2L, count);
             result.close();
             tx.commit();
         }
         testResult(db, "CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)", res -> {
-                    assertTrue(res.hasNext());
-                    assertEquals(node1, res.next().get("node"));
-                    assertTrue(res.hasNext());
-                    assertEquals(node2, res.next().get("node"));
-                    assertFalse(res.hasNext());
-                }
-        );
+            assertTrue(res.hasNext());
+            assertEquals(node1, ((Node) res.next().get("node")).getId());
+            assertTrue(res.hasNext());
+            assertEquals(node2, ((Node) res.next().get("node")).getId());
+            assertFalse(res.hasNext());
+        });
         try (Transaction tx = db.beginTx()) {
-            Result removeResult = tx.execute("CALL spatial.removeNode('geom',$node) YIELD node RETURN node", map("node", node1));
-            Assert.assertEquals(node1, removeResult.next().get("node"));
+            Node node = (Node) tx.execute("MATCH (node) WHERE id(node) = $nodeId RETURN node", map("nodeId", node1)).next().get("node");
+            Result removeResult = tx.execute("CALL spatial.removeNode('geom',$node) YIELD nodeId RETURN nodeId", map("node", node));
+            Assert.assertEquals(node1, removeResult.next().get("nodeId"));
             removeResult.close();
             tx.commit();
         }
         testResult(db, "CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)", res -> {
-                    assertTrue(res.hasNext());
-                    assertEquals(node2, res.next().get("node"));
-                    assertFalse(res.hasNext());
-                }
-        );
+            assertTrue(res.hasNext());
+            assertEquals(node2, ((Node) res.next().get("node")).getId());
+            assertFalse(res.hasNext());
+        });
+        try (Transaction tx = db.beginTx()) {
+            Result removeResult = tx.execute("CALL spatial.removeNode.byId('geom',$nodeId) YIELD nodeId RETURN nodeId", map("nodeId", node2));
+            Assert.assertEquals(node2, removeResult.next().get("nodeId"));
+            removeResult.close();
+            tx.commit();
+        }
+        testResult(db, "CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)", res -> {
+            assertFalse(res.hasNext());
+        });
     }
 
     @Test
@@ -793,9 +801,9 @@ public class SpatialProceduresTest {
         String remove = "UNWIND range(1,$count) as i\n" +
                 "MATCH (n:Point {id:i})\n" +
                 "WITH n\n" +
-                "CALL spatial.removeNode('" + layer + "',n) YIELD node\n" +
-                "RETURN count(node)";
-        testCountQuery("removeNode", remove, count / 2, "count(node)", map("count", count / 2));
+                "CALL spatial.removeNode('" + layer + "',n) YIELD nodeId\n" +
+                "RETURN count(nodeId)";
+        testCountQuery("removeNode", remove, count / 2, "count(nodeId)", map("count", count / 2));
         // Check that only half remain
         testCountQuery("withinDistance", "CALL spatial.withinDistance('" + layer + "',{lon:15.0,lat:60.0},1000) YIELD node RETURN count(node)", count / 2, "count(node)", null);
     }
