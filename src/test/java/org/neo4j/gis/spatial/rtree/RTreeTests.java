@@ -19,12 +19,12 @@
  */
 package org.neo4j.gis.spatial.rtree;
 
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.GeometryFactory;
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.GeometryFactory;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
@@ -35,6 +35,7 @@ import org.opengis.feature.simple.SimpleFeatureType;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
@@ -48,7 +49,7 @@ public class RTreeTests {
 
     @Before
     public void setup() {
-        databases = new TestDatabaseManagementServiceBuilder(new File("target/rtree")).impermanent().build();
+        databases = new TestDatabaseManagementServiceBuilder(Path.of("target", "rtree")).impermanent().build();
         db = databases.database(DEFAULT_DATABASE_NAME);
         try (Transaction tx = db.beginTx()) {
             this.rtree = new TestRTreeIndex(tx);

@@ -1033,7 +1033,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 
     @BeforeClass
     public static void init() {
-        databases = new TestDatabaseManagementServiceBuilder(new File("target/docs")).impermanent().build();
+        databases = new TestDatabaseManagementServiceBuilder(new File("target/docs").toPath()).impermanent().build();
         db = databases.database(DEFAULT_DATABASE_NAME);
         try {
             load();

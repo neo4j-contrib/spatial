@@ -111,8 +111,8 @@ public abstract class LayerIndexTestBase {
     @Before
     public void setup() throws IOException {
         File baseDir = new File("target/layers");
-        FileUtils.deleteRecursively(baseDir);
-        databases = new TestDatabaseManagementServiceBuilder(baseDir).impermanent().build();
+        FileUtils.deleteDirectory(baseDir.toPath());
+        databases = new TestDatabaseManagementServiceBuilder(baseDir.toPath()).impermanent().build();
         graph = databases.database(DEFAULT_DATABASE_NAME);
         spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graph, SecurityContext.AUTH_DISABLED));
     }

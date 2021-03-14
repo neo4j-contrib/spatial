@@ -18,9 +18,9 @@ import org.opengis.feature.simple.SimpleFeature;
 import org.opengis.feature.simple.SimpleFeatureType;
 
 import javax.xml.stream.XMLStreamException;
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -36,7 +36,7 @@ public class Neo4jSpatialDataStoreTest {
 
     @Before
     public void setup() throws IOException, XMLStreamException {
-        this.databases = new TestDatabaseManagementServiceBuilder(new File("target/test")).impermanent().build();
+        this.databases = new TestDatabaseManagementServiceBuilder(Path.of("target", "test")).impermanent().build();
         this.graph = databases.database(DEFAULT_DATABASE_NAME);
         OSMImporter importer = new OSMImporter("map", new ConsoleListener());
         importer.setCharset(StandardCharsets.UTF_8);
@@ -65,7 +65,7 @@ public class Neo4jSpatialDataStoreTest {
     public void shouldOpenDataStoreOnNonSpatialDatabase() {
         DatabaseManagementService otherDatabases = null;
         try {
-            otherDatabases = new TestDatabaseManagementServiceBuilder(new File("target/other-db")).impermanent().build();
+            otherDatabases = new TestDatabaseManagementServiceBuilder(Path.of("target", "other-db")).impermanent().build();
             GraphDatabaseService otherGraph = otherDatabases.database(DEFAULT_DATABASE_NAME);
             Neo4jSpatialDataStore store = new Neo4jSpatialDataStore(otherGraph);
             ReferencedEnvelope bounds = store.getBounds("map");

@@ -1582,7 +1582,7 @@ public class RTreeBulkInsertTest {
             FileUtils.deleteDirectory(storeDir);
         }
         FileUtils.forceMkdir(storeDir);
-        databases = new TestDatabaseManagementServiceBuilder(storeDir).impermanent().build();
+        databases = new TestDatabaseManagementServiceBuilder(storeDir.toPath()).impermanent().build();
         db = databases.database(DEFAULT_DATABASE_NAME);
     }
 

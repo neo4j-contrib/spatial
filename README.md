@@ -68,6 +68,12 @@ This has meant that the spatial library needed a major refactoring to work with 
   objects to have been created in the current transaction.
   To work around this we added `.byId` versions of the `spatial.addNode` and `spatial.removeNode` procedures.
   We also changed the `spatial.removeNode` procedures to return `nodeId` instead of `node`.
+* The change to Neo4j 4.2 was more subtle. Mostly only internal API's around the use of `Path` instead of `File`.
+  One change that could be noticed was the `IndexManager.IndexAccessMode` class.
+  In the 0.27.0 and 0.27.1 versions we used `OverridenAccessMode` to take the users existing access mode
+  and simply add on the rights to create tokens and indexes. In 0.27.2 we instead use `RestrictedAccessMode`
+  to restrict the users access right to the built in `AccessModel.Static.SCHEMA` and then boost to enable
+  index and token writes. The difference is subtle and should only be possible to notice in Enterprise Edition.
 
 Consequences of the port to Neo4j 4.x:
 
@@ -340,6 +346,7 @@ The Neo4j Spatial Plugin is available for inclusion in the server version of Neo
 * Using GeoTools 24.2 (for GeoServer 2.18.x):
   * [v0.27.0 for Neo4j 4.0.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.27.0-neo4j-4.0.3/neo4j-spatial-0.27.0-neo4j-4.0.3-server-plugin.jar?raw=true)
   * [v0.27.1 for Neo4j 4.1.7](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.27.1-neo4j-4.1.7/neo4j-spatial-0.27.1-neo4j-4.1.7-server-plugin.jar?raw=true)
+  * [v0.27.2 for Neo4j 4.2.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.27.2-neo4j-4.2.3/neo4j-spatial-0.27.2-neo4j-4.2.3-server-plugin.jar?raw=true)
 
 For versions up to 0.15-neo4j-2.3.4:
 
@@ -456,7 +463,7 @@ Add the following repositories and dependency to your project's pom.xml:
     <dependency>
         <groupId>org.neo4j</groupId>
         <artifactId>neo4j-spatial</artifactId>
-        <version>0.27.1-neo4j-4.1.7</version>
+        <version>0.27.2-neo4j-4.2.3</version>
     </dependency>
 ~~~
 

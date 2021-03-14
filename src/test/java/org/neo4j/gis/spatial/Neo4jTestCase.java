@@ -37,6 +37,7 @@ import org.neo4j.test.rule.fs.EphemeralFileSystemRule;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -70,7 +71,7 @@ public abstract class Neo4jTestCase {
     }
 
     private static final File basePath = new File("target/var");
-    private static final File dbPath = new File(basePath, "neo4j-db");
+    private static final Path dbPath = new File(basePath, "neo4j-db").toPath();
     private DatabaseManagementService databases;
     private GraphDatabaseService graphDb;
 
@@ -124,8 +125,8 @@ public abstract class Neo4jTestCase {
         Neo4jLayout homeLayout = Neo4jLayout.of(dbPath);
         DatabaseLayout databaseLayout = homeLayout.databaseLayout(DEFAULT_DATABASE_NAME);
         if (delete) {
-            FileUtils.deleteRecursively(databaseLayout.databaseDirectory());
-            FileUtils.deleteRecursively(databaseLayout.getTransactionLogsDirectory());
+            FileUtils.deleteDirectory(databaseLayout.databaseDirectory());
+            FileUtils.deleteDirectory(databaseLayout.getTransactionLogsDirectory());
         }
         return databaseLayout;
     }
@@ -141,7 +142,7 @@ public abstract class Neo4jTestCase {
 
     @Before
     public void before() throws Exception {
-        fileSystemRule.get().mkdirs(new File("target"));
+        fileSystemRule.get().mkdirs(new File("target").toPath());
     }
 
     @After
@@ -152,17 +153,17 @@ public abstract class Neo4jTestCase {
     private void beforeShutdown() {
     }
 
-    File getNeoPath() {
-        return new File(dbPath.getAbsolutePath());
+    Path getNeoPath() {
+        return dbPath.toAbsolutePath();
     }
 
-    File getDbPath() {
-        return new File(dbPath.getAbsolutePath(), "test-" + storePrefix);
+    Path getDbPath() {
+        return dbPath.toAbsolutePath().resolve("test-" + storePrefix);
     }
 
     private void deleteDatabase() {
         try {
-            FileUtils.deleteRecursively(getNeoPath());
+            FileUtils.deleteDirectory(getNeoPath());
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -189,7 +190,7 @@ public abstract class Neo4jTestCase {
     }
 
     void printDatabaseStats() {
-        Neo4jTestUtils.printDatabaseStats(graphDb(), getDbPath());
+        Neo4jTestUtils.printDatabaseStats(graphDb(), getDbPath().toFile());
     }
 
     protected GraphDatabaseService graphDb() {

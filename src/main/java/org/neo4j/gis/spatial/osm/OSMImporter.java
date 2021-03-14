@@ -1635,11 +1635,11 @@ public class OSMImporter implements Constants {
         }
 
         private DatabaseLayout prepareLayout(boolean delete) throws IOException {
-            Neo4jLayout homeLayout = Neo4jLayout.of(dbPath);
+            Neo4jLayout homeLayout = Neo4jLayout.of(dbPath.toPath());
             DatabaseLayout databaseLayout = homeLayout.databaseLayout(databaseName);
             if (delete) {
-                FileUtils.deleteRecursively(databaseLayout.databaseDirectory());
-                FileUtils.deleteRecursively(databaseLayout.getTransactionLogsDirectory());
+                FileUtils.deleteDirectory(databaseLayout.databaseDirectory());
+                FileUtils.deleteDirectory(databaseLayout.getTransactionLogsDirectory());
             }
             return databaseLayout;
         }
@@ -1647,7 +1647,7 @@ public class OSMImporter implements Constants {
         private void prepareDatabase(boolean delete) throws IOException {
             shutdown();
             prepareLayout(delete);
-            databases = new DatabaseManagementServiceBuilder(dbPath).build();
+            databases = new DatabaseManagementServiceBuilder(dbPath.toPath()).build();
             graphDb = databases.database(databaseName);
         }
 

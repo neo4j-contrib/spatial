@@ -138,7 +138,7 @@ public class OsmAnalysisTest extends TestOSMImport {
                 System.out.println("Failed to delete previous database directory '" + dbDir + "': " + e.getMessage());
             }
         }
-        databases = new TestDatabaseManagementServiceBuilder(dbDir).impermanent().build();
+        databases = new TestDatabaseManagementServiceBuilder(dbDir.toPath()).impermanent().build();
         db = databases.database(DEFAULT_DATABASE_NAME);
         return new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
     }

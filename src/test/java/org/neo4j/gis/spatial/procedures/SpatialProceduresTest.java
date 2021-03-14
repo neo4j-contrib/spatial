@@ -48,7 +48,7 @@ public class SpatialProceduresTest {
 
     @Before
     public void setUp() throws KernelException {
-        databases = new TestDatabaseManagementServiceBuilder(new File("target/procedures")).setConfig(GraphDatabaseSettings.procedure_unrestricted, List.of("spatial.*")).impermanent().build();
+        databases = new TestDatabaseManagementServiceBuilder(new File("target/procedures").toPath()).setConfig(GraphDatabaseSettings.procedure_unrestricted, List.of("spatial.*")).impermanent().build();
         db = databases.database(DEFAULT_DATABASE_NAME);
         registerProceduresAndFunctions(db, SpatialProcedures.class);
     }
