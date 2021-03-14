@@ -6,7 +6,7 @@ import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.internal.kernel.api.security.PrivilegeAction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.api.KernelTransaction;
-import org.neo4j.kernel.impl.api.security.OverriddenAccessMode;
+import org.neo4j.kernel.impl.api.security.RestrictedAccessMode;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 import java.util.List;
@@ -17,13 +17,13 @@ public class IndexManager {
     private final GraphDatabaseAPI db;
     private final SecurityContext securityContext;
 
-    public static class IndexAccessMode extends OverriddenAccessMode {
+    public static class IndexAccessMode extends RestrictedAccessMode {
         public static SecurityContext withIndexCreate(SecurityContext securityContext) {
             return securityContext.withMode(new IndexAccessMode(securityContext));
         }
 
         private IndexAccessMode(SecurityContext securityContext) {
-            super(Static.ACCESS, securityContext.mode());
+            super(securityContext.mode(), Static.SCHEMA);
         }
 
         @Override

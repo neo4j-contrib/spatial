@@ -13,6 +13,7 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Path;
 
 import static org.junit.Assert.assertEquals;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
@@ -28,7 +29,7 @@ import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAM
 public class TestReadOnlyTransactions {
     private DatabaseManagementService databases;
     private GraphDatabaseService graph;
-    private static final File basePath = new File("target/var");
+    private static final Path basePath = new File("target/var").toPath();
     private static final String dbPrefix = "neo4j-db";
 
     private long storePrefix;
@@ -39,7 +40,7 @@ public class TestReadOnlyTransactions {
     @Before
     public void setUp() throws Exception {
         storePrefix++;
-        this.databases = new TestDatabaseManagementServiceBuilder(new File(basePath, dbPrefix + storePrefix)).impermanent().build();
+        this.databases = new TestDatabaseManagementServiceBuilder(basePath.resolve(dbPrefix + storePrefix)).impermanent().build();
         this.graph = databases.database(DEFAULT_DATABASE_NAME);
         buildDataModel();
     }
@@ -48,7 +49,7 @@ public class TestReadOnlyTransactions {
     public void tearDown() {
         databases.shutdown();
         try {
-            FileUtils.deleteRecursively(basePath);
+            FileUtils.deleteDirectory(basePath);
         } catch (IOException e) {
             System.out.println("Failed to delete database: " + e);
             e.printStackTrace();

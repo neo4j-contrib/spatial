@@ -39,6 +39,7 @@ import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracer;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.core.NodeEntity;
 import org.neo4j.kernel.impl.coreapi.internal.NodeCursorResourceIterator;
+import org.neo4j.memory.EmptyMemoryTracker;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.cs.CoordinateSystemAxis;
 
@@ -145,7 +146,7 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
                 // Ha! We found an index - let's use it to find matching nodes
                 try
                 {
-                    NodeValueIndexCursor cursor = transaction.cursors().allocateNodeValueIndexCursor(PageCursorTracer.NULL);
+                    NodeValueIndexCursor cursor = transaction.cursors().allocateNodeValueIndexCursor(PageCursorTracer.NULL, EmptyMemoryTracker.INSTANCE);
                     IndexReadSession indexSession = read.indexReadSession( index );
                     read.nodeIndexSeek( indexSession, cursor, IndexQueryConstraints.unordered(false), query );
 

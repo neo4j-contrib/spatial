@@ -63,7 +63,7 @@ public class LayersTest {
 
     @Before
     public void setup() throws KernelException {
-        databases = new TestDatabaseManagementServiceBuilder(new File("target/layers")).impermanent().build();
+        databases = new TestDatabaseManagementServiceBuilder(new File("target/layers").toPath()).impermanent().build();
         graphDb = databases.database(DEFAULT_DATABASE_NAME);
         ((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency(GlobalProcedures.class).registerProcedure(SpatialProcedures.class);
     }

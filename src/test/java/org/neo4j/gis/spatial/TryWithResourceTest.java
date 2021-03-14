@@ -19,7 +19,7 @@ public class TryWithResourceTest {
     @Test
     public void testSuppressedException() {
         try {
-            DatabaseManagementService databases = new TestDatabaseManagementServiceBuilder(new File("target/resource")).impermanent().build();
+            DatabaseManagementService databases = new TestDatabaseManagementServiceBuilder(new File("target/resource").toPath()).impermanent().build();
             GraphDatabaseService db = databases.database(DEFAULT_DATABASE_NAME);
             try (Transaction tx = db.beginTx()) {
                 Node n = tx.createNode();
@@ -40,7 +40,7 @@ public class TryWithResourceTest {
     @Test
     public void testSuppressedExceptionTopLevel() {
         try {
-            DatabaseManagementService databases = new TestDatabaseManagementServiceBuilder(new File("target/resource")).impermanent().build();
+            DatabaseManagementService databases = new TestDatabaseManagementServiceBuilder(new File("target/resource").toPath()).impermanent().build();
             GraphDatabaseService db = databases.database(DEFAULT_DATABASE_NAME);
             try (Transaction tx = db.beginTx()) {
                 Node n = tx.createNode();
