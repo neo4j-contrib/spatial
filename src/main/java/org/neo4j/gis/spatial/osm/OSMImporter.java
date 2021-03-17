@@ -930,12 +930,10 @@ public class OSMImporter implements Constants {
             }
         }
 
-        private WrappedNode findNode(String name, WrappedNode parent, OSMRelation relType) {
-            for (Relationship relationship : parent.getRelationships(Direction.OUTGOING, relType)) {
-                Node node = relationship.getEndNode();
-                if (name.equals(node.getProperty("name"))) {
-                    return WrappedNode.fromNode(node);
-                }
+        private WrappedNode findNode(Label label, String name) {
+            Node node = tx.findNode(label, "name", name);
+            if (node != null) {
+                return WrappedNode.fromNode(node);
             }
             return null;
         }
@@ -1003,13 +1001,12 @@ public class OSMImporter implements Constants {
             return null;
         }
 
-        private WrappedNode getOrCreateNode(Label label, String name, String type, WrappedNode parent, OSMRelation relType) {
-            WrappedNode node = findNode(name, parent, relType);
+        private WrappedNode getOrCreateNode(Label label, String name, String type) {
+            WrappedNode node = findNode(label, name);
             if (node == null) {
                 Node n = tx.createNode(label);
                 n.setProperty("name", name);
                 n.setProperty("type", type);
-                parent.inner.createRelationshipTo(n, relType);
                 node = checkTx(WrappedNode.fromNode(n));
             }
             return node;
@@ -1018,8 +1015,7 @@ public class OSMImporter implements Constants {
         @Override
         protected WrappedNode getOrCreateOSMDataset(String name) {
             if (osm_dataset == null) {
-                Node osm_root = ReferenceNodes.getReferenceNode(tx, "osm_root");
-                osm_dataset = getOrCreateNode(LABEL_DATASET, name, "osm", WrappedNode.fromNode(osm_root), OSMRelation.OSM);
+                osm_dataset = getOrCreateNode(LABEL_DATASET, name, "osm");
             }
             return osm_dataset;
         }

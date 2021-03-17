@@ -47,7 +47,28 @@ public class IndexManager {
         this.securityContext = IndexAccessMode.withIndexCreate(securityContext);
     }
 
+    /**
+     * Blocking call that spawns a thread to create an index and then waits for that thread to finish.
+     * This is highly likely to cause deadlocks on index checks, so be careful where it is used.
+     * Best used if you can commit any other outer transaction first, then run this, and after that
+     * start a new transaction. For example, see the OSMImport approaching to batching transactions.
+     * It is possible to use this in procedures with outer transactions if you can ensure the outer
+     * transactions are read-only.
+     */
     public IndexDefinition indexFor(Transaction tx, String indexName, Label label, String propertyKey) {
+        return indexFor(tx, indexName, label, propertyKey, true);
+    }
+
+    /**
+     * Non-blocking call that spawns a thread to create an index and then waits for that thread to finish.
+     * Use this especially on indexes that are not immediately needed. Also use it if you have an outer
+     * transaction that cannot be committed before making this call.
+     */
+    public void makeIndexFor(Transaction tx, String indexName, Label label, String propertyKey) {
+        indexFor(tx, indexName, label, propertyKey, false);
+    }
+
+    private IndexDefinition indexFor(Transaction tx, String indexName, Label label, String propertyKey, boolean waitFor) {
         for (IndexDefinition exists : tx.schema().getIndexes(label)) {
             if (exists.getName().equals(indexName)) {
                 return exists;
@@ -60,15 +81,19 @@ public class IndexManager {
         } else {
             IndexMaker indexMaker = new IndexMaker(indexName, label, propertyKey);
             Thread indexMakerThread = new Thread(indexMaker, name);
-            indexMakerThread.start();
-            try {
-                indexMakerThread.join();
-                if (indexMaker.e != null) {
-                    throw new RuntimeException("Failed to make index " + indexMaker.description(), indexMaker.e);
+            if (waitFor) {
+                indexMakerThread.start();
+                try {
+                    indexMakerThread.join();
+                    if (indexMaker.e != null) {
+                        throw new RuntimeException("Failed to make index " + indexMaker.description(), indexMaker.e);
+                    }
+                    return indexMaker.index;
+                } catch (InterruptedException e) {
+                    throw new RuntimeException("Failed to make index " + indexMaker.description(), e);
                 }
-                return indexMaker.index;
-            } catch (InterruptedException e) {
-                throw new RuntimeException("Failed to make index " + indexMaker.description(), e);
+            } else {
+                return null;
             }
         }
     }

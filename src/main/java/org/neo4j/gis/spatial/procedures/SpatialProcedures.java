@@ -198,6 +198,20 @@ public class SpatialProcedures {
         return builder.build();
     }
 
+    @Procedure(name = "spatial.upgrade", mode = WRITE)
+    @Description("Upgrades an older spatial data model and returns a list of layers upgraded")
+    public Stream<NameResult> upgradeSpatial() {
+        SpatialDatabaseService sdb = spatial();
+        Stream.Builder<NameResult> builder = Stream.builder();
+        for (String name : sdb.upgradeFromOldModel(tx)) {
+            Layer layer = sdb.getLayer(tx, name);
+            if (layer != null) {
+                builder.accept(new NameResult(name, layer.getSignature()));
+            }
+        }
+        return builder.build();
+    }
+
     @Procedure(value="spatial.layers", mode = WRITE)
     @Description("Returns name, and details for all layers")
     public Stream<NameResult> getAllLayers() {
@@ -682,6 +696,7 @@ public class SpatialProcedures {
     public Stream<CountResult> importOSM(
             @Name("uri") String uri) throws InterruptedException {
         String layerName = uri.substring(uri.lastIndexOf(File.separator) + 1);
+        assertLayerDoesNotExists(tx, spatial(), layerName);
         // Delegate creating the layer to the inner thread, so we do not pollute the procedure transaction with anything that might conflict.
         // Since the procedure transaction starts before, and ends after, all inner transactions.
         BiFunction<Transaction, String, OSMLayer> layerMaker = (tx, name) -> (OSMLayer) spatial().getOrCreateLayer(tx, name, OSMGeometryEncoder.class, OSMLayer.class);
@@ -1039,6 +1054,12 @@ public class SpatialProcedures {
             return layer;
         } else {
             throw new IllegalArgumentException("No such layer '" + name + "'");
+        }
+    }
+
+    private static void assertLayerDoesNotExists(Transaction tx, SpatialDatabaseService spatial, String name) {
+        if (spatial.getLayer(tx, name) != null) {
+            throw new IllegalArgumentException("Layer already exists: '" + name + "'");
         }
     }
 }

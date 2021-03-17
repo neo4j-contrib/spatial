@@ -23,15 +23,28 @@ import org.junit.*;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.exceptions.KernelException;
+import org.neo4j.gis.spatial.Layer;
+import org.neo4j.gis.spatial.SimplePointLayer;
+import org.neo4j.gis.spatial.SpatialDatabaseService;
+import org.neo4j.gis.spatial.SpatialRelationshipTypes;
+import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
+import org.neo4j.gis.spatial.index.IndexManager;
+import org.neo4j.gis.spatial.utilities.ReferenceNodes;
 import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.spatial.Geometry;
 import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.internal.helpers.collection.Iterators;
+import org.neo4j.io.fs.FileUtils;
+import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
+import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,8 +60,10 @@ public class SpatialProceduresTest {
     private GraphDatabaseService db;
 
     @Before
-    public void setUp() throws KernelException {
-        databases = new TestDatabaseManagementServiceBuilder(new File("target/procedures").toPath()).setConfig(GraphDatabaseSettings.procedure_unrestricted, List.of("spatial.*")).impermanent().build();
+    public void setUp() throws KernelException, IOException {
+        Path dbRoot = new File("target/procedures").toPath();
+        FileUtils.deleteDirectory(dbRoot);
+        databases = new TestDatabaseManagementServiceBuilder(dbRoot).setConfig(GraphDatabaseSettings.procedure_unrestricted, List.of("spatial.*")).impermanent().build();
         db = databases.database(DEFAULT_DATABASE_NAME);
         registerProceduresAndFunctions(db, SpatialProcedures.class);
     }
@@ -126,6 +141,43 @@ public class SpatialProceduresTest {
         GlobalProcedures procedures = ((GraphDatabaseAPI) db).getDependencyResolver().resolveDependency(GlobalProcedures.class);
         procedures.registerProcedure(procedure);
         procedures.registerFunction(procedure);
+    }
+
+    private void makeOldSpatialModel(Transaction tx, String... layers) {
+        KernelTransaction ktx = ((InternalTransaction) tx).kernelTransaction();
+        SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) db, ktx.securityContext()));
+        ArrayList<Node> layerNodes = new ArrayList<>();
+        // First create a set of layers
+        for (String name : layers) {
+            Layer layer = spatial.createLayer(tx, name, SimplePointEncoder.class, SimplePointLayer.class);
+            layerNodes.add(layer.getLayerNode(tx));
+        }
+        // Then downgrade to old format, without label and with reference node and relationships
+        Node root = ReferenceNodes.createDeprecatedReferenceNode(tx, "spatial_root");
+        for (Node node : layerNodes) {
+            node.removeLabel(LABEL_LAYER);
+            root.createRelationshipTo(node, SpatialRelationshipTypes.LAYER);
+        }
+    }
+
+    @Test
+    public void old_spatial_model_throws_errors() {
+        try (Transaction tx = db.beginTx()) {
+            makeOldSpatialModel(tx, "layer1", "layer2", "layer3");
+            tx.commit();
+        }
+        testCallFails(db, "CALL spatial.layers", null, "Old reference node exists - please upgrade the spatial database to the new format");
+    }
+
+    @Test
+    public void old_spatial_model_can_be_upgraded() {
+        try (Transaction tx = db.beginTx()) {
+            makeOldSpatialModel(tx, "layer1", "layer2", "layer3");
+            tx.commit();
+        }
+        testCallFails(db, "CALL spatial.layers", null, "Old reference node exists - please upgrade the spatial database to the new format");
+        testCallCount(db, "CALL spatial.upgrade", null, 3);
+        testCallCount(db, "CALL spatial.layers", null, 3);
     }
 
     @Test
@@ -848,6 +900,14 @@ public class SpatialProceduresTest {
     }
 
     @Test
+    public void import_osm_twice_should_fail() {
+        testCountQuery("importOSM", "CALL spatial.importOSM('map.osm')", 55, "count", null);
+        testCallCount(db, "CALL spatial.layers()", null, 1);
+        testCallFails(db, "CALL spatial.importOSM('map.osm')", null, "Layer already exists: 'map.osm'");
+        testCallCount(db, "CALL spatial.layers()", null, 1);
+    }
+
+    @Test
     public void import_osm_without_extension() {
         testCountQuery("importOSM", "CALL spatial.importOSM('map')", 55, "count", null);
         testCallCount(db, "CALL spatial.layers()", null, 1);
@@ -856,7 +916,7 @@ public class SpatialProceduresTest {
     @Test
     public void import_osm_to_layer() {
         execute("CALL spatial.addLayer('geom','OSM','')");
-        testCountQuery("importShapefileToLayer", "CALL spatial.importOSMToLayer('geom','map.osm')", 55, "count", null);
+        testCountQuery("importOSMToLayer", "CALL spatial.importOSMToLayer('geom','map.osm')", 55, "count", null);
         testCallCount(db, "CALL spatial.layers()", null, 1);
     }
 
