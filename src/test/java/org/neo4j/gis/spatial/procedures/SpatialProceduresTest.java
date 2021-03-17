@@ -24,10 +24,8 @@ import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.SimplePointLayer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.SpatialRelationshipTypes;
-import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.utilities.ReferenceNodes;
 import org.neo4j.graphdb.*;
@@ -143,14 +141,27 @@ public class SpatialProceduresTest {
         procedures.registerFunction(procedure);
     }
 
+    private Layer makeLayerOfVariousTypes(SpatialDatabaseService spatial, Transaction tx, String name, int index) {
+        switch (index % 3) {
+            case 0:
+                return spatial.getOrCreateSimplePointLayer(tx, name, SpatialDatabaseService.RTREE_INDEX_NAME, "x", "y");
+            case 1:
+                return spatial.getOrCreateNativePointLayer(tx, name, SpatialDatabaseService.RTREE_INDEX_NAME, "location");
+            default:
+                return spatial.getOrCreateDefaultLayer(tx, name);
+        }
+    }
+
     private void makeOldSpatialModel(Transaction tx, String... layers) {
         KernelTransaction ktx = ((InternalTransaction) tx).kernelTransaction();
         SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) db, ktx.securityContext()));
         ArrayList<Node> layerNodes = new ArrayList<>();
+        int index = 0;
         // First create a set of layers
         for (String name : layers) {
-            Layer layer = spatial.createLayer(tx, name, SimplePointEncoder.class, SimplePointLayer.class);
+            Layer layer = makeLayerOfVariousTypes(spatial, tx, name, index);
             layerNodes.add(layer.getLayerNode(tx));
+            index++;
         }
         // Then downgrade to old format, without label and with reference node and relationships
         Node root = ReferenceNodes.createDeprecatedReferenceNode(tx, "spatial_root");
@@ -783,9 +794,7 @@ public class SpatialProceduresTest {
             removeResult.close();
             tx.commit();
         }
-        testResult(db, "CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)", res -> {
-            assertFalse(res.hasNext());
-        });
+        testResult(db, "CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)", res -> assertFalse(res.hasNext()));
     }
 
     @Test
@@ -967,7 +976,7 @@ public class SpatialProceduresTest {
                         Node node = (Node) r.get("node");
                         double distance = (Double) r.get("distance");
                         Node osmNode = (Node) r.get("osmNode");
-                        Map<String,Object> props = (Map) r.get("props");
+                        @SuppressWarnings("rawtypes") Map<String,Object> props = (Map) r.get("props");
                         System.out.println("(node[" + node.getId() + "])<-[:GEOM {distance:" + distance + "}]-(osmNode[" + osmNode.getId() + "] " + props + ") ");
                         assertThat("Node should have either way_osm_id or node_osm_id", props, anyOf(hasKey("node_osm_id"), hasKey("way_osm_id")));
                     }

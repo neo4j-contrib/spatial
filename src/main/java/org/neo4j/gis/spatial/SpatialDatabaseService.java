@@ -19,9 +19,9 @@
  */
 package org.neo4j.gis.spatial;
 
-import org.locationtech.jts.geom.*;
 import org.geotools.referencing.crs.AbstractCRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
+import org.locationtech.jts.geom.*;
 import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.gis.spatial.encoders.NativePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
@@ -32,7 +32,6 @@ import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.utilities.LayerUtilities;
 import org.neo4j.gis.spatial.utilities.ReferenceNodes;
 import org.neo4j.graphdb.*;
-import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import java.util.ArrayList;
@@ -157,7 +156,7 @@ public class SpatialDatabaseService implements Constants {
     }
 
     public DefaultLayer getOrCreateDefaultLayer(Transaction tx, String name) {
-        return (DefaultLayer) getOrCreateLayer(tx, name, WKBGeometryEncoder.class, DefaultLayer.class, "");
+        return (DefaultLayer) getOrCreateLayer(tx, name, WKBGeometryEncoder.class, EditableLayerImpl.class, "");
     }
 
     public EditableLayer getOrCreateEditableLayer(Transaction tx, String name, String format, String propertyNameConfig) {
@@ -273,7 +272,7 @@ public class SpatialDatabaseService implements Constants {
     }
 
     public SimplePointLayer createSimplePointLayer(Transaction tx, String name) {
-        return createSimplePointLayer(tx, name, null);
+        return createSimplePointLayer(tx, name, (String[]) null);
     }
 
     public SimplePointLayer createSimplePointLayer(Transaction tx, String name, String xProperty, String yProperty) {
@@ -285,7 +284,7 @@ public class SpatialDatabaseService implements Constants {
     }
 
     public SimplePointLayer createNativePointLayer(Transaction tx, String name) {
-        return createNativePointLayer(tx, name, null);
+        return createNativePointLayer(tx, name, (String[]) null);
     }
 
     public SimplePointLayer createNativePointLayer(Transaction tx, String name, String locationProperty, String bboxProperty) {
@@ -353,7 +352,6 @@ public class SpatialDatabaseService implements Constants {
         layer.delete(tx, monitor);
     }
 
-    @SuppressWarnings("unchecked")
     public static int convertGeometryNameToType(String geometryName) {
         if (geometryName == null) return GTYPE_GEOMETRY;
         try {
