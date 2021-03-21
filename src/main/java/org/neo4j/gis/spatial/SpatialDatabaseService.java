@@ -19,9 +19,9 @@
  */
 package org.neo4j.gis.spatial;
 
-import org.locationtech.jts.geom.*;
 import org.geotools.referencing.crs.AbstractCRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
+import org.locationtech.jts.geom.*;
 import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.gis.spatial.encoders.NativePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
@@ -32,7 +32,6 @@ import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.utilities.LayerUtilities;
 import org.neo4j.gis.spatial.utilities.ReferenceNodes;
 import org.neo4j.graphdb.*;
-import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import java.util.ArrayList;
@@ -49,24 +48,52 @@ import java.util.Map;
 public class SpatialDatabaseService implements Constants {
 
     public final IndexManager indexManager;
-    private long spatialRoot = -1;
 
     public SpatialDatabaseService(IndexManager indexManager) {
         this.indexManager = indexManager;
     }
 
-    private Node getSpatialRoot(Transaction tx) {
-        if (spatialRoot < 0) {
-            spatialRoot = ReferenceNodes.getReferenceNode(tx, "spatial_root").getId();
+    public static void assertNotOldModel(Transaction tx) {
+        Node oldReferenceNode = ReferenceNodes.findDeprecatedReferenceNode(tx, "spatial_root");
+        if (oldReferenceNode != null) {
+            throw new IllegalStateException("Old reference node exists - please upgrade the spatial database to the new format");
         }
-        return tx.getNodeById(spatialRoot);
+    }
+
+    public List<String> upgradeFromOldModel(Transaction tx) {
+        ArrayList<String> layersConverted = new ArrayList<>();
+        Node oldReferenceNode = ReferenceNodes.findDeprecatedReferenceNode(tx, "spatial_root");
+        if (oldReferenceNode != null) {
+            List<Node> layers = new ArrayList<>();
+
+            for (Relationship relationship : oldReferenceNode.getRelationships(Direction.OUTGOING, SpatialRelationshipTypes.LAYER)) {
+                layers.add(relationship.getEndNode());
+            }
+
+            for (Node layer : layers) {
+                Relationship fromRoot = layer.getSingleRelationship(SpatialRelationshipTypes.LAYER, Direction.INCOMING);
+                fromRoot.delete();
+                layer.addLabel(LABEL_LAYER);
+                layersConverted.add((String) layer.getProperty(PROP_LAYER));
+            }
+
+            if (oldReferenceNode.getRelationships().iterator().hasNext()) {
+                throw new IllegalStateException("Cannot upgrade - ReferenceNode 'spatial_root' still has relationships other than layers");
+            }
+
+            oldReferenceNode.delete();
+        }
+        indexManager.makeIndexFor(tx, "SpatialLayers", LABEL_LAYER, PROP_LAYER);
+        return layersConverted;
     }
 
     public String[] getLayerNames(Transaction tx) {
+        assertNotOldModel(tx);
         List<String> names = new ArrayList<>();
 
-        for (Relationship relationship : getSpatialRoot(tx).getRelationships(Direction.OUTGOING, SpatialRelationshipTypes.LAYER)) {
-            Layer layer = LayerUtilities.makeLayerFromNode(tx, indexManager, relationship.getEndNode());
+        ResourceIterator<Node> layers = tx.findNodes(LABEL_LAYER);
+        while (layers.hasNext()) {
+            Layer layer = LayerUtilities.makeLayerFromNode(tx, indexManager, layers.next());
             if (layer instanceof DynamicLayer) {
                 names.addAll(((DynamicLayer) layer).getLayerNames(tx));
             } else {
@@ -78,8 +105,10 @@ public class SpatialDatabaseService implements Constants {
     }
 
     public Layer getLayer(Transaction tx, String name) {
-        for (Relationship relationship : getSpatialRoot(tx).getRelationships(Direction.OUTGOING, SpatialRelationshipTypes.LAYER)) {
-            Node node = relationship.getEndNode();
+        assertNotOldModel(tx);
+        ResourceIterator<Node> layers = tx.findNodes(LABEL_LAYER);
+        while (layers.hasNext()) {
+            Node node = layers.next();
             if (name.equals(node.getProperty(PROP_LAYER))) {
                 return LayerUtilities.makeLayerFromNode(tx, indexManager, node);
             }
@@ -88,9 +117,11 @@ public class SpatialDatabaseService implements Constants {
     }
 
     public Layer getDynamicLayer(Transaction tx, String name) {
+        assertNotOldModel(tx);
         ArrayList<DynamicLayer> dynamicLayers = new ArrayList<>();
-        for (Relationship relationship : getSpatialRoot(tx).getRelationships(Direction.OUTGOING, SpatialRelationshipTypes.LAYER)) {
-            Node node = relationship.getEndNode();
+        ResourceIterator<Node> layers = tx.findNodes(LABEL_LAYER);
+        while (layers.hasNext()) {
+            Node node = layers.next();
             if (!node.getProperty(PROP_LAYER_CLASS, "").toString().startsWith("DefaultLayer")) {
                 Layer layer = LayerUtilities.makeLayerFromNode(tx, indexManager, node);
                 if (layer instanceof DynamicLayer) {
@@ -125,7 +156,7 @@ public class SpatialDatabaseService implements Constants {
     }
 
     public DefaultLayer getOrCreateDefaultLayer(Transaction tx, String name) {
-        return (DefaultLayer) getOrCreateLayer(tx, name, WKBGeometryEncoder.class, DefaultLayer.class, "");
+        return (DefaultLayer) getOrCreateLayer(tx, name, WKBGeometryEncoder.class, EditableLayerImpl.class, "");
     }
 
     public EditableLayer getOrCreateEditableLayer(Transaction tx, String name, String format, String propertyNameConfig) {
@@ -241,7 +272,7 @@ public class SpatialDatabaseService implements Constants {
     }
 
     public SimplePointLayer createSimplePointLayer(Transaction tx, String name) {
-        return createSimplePointLayer(tx, name, null);
+        return createSimplePointLayer(tx, name, (String[]) null);
     }
 
     public SimplePointLayer createSimplePointLayer(Transaction tx, String name, String xProperty, String yProperty) {
@@ -253,7 +284,7 @@ public class SpatialDatabaseService implements Constants {
     }
 
     public SimplePointLayer createNativePointLayer(Transaction tx, String name) {
-        return createNativePointLayer(tx, name, null);
+        return createNativePointLayer(tx, name, (String[]) null);
     }
 
     public SimplePointLayer createNativePointLayer(Transaction tx, String name, String locationProperty, String bboxProperty) {
@@ -300,15 +331,13 @@ public class SpatialDatabaseService implements Constants {
             throw new SpatialDatabaseException("Layer " + name + " already exists");
 
         Layer layer = LayerUtilities.makeLayerAndNode(tx, indexManager, name, geometryEncoderClass, layerClass, indexClass);
-        getSpatialRoot(tx).createRelationshipTo(layer.getLayerNode(tx), SpatialRelationshipTypes.LAYER);
         if (encoderConfig != null && encoderConfig.length() > 0) {
             GeometryEncoder encoder = layer.getGeometryEncoder();
             if (encoder instanceof Configurable) {
                 ((Configurable) encoder).setConfiguration(encoderConfig);
                 layer.getLayerNode(tx).setProperty(PROP_GEOMENCODER_CONFIG, encoderConfig);
             } else {
-                System.out.println("Warning: encoder configuration '" + encoderConfig
-                        + "' passed to non-configurable encoder: " + geometryEncoderClass);
+                System.out.println("Warning: encoder configuration '" + encoderConfig + "' passed to non-configurable encoder: " + geometryEncoderClass);
             }
         }
         if (crs != null && layer instanceof EditableLayer) {
@@ -323,12 +352,10 @@ public class SpatialDatabaseService implements Constants {
         layer.delete(tx, monitor);
     }
 
-    @SuppressWarnings("unchecked")
     public static int convertGeometryNameToType(String geometryName) {
         if (geometryName == null) return GTYPE_GEOMETRY;
         try {
-            return convertJtsClassToGeometryType((Class<? extends Geometry>) Class.forName("org.locationtech.jts.geom."
-                    + geometryName));
+            return convertJtsClassToGeometryType((Class<? extends Geometry>) Class.forName("org.locationtech.jts.geom." + geometryName));
         } catch (ClassNotFoundException e) {
             System.err.println("Unrecognized geometry '" + geometryName + "': " + e);
             return GTYPE_GEOMETRY;

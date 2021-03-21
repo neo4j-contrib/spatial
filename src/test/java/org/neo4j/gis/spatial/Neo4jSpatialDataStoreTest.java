@@ -35,7 +35,7 @@ public class Neo4jSpatialDataStoreTest {
     public GraphDatabaseService graph;
 
     @Before
-    public void setup() throws IOException, XMLStreamException {
+    public void setup() throws Exception {
         this.databases = new TestDatabaseManagementServiceBuilder(Path.of("target", "test")).impermanent().build();
         this.graph = databases.database(DEFAULT_DATABASE_NAME);
         OSMImporter importer = new OSMImporter("map", new ConsoleListener());

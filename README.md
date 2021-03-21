@@ -74,6 +74,13 @@ This has meant that the spatial library needed a major refactoring to work with 
   and simply add on the rights to create tokens and indexes. In 0.27.2 we instead use `RestrictedAccessMode`
   to restrict the users access right to the built in `AccessModel.Static.SCHEMA` and then boost to enable
   index and token writes. The difference is subtle and should only be possible to notice in Enterprise Edition.
+* 0.28.0 tackles the ability to import multiple OSM files. The initial solution for Neo4j 4.x made use
+  of schema indexes keyed by the label and property. However, that means that all OSM imports would share
+  the same index. If they are completely disjointed data sets, this would not matter. But if you import
+  overlapping OSM files or different versions of the same file file, a mangled partial merger would result.
+  0.28.0 solves this by using different indexes, and keeping all imports completely separate.
+  The more complex problems of importing newer versions, and stitching together overlapping areas, are not
+  yet solved.
 
 Consequences of the port to Neo4j 4.x:
 
@@ -347,6 +354,7 @@ The Neo4j Spatial Plugin is available for inclusion in the server version of Neo
   * [v0.27.0 for Neo4j 4.0.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.27.0-neo4j-4.0.3/neo4j-spatial-0.27.0-neo4j-4.0.3-server-plugin.jar?raw=true)
   * [v0.27.1 for Neo4j 4.1.7](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.27.1-neo4j-4.1.7/neo4j-spatial-0.27.1-neo4j-4.1.7-server-plugin.jar?raw=true)
   * [v0.27.2 for Neo4j 4.2.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.27.2-neo4j-4.2.3/neo4j-spatial-0.27.2-neo4j-4.2.3-server-plugin.jar?raw=true)
+  * [v0.28.0 for Neo4j 4.2.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.28.0-neo4j-4.2.3/neo4j-spatial-0.28.0-neo4j-4.2.3-server-plugin.jar?raw=true)
 
 For versions up to 0.15-neo4j-2.3.4:
 
@@ -463,7 +471,7 @@ Add the following repositories and dependency to your project's pom.xml:
     <dependency>
         <groupId>org.neo4j</groupId>
         <artifactId>neo4j-spatial</artifactId>
-        <version>0.27.2-neo4j-4.2.3</version>
+        <version>0.28.0-neo4j-4.2.3</version>
     </dependency>
 ~~~
 

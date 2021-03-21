@@ -27,7 +27,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
 /**
- * Utilities for creating layersfrom nodes.
+ * Utilities for creating layers from nodes.
  */
 public class LayerUtilities implements Constants {
 
@@ -72,6 +72,7 @@ public class LayerUtilities implements Constants {
                 indexClass = LayerRTreeIndex.class;
             }
             Node layerNode = tx.createNode();
+            layerNode.addLabel(LABEL_LAYER);
             layerNode.setProperty(PROP_LAYER, name);
             layerNode.setProperty(PROP_CREATIONTIME, System.currentTimeMillis());
             layerNode.setProperty(PROP_GEOMENCODER, geometryEncoderClass.getCanonicalName());

@@ -29,6 +29,7 @@ import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.osm.OSMDataset;
+import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.osm.OSMRelation;
 import org.neo4j.gis.spatial.rtree.Envelope;
@@ -272,8 +273,7 @@ public class OsmAnalysisTest extends TestOSMImport {
         SortedMap<String, Layer> layers;
         ReferencedEnvelope bbox;
         try (Transaction tx = graphDb().beginTx()) {
-            Node osmRoot = ReferenceNodes.getReferenceNode(tx, "osm_root");
-            Node osmImport = osmRoot.getSingleRelationship(OSMRelation.OSM, Direction.OUTGOING).getEndNode();
+            Node osmImport = tx.findNode(OSMImporter.LABEL_DATASET, "name", osm);
             Node usersNode = osmImport.getSingleRelationship(OSMRelation.USERS, Direction.OUTGOING).getEndNode();
 
             Map<String, User> userIndex = collectUserChangesetData(usersNode);
