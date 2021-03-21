@@ -28,7 +28,6 @@ import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.NullListener;
-import org.neo4j.gis.spatial.utilities.ReferenceNodes;
 import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.graphdb.traversal.Evaluators;
@@ -41,10 +40,13 @@ import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
+import javax.xml.bind.DatatypeConverter;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import java.io.*;
 import java.nio.charset.Charset;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -392,7 +394,7 @@ public class OSMImporter implements Constants {
             this.osmImporter = osmImporter;
         }
 
-        static OSMWriter<WrappedNode> fromGraphDatabase(GraphDatabaseService graphDb, SecurityContext securityContext, StatsManager stats, OSMImporter osmImporter, int txInterval) {
+        static OSMWriter<WrappedNode> fromGraphDatabase(GraphDatabaseService graphDb, SecurityContext securityContext, StatsManager stats, OSMImporter osmImporter, int txInterval) throws NoSuchAlgorithmException {
             return new OSMGraphWriter(graphDb, securityContext, stats, osmImporter, txInterval);
         }
 
@@ -867,8 +869,10 @@ public class OSMImporter implements Constants {
         private IndexDefinition relationIndex;
         private IndexDefinition changesetIndex;
         private IndexDefinition userIndex;
+        private final String layerHash;
+        private final HashMap<Label, Label> hashedLabels = new HashMap<>();
 
-        private OSMGraphWriter(GraphDatabaseService graphDb, SecurityContext securityContext, StatsManager statsManager, OSMImporter osmImporter, int txInterval) {
+        private OSMGraphWriter(GraphDatabaseService graphDb, SecurityContext securityContext, StatsManager statsManager, OSMImporter osmImporter, int txInterval) throws NoSuchAlgorithmException {
             super(statsManager, osmImporter);
             this.graphDb = graphDb;
             this.securityContext = securityContext;
@@ -876,7 +880,16 @@ public class OSMImporter implements Constants {
             if (this.txInterval < 100) {
                 System.err.println("Warning: Unusually short txInterval, expect bad insert performance");
             }
+            this.layerHash = md5Hash(osmImporter.layerName);
             checkTx(null); // Opens transaction for future writes
+        }
+
+        private static String md5Hash(String text) throws NoSuchAlgorithmException {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            md.update(text.getBytes());
+            byte[] digest = md.digest();
+            String hashed = DatatypeConverter.printHexBinary(digest).toUpperCase();
+            return hashed;
         }
 
         private void successTx() {
@@ -930,12 +943,17 @@ public class OSMImporter implements Constants {
             }
         }
 
-        private WrappedNode findNode(Label label, String name) {
-            Node node = tx.findNode(label, "name", name);
+        private WrappedNode findNodeByName(Label label, String name) {
+            Node node = findNodeByLabelProperty(tx, label, "name", name);
             if (node != null) {
                 return WrappedNode.fromNode(node);
             }
             return null;
+        }
+
+        private WrappedNode createNodeWithLabel(Transaction tx, Label label) {
+            Label hashed = getLabelHashed(label);
+            return WrappedNode.fromNode(tx.createNode(label, hashed));
         }
 
         @Override
@@ -968,12 +986,29 @@ public class OSMImporter implements Constants {
             }
         }
 
+        private Label getLabelHashed(Label label) {
+            if (hashedLabels.containsKey(label)) {
+                return hashedLabels.get(label);
+            } else {
+                Label hashed = Label.label(label.name() + "_" + layerHash);
+                hashedLabels.put(label, hashed);
+                return hashed;
+            }
+        }
+
+        private Node findNodeByLabelProperty(Transaction tx, Label label, String propertyKey, Object value) {
+            Label hashed = getLabelHashed(label);
+            return tx.findNode(hashed, propertyKey, value);
+        }
+
         private IndexDefinition createIndex(Label label, String propertyKey) {
-            IndexDefinition index = findIndex(tx, label, propertyKey);
+            Label hashed = getLabelHashed(label);
+            String indexName = String.format("OSM-%s-%s-%s", osmImporter.layerName, hashed.name(), propertyKey);
+            IndexDefinition index = findIndex(tx, indexName, hashed, propertyKey);
             if (index == null) {
                 successTx();
                 try (Transaction indexTx = beginIndexTx(graphDb)) {
-                    index = indexTx.schema().indexFor(label).on(propertyKey).create();
+                    index = indexTx.schema().indexFor(hashed).on(propertyKey).withName(indexName).create();
                     indexTx.commit();
                 }
                 System.out.println("Created index " + index.getName());
@@ -990,11 +1025,15 @@ public class OSMImporter implements Constants {
             return index;
         }
 
-        private IndexDefinition findIndex(Transaction tx, Label label, String propertyKey) {
+        private IndexDefinition findIndex(Transaction tx, String indexName, Label label, String propertyKey) {
             for (IndexDefinition index : tx.schema().getIndexes(label)) {
                 for (String prop : index.getPropertyKeys()) {
                     if (prop.equals(propertyKey)) {
-                        return index;
+                        if (index.getName().equals(indexName)) {
+                            return index;
+                        } else {
+                            throw new IllegalStateException(String.format("Found pre-existing index '%s' for index '%s'", index.getName(), indexName));
+                        }
                     }
                 }
             }
@@ -1002,12 +1041,12 @@ public class OSMImporter implements Constants {
         }
 
         private WrappedNode getOrCreateNode(Label label, String name, String type) {
-            WrappedNode node = findNode(label, name);
+            WrappedNode node = findNodeByName(label, name);
             if (node == null) {
-                Node n = tx.createNode(label);
+                WrappedNode n = createNodeWithLabel(tx, label);
                 n.setProperty("name", name);
                 n.setProperty("type", type);
-                node = checkTx(WrappedNode.fromNode(n));
+                node = checkTx(n);
             }
             return node;
         }
@@ -1038,9 +1077,9 @@ public class OSMImporter implements Constants {
             logNodeAddition(tags, type);
             if (node != null && tags.size() > 0) {
                 statsManager.addToTagStats(type, tags.keySet());
-                Node tagsNode = tx.createNode(LABEL_TAGS);
-                addProperties(tagsNode, tags);
-                node.createRelationshipTo(new WrappedNode(tagsNode), OSMRelation.TAGS);
+                WrappedNode tagsNode = createNodeWithLabel(tx, LABEL_TAGS);
+                addProperties(tagsNode.inner, tags);
+                node.createRelationshipTo(tagsNode, OSMRelation.TAGS);
                 tags.clear();
             }
         }
@@ -1060,12 +1099,12 @@ public class OSMImporter implements Constants {
 
         @Override
         protected WrappedNode addNode(Label label, Map<String, Object> properties, String indexKey) {
-            Node node = tx.createNode(label);
+            WrappedNode node = createNodeWithLabel(tx, label);
             if (indexKey != null && properties.containsKey(indexKey)) {
                 properties.put(indexKey, Long.parseLong(properties.get(indexKey).toString()));
             }
-            addProperties(node, properties);
-            return checkTx(WrappedNode.fromNode(node));
+            addProperties(node.inner, properties);
+            return checkTx(node);
         }
 
         @Override
@@ -1085,7 +1124,7 @@ public class OSMImporter implements Constants {
 
         @Override
         protected WrappedNode getSingleNode(Label label, String property, Object value) {
-            Node node = tx.findNode(LABEL_NODE, property, value);
+            Node node = findNodeByLabelProperty(tx, LABEL_NODE, property, value);
             return node == null ? null : WrappedNode.fromNode(node);
         }
 
@@ -1116,7 +1155,7 @@ public class OSMImporter implements Constants {
             WrappedNode node = changesetNodes.get(osmId);
             if (node == null) {
                 logNodeFoundFrom("node-index");
-                node = WrappedNode.fromNode(tx.findNode(LABEL_NODE, PROP_NODE_ID, osmId));
+                node = WrappedNode.fromNode(findNodeByLabelProperty(tx, LABEL_NODE, PROP_NODE_ID, osmId));
             } else {
                 logNodeFoundFrom(PROP_CHANGESET);
             }
@@ -1157,7 +1196,7 @@ public class OSMImporter implements Constants {
                 if (changeset != currentChangesetId) {
                     changesetIndex = createIndexIfNotNull(changesetIndex, LABEL_CHANGESET, PROP_CHANGESET);
                     currentChangesetId = changeset;
-                    Node changesetNode = tx.findNode(LABEL_CHANGESET, PROP_CHANGESET, currentChangesetId);
+                    Node changesetNode = findNodeByLabelProperty(tx, LABEL_CHANGESET, PROP_CHANGESET, currentChangesetId);
                     if (changesetNode != null) {
                         currentChangesetNode = WrappedNode.fromNode(changesetNode);
                     } else {
@@ -1187,7 +1226,7 @@ public class OSMImporter implements Constants {
                 if (uid != currentUserId) {
                     currentUserId = uid;
                     userIndex = createIndexIfNotNull(userIndex, LABEL_USER, PROP_USER_ID);
-                    Node userNode = tx.findNode(LABEL_USER, PROP_USER_ID, currentUserId);
+                    Node userNode = findNodeByLabelProperty(tx, LABEL_USER, PROP_USER_ID, currentUserId);
                     if (userNode != null) {
                         currentUserNode = WrappedNode.fromNode(userNode);
                     } else {
@@ -1198,7 +1237,7 @@ public class OSMImporter implements Constants {
                         currentUserNode = addNode(LABEL_USER, userProps, PROP_USER_ID);
                         userCount++;
                         if (usersNode == null) {
-                            usersNode = WrappedNode.fromNode(tx.createNode(LABEL_USER));
+                            usersNode = createNodeWithLabel(tx, LABEL_USER);
                             osm_dataset.createRelationshipTo(usersNode, OSMRelation.USERS);
                         }
                         usersNode.createRelationshipTo(currentUserNode, OSMRelation.OSM_USER);
@@ -1218,15 +1257,15 @@ public class OSMImporter implements Constants {
 
     }
 
-    public void importFile(GraphDatabaseService database, String dataset) throws IOException, XMLStreamException {
+    public void importFile(GraphDatabaseService database, String dataset) throws Exception {
         importFile(database, dataset, false, 5000);
     }
 
-    public void importFile(GraphDatabaseService database, String dataset, int txInterval) throws IOException, XMLStreamException {
+    public void importFile(GraphDatabaseService database, String dataset, int txInterval) throws Exception {
         importFile(database, dataset, false, txInterval);
     }
 
-    public void importFile(GraphDatabaseService database, String dataset, boolean allPoints, int txInterval) throws IOException, XMLStreamException {
+    public void importFile(GraphDatabaseService database, String dataset, boolean allPoints, int txInterval) throws Exception {
         importFile(OSMWriter.fromGraphDatabase(database, securityContext, stats, this, txInterval), dataset, allPoints, charset);
     }
 

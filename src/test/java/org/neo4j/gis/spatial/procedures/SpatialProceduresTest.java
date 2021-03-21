@@ -929,6 +929,22 @@ public class SpatialProceduresTest {
         testCallCount(db, "CALL spatial.layers()", null, 1);
     }
 
+    @Test
+    public void import_osm_twice_should_pass_with_different_layers() {
+        execute("CALL spatial.addLayer('geom1','OSM','')");
+        execute("CALL spatial.addLayer('geom2','OSM','')");
+
+        testCountQuery("importOSM", "CALL spatial.importOSMToLayer('geom1','map.osm')", 55, "count", null);
+        testCallCount(db, "CALL spatial.layers()", null, 2);
+        testCallCount(db, "CALL spatial.withinDistance('geom1',{lon:6.3740429666,lat:50.93676351666},10000)", null, 217);
+        testCallCount(db, "CALL spatial.withinDistance('geom2',{lon:6.3740429666,lat:50.93676351666},10000)", null, 0);
+
+        testCountQuery("importOSM", "CALL spatial.importOSMToLayer('geom2','map.osm')", 55, "count", null);
+        testCallCount(db, "CALL spatial.layers()", null, 2);
+        testCallCount(db, "CALL spatial.withinDistance('geom1',{lon:6.3740429666,lat:50.93676351666},10000)", null, 217);
+        testCallCount(db, "CALL spatial.withinDistance('geom2',{lon:6.3740429666,lat:50.93676351666},10000)", null, 217);
+    }
+
     @Ignore
     public void import_cracow_to_layer() {
         execute("CALL spatial.addLayer('geom','OSM','')");
