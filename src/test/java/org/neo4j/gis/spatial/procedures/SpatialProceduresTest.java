@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import static java.util.Collections.emptyMap;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
@@ -346,9 +347,16 @@ public class SpatialProceduresTest {
     }
 
     private Node createNode(String call, String column) {
+        return createNode(call, null, column);
+    }
+
+    private Node createNode(String call, Map<String, Object> params, String column) {
+        if (params == null) {
+            params = emptyMap();
+        }
         Node node;
         try (Transaction tx = db.beginTx()) {
-            ResourceIterator<Object> nodes = tx.execute(call).columnAs(column);
+            ResourceIterator<Object> nodes = tx.execute(call, params).columnAs(column);
             node = (Node) nodes.next();
             nodes.close();
             tx.commit();
@@ -1040,17 +1048,136 @@ public class SpatialProceduresTest {
         System.out.println(name + " query took " + (System.currentTimeMillis() - start) + "ms - " + params);
     }
 
+    private Node addPointLayerXYWithNode(String name, double x, double y) {
+        execute("CALL spatial.addPointLayerXY($name,'lon','lat')", map("name", name));
+        Node node = createNode("CREATE (n:Node {lat:$lat,lon:$lon}) WITH n CALL spatial.addNode($name,n) YIELD node RETURN node", map("name", name, "lat", y, "lon", x), "node");
+        return node;
+    }
+
+    private Node addPointLayerWithNode(String name, double x, double y) {
+        execute("CALL spatial.addPointLayer($name)", map("name", name));
+        Node node = createNode("CREATE (n:Node {latitude:$lat,longitude:$lon}) WITH n CALL spatial.addNode($name,n) YIELD node RETURN node", map("name", name, "lat", y, "lon", x), "node");
+        return node;
+    }
+
+    private Node addPointLayerGeohashWithNode(String name, double x, double y) {
+        execute("CALL spatial.addPointLayerGeohash($name)", map("name", name));
+        Node node = createNode("CREATE (n:Node {latitude:$lat,longitude:$lon}) WITH n CALL spatial.addNode($name,n) YIELD node RETURN node", map("name", name, "lat", y, "lon", x), "node");
+        return node;
+    }
+
+    private Node addWKTLayerWithPointNode(String name, double x, double y) {
+        execute("CALL spatial.addWKTLayer($name,'wkt')", map("name", name));
+        Node node = createNode("CALL spatial.addWKT($name,$wkt)", map("name", name, "wkt", String.format("POINT (%f %f)", x, y)), "node");
+        return node;
+    }
+
+    @Test
+    public void merge_layers_of_identical_type() {
+        Node nodeA = addPointLayerWithNode("geomA", 15.2, 60.1);
+        testCall(db, "CALL spatial.bbox('geomA',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", r -> assertEquals(nodeA, r.get("node")));
+        Node nodeB = addPointLayerWithNode("geomB", 15.2, 60.1);
+        testCall(db, "CALL spatial.bbox('geomB',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", r -> assertEquals(nodeB, r.get("node")));
+        Node nodeC = addPointLayerWithNode("geomC", 15.2, 60.1);
+        testCall(db, "CALL spatial.bbox('geomC',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", r -> assertEquals(nodeC, r.get("node")));
+
+        testCall(db, "CALL spatial.merge.into($nameB,$nameC)", map("nameB", "geomB", "nameC", "geomC"), r -> assertEquals(1L, r.get("count")));
+        testCallCount(db, "CALL spatial.bbox('geomA',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", null, 1);
+        testCallCount(db, "CALL spatial.bbox('geomB',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", null, 2);
+        testCallCount(db, "CALL spatial.bbox('geomC',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", null, 0);
+
+        testCall(db, "CALL spatial.merge.into($nameA,$nameB)", map("nameA", "geomA", "nameB", "geomB"), r -> assertEquals(2L, r.get("count")));
+        testCallCount(db, "CALL spatial.bbox('geomA',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", null, 3);
+        testCallCount(db, "CALL spatial.bbox('geomB',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", null, 0);
+        testCallCount(db, "CALL spatial.bbox('geomC',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", null, 0);
+    }
+
+    @Test
+    public void merge_layers_of_similar_type() {
+        Node nodeA = addPointLayerXYWithNode("geomA", 15.2, 60.1);
+        testCall(db, "CALL spatial.bbox('geomA',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", r -> assertEquals(nodeA, r.get("node")));
+        Node nodeB = addPointLayerWithNode("geomB", 15.2, 60.1);
+        testCall(db, "CALL spatial.bbox('geomB',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", r -> assertEquals(nodeB, r.get("node")));
+        Node nodeC = addPointLayerGeohashWithNode("geomC", 15.2, 60.1);
+        testCall(db, "CALL spatial.bbox('geomC',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", r -> assertEquals(nodeC, r.get("node")));
+
+        testCall(db, "CALL spatial.merge.into($nameB,$nameC)", map("nameB", "geomB", "nameC", "geomC"), r -> assertEquals(1L, r.get("count")));
+        testCallCount(db, "CALL spatial.bbox('geomA',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", null, 1);
+        testCallCount(db, "CALL spatial.bbox('geomB',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", null, 2);
+        testCallCount(db, "CALL spatial.bbox('geomC',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", null, 0);
+
+        testCall(db, "CALL spatial.merge.into($nameA,$nameB)", map("nameA", "geomA", "nameB", "geomB"), r -> assertEquals(2L, r.get("count")));
+        testCallCount(db, "CALL spatial.bbox('geomA',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", null, 3);
+        testCallCount(db, "CALL spatial.bbox('geomB',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", null, 0);
+        testCallCount(db, "CALL spatial.bbox('geomC',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", null, 0);
+    }
+
+    @Test
+    public void fail_to_merge_layers_of_different_type() {
+        Node nodeA = addPointLayerXYWithNode("geomA", 15.2, 60.1);
+        testCall(db, "CALL spatial.bbox('geomA',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", r -> assertEquals(nodeA, r.get("node")));
+        Node nodeB = addWKTLayerWithPointNode("geomB", 15.2, 60.1);
+        testCall(db, "CALL spatial.bbox('geomB',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", r -> assertEquals(nodeB, r.get("node")));
+        testCallFails(db, "CALL spatial.merge.into($nameA,$nameB)", map("nameA", "geomA", "nameB", "geomB"), "layer classes are not compatible");
+    }
+
+    @Test
+    public void fail_to_merge_non_OSM_into_OSM() {
+        execute("CALL spatial.addLayer('osm','OSM','')");
+        testCountQuery("importOSMToLayerAndAddGeometry", "CALL spatial.importOSMToLayer($name,'map.osm')", 55, "count", map("name", "osm"));
+        testCallCount(db, "CALL spatial.layers()", null, 1);
+        testCallCount(db, "CALL spatial.withinDistance($name,{lon:$lon,lat:$lat},100)", map("name", "osm", "lon", 15.2, "lat", 60.1), 0);
+        testCallCount(db, "CALL spatial.withinDistance($name,{lon:6.3740429666,lat:50.93676351666},1000)", map("name", "osm"), 217);
+
+        // Adding a point to the layer
+        Node node = createNode("CALL spatial.addWKT($name,$wkt)", map("name", "osm", "wkt", String.format("POINT (%f %f)", 15.2, 60.1)), "node");
+        testCall(db, "CALL spatial.withinDistance($name,{lon:$lon,lat:$lat},100)", map("name", "osm", "lon", 15.2, "lat", 60.1), r -> assertEquals(node, r.get("node")));
+        testCallCount(db, "CALL spatial.withinDistance($name,{lon:$lon,lat:$lat},100)", map("name", "osm", "lon", 15.2, "lat", 60.1), 1);
+        testCallCount(db, "CALL spatial.withinDistance($name,{lon:6.3740429666,lat:50.93676351666},1000)", map("name", "osm"), 217);
+
+        Node nodeA = addPointLayerXYWithNode("geomA", 15.2, 60.1);
+        testCall(db, "CALL spatial.bbox('geomA',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", r -> assertEquals(nodeA, r.get("node")));
+        Node nodeB = addWKTLayerWithPointNode("geomB", 15.2, 60.1);
+        testCall(db, "CALL spatial.bbox('geomB',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", r -> assertEquals(nodeB, r.get("node")));
+        testCallFails(db, "CALL spatial.merge.into($name,$nameA)", map("name", "osm", "nameA", "geomA"), "Cannot merge non-OSM layer into OSM layer");
+        testCallFails(db, "CALL spatial.merge.into($name,$nameB)", map("name", "osm", "nameB", "geomB"), "Cannot merge non-OSM layer into OSM layer");
+    }
+
+    @Test
+    public void should_not_but_still_fail_to_merge_OSM_into_OSM() {
+        for (String name : new String[]{"osmA", "osmB"}) {
+            execute("CALL spatial.addLayer($name,'OSM','')", map("name", name));
+            testCountQuery("importOSMToLayerAndAddGeometry", "CALL spatial.importOSMToLayer($name,'map.osm')", 55, "count", map("name", name));
+            testCallCount(db, "CALL spatial.withinDistance($name,{lon:$lon,lat:$lat},100)", map("name", name, "lon", 15.2, "lat", 60.1), 0);
+            testCallCount(db, "CALL spatial.withinDistance($name,{lon:6.3740429666,lat:50.93676351666},1000)", map("name", name), 217);
+        }
+        testCallCount(db, "CALL spatial.layers()", null, 2);
+
+        // Adding a point to the second layer
+        Node node = createNode("CALL spatial.addWKT($name,$wkt)", map("name", "osmB", "wkt", String.format("POINT (%f %f)", 15.2, 60.1)), "node");
+        testCall(db, "CALL spatial.withinDistance($name,{lon:$lon,lat:$lat},100)", map("name", "osmB", "lon", 15.2, "lat", 60.1), r -> assertEquals(node, r.get("node")));
+        testCallCount(db, "CALL spatial.withinDistance($name,{lon:$lon,lat:$lat},100)", map("name", "osmB", "lon", 15.2, "lat", 60.1), 1);
+        testCallCount(db, "CALL spatial.withinDistance($name,{lon:6.3740429666,lat:50.93676351666},1000)", map("name", "osmB"), 217);
+
+        // Assert that osmA does not have the extra node
+        testCallCount(db, "CALL spatial.withinDistance($name,{lon:$lon,lat:$lat},100)", map("name", "osmB", "lon", 15.2, "lat", 60.1), 1);
+
+        // try merge osmB into osmA - should succeed, but does not yet
+        testCallFails(db, "CALL spatial.merge.into($nameA,$nameB)", map("nameA", "osmA", "nameB", "osmB"), "Not implemented");
+
+        // Here we should assert that osmA now does have the extra node
+        //.....
+    }
+
     @Test
     public void find_geometries_in_a_bounding_box_short() {
-        execute("CALL spatial.addPointLayerXY('geom','lon','lat')");
-        Node node = createNode("CREATE (n:Node {lat:60.1,lon:15.2}) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node", "node");
+        Node node = addPointLayerXYWithNode("geom", 15.2, 60.1);
         testCall(db, "CALL spatial.bbox('geom',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", r -> assertEquals(node, r.get("node")));
     }
 
     @Test
     public void find_geometries_in_a_bounding_box() {
-        execute("CALL spatial.addPointLayer('geom')");
-        Node node = createNode("CREATE (n:Node {latitude:60.1,longitude:15.2}) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node", "node");
+        Node node = addPointLayerWithNode("geom", 15.2, 60.1);
         testCall(db, "CALL spatial.bbox('geom',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", r -> assertEquals(node, r.get("node")));
     }
 
@@ -1064,8 +1191,7 @@ public class SpatialProceduresTest {
 
     @Test
     public void find_geometries_in_a_bounding_box_geohash() {
-        execute("CALL spatial.addPointLayerGeohash('geom')");
-        Node node = createNode("CREATE (n:Node {latitude:60.1,longitude:15.2}) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node", "node");
+        Node node = addPointLayerGeohashWithNode("geom", 15.2, 60.1);
         testCall(db, "CALL spatial.bbox('geom',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})", r -> assertEquals(node, r.get("node")));
     }
 

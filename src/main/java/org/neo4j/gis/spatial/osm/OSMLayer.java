@@ -25,6 +25,7 @@ import java.util.HashMap;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.json.simple.JSONObject;
 import org.neo4j.gis.spatial.*;
+import org.neo4j.gis.spatial.merge.MergeUtils;
 import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.graphdb.*;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -34,7 +35,7 @@ import org.opengis.referencing.crs.CoordinateReferenceSystem;
  * extends the DynamicLayer class because the OSM dataset can have many layers.
  * Only one is primary, the layer containing all ways. Other layers are dynamic.
  */
-public class OSMLayer extends DynamicLayer {
+public class OSMLayer extends DynamicLayer implements MergeUtils.Mergeable {
     private OSMDataset osmDataset;
 
     @Override
@@ -260,5 +261,14 @@ public class OSMLayer extends DynamicLayer {
     public File getStyle() {
         // TODO: Replace with a proper resource lookup, since this will be in the JAR
         return new File("dev/neo4j/neo4j-spatial/src/main/resources/sld/osm/osm.sld");
+    }
+
+    @Override
+    public long mergeFrom(Transaction tx, EditableLayer other) {
+        if (other instanceof OSMLayer) {
+            throw new UnsupportedOperationException("Not implemented");
+        } else {
+            throw new IllegalArgumentException("Cannot merge non-OSM layer into OSM layer: '" + other.getName() + "' is not OSM");
+        }
     }
 }

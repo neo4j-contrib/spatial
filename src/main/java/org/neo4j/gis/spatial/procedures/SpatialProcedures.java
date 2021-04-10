@@ -35,6 +35,7 @@ import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
 import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
 import org.neo4j.gis.spatial.index.LayerZOrderPointIndex;
+import org.neo4j.gis.spatial.merge.MergeUtils;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
@@ -63,7 +64,6 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -763,6 +763,16 @@ public class SpatialProcedures {
                 this.e = e;
             }
         }
+    }
+
+    @Procedure(value="spatial.merge.into", mode=WRITE)
+    @Description("Merges two layers by copying geometries from the second layer into the first and deleting the second layer")
+    public Stream<CountResult> mergeLayerIntoLayer(
+            @Name("layerName") String layerName,
+            @Name("toMerge") String mergeName) {
+        EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), layerName);
+        EditableLayer mergeLayer = getEditableLayerOrThrow(tx, spatial(), mergeName);
+        return Stream.of(new CountResult(MergeUtils.mergeLayerInto(tx, layer, mergeLayer)));
     }
 
     @Procedure(value="spatial.bbox", mode=WRITE)
