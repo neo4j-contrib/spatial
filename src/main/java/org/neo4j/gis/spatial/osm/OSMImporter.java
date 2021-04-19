@@ -59,7 +59,6 @@ import static org.neo4j.gis.spatial.osm.OSMModel.*;
 public class OSMImporter implements Constants {
     public static DefaultEllipsoid WGS84 = DefaultEllipsoid.WGS84;
 
-    protected boolean nodesProcessingFinished = false;
     private final String layerName;
     private final StatsManager tagStats = new StatsManager();
     private final GeomStats geomStats = new GeomStats();
@@ -80,15 +79,13 @@ public class OSMImporter implements Constants {
             this.name = name;
         }
 
-        int add(String key) {
+        void add(String key) {
             count++;
             if (stats.containsKey(key)) {
                 int num = stats.get(key);
                 stats.put(key, ++num);
-                return num;
             } else {
                 stats.put(key, 1);
-                return 1;
             }
         }
 
@@ -124,17 +121,15 @@ public class OSMImporter implements Constants {
             return tagStats.get(type);
         }
 
-        int addToTagStats(String type, String key) {
+        void addToTagStats(String type, String key) {
             getTagStats("all").add(key);
-            return getTagStats(type).add(key);
+            getTagStats(type).add(key);
         }
 
-        int addToTagStats(String type, Collection<String> keys) {
-            int count = 0;
+        void addToTagStats(String type, Collection<String> keys) {
             for (String key : keys) {
-                count += addToTagStats(type, key);
+                addToTagStats(type, key);
             }
-            return count;
         }
 
         void printTagStats() {
@@ -271,10 +266,6 @@ public class OSMImporter implements Constants {
 
     public static class OSMIndexer {
         private static final TraversalDescription traversal = new MonoDirectionalTraversalDescription();
-        private static final org.neo4j.graphdb.traversal.TraversalDescription findWays = traversal.depthFirst()
-                .evaluator(Evaluators.excludeStartPosition())
-                .relationships(OSMRelation.WAYS, Direction.OUTGOING)
-                .relationships(OSMRelation.NEXT, Direction.OUTGOING);
         private static final org.neo4j.graphdb.traversal.TraversalDescription findNodes = traversal.depthFirst()
                 .evaluator(Evaluators.excludeStartPosition())
                 .relationships(OSMRelation.FIRST_NODE, Direction.OUTGOING)
@@ -451,8 +442,6 @@ public class OSMImporter implements Constants {
         long firstFindTime = 0;
         long lastFindTime = 0;
         long firstLogTime = 0;
-        static int foundNodes = 0;
-        static int createdNodes = 0;
         int foundOSMNodes = 0;
         int missingUserCount = 0;
 
@@ -462,7 +451,7 @@ public class OSMImporter implements Constants {
             }
         }
 
-        private class LogCounter {
+        private static class LogCounter {
             private long count = 0;
             private long totalTime = 0;
         }
@@ -489,26 +478,20 @@ public class OSMImporter implements Constants {
                 if (currentTime > 0) {
                     duration = (int) ((currentTime - firstFindTime) / 1000);
                 }
-                System.out.println(new Date(currentTime) + ": Found "
-                        + foundOSMNodes + " nodes during "
-                        + duration + "s way creation: ");
+                System.out.printf("%s: Found %d nodes during %ds way creation:%n", new Date(currentTime), foundOSMNodes, duration);
                 for (String type : nodeFindStats.keySet()) {
                     LogCounter found = nodeFindStats.get(type);
                     double rate = 0.0f;
                     if (found.totalTime > 0) {
                         rate = (1000.0 * (float) found.count / (float) found.totalTime);
                     }
-                    System.out.println("\t" + type + ": \t" + found.count
-                            + "/" + (found.totalTime / 1000)
-                            + "s" + " \t(" + rate
-                            + " nodes/second)");
+                    System.out.printf("\t%s: \t%d/%ds \t%f nodes/second%n", type, found.count, (found.totalTime / 1000), rate);
                 }
                 findTime = currentTime;
             }
         }
 
-        void logNodeAddition(LinkedHashMap<String, Object> tags,
-                             String type) {
+        void logNodeAddition(String type) {
             Integer count = stats.get(type);
             if (count == null) {
                 count = 1;
@@ -522,7 +505,8 @@ public class OSMImporter implements Constants {
                 logTime = currentTime;
             }
             if (currentTime - logTime > 1432) {
-                System.out.println(new Date(currentTime) + ": Saving " + type + " " + count + " \t(" + (1000.0 * (float) count / (float) (currentTime - firstLogTime)) + " " + type + "/second)");
+                double rate = (1000.0 * (float) count / (float) (currentTime - firstLogTime));
+                System.out.printf("%s: Saving %s %d \t(%f %s/second)%n", new Date(currentTime), type, count, rate, type);
                 logTime = currentTime;
             }
         }
@@ -543,18 +527,16 @@ public class OSMImporter implements Constants {
 
         private void missingNode(long ndRef) {
             if (missingNodeCount++ < 10) {
-                osmImporter.error("Cannot find node for osm-id " + ndRef);
+                osmImporter.errorf("Cannot find node for osm-id %d%n", ndRef);
             }
         }
 
         private void describeMissing() {
             if (missingNodeCount > 0) {
-                osmImporter.error("When processing the ways, there were "
-                        + missingNodeCount + " missing nodes");
+                osmImporter.errorf("When processing the ways, there were %d missing nodes%n", missingNodeCount);
             }
             if (missingMemberCount > 0) {
-                osmImporter.error("When processing the relations, there were "
-                        + missingMemberCount + " missing members");
+                osmImporter.errorf("When processing the relations, there were %d missing members%n", missingMemberCount);
             }
         }
 
@@ -562,7 +544,7 @@ public class OSMImporter implements Constants {
 
         private void missingMember(String description) {
             if (missingMemberCount++ < 10) {
-                osmImporter.error("Cannot find member: " + description);
+                osmImporter.errorf("Cannot find member: %s%n", description);
             }
         }
 
@@ -727,7 +709,7 @@ public class OSMImporter implements Constants {
             // We will test for cases that invalidate multilinestring further down
             GeometryMetaData metaGeom = new GeometryMetaData(GTYPE_MULTILINESTRING);
             T prevMember = null;
-            LinkedHashMap<String, Object> relProps = new LinkedHashMap<String, Object>();
+            LinkedHashMap<String, Object> relProps = new LinkedHashMap<>();
             for (Map<String, Object> memberProps : relationMembers) {
                 String memberType = (String) memberProps.get("type");
                 long member_ref = Long.parseLong(memberProps.get("ref").toString());
@@ -753,7 +735,7 @@ public class OSMImporter implements Constants {
                         continue;
                     }
                     if (member == relation) {
-                        osmImporter.error("Cannot add relation to same member: relation[" + relationTags + "] - member[" + memberProps + "]");
+                        osmImporter.errorf("Cannot add relation to same member: relation[%s] - member[%s]%n", relationTags, memberProps);
                         continue;
                     }
                     Map<String, Object> nodeProps = getNodeProperties(member);
@@ -776,7 +758,7 @@ public class OSMImporter implements Constants {
                     createRelationship(relation, member, OSMRelation.MEMBER, relProps);
                     prevMember = member;
                 } else {
-                    System.err.println("Cannot process invalid relation member: " + memberProps.toString());
+                    System.err.println("Cannot process invalid relation member: " + memberProps);
                 }
             }
             if (metaGeom.isValid()) {
@@ -873,7 +855,6 @@ public class OSMImporter implements Constants {
         private WrappedNode currentChangesetNode;
         private long currentUserId = -1;
         private WrappedNode currentUserNode;
-        private WrappedNode usersNode;
         private final HashMap<Long, WrappedNode> changesetNodes = new HashMap<>();
         private Transaction tx;
         private int checkCount = 0;
@@ -902,8 +883,7 @@ public class OSMImporter implements Constants {
             MessageDigest md = MessageDigest.getInstance("MD5");
             md.update(text.getBytes());
             byte[] digest = md.digest();
-            String hashed = DatatypeConverter.printHexBinary(digest).toUpperCase();
-            return hashed;
+            return DatatypeConverter.printHexBinary(digest).toUpperCase();
         }
 
         private void successTx() {
@@ -938,7 +918,6 @@ public class OSMImporter implements Constants {
             recoverNode(prev_way);
             recoverNode(currentChangesetNode);
             recoverNode(currentUserNode);
-            recoverNode(usersNode);
             changesetNodes.forEach((id, node) -> node.refresh(tx));
         }
 
@@ -1038,9 +1017,9 @@ public class OSMImporter implements Constants {
             if (previousIndex == null) {
                 osm_dataset.setProperty(indexKey, indexName);
             } else if (previousIndex.equals(indexName)) {
-                System.out.println(String.format("OSMLayer '%s' already has matching index definition for '%s': %s", osm_dataset.getProperty("name", "<unknown>"), indexKey, previousIndex));
+                System.out.printf("OSMLayer '%s' already has matching index definition for '%s': %s%n", osm_dataset.getProperty("name", "<unknown>"), indexKey, previousIndex);
             } else {
-                throw new IllegalStateException(String.format("OSMLayer '%s' already has index definition for '%s': %s"));
+                throw new IllegalStateException(String.format("OSMLayer '%s' already has index definition for '%s': %s", osm_dataset.getProperty("name", "<unknown>"), indexKey, previousIndex));
             }
         }
 
@@ -1101,7 +1080,7 @@ public class OSMImporter implements Constants {
 
         @Override
         protected void addNodeTags(WrappedNode node, LinkedHashMap<String, Object> tags, String type) {
-            logNodeAddition(tags, type);
+            logNodeAddition(type);
             if (node != null && tags.size() > 0) {
                 tagStats.addToTagStats(type, tags.keySet());
                 WrappedNode tagsNode = createNodeWithLabel(tx, LABEL_TAGS);
@@ -1298,20 +1277,12 @@ public class OSMImporter implements Constants {
     }
 
     public static class CountedFileReader extends InputStreamReader {
-        private long length = 0;
+        private final long length;
         private long charsRead = 0;
 
         public CountedFileReader(String path, Charset charset) throws FileNotFoundException {
             super(new FileInputStream(path), charset);
             this.length = (new File(path)).length();
-        }
-
-        public long getCharsRead() {
-            return charsRead;
-        }
-
-        public long getlength() {
-            return length;
         }
 
         public double getProgress() {
@@ -1322,8 +1293,7 @@ public class OSMImporter implements Constants {
             return (int) (100.0 * getProgress());
         }
 
-        public int read(char[] cbuf, int offset, int length)
-                throws IOException {
+        public int read(char[] cbuf, int offset, int length) throws IOException {
             int read = super.read(cbuf, offset, length);
             if (read > 0) charsRead += read;
             return read;
@@ -1440,16 +1410,10 @@ public class OSMImporter implements Constants {
                         }
                         if (startedRelations) {
                             if (countXMLTags < 10) {
-                                debug("Starting tag at depth " + depth + ": "
-                                        + currentXMLTags.get(depth) + " - "
-                                        + currentXMLTags.toString());
+                                debugf("Starting tag at depth %d: %s - %s%n", depth, currentXMLTags.get(depth), currentXMLTags);
                                 for (int i = 0; i < parser.getAttributeCount(); i++) {
-                                    debug("\t" + currentXMLTags.toString() + ": "
-                                            + parser.getAttributeLocalName(i) + "["
-                                            + parser.getAttributeNamespace(i) + ","
-                                            + parser.getAttributePrefix(i) + ","
-                                            + parser.getAttributeType(i) + ","
-                                            + "] = " + parser.getAttributeValue(i));
+                                    debugf("\t%s: %s[%s,%s,%s] = %s%n", currentXMLTags, parser.getAttributeLocalName(i), parser.getAttributeNamespace(i),
+                                            parser.getAttributePrefix(i), parser.getAttributeType(i), parser.getAttributeValue(i));
                                 }
                             }
                             countXMLTags++;
@@ -1526,7 +1490,7 @@ public class OSMImporter implements Constants {
           <way id="27359054" user="spull" uid="61533" visible="true" version="8" changeset="4707351" timestamp="2010-05-15T15:39:57Z">
           <relation id="77965" user="Grillo" uid="13957" visible="true" version="24" changeset="5465617" timestamp="2010-08-11T19:25:46Z">
          */
-        LinkedHashMap<String, Object> properties = new LinkedHashMap<String, Object>();
+        LinkedHashMap<String, Object> properties = new LinkedHashMap<>();
         for (int i = 0; i < parser.getAttributeCount(); i++) {
             String prop = parser.getAttributeLocalName(i);
             String value = parser.getAttributeValue(i);
@@ -1580,10 +1544,6 @@ public class OSMImporter implements Constants {
     /**
      * Calculate correct distance between 2 points on Earth.
      *
-     * @param latA
-     * @param lonA
-     * @param latB
-     * @param lonB
      * @return distance in meters
      */
     public static double distance(double lonA, double latA, double lonB, double latB) {
@@ -1597,24 +1557,31 @@ public class OSMImporter implements Constants {
         out.println(message);
     }
 
+    private void logf(PrintStream out, String format, Object... args) {
+        if (logContext != null) {
+            format = logContext + "[" + contextLine + "]: " + format;
+        }
+        out.printf(format, args);
+    }
+
     private void log(String message) {
         if (verboseLog) {
             log(System.out, message);
         }
     }
 
-    private void debug(String message) {
+    private void debugf(String format, Object... args) {
         if (debugLog) {
-            log(System.out, message);
+            logf(System.out, format, args);
         }
     }
 
-    private void error(String message) {
-        log(System.err, message);
+    private void errorf(String format, Object... args) {
+        logf(System.err, format, args);
     }
 
     private void error(String message, Exception e) {
-        log(System.err, message);
+        logf(System.err, message + ": %s", e.getMessage());
         e.printStackTrace(System.err);
     }
 
@@ -1624,8 +1591,7 @@ public class OSMImporter implements Constants {
     private boolean verboseLog = true;
 
     // "2008-06-11T12:36:28Z"
-    private DateFormat timestampFormat = new SimpleDateFormat(
-            "yyyy-MM-dd'T'HH:mm:ss'Z'");
+    private final DateFormat timestampFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
     public void setDebug(boolean verbose) {
         this.debugLog = verbose;
@@ -1674,7 +1640,7 @@ public class OSMImporter implements Constants {
         private DatabaseManagementService databases;
         private GraphDatabaseService graphDb;
         private File dbPath;
-        private String databaseName = "neo4j";  // can only be something other than neo4j in enterprise edition
+        private final String databaseName = "neo4j";  // can only be something other than neo4j in enterprise edition
 
         public OSMImportManager(String path) {
             setDbPath(path);
@@ -1692,25 +1658,23 @@ public class OSMImporter implements Constants {
         }
 
         private void loadTestOsmData(String layerName, int commitInterval) throws Exception {
-            String osmPath = layerName;
-            System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===\n");
+            System.out.println("\n=== Loading layer " + layerName + " from " + layerName + " ===\n");
             long start = System.currentTimeMillis();
             OSMImporter importer = new OSMImporter(layerName);
             prepareDatabase(true);
-            importer.importFile(graphDb, osmPath, false, commitInterval);
+            importer.importFile(graphDb, layerName, false, commitInterval);
             importer.reIndex(graphDb, commitInterval);
             shutdown();
             System.out.println("=== Completed loading " + layerName + " in " + (System.currentTimeMillis() - start) / 1000.0 + " seconds ===");
         }
 
-        private DatabaseLayout prepareLayout(boolean delete) throws IOException {
+        private void prepareLayout(boolean delete) throws IOException {
             Neo4jLayout homeLayout = Neo4jLayout.of(dbPath.toPath());
             DatabaseLayout databaseLayout = homeLayout.databaseLayout(databaseName);
             if (delete) {
                 FileUtils.deleteDirectory(databaseLayout.databaseDirectory());
                 FileUtils.deleteDirectory(databaseLayout.getTransactionLogsDirectory());
             }
-            return databaseLayout;
         }
 
         private void prepareDatabase(boolean delete) throws IOException {

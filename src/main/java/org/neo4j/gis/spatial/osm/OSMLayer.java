@@ -19,18 +19,19 @@
  */
 package org.neo4j.gis.spatial.osm;
 
-import java.io.File;
-import java.util.HashMap;
-
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.json.simple.JSONObject;
 import org.neo4j.gis.spatial.*;
 import org.neo4j.gis.spatial.merge.MergeUtils;
 import org.neo4j.gis.spatial.rtree.NullListener;
-import org.neo4j.graphdb.*;
+import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.Transaction;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
-import javax.management.relation.Relation;
+import java.io.File;
+import java.util.HashMap;
 
 /**
  * Instances of this class represent the primary layer of the OSM Dataset. It
@@ -57,25 +58,13 @@ public class OSMLayer extends DynamicLayer implements MergeUtils.Mergeable {
 
     /**
      * OSM always uses WGS84 CRS; so we return that.
-     *
-     * @param tx
      */
     public CoordinateReferenceSystem getCoordinateReferenceSystem(Transaction tx) {
-        try {
-            return DefaultGeographicCRS.WGS84;
-        } catch (Exception e) {
-            System.err.println("Failed to decode WGS84 CRS: " + e.getMessage());
-            e.printStackTrace(System.err);
-            return null;
-        }
+        return DefaultGeographicCRS.WGS84;
     }
 
     protected void clear(Transaction tx) {
         indexWriter.clear(tx, new NullListener());
-    }
-
-    public Node addWay(Transaction tx, Node way) {
-        return addWay(tx, way, false);
     }
 
     public Node addWay(Transaction tx, Node way, boolean verifyGeom) {
@@ -119,7 +108,6 @@ public class OSMLayer extends DynamicLayer implements MergeUtils.Mergeable {
      * generate a Geometry. There is no restriction on a node belonging to multiple datasets, or
      * multiple layers within the same dataset.
      *
-     * @param tx
      * @return iterable over geometry nodes in the dataset
      */
     public Iterable<Node> getAllGeometryNodes(Transaction tx) {
@@ -144,7 +132,6 @@ public class OSMLayer extends DynamicLayer implements MergeUtils.Mergeable {
      * to the way node and then to the tags node to test if the way is a
      * residential street.
      */
-    @SuppressWarnings("unchecked")
     public DynamicLayerConfig addDynamicLayerOnWayTags(Transaction tx, String name, int type, HashMap<?, ?> tags) {
         JSONObject query = new JSONObject();
         if (tags != null && !tags.isEmpty()) {

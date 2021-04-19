@@ -132,7 +132,7 @@ public class OSMMerger {
                 System.out.printf("During merge %d %s were added - re-indexing required%n", countAdded, name);
             }
             if (geomNodesToAdd.size() > 0) {
-                System.out.printf("During merge %d point geometry nodes were identified%n", geomNodesToAdd.size(), name);
+                System.out.printf("During merge %d geometry %s were identified for use in re-indexing%n", geomNodesToAdd.size(), name);
             }
         }
     }

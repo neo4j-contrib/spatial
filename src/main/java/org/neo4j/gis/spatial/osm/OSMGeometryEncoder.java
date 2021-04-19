@@ -301,9 +301,6 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
         boolean overrun = false;
         for (Node node : getPointNodesFromWayNode(wayNode)) {
             if (coordinates.size() >= vertices) {
-                // System.err.println("Exceeding expected number of way nodes: "
-                // + (index + 1) +
-                // " > " + vertices);
                 overrun = true;
                 overrunCount++;
                 break;
@@ -374,10 +371,9 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
         geomNode.setProperty("vertices", vertices);
     }
 
-    private Node makeOSMNode(Transaction tx, Geometry geometry, Node geomNode) {
+    private void makeOSMNode(Transaction tx, Geometry geometry, Node geomNode) {
         Node node = makeOSMNode(tx, geometry.getCoordinate());
         node.createRelationshipTo(geomNode, OSMRelation.GEOM);
-        return node;
     }
 
     private void addLabelHash(Transaction tx, OSMDataset dataset, Label label, String propertyKey) {
@@ -450,6 +446,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
         return way;
     }
 
+    @SuppressWarnings("unused")
     private Node makeOSMRelation(Geometry geometry, Node geomNode) {
         relationId++;
         throw new SpatialDatabaseException("Unimplemented: makeOSMRelation()");

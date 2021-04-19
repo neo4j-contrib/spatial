@@ -33,5 +33,5 @@
 package org.neo4j.gis.spatial.osm;
 
 public enum RoadDirection {
-    BOTH, FORWARD, BACKWARD;
+    BOTH, FORWARD, BACKWARD
 }
