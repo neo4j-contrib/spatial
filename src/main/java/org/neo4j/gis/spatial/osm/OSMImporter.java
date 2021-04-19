@@ -320,19 +320,23 @@ public class OSMImporter implements Constants {
                 }
             }
         }
+
         public void indexByChangeset(Transaction tx, Node changeset) {
             for (Relationship rel : changeset.getRelationships(Direction.INCOMING, OSMRelation.CHANGESET)) {
                 stats.addGeomStats(layer.addWay(tx, rel.getStartNode(), true));
             }
         }
+
         public List<Node> allWays(Transaction tx) {
             OSMDataset dataset = OSMDataset.fromLayer(tx, layer);
             return toList(dataset.getAllWayNodes(tx));
         }
+
         public List<Node> allChangesets(Transaction tx) {
             OSMDataset dataset = OSMDataset.fromLayer(tx, layer);
             return toList(dataset.getAllChangesetNodes(tx));
         }
+
         private List<Node> toList(Iterable<Node> iterable) {
             ArrayList<Node> list = new ArrayList<>();
             if (iterable != null) {
