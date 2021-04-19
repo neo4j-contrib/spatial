@@ -26,7 +26,9 @@ import org.neo4j.exceptions.KernelException;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.SpatialRelationshipTypes;
+import org.neo4j.gis.spatial.index.Envelope;
 import org.neo4j.gis.spatial.index.IndexManager;
+import org.neo4j.gis.spatial.osm.OSMRelation;
 import org.neo4j.gis.spatial.utilities.ReferenceNodes;
 import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.spatial.Geometry;
@@ -42,17 +44,16 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.function.Consumer;
 
 import static java.util.Collections.emptyMap;
+import static java.util.Collections.lastIndexOfSubList;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.gis.spatial.Constants.*;
+import static org.neo4j.gis.spatial.osm.OSMModel.*;
 
 public class SpatialProceduresTest {
     private DatabaseManagementService databases;
@@ -1143,11 +1144,84 @@ public class SpatialProceduresTest {
         testCallFails(db, "CALL spatial.merge.into($name,$nameB)", map("name", "osm", "nameB", "geomB"), "Cannot merge non-OSM layer into OSM layer");
     }
 
+    private static class NodeIdRecorder implements Consumer<Result> {
+        ArrayList<Long> nodeIds = new ArrayList<>();
+        HashMap<Long, Long> osmIds = new HashMap<>();
+        HashMap<Envelope, ArrayList<Long>> envelopes = new HashMap<>();
+
+        @Override
+        public void accept(Result result) {
+            while (result.hasNext()) {
+                Node geom = (Node) result.next().get("node");
+                double[] bbox = (double[]) geom.getProperty("bbox");
+                Envelope env = new Envelope(bbox[0], bbox[1], bbox[2], bbox[3]);
+                Relationship geomRel = geom.getSingleRelationship(OSMRelation.GEOM, Direction.INCOMING);
+                if (geomRel == null) {
+                    System.out.printf("Geometry node %d has no attached model node%n", geom.getId());
+                } else {
+                    Node node = geomRel.getStartNode();
+                    nodeIds.add(node.getId());
+                    ArrayList<Long> envNodes = envelopes.computeIfAbsent(env, k -> new ArrayList<>());
+                    envNodes.add(node.getId());
+                    Map<String, Object> properties = node.getAllProperties();
+                    boolean found = false;
+                    for (String osmIdKey : new String[]{PROP_NODE_ID, PROP_WAY_ID, PROP_RELATION_ID}) {
+                        if (!found) {
+                            if (properties.containsKey(osmIdKey)) {
+                                found = true;
+                                long osmId = (Long) node.getProperty(osmIdKey);
+                                osmIds.put(osmId, node.getId());
+                            }
+                        }
+                    }
+                    if (!found) {
+                        StringBuilder sb = new StringBuilder();
+                        for (Label label : node.getLabels()) {
+                            if (sb.length() > 0) {
+                                sb.append(",");
+                            }
+                            sb.append(label.name());
+                        }
+                        System.out.printf("Found no OSM id in node %d (%s)%n", node.getId(), sb);
+                    }
+                }
+            }
+        }
+
+        public void debug(String name) {
+            System.out.printf("Results for '%s':%n", name);
+            System.out.printf("\t%d node ids%n", nodeIds.size());
+            System.out.printf("\t%d OSM ids%n", osmIds.size());
+            System.out.printf("\t%d envelops%n", envelopes.size());
+            for (Envelope env : envelopes.keySet()) {
+                List<Long> ids = envelopes.get(env);
+                if (ids.size() > 1) {
+                    System.out.printf("\t\t%d entries found in %s%n", ids.size(), env);
+                }
+            }
+        }
+
+        public void shouldContain(NodeIdRecorder expected) {
+            ArrayList<Long> missing = new ArrayList<>();
+            ArrayList<Long> found = new ArrayList<>();
+            for (long bid : expected.osmIds.keySet()) {
+                if (!this.osmIds.containsKey(bid)) {
+                    //System.out.printf("Failed to find expected node %d in results%n", bid);
+                    missing.add(bid);
+                } else {
+                    found.add(bid);
+                }
+            }
+            System.out.printf("There were %d/%d found nodes%n", found.size(), this.nodeIds.size());
+            System.out.printf("There were %d/%d missing nodes%n", missing.size(), this.nodeIds.size());
+        }
+    }
+
     @Test
-    public void should_not_but_still_fail_to_merge_OSM_into_OSM() {
+    public void should_not_fail_to_merge_OSM_into_very_similar_OSM() {
         for (String name : new String[]{"osmA", "osmB"}) {
             execute("CALL spatial.addLayer($name,'OSM','')", map("name", name));
-            testCountQuery("importOSMToLayerAndAddGeometry", "CALL spatial.importOSMToLayer($name,'map.osm')", 55, "count", map("name", name));
+            testCountQuery("should_not_fail_to_merge_OSM_into_very_similar_OSM.importOSMToLayer('" + name + "')", "CALL spatial.importOSMToLayer($name,'map.osm')", 55, "count", map("name", name));
             testCallCount(db, "CALL spatial.withinDistance($name,{lon:$lon,lat:$lat},100)", map("name", name, "lon", 15.2, "lat", 60.1), 0);
             testCallCount(db, "CALL spatial.withinDistance($name,{lon:6.3740429666,lat:50.93676351666},1000)", map("name", name), 217);
         }
@@ -1158,15 +1232,26 @@ public class SpatialProceduresTest {
         testCall(db, "CALL spatial.withinDistance($name,{lon:$lon,lat:$lat},100)", map("name", "osmB", "lon", 15.2, "lat", 60.1), r -> assertEquals(node, r.get("node")));
         testCallCount(db, "CALL spatial.withinDistance($name,{lon:$lon,lat:$lat},100)", map("name", "osmB", "lon", 15.2, "lat", 60.1), 1);
         testCallCount(db, "CALL spatial.withinDistance($name,{lon:6.3740429666,lat:50.93676351666},1000)", map("name", "osmB"), 217);
+        NodeIdRecorder bnodesFound = new NodeIdRecorder();
+        testResult(db, "CALL spatial.withinDistance($name,{lon:6.3740429666,lat:50.93676351666},1000)", map("name", "osmB"), bnodesFound);
+        bnodesFound.debug("withinDistance('osmB')");
 
         // Assert that osmA does not have the extra node
         testCallCount(db, "CALL spatial.withinDistance($name,{lon:$lon,lat:$lat},100)", map("name", "osmB", "lon", 15.2, "lat", 60.1), 1);
 
         // try merge osmB into osmA - should succeed, but does not yet
-        testCallFails(db, "CALL spatial.merge.into($nameA,$nameB)", map("nameA", "osmA", "nameB", "osmB"), "Not implemented");
+        testCall(db, "CALL spatial.merge.into($nameA,$nameB)", map("nameA", "osmA", "nameB", "osmB"), r -> assertEquals(1L, r.get("count")));
+
+        // Extra debugging to find differences
+        NodeIdRecorder anodesFound = new NodeIdRecorder();
+        testResult(db, "CALL spatial.withinDistance($name,{lon:6.3740429666,lat:50.93676351666},1000)", map("name", "osmA"), anodesFound);
+        anodesFound.debug("withinDistance('osmA'+'osmB')");
+        anodesFound.shouldContain(bnodesFound);
 
         // Here we should assert that osmA now does have the extra node
-        //.....
+        testCallCount(db, "CALL spatial.withinDistance($name,{lon:6.3740429666,lat:50.93676351666},1000)", map("name", "osmA"), 217);
+        testCallCount(db, "CALL spatial.withinDistance($name,{lon:6.3740429666,lat:50.93676351666},1000)", map("name", "osmB"), 0);
+        testCallCount(db, "CALL spatial.withinDistance($name,{lon:$lon,lat:$lat},100)", map("name", "osmA", "lon", 15.2, "lat", 60.1), 1);
     }
 
     @Test

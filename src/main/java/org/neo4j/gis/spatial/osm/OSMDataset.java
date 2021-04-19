@@ -23,10 +23,8 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.*;
-import org.neo4j.graphdb.Direction;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.*;
+import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
@@ -83,19 +81,19 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
         TraversalDescription td = new MonoDirectionalTraversalDescription()
                 .depthFirst()
                 .relationships(OSMRelation.USERS, Direction.OUTGOING)
-                .relationships(OSMRelation.OSM_USER, Direction.OUTGOING)
-                .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(OSMRelation.OSM_USER));
-        return td.traverse(tx.getNodeById(datasetNodeId)).nodes();
+                .relationships(OSMRelation.NEXT, Direction.OUTGOING)
+                .evaluator(Evaluators.excludeStartPosition());
+        return td.traverse(getDatasetNode(tx)).nodes();
     }
 
     public Iterable<Node> getAllChangesetNodes(Transaction tx) {
         TraversalDescription td = new MonoDirectionalTraversalDescription()
                 .depthFirst()
                 .relationships(OSMRelation.USERS, Direction.OUTGOING)
-                .relationships(OSMRelation.OSM_USER, Direction.OUTGOING)
+                .relationships(OSMRelation.NEXT, Direction.OUTGOING)
                 .relationships(OSMRelation.USER, Direction.INCOMING)
                 .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(OSMRelation.USER));
-        return td.traverse(tx.getNodeById(datasetNodeId)).nodes();
+        return td.traverse(getDatasetNode(tx)).nodes();
     }
 
     public Iterable<Node> getAllWayNodes(Transaction tx) {
@@ -104,7 +102,7 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
                 .relationships(OSMRelation.WAYS, Direction.OUTGOING)
                 .relationships(OSMRelation.NEXT, Direction.OUTGOING)
                 .evaluator(Evaluators.excludeStartPosition());
-        return td.traverse(tx.getNodeById(datasetNodeId)).nodes();
+        return td.traverse(getDatasetNode(tx)).nodes();
     }
 
     public Iterable<Node> getAllPointNodes(Transaction tx) {
@@ -115,7 +113,7 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
                 .relationships(OSMRelation.FIRST_NODE, Direction.OUTGOING)
                 .relationships(OSMRelation.NODE, Direction.OUTGOING)
                 .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(OSMRelation.NODE));
-        return td.traverse(tx.getNodeById(datasetNodeId)).nodes();
+        return td.traverse(getDatasetNode(tx)).nodes();
     }
 
     public Iterable<Node> getWayNodes(Node way) {
@@ -146,6 +144,29 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
                 .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(OSMRelation.USER));
         Iterator<Node> results = td.traverse(nodeWayOrChangeset).nodes().iterator();
         return results.hasNext() ? results.next() : null;
+    }
+
+    public Node getDatasetNode(Transaction tx) {
+        return tx.getNodeById(datasetNodeId);
+    }
+
+    public Node getFirstNodeInChain(Transaction tx, RelationshipType relType) {
+        Relationship chain = getDatasetNode(tx).getSingleRelationship(relType, Direction.OUTGOING);
+        return chain == null ? null : chain.getEndNode();
+    }
+
+    public Node getLastNodeInChain(Transaction tx, RelationshipType relType) {
+        Relationship chain = getDatasetNode(tx).getSingleRelationship(relType, Direction.OUTGOING);
+        if (chain == null) {
+            return null;
+        } else {
+            Node last;
+            do {
+                last = chain.getEndNode();
+                chain = last.getSingleRelationship(OSMRelation.NEXT, Direction.OUTGOING);
+            } while (chain != null);
+            return last;
+        }
     }
 
     public Way getWayFromId(Transaction tx, long id) {
@@ -353,5 +374,37 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
 
     public int getUserCount(Transaction tx) {
         return (Integer) tx.getNodeById(this.datasetNodeId).getProperty("userCount", 0);
+    }
+
+    public String getIndexName(Transaction tx, Label label, String propertyKey) {
+        Node datasetNode = tx.getNodeById(this.datasetNodeId);
+        String indexKey = indexKeyFor(label, propertyKey);
+        return (String) datasetNode.getProperty(indexKey, null);
+    }
+
+    public IndexDefinition getIndex(Transaction tx, Label label, String propertyKey) {
+        String indexName = getIndexName(tx, label, propertyKey);
+        if (indexName == null) {
+            throw new IllegalArgumentException(String.format("OSM Dataset '%s' does not have an index for label '%s' and property '%s'", this.layer.getName(), label.name(), propertyKey));
+        } else {
+            return tx.schema().getIndexByName(indexName);
+        }
+    }
+
+    public static String indexKeyFor(Label label, String propertyKey) {
+        return String.format("Index:%s:%s", label.name(), propertyKey);
+    }
+
+    public static String indexNameFor(String layerName, String hashedLabel, String propertyKey) {
+        return String.format("OSM-%s-%s-%s", layerName, hashedLabel, propertyKey);
+    }
+
+    public static Label hashedLabelFrom(String indexName) {
+        String[] fields = indexName.split("-");
+        if (fields.length == 4) {
+            return Label.label(fields[2]);
+        } else {
+            throw new IllegalArgumentException(String.format("Index name '%s' is not correctly formatted - cannot extract label hash", indexName));
+        }
     }
 }

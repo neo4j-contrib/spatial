@@ -30,6 +30,8 @@ import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.graphdb.*;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
+import javax.management.relation.Relation;
+
 /**
  * Instances of this class represent the primary layer of the OSM Dataset. It
  * extends the DynamicLayer class because the OSM dataset can have many layers.
@@ -79,28 +81,35 @@ public class OSMLayer extends DynamicLayer implements MergeUtils.Mergeable {
     public Node addWay(Transaction tx, Node way, boolean verifyGeom) {
         Relationship geomRel = way.getSingleRelationship(OSMRelation.GEOM, Direction.OUTGOING);
         if (geomRel != null) {
-            Node geomNode = geomRel.getEndNode();
-            try {
-                // This is a test of the validity of the geometry, throws exception on error
-                if (verifyGeom)
-                    getGeometryEncoder().decodeGeometry(geomNode);
-                indexWriter.add(tx, geomNode);
-            } catch (Exception e) {
-                System.err.println("Failed geometry test on node " + geomNode.getProperty("name", geomNode.toString()) + ": "
-                        + e.getMessage());
-                for (String key : geomNode.getPropertyKeys()) {
-                    System.err.println("\t" + key + ": " + geomNode.getProperty(key));
-                }
+            return addGeomNode(tx, geomRel.getEndNode(), verifyGeom);
+        } else {
+            return null;
+        }
+    }
+
+    public Node addGeomNode(Transaction tx, Node geomNode, boolean verifyGeom) {
+        try {
+            // This is a test of the validity of the geometry, throws exception on error
+            if (verifyGeom)
+                getGeometryEncoder().decodeGeometry(geomNode);
+            indexWriter.add(tx, geomNode);
+        } catch (Exception e) {
+            System.err.printf("Failed geometry test on node '%s': %s%n", geomNode.getProperty("name", geomNode.toString()), e.getMessage());
+            for (String key : geomNode.getPropertyKeys()) {
+                System.err.println("\t" + key + ": " + geomNode.getProperty(key));
+            }
+            Relationship geomRel = geomNode.getSingleRelationship(OSMRelation.GEOM, Direction.INCOMING);
+            if (geomRel != null) {
+                Node way = geomRel.getStartNode();
                 System.err.println("For way node " + way);
                 for (String key : way.getPropertyKeys()) {
                     System.err.println("\t" + key + ": " + way.getProperty(key));
                 }
-                // e.printStackTrace(System.err);
+            } else {
+                System.err.printf("Geometry node %d has no connected OSM model node%n", geomNode.getId());
             }
-            return geomNode;
-        } else {
-            return null;
         }
+        return geomNode;
     }
 
     /**
@@ -266,7 +275,8 @@ public class OSMLayer extends DynamicLayer implements MergeUtils.Mergeable {
     @Override
     public long mergeFrom(Transaction tx, EditableLayer other) {
         if (other instanceof OSMLayer) {
-            throw new UnsupportedOperationException("Not implemented");
+            OSMMerger merger = new OSMMerger(this);
+            return merger.merge(tx, (OSMLayer) other);
         } else {
             throw new IllegalArgumentException("Cannot merge non-OSM layer into OSM layer: '" + other.getName() + "' is not OSM");
         }

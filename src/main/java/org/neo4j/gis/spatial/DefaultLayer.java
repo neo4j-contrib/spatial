@@ -32,7 +32,6 @@ import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.utilities.GeotoolsAdapter;
-import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -51,8 +50,12 @@ import java.util.*;
  * on the SpatialDatabaseService for correct initialization.
  */
 public class DefaultLayer implements Constants, Layer, SpatialDataset {
-
-    // Public methods
+    private String name;
+    protected Long layerNodeId = -1L;
+    private GeometryEncoder geometryEncoder;
+    private GeometryFactory geometryFactory;
+    protected LayerIndexReader indexReader;
+    protected SpatialIndexWriter indexWriter;
 
     public String getName() {
         return name;
@@ -262,23 +265,6 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         layerNode.delete();
         layerNodeId = -1L;
     }
-
-    // Private methods
-
-//    protected GraphDatabaseService getDatabase() {
-//        return spatialDatabase.getDatabase();
-//    }
-
-
-    // Attributes
-
-    //private SpatialDatabaseService spatialDatabase;
-    private String name;
-    protected Long layerNodeId = -1L;
-    private GeometryEncoder geometryEncoder;
-    private GeometryFactory geometryFactory;
-    protected LayerIndexReader indexReader;
-    protected SpatialIndexWriter indexWriter;
 
     public SpatialDataset getDataset() {
         return this;
