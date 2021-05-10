@@ -172,7 +172,7 @@ public class OsmAnalysisTest extends TestOSMImport {
             for (Node cNode : dataset.getAllChangesetNodes(tx)) {
                 long timestamp = (Long) cNode.getProperty("timestamp", 0L);
                 Node userNode = dataset.getUser(cNode);
-                String name = (String) userNode.getProperty("name");
+                String name = (String) userNode.getProperty("user");
 
                 User user = userIndex.get(name);
                 if (user == null) {

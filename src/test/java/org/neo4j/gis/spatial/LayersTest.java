@@ -231,7 +231,6 @@ public class LayersTest {
         testSpecificEditableLayer("test OSM layer with OSM encoder", OSMGeometryEncoder.class, OSMLayer.class);
         testSpecificEditableLayer("test editable layer with property encoder", SimplePropertyEncoder.class, EditableLayerImpl.class);
         testSpecificEditableLayer("test editable layer with graph encoder", SimpleGraphEncoder.class, EditableLayerImpl.class);
-        testSpecificEditableLayer("test editable layer with OSM encoder", OSMGeometryEncoder.class, EditableLayerImpl.class);
     }
 
     private String testSpecificEditableLayer(String layerName, Class<? extends GeometryEncoder> geometryEncoderClass, Class<? extends Layer> layerClass) {

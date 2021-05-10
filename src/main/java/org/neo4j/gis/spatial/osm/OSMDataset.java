@@ -38,7 +38,7 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
     private final long datasetNodeId;
     private Iterator<Node> wayNodeIterator;
 
-    public OSMDataset(OSMLayer layer, long datasetNodeId) {
+    private OSMDataset(OSMLayer layer, long datasetNodeId) {
         this.layer = layer;
         this.datasetNodeId = datasetNodeId;
         this.layer.setDataset(this);
@@ -70,7 +70,10 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
     public static OSMDataset fromLayer(Transaction tx, OSMLayer layer) {
         Relationship rel = layer.getLayerNode(tx).getSingleRelationship(SpatialRelationshipTypes.LAYERS, Direction.INCOMING);
         if (rel == null) {
-            throw new SpatialDatabaseException("Layer '" + layer + "' does not have an associated dataset");
+            Node datasetNode = tx.createNode(OSMModel.LABEL_DATASET);
+            datasetNode.setProperty("name", layer.getName());
+            datasetNode.setProperty("type", "osm");
+            return new OSMDataset(layer, datasetNode.getId());
         } else {
             long datasetNodeId = rel.getStartNode().getId();
             return new OSMDataset(layer, datasetNodeId);
