@@ -33,6 +33,7 @@ import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.utilities.GeotoolsAdapter;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
@@ -223,7 +224,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         } else {
             this.geometryEncoder = new WKBGeometryEncoder();
         }
-        this.geometryEncoder.init(this);
+        this.geometryEncoder.init(tx, this);
 
         // index must be created *after* geometryEncoder
         if (layerNode.hasProperty(PROP_INDEX_CLASS)) {
@@ -262,6 +263,10 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
     public void delete(Transaction tx, Listener monitor) {
         indexWriter.removeAll(tx, true, monitor);
         Node layerNode = getLayerNode(tx);
+        for (Relationship rel : layerNode.getRelationships()) {
+            System.out.printf("Unexpected relationship in layer %s: %s%n", getName(), rel);
+            rel.delete();
+        }
         layerNode.delete();
         layerNodeId = -1L;
     }

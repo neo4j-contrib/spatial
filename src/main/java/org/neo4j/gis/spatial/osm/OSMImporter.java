@@ -23,6 +23,7 @@ import org.geotools.referencing.datum.DefaultEllipsoid;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.gis.spatial.Constants;
+import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.rtree.Envelope;
@@ -40,12 +41,10 @@ import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
-import javax.xml.bind.DatatypeConverter;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
 import java.io.*;
 import java.nio.charset.Charset;
-import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.text.DateFormat;
 import java.text.ParseException;
@@ -209,6 +208,8 @@ public class OSMImporter implements Constants {
             layer = (OSMLayer) spatialDatabase.getOrCreateLayer(tx, layerName, OSMGeometryEncoder.class, OSMLayer.class);
             dataset = OSMDataset.withDatasetId(tx, layer, osm_dataset);
             tx.commit();
+        } catch (Exception e) {
+            throw new SpatialDatabaseException("Failed to re-index layer " + layerName + ": " + e.getMessage(), e);
         }
         try (Transaction tx = beginTx(database)) {
             layer.clear(tx); // clear the index without destroying underlying data
@@ -251,6 +252,8 @@ public class OSMImporter implements Constants {
                 } // TODO ask charset to user?
             }
             tx.commit();
+        } catch (Exception e) {
+            throw new SpatialDatabaseException("Failed to re-index layer " + layerName + ": " + e.getMessage(), e);
         } finally {
             endProgressMonitor();
             tx.close();
@@ -411,7 +414,7 @@ public class OSMImporter implements Constants {
             this.osmImporter = osmImporter;
         }
 
-        static OSMWriter<WrappedNode> fromGraphDatabase(GraphDatabaseService graphDb, SecurityContext securityContext, StatsManager tagStats, GeomStats geomStats, OSMImporter osmImporter, int txInterval) throws NoSuchAlgorithmException {
+        static OSMWriter<WrappedNode> fromGraphDatabase(GraphDatabaseService graphDb, SecurityContext securityContext, StatsManager tagStats, GeomStats geomStats, OSMImporter osmImporter, int txInterval) {
             return new OSMGraphWriter(graphDb, securityContext, tagStats, geomStats, osmImporter, txInterval);
         }
 
@@ -548,9 +551,6 @@ public class OSMImporter implements Constants {
             }
         }
 
-        T prev_way = null;
-        T prev_relation = null;
-        T prev_user = null;
         int nodeCount = 0;
         int poiCount = 0;
         int wayCount = 0;
@@ -617,12 +617,6 @@ public class OSMImporter implements Constants {
             T changesetNode = getChangesetNode(wayProperties, userNode);
             T way = addNode(LABEL_WAY, wayProperties, PROP_WAY_ID);
             createRelationship(way, changesetNode, OSMRelation.CHANGESET);
-            if (prev_way == null) {
-                createRelationship(osm_dataset, way, OSMRelation.WAYS);
-            } else {
-                createRelationship(prev_way, way, OSMRelation.NEXT);
-            }
-            prev_way = way;
             addNodeTags(way, wayTags, "way");
             Envelope bbox = null;
             T firstNode = null;
@@ -699,12 +693,6 @@ public class OSMImporter implements Constants {
                 relationProperties.put("name", name);
             }
             T relation = addNode(LABEL_RELATION, relationProperties, PROP_RELATION_ID);
-            if (prev_relation == null) {
-                createRelationship(osm_dataset, relation, OSMRelation.RELATIONS);
-            } else {
-                createRelationship(prev_relation, relation, OSMRelation.NEXT);
-            }
-            prev_relation = relation;
             addNodeTags(relation, relationTags, "relation");
             // We will test for cases that invalidate multilinestring further down
             GeometryMetaData metaGeom = new GeometryMetaData(GTYPE_MULTILINESTRING);
@@ -864,10 +852,9 @@ public class OSMImporter implements Constants {
         private IndexDefinition relationIndex;
         private IndexDefinition changesetIndex;
         private IndexDefinition userIndex;
-        private final String layerHash;
-        private final HashMap<Label, Label> hashedLabels = new HashMap<>();
+        private final OSMDataset.LabelHasher labelHasher;
 
-        private OSMGraphWriter(GraphDatabaseService graphDb, SecurityContext securityContext, StatsManager tagsStats, GeomStats geomStats, OSMImporter osmImporter, int txInterval) throws NoSuchAlgorithmException {
+        private OSMGraphWriter(GraphDatabaseService graphDb, SecurityContext securityContext, StatsManager tagsStats, GeomStats geomStats, OSMImporter osmImporter, int txInterval) {
             super(tagsStats, geomStats, osmImporter);
             this.graphDb = graphDb;
             this.securityContext = securityContext;
@@ -875,15 +862,12 @@ public class OSMImporter implements Constants {
             if (this.txInterval < 100) {
                 System.err.println("Warning: Unusually short txInterval, expect bad insert performance");
             }
-            this.layerHash = md5Hash(osmImporter.layerName);
+            try {
+                this.labelHasher = new OSMDataset.LabelHasher(osmImporter.layerName);
+            } catch (NoSuchAlgorithmException e) {
+                throw new SpatialDatabaseException("Failed to create OSMGraphWriter for '" + osmImporter.layerName + "': " + e.getMessage(), e);
+            }
             checkTx(null); // Opens transaction for future writes
-        }
-
-        private static String md5Hash(String text) throws NoSuchAlgorithmException {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            md.update(text.getBytes());
-            byte[] digest = md.digest();
-            return DatatypeConverter.printHexBinary(digest).toUpperCase();
         }
 
         private void successTx() {
@@ -913,9 +897,6 @@ public class OSMImporter implements Constants {
         private void beginTx() {
             tx = beginTx(graphDb);
             recoverNode(osm_dataset);
-            recoverNode(prev_user);
-            recoverNode(prev_relation);
-            recoverNode(prev_way);
             recoverNode(currentChangesetNode);
             recoverNode(currentUserNode);
             changesetNodes.forEach((id, node) -> node.refresh(tx));
@@ -945,7 +926,7 @@ public class OSMImporter implements Constants {
         }
 
         private WrappedNode createNodeWithLabel(Transaction tx, Label label) {
-            Label hashed = getLabelHashed(label);
+            Label hashed = labelHasher.getLabelHashed(label);
             return WrappedNode.fromNode(tx.createNode(label, hashed));
         }
 
@@ -979,23 +960,13 @@ public class OSMImporter implements Constants {
             }
         }
 
-        private Label getLabelHashed(Label label) {
-            if (hashedLabels.containsKey(label)) {
-                return hashedLabels.get(label);
-            } else {
-                Label hashed = Label.label(label.name() + "_" + layerHash);
-                hashedLabels.put(label, hashed);
-                return hashed;
-            }
-        }
-
         private Node findNodeByLabelProperty(Transaction tx, Label label, String propertyKey, Object value) {
-            Label hashed = getLabelHashed(label);
+            Label hashed = labelHasher.getLabelHashed(label);
             return tx.findNode(hashed, propertyKey, value);
         }
 
         private IndexDefinition createIndex(Label label, String propertyKey) {
-            Label hashed = getLabelHashed(label);
+            Label hashed = labelHasher.getLabelHashed(label);
             String indexName = OSMDataset.indexNameFor(osmImporter.layerName, hashed.name(), propertyKey);
             IndexDefinition index = findIndex(tx, indexName, hashed, propertyKey);
             if (index == null) {
@@ -1242,12 +1213,6 @@ public class OSMImporter implements Constants {
                         userProps.put(PROP_TIMESTAMP, nodeProps.get(PROP_TIMESTAMP));
                         currentUserNode = addNode(LABEL_USER, userProps, PROP_USER_ID);
                         userCount++;
-                        if (prev_user == null) {
-                            createRelationship(osm_dataset, currentUserNode, OSMRelation.USERS);
-                        } else {
-                            createRelationship(prev_user, currentUserNode, OSMRelation.NEXT);
-                        }
-                        prev_user = currentUserNode;
                     }
                 }
             } catch (Exception e) {

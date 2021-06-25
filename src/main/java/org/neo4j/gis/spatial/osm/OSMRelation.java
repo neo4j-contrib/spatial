@@ -23,5 +23,5 @@ package org.neo4j.gis.spatial.osm;
 import org.neo4j.graphdb.RelationshipType;
 
 public enum OSMRelation implements RelationshipType {
-    FIRST_NODE, LAST_NODE, OTHER, NEXT, OSM, WAYS, RELATIONS, MEMBERS, MEMBER, TAGS, GEOM, BBOX, NODE, CHANGESET, USER, USERS
+    FIRST_NODE, LAST_NODE, OTHER, NEXT, OSM, MEMBERS, MEMBER, TAGS, GEOM, BBOX, NODE, CHANGESET, USER
 }

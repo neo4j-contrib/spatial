@@ -45,7 +45,8 @@ public class MergeUtils {
                 String layerConfig = ((Configurable) layerEncoder).getConfiguration();
                 return mergeConfig.equals(layerConfig);
             } else {
-                return false;
+                // If one is configurable, but not the other, they are not identical
+                return !(mergeEncoder instanceof Configurable || layerEncoder instanceof Configurable);
             }
         }
         return false;

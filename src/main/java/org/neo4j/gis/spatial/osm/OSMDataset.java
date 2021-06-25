@@ -30,18 +30,28 @@ import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 
+import javax.xml.bind.DatatypeConverter;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 
 public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
     private final OSMLayer layer;
     private final long datasetNodeId;
     private Iterator<Node> wayNodeIterator;
+    private final LabelHasher labelHasher;
 
     private OSMDataset(OSMLayer layer, long datasetNodeId) {
         this.layer = layer;
         this.datasetNodeId = datasetNodeId;
         this.layer.setDataset(this);
+        try {
+            this.labelHasher = new LabelHasher(layer.getName());
+        } catch (NoSuchAlgorithmException e) {
+            throw new SpatialDatabaseException("Failed to initialize OSM dataset '" + layer.getName() + "': " + e.getMessage(), e);
+        }
     }
 
     /**
@@ -73,6 +83,7 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
             Node datasetNode = tx.createNode(OSMModel.LABEL_DATASET);
             datasetNode.setProperty("name", layer.getName());
             datasetNode.setProperty("type", "osm");
+            datasetNode.createRelationshipTo(layer.getLayerNode(tx), SpatialRelationshipTypes.LAYERS);
             return new OSMDataset(layer, datasetNode.getId());
         } else {
             long datasetNodeId = rel.getStartNode().getId();
@@ -81,42 +92,19 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
     }
 
     public Iterable<Node> getAllUserNodes(Transaction tx) {
-        TraversalDescription td = new MonoDirectionalTraversalDescription()
-                .depthFirst()
-                .relationships(OSMRelation.USERS, Direction.OUTGOING)
-                .relationships(OSMRelation.NEXT, Direction.OUTGOING)
-                .evaluator(Evaluators.excludeStartPosition());
-        return td.traverse(getDatasetNode(tx)).nodes();
+        return () -> tx.findNodes(labelHasher.getLabelHashed(OSMModel.LABEL_USER));
     }
 
     public Iterable<Node> getAllChangesetNodes(Transaction tx) {
-        TraversalDescription td = new MonoDirectionalTraversalDescription()
-                .depthFirst()
-                .relationships(OSMRelation.USERS, Direction.OUTGOING)
-                .relationships(OSMRelation.NEXT, Direction.OUTGOING)
-                .relationships(OSMRelation.USER, Direction.INCOMING)
-                .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(OSMRelation.USER));
-        return td.traverse(getDatasetNode(tx)).nodes();
+        return () -> tx.findNodes(labelHasher.getLabelHashed(OSMModel.LABEL_CHANGESET));
     }
 
     public Iterable<Node> getAllWayNodes(Transaction tx) {
-        TraversalDescription td = new MonoDirectionalTraversalDescription()
-                .depthFirst()
-                .relationships(OSMRelation.WAYS, Direction.OUTGOING)
-                .relationships(OSMRelation.NEXT, Direction.OUTGOING)
-                .evaluator(Evaluators.excludeStartPosition());
-        return td.traverse(getDatasetNode(tx)).nodes();
+        return () -> tx.findNodes(labelHasher.getLabelHashed(OSMModel.LABEL_WAY));
     }
 
     public Iterable<Node> getAllPointNodes(Transaction tx) {
-        TraversalDescription td = new MonoDirectionalTraversalDescription()
-                .depthFirst()
-                .relationships(OSMRelation.WAYS, Direction.OUTGOING)
-                .relationships(OSMRelation.NEXT, Direction.OUTGOING)
-                .relationships(OSMRelation.FIRST_NODE, Direction.OUTGOING)
-                .relationships(OSMRelation.NODE, Direction.OUTGOING)
-                .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(OSMRelation.NODE));
-        return td.traverse(getDatasetNode(tx)).nodes();
+        return () -> tx.findNodes(labelHasher.getLabelHashed(OSMModel.LABEL_NODE));
     }
 
     public Iterable<Node> getWayNodes(Node way) {
@@ -151,25 +139,6 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
 
     public Node getDatasetNode(Transaction tx) {
         return tx.getNodeById(datasetNodeId);
-    }
-
-    public Node getFirstNodeInChain(Transaction tx, RelationshipType relType) {
-        Relationship chain = getDatasetNode(tx).getSingleRelationship(relType, Direction.OUTGOING);
-        return chain == null ? null : chain.getEndNode();
-    }
-
-    public Node getLastNodeInChain(Transaction tx, RelationshipType relType) {
-        Relationship chain = getDatasetNode(tx).getSingleRelationship(relType, Direction.OUTGOING);
-        if (chain == null) {
-            return null;
-        } else {
-            Node last;
-            do {
-                last = chain.getEndNode();
-                chain = last.getSingleRelationship(OSMRelation.NEXT, Direction.OUTGOING);
-            } while (chain != null);
-            return last;
-        }
     }
 
     public Way getWayFromId(Transaction tx, long id) {
@@ -408,6 +377,32 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
             return Label.label(fields[2]);
         } else {
             throw new IllegalArgumentException(String.format("Index name '%s' is not correctly formatted - cannot extract label hash", indexName));
+        }
+    }
+
+    public static class LabelHasher {
+        private final String layerHash;
+        private final HashMap<Label, Label> hashedLabels = new HashMap<>();
+
+        public LabelHasher(String layerName) throws NoSuchAlgorithmException {
+            this.layerHash = md5Hash(layerName);
+        }
+
+        public Label getLabelHashed(Label label) {
+            if (hashedLabels.containsKey(label)) {
+                return hashedLabels.get(label);
+            } else {
+                Label hashed = Label.label(label.name() + "_" + layerHash);
+                hashedLabels.put(label, hashed);
+                return hashed;
+            }
+        }
+
+        public static String md5Hash(String text) throws NoSuchAlgorithmException {
+            MessageDigest md = MessageDigest.getInstance("MD5");
+            md.update(text.getBytes());
+            byte[] digest = md.digest();
+            return DatatypeConverter.printHexBinary(digest).toUpperCase();
         }
     }
 }

@@ -158,7 +158,7 @@ public class OsmAnalysisTest extends TestOSMImport {
         shutdownDatabase();
     }
 
-    public void testAnalysis2(String osm, int years, int days) throws IOException {
+    public void testAnalysis2(String osm, int years, int days) throws Exception {
         SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
         LinkedHashMap<DynamicLayerConfig, Long> slides = new LinkedHashMap<>();
         Map<String, User> userIndex = new HashMap<>();
@@ -270,16 +270,16 @@ public class OsmAnalysisTest extends TestOSMImport {
     }
 
     public void testAnalysis(String osm) throws Exception {
+        SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
         SortedMap<String, Layer> layers;
         ReferencedEnvelope bbox;
         try (Transaction tx = graphDb().beginTx()) {
-            Node osmImport = tx.findNode(OSMModel.LABEL_DATASET, "name", osm);
-            Node firstUser = osmImport.getSingleRelationship(OSMRelation.USERS, Direction.OUTGOING).getEndNode();
+            OSMLayer layer = (OSMLayer) spatial.getLayer(tx, osm);
+            OSMDataset dataset = OSMDataset.fromLayer(tx, layer);
 
-            Map<String, User> userIndex = collectUserChangesetData(firstUser);
+            Map<String, User> userIndex = collectUserChangesetData(dataset.getAllUserNodes(tx));
             SortedSet<User> topTen = getTopTen(userIndex);
 
-            SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
             layers = exportPoints(tx, osm, spatial, topTen);
 
             layers = removeEmptyLayers(tx, layers);
@@ -428,9 +428,9 @@ public class OsmAnalysisTest extends TestOSMImport {
         return topTen;
     }
 
-    private Map<String, User> collectUserChangesetData(Node userNode) {
+    private Map<String, User> collectUserChangesetData(Iterable<Node> userNodes) {
         Map<String, User> userIndex = new HashMap<>();
-        while(userNode != null) {
+        for (Node userNode : userNodes) {
             String name = (String) userNode.getProperty("name");
             User user = new User(userNode.getId(), name);
             userIndex.put(name, user);
@@ -440,8 +440,6 @@ public class OsmAnalysisTest extends TestOSMImport {
                     user.changesets.add(node.getId());
                 }
             }
-            Relationship nextRel = userNode.getSingleRelationship(OSMRelation.NEXT, Direction.OUTGOING);
-            userNode = nextRel == null ? null : nextRel.getEndNode();
         }
         return userIndex;
     }

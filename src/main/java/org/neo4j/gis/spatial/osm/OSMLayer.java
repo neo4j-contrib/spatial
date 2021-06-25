@@ -23,6 +23,7 @@ import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.json.simple.JSONObject;
 import org.neo4j.gis.spatial.*;
 import org.neo4j.gis.spatial.merge.MergeUtils;
+import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
@@ -65,6 +66,17 @@ public class OSMLayer extends DynamicLayer implements MergeUtils.Mergeable {
 
     protected void clear(Transaction tx) {
         indexWriter.clear(tx, new NullListener());
+    }
+
+    @Override
+    public void delete(Transaction tx, Listener monitor) {
+        Relationship datasetRel = this.getLayerNode(tx).getSingleRelationship(SpatialRelationshipTypes.LAYERS, Direction.INCOMING);
+        if (datasetRel != null) {
+            Node datasetNode = datasetRel.getStartNode();
+            datasetRel.delete();
+            datasetNode.delete();
+        }
+        super.delete(tx, monitor);
     }
 
     public Node addWay(Transaction tx, Node way, boolean verifyGeom) {
@@ -262,8 +274,12 @@ public class OSMLayer extends DynamicLayer implements MergeUtils.Mergeable {
     @Override
     public long mergeFrom(Transaction tx, EditableLayer other) {
         if (other instanceof OSMLayer) {
-            OSMMerger merger = new OSMMerger(this);
-            return merger.merge(tx, (OSMLayer) other);
+            try {
+                OSMMerger merger = new OSMMerger(this);
+                return merger.merge(tx, (OSMLayer) other);
+            } catch (Exception e) {
+                throw new SpatialDatabaseException("Failed to merge OSM layer " + other.getName() + " into " + this.getName() + ": " + e.getMessage(), e);
+            }
         } else {
             throw new IllegalArgumentException("Cannot merge non-OSM layer into OSM layer: '" + other.getName() + "' is not OSM");
         }

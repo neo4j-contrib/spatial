@@ -254,10 +254,10 @@ public class TestSpatial extends Neo4jTestCase {
         SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
         try (Transaction tx = graphDb().beginTx()) {
             Layer layer = spatial.getLayer(tx, layerName);
-            OSMDataset.fromLayer(tx, (OSMLayer) layer); // force lookup
             if (layer == null || layer.getIndex() == null || layer.getIndex().count(tx) < 1) {
                 fail("Layer not loaded: " + layerName);
             }
+            OSMDataset.fromLayer(tx, (OSMLayer) layer); // force lookup
 
             LayerIndexReader fakeIndex = new SpatialIndexPerformanceProxy(new FakeIndex(layer, spatial.indexManager));
             LayerIndexReader rtreeIndex = new SpatialIndexPerformanceProxy(layer.getIndex());
@@ -341,6 +341,8 @@ public class TestSpatial extends Neo4jTestCase {
 
             System.out.println("Total time for index test: " + 1.0 * (System.currentTimeMillis() - start) / 1000.0 + "s");
             tx.commit();
+        } catch (Exception e) {
+            throw new SpatialDatabaseException("Failed to run index test: " + e.getMessage(), e);
         }
     }
 

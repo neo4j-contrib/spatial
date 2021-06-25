@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial.osm;
 import org.locationtech.jts.algorithm.ConvexHull;
 import org.locationtech.jts.geom.*;
 import org.neo4j.gis.spatial.AbstractGeometryEncoder;
+import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.rtree.Envelope;
@@ -37,11 +38,14 @@ import static org.neo4j.gis.spatial.utilities.TraverserFactory.createTraverserIn
 
 public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 
+    public static final String PROP_MAX_FAKE_NODE_ID = "max_fake_node_osm_id";
+    public static final String PROP_MAX_FAKE_WAY_ID = "max_fake_way_osm_id";
+    public static final String PROP_MAX_FAKE_RELATION_ID = "max_fake_relation_osm_id";
     private static int decodedCount = 0;
     private static int overrunCount = 0;
-    private static int nodeId = 0;
-    private static int wayId = 0;
-    private static int relationId = 0;
+    private FakeOSMId fake_node_osm_id = new FakeOSMId(PROP_MAX_FAKE_NODE_ID);
+    private FakeOSMId fake_way_osm_id = new FakeOSMId(PROP_MAX_FAKE_WAY_ID);
+    private FakeOSMId fake_relation_osm_id = new FakeOSMId(PROP_MAX_FAKE_RELATION_ID);
     private DateFormat dateTimeFormatter;
     private int vertices;
     private int vertexMismatches = 0;
@@ -97,6 +101,45 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
         }
     }
 
+    /**
+     * This class tracks fake OSM ids.
+     * Since this encoder can create geometries outside of OpenStreetMap itself,
+     * it needs to generate fake ids. The convention used here is to start at -1
+     * and decrement with each addition. The use of negative numbers ensures that
+     * we never re-use an ID from real OpenStreetMap.
+     * To allow server restarts, we also save the current ID on every create,
+     * and restore the max ID when initializing the layer.
+     */
+    private static class FakeOSMId {
+        private final String propertyKey;
+        private long osm_id;
+
+        private FakeOSMId(String propertyKey) {
+            this.propertyKey = propertyKey;
+            this.osm_id = 0;
+        }
+
+        private void init(Node layerNode) {
+            if (layerNode != null) {
+                if (layerNode.hasProperty(propertyKey)) {
+                    osm_id = (Long) layerNode.getProperty(propertyKey);
+                }
+            }
+        }
+
+        private void save(Node layerNode, long osm_id) {
+            this.osm_id = osm_id;
+            layerNode.setProperty(propertyKey, osm_id);
+        }
+
+        private long next(Transaction tx, Layer layer) {
+            osm_id++;
+            Node layerNode = layer.getLayerNode(tx);
+            layerNode.setProperty(propertyKey, osm_id);
+            return -osm_id;
+        }
+    }
+
     public static class OSMGraphException extends SpatialDatabaseException {
         private static final long serialVersionUID = -6892234738075001044L;
 
@@ -114,6 +157,25 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
             throw new OSMGraphException("Cannot decode non-node geometry: " + container);
         }
         return (Node) container;
+    }
+
+    /**
+     * Mostly for testing, this method allows pre-seeding the fake OSM-ids with starting values
+     */
+    public void configure(Transaction tx, long nodeId, long wayId, long relId) {
+        Node layerNode = layer.getLayerNode(tx);
+        fake_node_osm_id.save(layerNode, nodeId);
+        fake_way_osm_id.save(layerNode, wayId);
+        fake_relation_osm_id.save(layerNode, relId);
+    }
+
+    @Override
+    public void init(Transaction tx, Layer layer) {
+        super.init(tx, layer);
+        Node layerNode = this.layer.getLayerNode(tx);
+        fake_node_osm_id.init(layerNode);
+        fake_way_osm_id.init(layerNode);
+        fake_relation_osm_id.init(layerNode);
     }
 
     @Override
@@ -344,31 +406,35 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
     protected void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container) {
         Node geomNode = testIsNode(container);
         vertices = 0;
-        int gtype = SpatialDatabaseService.convertJtsClassToGeometryType(geometry.getClass());
-        switch (gtype) {
-            case GTYPE_POINT:
-                makeOSMNode(tx, geometry, geomNode);
-                break;
-            case GTYPE_LINESTRING:
-            case GTYPE_MULTIPOINT:
-            case GTYPE_POLYGON:
-                makeOSMWay(tx, geometry, geomNode, gtype);
-                break;
-            case GTYPE_MULTILINESTRING:
-            case GTYPE_MULTIPOLYGON:
-                int gsubtype = gtype == GTYPE_MULTIPOLYGON ? GTYPE_POLYGON : GTYPE_LINESTRING;
-                Node relationNode = makeOSMRelation(geometry, geomNode);
-                int num = geometry.getNumGeometries();
-                for (int i = 0; i < num; i++) {
-                    Geometry geom = geometry.getGeometryN(i);
-                    Node wayNode = makeOSMWay(tx, geom, tx.createNode(), gsubtype);
-                    relationNode.createRelationshipTo(wayNode, OSMRelation.MEMBER);
-                }
-                break;
-            default:
-                throw new SpatialDatabaseException("Unsupported geometry: " + geometry.getClass());
+        try {
+            int gtype = SpatialDatabaseService.convertJtsClassToGeometryType(geometry.getClass());
+            switch (gtype) {
+                case GTYPE_POINT:
+                    makeOSMNode(tx, geometry, geomNode);
+                    break;
+                case GTYPE_LINESTRING:
+                case GTYPE_MULTIPOINT:
+                case GTYPE_POLYGON:
+                    makeOSMWay(tx, geometry, geomNode, gtype);
+                    break;
+                case GTYPE_MULTILINESTRING:
+                case GTYPE_MULTIPOLYGON:
+                    int gsubtype = gtype == GTYPE_MULTIPOLYGON ? GTYPE_POLYGON : GTYPE_LINESTRING;
+                    Node relationNode = makeOSMRelation(geometry, geomNode);
+                    int num = geometry.getNumGeometries();
+                    for (int i = 0; i < num; i++) {
+                        Geometry geom = geometry.getGeometryN(i);
+                        Node wayNode = makeOSMWay(tx, geom, tx.createNode(), gsubtype);
+                        relationNode.createRelationshipTo(wayNode, OSMRelation.MEMBER);
+                    }
+                    break;
+                default:
+                    throw new SpatialDatabaseException("Unsupported geometry: " + geometry.getClass());
+            }
+            geomNode.setProperty("vertices", vertices);
+        } catch (Exception e) {
+            throw new SpatialDatabaseException("Failed to encode geometry '" + geometry.getGeometryType() + "': " + e.getMessage(), e);
         }
-        geomNode.setProperty("vertices", vertices);
     }
 
     private void makeOSMNode(Transaction tx, Geometry geometry, Node geomNode) {
@@ -401,17 +467,13 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 
     private Node makeOSMNode(Transaction tx, Coordinate coordinate) {
         vertices++;
-        nodeId++;
-        Node node = tx.createNode(OSMModel.LABEL_NODE);
+        Node node = tx.createNode(LABEL_NODE);
         Label hashed = getLabelHash(tx, LABEL_NODE);
         if (hashed != null) {
             // This allows this node to be found using the same index that the OSMImporter uses
             node.addLabel(hashed);
         }
-        // We need a fake osm-id, but cannot know what positive integers are not used
-        // So we just set it to a negative of the Neo4j nodeId.
-        // This is only unsafe for nodeId=0, but that is certain to be used for other nodes than these.
-        node.setProperty(PROP_NODE_ID, -nodeId);
+        node.setProperty(PROP_NODE_ID, fake_node_osm_id.next(tx, layer));
         node.setProperty(PROP_NODE_LAT, coordinate.y);
         node.setProperty(PROP_NODE_LON, coordinate.x);
         node.setProperty("timestamp", getTimestamp());
@@ -420,10 +482,13 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
     }
 
     private Node makeOSMWay(Transaction tx, Geometry geometry, Node geomNode, int gtype) {
-        wayId++;
-        Node way = tx.createNode();
-        // TODO: Generate a valid osm id
-        way.setProperty(PROP_WAY_ID, wayId);
+        Node way = tx.createNode(LABEL_WAY);
+        Label hashed = getLabelHash(tx, LABEL_WAY);
+        if (hashed != null) {
+            // This allows this node to be found using the same index that the OSMImporter uses
+            way.addLabel(hashed);
+        }
+        way.setProperty(PROP_WAY_ID, fake_way_osm_id.next(tx, layer));
         way.setProperty("timestamp", getTimestamp());
         // TODO: Add other common properties, like changeset, uid, user,
         // version, name
@@ -448,7 +513,6 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 
     @SuppressWarnings("unused")
     private Node makeOSMRelation(Geometry geometry, Node geomNode) {
-        relationId++;
         throw new SpatialDatabaseException("Unimplemented: makeOSMRelation()");
     }
 

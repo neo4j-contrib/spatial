@@ -24,6 +24,7 @@ import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.schema.IndexDefinition;
 
 import java.util.ArrayList;
+import java.util.function.BiConsumer;
 
 import static org.neo4j.gis.spatial.osm.OSMModel.*;
 
@@ -68,19 +69,18 @@ public class OSMMerger {
         otherLayer.clear(tx);
 
         // Merge all OSM nodes
-        MergeStats nodesStats = mergeNodes(tx, dataset.getIndex(tx, LABEL_NODE, PROP_NODE_ID), other.getIndex(tx, LABEL_NODE, PROP_NODE_ID));
+        MergeStats nodesStats = mergeNodes(tx, dataset, other);
 
         // Merge all OSM Ways
-        MergeStats waysStats = mergeWays(tx, dataset, dataset.getIndex(tx, LABEL_WAY, PROP_WAY_ID), other.getIndex(tx, LABEL_WAY, PROP_WAY_ID));
+        MergeStats waysStats = mergeWays(tx, dataset, other);
 
-        // Reconnect OSM ways, changesets and users chain to main layer
-        reconnectChains(tx, dataset, other, OSMRelation.RELATIONS);
-        reconnectChains(tx, dataset, other, OSMRelation.USERS);
+        // Merge all OSM Relations
+        MergeStats relationsStats = mergeRelations(tx, dataset, other);
 
-        // TODO: changesets
+        // TODO: relabel USERS and CHANGESETS
 
         // Reindex if necessary
-        if (nodesStats.needsReindexing() || waysStats.needsReindexing()) {
+        if (nodesStats.needsReindexing() || waysStats.needsReindexing() || relationsStats.needsReindexing()) {
             this.layer.clear(tx);
             OSMImporter.GeomStats stats = new OSMImporter.GeomStats();
             OSMImporter.OSMIndexer indexer = new OSMImporter.OSMIndexer(layer, stats, false);
@@ -93,13 +93,6 @@ public class OSMMerger {
             stats.dumpGeomStats();
         }
         return nodesStats.changed() + waysStats.changed();
-    }
-
-    private void reconnectChains(Transaction tx, OSMDataset dataset, OSMDataset other, RelationshipType relType) {
-        Node lastNode = dataset.getLastNodeInChain(tx, relType);
-        Node nextNode = other.getFirstNodeInChain(tx, relType);
-        nextNode.getSingleRelationship(relType, Direction.INCOMING).delete();
-        lastNode.createRelationshipTo(nextNode, OSMRelation.NEXT);
     }
 
     private static class MergeStats {
@@ -137,7 +130,9 @@ public class OSMMerger {
         }
     }
 
-    private MergeStats mergeNodes(Transaction tx, IndexDefinition thisIndex, IndexDefinition thatIndex) {
+    private MergeStats mergeNodes(Transaction tx, OSMDataset dataset, OSMDataset other) {
+        IndexDefinition thisIndex = dataset.getIndex(tx, LABEL_NODE, PROP_NODE_ID);
+        IndexDefinition thatIndex = other.getIndex(tx, LABEL_NODE, PROP_NODE_ID);
         Label thisLabelHash = OSMDataset.hashedLabelFrom(thisIndex.getName());
         Label thatLabelHash = OSMDataset.hashedLabelFrom(thatIndex.getName());
         ResourceIterator<Node> nodes = tx.findNodes(thatLabelHash);
@@ -186,73 +181,65 @@ public class OSMMerger {
         return stats;
     }
 
-    private MergeStats mergeWays(Transaction tx, OSMDataset dataset, IndexDefinition thisIndex, IndexDefinition thatIndex) {
+    private MergeStats mergeWays(Transaction tx, OSMDataset dataset, OSMDataset other) {
+        IndexDefinition thisIndex = dataset.getIndex(tx, LABEL_WAY, PROP_WAY_ID);
+        IndexDefinition thatIndex = other.getIndex(tx, LABEL_WAY, PROP_WAY_ID);
         Label thisLabelHash = OSMDataset.hashedLabelFrom(thisIndex.getName());
         Label thatLabelHash = OSMDataset.hashedLabelFrom(thatIndex.getName());
-        Node lastWayInChain = dataset.getLastNodeInChain(tx, OSMRelation.WAYS);
-        ResourceIterator<Node> nodes = tx.findNodes(thatLabelHash);
-        MergeStats stats = new MergeStats("ways");
-        OSMGeometryEncoder geometryEncoder = (OSMGeometryEncoder) layer.getGeometryEncoder();
-        while (nodes.hasNext()) {
-            Node thatWay = nodes.next();
-            long way_osm_id = getOSMId(PROP_WAY_ID, thatWay);
-            Node thatGeom = thatWay.getSingleRelationship(OSMRelation.GEOM, Direction.OUTGOING).getEndNode();
-            Envelope thatEnvelope = geometryEncoder.decodeEnvelope(thatGeom);
-            if (way_osm_id != INVALID_OSM_ID) {
-                Node thisWay = tx.findNode(thisLabelHash, PROP_WAY_ID, way_osm_id);
-                if (thisWay != null) {
-                    // TODO: consider getting 'timestamp' and always saving the newest data
-                    stats.countReplaced++;
-                    for (String nodePropKey : thatWay.getPropertyKeys()) {
-                        Object value = thatWay.getProperty(nodePropKey);
-                        thisWay.setProperty(nodePropKey, value);
-                    }
-                    Node thisGeom = thisWay.getSingleRelationship(OSMRelation.GEOM, Direction.OUTGOING).getEndNode();
-                    Envelope thisEnvelope = geometryEncoder.decodeEnvelope(thisGeom);
-                    if (!thisEnvelope.equals(thatEnvelope)) {
-                        stats.countMoved++;
-                        // TODO: merge the two ways by finding overlapping nodes
+        return mergeOSMEntities(tx, "ways", PROP_WAY_ID, thisLabelHash, thatLabelHash, this::wayOverlapMerger);
+    }
+
+    private MergeStats mergeRelations(Transaction tx, OSMDataset dataset, OSMDataset other) {
+        IndexDefinition thisIndex = dataset.getIndex(tx, LABEL_RELATION, PROP_RELATION_ID);
+        IndexDefinition thatIndex = other.getIndex(tx, LABEL_RELATION, PROP_RELATION_ID);
+        Label thisLabelHash = OSMDataset.hashedLabelFrom(thisIndex.getName());
+        Label thatLabelHash = OSMDataset.hashedLabelFrom(thatIndex.getName());
+        return mergeOSMEntities(tx, "relations", PROP_RELATION_ID, thisLabelHash, thatLabelHash, this::relationOverlapMerger);
+    }
+
+    private void wayOverlapMerger(Node thisWay, Node thatWay) {
+        // TODO: Merge ways by sorting nodes
+    }
+
+    private void relationOverlapMerger(Node thisWay, Node thatWay) {
+        // TODO: Merge relations
+    }
+
+    private MergeStats mergeOSMEntities(Transaction tx, String entityName, String propertyKey, Label thisLabelHash, Label thatLabelHash, BiConsumer<Node, Node> overlapMerger) {
+        MergeStats stats = new MergeStats(entityName);
+        try (ResourceIterator<Node> nodes = tx.findNodes(thatLabelHash)) {
+            OSMGeometryEncoder geometryEncoder = (OSMGeometryEncoder) layer.getGeometryEncoder();
+            while (nodes.hasNext()) {
+                Node thatEntityNode = nodes.next();
+                long osm_id = getOSMId(propertyKey, thatEntityNode);
+                if (osm_id != INVALID_OSM_ID) {
+                    Node thisEntityNode = tx.findNode(thisLabelHash, propertyKey, osm_id);
+                    if (thisEntityNode != null) {
+                        // TODO: consider getting 'timestamp' and always saving the newest data
+                        stats.countReplaced++;
+                        for (String nodePropKey : thatEntityNode.getPropertyKeys()) {
+                            Object value = thatEntityNode.getProperty(nodePropKey);
+                            thisEntityNode.setProperty(nodePropKey, value);
+                        }
+                        Node thisGeom = thisEntityNode.getSingleRelationship(OSMRelation.GEOM, Direction.OUTGOING).getEndNode();
+                        Envelope thisEnvelope = geometryEncoder.decodeEnvelope(thisGeom);
+                        Node thatGeom = thatEntityNode.getSingleRelationship(OSMRelation.GEOM, Direction.OUTGOING).getEndNode();
+                        Envelope thatEnvelope = geometryEncoder.decodeEnvelope(thatGeom);
+                        if (!thisEnvelope.equals(thatEnvelope)) {
+                            stats.countMoved++;
+                            overlapMerger.accept(thisEntityNode, thatEntityNode);
+                        }
+                    } else {
+                        stats.countAdded++;
+                        thatEntityNode.addLabel(thisLabelHash);
+                        thatEntityNode.removeLabel(thatLabelHash);
                     }
                 } else {
-                    stats.countAdded++;
-                    extractWayFromChain(thatWay);
-                    thatWay.addLabel(thisLabelHash);
-                    thatWay.removeLabel(thatLabelHash);
-                    if (lastWayInChain == null) {
-                        dataset.getDatasetNode(tx).createRelationshipTo(thatWay, OSMRelation.WAYS);
-                    } else {
-                        lastWayInChain.createRelationshipTo(thatWay, OSMRelation.NEXT);
-                    }
-                    lastWayInChain = thatWay;
+                    System.out.printf("Unexpectedly found OSM %s at %s without property: %s%n", entityName, thatEntityNode, propertyKey);
                 }
-            } else {
-                System.out.println("Unexpectedly found OSM way without property: " + PROP_WAY_ID);
             }
-        }
-        stats.printStats();
-        return stats;
-    }
-
-    private void extractWayFromChain(Node way) {
-        if (!extractWayFromChain(way, OSMRelation.WAYS)) {
-            extractWayFromChain(way, OSMRelation.NEXT);
-        }
-    }
-
-    private boolean extractWayFromChain(Node way, RelationshipType incomingType) {
-        Relationship incomingWays = way.getSingleRelationship(incomingType, Direction.INCOMING);
-        if (incomingWays != null) {
-            Node previous = incomingWays.getStartNode();
-            incomingWays.delete();
-            Relationship outgoingWays = way.getSingleRelationship(OSMRelation.NEXT, Direction.OUTGOING);
-            if (outgoingWays != null) {
-                Node next = outgoingWays.getEndNode();
-                outgoingWays.delete();
-                previous.createRelationshipTo(next, incomingType);
-            }
-            return true;
-        } else {
-            return false;
+            stats.printStats();
+            return stats;
         }
     }
 }
