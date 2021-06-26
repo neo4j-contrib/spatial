@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial.osm;
 
+import org.neo4j.gis.spatial.GeometryEncoder;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.graphdb.*;
 import org.neo4j.graphdb.schema.IndexDefinition;
@@ -221,11 +222,17 @@ public class OSMMerger {
                             Object value = thatEntityNode.getProperty(nodePropKey);
                             thisEntityNode.setProperty(nodePropKey, value);
                         }
-                        Node thisGeom = thisEntityNode.getSingleRelationship(OSMRelation.GEOM, Direction.OUTGOING).getEndNode();
-                        Envelope thisEnvelope = geometryEncoder.decodeEnvelope(thisGeom);
-                        Node thatGeom = thatEntityNode.getSingleRelationship(OSMRelation.GEOM, Direction.OUTGOING).getEndNode();
-                        Envelope thatEnvelope = geometryEncoder.decodeEnvelope(thatGeom);
-                        if (!thisEnvelope.equals(thatEnvelope)) {
+                        Envelope thisEnvelope = getGeometryEnvelope(thisEntityNode, geometryEncoder);
+                        Envelope thatEnvelope = getGeometryEnvelope(thatEntityNode, geometryEncoder);
+                        if (thisEnvelope == null && thatEnvelope == null) {
+                            System.out.printf("While merging OSM %s, found nodes with %s = %d which have no geometry on either original or merge nodes%n", entityName, propertyKey, osm_id);
+                        } else if (thisEnvelope == null) {
+                            System.out.printf("While merging OSM %s, found nodes with %s = %d where the original has no geometry, but the merge node has a geometry%n", entityName, propertyKey, osm_id);
+                            stats.countMoved++;
+                            overlapMerger.accept(thisEntityNode, thatEntityNode);
+                        } else if (thatEnvelope == null) {
+                            System.out.printf("While merging OSM %s, found nodes with %s = %d where the original has a geometry, but the merge node does not%n", entityName, propertyKey, osm_id);
+                        } else if (!thisEnvelope.equals(thatEnvelope)) {
                             stats.countMoved++;
                             overlapMerger.accept(thisEntityNode, thatEntityNode);
                         }
@@ -241,5 +248,10 @@ public class OSMMerger {
             stats.printStats();
             return stats;
         }
+    }
+
+    private Envelope getGeometryEnvelope(Node entityNode, GeometryEncoder geometryEncoder) {
+        Relationship geomRel = entityNode.getSingleRelationship(OSMRelation.GEOM, Direction.OUTGOING);
+        return geomRel == null ? null : geometryEncoder.decodeEnvelope(geomRel.getEndNode());
     }
 }
