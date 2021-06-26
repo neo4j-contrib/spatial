@@ -55,6 +55,7 @@ import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.NoSuchElementException;
 
 import static org.junit.Assert.*;
@@ -667,7 +668,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
      */
     @Documented("unite_all")
     @Test
-    public void unite_all() {
+    public void unite_all() throws ParseException {
         // tag::unite_all[]
         GeoPipeline pipeline = GeoPipeline.start(tx, intersectionLayer).unionAll();
         // end::unite_all[]
@@ -677,9 +678,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
                 .unionAll()
                 .createWellKnownText();
 
-        assertEquals(
-                "POLYGON ((0 0, 0 5, 2 5, 2 6, 4 6, 4 10, 10 10, 10 4, 6 4, 6 2, 5 2, 5 0, 0 0))",
-                pipeline.next().getProperty(tx, "WellKnownText"));
+        assertWKTGeometryEquals(intersectionLayer, pipeline, "POLYGON ((0 0, 0 5, 2 5, 2 6, 4 6, 4 10, 10 10, 10 4, 6 4, 6 2, 5 2, 5 0, 0 0))");
 
         try {
             pipeline.next();
@@ -702,7 +701,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
      */
     @Documented("intersect_all")
     @Test
-    public void intersect_all() {
+    public void intersect_all() throws ParseException {
         // tag::intersect_all[]
         GeoPipeline pipeline = GeoPipeline.start(tx, intersectionLayer).intersectAll();
         // end::intersect_all[]
@@ -712,8 +711,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
                 .intersectAll()
                 .createWellKnownText();
 
-        assertEquals("POLYGON ((4 5, 5 5, 5 4, 4 4, 4 5))",
-                pipeline.next().getProperty(tx, "WellKnownText"));
+        assertWKTGeometryEquals(intersectionLayer, pipeline, "POLYGON ((4 5, 5 5, 5 4, 4 4, 4 5))");
 
         try {
             pipeline.next();
@@ -954,17 +952,11 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
             equalLayer = (EditableLayerImpl) spatial.getOrCreateEditableLayer(tx, "equal");
             equalLayer.setExtraPropertyNames(new String[]{"id", "name"}, tx);
             equalLayer.setCoordinateReferenceSystem(tx, DefaultEngineeringCRS.GENERIC_2D);
-            reader = new WKTReader(intersectionLayer.getGeometryFactory());
-            equalLayer.add(tx, reader.read("POLYGON ((0 0, 0 5, 5 5, 5 0, 0 0))"),
-                    new String[]{"id", "name"}, new Object[]{1, "equal"});
-            equalLayer.add(tx, reader.read("POLYGON ((0 0, 0.1 5, 5 5, 5 0, 0 0))"),
-                    new String[]{"id", "name"}, new Object[]{2, "tolerance"});
-            equalLayer.add(tx, reader.read("POLYGON ((0 5, 5 5, 5 0, 0 0, 0 5))"),
-                    new String[]{"id", "name"}, new Object[]{3,
-                            "different order"});
-            equalLayer.add(tx,
-                    reader.read("POLYGON ((0 0, 0 2, 0 4, 0 5, 5 5, 5 3, 5 2, 5 0, 0 0))"),
-                    new String[]{"id", "name"}, new Object[]{4, "topo equal"});
+            reader = new WKTReader(equalLayer.getGeometryFactory());
+            equalLayer.add(tx, reader.read("POLYGON ((0 0, 0 5, 5 5, 5 0, 0 0))"), new String[]{"id", "name"}, new Object[]{1, "equal"});
+            equalLayer.add(tx, reader.read("POLYGON ((0 0, 0.1 5, 5 5, 5 0, 0 0))"), new String[]{"id", "name"}, new Object[]{2, "tolerance"});
+            equalLayer.add(tx, reader.read("POLYGON ((0 5, 5 5, 5 0, 0 0, 0 5))"), new String[]{"id", "name"}, new Object[]{3, "different order"});
+            equalLayer.add(tx, reader.read("POLYGON ((0 0, 0 2, 0 4, 0 5, 5 5, 5 3, 5 2, 5 0, 0 0))"), new String[]{"id", "name"}, new Object[]{4, "topo equal"});
 
             linesLayer = (EditableLayerImpl) spatial.getOrCreateEditableLayer(tx, "lines");
             linesLayer.setCoordinateReferenceSystem(tx, DefaultEngineeringCRS.GENERIC_2D);
@@ -975,15 +967,25 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
         }
     }
 
-    private static void loadTestOsmData(String layerName, int commitInterval)
-            throws Exception {
+    private static void loadTestOsmData(String layerName, int commitInterval) throws Exception {
         String osmPath = "./" + layerName;
-        System.out.println("\n=== Loading layer " + layerName + " from "
-                + osmPath + " ===");
+        System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
         OSMImporter importer = new OSMImporter(layerName);
-        importer.setCharset(Charset.forName("UTF-8"));
+        importer.setCharset(StandardCharsets.UTF_8);
         importer.importFile(db, osmPath);
         importer.reIndex(db, commitInterval);
+    }
+
+    private void assertWKTGeometryEquals(EditableLayerImpl layer, GeoPipeline pipeline, String expectedWKT) throws ParseException {
+        WKTReader reader = new WKTReader(layer.getGeometryFactory());
+        Geometry expected = reader.read(expectedWKT);
+        Geometry actual = reader.read(pipeline.next().getProperty(tx, "WellKnownText").toString());
+        assertEquals("Expected matching geometry types", expected.getGeometryType(), actual.getGeometryType());
+        assertEquals("Expected matching geometry areas", expected.getArea(), actual.getArea(), 0.000001);
+        // JTS will handle different starting coordinates for matching geometries, so we check with JTS first, and only if that fails run the assertion to get the appropriate error message
+        if (!expected.equals(actual)) {
+            assertEquals("Expected matching geometries", expected, actual);
+        }
     }
 
     @Before
