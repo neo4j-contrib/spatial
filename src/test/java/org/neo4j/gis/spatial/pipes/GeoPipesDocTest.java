@@ -19,12 +19,6 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.Envelope;
-import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.geom.util.AffineTransformation;
-import org.locationtech.jts.io.ParseException;
-import org.locationtech.jts.io.WKTReader;
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.data.neo4j.StyledImageExporter;
 import org.geotools.feature.FeatureCollection;
@@ -36,6 +30,12 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.util.AffineTransformation;
+import org.locationtech.jts.io.ParseException;
+import org.locationtech.jts.io.WKTReader;
 import org.neo4j.annotations.documented.Documented;
 import org.neo4j.gis.spatial.*;
 import org.neo4j.gis.spatial.filter.SearchIntersectWindow;
@@ -54,7 +54,6 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.util.NoSuchElementException;
 
@@ -143,14 +142,12 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
      */
     @Test
     @Documented("search_within_geometry")
-    public void search_within_geometry() throws CQLException {
+    public void search_within_geometry() {
         // tag::search_within_geometry[]
         GeoPipeline pipeline = GeoPipeline
                 .startWithinSearch(tx, osmLayer, osmLayer.getGeometryFactory().toGeometry(new Envelope(10, 20, 50, 60)));
         // end::search_within_geometry[]
-        assertEquals(
-                2,
-                pipeline.count());
+        assertEquals(2, pipeline.count());
     }
 
     @Test
@@ -207,12 +204,10 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
         // end::affine_transformation[]
         addImageSnippet(boxesLayer, pipeline, getTitle());
 
-        GeoPipeline original = GeoPipeline.start(tx, osmLayer).copyDatabaseRecordProperties(tx).sort(
-                "name");
+        GeoPipeline original = GeoPipeline.start(tx, osmLayer).copyDatabaseRecordProperties(tx).sort("name");
 
         GeoPipeline translated = GeoPipeline.start(tx, osmLayer).applyAffineTransform(
-                AffineTransformation.translationInstance(10, 25)).copyDatabaseRecordProperties(tx).sort(
-                "name");
+                AffineTransformation.translationInstance(10, 25)).copyDatabaseRecordProperties(tx).sort("name");
 
         for (int k = 0; k < 2; k++) {
             Coordinate[] coords = original.next().getGeometry().getCoordinates();
@@ -229,10 +224,8 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
     public void calculate_area() {
         GeoPipeline pipeline = GeoPipeline.start(tx, boxesLayer).calculateArea().sort("Area");
 
-        assertEquals((Double) pipeline.next().getProperties().get("Area"),
-                1.0, 0);
-        assertEquals((Double) pipeline.next().getProperties().get("Area"),
-                8.0, 0);
+        assertEquals((Double) pipeline.next().getProperties().get("Area"), 1.0, 0);
+        assertEquals((Double) pipeline.next().getProperties().get("Area"), 8.0, 0);
     }
 
     @Test
@@ -299,10 +292,8 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 
         pipeline = GeoPipeline.start(tx, boxesLayer).toCentroid().createWellKnownText().copyDatabaseRecordProperties(tx).sort("name");
 
-        assertEquals("POINT (12.5 26.5)",
-                pipeline.next().getProperties().get("WellKnownText"));
-        assertEquals("POINT (4 4)",
-                pipeline.next().getProperties().get("WellKnownText"));
+        assertEquals("POINT (12.5 26.5)", pipeline.next().getProperties().get("WellKnownText"));
+        assertEquals("POINT (4 4)", pipeline.next().getProperties().get("WellKnownText"));
     }
 
     /**
@@ -350,8 +341,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 
         pipeline = GeoPipeline.start(tx, concaveLayer).toConvexHull().createWellKnownText();
 
-        assertEquals("POLYGON ((0 0, 0 10, 10 10, 10 0, 0 0))",
-                pipeline.next().getProperties().get("WellKnownText"));
+        assertEquals("POLYGON ((0 0, 0 10, 10 10, 10 0, 0 0))", pipeline.next().getProperties().get("WellKnownText"));
     }
 
     /**
