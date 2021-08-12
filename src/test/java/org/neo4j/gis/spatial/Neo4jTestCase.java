@@ -25,7 +25,6 @@ import org.junit.Rule;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
-import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.io.fs.FileUtils;
@@ -33,6 +32,7 @@ import org.neo4j.io.layout.DatabaseLayout;
 import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.neo4j.test.rule.fs.EphemeralFileSystemRule;
 
 import java.io.File;
@@ -100,7 +100,7 @@ public abstract class Neo4jTestCase {
         if (largeMode != null && largeMode.equalsIgnoreCase("true")) {
             config = LARGE_CONFIG;
         }
-        databases = new DatabaseManagementServiceBuilder(getDbPath()).setConfigRaw(config).build();
+        databases = new TestDatabaseManagementServiceBuilder(getDbPath()).setConfigRaw(config).build();
         graphDb = databases.database(DEFAULT_DATABASE_NAME);
         ((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency(GlobalProcedures.class).registerProcedure(SpatialProcedures.class);
     }

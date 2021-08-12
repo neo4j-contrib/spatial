@@ -35,10 +35,10 @@ import org.neo4j.internal.kernel.api.*;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexType;
 import org.neo4j.internal.schema.SchemaDescriptor;
-import org.neo4j.io.pagecache.tracing.cursor.PageCursorTracer;
+import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.core.NodeEntity;
-import org.neo4j.kernel.impl.coreapi.internal.NodeCursorResourceIterator;
+import org.neo4j.kernel.impl.coreapi.internal.CursorIterator;
 import org.neo4j.memory.EmptyMemoryTracker;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 import org.opengis.referencing.cs.CoordinateSystemAxis;
@@ -48,6 +48,7 @@ import java.util.Iterator;
 import java.util.List;
 
 import static org.neo4j.internal.helpers.collection.Iterators.emptyResourceIterator;
+import static org.neo4j.kernel.api.ResourceTracker.EMPTY_RESOURCE_TRACKER;
 
 public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBackedPointIndex<Long> {
 
@@ -120,13 +121,13 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
             int propId = ktx.tokenRead().propertyKey(propertyKey);
             ArrayList<Iterator<Node>> results = new ArrayList<>();
             for(SpaceFillingCurve.LongRange range:tiles) {
-                IndexQuery indexQuery = IndexQuery.range(propId, range.min, true, range.max, true);
+                PropertyIndexQuery indexQuery = PropertyIndexQuery.range(propId, range.min, true, range.max, true);
                 results.add(nodesByLabelAndProperty(ktx, labelId, indexQuery));
             }
             return Iterators.concat(results.iterator());
         }
 
-        private ResourceIterator<Node> nodesByLabelAndProperty(KernelTransaction transaction, int labelId, IndexQuery query )
+        private ResourceIterator<Node> nodesByLabelAndProperty(KernelTransaction transaction, int labelId, PropertyIndexQuery query )
         {
             Read read = transaction.dataRead();
 
@@ -146,11 +147,11 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
                 // Ha! We found an index - let's use it to find matching nodes
                 try
                 {
-                    NodeValueIndexCursor cursor = transaction.cursors().allocateNodeValueIndexCursor(PageCursorTracer.NULL, EmptyMemoryTracker.INSTANCE);
+                    NodeValueIndexCursor cursor = transaction.cursors().allocateNodeValueIndexCursor(CursorContext.NULL, EmptyMemoryTracker.INSTANCE);
                     IndexReadSession indexSession = read.indexReadSession( index );
                     read.nodeIndexSeek( indexSession, cursor, IndexQueryConstraints.unordered(false), query );
 
-                    return new NodeCursorResourceIterator<>( cursor, (id) -> new NodeEntity(transaction.internalTransaction(), id) );
+                    return new CursorIterator<>(cursor, NodeIndexCursor::nodeReference, (c) -> new NodeEntity(transaction.internalTransaction(), c.nodeReference()), EMPTY_RESOURCE_TRACKER);
                 }
                 catch ( KernelException e )
                 {

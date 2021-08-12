@@ -112,40 +112,8 @@ public class OsmAnalysisTest extends TestOSMImport {
         runAnalysis(layerName, years, days);
     }
 
-    private DatabaseManagementService databases;
-    private GraphDatabaseService db;
-
-    protected GraphDatabaseService graphDb() {
-        return db == null ? super.graphDb() : db;
-    }
-
-    protected void shutdownDatabase() {
-        if (db != null) {
-            databases.shutdown();
-            databases = null;
-            db = null;
-        }
-    }
-
-    protected SpatialDatabaseService setDataset(String dataset) {
-        if (db != null) {
-            shutdownDatabase();
-        }
-        File dbDir = new File("var", dataset);
-        if (dbDir.exists()) {
-            try {
-                FileUtils.deleteDirectory(dbDir);
-            } catch (IOException e) {
-                System.out.println("Failed to delete previous database directory '" + dbDir + "': " + e.getMessage());
-            }
-        }
-        databases = new TestDatabaseManagementServiceBuilder(dbDir.toPath()).impermanent().build();
-        db = databases.database(DEFAULT_DATABASE_NAME);
-        return new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
-    }
-
     protected void runAnalysis(String osm, int years, int days) throws Exception {
-        SpatialDatabaseService spatial = setDataset(osm);
+        SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
         boolean alreadyImported;
         try (Transaction tx = graphDb().beginTx()) {
             alreadyImported = spatial.getLayer(tx, osm) != null;
@@ -155,11 +123,10 @@ public class OsmAnalysisTest extends TestOSMImport {
             runImport(osm, usePoints);
         }
         testAnalysis2(osm, years, days);
-        shutdownDatabase();
     }
 
     public void testAnalysis2(String osm, int years, int days) throws IOException {
-        SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
+        SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
         LinkedHashMap<DynamicLayerConfig, Long> slides = new LinkedHashMap<>();
         Map<String, User> userIndex = new HashMap<>();
         int user_rank = 1;
@@ -279,7 +246,7 @@ public class OsmAnalysisTest extends TestOSMImport {
             Map<String, User> userIndex = collectUserChangesetData(usersNode);
             SortedSet<User> topTen = getTopTen(userIndex);
 
-            SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
+            SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
             layers = exportPoints(tx, osm, spatial, topTen);
 
             layers = removeEmptyLayers(tx, layers);
