@@ -23,6 +23,7 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.*;
+import org.neo4j.gis.spatial.utilities.RelationshipTraversal;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
@@ -144,8 +145,7 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
                 .relationships(OSMRelation.CHANGESET, Direction.OUTGOING)
                 .relationships(OSMRelation.USER, Direction.OUTGOING)
                 .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(OSMRelation.USER));
-        Iterator<Node> results = td.traverse(nodeWayOrChangeset).nodes().iterator();
-        return results.hasNext() ? results.next() : null;
+        return RelationshipTraversal.getFirstNode(td.traverse(nodeWayOrChangeset).nodes());
     }
 
     public Way getWayFromId(Transaction tx, long id) {
@@ -161,8 +161,8 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
                 .relationships(OSMRelation.GEOM, Direction.INCOMING)
                 .evaluator(path -> path.endNode().hasProperty("way_osm_id") ? Evaluation.INCLUDE_AND_PRUNE
                         : Evaluation.EXCLUDE_AND_CONTINUE);
-        Iterator<Node> results = td.traverse(osmNodeOrWayNodeOrGeomNode).nodes().iterator();
-        return results.hasNext() ? new Way(results.next()) : null;
+        Node node = RelationshipTraversal.getFirstNode(td.traverse(osmNodeOrWayNodeOrGeomNode).nodes());
+        return node != null ? new Way(node) : null;
     }
 
     public class OSMNode {

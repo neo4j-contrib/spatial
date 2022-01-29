@@ -134,9 +134,10 @@ public class TestOSMImport extends Neo4jTestCase {
         Way way = null;
         int count = 0;
         for (Way wayNode : osm.getWays(tx)) {
-            way = wayNode;
-            if (count++ > 100)
-                break;
+            // Do not `break` from the loop or experience the RelationshipTraversalCursor leak bug in Neo4j 4.3
+            if (count++ <= 100) {
+                way = wayNode;
+            }
         }
         assertNotNull("Should be at least one way", way);
         Envelope bbox = way.getEnvelope();

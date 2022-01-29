@@ -45,6 +45,9 @@ public abstract class AbstractPipe<S, E> implements Pipe<S, E> {
         if (this.starts instanceof Pipe) {
             ((Pipe) this.starts).reset();
         }
+        if (this.starts instanceof LastElementIterator) {
+            ((LastElementIterator) this.starts).reset();
+        }
         this.nextEnd = null;
         this.currentEnd = null;
         this.available = false;

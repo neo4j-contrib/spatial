@@ -156,6 +156,7 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
                     // " records");
                     count++;
                 }
+                flowList.reset();
                 long time = System.currentTimeMillis();
                 totals.add(new TimeRecord(chunk, (int) (time - prevTime), count));
                 prevTime = time;

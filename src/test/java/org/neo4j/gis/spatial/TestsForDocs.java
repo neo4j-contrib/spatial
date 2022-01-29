@@ -19,14 +19,14 @@
  */
 package org.neo4j.gis.spatial;
 
-import org.locationtech.jts.geom.Envelope;
-import org.locationtech.jts.geom.Geometry;
 import org.geotools.data.DataStore;
 import org.geotools.data.neo4j.Neo4jSpatialDataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.gis.spatial.index.IndexManager;
@@ -44,9 +44,9 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 
@@ -67,7 +67,7 @@ public class TestsForDocs {
 
     @Before
     public void setUp() throws Exception {
-        this.databases = new DatabaseManagementServiceBuilder(new File("target/docs-db")).build();
+        this.databases = new DatabaseManagementServiceBuilder(Path.of("target", "docs-db")).build();
         this.graphDb = databases.database(DEFAULT_DATABASE_NAME);
         try (Transaction tx = this.graphDb.beginTx()) {
             tx.getAllRelationships().forEach(Relationship::delete);
@@ -128,10 +128,9 @@ public class TestsForDocs {
                 mostCount = waysFound.get(wayId);
             }
         }
-        System.out.println("Found " + waysFound.size() + " ways overlapping '" + way.toString() + "'");
+        System.out.println("Found " + waysFound.size() + " ways overlapping '" + way + "'");
         for (long wayId : waysFound.keySet()) {
-            System.out.println("\t" + wayId + ":\t" + waysFound.get(wayId) +
-                    ((wayId == way.getNode().getId()) ? "\t(original way)" : ""));
+            System.out.println("\t" + wayId + ":\t" + waysFound.get(wayId) + ((wayId == way.getNode().getId()) ? "\t(original way)" : ""));
         }
         assertTrue("Start way should be most found way", way.equals(osm.getWayFromId(tx, mostCommon)));
     }

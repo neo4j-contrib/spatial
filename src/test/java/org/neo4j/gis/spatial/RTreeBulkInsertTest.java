@@ -1,12 +1,13 @@
 package org.neo4j.gis.spatial;
 
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.Geometry;
 import org.apache.commons.io.FileUtils;
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.referencing.crs.DefaultEngineeringCRS;
 import org.junit.*;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
 import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.index.*;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
@@ -16,7 +17,6 @@ import org.neo4j.gis.spatial.rtree.*;
 import org.neo4j.graphdb.*;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
-import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.opengis.feature.simple.SimpleFeatureType;
 import org.opengis.referencing.FactoryException;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -1582,7 +1582,7 @@ public class RTreeBulkInsertTest {
             FileUtils.deleteDirectory(storeDir);
         }
         FileUtils.forceMkdir(storeDir);
-        databases = new TestDatabaseManagementServiceBuilder(storeDir.toPath()).impermanent().build();
+        databases = new DatabaseManagementServiceBuilder(storeDir.toPath()).build();
         db = databases.database(DEFAULT_DATABASE_NAME);
     }
 
