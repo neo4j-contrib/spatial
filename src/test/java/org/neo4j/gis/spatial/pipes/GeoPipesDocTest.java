@@ -351,6 +351,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 
         assertEquals("POLYGON ((0 0, 0 10, 10 10, 10 0, 0 0))",
                 pipeline.next().getProperties().get("WellKnownText"));
+        pipeline.reset();
     }
 
     /**
@@ -378,6 +379,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
         assertEquals(
                 "POLYGON ((0 0, 0 5, 0 10, 5 10, 10 10, 10 5, 10 0, 5 0, 0 0))",
                 pipeline.next().getProperties().get("WellKnownText"));
+        pipeline.reset();
     }
 
     @Test
@@ -770,6 +772,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
                 .createWellKnownText();
 
         assertEquals("POINT (12 26)", pipeline.next().getProperty(tx, "WellKnownText"));
+        pipeline.reset();
     }
 
     /**
@@ -798,6 +801,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
                 .createWellKnownText();
 
         assertEquals("POINT (23 34)", pipeline.next().getProperty(tx, "WellKnownText"));
+        pipeline.reset();
     }
 
     /**

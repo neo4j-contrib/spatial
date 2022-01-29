@@ -355,6 +355,7 @@ The Neo4j Spatial Plugin is available for inclusion in the server version of Neo
   * [v0.27.1 for Neo4j 4.1.7](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.27.1-neo4j-4.1.7/neo4j-spatial-0.27.1-neo4j-4.1.7-server-plugin.jar?raw=true)
   * [v0.27.2 for Neo4j 4.2.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.27.2-neo4j-4.2.3/neo4j-spatial-0.27.2-neo4j-4.2.3-server-plugin.jar?raw=true)
   * [v0.28.0 for Neo4j 4.2.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.28.0-neo4j-4.2.3/neo4j-spatial-0.28.0-neo4j-4.2.3-server-plugin.jar?raw=true)
+  * [v0.28.0 for Neo4j 4.3.10](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.28.0-neo4j-4.3.10/neo4j-spatial-0.28.0-neo4j-4.3.10-server-plugin.jar?raw=true)
 
 For versions up to 0.15-neo4j-2.3.4:
 
@@ -471,7 +472,7 @@ Add the following repositories and dependency to your project's pom.xml:
     <dependency>
         <groupId>org.neo4j</groupId>
         <artifactId>neo4j-spatial</artifactId>
-        <version>0.28.0-neo4j-4.2.3</version>
+        <version>0.28.0-neo4j-4.3.10</version>
     </dependency>
 ~~~
 

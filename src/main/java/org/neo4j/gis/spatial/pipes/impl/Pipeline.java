@@ -127,6 +127,7 @@ public class Pipeline<S, E> implements Pipe<S, E> {
     }
 
     public void reset() {
+        this.startPipe.reset(); // Clear incoming state to avoid bug in Neo4j 4.3 with leaked RelationshipTraversalCursor
         this.endPipe.reset();
     }
 

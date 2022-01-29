@@ -23,6 +23,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.neo4j.configuration.Config;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
@@ -57,6 +58,7 @@ public abstract class Neo4jTestCase {
         //NORMAL_CONFIG.put( GraphDatabaseSettings.strings_mapped_memory_size.name(), "200M" );
         //NORMAL_CONFIG.put( GraphDatabaseSettings.arrays_mapped_memory_size.name(), "0M" );
         NORMAL_CONFIG.put(GraphDatabaseSettings.pagecache_memory.name(), "200M");
+        NORMAL_CONFIG.put(GraphDatabaseInternalSettings.trace_cursors.name(), "true");
     }
 
     static final Map<String, String> LARGE_CONFIG = new HashMap<>();
