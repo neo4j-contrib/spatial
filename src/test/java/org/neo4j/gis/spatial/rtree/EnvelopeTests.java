@@ -19,12 +19,12 @@
  */
 package org.neo4j.gis.spatial.rtree;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.equalTo;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class EnvelopeTests {
 
@@ -74,6 +74,7 @@ public class EnvelopeTests {
         assertThat(overlapMessage, right.overlap(left), closeTo(overlap, 0.000001));
     }
 
+    @SuppressWarnings("SameParameterValue")
     private void testOverlaps(Envelope left, Envelope right, boolean intersects, double overlap, double overlapArea, double bboxArea) {
         testOverlaps(left, right, intersects, overlap);
         assertThat("Expected overlap area", left.intersection(right).getArea(), closeTo(overlapArea, 0.000001));
@@ -119,7 +120,7 @@ public class EnvelopeTests {
         assertThat("Expected area to be correct", env.getArea(), equalTo(area));
         assertThat("Expected copied area to be correct", env.getArea(), equalTo(copy.getArea()));
         assertThat("Expected intersected area to be correct", env.getArea(), equalTo(intersection.getArea()));
-        assertTrue("Expected copied envelope to intersect", env.intersects(copy));
+        assertTrue(env.intersects(copy), "Expected copied envelope to intersect");
         assertThat("Expected copied envelope to intersect completely", env.overlap(copy), equalTo(1.0));
     }
 

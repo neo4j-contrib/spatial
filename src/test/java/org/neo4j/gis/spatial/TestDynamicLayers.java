@@ -19,15 +19,15 @@
  */
 package org.neo4j.gis.spatial;
 
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.LinearRing;
-import org.locationtech.jts.geom.Polygon;
 import org.geotools.data.DataSourceException;
 import org.geotools.data.DataStore;
 import org.geotools.data.neo4j.Neo4jSpatialDataStore;
 import org.geotools.data.neo4j.StyledImageExporter;
 import org.geotools.data.simple.SimpleFeatureCollection;
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.LinearRing;
+import org.locationtech.jts.geom.Polygon;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
@@ -42,8 +42,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 
@@ -62,6 +62,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
         runDynamicShapefile("highway.shp");
     }
 
+    @SuppressWarnings("SameParameterValue")
     private void runDynamicShapefile(String shpFile) throws Exception {
         printDatabaseStats();
         loadTestShpData(shpFile);
@@ -208,10 +209,11 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
                 }
             }
         }
-        assertEquals("Mismatching number of data source exceptions and raw geometry layers", countMultiGeometryLayers,
-                countMultiGeometryExceptions);
+        assertEquals(countMultiGeometryLayers, countMultiGeometryExceptions,
+                "Mismatching number of data source exceptions and raw geometry layers");
     }
 
+    @SuppressWarnings("SameParameterValue")
     private Envelope scale(Envelope bbox, double fraction) {
         double xoff = bbox.getWidth(0) * (1.0 - fraction) / 2.0;
         double yoff = bbox.getWidth(1) * (1.0 - fraction) / 2.0;
@@ -244,8 +246,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
         try (Transaction tx = graphDb().beginTx()) {
             SimpleFeatureCollection features = store.getFeatureSource(layer.getName()).getFeatures();
             System.out.println("Layer '" + layer.getName() + "' has " + features.size() + " features");
-            assertEquals("FeatureCollection.size for layer '" + layer.getName() + "' not the same as index count",
-                    layer.getIndex().count(tx), features.size());
+            assertEquals(layer.getIndex().count(tx), features.size(), "FeatureCollection.size for layer '" + layer.getName() + "' not the same as index count");
             tx.commit();
         }
     }
@@ -271,12 +272,12 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
         try (Transaction tx = graphDb().beginTx()) {
             layer = spatial.getLayer(tx, layerName);
         }
-        assertNotNull("Layer index should not be null", layer.getIndex());
+        assertNotNull(layer.getIndex(), "Layer index should not be null");
         Envelope bbox;
         try (Transaction tx = graphDb().beginTx()) {
             bbox = layer.getIndex().getBoundingBox(tx);
         }
-        assertNotNull("Layer index envelope should not be null", bbox);
+        assertNotNull(bbox, "Layer index envelope should not be null");
         System.out.println("Layer has bounding box: " + bbox);
         Neo4jTestUtils.debugIndexTree(graphDb(), layerName);
         return bbox;

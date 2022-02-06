@@ -22,9 +22,9 @@ package org.neo4j.gis.spatial;
 import org.geotools.data.DataStore;
 import org.geotools.data.neo4j.Neo4jSpatialDataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.dbms.api.DatabaseManagementService;
@@ -50,8 +50,8 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 /**
@@ -65,7 +65,7 @@ public class TestsForDocs {
     private DatabaseManagementService databases;
     private GraphDatabaseService graphDb;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         this.databases = new DatabaseManagementServiceBuilder(Path.of("target", "docs-db")).build();
         this.graphDb = databases.database(DEFAULT_DATABASE_NAME);
@@ -79,7 +79,7 @@ public class TestsForDocs {
         }
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         this.databases.shutdown();
         this.databases = null;
@@ -101,7 +101,7 @@ public class TestsForDocs {
         System.out.println("Layer '" + layerName + "' has " + features.size() + " features");
         try (Transaction tx = graphDb.beginTx()) {
             Layer layer = spatial.getLayer(tx, layerName);
-            assertEquals("FeatureCollection.size for layer '" + layer.getName() + "' not the same as index count", layer.getIndex().count(tx), features.size());
+            assertEquals(layer.getIndex().count(tx), features.size(), "FeatureCollection.size for layer '" + layer.getName() + "' not the same as index count");
             if (layer instanceof OSMLayer)
                 checkOSMAPI(tx, (OSMLayer) layer);
             tx.commit();
@@ -132,7 +132,7 @@ public class TestsForDocs {
         for (long wayId : waysFound.keySet()) {
             System.out.println("\t" + wayId + ":\t" + waysFound.get(wayId) + ((wayId == way.getNode().getId()) ? "\t(original way)" : ""));
         }
-        assertTrue("Start way should be most found way", way.equals(osm.getWayFromId(tx, mostCommon)));
+        assertTrue(way.equals(osm.getWayFromId(tx, mostCommon)), "Start way should be most found way");
     }
 
     private void importMapOSM(GraphDatabaseService db) throws Exception {

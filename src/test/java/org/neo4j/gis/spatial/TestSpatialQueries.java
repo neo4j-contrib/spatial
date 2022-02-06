@@ -19,11 +19,12 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.hamcrest.MatcherAssert;
+import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
-import org.junit.Test;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.graphdb.Transaction;
@@ -31,7 +32,8 @@ import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestSpatialQueries extends Neo4jTestCase {
 
@@ -72,7 +74,7 @@ public class TestSpatialQueries extends Neo4jTestCase {
                 closestGeom = geom;
             }
         }
-        assertNotNull("Expected to find a clistestGeom", closestGeom);
+        assertNotNull(closestGeom, "Expected to find a clistestGeom");
         System.out.println("Found closest: " + closestGeom);
         System.out.println();
 
@@ -86,7 +88,7 @@ public class TestSpatialQueries extends Neo4jTestCase {
                     .getMin("Distance");
             for (SpatialRecord result : pipeline) {
                 System.out.println("\tGot search result: " + result);
-                assertEquals("Did not find the closest", closestGeom.toString(), result.getGeometry().toString());
+                assertEquals(closestGeom.toString(), result.getGeometry().toString(), "Did not find the closest");
             }
             tx.commit();
         }
@@ -103,7 +105,7 @@ public class TestSpatialQueries extends Neo4jTestCase {
             System.out.println("Searching for geometries close to " + point + " within " + env);
             for (SpatialRecord result : pipeline) {
                 System.out.println("\tGot search result: " + result);
-                assertEquals("Did not find the closest", closestGeom.toString(), result.getGeometry().toString());
+                assertEquals(closestGeom.toString(), result.getGeometry().toString(), "Did not find the closest");
             }
             tx.commit();
         }
@@ -118,7 +120,7 @@ public class TestSpatialQueries extends Neo4jTestCase {
             System.out.println("Searching for geometries close to " + point + " within buffer " + buffer);
             for (SpatialRecord result : pipeline) {
                 System.out.println("\tGot search result: " + result);
-                assertEquals("Did not find the closest", closestGeom.toString(), result.getGeometry().toString());
+                assertEquals(closestGeom.toString(), result.getGeometry().toString(), "Did not find the closest");
             }
             tx.commit();
         }
@@ -145,7 +147,7 @@ public class TestSpatialQueries extends Neo4jTestCase {
             System.out.println("Searching for geometries close to " + point + " within automatic window designed to get about " + limit + " geometries");
             for (SpatialRecord result : pipeline) {
                 System.out.println("\tGot search result: " + result);
-                assertThat("Did not find the closest", result.getGeometry().toString(), is(closestGeom.toString()));
+                MatcherAssert.assertThat("Did not find the closest", result.getGeometry().toString(), is(closestGeom.toString()));
             }
             tx.commit();
         }

@@ -19,11 +19,11 @@
  */
 package org.neo4j.gis.spatial.index;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.*;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
 import org.mockito.Matchers;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.gis.spatial.*;
@@ -108,7 +108,7 @@ public abstract class LayerIndexTestBase {
         }
     }
 
-    @Before
+    @BeforeEach
     public void setup() throws IOException {
         File baseDir = new File("target/layers");
         FileUtils.deleteDirectory(baseDir.toPath());
@@ -117,7 +117,7 @@ public abstract class LayerIndexTestBase {
         spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graph, SecurityContext.AUTH_DISABLED));
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         if (graph != null) {
             databases.shutdown();

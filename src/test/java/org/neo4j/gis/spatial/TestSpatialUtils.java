@@ -19,13 +19,13 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.linearref.LengthIndexedLine;
 import org.locationtech.jts.linearref.LocationIndexedLine;
-import org.junit.Test;
 import org.neo4j.gis.spatial.SpatialTopologyUtils.PointResult;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.osm.OSMDataset;
@@ -36,11 +36,10 @@ import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 public class TestSpatialUtils extends Neo4jTestCase {
 
@@ -62,17 +61,17 @@ public class TestSpatialUtils extends Neo4jTestCase {
             Layer layer = spatial.getLayer(tx, "jts");
             // Now test the new API in the topology utils
             Point point = SpatialTopologyUtils.locatePoint(layer, geometry, 1.5, 0.5);
-            assertEquals("X location incorrect", 0.5, point.getX(), delta);
-            assertEquals("Y location incorrect", 1.5, point.getY(), delta);
+            assertEquals(0.5, point.getX(), delta, "X location incorrect");
+            assertEquals(1.5, point.getY(), delta, "Y location incorrect");
             point = SpatialTopologyUtils.locatePoint(layer, geometry, 1.5, -0.5);
-            assertEquals("X location incorrect", 0.5, point.getX(), delta);
-            assertEquals("Y location incorrect", 0.5, point.getY(), delta);
+            assertEquals(0.5, point.getX(), delta, "X location incorrect");
+            assertEquals(0.5, point.getY(), delta, "Y location incorrect");
             point = SpatialTopologyUtils.locatePoint(layer, geometry, 0.5, 0.5);
-            assertEquals("X location incorrect", -0.5, point.getX(), delta);
-            assertEquals("Y location incorrect", 0.5, point.getY(), delta);
+            assertEquals(-0.5, point.getX(), delta, "X location incorrect");
+            assertEquals(0.5, point.getY(), delta, "Y location incorrect");
             point = SpatialTopologyUtils.locatePoint(layer, geometry, 0.5, -0.5);
-            assertEquals("X location incorrect", 0.5, point.getX(), delta);
-            assertEquals("Y location incorrect", 0.5, point.getY(), delta);
+            assertEquals(0.5, point.getX(), delta, "X location incorrect");
+            assertEquals(0.5, point.getY(), delta, "Y location incorrect");
             tx.commit();
         }
     }
@@ -121,20 +120,19 @@ public class TestSpatialUtils extends Neo4jTestCase {
         printDatabaseStats();
 
         // Define dynamic layers
-        List<Layer> layers = new ArrayList<>();
         SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
         try(Transaction tx = graphDb().beginTx()) {
             OSMLayer osmLayer = (OSMLayer) spatial.getLayer(tx, osm);
-            layers.add(osmLayer.addSimpleDynamicLayer(tx, "highway", "primary"));
-            layers.add(osmLayer.addSimpleDynamicLayer(tx, "highway", "secondary"));
-            layers.add(osmLayer.addSimpleDynamicLayer(tx, "highway", "tertiary"));
-            layers.add(osmLayer.addSimpleDynamicLayer(tx, "highway", "residential"));
-            layers.add(osmLayer.addSimpleDynamicLayer(tx, "highway", "footway"));
-            layers.add(osmLayer.addSimpleDynamicLayer(tx, "highway", "cycleway"));
-            layers.add(osmLayer.addSimpleDynamicLayer(tx, "highway", "track"));
-            layers.add(osmLayer.addSimpleDynamicLayer(tx, "highway", "path"));
-            layers.add(osmLayer.addSimpleDynamicLayer(tx, "railway", null));
-            layers.add(osmLayer.addSimpleDynamicLayer(tx, "highway", null));
+            osmLayer.addSimpleDynamicLayer(tx, "highway", "primary");
+            osmLayer.addSimpleDynamicLayer(tx, "highway", "secondary");
+            osmLayer.addSimpleDynamicLayer(tx, "highway", "tertiary");
+            osmLayer.addSimpleDynamicLayer(tx, "highway", "residential");
+            osmLayer.addSimpleDynamicLayer(tx, "highway", "footway");
+            osmLayer.addSimpleDynamicLayer(tx, "highway", "cycleway");
+            osmLayer.addSimpleDynamicLayer(tx, "highway", "track");
+            osmLayer.addSimpleDynamicLayer(tx, "highway", "path");
+            osmLayer.addSimpleDynamicLayer(tx, "railway", null);
+            osmLayer.addSimpleDynamicLayer(tx, "highway", null);
             tx.commit();
         }
 
@@ -150,7 +148,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
             resultsLayer.add(tx, point, fieldsNames, new Object[]{0L, "Point to snap", 0L});
             for (String layerName : new String[]{"railway", "highway-residential"}) {
                 Layer layer = osmLayer.getLayer(tx, layerName);
-                assertNotNull("Missing layer: " + layerName, layer);
+                assertNotNull(layer, "Missing layer: " + layerName);
                 System.out.println("Closest features in " + layerName + " to point " + point + ":");
                 List<PointResult> edgeResults = SpatialTopologyUtils.findClosestEdges(tx, point, layer);
                 for (PointResult result : edgeResults) {
@@ -166,6 +164,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
                     SpatialDatabaseRecord wayRecord = closest.getValue();
                     OSMDataset.Way way = ((OSMDataset) osmLayer.getDataset()).getWayFrom(wayRecord.getGeomNode());
                     OSMDataset.WayPoint wayPoint = way.getPointAt(closestPoint.getCoordinate());
+                    // TODO: presumably we meant to assert something here?
                 }
             }
             tx.commit();
@@ -173,6 +172,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
 
     }
 
+    @SuppressWarnings("SameParameterValue")
     private void loadTestOsmData(String layerName, int commitInterval) throws Exception {
         System.out.println("\n=== Loading layer " + layerName + " from " + layerName + " ===");
         OSMImporter importer = new OSMImporter(layerName);
@@ -180,5 +180,4 @@ public class TestSpatialUtils extends Neo4jTestCase {
         importer.importFile(graphDb(), layerName, commitInterval);
         importer.reIndex(graphDb(), commitInterval);
     }
-
 }

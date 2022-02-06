@@ -19,9 +19,10 @@
  */
 package org.neo4j.gis.spatial;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
@@ -34,7 +35,7 @@ import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
-import org.neo4j.test.rule.fs.EphemeralFileSystemRule;
+import org.neo4j.io.fs.EphemeralFileSystemAbstraction;
 
 import java.io.File;
 import java.io.IOException;
@@ -79,7 +80,7 @@ public abstract class Neo4jTestCase {
 
     private long storePrefix;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         updateStorePrefix();
         setUp(true);
@@ -139,15 +140,20 @@ public abstract class Neo4jTestCase {
         return builder.build();
     }
 
-    @Rule
-    public EphemeralFileSystemRule fileSystemRule = new EphemeralFileSystemRule();
+    private static EphemeralFileSystemAbstraction fileSystem;
 
-    @Before
-    public void before() throws Exception {
-        fileSystemRule.get().mkdirs(new File("target").toPath());
+    @BeforeAll
+    static void beforeAll() throws IOException {
+        fileSystem = new EphemeralFileSystemAbstraction();
+        fileSystem.mkdirs(new File("target").toPath());
     }
 
-    @After
+    @AfterAll
+    static void afterAll() throws IOException {
+        fileSystem.close();
+    }
+
+    @AfterEach
     public void tearDown() {
         shutdownDatabase(true);
     }

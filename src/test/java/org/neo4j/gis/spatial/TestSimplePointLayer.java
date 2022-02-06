@@ -19,13 +19,13 @@
  */
 package org.neo4j.gis.spatial;
 
+import junit.framework.AssertionFailedError;
+import org.geotools.data.neo4j.StyledImageExporter;
+import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateList;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.Point;
-import junit.framework.AssertionFailedError;
-import org.geotools.data.neo4j.StyledImageExporter;
-import org.junit.Test;
 import org.neo4j.gis.spatial.encoders.neo4j.Neo4jCRS;
 import org.neo4j.gis.spatial.encoders.neo4j.Neo4jPoint;
 import org.neo4j.gis.spatial.index.IndexManager;
@@ -46,7 +46,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 public class TestSimplePointLayer extends Neo4jTestCase {
 
@@ -138,7 +138,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
         inTx(tx -> {
             SimplePointLayer layer = spatial.createSimplePointLayer(tx, layerName);
             assertNotNull(layer);
-            assertNotNull("layer name is not null", layer.getName());
+            assertNotNull(layer.getName(), "layer name is not null");
             for (Coordinate coordinate : makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt", testOrigin)) {
                 SpatialRecord record = layer.add(tx, coordinate);
                 assertNotNull(record);
@@ -307,7 +307,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
             GeoPipeFlow second = results.get(i + 1);
             double d1 = (Double) first.getProperties().get(OrthodromicDistance.DISTANCE);
             double d2 = (Double) second.getProperties().get(OrthodromicDistance.DISTANCE);
-            assertTrue("Point at position " + i + " (d=" + d1 + ") must be closer than point at position " + (i + 1) + " (d=" + d2 + ")", d1 <= d2);
+            assertTrue(d1 <= d2, "Point at position " + i + " (d=" + d1 + ") must be closer than point at position " + (i + 1) + " (d=" + d2 + ")");
         }
     }
 
@@ -386,7 +386,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
         }
     }
 
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({"SameParameterValue"})
     private static Coordinate[] makeCoordinateDataFromTextFile(String textFile, Coordinate origin) {
         CoordinateList data = new CoordinateList();
         try {
@@ -410,7 +410,6 @@ public class TestSimplePointLayer extends Neo4jTestCase {
         return data.toCoordinateArray();
     }
 
-    @SuppressWarnings("unchecked")
     private static Coordinate[] makeDensePointData() {
         CoordinateList data = new CoordinateList();
         Coordinate origin = new Coordinate(13.0, 55.6);

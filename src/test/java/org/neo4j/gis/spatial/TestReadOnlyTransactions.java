@@ -1,22 +1,22 @@
 package org.neo4j.gis.spatial;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.neo4j.dbms.api.DatabaseManagementService;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.RelationshipType;
-import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.*;
 import org.neo4j.io.fs.FileUtils;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Map;
+import java.util.Spliterators;
+import java.util.stream.StreamSupport;
 
-import static org.junit.Assert.assertEquals;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * This test was written to test the subtle behavior of nested transactions in the Neo4j 1.x-3.x code.
@@ -32,20 +32,21 @@ public class TestReadOnlyTransactions {
     private static final Path basePath = new File("target/var").toPath();
     private static final String dbPrefix = "neo4j-db";
 
-    private long storePrefix;
+    private static long storePrefix;
 
     private static long n1Id = 0L;
     private static long n2Id = 0L;
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         storePrefix++;
+        System.out.println("Creating store at " + dbPrefix + storePrefix);
         this.databases = new TestDatabaseManagementServiceBuilder(basePath.resolve(dbPrefix + storePrefix)).impermanent().build();
         this.graph = databases.database(DEFAULT_DATABASE_NAME);
         buildDataModel();
     }
 
-    @After
+    @AfterEach
     public void tearDown() {
         databases.shutdown();
         try {
@@ -76,8 +77,8 @@ public class TestReadOnlyTransactions {
         String n2Name = (String) n2.getProperty("name");
         System.out.println("First node: " + n1Name);
         System.out.println("Second node: " + n2Name);
-        assertEquals("Name does not match", n1Name, "n1");
-        assertEquals("Name does not match", n2Name, "n2");
+        assertEquals("n1", n1Name, "Name does not match");
+        assertEquals("n2", n2Name, "Name does not match");
     }
 
     private void readNamesWithNestedTransaction(boolean outer, boolean inner) {
@@ -98,6 +99,7 @@ public class TestReadOnlyTransactions {
     public void testNormalTransaction() {
         try (Transaction tx = graph.beginTx()) {
             readNames(tx);
+            tx.commit();
         }
     }
 
@@ -121,8 +123,7 @@ public class TestReadOnlyTransactions {
         try {
             readNamesWithNestedTransaction(true, false);
         } catch (Exception e) {
-            assertEquals("Expected transaction failure from RollbackException",
-                    "Transaction rolled back even if marked as successful", e.getCause().getMessage());
+            assertEquals("Transaction rolled back even if marked as successful", e.getCause().getMessage(), "Expected transaction failure from RollbackException");
         }
     }
 }

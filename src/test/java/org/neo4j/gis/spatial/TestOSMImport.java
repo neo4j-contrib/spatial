@@ -19,42 +19,25 @@
  */
 package org.neo4j.gis.spatial;
 
-import org.locationtech.jts.geom.Envelope;
-import org.locationtech.jts.geom.Geometry;
-import org.geotools.data.DataStore;
-import org.geotools.data.neo4j.Neo4jSpatialDataStore;
-import org.geotools.data.simple.SimpleFeatureCollection;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
-import org.neo4j.gis.spatial.index.IndexManager;
-import org.neo4j.gis.spatial.osm.*;
-import org.neo4j.gis.spatial.osm.OSMDataset.Way;
-import org.neo4j.gis.spatial.pipes.osm.OSMGeoPipeline;
-import org.neo4j.graphdb.*;
-import org.neo4j.internal.kernel.api.security.SecurityContext;
-import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.Transaction;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
 
-import static org.junit.Assert.*;
-
-@RunWith(Parameterized.class)
-public class TestOSMImport extends Neo4jTestCase {
+public class TestOSMImport extends TestOSMImportBase {
     public static final String spatialTestMode = System.getProperty("spatial.test.mode");
-    protected final String layerName;
-    private final boolean includePoints;
 
-    public TestOSMImport(String layerName, boolean includePoints) {
-        this.layerName = layerName;
-        this.includePoints = includePoints;
-    }
-
-    @Parameterized.Parameters(name = "{index}-{0}: includePoints={1}")
-    public static Collection parameters() {
+    private static final Stream<Arguments> parameters() {
         deleteBaseDir();
         String[] smallModels = new String[]{"one-street.osm", "two-street.osm"};
 //		String[] mediumModels = new String[] { "map.osm", "map2.osm" };
@@ -81,256 +64,68 @@ public class TestOSMImport extends Neo4jTestCase {
         }
         boolean[] pointsTestModes = new boolean[]{true, false};
 
-        // Finally build the set of complete test cases based on the collection above
-        ArrayList<Object[]> suite = new ArrayList<>();
+        // Finally, build the set of complete test cases based on the collection above
+        ArrayList<Arguments> params = new ArrayList<>();
         for (final String layerName : layersToTest) {
             for (final boolean includePoints : pointsTestModes) {
-                suite.add(new Object[]{layerName, includePoints});
+                params.add(Arguments.of(layerName, includePoints));
             }
         }
-        System.out.println("This suite has " + suite.size() + " tests");
-        for (Object[] params : suite) {
-            System.out.println("\t" + Arrays.toString(params));
+        System.out.println("This suite has " + params.size() + " tests");
+        for (Arguments arguments : params) {
+            System.out.println("\t" + Arrays.toString(arguments.get()));
         }
-        return suite;
+        return params.stream();
+    }
+
+    @ParameterizedTest
+    @MethodSource("parameters")
+    public void runTest(String layerName, boolean includePoints) throws Exception {
+        runImport(layerName, includePoints);
+        try (Transaction tx = graphDb().beginTx()) {
+            for (Node n : tx.getAllNodes()) {
+                debugNode(n);
+            }
+            tx.commit();
+        }
     }
 
     @Test
-    public void runTest() throws Exception {
-        runImport(layerName, includePoints);
-    }
-
-    protected static String checkOSMFile(String osm) {
-        File osmFile = new File(osm);
-        if (!osmFile.exists()) {
-            osmFile = new File(new File("osm"), osm);
-            if (!osmFile.exists()) {
-                return null;
-            }
-        }
-        return osmFile.getPath();
-    }
-
-    protected static void checkOSMLayer(GraphDatabaseService db, String layerName) throws IOException {
-        int indexCount;
-        try (Transaction tx = db.beginTx()) {
-            SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
-            OSMLayer layer = (OSMLayer) spatial.getOrCreateLayer(tx, layerName, OSMGeometryEncoder.class, OSMLayer.class);
-            assertNotNull("OSM Layer index should not be null", layer.getIndex());
-            assertNotNull("OSM Layer index envelope should not be null", layer.getIndex().getBoundingBox(tx));
-            Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox(tx));
-            debugEnvelope(bbox, layerName, Constants.PROP_BBOX);
-            // ((RTreeIndex)layer.getIndex()).debugIndexTree();
-            indexCount = checkIndexCount(tx, layer);
-            checkChangesetsAndUsers(tx, layer);
-            checkOSMSearch(tx, layer);
+    public void buildDataModel() {
+        long n1Id;
+        long n2Id;
+        try (Transaction tx = this.graphDb().beginTx()) {
+            Node n1 = tx.createNode();
+            n1.setProperty("name", "n1");
+            Node n2 = tx.createNode();
+            n2.setProperty("name", "n2");
+            n1.createRelationshipTo(n2, RelationshipType.withName("LIKES"));
+            n1Id = n1.getId();
+            n2Id = n2.getId();
+            debugNode(n1);
+            debugNode(n2);
             tx.commit();
         }
-        checkFeatureCount(db, indexCount, layerName);
-    }
-
-    public static void checkOSMSearch(Transaction tx, OSMLayer layer) {
-        OSMDataset osm = OSMDataset.fromLayer(tx, layer);
-        Way way = null;
-        int count = 0;
-        for (Way wayNode : osm.getWays(tx)) {
-            // Do not `break` from the loop or experience the RelationshipTraversalCursor leak bug in Neo4j 4.3
-            if (count++ <= 100) {
-                way = wayNode;
+        try (Transaction tx = this.graphDb().beginTx()) {
+            for (Node n : tx.getAllNodes()) {
+                debugNode(n);
             }
-        }
-        assertNotNull("Should be at least one way", way);
-        Envelope bbox = way.getEnvelope();
-        runSearches(tx, layer, bbox, true);
-        org.neo4j.gis.spatial.rtree.Envelope layerBBox = layer.getIndex().getBoundingBox(tx);
-        double[] centre = layerBBox.centre();
-        double width = layerBBox.getWidth(0) / 100.0;
-        double height = layerBBox.getWidth(1) / 100.0;
-        bbox = new Envelope(centre[0] - width, centre[0] + width, centre[1] - height, centre[1] + height);
-        runSearches(tx, layer, bbox, false);
-    }
-
-    private static void runSearches(Transaction tx, OSMLayer layer, Envelope bbox, boolean willHaveResult) {
-        for (int i = 0; i < 4; i++) {
-            Geometry searchArea = layer.getGeometryFactory().toGeometry(bbox);
-            runWithinSearch(tx, layer, searchArea, willHaveResult);
-            bbox.expandBy(bbox.getWidth(), bbox.getHeight());
+            tx.commit();
         }
     }
 
-    private static void runWithinSearch(Transaction tx, OSMLayer layer, Geometry searchArea, boolean willHaveResult) {
-        long start = System.currentTimeMillis();
-        List<SpatialDatabaseRecord> results = OSMGeoPipeline.startWithinSearch(tx, layer, searchArea).toSpatialDatabaseRecordList();
-        long time = System.currentTimeMillis() - start;
-        System.out.println("Took " + time + "ms to find " + results.size() + " search results in layer " + layer.getName()
-                + " using search within " + searchArea);
-        if (willHaveResult)
-            assertTrue("Should be at least one result, but got zero", results.size() > 0);
-    }
-
-    public static void debugEnvelope(Envelope bbox, String layer, String name) {
-        System.out.println("Layer '" + layer + "' has envelope '" + name + "': " + bbox);
-        System.out.println("\tX: [" + bbox.getMinX() + ":" + bbox.getMaxX() + "]");
-        System.out.println("\tY: [" + bbox.getMinY() + ":" + bbox.getMaxY() + "]");
-    }
-
-    public static int checkIndexCount(Transaction tx, Layer layer) {
-        if (layer.getIndex().count(tx) < 1) {
-            System.out.println("Warning: index count zero: " + layer.getName());
+    private void debugNode(Node node) {
+        Map<String, Object> properties = node.getProperties();
+        System.out.println(node + " has " + properties.size() + " properties");
+        for (Map.Entry<String, Object> property : properties.entrySet()) {
+            System.out.println("      key: " + property.getKey());
+            System.out.println("    value: " + property.getValue());
         }
-        System.out.println("Layer '" + layer.getName() + "' has " + layer.getIndex().count(tx) + " entries in the index");
-        return layer.getIndex().count(tx);
-    }
-
-    public static void checkFeatureCount(GraphDatabaseService db, int indexCount, String layerName) throws IOException {
-        DataStore store = new Neo4jSpatialDataStore(db);
-        SimpleFeatureCollection features = store.getFeatureSource(layerName).getFeatures();
-        int featuresSize = features.size();
-        System.out.println("Layer '" + layerName + "' has " + featuresSize + " features");
-        assertEquals("FeatureCollection.size for layer '" + layerName + "' not the same as index count", indexCount, featuresSize);
-    }
-
-    private static void checkChangesetsAndUsers(Transaction tx, OSMLayer layer) {
-        double totalMatch = 0.0;
-        int waysMatched = 0;
-        int waysCounted = 0;
-        int nodesCounted = 0;
-        int waysMissing = 0;
-        int nodesMissing = 0;
-        int usersMissing = 0;
-        float maxMatch = 0.0f;
-        float minMatch = 1.0f;
-        HashMap<Long, Integer> userNodeCount = new HashMap<>();
-        HashMap<Long, String> userNames = new HashMap<>();
-        HashMap<Long, Long> userIds = new HashMap<>();
-        OSMDataset dataset = OSMDataset.fromLayer(tx, layer);
-        for (Node way : dataset.getAllWayNodes(tx)) {
-            int node_count = 0;
-            int match_count = 0;
-            assertNull("Way has changeset property", way.getProperty("changeset", null));
-            Node wayChangeset = dataset.getChangeset(way);
-            if (wayChangeset != null) {
-                long wayCS = (Long) wayChangeset.getProperty("changeset");
-                for (Node node : dataset.getWayNodes(way)) {
-                    assertNull("Node has changeset property", node.getProperty("changeset", null));
-                    Node nodeChangeset = dataset.getChangeset(node);
-                    if (nodeChangeset == null) {
-                        nodesMissing++;
-                    } else {
-                        long nodeCS = (Long) nodeChangeset.getProperty("changeset");
-                        if (nodeChangeset.equals(wayChangeset)) {
-                            match_count++;
-                        } else {
-                            assertNotEquals("Two changeset nodes should not have the same changeset number: way(" + wayCS + ")==node(" + nodeCS + ")", wayCS, nodeCS);
-                        }
-                        Node user = dataset.getUser(nodeChangeset);
-                        if (user != null) {
-                            long userid = user.getId();
-                            if (userNodeCount.containsKey(userid)) {
-                                userNodeCount.put(userid, userNodeCount.get(userid) + 1);
-                            } else {
-                                userNodeCount.put(userid, 1);
-                                userNames.put(userid, (String) user.getProperty("name", null));
-                                userIds.put(userid, (Long) user.getProperty("uid", null));
-                            }
-                        } else {
-                            if (usersMissing++ < 10) {
-                                System.out.println("Changeset " + nodeCS + " should have user: " + nodeChangeset);
-                            }
-                        }
-                    }
-                    node_count++;
-                }
-            } else {
-                waysMissing++;
-            }
-            if (node_count > 0) {
-                waysMatched++;
-                float match = ((float) match_count) / ((float) node_count);
-                maxMatch = Math.max(maxMatch, match);
-                minMatch = Math.min(minMatch, match);
-                totalMatch += match;
-                nodesCounted += node_count;
-            }
-            waysCounted++;
+        Iterable<Relationship> relationships = node.getRelationships();
+        long count = StreamSupport.stream(relationships.spliterator(), false).count();
+        System.out.println(node + " has " + count + " relationships");
+        for (Relationship relationship : relationships) {
+            System.out.println("     (" + relationship.getStartNode() + ")-[:" + relationship.getType() + "]->(" + relationship.getEndNode() + ")");
         }
-        System.out.println("After checking " + waysCounted + " ways:");
-        System.out.println("\twe found " + waysMatched + " ways with an average of " + (nodesCounted / waysMatched) + " nodes");
-        System.out.println("\tand an average of " + (100.0 * totalMatch / waysMatched) + "% matching changesets");
-        System.out.println("\twith min-match " + (100.0 * minMatch) + "% and max-match " + (100.0 * maxMatch) + "%");
-        System.out.println("\tWays missing changsets: " + waysMissing);
-        System.out.println("\tNodes missing changsets: " + nodesMissing + " (~" + (nodesMissing / waysMatched) + " / way)");
-        System.out.println("\tUnique users: " + userNodeCount.size() + " (with " + usersMissing + " changeset missing users)");
-        ArrayList<ArrayList<Long>> userCounts = new ArrayList<>();
-        for (long user : userNodeCount.keySet()) {
-            int count = userNodeCount.get(user);
-            userCounts.ensureCapacity(count);
-            while (userCounts.size() < count + 1) {
-                userCounts.add(null);
-            }
-            ArrayList<Long> userSet = userCounts.get(count);
-            if (userSet == null) {
-                userSet = new ArrayList<>();
-            }
-            userSet.add(user);
-            userCounts.set(count, userSet);
-        }
-        if (userCounts.size() > 1) {
-            System.out.println("\tTop 20 users (nodes: users):");
-            for (int ui = userCounts.size() - 1, i = 0; i < 20 && ui >= 0; ui--) {
-                ArrayList<Long> userSet = userCounts.get(ui);
-                if (userSet != null && userSet.size() > 0) {
-                    i++;
-                    StringBuilder us = new StringBuilder();
-                    for (long user : userSet) {
-                        Node userNode = tx.getNodeById(user);
-                        int csCount = 0;
-                        for (@SuppressWarnings("unused")
-                                Relationship rel : userNode.getRelationships(Direction.INCOMING, OSMRelation.USER)) {
-                            csCount++;
-                        }
-                        String name = userNames.get(user);
-                        Long uid = userIds.get(user);
-                        if (us.length() > 0) {
-                            us.append(", ");
-                        }
-                        us.append(String.format("%s (uid=%d, id=%d, changesets=%d)", name, uid, user, csCount));
-                    }
-                    System.out.println("\t\t" + ui + ": " + us.toString());
-                }
-            }
-        }
-    }
-
-    protected void runImport(String osm, boolean includePoints) throws Exception {
-        // TODO: Consider merits of using dependency data in target/osm,
-        // downloaded by maven, as done in TestSpatial, versus the test data
-        // commited to source code as done here
-        String osmPath = checkOSMFile(osm);
-        if (osmPath == null) {
-            return;
-        }
-        printDatabaseStats();
-        loadTestOsmData(osm, osmPath, includePoints);
-        checkOSMLayer(graphDb(), osm);
-        printDatabaseStats();
-    }
-
-    protected void loadTestOsmData(String layerName, String osmPath, boolean includePoints) throws Exception {
-        System.out.printf("\n=== Loading layer '%s' from %s, includePoints=%b ===\n", layerName, osmPath, includePoints);
-        long start = System.currentTimeMillis();
-        // tag::importOsm[] START SNIPPET: importOsm
-        OSMImporter importer = new OSMImporter(layerName, new ConsoleListener());
-        importer.setCharset(StandardCharsets.UTF_8);
-        importer.importFile(graphDb(), osmPath, includePoints, 5000);
-        // end::importOsm[] END SNIPPET: importOsm
-        // Weird hack to force GC on large loads
-        if (System.currentTimeMillis() - start > 300000) {
-            for (int i = 0; i < 3; i++) {
-                System.gc();
-                Thread.sleep(1000);
-            }
-        }
-        importer.reIndex(graphDb(), 1000, includePoints);
     }
 }

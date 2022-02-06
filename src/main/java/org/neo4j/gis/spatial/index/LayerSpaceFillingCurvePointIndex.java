@@ -34,7 +34,7 @@ import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.internal.kernel.api.*;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexType;
-import org.neo4j.internal.schema.SchemaDescriptor;
+import org.neo4j.internal.schema.SchemaDescriptors;
 import org.neo4j.io.pagecache.context.CursorContext;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.core.NodeEntity;
@@ -127,34 +127,28 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
             return Iterators.concat(results.iterator());
         }
 
-        private ResourceIterator<Node> nodesByLabelAndProperty(KernelTransaction transaction, int labelId, PropertyIndexQuery query )
-        {
+        private ResourceIterator<Node> nodesByLabelAndProperty(KernelTransaction transaction, int labelId, PropertyIndexQuery query) {
             Read read = transaction.dataRead();
 
-            if ( query.propertyKeyId() == TokenRead.NO_TOKEN || labelId == TokenRead.NO_TOKEN )
-            {
+            if (query.propertyKeyId() == TokenRead.NO_TOKEN || labelId == TokenRead.NO_TOKEN) {
                 return emptyResourceIterator();
             }
-            Iterator<IndexDescriptor> iterator = transaction.schemaRead().index( SchemaDescriptor.forLabel( labelId, query.propertyKeyId() ) );
-            while ( iterator.hasNext() )
-            {
+            Iterator<IndexDescriptor> iterator = transaction.schemaRead().index(SchemaDescriptors.forLabel(labelId, query.propertyKeyId()));
+            while (iterator.hasNext()) {
                 IndexDescriptor index = iterator.next();
-                if ( index.getIndexType() != IndexType.BTREE )
-                {
+                // TODO: Do we need to support the new IndexType.RANGE index in Neo4j 4.4?
+                if (index.getIndexType() != IndexType.BTREE) {
                     // Skip special indexes, such as the full-text indexes, because they can't handle all the queries we might throw at them.
                     continue;
                 }
                 // Ha! We found an index - let's use it to find matching nodes
-                try
-                {
+                try {
                     NodeValueIndexCursor cursor = transaction.cursors().allocateNodeValueIndexCursor(CursorContext.NULL, EmptyMemoryTracker.INSTANCE);
-                    IndexReadSession indexSession = read.indexReadSession( index );
-                    read.nodeIndexSeek( indexSession, cursor, IndexQueryConstraints.unordered(false), query );
+                    IndexReadSession indexSession = read.indexReadSession(index);
+                    read.nodeIndexSeek(transaction.queryContext(), indexSession, cursor, IndexQueryConstraints.unordered(false), query);
 
                     return new CursorIterator<>(cursor, NodeIndexCursor::nodeReference, (c) -> new NodeEntity(transaction.internalTransaction(), c.nodeReference()), EMPTY_RESOURCE_TRACKER);
-                }
-                catch ( KernelException e )
-                {
+                } catch (KernelException e) {
                     // weird at this point but ignore and fallback to a label scan
                 }
             }

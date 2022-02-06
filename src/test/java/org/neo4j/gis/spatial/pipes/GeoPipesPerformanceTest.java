@@ -19,8 +19,9 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
-import org.junit.Test;
 import org.neo4j.gis.spatial.*;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.graphdb.Transaction;
@@ -35,6 +36,7 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
     private int records = 10000;
     private int chunkSize = records / 10;
 
+    @BeforeEach
     public void setUp() throws Exception {
         super.setUp(true);
         loadSamplePointData();

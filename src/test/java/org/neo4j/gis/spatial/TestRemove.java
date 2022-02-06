@@ -19,9 +19,9 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
-import org.junit.Test;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;

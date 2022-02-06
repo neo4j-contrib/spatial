@@ -19,10 +19,10 @@
  */
 package org.neo4j.gis.spatial;
 
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Rule;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.extension.RegisterExtension;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.doc.tools.JavaTestDocsGenerator;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -38,19 +38,14 @@ import java.util.Map;
  * This class was copied from the class of the same name in neo4j-examples, in order to reduce the dependency chain
  */
 public abstract class AbstractJavaDocTestBase implements GraphHolder {
-    @Rule
-    public TestData<JavaTestDocsGenerator> gen;
-    @Rule
-    public TestData<Map<String, Node>> data;
+    @RegisterExtension
+    public TestData<Map<String, Node>> data = TestData.producedThrough(GraphDescription.createGraphFor(this));
+    @RegisterExtension
+    public TestData<JavaTestDocsGenerator> gen = TestData.producedThrough(JavaTestDocsGenerator.PRODUCER);
     protected static DatabaseManagementService databases;
     protected static GraphDatabaseService db;
 
-    public AbstractJavaDocTestBase() {
-        this.gen = TestData.producedThrough(JavaTestDocsGenerator.PRODUCER);
-        this.data = TestData.producedThrough(GraphDescription.createGraphFor(this));
-    }
-
-    @AfterClass
+    @AfterAll
     public static void shutdownDb() {
         try {
             if (databases != null) {
@@ -67,14 +62,14 @@ public abstract class AbstractJavaDocTestBase implements GraphHolder {
         return db;
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         GraphDatabaseService graphdb = this.graphdb();
         GraphDatabaseServiceCleaner.cleanDatabaseContent(graphdb);
         this.gen.get().setGraph(graphdb);
     }
 
-    @After
+    @AfterEach
     public void doc() {
         this.gen.get().document("target/docs/dev", "examples");
     }

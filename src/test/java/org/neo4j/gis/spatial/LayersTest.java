@@ -19,13 +19,13 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateList;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.LineString;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gis.spatial.encoders.NativePointEncoder;
@@ -54,21 +54,21 @@ import java.util.Random;
 import java.util.function.Consumer;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 public class LayersTest {
     private DatabaseManagementService databases;
     private GraphDatabaseService graphDb;
 
-    @Before
+    @BeforeEach
     public void setup() throws KernelException {
         databases = new TestDatabaseManagementServiceBuilder(new File("target/layers").toPath()).impermanent().build();
         graphDb = databases.database(DEFAULT_DATABASE_NAME);
         ((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency(GlobalProcedures.class).registerProcedure(SpatialProcedures.class);
     }
 
-    @After
+    @AfterEach
     public void teardown() {
         databases.shutdown();
     }
@@ -239,12 +239,12 @@ public class LayersTest {
         inTx(tx -> {
             Layer layer = spatial.createLayer(tx, layerName, geometryEncoderClass, layerClass);
             assertNotNull(layer);
-            assertTrue("Should be an editable layer", layer instanceof EditableLayer);
+            assertTrue(layer instanceof EditableLayer, "Should be an editable layer");
         });
         inTx(tx -> {
             Layer layer = spatial.getLayer(tx, layerName);
             assertNotNull(layer);
-            assertTrue("Should be an editable layer", layer instanceof EditableLayer);
+            assertTrue(layer instanceof EditableLayer, "Should be an editable layer");
             EditableLayer editableLayer = (EditableLayer) layer;
 
             CoordinateList coordinates = new CoordinateList();

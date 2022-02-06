@@ -20,9 +20,9 @@
 package org.neo4j.gis.spatial.rtree;
 
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.neo4j.dbms.api.DatabaseManagementService;
@@ -47,7 +47,7 @@ public class RTreeTests {
     private TestRTreeIndex rtree;
     private RTreeImageExporter imageExporter;
 
-    @Before
+    @BeforeEach
     public void setup() {
         databases = new TestDatabaseManagementServiceBuilder(Path.of("target", "rtree")).impermanent().build();
         db = databases.database(DEFAULT_DATABASE_NAME);
@@ -65,7 +65,7 @@ public class RTreeTests {
         }
     }
 
-    @After
+    @AfterEach
     public void teardown() {
         databases.shutdown();
     }
@@ -103,6 +103,7 @@ public class RTreeTests {
         }
     }
 
+    @SuppressWarnings("SameParameterValue")
     private RTreeIndex.NodeWithEnvelope createSimpleRTree(double minx, double maxx, int depth) {
         double[] min = new double[]{minx, minx};
         double[] max = new double[]{maxx, maxx};
@@ -134,9 +135,10 @@ public class RTreeTests {
         }
     }
 
+    @SuppressWarnings("SameParameterValue")
     Envelope makeEnvelope(Envelope parent, double scaleFactor, double offsetX, double offsetY) {
         Envelope env = new Envelope(parent);
-        env.scaleBy(0.5);
+        env.scaleBy(scaleFactor);
         env.shiftBy(offsetX * env.getWidth(0), 0);
         env.shiftBy(offsetY * env.getWidth(1), 1);
         return env;

@@ -19,14 +19,13 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.impl.CoordinateArraySequence;
-import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.simplify.TopologyPreservingSimplifier;
-import org.junit.Test;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.gis.spatial.index.IndexManager;
@@ -39,7 +38,6 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
-import javax.xml.stream.XMLStreamException;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -47,10 +45,9 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.Map.Entry;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
-import static org.junit.Assert.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 public class TestIntersectsPathQueries {
@@ -71,7 +68,7 @@ public class TestIntersectsPathQueries {
      * very large, and the set of test points quite large.
      */
     @Test
-    public void testPointSetGeoptimaIntersection() throws ParseException, IOException, XMLStreamException, InterruptedException {
+    public void testPointSetGeoptimaIntersection() throws InterruptedException {
         String osmPath = "albert/osm/massachusetts.highway.osm";
         String shpPath = "albert/shp/massachusetts_highway.shp";
         String dbRoot = "target/geoptima";
@@ -145,7 +142,7 @@ public class TestIntersectsPathQueries {
         });
     }
 
-    private class Performance {
+    private static class Performance {
         long start;
         long duration;
         String name;
@@ -182,7 +179,7 @@ public class TestIntersectsPathQueries {
         }
 
         private double fractionOf(Collection<Node> subset, Collection<Node> set) {
-            HashSet<Node> all = new HashSet<Node>(set);
+            HashSet<Node> all = new HashSet<>(set);
             int count = 0;
             for (Node node : subset) {
                 if (all.contains(node)) {
@@ -201,6 +198,7 @@ public class TestIntersectsPathQueries {
         }
     }
 
+    @SuppressWarnings("SameParameterValue")
     private void runTestPointSetGeoptimaIntersection(String tracePath, String dbRoot, String dbName, String layerName, boolean testMultiPoint) {
         withDatabase(dbRoot, dbName, Neo4jTestCase.NORMAL_CONFIG, graphDb -> {
             SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
@@ -217,8 +215,8 @@ public class TestIntersectsPathQueries {
                     }
                     //OSMLayer layer = (OSMLayer) spatial.getOrCreateLayer(layerName, OSMGeometryEncoder.class, OSMLayer.class);
                     Layer layer = spatial.getLayer(tx, layerName);
-                    assertNotNull("Layer index should not be null", layer.getIndex());
-                    assertNotNull("Layer index envelope should not be null", layer.getIndex().getBoundingBox(tx));
+                    assertNotNull(layer.getIndex(), "Layer index should not be null");
+                    assertNotNull(layer.getIndex().getBoundingBox(tx), "Layer index envelope should not be null");
                     Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox(tx));
                     TestOSMImport.debugEnvelope(bbox, layerName, Constants.PROP_BBOX);
                     indexCount = TestOSMImport.checkIndexCount(tx, layer);
@@ -226,10 +224,10 @@ public class TestIntersectsPathQueries {
                 }
                 TestOSMImport.checkFeatureCount(graphDb, indexCount, layerName);
 
-                HashMap<String, Performance> performances = new LinkedHashMap<String, Performance>();
+                HashMap<String, Performance> performances = new LinkedHashMap<>();
 
                 // Import the sample data of points on a path (drive test)
-                ArrayList<Coordinate> coordinates = new ArrayList<Coordinate>();
+                ArrayList<Coordinate> coordinates = new ArrayList<>();
                 BufferedReader locations = new BufferedReader(new FileReader(tracePath));
                 String line;
                 Performance performance = new Performance("import");
@@ -247,7 +245,7 @@ public class TestIntersectsPathQueries {
 
                 // Slow Test, iterating over all Point objects
                 double distanceInKm = 0.01;
-                HashSet<Node> results = new HashSet<Node>();
+                HashSet<Node> results = new HashSet<>();
                 System.out.println("Searching for geometries near " + coordinates.size() + " locations: " + coordinates.get(0) + " ... "
                         + coordinates.get(coordinates.size() - 1));
                 performance = new Performance("search points");
@@ -268,7 +266,7 @@ public class TestIntersectsPathQueries {
                 // Faster tests with LineString and MultiPoint
                 GeometryFactory geometryFactory = new GeometryFactory();
                 CoordinateArraySequence cseq = new CoordinateArraySequence(coordinates.toArray(new Coordinate[0]));
-                HashMap<String, Geometry> testGeoms = new LinkedHashMap<String, Geometry>();
+                HashMap<String, Geometry> testGeoms = new LinkedHashMap<>();
                 testGeoms.put("LineString", geometryFactory.createLineString(cseq));
                 testGeoms.put("LineString.buffer(0.001)", testGeoms.get("LineString").buffer(0.001));
                 testGeoms.put("LineString.buffer(0.0001)", testGeoms.get("LineString").buffer(0.0001));
@@ -327,6 +325,7 @@ public class TestIntersectsPathQueries {
         }
     }
 
+    @SuppressWarnings("SameParameterValue")
     private List<Node> runSearch(GeoPipeline pipeline, boolean verbose) {
         List<Node> results = pipeline.toNodeList();
         if (verbose) {
@@ -336,7 +335,7 @@ public class TestIntersectsPathQueries {
     }
 
     private static void withDatabase(String dbRoot, String dbName, Map<String, String> rawConfig, Function<GraphDatabaseService, Exception> withDb) throws RuntimeException {
-        DatabaseManagementService databases = new DatabaseManagementServiceBuilder(new File(dbRoot, dbName)).setConfigRaw(rawConfig).build();
+        DatabaseManagementService databases = new DatabaseManagementServiceBuilder(new File(dbRoot, dbName).toPath()).setConfigRaw(rawConfig).build();
         try {
             GraphDatabaseService graphDb = databases.database(DEFAULT_DATABASE_NAME);
             Exception e = withDb.apply(graphDb);

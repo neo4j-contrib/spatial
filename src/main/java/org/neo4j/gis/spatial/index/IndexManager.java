@@ -3,6 +3,7 @@ package org.neo4j.gis.spatial.index;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.schema.IndexDefinition;
+import org.neo4j.internal.kernel.api.security.PermissionState;
 import org.neo4j.internal.kernel.api.security.PrivilegeAction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.api.KernelTransaction;
@@ -27,8 +28,8 @@ public class IndexManager {
         }
 
         @Override
-        public boolean allowsTokenCreates(PrivilegeAction action) {
-            return true;
+        public PermissionState allowsTokenCreates(PrivilegeAction action) {
+            return PermissionState.EXPLICIT_GRANT;
         }
 
         @Override
@@ -37,8 +38,8 @@ public class IndexManager {
         }
 
         @Override
-        public boolean allowsSchemaWrites(PrivilegeAction action) {
-            return true;
+        public PermissionState allowsSchemaWrites(PrivilegeAction action) {
+            return PermissionState.EXPLICIT_GRANT;
         }
     }
 

@@ -63,7 +63,7 @@ public class Neo4jSpatialDataStoreFactory implements org.geotools.data.DataStore
     }
 
     @Override
-    public DataStore createDataStore(Map<String, java.io.Serializable> params) throws IOException {
+    public DataStore createDataStore(Map<String, ?> params) throws IOException {
 
         if (!canProcess(params)) {
             throw new IOException("The parameters map isn't correct!!");

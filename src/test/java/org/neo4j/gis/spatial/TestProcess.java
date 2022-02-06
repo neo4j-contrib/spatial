@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.io.ParseException;
@@ -29,7 +30,6 @@ import org.geotools.process.ProcessExecutor;
 import org.geotools.process.Processors;
 import org.geotools.process.Progress;
 import org.geotools.util.KVP;
-import org.junit.Test;
 import org.opengis.feature.type.Name;
 
 import java.util.Map;

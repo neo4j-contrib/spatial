@@ -19,11 +19,11 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
+import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
-import org.junit.Test;
 import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
 
 import static org.hamcrest.CoreMatchers.equalTo;

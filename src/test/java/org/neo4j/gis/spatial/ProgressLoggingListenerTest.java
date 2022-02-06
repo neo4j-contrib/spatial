@@ -19,7 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.ProgressLoggingListener;
 
@@ -45,8 +45,11 @@ public class ProgressLoggingListenerTest {
         testProgressLoggingListenerWithSpecifiedWaits(unitsOfWork, timeWait, throttle, 3);
     }
 
+    @SuppressWarnings({"CatchMayIgnoreException", "RedundantStringFormatCall"})
     private void testProgressLoggingListenerWithSpecifiedWaits(int unitsOfWork, long timeWait, long throttle, int expectedLogCount) {
-        PrintStream out = spy(System.out);
+        // When running maven-surefire System.out is replaced with a PrintStream that mockito cannot spy on, so we need to wrap it here
+        PrintStream wrapped = new PrintStream(System.out);
+        PrintStream out = spy(wrapped);
         Listener listener = new ProgressLoggingListener("test", out).setTimeWait(timeWait);
         listener.begin(unitsOfWork);
         for (int step = 0; step < unitsOfWork; step++) {

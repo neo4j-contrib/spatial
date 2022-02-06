@@ -19,29 +19,30 @@
  */
 package org.neo4j.gis.spatial;
 
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.neo4j.gis.spatial.filter.SearchIntersect;
+import org.neo4j.gis.spatial.filter.SearchRecords;
+import org.neo4j.gis.spatial.index.IndexManager;
+import org.neo4j.gis.spatial.index.LayerIndexReader;
+import org.neo4j.gis.spatial.osm.OSMDataset;
+import org.neo4j.gis.spatial.osm.OSMImporter;
+import org.neo4j.gis.spatial.osm.OSMLayer;
+import org.neo4j.gis.spatial.rtree.Envelope;
+import org.neo4j.gis.spatial.rtree.NullListener;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
+import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.neo4j.gis.spatial.index.IndexManager;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
-import org.neo4j.gis.spatial.osm.OSMDataset;
-import org.neo4j.gis.spatial.osm.OSMLayer;
-import org.neo4j.gis.spatial.rtree.Envelope;
-import org.neo4j.gis.spatial.rtree.NullListener;
-import org.neo4j.gis.spatial.filter.SearchIntersect;
-import org.neo4j.gis.spatial.filter.SearchRecords;
-import org.neo4j.gis.spatial.osm.OSMImporter;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Transaction;
-import org.neo4j.internal.kernel.api.security.SecurityContext;
-import org.neo4j.kernel.internal.GraphDatabaseAPI;
-
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.fail;
 
 /**
  * <p>
@@ -87,7 +88,7 @@ public class TestSpatial extends Neo4jTestCase {
     private final HashMap<Integer, Integer> geomStats = new HashMap<>();
     private final String spatialTestMode = System.getProperty("spatial.test.mode");
 
-    @Before
+    @BeforeEach
     public void setUp() throws Exception {
         super.setUp();
 
@@ -254,10 +255,10 @@ public class TestSpatial extends Neo4jTestCase {
         SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
         try (Transaction tx = graphDb().beginTx()) {
             Layer layer = spatial.getLayer(tx, layerName);
-            OSMDataset.fromLayer(tx, (OSMLayer) layer); // force lookup
             if (layer == null || layer.getIndex() == null || layer.getIndex().count(tx) < 1) {
                 fail("Layer not loaded: " + layerName);
             }
+            OSMDataset.fromLayer(tx, (OSMLayer) layer); // force lookup
 
             LayerIndexReader fakeIndex = new SpatialIndexPerformanceProxy(new FakeIndex(layer, spatial.indexManager));
             LayerIndexReader rtreeIndex = new SpatialIndexPerformanceProxy(layer.getIndex());
@@ -267,7 +268,7 @@ public class TestSpatial extends Neo4jTestCase {
             assertEnvelopeEquals(fakeIndex.getBoundingBox(tx), rtreeIndex.getBoundingBox(tx));
 
             System.out.println("RTreeIndex count: " + rtreeIndex.count(tx));
-            assertEquals(fakeIndex.count(tx), rtreeIndex.count(tx));
+            Assertions.assertEquals(fakeIndex.count(tx), rtreeIndex.count(tx));
 
             Envelope bbox = layerTestEnvelope.get(layerName);
 
@@ -293,7 +294,7 @@ public class TestSpatial extends Neo4jTestCase {
                             props.append(prop).append(": ").append(r.getProperty(tx, prop));
                         }
 
-                        System.out.println("\tRTreeIndex result[" + ri + "]: " + r.getNodeId() + ":" + r.getType() + " - " + r.toString() + ": PROPS[" + props + "]");
+                        System.out.println("\tRTreeIndex result[" + ri + "]: " + r.getNodeId() + ":" + r.getType() + " - " + r + ": PROPS[" + props + "]");
                     } else if (ri == 10) {
                         System.out.println("\t.. and " + (count - ri) + " more ..");
                     }
@@ -313,8 +314,7 @@ public class TestSpatial extends Neo4jTestCase {
                                 System.out.println("\tOnly first character matched: test[" + testData + "] == result[" + r + "]");
                             } */
                     } else {
-                        System.err.println("\tNo name or id in RTreeIndex result: " + r.getNodeId() + ":" + r.getType() + " - "
-                                + r.toString());
+                        System.err.println("\tNo name or id in RTreeIndex result: " + r.getNodeId() + ":" + r.getType() + " - " + r);
                     }
                 }
 
@@ -345,13 +345,13 @@ public class TestSpatial extends Neo4jTestCase {
     }
 
     private void assertEnvelopeEquals(Envelope a, Envelope b) {
-        assertNotNull(a);
-        assertNotNull(b);
-        assertEquals(a.getDimension(), b.getDimension());
+        Assertions.assertNotNull(a);
+        Assertions.assertNotNull(b);
+        Assertions.assertEquals(a.getDimension(), b.getDimension());
 
         for (int i = 0; i < a.getDimension(); i++) {
-            assertEquals(a.getMin(i), b.getMin(i), 0);
-            assertEquals(a.getMax(i), b.getMax(i), 0);
+            Assertions.assertEquals(a.getMin(i), b.getMin(i), 0);
+            Assertions.assertEquals(a.getMax(i), b.getMax(i), 0);
         }
     }
 

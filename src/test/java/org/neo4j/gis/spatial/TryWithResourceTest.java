@@ -1,6 +1,6 @@
 package org.neo4j.gis.spatial;
 
-import org.junit.Test;
+import org.junit.jupiter.api.Test;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -9,9 +9,10 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
 import java.io.File;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
+@SuppressWarnings("ConstantConditions")
 public class TryWithResourceTest {
 
     public static final String MESSAGE = "I want to see this";

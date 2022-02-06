@@ -19,12 +19,6 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.Envelope;
-import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.geom.util.AffineTransformation;
-import org.locationtech.jts.io.ParseException;
-import org.locationtech.jts.io.WKTReader;
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.data.neo4j.StyledImageExporter;
 import org.geotools.feature.FeatureCollection;
@@ -32,10 +26,16 @@ import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.crs.DefaultEngineeringCRS;
 import org.geotools.styling.Style;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.util.AffineTransformation;
+import org.locationtech.jts.io.ParseException;
+import org.locationtech.jts.io.WKTReader;
 import org.neo4j.annotations.documented.Documented;
 import org.neo4j.gis.spatial.*;
 import org.neo4j.gis.spatial.filter.SearchIntersectWindow;
@@ -54,10 +54,10 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import java.awt.*;
 import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.NoSuchElementException;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 public class GeoPipesDocTest extends AbstractJavaDocTestBase {
@@ -109,10 +109,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 
     @Test
     public void filter_by_window_intersection() {
-        assertEquals(
-                1,
-                GeoPipeline.start(tx, osmLayer).windowIntersectionFilter(10, 40, 20,
-                        56.0583531).count());
+        assertEquals(1, GeoPipeline.start(tx, osmLayer).windowIntersectionFilter(10, 40, 20,  56.0583531).count());
     }
 
     /**
@@ -147,9 +144,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
         GeoPipeline pipeline = GeoPipeline
                 .startWithinSearch(tx, osmLayer, osmLayer.getGeometryFactory().toGeometry(new Envelope(10, 20, 50, 60)));
         // end::search_within_geometry[]
-        assertEquals(
-                2,
-                pipeline.count());
+        assertEquals(2, pipeline.count());
     }
 
     @Test
@@ -228,10 +223,9 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
     public void calculate_area() {
         GeoPipeline pipeline = GeoPipeline.start(tx, boxesLayer).calculateArea().sort("Area");
 
-        assertEquals((Double) pipeline.next().getProperties().get("Area"),
-                1.0, 0);
-        assertEquals((Double) pipeline.next().getProperties().get("Area"),
-                8.0, 0);
+        assertEquals((Double) pipeline.next().getProperties().get("Area"), 1.0, 0);
+        assertEquals((Double) pipeline.next().getProperties().get("Area"), 8.0, 0);
+        pipeline.reset();
     }
 
     @Test
@@ -240,6 +234,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 
         assertEquals((Double) pipeline.next().getProperties().get("Length"), 4.0, 0);
         assertEquals((Double) pipeline.next().getProperties().get("Length"), 12.0, 0);
+        pipeline.reset();
     }
 
     @Test
@@ -252,6 +247,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
         assertEquals("LINEARRING (2 3, 2 5, 6 5, 6 3, 2 3)", second.getProperties().get("WellKnownText"));
         assertEquals((Double) first.getProperties().get("Length"), 4.0, 0);
         assertEquals((Double) second.getProperties().get("Length"), 12.0, 0);
+        pipeline.reset();
     }
 
     /**
@@ -276,6 +272,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 
         assertTrue(((Double) pipeline.next().getProperties().get("Area")) > 1);
         assertTrue(((Double) pipeline.next().getProperties().get("Area")) > 8);
+        pipeline.reset();
     }
 
     /**
@@ -298,10 +295,9 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 
         pipeline = GeoPipeline.start(tx, boxesLayer).toCentroid().createWellKnownText().copyDatabaseRecordProperties(tx).sort("name");
 
-        assertEquals("POINT (12.5 26.5)",
-                pipeline.next().getProperties().get("WellKnownText"));
-        assertEquals("POINT (4 4)",
-                pipeline.next().getProperties().get("WellKnownText"));
+        assertEquals("POINT (12.5 26.5)", pipeline.next().getProperties().get("WellKnownText"));
+        assertEquals("POINT (4 4)", pipeline.next().getProperties().get("WellKnownText"));
+        pipeline.reset();
     }
 
     /**
@@ -349,8 +345,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 
         pipeline = GeoPipeline.start(tx, concaveLayer).toConvexHull().createWellKnownText();
 
-        assertEquals("POLYGON ((0 0, 0 10, 10 10, 10 0, 0 0))",
-                pipeline.next().getProperties().get("WellKnownText"));
+        assertEquals("POLYGON ((0 0, 0 10, 10 10, 10 0, 0 0))", pipeline.next().getProperties().get("WellKnownText"));
         pipeline.reset();
     }
 
@@ -373,25 +368,20 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
         // end::densify[]
         addImageSnippet(concaveLayer, pipeline, getTitle(), Constants.GTYPE_POINT);
 
+        pipeline = GeoPipeline.start(tx, concaveLayer).toConvexHull().densify(5).createWellKnownText();
 
-        pipeline = GeoPipeline.start(tx, concaveLayer).toConvexHull().densify(10).createWellKnownText();
-
-        assertEquals(
-                "POLYGON ((0 0, 0 5, 0 10, 5 10, 10 10, 10 5, 10 0, 5 0, 0 0))",
-                pipeline.next().getProperties().get("WellKnownText"));
+        String wkt = (String) pipeline.next().getProperties().get("WellKnownText");
         pipeline.reset();
+        assertEquals("POLYGON ((0 0, 0 5, 0 10, 5 10, 10 10, 10 5, 10 0, 5 0, 0 0))", wkt);
     }
 
     @Test
     public void json() {
         GeoPipeline pipeline = GeoPipeline.start(tx, boxesLayer).createJson().copyDatabaseRecordProperties(tx).sort("name");
 
-        assertEquals(
-                "{\"type\":\"Polygon\",\"coordinates\":[[[12,26],[12,27],[13,27],[13,26],[12,26]]]}",
-                pipeline.next().getProperties().get("GeoJSON"));
-        assertEquals(
-                "{\"type\":\"Polygon\",\"coordinates\":[[[2,3],[2,5],[6,5],[6,3],[2,3]]]}",
-                pipeline.next().getProperties().get("GeoJSON"));
+        assertEquals("{\"type\":\"Polygon\",\"coordinates\":[[[12,26],[12,27],[13,27],[13,26],[12,26]]]}", pipeline.next().getProperties().get("GeoJSON"));
+        assertEquals("{\"type\":\"Polygon\",\"coordinates\":[[[2,3],[2,5],[6,5],[6,3],[2,3]]]}", pipeline.next().getProperties().get("GeoJSON"));
+        pipeline.reset();
     }
 
     /**
@@ -417,6 +407,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 
         pipeline = GeoPipeline.start(tx, boxesLayer).calculateArea().getMax("Area");
         assertEquals((Double) pipeline.next().getProperties().get("Area"), 8.0, 0);
+        pipeline.reset();
     }
 
     /**
@@ -533,6 +524,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 
         pipeline = GeoPipeline.start(tx, boxesLayer).calculateArea().getMin("Area");
         assertEquals((Double) pipeline.next().getProperties().get("Area"), 1.0, 0);
+        pipeline.reset();
     }
 
     @Test
@@ -544,7 +536,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 
             assertEquals(1, flow.getProperties().size());
             String wkt = (String) flow.getProperties().get("WellKnownText");
-            assertTrue(wkt.indexOf("POINT") == 0);
+            assertEquals(0, wkt.indexOf("POINT"));
         }
 
         assertEquals(24, count);
@@ -624,22 +616,14 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 
     @Test
     public void filter_by_null_property() {
-        assertEquals(
-                2,
-                GeoPipeline.start(tx, boxesLayer).copyDatabaseRecordProperties(tx).propertyNullFilter("address").count());
-        assertEquals(
-                0,
-                GeoPipeline.start(tx, boxesLayer).copyDatabaseRecordProperties(tx).propertyNullFilter("name").count());
+        assertEquals(2, GeoPipeline.start(tx, boxesLayer).copyDatabaseRecordProperties(tx).propertyNullFilter("address").count());
+        assertEquals(0, GeoPipeline.start(tx, boxesLayer).copyDatabaseRecordProperties(tx).propertyNullFilter("name").count());
     }
 
     @Test
     public void filter_by_not_null_property() {
-        assertEquals(
-                0,
-                GeoPipeline.start(tx, boxesLayer).copyDatabaseRecordProperties(tx).propertyNotNullFilter("address").count());
-        assertEquals(
-                2,
-                GeoPipeline.start(tx, boxesLayer).copyDatabaseRecordProperties(tx).propertyNotNullFilter("name").count());
+        assertEquals(0, GeoPipeline.start(tx, boxesLayer).copyDatabaseRecordProperties(tx).propertyNotNullFilter("address").count());
+        assertEquals(2, GeoPipeline.start(tx, boxesLayer).copyDatabaseRecordProperties(tx).propertyNotNullFilter("name").count());
     }
 
     @Test
@@ -649,10 +633,9 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
         GeoPipeline pipeline = GeoPipeline.start(tx, boxesLayer).calculateDistance(
                 reader.read("POINT (0 0)")).sort("Distance");
 
-        assertEquals(
-                4, Math.round((Double) pipeline.next().getProperty(tx, "Distance")));
-        assertEquals(
-                29, Math.round((Double) pipeline.next().getProperty(tx, "Distance")));
+        assertEquals(4, Math.round((Double) pipeline.next().getProperty(tx, "Distance")));
+        assertEquals(29, Math.round((Double) pipeline.next().getProperty(tx, "Distance")));
+        pipeline.reset();
     }
 
     /**
@@ -679,9 +662,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
                 .unionAll()
                 .createWellKnownText();
 
-        assertEquals(
-                "POLYGON ((0 0, 0 5, 2 5, 2 6, 4 6, 4 10, 10 10, 10 4, 6 4, 6 2, 5 2, 5 0, 0 0))",
-                pipeline.next().getProperty(tx, "WellKnownText"));
+        assertEquals("POLYGON ((0 0, 0 5, 2 5, 2 6, 4 6, 4 10, 10 10, 10 4, 6 4, 6 2, 5 2, 5 0, 0 0))", pipeline.next().getProperty(tx, "WellKnownText"));
 
         try {
             pipeline.next();
@@ -714,8 +695,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
                 .intersectAll()
                 .createWellKnownText();
 
-        assertEquals("POLYGON ((4 5, 5 5, 5 4, 4 4, 4 5))",
-                pipeline.next().getProperty(tx, "WellKnownText"));
+        assertEquals("POLYGON ((4 5, 5 5, 5 4, 4 4, 4 5))", pipeline.next().getProperty(tx, "WellKnownText"));
 
         try {
             pipeline.next();
@@ -854,6 +834,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
         assertEquals("different order", pipeline.next().getProperty(tx, "name"));
         assertEquals("topo equal", pipeline.next().getProperty(tx, "name"));
         assertFalse(pipeline.hasNext());
+        pipeline.reset();
     }
 
     private String getTitle() {
@@ -979,18 +960,19 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
         }
     }
 
+    @SuppressWarnings("SameParameterValue")
     private static void loadTestOsmData(String layerName, int commitInterval)
             throws Exception {
         String osmPath = "./" + layerName;
         System.out.println("\n=== Loading layer " + layerName + " from "
                 + osmPath + " ===");
         OSMImporter importer = new OSMImporter(layerName);
-        importer.setCharset(Charset.forName("UTF-8"));
+        importer.setCharset(StandardCharsets.UTF_8);
         importer.importFile(db, osmPath);
         importer.reIndex(db, commitInterval);
     }
 
-    @Before
+    @BeforeEach
     public void setUp() {
         gen.get().setGraph(db);
         try (Transaction tx = db.beginTx()) {
@@ -1024,7 +1006,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
         tx = db.beginTx();
     }
 
-    @After
+    @AfterEach
     public void doc() {
         // gen.get().addSnippet( "graph", AsciidocHelper.createGraphViz( imgName , graphdb(), "graph"+getTitle() ) );
         gen.get().addTestSourceSnippets(GeoPipesDocTest.class, "s_" + getTitle().toLowerCase());
@@ -1035,7 +1017,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
         }
     }
 
-    @BeforeClass
+    @BeforeAll
     public static void init() {
         databases = new TestDatabaseManagementServiceBuilder(new File("target/docs").toPath()).impermanent().build();
         db = databases.database(DEFAULT_DATABASE_NAME);

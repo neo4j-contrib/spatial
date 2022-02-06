@@ -19,13 +19,12 @@
  */
 package org.neo4j.gis.spatial;
 
-import org.locationtech.jts.geom.Coordinate;
-import org.apache.commons.io.FileUtils;
 import org.geotools.data.neo4j.StyledImageExporter;
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.junit.Test;
-import org.junit.runners.Parameterized;
-import org.neo4j.dbms.api.DatabaseManagementService;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.locationtech.jts.geom.Coordinate;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.osm.OSMDataset;
@@ -34,34 +33,25 @@ import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.osm.OSMRelation;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.filter.SearchAll;
-import org.neo4j.gis.spatial.utilities.ReferenceNodes;
-import org.neo4j.graphdb.*;
+import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
-import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.stream.Stream;
 
-import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
-
-public class OsmAnalysisTest extends TestOSMImport {
+public class OsmAnalysisTest extends TestOSMImportBase {
     public static final String spatialTestMode = System.getProperty("spatial.test.mode");
     public static final boolean usePoints = true;
-    private final int years;
-    private final int days;
 
-    public OsmAnalysisTest(String layerName, int years, int days) {
-        super(layerName, true);
-        this.years = years;
-        this.days = days;
-    }
-
-    @Parameterized.Parameters(name = "{index}-{0}: years={1}, days={2}")
-    public static Collection parameters() {
+    private static Stream<Arguments> parameters() {
         deleteBaseDir();
         String[] smallModels = new String[]{"one-street.osm", "two-street.osm"};
         //String[] mediumModels = new String[]{"map.osm", "map2.osm"};
@@ -92,23 +82,24 @@ public class OsmAnalysisTest extends TestOSMImport {
         int[] days = new int[]{1};
 
         // Finally build the set of complete test cases based on the collection above
-        ArrayList<Object[]> suite = new ArrayList<>();
+        ArrayList<Arguments> params = new ArrayList<>();
         for (final String layerName : layersToTest) {
             for (final int y : years) {
                 for (final int d : days) {
-                    suite.add(new Object[]{layerName, y, d});
+                    params.add(Arguments.of(layerName, y, d));
                 }
             }
         }
-        System.out.println("This suite has " + suite.size() + " tests");
-        for (Object[] params : suite) {
-            System.out.println("\t" + Arrays.toString(params));
+        System.out.println("This suite has " + params.size() + " tests");
+        for (Arguments arguments : params) {
+            System.out.println("\t" + Arrays.toString(arguments.get()));
         }
-        return suite;
+        return params.stream();
     }
 
-    @Test
-    public void runTest() throws Exception {
+    @ParameterizedTest
+    @MethodSource("parameters")
+    public void runTest(String layerName, int years, int days) throws Exception {
         runAnalysis(layerName, years, days);
     }
 
