@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.util.Objects;
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.attributes.PropertyMapper;
 import org.neo4j.graphdb.Node;
@@ -39,11 +40,11 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 
     @Override
     public String getId() {
-        return Long.toString(geomNode.getId());
+        return geomNode.getElementId();
     }
 
-    public long getNodeId() {
-        return geomNode.getId();
+    public String getNodeId() {
+        return getId();
     }
 
     @Override
@@ -55,7 +56,7 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
      * If the geomNode is to be used in a different transaction than the one in which it was created, we must call this first
      */
     public void refreshGeomNode(Transaction tx) {
-        geomNode = tx.getNodeById(geomNode.getId());
+        geomNode = tx.getNodeByElementId(geomNode.getElementId());
     }
 
     /**
@@ -146,15 +147,14 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 
     @Override
     public int hashCode() {
-        return ((Long) geomNode.getId()).hashCode();
+        return geomNode.getElementId().hashCode();
     }
 
     @Override
     public boolean equals(Object anotherObject) {
-        if (!(anotherObject instanceof SpatialDatabaseRecord)) return false;
+        if (!(anotherObject instanceof SpatialDatabaseRecord anotherRecord)) return false;
 
-        SpatialDatabaseRecord anotherRecord = (SpatialDatabaseRecord) anotherObject;
-        return getNodeId() == anotherRecord.getNodeId();
+        return Objects.equals(getNodeId(), anotherRecord.getNodeId());
     }
 
     @Override

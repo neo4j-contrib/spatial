@@ -11,9 +11,6 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Map;
-import java.util.Spliterators;
-import java.util.stream.StreamSupport;
 
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.junit.jupiter.api.Assertions.*;
@@ -34,8 +31,8 @@ public class TestReadOnlyTransactions {
 
     private static long storePrefix;
 
-    private static long n1Id = 0L;
-    private static long n2Id = 0L;
+    private static String n1Id;
+    private static String n2Id;
 
     @BeforeEach
     public void setUp() throws Exception {
@@ -64,15 +61,15 @@ public class TestReadOnlyTransactions {
             Node n2 = tx.createNode();
             n2.setProperty("name", "n2");
             n1.createRelationshipTo(n2, RelationshipType.withName("LIKES"));
-            n1Id = n1.getId();
-            n2Id = n2.getId();
+            n1Id = n1.getElementId();
+            n2Id = n2.getElementId();
             tx.commit();
         }
     }
 
     private void readNames(Transaction tx) {
-        Node n1 = tx.getNodeById(n1Id);
-        Node n2 = tx.getNodeById(n2Id);
+        Node n1 = tx.getNodeByElementId(n1Id);
+        Node n2 = tx.getNodeByElementId(n2Id);
         String n1Name = (String) n1.getProperty("name");
         String n2Name = (String) n2.getProperty("name");
         System.out.println("First node: " + n1Name);

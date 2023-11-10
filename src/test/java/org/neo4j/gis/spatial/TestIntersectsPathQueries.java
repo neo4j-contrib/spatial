@@ -35,6 +35,7 @@ import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.config.Setting;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
@@ -334,8 +335,8 @@ public class TestIntersectsPathQueries {
         return results;
     }
 
-    private static void withDatabase(String dbRoot, String dbName, Map<String, String> rawConfig, Function<GraphDatabaseService, Exception> withDb) throws RuntimeException {
-        DatabaseManagementService databases = new DatabaseManagementServiceBuilder(new File(dbRoot, dbName).toPath()).setConfigRaw(rawConfig).build();
+    private static void withDatabase(String dbRoot, String dbName, Map<Setting<?>, Object> rawConfig, Function<GraphDatabaseService, Exception> withDb) throws RuntimeException {
+        DatabaseManagementService databases = new DatabaseManagementServiceBuilder(new File(dbRoot, dbName).toPath()).setConfig(rawConfig).build();
         try {
             GraphDatabaseService graphDb = databases.database(DEFAULT_DATABASE_NAME);
             Exception e = withDb.apply(graphDb);

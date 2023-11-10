@@ -35,13 +35,14 @@ import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Objects;
 
 public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
     private final OSMLayer layer;
-    private final long datasetNodeId;
+    private final String datasetNodeId;
     private Iterator<Node> wayNodeIterator;
 
-    public OSMDataset(OSMLayer layer, long datasetNodeId) {
+    public OSMDataset(OSMLayer layer, String datasetNodeId) {
         this.layer = layer;
         this.datasetNodeId = datasetNodeId;
         this.layer.setDataset(this);
@@ -51,8 +52,8 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
      * This method is used to construct the dataset on an existing node when the node id is known,
      * which is the case with OSM importers.
      */
-    public static OSMDataset withDatasetId(Transaction tx, OSMLayer layer, long datasetNodeId) {
-        Node datasetNode = tx.getNodeById(datasetNodeId);
+    public static OSMDataset withDatasetId(Transaction tx, OSMLayer layer, String datasetNodeId) {
+        Node datasetNode = tx.getNodeByElementId(datasetNodeId);
         Node layerNode = layer.getLayerNode(tx);
         Relationship rel = layerNode.getSingleRelationship(SpatialRelationshipTypes.LAYERS, Direction.INCOMING);
         if (rel == null) {
@@ -75,7 +76,7 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
         if (rel == null) {
             throw new SpatialDatabaseException("Layer '" + layer + "' does not have an associated dataset");
         } else {
-            long datasetNodeId = rel.getStartNode().getId();
+            String datasetNodeId = rel.getStartNode().getElementId();
             return new OSMDataset(layer, datasetNodeId);
         }
     }
@@ -86,7 +87,7 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
                 .relationships(OSMRelation.USERS, Direction.OUTGOING)
                 .relationships(OSMRelation.OSM_USER, Direction.OUTGOING)
                 .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(OSMRelation.OSM_USER));
-        return td.traverse(tx.getNodeById(datasetNodeId)).nodes();
+        return td.traverse(tx.getNodeByElementId(datasetNodeId)).nodes();
     }
 
     public Iterable<Node> getAllChangesetNodes(Transaction tx) {
@@ -96,7 +97,7 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
                 .relationships(OSMRelation.OSM_USER, Direction.OUTGOING)
                 .relationships(OSMRelation.USER, Direction.INCOMING)
                 .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(OSMRelation.USER));
-        return td.traverse(tx.getNodeById(datasetNodeId)).nodes();
+        return td.traverse(tx.getNodeByElementId(datasetNodeId)).nodes();
     }
 
     public Iterable<Node> getAllWayNodes(Transaction tx) {
@@ -105,7 +106,7 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
                 .relationships(OSMRelation.WAYS, Direction.OUTGOING)
                 .relationships(OSMRelation.NEXT, Direction.OUTGOING)
                 .evaluator(Evaluators.excludeStartPosition());
-        return td.traverse(tx.getNodeById(datasetNodeId)).nodes();
+        return td.traverse(tx.getNodeByElementId(datasetNodeId)).nodes();
     }
 
     public Iterable<Node> getAllPointNodes(Transaction tx) {
@@ -116,7 +117,7 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
                 .relationships(OSMRelation.FIRST_NODE, Direction.OUTGOING)
                 .relationships(OSMRelation.NODE, Direction.OUTGOING)
                 .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(OSMRelation.NODE));
-        return td.traverse(tx.getNodeById(datasetNodeId)).nodes();
+        return td.traverse(tx.getNodeByElementId(datasetNodeId)).nodes();
     }
 
     public Iterable<Node> getWayNodes(Node way) {
@@ -148,8 +149,8 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
         return RelationshipTraversal.getFirstNode(td.traverse(nodeWayOrChangeset).nodes());
     }
 
-    public Way getWayFromId(Transaction tx, long id) {
-        return getWayFrom(tx.getNodeById(id));
+    public Way getWayFromId(Transaction tx, String id) {
+        return getWayFrom(tx.getNodeByElementId(id));
     }
 
     public Way getWayFrom(Node osmNodeOrWayNodeOrGeomNode) {
@@ -192,7 +193,7 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
         }
 
         public boolean equals(OSMNode other) {
-            return this.node.getId() == other.node.getId();
+            return Objects.equals(this.node.getElementId(), other.node.getElementId());
         }
 
         public Node getNode() {
@@ -332,26 +333,26 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
     }
 
     public int getPoiCount(Transaction tx) {
-        return (Integer) tx.getNodeById(this.datasetNodeId).getProperty("poiCount", 0);
+        return (Integer) tx.getNodeByElementId(this.datasetNodeId).getProperty("poiCount", 0);
     }
 
     public int getNodeCount(Transaction tx) {
-        return (Integer) tx.getNodeById(this.datasetNodeId).getProperty("nodeCount", 0);
+        return (Integer) tx.getNodeByElementId(this.datasetNodeId).getProperty("nodeCount", 0);
     }
 
     public int getWayCount(Transaction tx) {
-        return (Integer) tx.getNodeById(this.datasetNodeId).getProperty("wayCount", 0);
+        return (Integer) tx.getNodeByElementId(this.datasetNodeId).getProperty("wayCount", 0);
     }
 
     public int getRelationCount(Transaction tx) {
-        return (Integer) tx.getNodeById(this.datasetNodeId).getProperty("relationCount", 0);
+        return (Integer) tx.getNodeByElementId(this.datasetNodeId).getProperty("relationCount", 0);
     }
 
     public int getChangesetCount(Transaction tx) {
-        return (Integer) tx.getNodeById(this.datasetNodeId).getProperty("changesetCount", 0);
+        return (Integer) tx.getNodeByElementId(this.datasetNodeId).getProperty("changesetCount", 0);
     }
 
     public int getUserCount(Transaction tx) {
-        return (Integer) tx.getNodeById(this.datasetNodeId).getProperty("userCount", 0);
+        return (Integer) tx.getNodeByElementId(this.datasetNodeId).getProperty("userCount", 0);
     }
 }

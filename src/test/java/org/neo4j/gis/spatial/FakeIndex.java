@@ -85,14 +85,14 @@ public class FakeIndex implements LayerIndexReader, Constants {
         return bbox;
     }
 
-    public SpatialDatabaseRecord get(Transaction tx, Long geomNodeId) {
-        return new SpatialDatabaseRecord(layer, tx.getNodeById(geomNodeId));
+    public SpatialDatabaseRecord get(Transaction tx, String geomNodeId) {
+        return new SpatialDatabaseRecord(layer, tx.getNodeByElementId(geomNodeId));
     }
 
-    public List<SpatialDatabaseRecord> get(Transaction tx, Set<Long> geomNodeIds) {
+    public List<SpatialDatabaseRecord> get(Transaction tx, Set<String> geomNodeIds) {
         List<SpatialDatabaseRecord> results = new ArrayList<>();
 
-        for (Long geomNodeId : geomNodeIds) {
+        for (String geomNodeId : geomNodeIds) {
             results.add(get(tx, geomNodeId));
         }
 
@@ -111,7 +111,7 @@ public class FakeIndex implements LayerIndexReader, Constants {
 
 
     @Override
-    public boolean isNodeIndexed(Transaction tx, Long nodeId) {
+    public boolean isNodeIndexed(Transaction tx, String nodeId) {
         // TODO
         return true;
     }

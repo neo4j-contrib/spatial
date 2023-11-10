@@ -71,7 +71,7 @@ public class Neo4jSpatialDataStoreFactory implements org.geotools.data.DataStore
 
         File neodir = (File) DIRECTORY.lookUp(params);
 
-        DatabaseManagementService databases = new DatabaseManagementServiceBuilder(neodir).build();
+        DatabaseManagementService databases = new DatabaseManagementServiceBuilder(neodir.toPath()).build();
         GraphDatabaseService db = databases.database(DEFAULT_DATABASE_NAME);
 
         return new Neo4jSpatialDataStore(db);

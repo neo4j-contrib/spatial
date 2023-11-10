@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial.procedures;
 
+import org.hamcrest.MatcherAssert;
 import org.junit.*;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
@@ -48,6 +49,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.*;
 import static org.junit.Assert.*;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
@@ -96,7 +98,7 @@ public class SpatialProceduresTest {
             });
             fail("Expected an exception containing '" + error + "', but no exception was thrown");
         } catch (Exception e) {
-            assertThat(e.getMessage(), containsString(error));
+        	assertTrue(e.getMessage().contains(error));
         }
     }
 
@@ -195,7 +197,7 @@ public class SpatialProceduresTest {
     public void add_node_to_non_existing_layer() {
         execute("CALL spatial.addPointLayer('some_name')");
         Node node = createNode("CREATE (n:Point {latitude:60.1,longitude:15.2}) RETURN n", "n");
-        testCallFails(db, "CALL spatial.addNode.byId('wrong_name',$nodeId)", map("nodeId", node.getId()), "No such layer 'wrong_name'");
+        testCallFails(db, "CALL spatial.addNode.byId('wrong_name',$nodeId)", map("nodeId", node.getElementId()), "No such layer 'wrong_name'");
     }
 
     @Test
@@ -224,7 +226,7 @@ public class SpatialProceduresTest {
 //        long countLow = execute("call spatial.withinDistance('bar', {latitude:52.202925,longitude:0.0905302}, 100) YIELD node RETURN node");
 //        assertThat("Expected two nodes when using low precision", countLow, equalTo(2L));
         long countHigh = execute("call spatial.withinDistance('bar', {latitude:52.2029252,longitude:0.0905302}, 100) YIELD node RETURN node");
-        assertThat("Expected two nodes when using high precision", countHigh, equalTo(2L));
+        MatcherAssert.assertThat("Expected two nodes when using high precision", countHigh, equalTo(2L));
     }
 
     @Test
@@ -258,9 +260,9 @@ public class SpatialProceduresTest {
         execute("create (n:Point) set n={latitude: 52.2029252, longitude: 0.0905302} with n call spatial.addNode('bar', n) yield node return node");
         execute("create (n:Point) set n={latitude: 52.202925, longitude: 0.090530} with n call spatial.addNode('bar', n) yield node return node");
 //        long countLow = execute("call spatial.withinDistance('bar', {latitude:52.202925,longitude:0.0905302}, 100) YIELD node RETURN node");
-//        assertThat("Expected two nodes when using low precision", countLow, equalTo(2L));
+//        assertEquals("Expected two nodes when using low precision", countLow, equalTo(2L));
         long countHigh = execute("call spatial.withinDistance('bar', {latitude:52.2029252,longitude:0.0905302}, 100) YIELD node RETURN node");
-        assertThat("Expected two nodes when using high precision", countHigh, equalTo(2L));
+        assertEquals("Expected two nodes when using high precision",2L, countHigh);
     }
 
     //
@@ -269,40 +271,40 @@ public class SpatialProceduresTest {
 
     @Test
     public void create_point_and_distance() {
-        double distance = (Double) executeObject("WITH point({latitude: 5.0, longitude: 4.0}) as geometry RETURN distance(geometry, point({latitude: 5.0, longitude: 4.0})) as distance", "distance");
+        double distance = (Double) executeObject("WITH point({latitude: 5.0, longitude: 4.0}) as geometry RETURN point.distance(geometry, point({latitude: 5.0, longitude: 4.0})) as distance", "distance");
         System.out.println(distance);
     }
 
     @Test
     // TODO: Support this once procedures are able to return Geometry types
     public void create_point_geometry_and_distance() {
-        double distance = (double) executeObject("WITH point({latitude: 5.0, longitude: 4.0}) as geom WITH spatial.asGeometry(geom) AS geometry RETURN distance(geometry, point({latitude: 5.0, longitude: 4.0})) as distance", "distance");
+        double distance = (double) executeObject("WITH point({latitude: 5.0, longitude: 4.0}) as geom WITH spatial.asGeometry(geom) AS geometry RETURN point.distance(geometry, point({latitude: 5.0, longitude: 4.0})) as distance", "distance");
         System.out.println(distance);
     }
 
     @Test
     public void create_point_and_return() {
         Object geometry = executeObject("RETURN point({latitude: 5.0, longitude: 4.0}) as geometry", "geometry");
-        assertThat("Should be Geometry type", geometry, instanceOf(Geometry.class));
+        assertTrue("Should be Geometry type", geometry instanceof Geometry);
     }
 
     @Test
     public void create_point_geometry_return() {
         Object geometry = executeObject("WITH point({latitude: 5.0, longitude: 4.0}) as geom RETURN spatial.asGeometry(geom) AS geometry", "geometry");
-        assertThat("Should be Geometry type", geometry, instanceOf(Geometry.class));
+        assertTrue("Should be Geometry type", geometry instanceof Geometry);
     }
 
     @Test
     public void literal_geometry_return() {
         Object geometry = executeObject("WITH spatial.asGeometry({latitude: 5.0, longitude: 4.0}) AS geometry RETURN geometry", "geometry");
-        assertThat("Should be Geometry type", geometry, instanceOf(Geometry.class));
+        assertTrue("Should be Geometry type", geometry instanceof Geometry);
     }
 
     @Test
     public void create_node_decode_to_geometry() {
         execute("CALL spatial.addWKTLayer('geom','geom')");
-        Object actual = executeObject("CREATE (n:Node {geom:'POINT(4.0 5.0)'}) RETURN spatial.decodeGeometry('geom',n) AS geometry", "geometry");
-        assertThat("Should be Geometry type", actual, instanceOf(Geometry.class));
+        Object geometry = executeObject("CREATE (n:Node {geom:'POINT(4.0 5.0)'}) RETURN spatial.decodeGeometry('geom',n) AS geometry", "geometry");
+        assertTrue("Should be Geometry type", geometry instanceof Geometry);
     }
 
     @Test
@@ -310,16 +312,16 @@ public class SpatialProceduresTest {
     public void create_node_and_convert_to_geometry() {
         execute("CALL spatial.addWKTLayer('geom','geom')");
         Geometry geom = (Geometry) executeObject("CREATE (n:Node {geom:'POINT(4.0 5.0)'}) RETURN spatial.decodeGeometry('geom',n) AS geometry", "geometry");
-        double distance = (Double) executeObject("RETURN distance($geom, point({y: 6.0, x: 4.0})) as distance", map("geom", geom), "distance");
-        assertThat("Expected the cartesian distance of 1.0", distance, closeTo(1.0, 0.00001));
+        double distance = (Double) executeObject("RETURN point.distance($geom, point({y: 6.0, x: 4.0})) as distance", map("geom", geom), "distance");
+        MatcherAssert.assertThat("Expected the cartesian distance of 1.0", distance, closeTo(1.0, 0.00001));
     }
 
     @Test
     // TODO: Currently this only works for point geometries because Neo4j 3.4 can only return Point geometries from procedures
     public void create_point_and_pass_as_param() {
         Geometry geom = (Geometry) executeObject("RETURN point({latitude: 5.0, longitude: 4.0}) as geometry", "geometry");
-        double distance = (Double) executeObject("WITH spatial.asGeometry($geom) AS geometry RETURN distance(geometry, point({latitude: 5.1, longitude: 4.0})) as distance", map("geom", geom), "distance");
-        assertThat("Expected the geographic distance of 11132km", distance, closeTo(11132.0, 1.0));
+        double distance = (Double) executeObject("WITH spatial.asGeometry($geom) AS geometry RETURN point.distance(geometry, point({latitude: 5.1, longitude: 4.0})) as distance", map("geom", geom), "distance");
+        MatcherAssert.assertThat("Expected the geographic distance of 11132km", distance, closeTo(11132.0, 1.0));
     }
 
     private long execute(String statement) {
@@ -396,7 +398,7 @@ public class SpatialProceduresTest {
             testCall(db, "CALL spatial.addPointLayerWithConfig('geom','lon:lat')", (r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
             fail("Expected exception to be thrown");
         } catch (Exception e) {
-            assertThat(e.getMessage(), containsString("Cannot create existing layer"));
+        	 assertTrue(e.getMessage().contains("Cannot create existing layer"));
         }
     }
 
@@ -407,7 +409,7 @@ public class SpatialProceduresTest {
             testCall(db, "CALL spatial.addPointLayerWithConfig('geom','lon:lat')", (r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
             fail("Expected exception to be thrown");
         } catch (Exception e) {
-            assertThat(e.getMessage(), containsString("Cannot create existing layer"));
+        	 assertTrue(e.getMessage().contains("Cannot create existing layer"));
         }
     }
 
@@ -594,13 +596,13 @@ public class SpatialProceduresTest {
             for (String key : procs.keySet()) {
                 System.out.println(key + ": " + procs.get(key));
             }
-            assertEquals("spatial.procedures() :: (name :: STRING?, signature :: STRING?)", procs.get("spatial.procedures"));
-            assertEquals("spatial.layers() :: (name :: STRING?, signature :: STRING?)", procs.get("spatial.layers"));
-            assertEquals("spatial.layer(name :: STRING?) :: (node :: NODE?)", procs.get("spatial.layer"));
-            assertEquals("spatial.addLayer(name :: STRING?, type :: STRING?, encoderConfig :: STRING?) :: (node :: NODE?)", procs.get("spatial.addLayer"));
-            assertEquals("spatial.addNode(layerName :: STRING?, node :: NODE?) :: (node :: NODE?)", procs.get("spatial.addNode"));
-            assertEquals("spatial.addWKT(layerName :: STRING?, geometry :: STRING?) :: (node :: NODE?)", procs.get("spatial.addWKT"));
-            assertEquals("spatial.intersects(layerName :: STRING?, geometry :: ANY?) :: (node :: NODE?)", procs.get("spatial.intersects"));
+            assertEquals("spatial.procedures() :: (name :: STRING, signature :: STRING)", procs.get("spatial.procedures"));
+            assertEquals("spatial.layers() :: (name :: STRING, signature :: STRING)", procs.get("spatial.layers"));
+            assertEquals("spatial.layer(name :: STRING) :: (node :: NODE)", procs.get("spatial.layer"));
+            assertEquals("spatial.addLayer(name :: STRING, type :: STRING, encoderConfig :: STRING) :: (node :: NODE)", procs.get("spatial.addLayer"));
+            assertEquals("spatial.addNode(layerName :: STRING, node :: NODE) :: (node :: NODE)", procs.get("spatial.addNode"));
+            assertEquals("spatial.addWKT(layerName :: STRING, geometry :: STRING) :: (node :: NODE)", procs.get("spatial.addWKT"));
+            assertEquals("spatial.intersects(layerName :: STRING, geometry :: ANY) :: (node :: NODE)", procs.get("spatial.intersects"));
         });
     }
 
@@ -682,7 +684,7 @@ public class SpatialProceduresTest {
             while (res.hasNext()) {
                 Map<String, Object> r = res.next();
                 String encoder = r.get("name").toString().contains("native") ? "NativePointEncoder" : "SimplePointEncoder";
-                assertThat("Expect simple:native encoders to appear in simple:native layers", r.get("signature").toString(), containsString(encoder));
+                MatcherAssert.assertThat("Expect simple:native encoders to appear in simple:native layers", r.get("signature").toString(), containsString(encoder));
             }
         });
         testCallCount(db, "CALL spatial.layers()", null, indexes.length * encoders.length);
@@ -691,7 +693,7 @@ public class SpatialProceduresTest {
             for (String indexType : indexes) {
                 String layerName = (encoder + indexType).toLowerCase();
                 testCall(db, "MATCH (node:Node) RETURN node", r -> Assert.assertEquals(node, r.get("node")));
-                testCall(db, "MATCH (n:Node) WITH n CALL spatial.addNode('" + layerName + "',n) YIELD node RETURN node", r -> Assert.assertEquals(node, r.get("node")));
+                testCall(db, "MATCH (n:Node) WITH n CALL spatial.addNode('" + layerName + "',n) YIELD node RETURN node", r -> assertEquals(node, r.get("node")));
                 testCall(db, "CALL spatial.withinDistance('" + layerName + "',{lon:15.0,lat:60.0},100)", r -> assertEquals(node, r.get("node")));
             }
         }
@@ -757,13 +759,13 @@ public class SpatialProceduresTest {
     @Test
     public void add_two_nodes_to_the_spatial_layer() {
         execute("CALL spatial.addPointLayerXY('geom','lon','lat')");
-        long node1;
-        long node2;
+        String node1;
+        String node2;
         try (Transaction tx = db.beginTx()) {
             Result result = tx.execute("CREATE (n1:Node {lat:60.1,lon:15.2}),(n2:Node {lat:60.1,lon:15.3}) WITH n1,n2 CALL spatial.addNodes('geom',[n1,n2]) YIELD count RETURN n1,n2,count");
             Map<String, Object> row = result.next();
-            node1 = ((Node) row.get("n1")).getId();
-            node2 = ((Node) row.get("n2")).getId();
+            node1 = ((Node) row.get("n1")).getElementId();
+            node2 = ((Node) row.get("n2")).getElementId();
             long count = (Long) row.get("count");
             Assert.assertEquals(2L, count);
             result.close();
@@ -771,13 +773,13 @@ public class SpatialProceduresTest {
         }
         testResult(db, "CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)", res -> {
             assertTrue(res.hasNext());
-            assertEquals(node1, ((Node) res.next().get("node")).getId());
+            assertEquals(node1, ((Node) res.next().get("node")).getElementId());
             assertTrue(res.hasNext());
-            assertEquals(node2, ((Node) res.next().get("node")).getId());
+            assertEquals(node2, ((Node) res.next().get("node")).getElementId());
             assertFalse(res.hasNext());
         });
         try (Transaction tx = db.beginTx()) {
-            Node node = (Node) tx.execute("MATCH (node) WHERE id(node) = $nodeId RETURN node", map("nodeId", node1)).next().get("node");
+            Node node = (Node) tx.execute("MATCH (node) WHERE elementId(node) = $nodeId RETURN node", map("nodeId", node1)).next().get("node");
             Result removeResult = tx.execute("CALL spatial.removeNode('geom',$node) YIELD nodeId RETURN nodeId", map("node", node));
             Assert.assertEquals(node1, removeResult.next().get("nodeId"));
             removeResult.close();
@@ -785,7 +787,7 @@ public class SpatialProceduresTest {
         }
         testResult(db, "CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)", res -> {
             assertTrue(res.hasNext());
-            assertEquals(node2, ((Node) res.next().get("node")).getId());
+            assertEquals(node2, ((Node) res.next().get("node")).getElementId());
             assertFalse(res.hasNext());
         });
         try (Transaction tx = db.beginTx()) {
@@ -993,11 +995,11 @@ public class SpatialProceduresTest {
                         double distance = (Double) r.get("distance");
                         Node osmNode = (Node) r.get("osmNode");
                         @SuppressWarnings("rawtypes") Map<String,Object> props = (Map) r.get("props");
-                        System.out.println("(node[" + node.getId() + "])<-[:GEOM {distance:" + distance + "}]-(osmNode[" + osmNode.getId() + "] " + props + ") ");
+                        System.out.println("(node[" + node.getElementId() + "])<-[:GEOM {distance:" + distance + "}]-(osmNode[" + osmNode.getElementId() + "] " + props + ") ");
                         assertThat("Node should have either way_osm_id or node_osm_id", props, anyOf(hasKey("node_osm_id"), hasKey("way_osm_id")));
                     }
                 });
-        testResult(db, "MATCH (n) WHERE n.node_osm_id = $busShelterID CALL spatial.withinDistance('geom',n,100) YIELD node, distance WITH node, distance ORDER BY distance LIMIT 20 MATCH (n) WHERE id(n)=id(node) RETURN node, distance, spatial.decodeGeometry('geom',n) AS geometry",
+        testResult(db, "MATCH (n) WHERE n.node_osm_id = $busShelterID CALL spatial.withinDistance('geom',n,100) YIELD node, distance WITH node, distance ORDER BY distance LIMIT 20 MATCH (n) WHERE elementId(n)=elementId(node) RETURN node, distance, spatial.decodeGeometry('geom',n) AS geometry",
                 params, res -> {
                     while (res.hasNext()) {
                         Map<String, Object> r = res.next();
@@ -1009,7 +1011,7 @@ public class SpatialProceduresTest {
                         Object geometry = r.get("geometry");
                         System.out.println(node.toString() + " at " + distance + ": " + geometry);
                         if (geometry instanceof Point) {
-                            assertThat("Point has 2D coordinates", ((Point) geometry).getCoordinate().getCoordinate().size(), equalTo(2));
+                            assertThat("Point has 2D coordinates", ((Point) geometry).getCoordinate().getCoordinate().length, equalTo(2));
                         } else if (geometry instanceof Map) {
                             Map<String, Object> map = (Map<String, Object>) geometry;
                             assertThat("Geometry should contain a type", map, hasKey("type"));
@@ -1113,7 +1115,7 @@ public class SpatialProceduresTest {
     }
 
     private static Node dump(Node n) {
-        System.out.printf("id %d props %s%n", n.getId(), n.getAllProperties());
+        System.out.printf("id %s props %s%n", n.getElementId(), n.getAllProperties());
         System.out.flush();
         return n;
     }

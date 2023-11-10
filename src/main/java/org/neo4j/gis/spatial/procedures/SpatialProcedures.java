@@ -52,8 +52,8 @@ import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.logging.Level;
 import org.neo4j.logging.Log;
-import org.neo4j.logging.Logger;
 import org.neo4j.procedure.*;
 import org.opengis.referencing.ReferenceIdentifier;
 import org.opengis.referencing.crs.CoordinateReferenceSystem;
@@ -63,7 +63,6 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.*;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -108,9 +107,9 @@ public class SpatialProcedures {
     }
 
     public static class NodeIdResult {
-        public final long nodeId;
+        public final String nodeId;
 
-        public NodeIdResult(long nodeId) {
+        public NodeIdResult(String nodeId) {
             this.nodeId = nodeId;
         }
     }
@@ -124,7 +123,7 @@ public class SpatialProcedures {
     }
 
     public static class NameResult {
-        public final String name;
+        public String name;
         public final String signature;
 
         public NameResult(String name, String signature) {
@@ -190,7 +189,7 @@ public class SpatialProcedures {
     public Stream<NameResult> listProcedures() throws ProcedureException {
         GlobalProcedures procedures = ((GraphDatabaseAPI) db).getDependencyResolver().resolveDependency(GlobalProcedures.class);
         Stream.Builder<NameResult> builder = Stream.builder();
-        for (ProcedureSignature proc : procedures.getAllProcedures()) {
+        for (ProcedureSignature proc : procedures.getCurrentView().getAllProcedures()) {
             if (proc.name().namespace()[0].equals("spatial")) {
                 builder.accept(new NameResult(proc.name().toString(), proc.toString()));
             }
@@ -513,7 +512,7 @@ public class SpatialProcedures {
         return Stream.of(new NodeResult(node));
     }
 
-    private Stream<NodeIdResult> streamNode(long nodeId) {
+    private Stream<NodeIdResult> streamNode(String nodeId) {
         return Stream.of(new NodeIdResult(nodeId));
     }
 
@@ -550,7 +549,7 @@ public class SpatialProcedures {
     @Description("Removes the given layer")
     public void removeLayer(@Name("name") String name) {
         SpatialDatabaseService sdb = spatial();
-        sdb.deleteLayer(tx, name, new ProgressLoggingListener("Deleting layer '" + name + "'", log.infoLogger()));
+        sdb.deleteLayer(tx, name, new ProgressLoggingListener("Deleting layer '" + name + "'", log, Level.INFO));
     }
 
     @Procedure(value="spatial.addNode", mode=WRITE)
@@ -569,16 +568,16 @@ public class SpatialProcedures {
 
     @Procedure(value="spatial.addNode.byId", mode=WRITE)
     @Description("Adds the given node to the layer, returns the geometry-node")
-    public Stream<NodeResult> addNodeIdToLayer(@Name("layerName") String name, @Name("nodeId") long nodeId) {
+    public Stream<NodeResult> addNodeIdToLayer(@Name("layerName") String name, @Name("nodeId") String nodeId) {
         EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
-        return streamNode(layer.add(tx, tx.getNodeById(nodeId)).getGeomNode());
+        return streamNode(layer.add(tx, tx.getNodeByElementId(nodeId)).getGeomNode());
     }
 
     @Procedure(value="spatial.addNodes.byId", mode=WRITE)
     @Description("Adds the given nodes list to the layer, returns the count")
-    public Stream<CountResult> addNodeIdsToLayer(@Name("layerName") String name, @Name("nodeIds") List<Long> nodeIds) {
+    public Stream<CountResult> addNodeIdsToLayer(@Name("layerName") String name, @Name("nodeIds") List<String> nodeIds) {
         EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
-        List<Node> nodes = nodeIds.stream().map(id -> tx.getNodeById(id)).collect(Collectors.toList());
+        List<Node> nodes = nodeIds.stream().map(id -> tx.getNodeByElementId(id)).collect(Collectors.toList());
         return Stream.of(new CountResult(layer.addAll(tx, nodes)));
     }
 
@@ -586,8 +585,8 @@ public class SpatialProcedures {
     @Description("Removes the given node from the layer, returns the geometry-node")
     public Stream<NodeIdResult> removeNodeFromLayer(@Name("layerName") String name, @Name("node") Node node) {
         EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
-        layer.removeFromIndex(tx, node.getId());
-        return streamNode(node.getId());
+        layer.removeFromIndex(tx, node.getElementId());
+        return streamNode(node.getElementId());
     }
 
     @Procedure(value="spatial.removeNodes", mode=WRITE)
@@ -597,7 +596,7 @@ public class SpatialProcedures {
         //TODO optimize bulk node removal from RTree like we have done for node additions
         int before = layer.getIndex().count(tx);
         for (Node node : nodes) {
-            layer.removeFromIndex(tx, node.getId());
+            layer.removeFromIndex(tx, node.getElementId());
         }
         int after = layer.getIndex().count(tx);
         return Stream.of(new CountResult(before - after));
@@ -605,7 +604,7 @@ public class SpatialProcedures {
 
     @Procedure(value="spatial.removeNode.byId", mode=WRITE)
     @Description("Removes the given node from the layer, returns the geometry-node")
-    public Stream<NodeIdResult> removeNodeFromLayer(@Name("layerName") String name, @Name("nodeId") long nodeId) {
+    public Stream<NodeIdResult> removeNodeFromLayer(@Name("layerName") String name, @Name("nodeId") String nodeId) {
         EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
         layer.removeFromIndex(tx, nodeId);
         return streamNode(nodeId);
@@ -613,11 +612,11 @@ public class SpatialProcedures {
 
     @Procedure(value="spatial.removeNodes.byId", mode=WRITE)
     @Description("Removes the given nodes from the layer, returns the count of nodes removed")
-    public Stream<CountResult> removeNodeIdsFromLayer(@Name("layerName") String name, @Name("nodeIds") List<Long> nodeIds) {
+    public Stream<CountResult> removeNodeIdsFromLayer(@Name("layerName") String name, @Name("nodeIds") List<String> nodeIds) {
         EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
         //TODO optimize bulk node removal from RTree like we have done for node additions
         int before = layer.getIndex().count(tx);
-        for (long nodeId : nodeIds) {
+        for (String nodeId : nodeIds) {
             layer.removeFromIndex(tx, nodeId);
         }
         int after = layer.getIndex().count(tx);
@@ -671,7 +670,7 @@ public class SpatialProcedures {
             shpPath = shpPath.substring(0, shpPath.lastIndexOf("."));
         }
 
-        ShapefileImporter importer = new ShapefileImporter(db, new ProgressLoggingListener("Importing " + shpPath, log.debugLogger()), commitInterval);
+        ShapefileImporter importer = new ShapefileImporter(db, new ProgressLoggingListener("Importing " + shpPath, log, Level.DEBUG), commitInterval);
         if (layer == null) {
             String layerName = shpPath.substring(shpPath.lastIndexOf(File.separator) + 1);
             return importer.importFile(shpPath, layerName);
@@ -708,7 +707,7 @@ public class SpatialProcedures {
             // add extension
             osmPath = osmPath + ".osm";
         }
-        OSMImportRunner runner = new OSMImportRunner(api, ktx.securityContext(), osmPath, layerName, layerMaker, log.debugLogger());
+        OSMImportRunner runner = new OSMImportRunner(api, ktx.securityContext(), osmPath, layerName, layerMaker, log, Level.DEBUG);
         Thread importerThread = new Thread(runner);
         importerThread.start();
         importerThread.join();
@@ -720,17 +719,19 @@ public class SpatialProcedures {
         private final String osmPath;
         private final String layerName;
         private final BiFunction<Transaction, String, OSMLayer> layerMaker;
-        private final Logger log;
+        private final Log log;
+        private final Level level;
         private final SecurityContext securityContext;
         private Exception e;
         private long rc = -1;
 
-        OSMImportRunner(GraphDatabaseAPI db, SecurityContext securityContext, String osmPath, String layerName, BiFunction<Transaction, String, OSMLayer> layerMaker, Logger log) {
+        OSMImportRunner(GraphDatabaseAPI db, SecurityContext securityContext, String osmPath, String layerName, BiFunction<Transaction, String, OSMLayer> layerMaker, Log log, Level level) {
             this.db = db;
             this.osmPath = osmPath;
             this.layerName = layerName;
             this.layerMaker = layerMaker;
             this.log = log;
+            this.level = level;
             this.securityContext = securityContext;
         }
 
@@ -750,7 +751,7 @@ public class SpatialProcedures {
                 layerMaker.apply(tx, layerName);
                 tx.commit();
             }
-            OSMImporter importer = new OSMImporter(layerName, new ProgressLoggingListener("Importing " + osmPath, log));
+            OSMImporter importer = new OSMImporter(layerName, new ProgressLoggingListener("Importing " + osmPath, log, level));
             try {
                 // Provide the security context for all inner transactions that will be made during import
                 importer.setSecurityContext(securityContext);
@@ -759,7 +760,7 @@ public class SpatialProcedures {
                 // Re-index using inner transactions (using the security context of the outer thread)
                 rc = importer.reIndex(db, 10000, false);
             } catch (Exception e) {
-                log.log("Error running OSMImporter: " + e.getMessage());
+                log.error("Error running OSMImporter: " + e.getMessage());
                 this.e = e;
             }
         }
@@ -869,8 +870,8 @@ public class SpatialProcedures {
         GeometryFactory factory = layer.getGeometryFactory();
         if (value instanceof org.neo4j.graphdb.spatial.Point) {
             org.neo4j.graphdb.spatial.Point point = (org.neo4j.graphdb.spatial.Point) value;
-            List<Double> coord = point.getCoordinate().getCoordinate();
-            return factory.createPoint(new Coordinate(coord.get(0), coord.get(1)));
+            double[] coord = point.getCoordinate().getCoordinate();
+            return factory.createPoint(new Coordinate(coord[0], coord[1]));
         }
         if (value instanceof String) {
             WKTReader reader = new WKTReader(factory);
@@ -966,18 +967,10 @@ public class SpatialProcedures {
         return toMap(toNeo4jGeometry(null, geometry));
     }
 
-    private static double[] toCoordinateArrayFromDoubles(List<Double> coords) {
-        double[] coordinates = new double[coords.size()];
-        for (int i = 0; i < coordinates.length; i++) {
-            coordinates[i] = coords.get(i);
-        }
-        return coordinates;
-    }
-
     private static double[][] toCoordinateArrayFromCoordinates(List<org.neo4j.graphdb.spatial.Coordinate> coords) {
         List<double[]> coordinates = new ArrayList<>(coords.size());
         for (org.neo4j.graphdb.spatial.Coordinate coord : coords) {
-            coordinates.add(toCoordinateArrayFromDoubles(coord.getCoordinate()));
+            coordinates.add(coord.getCoordinate());
         }
         return toCoordinateArray(coordinates);
     }
@@ -993,7 +986,7 @@ public class SpatialProcedures {
     private static Map<String, Object> toMap(org.neo4j.graphdb.spatial.Geometry geometry) {
         if (geometry instanceof org.neo4j.graphdb.spatial.Point) {
             org.neo4j.graphdb.spatial.Point point = (org.neo4j.graphdb.spatial.Point) geometry;
-            return map("type", geometry.getGeometryType(), "coordinate", toCoordinateArrayFromDoubles(point.getCoordinate().getCoordinate()));
+            return map("type", geometry.getGeometryType(), "coordinate", point.getCoordinate().getCoordinate());
         } else {
             return map("type", geometry.getGeometryType(), "coordinates", toCoordinateArrayFromCoordinates(geometry.getCoordinates()));
         }
@@ -1027,8 +1020,8 @@ public class SpatialProcedures {
     }
 
     private static Coordinate toCoordinate(org.neo4j.graphdb.spatial.Coordinate point) {
-        List<Double> coordinate = point.getCoordinate();
-        return new Coordinate(coordinate.get(0), coordinate.get(1));
+        double[] coordinate = point.getCoordinate();
+        return new Coordinate(coordinate[0], coordinate[1]);
     }
 
     private static Coordinate toCoordinate(Map map) {

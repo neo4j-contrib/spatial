@@ -62,7 +62,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
     public static final int DEFAULT_MAX_NODE_REFERENCES = 100;
 
     private TreeMonitor monitor;
-    private long rootNodeId;
+    private String rootNodeId;
     private EnvelopeDecoder envelopeDecoder;
     private int maxNodeReferences;
     private String splitMode = GREENES_SPLIT;
@@ -76,7 +76,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
     }
 
     public void init(Transaction tx, Node layerNode, EnvelopeDecoder envelopeDecoder, int maxNodeReferences) {
-        this.rootNodeId = layerNode.getId();
+        this.rootNodeId = layerNode.getElementId();
         this.envelopeDecoder = envelopeDecoder;
         this.maxNodeReferences = maxNodeReferences;
         monitor = new EmptyMonitor();
@@ -244,7 +244,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 
         /** Ensure this node is valid in the specified transaction */
         public NodeWithEnvelope refresh(Transaction tx) {
-            this.node = tx.getNodeById(this.node.getId());
+            this.node = tx.getNodeByElementId(this.node.getElementId());
             return this;
         }
     }
@@ -561,11 +561,11 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
     }
 
     @Override
-    public void remove(Transaction tx, long geomNodeId, boolean deleteGeomNode, boolean throwExceptionIfNotFound) {
+    public void remove(Transaction tx, String geomNodeId, boolean deleteGeomNode, boolean throwExceptionIfNotFound) {
         Node geomNode = null;
-        // getNodeById throws NotFoundException if node is already removed
+        // getNodeByElementId throws NotFoundException if node is already removed
         try {
-            geomNode = tx.getNodeById(geomNodeId);
+            geomNode = tx.getNodeByElementId(geomNodeId);
 
         } catch (NotFoundException nfe) {
 
@@ -646,7 +646,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 
                     monitor.worked(1);
                 }
-            }, indexRoot.getId());
+            }, indexRoot.getElementId());
         } finally {
             monitor.done();
         }
@@ -699,8 +699,8 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
     }
 
     @Override
-    public boolean isNodeIndexed(Transaction tx, Long geomNodeId) {
-        Node geomNode = tx.getNodeById(geomNodeId);
+    public boolean isNodeIndexed(Transaction tx, String geomNodeId) {
+        Node geomNode = tx.getNodeByElementId(geomNodeId);
         // be sure geomNode is inside this RTree
         return geomNode != null && isGeometryNodeIndexed(geomNode) && isIndexNodeInThisIndex(tx, findLeafContainingGeometryNode(geomNode));
     }
@@ -832,8 +832,8 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
         return new Envelope(bbox[0], bbox[2], bbox[1], bbox[3]);
     }
 
-    private void visitInTx(Transaction tx, SpatialIndexVisitor visitor, Long indexNodeId) {
-        Node indexNode = tx.getNodeById(indexNodeId);
+    private void visitInTx(Transaction tx, SpatialIndexVisitor visitor, String indexNodeId) {
+        Node indexNode = tx.getNodeByElementId(indexNodeId);
         if (!visitor.needsToVisit(getIndexNodeEnvelope(indexNode))) {
             return;
         }
@@ -842,14 +842,14 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
             // Node is not a leaf
 
             // collect children
-            List<Long> children = new ArrayList<>();
+            List<String> children = new ArrayList<>();
             for (Relationship rel : indexNode.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD)) {
-                children.add(rel.getEndNode().getId());
+                children.add(rel.getEndNode().getElementId());
             }
 
 
             // visit children
-            for (Long child : children) {
+            for (String child : children) {
                 visitInTx(tx, visitor, child);
             }
         } else if (indexNode.hasRelationship(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_REFERENCE)) {
@@ -1371,7 +1371,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
                 child = parent;
             }
         }
-        return root.getId() == getIndexRoot(tx).getId();
+        return root.getElementId().equals(getIndexRoot(tx).getElementId());
     }
 
     private void deleteNode(Node node) {
@@ -1382,7 +1382,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
     }
 
     private Node getRootNode(Transaction tx) {
-        return tx.getNodeById(rootNodeId);
+        return tx.getNodeByElementId(rootNodeId);
     }
 
     /**

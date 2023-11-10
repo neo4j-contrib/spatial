@@ -19,7 +19,7 @@
  */
 package org.neo4j.gis.spatial.index;
 
-import org.apache.lucene.spatial.util.MortonEncoder;
+import org.apache.lucene.util.BitUtil;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.Point;
 import org.neo4j.gis.spatial.rtree.Envelope;
@@ -33,6 +33,12 @@ import org.neo4j.kernel.api.KernelTransaction;
 
 import java.util.Iterator;
 
+
+import static org.apache.lucene.geo.GeoEncodingUtils.encodeLatitude;
+import static org.apache.lucene.geo.GeoEncodingUtils.encodeLongitude;
+import static org.apache.lucene.geo.GeoUtils.checkLatitude;
+import static org.apache.lucene.geo.GeoUtils.checkLongitude;
+
 public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String> {
 
     @Override
@@ -45,8 +51,8 @@ public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String
         //TODO: Make this code projection aware - currently it assumes lat/lon
         Geometry geom = layer.getGeometryEncoder().decodeGeometry(geomNode);
         Point point = geom.getCentroid();   // Other code is ensuring only point layers use this, but just in case we encode the centroid
-        long encoded = MortonEncoder.encode(point.getY(), point.getX());
-        return MortonEncoder.geoTermToString(encoded);
+        long encoded = encode(point.getY(), point.getX());
+        return geoTermToString(encoded);
     }
 
     private String greatestCommonPrefix(String a, String b) {
@@ -62,8 +68,8 @@ public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String
     protected Neo4jIndexSearcher searcherFor(Transaction tx, SearchFilter filter) {
         if (filter instanceof AbstractSearchEnvelopeIntersection) {
             Envelope referenceEnvelope = ((AbstractSearchEnvelopeIntersection) filter).getReferenceEnvelope();
-            String maxHash = MortonEncoder.geoTermToString(MortonEncoder.encode(referenceEnvelope.getMaxY(), referenceEnvelope.getMaxX()));
-            String minHash = MortonEncoder.geoTermToString(MortonEncoder.encode(referenceEnvelope.getMinY(), referenceEnvelope.getMinX()));
+            String maxHash = geoTermToString(encode(referenceEnvelope.getMaxY(), referenceEnvelope.getMaxX()));
+            String minHash = geoTermToString(encode(referenceEnvelope.getMinY(), referenceEnvelope.getMinX()));
             return new PrefixSearcher(greatestCommonPrefix(minHash, maxHash));
         } else {
             throw new UnsupportedOperationException("Geohash Index only supports searches based on AbstractSearchEnvelopeIntersection, not " + filter.getClass().getCanonicalName());
@@ -80,5 +86,25 @@ public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String
         public Iterator<Node> search(KernelTransaction ktx, Label label, String propertyKey) {
             return ktx.internalTransaction().findNodes(label, propertyKey, prefix, StringSearchMode.PREFIX);
         }
+    }
+
+    public static long encode(double latitude, double longitude) {
+        checkLatitude(latitude);
+        checkLongitude(longitude);
+        // encode lat/lon flipping the sign bit so negative ints sort before positive ints
+        final int latEnc = encodeLatitude(latitude) ^ 0x80000000;
+        final int lonEnc = encodeLongitude(longitude) ^ 0x80000000;
+        return BitUtil.interleave(lonEnc, latEnc);
+    }
+
+    /** Converts a long value into a full 64 bit string (useful for debugging) */
+    public static String geoTermToString(long term) {
+        StringBuilder s = new StringBuilder(64);
+        final int numberOfLeadingZeros = Long.numberOfLeadingZeros(term);
+        s.append("0".repeat(numberOfLeadingZeros));
+        if (term != 0) {
+            s.append(Long.toBinaryString(term));
+        }
+        return s.toString();
     }
 }

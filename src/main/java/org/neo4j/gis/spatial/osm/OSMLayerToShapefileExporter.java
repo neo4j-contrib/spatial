@@ -31,6 +31,7 @@ import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -57,7 +58,7 @@ public class OSMLayerToShapefileExporter {
             String exportDir = args[2];
             String osmdataset = args[3];
             List<String> layerspecs = new ArrayList<>(Arrays.asList(args).subList(4, args.length));
-            DatabaseManagementService databases = new DatabaseManagementServiceBuilder(new File(homeDir)).build();
+            DatabaseManagementService databases = new DatabaseManagementServiceBuilder(Path.of(homeDir)).build();
             GraphDatabaseService db = databases.database(database);
             SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
             OSMLayer layer;

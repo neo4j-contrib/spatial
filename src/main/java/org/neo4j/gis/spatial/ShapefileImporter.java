@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.nio.file.Path;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -280,7 +281,7 @@ public class ShapefileImporter implements Constants {
             commitInterval = Integer.parseInt(args[4]);
         }
 
-        DatabaseManagementService databases = new DatabaseManagementServiceBuilder(new File(neoPath)).build();
+        DatabaseManagementService databases = new DatabaseManagementServiceBuilder(Path.of(neoPath)).build();
         GraphDatabaseService db = databases.database(database);
         try {
             ShapefileImporter importer = new ShapefileImporter(db, new NullListener(), commitInterval);

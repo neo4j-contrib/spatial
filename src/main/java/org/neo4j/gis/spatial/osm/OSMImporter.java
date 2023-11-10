@@ -78,7 +78,7 @@ public class OSMImporter implements Constants {
     protected boolean nodesProcessingFinished = false;
     private final String layerName;
     private final StatsManager stats = new StatsManager();
-    private long osm_dataset = -1;
+    private String osm_dataset = null;
     private long missingChangesets = 0;
     private final Listener monitor;
     private final org.locationtech.jts.geom.Envelope filterEnvelope;
@@ -251,7 +251,7 @@ public class OSMImporter implements Constants {
             layer.setExtraPropertyNames(stats.getTagStats("all").getTags(), tx);
             if (useWays) {
                 beginProgressMonitor(dataset.getWayCount(tx));
-                for (Node way : toList(findWays.traverse(tx.getNodeById(osm_dataset)).nodes())) {
+                for (Node way : toList(findWays.traverse(tx.getNodeByElementId(osm_dataset)).nodes())) {
                     updateProgressMonitor(count);
                     incrLogContext();
                     stats.addGeomStats(layer.addWay(tx, way, true));
@@ -511,7 +511,7 @@ public class OSMImporter implements Constants {
             }
         }
 
-        protected abstract long getDatasetId();
+        protected abstract String getDatasetId();
 
         private int missingNodeCount = 0;
 
@@ -808,8 +808,8 @@ public class OSMImporter implements Constants {
         }
 
         void refresh(Transaction tx) {
-            long id = inner.getId();
-            inner = tx.getNodeById(id);
+            String id = inner.getElementId();
+            inner = tx.getNodeByElementId(id);
             if (inner == null) {
                 throw new IllegalStateException("Failed to find node by id: " + id);
             }
@@ -827,8 +827,8 @@ public class OSMImporter implements Constants {
             this.inner.setProperty(key, value);
         }
 
-        public long getId() {
-            return inner.getId();
+        public String getId() {
+            return inner.getElementId();
         }
 
         public Relationship createRelationshipTo(WrappedNode usersNode, OSMRelation users) {
@@ -1118,7 +1118,7 @@ public class OSMImporter implements Constants {
         }
 
         @Override
-        protected long getDatasetId() {
+        protected String getDatasetId() {
             return osm_dataset.getId();
         }
 

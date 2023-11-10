@@ -136,7 +136,7 @@ public class Neo4jSpatialFeatureStore extends ContentFeatureStore {
                 LOGGER.fine("Removing " + live);
 
                 try (Transaction tx = database.beginTx()) {
-                    layer.delete(tx, Long.parseLong(live.getID()));
+                    layer.delete(tx, live.getID());
                     tx.commit();
                 }
 
@@ -163,7 +163,7 @@ public class Neo4jSpatialFeatureStore extends ContentFeatureStore {
                 if (!live.equals(current)) {
                     LOGGER.fine("Updating " + current);
                     try (Transaction tx = database.beginTx()) {
-                        layer.update(tx, Long.parseLong(current.getID()), (Geometry) current.getDefaultGeometry());
+                        layer.update(tx, current.getID(), (Geometry) current.getDefaultGeometry());
                         tx.commit();
                     }
 

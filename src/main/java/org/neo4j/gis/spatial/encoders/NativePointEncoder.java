@@ -30,8 +30,6 @@ import org.neo4j.gis.spatial.encoders.neo4j.Neo4jPoint;
 import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.Transaction;
 
-import java.util.List;
-
 /**
  * Simple encoder that stores point geometries as one Neo4j Point property.
  */
@@ -65,11 +63,11 @@ public class NativePointEncoder extends AbstractGeometryEncoder implements Confi
         if (point.getCRS().getCode() != crs.getCode()) {
             throw new IllegalStateException("Trying to decode geometry with wrong CRS: layer configured to crs=" + crs + ", but geometry has crs=" + point.getCRS().getCode());
         }
-        List<Double> coordinate = point.getCoordinate().getCoordinate();
+        double[] coordinate = point.getCoordinate().getCoordinate();
         if (crs.dimensions() == 3) {
-            return getGeometryFactory().createPoint(new Coordinate(coordinate.get(0), coordinate.get(1), coordinate.get(2)));
+            return getGeometryFactory().createPoint(new Coordinate(coordinate[0], coordinate[1], coordinate[2]));
         } else {
-            return getGeometryFactory().createPoint(new Coordinate(coordinate.get(0), coordinate.get(1)));
+            return getGeometryFactory().createPoint(new Coordinate(coordinate[0], coordinate[1]));
         }
     }
 

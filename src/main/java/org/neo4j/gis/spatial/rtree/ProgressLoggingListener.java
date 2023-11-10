@@ -19,7 +19,9 @@
  */
 package org.neo4j.gis.spatial.rtree;
 
-import org.neo4j.logging.Logger;
+import org.neo4j.logging.Level;
+import org.neo4j.logging.Log;
+
 import java.io.PrintStream;
 import java.util.Locale;
 
@@ -46,9 +48,23 @@ public class ProgressLoggingListener implements Listener {
         this.out = line -> out.println(line);
     }
 
-    public ProgressLoggingListener(String name, Logger logger) {
+    public ProgressLoggingListener(String name, Log log, Level level) {
         this.name = name;
-        this.out = line -> logger.log(line);
+        this.out = line ->
+        {
+            switch (level) {
+                case DEBUG:
+                    log.debug(line);
+                case ERROR:
+                    log.error(line);
+                case INFO:
+                    log.info(line);
+                case WARN:
+                    log.warn(line);
+                default:
+                    break;
+            }
+        };
     }
 
     public ProgressLoggingListener setTimeWait(long ms) {
@@ -69,13 +85,13 @@ public class ProgressLoggingListener implements Listener {
             this.enabled = false;
         }
     }
-	
+
 	@Override
     public void worked(int workedSinceLastNotification) {
         this.workedSoFar += workedSinceLastNotification;
         logNoMoreThanOnceASecond("Running");
     }
-	
+
 	@Override
     public void done() {
         this.workedSoFar = this.totalUnits;

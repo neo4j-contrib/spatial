@@ -62,11 +62,11 @@ public class RTreeTestUtils {
     }
 
     public Map<Long, Long> get_height_map(Transaction tx, Node root) {
-        String id = Long.toString(root.getId());
+        String id = root.getElementId();
 
 
         String cypher = "MATCH p = (root) -[:RTREE_CHILD*0..] ->(child) -[:RTREE_REFERENCE]->(leaf)\n" +
-                "    WHERE id(root) = " + id + "\n" +
+                "    WHERE elementId(root) = " + id + "\n" +
                 "    RETURN length(p) as depth, count (*) as freq";
         Result result = tx.execute(cypher);
 
@@ -81,11 +81,11 @@ public class RTreeTestUtils {
     }
 
     public boolean check_balance(Transaction tx, Node root) {
-        String id = Long.toString(root.getId());
+        String id = root.getElementId();
 
 
         String cypher = "MATCH p = (root) -[:RTREE_CHILD*0..] ->(child) -[:RTREE_REFERENCE]->(leaf)\n" +
-                "    WHERE id(root) = " + id + "\n" +
+                "    WHERE elementId(root) = " + id + "\n" +
                 "    RETURN length(p) as depth, count (*) as freq";
         Result result = tx.execute(cypher);
 

@@ -142,9 +142,9 @@ public class TestOSMImportBase extends Neo4jTestCase {
         int usersMissing = 0;
         float maxMatch = 0.0f;
         float minMatch = 1.0f;
-        HashMap<Long, Integer> userNodeCount = new HashMap<>();
-        HashMap<Long, String> userNames = new HashMap<>();
-        HashMap<Long, Long> userIds = new HashMap<>();
+        HashMap<String, Integer> userNodeCount = new HashMap<>();
+        HashMap<String, String> userNames = new HashMap<>();
+        HashMap<String, Long> userIds = new HashMap<>();
         OSMDataset dataset = OSMDataset.fromLayer(tx, layer);
         for (Node way : dataset.getAllWayNodes(tx)) {
             int node_count = 0;
@@ -167,7 +167,7 @@ public class TestOSMImportBase extends Neo4jTestCase {
                         }
                         Node user = dataset.getUser(nodeChangeset);
                         if (user != null) {
-                            long userid = user.getId();
+                            String userid = user.getElementId();
                             if (userNodeCount.containsKey(userid)) {
                                 userNodeCount.put(userid, userNodeCount.get(userid) + 1);
                             } else {
@@ -203,14 +203,14 @@ public class TestOSMImportBase extends Neo4jTestCase {
         System.out.println("\tWays missing changsets: " + waysMissing);
         System.out.println("\tNodes missing changsets: " + nodesMissing + " (~" + (nodesMissing / waysMatched) + " / way)");
         System.out.println("\tUnique users: " + userNodeCount.size() + " (with " + usersMissing + " changeset missing users)");
-        ArrayList<ArrayList<Long>> userCounts = new ArrayList<>();
-        for (long user : userNodeCount.keySet()) {
+        ArrayList<ArrayList<String>> userCounts = new ArrayList<>();
+        for (String user : userNodeCount.keySet()) {
             int count = userNodeCount.get(user);
             userCounts.ensureCapacity(count);
             while (userCounts.size() < count + 1) {
                 userCounts.add(null);
             }
-            ArrayList<Long> userSet = userCounts.get(count);
+            ArrayList<String> userSet = userCounts.get(count);
             if (userSet == null) {
                 userSet = new ArrayList<>();
             }
@@ -220,12 +220,12 @@ public class TestOSMImportBase extends Neo4jTestCase {
         if (userCounts.size() > 1) {
             System.out.println("\tTop 20 users (nodes: users):");
             for (int ui = userCounts.size() - 1, i = 0; i < 20 && ui >= 0; ui--) {
-                ArrayList<Long> userSet = userCounts.get(ui);
+                ArrayList<String> userSet = userCounts.get(ui);
                 if (userSet != null && userSet.size() > 0) {
                     i++;
                     StringBuilder us = new StringBuilder();
-                    for (long user : userSet) {
-                        Node userNode = tx.getNodeById(user);
+                    for (String user : userSet) {
+                        Node userNode = tx.getNodeByElementId(user);
                         int csCount = 0;
                         for (@SuppressWarnings("unused")
                                 Relationship rel : userNode.getRelationships(Direction.INCOMING, OSMRelation.USER)) {
@@ -236,7 +236,7 @@ public class TestOSMImportBase extends Neo4jTestCase {
                         if (us.length() > 0) {
                             us.append(", ");
                         }
-                        us.append(String.format("%s (uid=%d, id=%d, changesets=%d)", name, uid, user, csCount));
+                        us.append(String.format("%s (uid=%d, id=%s, changesets=%d)", name, uid, user, csCount));
                     }
                     System.out.println("\t\t" + ui + ": " + us);
                 }

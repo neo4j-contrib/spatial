@@ -39,7 +39,7 @@ public interface SpatialIndexReader {
 
     Envelope getBoundingBox(Transaction tx);
 
-    boolean isNodeIndexed(Transaction tx, Long nodeId);
+    boolean isNodeIndexed(Transaction tx, String nodeId);
 
     Iterable<Node> getAllIndexedNodes(Transaction tx);
 

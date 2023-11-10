@@ -24,7 +24,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.*;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
-import org.mockito.Matchers;
+import org.mockito.Mockito;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.gis.spatial.*;
 import org.neo4j.gis.spatial.filter.SearchIntersect;
@@ -92,9 +92,9 @@ public abstract class LayerIndexTestBase {
         Layer layer = mock(Layer.class);
         when(layer.getName()).thenReturn("test");
         when(layer.getGeometryEncoder()).thenReturn(encoder);
-        when(layer.getLayerNode(Matchers.any(Transaction.class))).thenReturn(layerNode);
+        when(layer.getLayerNode(Mockito.any(Transaction.class))).thenReturn(layerNode);
         when(layer.getGeometryFactory()).thenReturn(geometryFactory);
-        when(layer.getCoordinateReferenceSystem(Matchers.any(Transaction.class))).thenReturn(DefaultGeographicCRS.WGS84);
+        when(layer.getCoordinateReferenceSystem(Mockito.any(Transaction.class))).thenReturn(DefaultGeographicCRS.WGS84);
         return layer;
     }
 

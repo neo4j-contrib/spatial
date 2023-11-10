@@ -103,6 +103,15 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 		@Override
 		public void setProperty(String key, Object value) {
 		}
+
+        @Override
+        public String getElementId() {
+            return null;
+        }
+
+        @Override
+        public void delete() {
+        }
 	}
 
 	public static class OSMGraphException extends SpatialDatabaseException {
@@ -136,7 +145,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	public void encodeEnvelope(Envelope mbb, Entity container) {
 		container.setProperty(PROP_BBOX, new double[] { mbb.getMinX(), mbb.getMaxX(), mbb.getMinY(), mbb.getMaxY() });
 	}
-	
+
 	public static Node getOSMNodeFromGeometryNode(Node geomNode) {
 		return geomNode.getSingleRelationship(OSMRelation.GEOM, Direction.INCOMING).getStartNode();
 	}
@@ -287,7 +296,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 
 	/**
 	 * Extend the array by copying the first point into the last position
-	 * 
+     *
 	 * @param coords original array that is not closed
 	 * @return new array one point longer
 	 */
@@ -498,7 +507,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	 * This means the default way of storing attributes is simply as properties
 	 * of the geometry node. This behaviour can be changed by other domain
 	 * models with different encodings.
-	 * 
+     *
 	 * @param geomNode node to test
 	 * @param name attribute to check for existence of
 	 * @return true if node has the specified attribute
@@ -513,7 +522,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	 * properties of the geometry node. This behaviour can be changed by other
 	 * domain models with different encodings. If the property does not exist,
 	 * the method returns null.
-	 * 
+     *
 	 * @param geomNode node to test
 	 * @param name attribute to access
 	 * @return attribute value, or null

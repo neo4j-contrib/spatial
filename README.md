@@ -30,6 +30,7 @@ Over the years there have been various efforts to make the library more appropri
 * 0.25: Addition of GeoHash indexes for point layers 
 * 0.26: Support for native Neo4j point types
 * 0.27: Major port to Neo4j 4.x which deprecated many of the Neo4j API's the library depended on
+* 0.29: Port to Neo4j 5.13
 
 However, despite all these improvements, the core of the library only exposes the rich capabilities of JTS and GeoTools
 if used in an embedded environment.

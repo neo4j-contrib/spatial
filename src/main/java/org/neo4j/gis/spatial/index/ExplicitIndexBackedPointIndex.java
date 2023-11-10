@@ -91,9 +91,9 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
     }
 
     @Override
-    public void remove(Transaction tx, long geomNodeId, boolean deleteGeomNode, boolean throwExceptionIfNotFound) {
+    public void remove(Transaction tx, String geomNodeId, boolean deleteGeomNode, boolean throwExceptionIfNotFound) {
         try {
-            Node geomNode = tx.getNodeById(geomNodeId);
+            Node geomNode = tx.getNodeByElementId(geomNodeId);
             if (geomNode != null) {
                 index.remove(geomNode);
                 if (deleteGeomNode) {
@@ -114,7 +114,7 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
     public void removeAll(Transaction tx, boolean deleteGeomNodes, Listener monitor) {
         if (deleteGeomNodes) {
             for (Node node : getAllIndexedNodes(tx)) {
-                remove(tx, node.getId(), true, true);
+                remove(tx, node.getElementId(), true, true);
             }
         }
         index.delete(tx);
@@ -146,7 +146,7 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
     }
 
     @Override
-    public boolean isNodeIndexed(Transaction tx, Long nodeId) {
+    public boolean isNodeIndexed(Transaction tx, String nodeId) {
         return false;
     }
 

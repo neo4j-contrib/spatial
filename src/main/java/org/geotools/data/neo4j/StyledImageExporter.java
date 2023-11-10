@@ -19,6 +19,7 @@
  */
 package org.geotools.data.neo4j;
 
+import java.nio.file.Path;
 import org.geotools.xml.styling.SLDParser;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
@@ -83,7 +84,7 @@ public class StyledImageExporter {
 	public void setStyleFiles(String[] files) {
 		styleFiles = files;
 	}
-	
+
 	public Style getStyle(int i) {
 		if (styleFiles != null && i < styleFiles.length) {
 			return getStyleFromSLDFile(styleFiles[i]);
@@ -91,12 +92,12 @@ public class StyledImageExporter {
 			return null;
 		}
 	}
-	
+
 	/**
 	 * When zooming in, it is useful to also control the location of the visable
 	 * window using offsets from the center, in fractions of the bounding box
 	 * dimensions. Use negative values to adjust left or down.
-	 * 
+	 *
 	 * @param fractionWidth
 	 *            fraction of the width to shift right/left
 	 * @param fractionHeight
@@ -134,8 +135,8 @@ public class StyledImageExporter {
 
 	public void saveLayerImage(String[] layerNames, File imageFile) throws IOException {
 		saveLayerImage(layerNames, null, imageFile, null);
-	}	
-	
+	}
+
 	public void saveLayerImage(String layerName) throws IOException {
 		saveLayerImage(layerName, null, new File(layerName + ".png"), null);
 	}
@@ -159,7 +160,7 @@ public class StyledImageExporter {
 		String[] layerNames = new String[] { layerName };
 		saveLayerImage(layerNames, sldFile, imagefile, bounds);
 	}
-	
+
 	public void saveImage(FeatureCollection<SimpleFeatureType,SimpleFeature> features, String sldFile, File imagefile) throws IOException {
 		saveImage(features, getStyleFromSLDFile(sldFile), imagefile);
 	}
@@ -169,7 +170,7 @@ public class StyledImageExporter {
 		mapContent.addLayer(new FeatureLayer(features, style));
 		saveMapContentToImageFile(mapContent, imagefile, features.getBounds());
 	}
-	
+
 	public void saveImage(FeatureCollection<SimpleFeatureType,SimpleFeature>[] features, Style[] styles, File imagefile, ReferencedEnvelope bounds) throws IOException {
 		MapContent mapContent = new MapContent();
 		for (int i = 0; i < features.length; i++) {
@@ -177,7 +178,7 @@ public class StyledImageExporter {
 		}
 		saveMapContentToImageFile(mapContent, imagefile, bounds);
 	}
-	
+
 	public void saveLayerImage(String[] layerNames, String sldFile, File imagefile, ReferencedEnvelope bounds) throws IOException {
 		DataStore store = new Neo4jSpatialDataStore(db);
         try (Transaction tx=db.beginTx()) {
@@ -231,27 +232,27 @@ public class StyledImageExporter {
 
 	private void saveMapContentToImageFile(MapContent mapContent, File imagefile, ReferencedEnvelope bounds) throws IOException {
 		bounds = SpatialTopologyUtils.adjustBounds(bounds, 1.0 / zoom, offset);
-		
+
 		if (displaySize == null)
 			displaySize = new Rectangle(0, 0, 800, 600);
 
 		RenderingHints hints = new RenderingHints(KEY_ANTIALIASING, VALUE_ANTIALIAS_ON);
-		hints.put(KEY_TEXT_ANTIALIASING, VALUE_TEXT_ANTIALIAS_ON);			
+		hints.put(KEY_TEXT_ANTIALIASING, VALUE_TEXT_ANTIALIAS_ON);
 
-		BufferedImage image = new BufferedImage(displaySize.width, displaySize.height, BufferedImage.TYPE_INT_ARGB);		
+		BufferedImage image = new BufferedImage(displaySize.width, displaySize.height, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D graphics = image.createGraphics();
-		
+
 		StreamingRenderer renderer = new StreamingRenderer();
 		renderer.setJava2DHints(hints);
 		renderer.setMapContent(mapContent);
 		renderer.paint(graphics, displaySize, bounds);
-		
-		graphics.dispose();		
-		mapContent.dispose();	
-		
+
+		graphics.dispose();
+		mapContent.dispose();
+
 		ImageIO.write(image, "png", checkFile(imagefile));
 	}
-			
+
 	/**
      * Create a Style object from a definition in a SLD document
      */
@@ -266,10 +267,10 @@ public class StyledImageExporter {
         return null;
     }
 
-    public static Style createDefaultStyle(Color strokeColor, Color fillColor) {    
+    public static Style createDefaultStyle(Color strokeColor, Color fillColor) {
     	return createStyleFromGeometry(null, strokeColor, fillColor);
     }
-    
+
     /**
      * Here is a programmatic alternative to using JSimpleStyleDialog to
      * get a Style. This methods works out what sort of feature geometry
@@ -293,7 +294,7 @@ public class StyledImageExporter {
 	            return createPointStyle(strokeColor, fillColor);
 	        }
     	}
-    	
+
         Style style = styleFactory.createStyle();
         style.featureTypeStyles().addAll(createPolygonStyle(strokeColor, fillColor).featureTypeStyles());
         style.featureTypeStyles().addAll(createLineStyle(strokeColor).featureTypeStyles());
@@ -329,16 +330,16 @@ public class StyledImageExporter {
          * draw the default geomettry of features
          */
         PolygonSymbolizer sym = styleFactory.createPolygonSymbolizer(stroke, fill, null);
-        
+
         Rule rule = styleFactory.createRule();
         rule.symbolizers().add(sym);
-        try {	
+        try {
 			rule.setFilter(ECQL.toFilter("geometryType(the_geom)='Polygon' or geometryType(the_geom)='MultiPoligon'"));
 		} catch (CQLException e) {
 			// TODO
 			e.printStackTrace();
 		}
-        
+
         FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(new Rule[]{ rule });
         Style style = styleFactory.createStyle();
         style.featureTypeStyles().add(fts);
@@ -346,7 +347,7 @@ public class StyledImageExporter {
 
         return style;
     }
-    
+
     /**
      * Create a Style to draw line features
      */
@@ -363,13 +364,13 @@ public class StyledImageExporter {
 
         Rule rule = styleFactory.createRule();
         rule.symbolizers().add(sym);
-        try {	
+        try {
 			rule.setFilter(ECQL.toFilter("geometryType(the_geom)='LineString' or geometryType(the_geom)='LinearRing' or geometryType(the_geom)='MultiLineString'"));
 		} catch (CQLException e) {
 			// TODO
 			e.printStackTrace();
-		}        
-        
+		}
+
         FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(new Rule[]{rule});
         Style style = styleFactory.createStyle();
         style.featureTypeStyles().add(fts);
@@ -377,7 +378,7 @@ public class StyledImageExporter {
 
         return style;
     }
-    
+
     /**
      * Create a Style to draw point features as circles with blue outlines
      * and cyan fill
@@ -400,13 +401,13 @@ public class StyledImageExporter {
 
         Rule rule = styleFactory.createRule();
         rule.symbolizers().add(sym);
-        try {	
+        try {
 			rule.setFilter(ECQL.toFilter("geometryType(the_geom)='Point' or geometryType(the_geom)='MultiPoint'"));
 		} catch (CQLException e) {
 			// TODO
 			e.printStackTrace();
-		}      
-                
+		}
+
         FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(new Rule[]{rule});
         Style style = styleFactory.createStyle();
         style.featureTypeStyles().add(fts);
@@ -425,8 +426,8 @@ public class StyledImageExporter {
 		String database = args[1];
 		String exportdir = args[2];
 		String stylefile = args[3];
-		double zoom = new Double(args[3]);
-		DatabaseManagementService databases = new DatabaseManagementServiceBuilder(new File(homeDir)).build();
+        double zoom = Double.valueOf(args[4]);
+        DatabaseManagementService databases = new DatabaseManagementServiceBuilder(Path.of(homeDir)).build();
 		GraphDatabaseService db = databases.database(database);
 		try {
 			StyledImageExporter imageExporter = new StyledImageExporter(db);

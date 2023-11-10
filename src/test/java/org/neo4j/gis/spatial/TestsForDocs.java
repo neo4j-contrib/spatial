@@ -109,8 +109,8 @@ public class TestsForDocs {
     }
 
     private void checkOSMAPI(Transaction tx, OSMLayer layer) {
-        HashMap<Long, Integer> waysFound = new HashMap<>();
-        long mostCommon = 0;
+        HashMap<String, Integer> waysFound = new HashMap<>();
+        String mostCommon = null;
         int mostCount = 0;
         OSMDataset osm = OSMDataset.fromLayer(tx, layer);
         Node wayNode = osm.getAllWayNodes(tx).iterator().next();
@@ -118,7 +118,7 @@ public class TestsForDocs {
         System.out.println("Got first way " + way);
         for (WayPoint n : way.getWayPoints()) {
             Way w = n.getWay();
-            Long wayId = w.getNode().getId();
+            String wayId = w.getNode().getElementId();
             if (!waysFound.containsKey(wayId)) {
                 waysFound.put(wayId, 0);
             }
@@ -129,8 +129,8 @@ public class TestsForDocs {
             }
         }
         System.out.println("Found " + waysFound.size() + " ways overlapping '" + way + "'");
-        for (long wayId : waysFound.keySet()) {
-            System.out.println("\t" + wayId + ":\t" + waysFound.get(wayId) + ((wayId == way.getNode().getId()) ? "\t(original way)" : ""));
+        for (String wayId : waysFound.keySet()) {
+            System.out.println("\t" + wayId + ":\t" + waysFound.get(wayId) + (wayId.equals(way.getNode().getElementId()) ? "\t(original way)" : ""));
         }
         assertTrue(way.equals(osm.getWayFromId(tx, mostCommon)), "Start way should be most found way");
     }

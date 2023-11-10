@@ -23,15 +23,13 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
-import org.neo4j.configuration.Config;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.config.Setting;
 import org.neo4j.io.fs.FileUtils;
-import org.neo4j.io.layout.DatabaseLayout;
-import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
@@ -50,7 +48,7 @@ import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAM
  * Base class for the meta model tests.
  */
 public abstract class Neo4jTestCase {
-    static final Map<String, String> NORMAL_CONFIG = new HashMap<>();
+    static final Map<Setting<?>, Object> NORMAL_CONFIG = new HashMap<>();
 
     static {
         //NORMAL_CONFIG.put( GraphDatabaseSettings.nodestore_mapped_memory_size.name(), "50M" );
@@ -58,11 +56,11 @@ public abstract class Neo4jTestCase {
         //NORMAL_CONFIG.put( GraphDatabaseSettings.nodestore_propertystore_mapped_memory_size.name(), "150M" );
         //NORMAL_CONFIG.put( GraphDatabaseSettings.strings_mapped_memory_size.name(), "200M" );
         //NORMAL_CONFIG.put( GraphDatabaseSettings.arrays_mapped_memory_size.name(), "0M" );
-        NORMAL_CONFIG.put(GraphDatabaseSettings.pagecache_memory.name(), "200M");
-        NORMAL_CONFIG.put(GraphDatabaseInternalSettings.trace_cursors.name(), "true");
+        NORMAL_CONFIG.put(GraphDatabaseSettings.pagecache_memory, 200000000l);
+        NORMAL_CONFIG.put(GraphDatabaseInternalSettings.trace_cursors, true);
     }
 
-    static final Map<String, String> LARGE_CONFIG = new HashMap<>();
+    static final Map<Setting<?>, Object> LARGE_CONFIG = new HashMap<>();
 
     static {
         //LARGE_CONFIG.put( GraphDatabaseSettings.nodestore_mapped_memory_size.name(), "100M" );
@@ -70,7 +68,7 @@ public abstract class Neo4jTestCase {
         //LARGE_CONFIG.put( GraphDatabaseSettings.nodestore_propertystore_mapped_memory_size.name(), "400M" );
         //LARGE_CONFIG.put( GraphDatabaseSettings.strings_mapped_memory_size.name(), "800M" );
         //LARGE_CONFIG.put( GraphDatabaseSettings.arrays_mapped_memory_size.name(), "10M" );
-        LARGE_CONFIG.put(GraphDatabaseSettings.pagecache_memory.name(), "100M");
+        LARGE_CONFIG.put(GraphDatabaseSettings.pagecache_memory, 100000000l);
     }
 
     private static final File basePath = new File("target/var");
@@ -97,13 +95,12 @@ public abstract class Neo4jTestCase {
      */
     protected void setUp(boolean deleteDb) throws Exception {
         shutdownDatabase(deleteDb);
-        DatabaseLayout layout = prepareLayout(true);
-        Map<String, String> config = NORMAL_CONFIG;
+        Map<Setting<?>, Object> config = NORMAL_CONFIG;
         String largeMode = System.getProperty("spatial.test.large");
         if (largeMode != null && largeMode.equalsIgnoreCase("true")) {
             config = LARGE_CONFIG;
         }
-        databases = new TestDatabaseManagementServiceBuilder(getDbPath()).setConfigRaw(config).build();
+        databases = new TestDatabaseManagementServiceBuilder(getDbPath()).setConfig(config).build();
         graphDb = databases.database(DEFAULT_DATABASE_NAME);
         ((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency(GlobalProcedures.class).registerProcedure(SpatialProcedures.class);
     }
@@ -122,22 +119,6 @@ public abstract class Neo4jTestCase {
         if (deleteDb) {
             deleteDatabase();
         }
-    }
-
-    private DatabaseLayout prepareLayout(boolean delete) throws IOException {
-        Neo4jLayout homeLayout = Neo4jLayout.of(dbPath);
-        DatabaseLayout databaseLayout = homeLayout.databaseLayout(DEFAULT_DATABASE_NAME);
-        if (delete) {
-            FileUtils.deleteDirectory(databaseLayout.databaseDirectory());
-            FileUtils.deleteDirectory(databaseLayout.getTransactionLogsDirectory());
-        }
-        return databaseLayout;
-    }
-
-    private Config makeConfig(Map<String, String> config) {
-        Config.Builder builder = Config.newBuilder();
-        builder.setRaw(NORMAL_CONFIG);
-        return builder.build();
     }
 
     private static EphemeralFileSystemAbstraction fileSystem;
