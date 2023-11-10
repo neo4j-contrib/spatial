@@ -23,20 +23,17 @@ import java.net.URI;
 import java.util.HashSet;
 import java.util.Set;
 
-import org.apache.log4j.Logger;
-import org.geotools.data.ResourceInfo;
+import org.geotools.api.data.ResourceInfo;
 import org.geotools.feature.FeatureTypes;
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 
 /**
  * ResourceInfo implementation.
- * 
+ *
  * @author Davide Savazzi, Andreas Wilhelm
  */
 public class DefaultResourceInfo implements ResourceInfo {
-	
-	private static final Logger LOG = Logger.getLogger(DefaultResourceInfo.class.getName());
 
 	private String name;
 	private String description = "";
@@ -45,7 +42,7 @@ public class DefaultResourceInfo implements ResourceInfo {
 	private ReferencedEnvelope bbox;
 
 	/**
-	 * 
+	 *
 	 * @param name
 	 * @param crs
 	 * @param bbox
@@ -55,45 +52,45 @@ public class DefaultResourceInfo implements ResourceInfo {
 		this.crs = crs;
 		this.bbox = bbox;
 	}
-	
+
 	/**
-	 * 
+	 *
 	 */
 	public String getName() {
 		return name;
 	}
 	/**
-	 * 
+	 *
 	 */
 	public String getTitle() {
 		return name;
-	}			
+	}
 	/**
-	 * 
+	 *
 	 */
 	public String getDescription() {
 		return description;
 	}
 	/**
-	 * 
+	 *
 	 */
 	public Set<String> getKeywords() {
         return keywords;
 	}
 	/**
-	 * 
+	 *
 	 */
 	public URI getSchema() {
         return FeatureTypes.DEFAULT_NAMESPACE;
 	}
 	/**
-	 * 
+	 *
 	 */
 	public CoordinateReferenceSystem getCRS() {
 		return crs;
-	}    		
+	}
 	/**
-	 * 
+	 *
 	 */
 	public ReferencedEnvelope getBounds() {
 		return bbox;

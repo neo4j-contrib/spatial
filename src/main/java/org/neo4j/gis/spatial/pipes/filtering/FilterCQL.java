@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial.pipes.filtering;
 
+import org.geotools.api.filter.Filter;
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.filter.text.ecql.ECQL;
@@ -26,7 +27,7 @@ import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.graphdb.Transaction;
-import org.opengis.feature.simple.SimpleFeature;
+import org.geotools.api.feature.simple.SimpleFeature;
 
 /**
  * Filter geometries using a CQL query.
@@ -34,7 +35,7 @@ import org.opengis.feature.simple.SimpleFeature;
 public class FilterCQL extends AbstractFilterGeoPipe {
 
     private final Neo4jFeatureBuilder featureBuilder;
-    private final org.opengis.filter.Filter filter;
+    private final Filter filter;
     private final Transaction tx;
 
     public FilterCQL(Transaction tx, Layer layer, String cqlPredicate) throws CQLException {

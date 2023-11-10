@@ -27,7 +27,7 @@ import org.json.simple.JSONObject;
 import org.neo4j.gis.spatial.*;
 import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.graphdb.*;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 
 /**
  * Instances of this class represent the primary layer of the OSM Dataset. It

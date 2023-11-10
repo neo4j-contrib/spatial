@@ -19,7 +19,8 @@
  */
 package org.geotools.data.neo4j;
 
-import org.geotools.data.DataStore;
+import org.geotools.api.data.DataStore;
+import org.geotools.api.data.DataStoreFactorySpi;
 import org.geotools.util.KVP;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
@@ -35,7 +36,7 @@ import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAM
  * DataStoreFactorySpi implementation. It needs an "url" parameter containing a
  * path of a Neo4j neostore.id file.
  */
-public class Neo4jSpatialDataStoreFactory implements org.geotools.data.DataStoreFactorySpi {
+public class Neo4jSpatialDataStoreFactory implements DataStoreFactorySpi {
 
     // TODO: This should change to Neo4j 4.x directory layout and possible multiple databases
     /**

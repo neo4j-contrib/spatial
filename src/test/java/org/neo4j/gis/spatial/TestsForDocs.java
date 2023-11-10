@@ -19,7 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
-import org.geotools.data.DataStore;
+import org.geotools.api.data.DataStore;
 import org.geotools.data.neo4j.Neo4jSpatialDataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.junit.jupiter.api.AfterEach;

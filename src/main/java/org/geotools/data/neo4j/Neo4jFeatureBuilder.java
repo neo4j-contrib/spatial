@@ -35,12 +35,12 @@ import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.SpatialRecord;
 import org.neo4j.graphdb.Transaction;
-import org.opengis.feature.simple.SimpleFeature;
-import org.opengis.feature.simple.SimpleFeatureType;
-import org.opengis.feature.type.AttributeDescriptor;
-import org.opengis.feature.type.GeometryDescriptor;
-import org.opengis.feature.type.GeometryType;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.geotools.api.feature.simple.SimpleFeature;
+import org.geotools.api.feature.simple.SimpleFeatureType;
+import org.geotools.api.feature.type.AttributeDescriptor;
+import org.geotools.api.feature.type.GeometryDescriptor;
+import org.geotools.api.feature.type.GeometryType;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.LineString;
@@ -52,26 +52,26 @@ import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 
 public class Neo4jFeatureBuilder {
-	
+
     private static final String FEATURE_PROP_GEOM = "the_geom";
     private final SimpleFeatureBuilder builder;
     private final List<String> extraPropertyNames;
-    
+
 	/**
-	 * 
+	 *
 	 */
     public Neo4jFeatureBuilder(SimpleFeatureType sft, List<String> extraPropertyNames) {
         this.builder = new SimpleFeatureBuilder(sft);
         this.extraPropertyNames = extraPropertyNames;
     }
-    
+
 	/**
 	 * If it is necessary to lookup the layer type with a transaction, use this factory method to make the feature builder
 	 */
     public static Neo4jFeatureBuilder fromLayer(Transaction tx, Layer layer) {
         return new Neo4jFeatureBuilder(getTypeFromLayer(tx, layer), Arrays.asList(layer.getExtraPropertyNames(tx)));
-    } 
-    
+    }
+
     public SimpleFeature buildFeature(String id, Geometry geometry, Map<String,Object> properties) {
         builder.reset();
         builder.set(FEATURE_PROP_GEOM, geometry);
@@ -81,9 +81,9 @@ public class Neo4jFeatureBuilder {
             }
         }
 
-        return builder.buildFeature(id);    	
+        return builder.buildFeature(id);
     }
-    
+
     public SimpleFeature buildFeature(Transaction tx, SpatialRecord rec) {
     	return buildFeature(rec.getId(), rec.getGeometry(), rec.getProperties(tx));
     }
@@ -91,7 +91,7 @@ public class Neo4jFeatureBuilder {
     public static SimpleFeatureType getTypeFromLayer(Transaction tx, Layer layer) {
     	return getType(layer.getName(), layer.getGeometryType(tx), layer.getCoordinateReferenceSystem(tx), layer.getExtraPropertyNames(tx));
     }
-    
+
     public static SimpleFeatureType getType(String name, Integer geometryTypeId, CoordinateReferenceSystem crs, String[] extraPropertyNames) {
         List<AttributeDescriptor> types = readAttributes(geometryTypeId, crs, extraPropertyNames);
 
@@ -136,7 +136,7 @@ public class Neo4jFeatureBuilder {
         attributes.add(build.buildDescriptor(BasicFeatureTypes.GEOMETRY_ATTRIBUTE_NAME, geometryType));
 
         if (extraPropertyNames != null) {
-            Set<String> usedNames = new HashSet<String>(); 
+            Set<String> usedNames = new HashSet<String>();
             // record names in case of duplicates
             usedNames.add(BasicFeatureTypes.GEOMETRY_ATTRIBUTE_NAME);
 
@@ -153,6 +153,6 @@ public class Neo4jFeatureBuilder {
         }
 
         return attributes;
-    }    
+    }
 }
 

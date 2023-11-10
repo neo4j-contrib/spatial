@@ -36,10 +36,10 @@ import org.geotools.filter.spatial.WithinImpl;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
 import org.neo4j.graphdb.Node;
-import org.opengis.filter.Filter;
+import org.geotools.api.filter.Filter;
 
 import org.locationtech.jts.geom.Geometry;
-import org.opengis.geometry.BoundingBox;
+import org.geotools.api.geometry.BoundingBox;
 
 public class Utilities {
 
@@ -78,7 +78,7 @@ public class Utilities {
 				   filter instanceof EqualsImpl ||
 				   filter instanceof OverlapsImpl ||
 				   filter instanceof TouchesImpl ||
-				   filter instanceof WithinImpl) {			
+				   filter instanceof WithinImpl) {
 			return extractEnvelopeFromGeometryFilter((GeometryFilterImpl) filter);
 		} else if (filter instanceof AndImpl && inspectAndFilters) {
 			AndImpl andFilter = (AndImpl) filter;
@@ -91,10 +91,10 @@ public class Utilities {
 				}
 			}
 		}
-		
+
 		return null;
 	}
-		
+
 	@SuppressWarnings("deprecation")
 	private static Envelope extractEnvelopeFromGeometryFilter(GeometryFilterImpl intersectFilter) {
 		if (intersectFilter.getExpression1() instanceof LiteralExpressionImpl) {
@@ -102,10 +102,10 @@ public class Utilities {
 		} else if (intersectFilter.getExpression2() instanceof LiteralExpressionImpl) {
 			return extractEnvelopeFromLiteralExpression((LiteralExpressionImpl) intersectFilter.getExpression2());
 		}
-	
+
 		return null;
 	}
-	
+
 	private static Envelope extractEnvelopeFromLiteralExpression(LiteralExpressionImpl exp) {
 		if (exp.getValue() instanceof Geometry) {
 			return fromJtsToNeo4j(((Geometry) exp.getValue()).getEnvelopeInternal());
@@ -113,7 +113,7 @@ public class Utilities {
 			return null;
 		}
 	}
-	
+
     private static Envelope extractEnvelopeFromBBox(BBOXImpl boundingBox) {
 		BoundingBox bbox = boundingBox.getBounds();
     	return new Envelope(bbox.getMinX(), bbox.getMaxX(), bbox.getMinY(), bbox.getMaxY());
