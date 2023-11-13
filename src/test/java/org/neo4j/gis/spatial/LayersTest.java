@@ -365,6 +365,7 @@ public class LayersTest {
 				coordinateNodes.add(node);
 			}
 			layer.addAll(tx, coordinateNodes);
+			layer.close(tx);
 			tx.commit();
 		}
 
