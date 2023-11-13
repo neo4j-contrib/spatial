@@ -1244,6 +1244,16 @@ public class SpatialProceduresTest extends AbstractApiTest {
 		testCallCount(db, "CALL spatial.closest('geom',{lon:15.2, lat:60.1}, 1.0)", null, 0);
 	}
 
+	@Test
+	public void testNativePoints() {
+		execute("CREATE (node:Foo { points: [point({latitude: 5.0, longitude: 4.0}), point({latitude: 6.0, longitude: 5.0})]})");
+		execute("CALL spatial.addLayer('line','NativePoints','points') YIELD node" +
+				" MATCH (n:Foo)" +
+				" WITH collect(n) AS nodes" +
+				" CALL spatial.addNodes('line', nodes) YIELD count RETURN count");
+		testCallCount(db, "CALL spatial.closest('line',{lon:5.1, lat:4.1}, 1.0)", null, 1);
+	}
+
     /*
 
     @Test
