@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial.procedures;
 
 import static org.neo4j.gis.spatial.SpatialDatabaseService.RTREE_INDEX_NAME;
+import static org.neo4j.procedure.Mode.READ;
 import static org.neo4j.procedure.Mode.WRITE;
 
 import java.io.File;
@@ -182,7 +183,7 @@ public class SpatialProcedures extends SpatialApiBase {
 		return builder.build();
 	}
 
-	@Procedure(value = "spatial.layers", mode = WRITE)
+	@Procedure(value = "spatial.layers", mode = READ)
 	@Description("Returns name, and details for all layers")
 	public Stream<NameResult> getAllLayers() {
 		SpatialDatabaseService sdb = spatial();
@@ -553,21 +554,27 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Description("Adds the given node to the layer, returns the geometry-node")
 	public Stream<NodeResult> addNodeToLayer(@Name("layerName") String name, @Name("node") Node node) {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
-		return streamNode(layer.add(tx, node).getGeomNode());
+		Node geomNode = layer.add(tx, node).getGeomNode();
+		layer.close(tx);
+		return streamNode(geomNode);
 	}
 
 	@Procedure(value = "spatial.addNodes", mode = WRITE)
 	@Description("Adds the given nodes list to the layer, returns the count")
 	public Stream<CountResult> addNodesToLayer(@Name("layerName") String name, @Name("nodes") List<Node> nodes) {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
-		return Stream.of(new CountResult(layer.addAll(tx, nodes)));
+		int count = layer.addAll(tx, nodes);
+		layer.close(tx);
+		return Stream.of(new CountResult(count));
 	}
 
 	@Procedure(value = "spatial.addNode.byId", mode = WRITE)
 	@Description("Adds the given node to the layer, returns the geometry-node")
 	public Stream<NodeResult> addNodeIdToLayer(@Name("layerName") String name, @Name("nodeId") String nodeId) {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
-		return streamNode(layer.add(tx, tx.getNodeByElementId(nodeId)).getGeomNode());
+		Node geomNode = layer.add(tx, tx.getNodeByElementId(nodeId)).getGeomNode();
+		layer.close(tx);
+		return streamNode(geomNode);
 	}
 
 	@Procedure(value = "spatial.addNodes.byId", mode = WRITE)
@@ -576,7 +583,9 @@ public class SpatialProcedures extends SpatialApiBase {
 			@Name("nodeIds") List<String> nodeIds) {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
 		List<Node> nodes = nodeIds.stream().map(id -> tx.getNodeByElementId(id)).collect(Collectors.toList());
-		return Stream.of(new CountResult(layer.addAll(tx, nodes)));
+		int count = layer.addAll(tx, nodes);
+		layer.close(tx);
+		return Stream.of(new CountResult(count));
 	}
 
 	@Procedure(value = "spatial.removeNode", mode = WRITE)
@@ -584,6 +593,7 @@ public class SpatialProcedures extends SpatialApiBase {
 	public Stream<NodeIdResult> removeNodeFromLayer(@Name("layerName") String name, @Name("node") Node node) {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
 		layer.removeFromIndex(tx, node.getElementId());
+		layer.close(tx);
 		return streamNode(node.getElementId());
 	}
 
@@ -597,6 +607,7 @@ public class SpatialProcedures extends SpatialApiBase {
 			layer.removeFromIndex(tx, node.getElementId());
 		}
 		int after = layer.getIndex().count(tx);
+		layer.close(tx);
 		return Stream.of(new CountResult(before - after));
 	}
 
@@ -605,6 +616,7 @@ public class SpatialProcedures extends SpatialApiBase {
 	public Stream<NodeIdResult> removeNodeFromLayer(@Name("layerName") String name, @Name("nodeId") String nodeId) {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
 		layer.removeFromIndex(tx, nodeId);
+		layer.close(tx);
 		return streamNode(nodeId);
 	}
 
@@ -619,6 +631,7 @@ public class SpatialProcedures extends SpatialApiBase {
 			layer.removeFromIndex(tx, nodeId);
 		}
 		int after = layer.getIndex().count(tx);
+		layer.close(tx);
 		return Stream.of(new CountResult(before - after));
 	}
 
@@ -628,7 +641,9 @@ public class SpatialProcedures extends SpatialApiBase {
 			@Name("geometry") String geometryWKT) {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
 		WKTReader reader = new WKTReader(layer.getGeometryFactory());
-		return streamNode(addGeometryWkt(layer, reader, geometryWKT));
+		Node node = addGeometryWkt(layer, reader, geometryWKT);
+		layer.close(tx);
+		return streamNode(node);
 	}
 
 	@Procedure(value = "spatial.addWKTs", mode = WRITE)
@@ -638,7 +653,8 @@ public class SpatialProcedures extends SpatialApiBase {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
 		WKTReader reader = new WKTReader(layer.getGeometryFactory());
 		return geometryWKTs.stream().map(geometryWKT -> addGeometryWkt(layer, reader, geometryWKT))
-				.map(NodeResult::new);
+				.map(NodeResult::new)
+				.onClose(() -> layer.close(tx));
 	}
 
 	private Node addGeometryWkt(EditableLayer layer, WKTReader reader, String geometryWKT) {
@@ -656,7 +672,9 @@ public class SpatialProcedures extends SpatialApiBase {
 			@Name("layerName") String name,
 			@Name("uri") String uri) throws IOException {
 		EditableLayerImpl layer = getEditableLayerOrThrow(tx, spatial(), name);
-		return Stream.of(new CountResult(importShapefileToLayer(uri, layer, 1000).size()));
+		List<Node> nodes = importShapefileToLayer(uri, layer, 1000);
+		layer.close(tx);
+		return Stream.of(new CountResult(nodes.size()));
 	}
 
 	@Procedure(value = "spatial.importShapefile", mode = WRITE)
@@ -776,7 +794,7 @@ public class SpatialProcedures extends SpatialApiBase {
 		}
 	}
 
-	@Procedure(value = "spatial.bbox", mode = WRITE)
+	@Procedure(value = "spatial.bbox", mode = READ)
 	@Description("Finds all geometry nodes in the given layer within the lower left and upper right coordinates of a box")
 	public Stream<NodeResult> findGeometriesInBBox(
 			@Name("layerName") String name,
@@ -790,7 +808,7 @@ public class SpatialProcedures extends SpatialApiBase {
 				.stream().map(GeoPipeFlow::getGeomNode).map(NodeResult::new);
 	}
 
-	@Procedure(value = "spatial.closest", mode = WRITE)
+	@Procedure(value = "spatial.closest", mode = READ)
 	@Description("Finds all geometry nodes in the layer within the distance to the given coordinate")
 	public Stream<NodeResult> findClosestGeometries(
 			@Name("layerName") String name,
@@ -804,7 +822,7 @@ public class SpatialProcedures extends SpatialApiBase {
 		return edgeResults.stream().map(e -> e.getValue().getGeomNode()).map(NodeResult::new);
 	}
 
-	@Procedure(value = "spatial.withinDistance", mode = WRITE)
+	@Procedure(value = "spatial.withinDistance", mode = READ)
 	@Description("Returns all geometry nodes and their ordered distance in the layer within the distance to the given coordinate")
 	public Stream<NodeDistanceResult> findGeometriesWithinDistance(
 			@Name("layerName") String name,
@@ -841,7 +859,7 @@ public class SpatialProcedures extends SpatialApiBase {
 		return Stream.of(geometry).map(geom -> new GeometryResult(toNeo4jGeometry(null, geom)));
 	}
 
-	@Procedure(value = "spatial.intersects", mode = WRITE)
+	@Procedure(value = "spatial.intersects", mode = READ)
 	@Description("Returns all geometry nodes that intersect the given geometry (shape, polygon) in the layer")
 	public Stream<NodeResult> findGeometriesIntersecting(
 			@Name("layerName") String name,

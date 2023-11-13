@@ -59,4 +59,9 @@ public interface EditableLayer extends Layer {
 	void setCoordinateReferenceSystem(Transaction tx, CoordinateReferenceSystem coordinateReferenceSystem);
 
 	void removeFromIndex(Transaction tx, String geomNodeId);
+
+	/**
+	 * Do any cleanup or final calculation required by the layer implementation.
+	 */
+	void close(Transaction tx);
 }
