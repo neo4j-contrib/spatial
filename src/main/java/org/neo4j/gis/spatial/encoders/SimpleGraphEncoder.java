@@ -22,7 +22,6 @@ package org.neo4j.gis.spatial.encoders;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateList;
 import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.geom.GeometryFactory;
 import org.neo4j.gis.spatial.AbstractGeometryEncoder;
 import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.graphdb.Direction;
@@ -41,17 +40,8 @@ import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 // TODO: Consider generalizing this code and making a general linked list geometry store available in the library
 public class SimpleGraphEncoder extends AbstractGeometryEncoder {
 
-	private GeometryFactory geometryFactory;
-
 	protected enum SimpleRelationshipTypes implements RelationshipType {
 		FIRST, NEXT
-	}
-
-	private GeometryFactory getGeometryFactory() {
-		if (geometryFactory == null) {
-			geometryFactory = new GeometryFactory();
-		}
-		return geometryFactory;
 	}
 
 	private static Node testIsNode(Entity container) {
@@ -64,7 +54,7 @@ public class SimpleGraphEncoder extends AbstractGeometryEncoder {
 	@Override
 	protected void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container) {
 		Node node = testIsNode(container);
-		node.setProperty("gtype", GTYPE_LINESTRING);
+		node.setProperty(PROP_TYPE, GTYPE_LINESTRING);
 		Node prev = null;
 		for (Coordinate coord : geometry.getCoordinates()) {
 			Node point = tx.createNode();
