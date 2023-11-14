@@ -20,8 +20,12 @@
 
 package org.neo4j.gis.spatial.functions;
 
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.io.ParseException;
+import org.locationtech.jts.io.WKTReader;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures.GeometryResult;
+import org.neo4j.gis.spatial.utilities.GeoJsonUtils;
 import org.neo4j.gis.spatial.utilities.SpatialApiBase;
 import org.neo4j.graphdb.Node;
 import org.neo4j.procedure.Description;
@@ -55,4 +59,14 @@ public class SpatialFunctions extends SpatialApiBase {
 	}
 
 
+	@UserFunction("spatial.convert.wktToGeoJson")
+	@Description("Converts a WKT to GeoJson structure")
+	public Object wktToGeoJson(@Name("wkt") String wkt) throws ParseException {
+		if (wkt == null) {
+			return null;
+		}
+		WKTReader wktReader = new WKTReader();
+		Geometry geometry = wktReader.read(wkt);
+		return GeoJsonUtils.toGeoJsonStructure(geometry);
+	}
 }

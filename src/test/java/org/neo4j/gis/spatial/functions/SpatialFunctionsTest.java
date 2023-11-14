@@ -20,9 +20,12 @@
 
 package org.neo4j.gis.spatial.functions;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
+import java.util.List;
 import java.util.Map;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Test;
@@ -68,5 +71,25 @@ public class SpatialFunctionsTest extends AbstractApiTest {
 		Object geometry = executeObject(
 				"WITH spatial.asGeometry({latitude: 5.0, longitude: 4.0}) AS geometry RETURN geometry", "geometry");
 		assertInstanceOf(Geometry.class, geometry, "Should be Geometry type");
+	}
+
+	@Test
+	public void wktToGeoJson() {
+		String wkt = "MULTIPOLYGON(((15.3 60.2, 15.3 60.4, 15.7 60.4, 15.7 60.2, 15.3 60.2)))";
+		Object json = executeObject("return spatial.convert.wktToGeoJson($wkt) as json", Map.of("wkt", wkt), "json");
+		assertThat(json, equalTo(Map.of(
+				"type", "MultiPolygon",
+				"coordinates", List.of( // MultiPolygon
+						List.of( // Polygon
+								List.of( // LineString
+										List.of(15.3, 60.2),
+										List.of(15.3, 60.4),
+										List.of(15.7, 60.4),
+										List.of(15.7, 60.2),
+										List.of(15.3, 60.2)
+								)
+						)
+				)
+		)));
 	}
 }
