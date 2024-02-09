@@ -218,18 +218,20 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 			LinearRing outer = null;
 			ArrayList<LinearRing> inner = new ArrayList<LinearRing>();
 			// ArrayList<LinearRing> rings = new ArrayList<LinearRing>();
-			for (Relationship rel : osmNode.getRelationships(Direction.OUTGOING, OSMRelation.MEMBER)) {
-				Node wayNode = rel.getEndNode();
-				String role = (String) rel.getProperty("role", null);
-				if (role != null) {
-					LinearRing ring = getOuterLinearRingFromGeometry(decodeGeometryFromWay(wayNode, GTYPE_POLYGON, -1, geomFactory));
-					if (role.equals("outer")) {
-						outer = ring;
-					} else if (role.equals("inner")) {
-						inner.add(ring);
-					}
-				}
-			}
+            try(var  relationships = osmNode.getRelationships(Direction.OUTGOING, OSMRelation.MEMBER)) {
+                for (Relationship rel : relationships) {
+                    Node wayNode = rel.getEndNode();
+                    String role = (String) rel.getProperty("role", null);
+                    if (role != null) {
+                        LinearRing ring = getOuterLinearRingFromGeometry(decodeGeometryFromWay(wayNode, GTYPE_POLYGON, -1, geomFactory));
+                        if (role.equals("outer")) {
+                            outer = ring;
+                        } else if (role.equals("inner")) {
+                            inner.add(ring);
+                        }
+                    }
+                }
+            }
 			if (outer != null) {
 				return geomFactory.createPolygon(outer, inner.toArray(new LinearRing[inner.size()]));
 			} else {
@@ -237,7 +239,8 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 			}
 		case GTYPE_MULTIPOLYGON:
 			ArrayList<Polygon> polygons = new ArrayList<>();
-			for (Relationship rel : osmNode.getRelationships(Direction.OUTGOING, OSMRelation.MEMBER)) {
+            try(var relationships = osmNode.getRelationships(Direction.OUTGOING, OSMRelation.MEMBER)){
+            for (Relationship rel : relationships) {
 				Node member = rel.getEndNode();
 				Geometry geometry = null;
 				if (member.hasProperty("way_osm_id")) {
@@ -251,6 +254,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 					polygons.add((Polygon) geometry);
 				}
 			}
+            }
 			if (polygons.size() > 0) {
 				return geomFactory.createMultiPolygon(polygons.toArray(new Polygon[polygons.size()]));
 			} else {

@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial.index;
 
+import java.util.stream.Stream;
 import org.apache.lucene.util.BitUtil;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.Point;
@@ -27,6 +28,7 @@ import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.StringSearchMode;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.api.KernelTransaction;
@@ -84,7 +86,7 @@ public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String
         }
 
         public Iterator<Node> search(KernelTransaction ktx, Label label, String propertyKey) {
-            return ktx.internalTransaction().findNodes(label, propertyKey, prefix, StringSearchMode.PREFIX);
+            return ktx.internalTransaction().findNodes(label, propertyKey, prefix, StringSearchMode.PREFIX).stream().iterator();
         }
     }
 

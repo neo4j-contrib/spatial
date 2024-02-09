@@ -19,25 +19,39 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.referencing.crs.AbstractCRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
-import org.locationtech.jts.geom.*;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.MultiLineString;
+import org.locationtech.jts.geom.MultiPoint;
+import org.locationtech.jts.geom.MultiPolygon;
+import org.locationtech.jts.geom.Point;
+import org.locationtech.jts.geom.Polygon;
 import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.gis.spatial.encoders.NativePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
-import org.neo4j.gis.spatial.index.*;
+import org.neo4j.gis.spatial.index.IndexManager;
+import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
+import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
+import org.neo4j.gis.spatial.index.LayerIndexReader;
+import org.neo4j.gis.spatial.index.LayerRTreeIndex;
+import org.neo4j.gis.spatial.index.LayerZOrderPointIndex;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.utilities.LayerUtilities;
 import org.neo4j.gis.spatial.utilities.ReferenceNodes;
-import org.neo4j.graphdb.*;
-import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
-
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.Transaction;
 
 /**
  * This is the main API entrypoint for the embedded access to spatial database capabilities.
@@ -66,8 +80,10 @@ public class SpatialDatabaseService implements Constants {
         if (oldReferenceNode != null) {
             List<Node> layers = new ArrayList<>();
 
-            for (Relationship relationship : oldReferenceNode.getRelationships(Direction.OUTGOING, SpatialRelationshipTypes.LAYER)) {
-                layers.add(relationship.getEndNode());
+            try (var relationships = oldReferenceNode.getRelationships(Direction.OUTGOING, SpatialRelationshipTypes.LAYER)) {
+                for (Relationship relationship : relationships) {
+                    layers.add(relationship.getEndNode());
+                }
             }
 
             for (Node layer : layers) {
@@ -77,8 +93,10 @@ public class SpatialDatabaseService implements Constants {
                 layersConverted.add((String) layer.getProperty(PROP_LAYER));
             }
 
-            if (oldReferenceNode.getRelationships().iterator().hasNext()) {
-                throw new IllegalStateException("Cannot upgrade - ReferenceNode 'spatial_root' still has relationships other than layers");
+            try (var relationships = oldReferenceNode.getRelationships()) {
+                if (relationships.iterator().hasNext()) {
+                    throw new IllegalStateException("Cannot upgrade - ReferenceNode 'spatial_root' still has relationships other than layers");
+                }
             }
 
             oldReferenceNode.delete();
@@ -91,13 +109,14 @@ public class SpatialDatabaseService implements Constants {
         assertNotOldModel(tx);
         List<String> names = new ArrayList<>();
 
-        ResourceIterator<Node> layers = tx.findNodes(LABEL_LAYER);
-        while (layers.hasNext()) {
-            Layer layer = LayerUtilities.makeLayerFromNode(tx, indexManager, layers.next());
-            if (layer instanceof DynamicLayer) {
-                names.addAll(((DynamicLayer) layer).getLayerNames(tx));
-            } else {
-                names.add(layer.getName());
+        try (var layers = tx.findNodes(LABEL_LAYER)) {
+            while (layers.hasNext()) {
+                Layer layer = LayerUtilities.makeLayerFromNode(tx, indexManager, layers.next());
+                if (layer instanceof DynamicLayer) {
+                    names.addAll(((DynamicLayer) layer).getLayerNames(tx));
+                } else {
+                    names.add(layer.getName());
+                }
             }
         }
 
@@ -106,11 +125,12 @@ public class SpatialDatabaseService implements Constants {
 
     public Layer getLayer(Transaction tx, String name) {
         assertNotOldModel(tx);
-        ResourceIterator<Node> layers = tx.findNodes(LABEL_LAYER);
-        while (layers.hasNext()) {
-            Node node = layers.next();
-            if (name.equals(node.getProperty(PROP_LAYER))) {
-                return LayerUtilities.makeLayerFromNode(tx, indexManager, node);
+        try (var layers = tx.findNodes(LABEL_LAYER)) {
+            while (layers.hasNext()) {
+                Node node = layers.next();
+                if (name.equals(node.getProperty(PROP_LAYER))) {
+                    return LayerUtilities.makeLayerFromNode(tx, indexManager, node);
+                }
             }
         }
         return getDynamicLayer(tx, name);
@@ -119,13 +139,14 @@ public class SpatialDatabaseService implements Constants {
     public Layer getDynamicLayer(Transaction tx, String name) {
         assertNotOldModel(tx);
         ArrayList<DynamicLayer> dynamicLayers = new ArrayList<>();
-        ResourceIterator<Node> layers = tx.findNodes(LABEL_LAYER);
-        while (layers.hasNext()) {
-            Node node = layers.next();
-            if (!node.getProperty(PROP_LAYER_CLASS, "").toString().startsWith("DefaultLayer")) {
-                Layer layer = LayerUtilities.makeLayerFromNode(tx, indexManager, node);
-                if (layer instanceof DynamicLayer) {
-                    dynamicLayers.add((DynamicLayer) LayerUtilities.makeLayerFromNode(tx, indexManager, node));
+        try (var layers = tx.findNodes(LABEL_LAYER)) {
+            while (layers.hasNext()) {
+                Node node = layers.next();
+                if (!node.getProperty(PROP_LAYER_CLASS, "").toString().startsWith("DefaultLayer")) {
+                    Layer layer = LayerUtilities.makeLayerFromNode(tx, indexManager, node);
+                    if (layer instanceof DynamicLayer) {
+                        dynamicLayers.add((DynamicLayer) LayerUtilities.makeLayerFromNode(tx, indexManager, node));
+                    }
                 }
             }
         }
@@ -297,7 +318,7 @@ public class SpatialDatabaseService implements Constants {
 
     public SimplePointLayer createPointLayer(Transaction tx, String name, Class<? extends LayerIndexReader> indexClass, Class<? extends GeometryEncoder> encoderClass, String... encoderConfig) {
         return (SimplePointLayer) createLayer(tx, name, encoderClass, SimplePointLayer.class, indexClass,
-                makeEncoderConfig(encoderConfig), org.geotools.referencing.crs.DefaultGeographicCRS.WGS84);
+            makeEncoderConfig(encoderConfig), org.geotools.referencing.crs.DefaultGeographicCRS.WGS84);
     }
 
     public String makeEncoderConfig(String... args) {
@@ -459,9 +480,9 @@ public class SpatialDatabaseService implements Constants {
          */
         String getSignature() {
             return "RegisteredLayerType(name='" + typeName + "', geometryEncoder=" +
-                    geometryEncoder.getSimpleName() + ", layerClass=" + layerClass.getSimpleName() +
-                    ", index=" + layerIndexClass.getSimpleName() +
-                    ", crs='" + crs.getName(null) + "', defaultConfig='" + defaultConfig + "')";
+                geometryEncoder.getSimpleName() + ", layerClass=" + layerClass.getSimpleName() +
+                ", index=" + layerIndexClass.getSimpleName() +
+                ", crs='" + crs.getName(null) + "', defaultConfig='" + defaultConfig + "')";
         }
     }
 
@@ -469,27 +490,27 @@ public class SpatialDatabaseService implements Constants {
 
     static {
         addRegisteredLayerType(new RegisteredLayerType("SimplePoint", SimplePointEncoder.class,
-                SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "longitude:latitude"));
+            SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "longitude:latitude"));
         addRegisteredLayerType(new RegisteredLayerType("Geohash", SimplePointEncoder.class,
-                SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerGeohashPointIndex.class, "longitude:latitude"));
+            SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerGeohashPointIndex.class, "longitude:latitude"));
         addRegisteredLayerType(new RegisteredLayerType("ZOrder", SimplePointEncoder.class,
-                SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerZOrderPointIndex.class, "longitude:latitude"));
+            SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerZOrderPointIndex.class, "longitude:latitude"));
         addRegisteredLayerType(new RegisteredLayerType("Hilbert", SimplePointEncoder.class,
-                SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerHilbertPointIndex.class, "longitude:latitude"));
+            SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerHilbertPointIndex.class, "longitude:latitude"));
         addRegisteredLayerType(new RegisteredLayerType("NativePoint", NativePointEncoder.class,
-                SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "location"));
+            SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "location"));
         addRegisteredLayerType(new RegisteredLayerType("NativeGeohash", NativePointEncoder.class,
-                SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerGeohashPointIndex.class, "location"));
+            SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerGeohashPointIndex.class, "location"));
         addRegisteredLayerType(new RegisteredLayerType("NativeZOrder", NativePointEncoder.class,
-                SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerZOrderPointIndex.class, "location"));
+            SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerZOrderPointIndex.class, "location"));
         addRegisteredLayerType(new RegisteredLayerType("NativeHilbert", NativePointEncoder.class,
-                SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerHilbertPointIndex.class, "location"));
+            SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerHilbertPointIndex.class, "location"));
         addRegisteredLayerType(new RegisteredLayerType("WKT", WKTGeometryEncoder.class, EditableLayerImpl.class,
-                DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "geometry"));
+            DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "geometry"));
         addRegisteredLayerType(new RegisteredLayerType("WKB", WKBGeometryEncoder.class, EditableLayerImpl.class,
-                DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "geometry"));
+            DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "geometry"));
         addRegisteredLayerType(new RegisteredLayerType("OSM", OSMGeometryEncoder.class, OSMLayer.class,
-                DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "geometry"));
+            DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "geometry"));
     }
 
     private static void addRegisteredLayerType(RegisteredLayerType type) {
@@ -503,7 +524,7 @@ public class SpatialDatabaseService implements Constants {
 
     public Layer getOrCreateRegisteredTypeLayer(Transaction tx, String name, RegisteredLayerType registeredLayerType, String config) {
         return getOrCreateLayer(tx, name, registeredLayerType.geometryEncoder, registeredLayerType.layerClass,
-                (config == null) ? registeredLayerType.defaultConfig : config);
+            (config == null) ? registeredLayerType.defaultConfig : config);
     }
 
     public Map<String, String> getRegisteredLayerTypes() {

@@ -1,6 +1,5 @@
 package org.neo4j.gis.spatial;
 
-import org.apache.commons.collections.map.HashedMap;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.gis.spatial.rtree.RTreeRelationshipTypes;
@@ -71,7 +70,7 @@ public class RTreeTestUtils {
         Result result = tx.execute(cypher);
 
         int i = 0;
-        Map<Long, Long> map = new HashedMap();
+        Map<Long, Long> map = new HashMap<>();
         while (result.hasNext()) {
             Map<String, Object> r = result.next();
             map.put((Long) r.get("depth"), (Long) r.get("freq"));

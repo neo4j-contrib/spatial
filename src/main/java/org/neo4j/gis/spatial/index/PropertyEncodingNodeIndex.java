@@ -1,5 +1,7 @@
 package org.neo4j.gis.spatial.index;
 
+import java.util.Iterator;
+import java.util.stream.Stream;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -7,8 +9,6 @@ import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
-
-import java.util.Iterator;
 
 /**
  * The PropertyEncodingNodeIndex is a mapper onto a node property backed by a normal Cypher index,

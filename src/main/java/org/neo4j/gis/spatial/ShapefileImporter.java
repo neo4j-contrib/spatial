@@ -137,8 +137,7 @@ public class ShapefileImporter implements Constants {
                     fieldsName[i] = dbaseFileHeader.getFieldName(i - 1);
                 }
 
-                Transaction tx = database.beginTx();
-                try {
+                try (var tx = database.beginTx()){
                     CoordinateReferenceSystem crs = readCRS(shpFiles, shpReader);
                     if (crs != null) {
                         layer.setCoordinateReferenceSystem(tx, crs);
@@ -148,8 +147,6 @@ public class ShapefileImporter implements Constants {
 
                     layer.mergeExtraPropertyNames(tx, fieldsName);
                     tx.commit();
-                } finally {
-                    tx.close();
                 }
 
                 monitor.begin(dbaseFileHeader.getNumRecords());
@@ -160,9 +157,8 @@ public class ShapefileImporter implements Constants {
                     ArrayList<Object> fields = new ArrayList<>();
                     int recordCounter = 0;
                     int filterCounter = 0;
-                    while (shpReader.hasNext() && dbfReader.hasNext()) {
-                        tx = database.beginTx();
-                        try {
+                    while (shpReader.hasNext() && dbfReader.hasNext()) {;
+                        try (var tx = database.beginTx()) {
                             int committedSinceLastNotification = 0;
                             for (int i = 0; i < commitInterval; i++) {
                                 if (shpReader.hasNext() && dbfReader.hasNext()) {
@@ -209,11 +205,8 @@ public class ShapefileImporter implements Constants {
                             log("info | inserted geometries: " + (recordCounter - filterCounter));
                             if (filterCounter > 0) {
                                 log("info | ignored " + filterCounter + "/" + recordCounter
-                                        + " geometries outside filter envelope: " + filterEnvelope);
+                                    + " geometries outside filter envelope: " + filterEnvelope);
                             }
-
-                        } finally {
-                            tx.close();
                         }
                     }
                 } finally {
@@ -232,13 +225,8 @@ public class ShapefileImporter implements Constants {
     }
 
     private CoordinateReferenceSystem readCRS(ShpFiles shpFiles, ShapefileReader shpReader) {
-        try {
-            PrjFileReader prjReader = new PrjFileReader(shpFiles.getReadChannel(ShpFileType.PRJ, shpReader));
-            try {
-                return prjReader.getCoordinateReferenceSystem();
-            } finally {
-                prjReader.close();
-            }
+        try (PrjFileReader prjReader = new PrjFileReader(shpFiles.getReadChannel(ShpFileType.PRJ, shpReader))){
+            return prjReader.getCoordinateReferenceSystem();
         } catch (IOException | FactoryException e) {
             e.printStackTrace();
             return null;

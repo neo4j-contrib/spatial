@@ -21,6 +21,7 @@ package org.neo4j.gis.spatial.procedures;
 
 import org.hamcrest.MatcherAssert;
 import org.junit.*;
+import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.exceptions.KernelException;
@@ -63,7 +64,10 @@ public class SpatialProceduresTest {
     public void setUp() throws KernelException, IOException {
         Path dbRoot = new File("target/procedures").toPath();
         FileUtils.deleteDirectory(dbRoot);
-        databases = new TestDatabaseManagementServiceBuilder(dbRoot).setConfig(GraphDatabaseSettings.procedure_unrestricted, List.of("spatial.*")).impermanent().build();
+        databases = new TestDatabaseManagementServiceBuilder(dbRoot)
+            .setConfig(GraphDatabaseSettings.procedure_unrestricted, List.of("spatial.*"))
+            .setConfig(GraphDatabaseInternalSettings.trace_cursors, true)
+            .impermanent().build();
         db = databases.database(DEFAULT_DATABASE_NAME);
         registerProceduresAndFunctions(db, SpatialProcedures.class);
     }
