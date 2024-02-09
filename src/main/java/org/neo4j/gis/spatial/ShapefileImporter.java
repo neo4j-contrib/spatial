@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.nio.file.Path;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -40,8 +41,8 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
-import org.opengis.referencing.FactoryException;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.geotools.api.referencing.FactoryException;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 
 import java.io.File;
 import java.io.IOException;
@@ -136,8 +137,7 @@ public class ShapefileImporter implements Constants {
                     fieldsName[i] = dbaseFileHeader.getFieldName(i - 1);
                 }
 
-                Transaction tx = database.beginTx();
-                try {
+                try (var tx = database.beginTx()){
                     CoordinateReferenceSystem crs = readCRS(shpFiles, shpReader);
                     if (crs != null) {
                         layer.setCoordinateReferenceSystem(tx, crs);
@@ -147,8 +147,6 @@ public class ShapefileImporter implements Constants {
 
                     layer.mergeExtraPropertyNames(tx, fieldsName);
                     tx.commit();
-                } finally {
-                    tx.close();
                 }
 
                 monitor.begin(dbaseFileHeader.getNumRecords());
@@ -159,9 +157,8 @@ public class ShapefileImporter implements Constants {
                     ArrayList<Object> fields = new ArrayList<>();
                     int recordCounter = 0;
                     int filterCounter = 0;
-                    while (shpReader.hasNext() && dbfReader.hasNext()) {
-                        tx = database.beginTx();
-                        try {
+                    while (shpReader.hasNext() && dbfReader.hasNext()) {;
+                        try (var tx = database.beginTx()) {
                             int committedSinceLastNotification = 0;
                             for (int i = 0; i < commitInterval; i++) {
                                 if (shpReader.hasNext() && dbfReader.hasNext()) {
@@ -208,11 +205,8 @@ public class ShapefileImporter implements Constants {
                             log("info | inserted geometries: " + (recordCounter - filterCounter));
                             if (filterCounter > 0) {
                                 log("info | ignored " + filterCounter + "/" + recordCounter
-                                        + " geometries outside filter envelope: " + filterEnvelope);
+                                    + " geometries outside filter envelope: " + filterEnvelope);
                             }
-
-                        } finally {
-                            tx.close();
                         }
                     }
                 } finally {
@@ -231,13 +225,8 @@ public class ShapefileImporter implements Constants {
     }
 
     private CoordinateReferenceSystem readCRS(ShpFiles shpFiles, ShapefileReader shpReader) {
-        try {
-            PrjFileReader prjReader = new PrjFileReader(shpFiles.getReadChannel(ShpFileType.PRJ, shpReader));
-            try {
-                return prjReader.getCoordinateReferenceSystem();
-            } finally {
-                prjReader.close();
-            }
+        try (PrjFileReader prjReader = new PrjFileReader(shpFiles.getReadChannel(ShpFileType.PRJ, shpReader))){
+            return prjReader.getCoordinateReferenceSystem();
         } catch (IOException | FactoryException e) {
             e.printStackTrace();
             return null;
@@ -280,7 +269,7 @@ public class ShapefileImporter implements Constants {
             commitInterval = Integer.parseInt(args[4]);
         }
 
-        DatabaseManagementService databases = new DatabaseManagementServiceBuilder(new File(neoPath)).build();
+        DatabaseManagementService databases = new DatabaseManagementServiceBuilder(Path.of(neoPath)).build();
         GraphDatabaseService db = databases.database(database);
         try {
             ShapefileImporter importer = new ShapefileImporter(db, new NullListener(), commitInterval);

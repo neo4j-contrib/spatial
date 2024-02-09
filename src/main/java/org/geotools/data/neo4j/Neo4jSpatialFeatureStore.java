@@ -19,9 +19,9 @@
  */
 package org.geotools.data.neo4j;
 
-import org.geotools.data.FeatureReader;
-import org.geotools.data.FeatureWriter;
-import org.geotools.data.Query;
+import org.geotools.api.data.FeatureReader;
+import org.geotools.api.data.FeatureWriter;
+import org.geotools.api.data.Query;
 import org.geotools.data.store.ContentEntry;
 import org.geotools.data.store.ContentFeatureStore;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
@@ -30,8 +30,8 @@ import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.EditableLayer;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
-import org.opengis.feature.simple.SimpleFeature;
-import org.opengis.feature.simple.SimpleFeatureType;
+import org.geotools.api.feature.simple.SimpleFeature;
+import org.geotools.api.feature.simple.SimpleFeatureType;
 
 import java.io.IOException;
 import java.util.logging.Logger;
@@ -136,7 +136,7 @@ public class Neo4jSpatialFeatureStore extends ContentFeatureStore {
                 LOGGER.fine("Removing " + live);
 
                 try (Transaction tx = database.beginTx()) {
-                    layer.delete(tx, Long.parseLong(live.getID()));
+                    layer.delete(tx, live.getID());
                     tx.commit();
                 }
 
@@ -163,7 +163,7 @@ public class Neo4jSpatialFeatureStore extends ContentFeatureStore {
                 if (!live.equals(current)) {
                     LOGGER.fine("Updating " + current);
                     try (Transaction tx = database.beginTx()) {
-                        layer.update(tx, Long.parseLong(current.getID()), (Geometry) current.getDefaultGeometry());
+                        layer.update(tx, current.getID(), (Geometry) current.getDefaultGeometry());
                         tx.commit();
                     }
 

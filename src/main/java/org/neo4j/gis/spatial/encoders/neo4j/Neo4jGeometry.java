@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial.encoders.neo4j;
 import org.neo4j.graphdb.spatial.CRS;
 import org.neo4j.graphdb.spatial.Coordinate;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -49,7 +50,7 @@ public class Neo4jGeometry implements org.neo4j.graphdb.spatial.Geometry {
     }
 
     public static String coordinateString(List<org.neo4j.graphdb.spatial.Coordinate> coordinates) {
-        return coordinates.stream().map(c -> c.getCoordinate().stream().map(v -> v.toString()).collect(Collectors.joining(", "))).collect(Collectors.joining(", "));
+        return coordinates.stream().map(c -> Arrays.stream(c.getCoordinate()).mapToObj(Double::toString).collect(Collectors.joining(", "))).collect(Collectors.joining(", "));
     }
 
     public String toString() {

@@ -92,16 +92,16 @@ public class TestOSMImport extends TestOSMImportBase {
 
     @Test
     public void buildDataModel() {
-        long n1Id;
-        long n2Id;
+        String n1Id;
+        String n2Id;
         try (Transaction tx = this.graphDb().beginTx()) {
             Node n1 = tx.createNode();
             n1.setProperty("name", "n1");
             Node n2 = tx.createNode();
             n2.setProperty("name", "n2");
             n1.createRelationshipTo(n2, RelationshipType.withName("LIKES"));
-            n1Id = n1.getId();
-            n2Id = n2.getId();
+            n1Id = n1.getElementId();
+            n2Id = n2.getElementId();
             debugNode(n1);
             debugNode(n2);
             tx.commit();

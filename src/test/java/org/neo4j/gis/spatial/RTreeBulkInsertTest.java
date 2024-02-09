@@ -17,9 +17,9 @@ import org.neo4j.gis.spatial.rtree.*;
 import org.neo4j.graphdb.*;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
-import org.opengis.feature.simple.SimpleFeatureType;
-import org.opengis.referencing.FactoryException;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.geotools.api.feature.simple.SimpleFeatureType;
+import org.geotools.api.referencing.FactoryException;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 
 import java.io.File;
 import java.io.IOException;
@@ -28,6 +28,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.Assert.*;
@@ -42,7 +43,7 @@ public class RTreeBulkInsertTest {
     private final File storeDir = new File("target/store").getAbsoluteFile();
 
     // While the current lucene index implmentation is so slow (16n/s) we disable all benchmarks for lucene backed indexes
-    private static final boolean enableLucene =false;
+    private static final boolean enableLucene = false;
 
     @Before
     public void before() throws IOException {
@@ -82,7 +83,7 @@ public class RTreeBulkInsertTest {
             ArrayList<Node> leaves = nodes.get(nodes.size() - 1);
             for (Node leaf : leaves) {
                 leaf.getSingleRelationship(RTreeRelationshipTypes
-                        .RTREE_CHILD, Direction.INCOMING).delete();
+                    .RTREE_CHILD, Direction.INCOMING).delete();
 
             }
 
@@ -96,7 +97,7 @@ public class RTreeBulkInsertTest {
 
     private void debugRest() {
         try (Transaction tx = db.beginTx()) {
-            Result result = tx.execute("MATCH (n) OPTIONAL MATCH (n)-[r]-() RETURN ID(n), n.name, count(r)");
+            Result result = tx.execute("MATCH (n) OPTIONAL MATCH (n)-[r]-() RETURN elementId(n), n.name, count(r)");
             while (result.hasNext()) {
                 System.out.println(result.next());
             }
@@ -115,8 +116,7 @@ public class RTreeBulkInsertTest {
 //        while(itr.hasNext()){
 //            itr.next().delete();
 //        }
-        System.out.println(node.getId());
-
+        System.out.println(node.getElementId());
         node.delete();
     }
 
@@ -141,14 +141,14 @@ public class RTreeBulkInsertTest {
         int blockSize = 10000;
         CoordinateReferenceSystem crs = DefaultEngineeringCRS.GENERIC_2D;
         EditableLayer layer = getOrCreateSimplePointLayer("Coordinates", "rtree", "lon", "lat");
-        List<Long> nodes = new ArrayList<>();
+        List<String> nodes = new ArrayList<>();
         try (Transaction tx = db.beginTx()) {
             for (int i = 0; i < width; i++) {
                 Node node = tx.createNode();
                 node.addLabel(Label.label("Coordinates"));
                 node.setProperty("lat", i);
                 node.setProperty("lon", 0);
-                nodes.add(node.getId());
+                nodes.add(node.getElementId());
                 node.toString();
             }
             tx.commit();
@@ -158,10 +158,10 @@ public class RTreeBulkInsertTest {
         layer.getIndex().addMonitor(monitor);
         long start = System.currentTimeMillis();
 
-        List<Long> list1 = nodes.subList(0, nodes.size() / 2 + 8);
-        List<Long> list2 = nodes.subList(list1.size(), nodes.size());
-        System.out.println(list1.toString());
-        System.out.println(list2.toString());
+        List<String> list1 = nodes.subList(0, nodes.size() / 2 + 8);
+        List<String> list2 = nodes.subList(list1.size(), nodes.size());
+        System.out.println(list1);
+        System.out.println(list2);
         try (Transaction tx = db.beginTx()) {
             layer.addAll(tx, idsToNodes(tx, list1));
             tx.commit();
@@ -181,8 +181,8 @@ public class RTreeBulkInsertTest {
 
     }
 
-    private List<Node> idsToNodes(Transaction tx, List<Long> nodeIds) {
-        return nodeIds.stream().map(tx::getNodeById).collect(Collectors.toList());
+    private List<Node> idsToNodes(Transaction tx, List<String> nodeIds) {
+        return nodeIds.stream().map(tx::getNodeByElementId).collect(Collectors.toList());
     }
 
     private static class IndexTestConfig {
@@ -229,10 +229,15 @@ public class RTreeBulkInsertTest {
 
     private interface IndexMaker {
         EditableLayer setupLayer(Transaction tx);
-        List<Long> nodes();
+
+        List<String> nodes();
+
         TestStats initStats(int blockSize);
+
         TimedLogger initLogger();
+
         IndexTestConfig getConfig();
+
         void verifyStructure();
     }
 
@@ -240,7 +245,7 @@ public class RTreeBulkInsertTest {
         private final String name;
         private final String insertMode;
         private final IndexTestConfig config;
-        private List<Long> nodes;
+        private List<String> nodes;
         private EditableLayer layer;
 
         private GeohashIndexMaker(String name, String insertMode, IndexTestConfig config) {
@@ -257,7 +262,7 @@ public class RTreeBulkInsertTest {
         }
 
         @Override
-        public List<Long> nodes() {
+        public List<String> nodes() {
             return nodes;
         }
 
@@ -287,7 +292,7 @@ public class RTreeBulkInsertTest {
         private final String name;
         private final String insertMode;
         private final IndexTestConfig config;
-        private List<Long> nodes;
+        private List<String> nodes;
         private EditableLayer layer;
 
         private ZOrderIndexMaker(String name, String insertMode, IndexTestConfig config) {
@@ -299,12 +304,12 @@ public class RTreeBulkInsertTest {
         @Override
         public EditableLayer setupLayer(Transaction tx) {
             this.nodes = setup(name, "zorder", config.width);
-            this.layer = (EditableLayer) spatial().getLayer(tx,"Coordinates");
+            this.layer = (EditableLayer) spatial().getLayer(tx, "Coordinates");
             return layer;
         }
 
         @Override
-        public List<Long> nodes() {
+        public List<String> nodes() {
             return nodes;
         }
 
@@ -333,7 +338,7 @@ public class RTreeBulkInsertTest {
         private final String name;
         private final String insertMode;
         private final IndexTestConfig config;
-        private List<Long> nodes;
+        private List<String> nodes;
         private EditableLayer layer;
 
         private HilbertIndexMaker(String name, String insertMode, IndexTestConfig config) {
@@ -345,12 +350,12 @@ public class RTreeBulkInsertTest {
         @Override
         public EditableLayer setupLayer(Transaction tx) {
             this.nodes = setup(name, "hilbert", config.width);
-            this.layer = (EditableLayer) spatial().getLayer(tx,"Coordinates");
+            this.layer = (EditableLayer) spatial().getLayer(tx, "Coordinates");
             return layer;
         }
 
         @Override
-        public List<Long> nodes() {
+        public List<String> nodes() {
             return nodes;
         }
 
@@ -385,7 +390,7 @@ public class RTreeBulkInsertTest {
         private final String name;
         private EditableLayer layer;
         private TestStats stats;
-        private List<Long> nodes;
+        private List<String> nodes;
 
         private RTreeIndexMaker(String name, String splitMode, String insertMode, int maxNodeReferences, IndexTestConfig config) {
             this(name, splitMode, insertMode, maxNodeReferences, config, false);
@@ -404,15 +409,15 @@ public class RTreeBulkInsertTest {
             this.nodes = setup(name, "rtree", config.width);
             this.layer = (EditableLayer) spatial.getLayer(tx, name);
             layer.getIndex().configure(map(
-                    RTreeIndex.KEY_SPLIT, splitMode,
-                    RTreeIndex.KEY_MAX_NODE_REFERENCES, maxNodeReferences,
-                    RTreeIndex.KEY_SHOULD_MERGE_TREES, shouldMergeTrees)
+                RTreeIndex.KEY_SPLIT, splitMode,
+                RTreeIndex.KEY_MAX_NODE_REFERENCES, maxNodeReferences,
+                RTreeIndex.KEY_SHOULD_MERGE_TREES, shouldMergeTrees)
             );
             return layer;
         }
 
         @Override
-        public List<Long> nodes() {
+        public List<String> nodes() {
             return nodes;
         }
 
@@ -425,7 +430,7 @@ public class RTreeBulkInsertTest {
         @Override
         public TimedLogger initLogger() {
             return new TimedLogger("Inserting " + config.totalCount + " nodes into RTree using " + insertMode + " insert and "
-                    + splitMode + " split with " + maxNodeReferences + " maxNodeReferences", config.totalCount);
+                + splitMode + " split with " + maxNodeReferences + " maxNodeReferences", config.totalCount);
         }
 
         @Override
@@ -778,8 +783,8 @@ public class RTreeBulkInsertTest {
             try (Transaction tx = db.beginTx()) {
                 int count = getCalled(context);
                 imageExporter.saveRTreeLayers(tx,
-                        new File("rtree-" + insertMode + "-" + splitMode + "/debug-" + context + "/rtree-" + count + ".png"),
-                        rootNode, envelopes, 7);
+                    new File("rtree-" + insertMode + "-" + splitMode + "/debug-" + context + "/rtree-" + count + ".png"),
+                    rootNode, envelopes, 7);
                 called.put(context, count + 1);
                 tx.commit();
             } catch (IOException e) {
@@ -790,12 +795,11 @@ public class RTreeBulkInsertTest {
     }
 
     private void insertManyNodesIndividually(String splitMode, int blockSize, int maxNodeReferences, IndexTestConfig config)
-            throws FactoryException, IOException {
+        throws FactoryException, IOException {
         insertManyNodesIndividually(new RTreeIndexMaker("Coordinates", splitMode, "Single", maxNodeReferences, config), blockSize);
     }
 
-    private EditableLayer setupLayer(IndexMaker indexMaker)
-    {
+    private EditableLayer setupLayer(IndexMaker indexMaker) {
         try (Transaction tx = db.beginTx()) {
             EditableLayer layer = indexMaker.setupLayer(tx);
             tx.commit();
@@ -807,17 +811,17 @@ public class RTreeBulkInsertTest {
         if (enableLucene || indexMaker instanceof RTreeIndexMaker) {
             TestStats stats = indexMaker.initStats(blockSize);
             EditableLayer layer = setupLayer(indexMaker);
-            List<Long> nodes = indexMaker.nodes();
+            List<String> nodes = indexMaker.nodes();
             TreeMonitor monitor = new RTreeMonitor();
             layer.getIndex().addMonitor(monitor);
             TimedLogger log = indexMaker.initLogger();
             IndexTestConfig config = indexMaker.getConfig();
             long start = System.currentTimeMillis();
             for (int i = 0; i < config.totalCount / blockSize; i++) {
-                List<Long> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
+                List<String> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
                 try (Transaction tx = db.beginTx()) {
-                    for (Long node : slice) {
-                        layer.add(tx, tx.getNodeById(node));
+                    for (String node : slice) {
+                        layer.add(tx, tx.getNodeByElementId(node));
                     }
                     tx.commit();
                 }
@@ -846,7 +850,7 @@ public class RTreeBulkInsertTest {
         IndexMaker indexMaker = new RTreeIndexMaker("Coordinates", splitMode, "Single", maxNodeReferences, config);
         TestStats stats = indexMaker.initStats(blockSize);
         EditableLayer layer = setupLayer(indexMaker);
-        List<Long> nodes = indexMaker.nodes();
+        List<String> nodes = indexMaker.nodes();
 
         RTreeIndex rtree = (RTreeIndex) layer.getIndex();
         RTreeImageExporter imageExporter;
@@ -865,11 +869,11 @@ public class RTreeBulkInsertTest {
         int i = 0;
         int currBlock = 1;
         while (currBlock < nodes.size()) {
-            List<Long> slice = nodes.subList(prevBlock, currBlock);
+            List<String> slice = nodes.subList(prevBlock, currBlock);
             long startIndexing = System.currentTimeMillis();
             try (Transaction tx = db.beginTx()) {
-                for (Long node : slice) {
-                    layer.add(tx, tx.getNodeById(node));
+                for (String node : slice) {
+                    layer.add(tx, tx.getNodeByElementId(node));
                 }
                 tx.commit();
             }
@@ -897,7 +901,7 @@ public class RTreeBulkInsertTest {
     }
 
     private void insertManyNodesInBulk(String splitMode, int blockSize, int maxNodeReferences, IndexTestConfig config)
-            throws FactoryException, IOException {
+        throws FactoryException, IOException {
         insertManyNodesInBulk(new RTreeIndexMaker("Coordinates", splitMode, "Bulk", maxNodeReferences, config, false), blockSize);
     }
 
@@ -910,13 +914,13 @@ public class RTreeBulkInsertTest {
         if (enableLucene || indexMaker instanceof RTreeIndexMaker) {
             TestStats stats = indexMaker.initStats(blockSize);
             EditableLayer layer = setupLayer(indexMaker);
-            List<Long> nodes = indexMaker.nodes();
+            List<String> nodes = indexMaker.nodes();
             RTreeMonitor monitor = new RTreeMonitor();
             layer.getIndex().addMonitor(monitor);
             TimedLogger log = indexMaker.initLogger();
             long start = System.currentTimeMillis();
             for (int i = 0; i < indexMaker.getConfig().totalCount / blockSize; i++) {
-                List<Long> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
+                List<String> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
                 long startIndexing = System.currentTimeMillis();
                 try (Transaction tx = db.beginTx()) {
                     layer.addAll(tx, idsToNodes(tx, slice));
@@ -947,7 +951,7 @@ public class RTreeBulkInsertTest {
         String splitMode = RTreeIndex.GREENES_SPLIT;
         IndexMaker indexMaker = new RTreeIndexMaker("Coordinates", splitMode, "Bulk", maxNodeReferences, config);
         EditableLayer layer = setupLayer(indexMaker);
-        List<Long> nodes = indexMaker.nodes();
+        List<String> nodes = indexMaker.nodes();
         TestStats stats = indexMaker.initStats(blockSize);
 
         RTreeIndex rtree = (RTreeIndex) layer.getIndex();
@@ -964,7 +968,7 @@ public class RTreeBulkInsertTest {
         TimedLogger log = indexMaker.initLogger();
         long start = System.currentTimeMillis();
         for (int i = 0; i < config.totalCount / blockSize; i++) {
-            List<Long> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
+            List<String> slice = nodes.subList(i * blockSize, i * blockSize + blockSize);
             long startIndexing = System.currentTimeMillis();
             try (Transaction tx = db.beginTx()) {
                 layer.addAll(tx, idsToNodes(tx, slice));
@@ -1036,7 +1040,7 @@ public class RTreeBulkInsertTest {
         start = System.currentTimeMillis();
         try (Transaction tx = db.beginTx()) {
             String cypher = "CALL spatial.withinDistance('Coordinates',{longitude:0.5, latitude:0.5},1000.0) yield node\n" +
-                    "RETURN COUNT(node) as count";
+                "RETURN COUNT(node) as count";
             Result result = tx.execute(cypher);
 //           System.out.println(result.columns().toString());
             Object obj = result.columnAs("count").next();
@@ -1050,8 +1054,8 @@ public class RTreeBulkInsertTest {
         start = System.currentTimeMillis();
         try (Transaction tx = db.beginTx()) {
             String cypher = "MATCH ()-[:RTREE_ROOT]->(n)\n" +
-                    "MATCH (n)-[:RTREE_CHILD*]->(m)-[:RTREE_REFERENCE]->(p)\n" +
-                    "RETURN COUNT(p) as count";
+                "MATCH (n)-[:RTREE_CHILD*]->(m)-[:RTREE_REFERENCE]->(p)\n" +
+                "RETURN COUNT(p) as count";
             Result result = tx.execute(cypher);
 //           System.out.println(result.columns().toString());
             Object obj = result.columnAs("count").next();
@@ -1161,8 +1165,8 @@ public class RTreeBulkInsertTest {
 
         try (Transaction tx = db.beginTx()) {
             String cypher = "MATCH ()-[:RTREE_ROOT]->(n)\n" +
-                    "MATCH (n)-[:RTREE_CHILD]->(m)-[:RTREE_CHILD]->(p)-[:RTREE_CHILD]->(s)-[:RTREE_REFERENCE]->(q)\n" +
-                    "RETURN COUNT(q) as count";
+                "MATCH (n)-[:RTREE_CHILD]->(m)-[:RTREE_CHILD]->(p)-[:RTREE_CHILD]->(s)-[:RTREE_REFERENCE]->(q)\n" +
+                "RETURN COUNT(q) as count";
             Result result = tx.execute(cypher);
             System.out.println(result.columns().toString());
             long count = result.<Long>columnAs("count").next();
@@ -1191,9 +1195,9 @@ public class RTreeBulkInsertTest {
         }
     }
 
-    private List<Long> populateSquareTestData(int width) {
+    private List<String> populateSquareTestData(int width) {
         GraphDatabaseService db = this.db;
-        ArrayList<Long> nodes = new ArrayList<>(width * width);
+        ArrayList<String> nodes = new ArrayList<>(width * width);
         for (int i = 0; i < width; i++) {
             try (Transaction tx = db.beginTx()) {
                 for (int j = 0; j < width; j++) {
@@ -1201,7 +1205,7 @@ public class RTreeBulkInsertTest {
                     node.addLabel(Label.label("Coordinates"));
                     node.setProperty("lat", ((double) i / (double) width));
                     node.setProperty("lon", ((double) j / (double) width));
-                    nodes.add(node.getId());
+                    nodes.add(node.getElementId());
                 }
                 tx.commit();
             }
@@ -1210,8 +1214,8 @@ public class RTreeBulkInsertTest {
         return nodes;
     }
 
-    private List<Long> populateSquareTestDataHeavy(int width) {
-        List<Long> nodes = populateSquareTestData(width);
+    private List<String> populateSquareTestDataHeavy(int width) {
+        List<String> nodes = populateSquareTestData(width);
         Random rand = new Random(42);
 
         for (int i = 0; i < width / 2; i++) {
@@ -1222,7 +1226,7 @@ public class RTreeBulkInsertTest {
 
                     node.setProperty("lat", ((double) rand.nextInt(width / 10) / (double) width));
                     node.setProperty("lon", ((double) rand.nextInt(width / 10) / (double) width));
-                    nodes.add(node.getId());
+                    nodes.add(node.getElementId());
                 }
                 tx.commit();
             }
@@ -1231,8 +1235,8 @@ public class RTreeBulkInsertTest {
         return nodes;
     }
 
-    private List<Long> populateSquareWithStreets(int width) {
-        List<Long> nodes = new ArrayList<>();
+    private List<String> populateSquareWithStreets(int width) {
+        List<String> nodes = new ArrayList<>();
         double squareValue = 0.25;
         for (int i = 1; i < 4; i += 2) {
             try (Transaction tx = db.beginTx()) {
@@ -1241,12 +1245,12 @@ public class RTreeBulkInsertTest {
                     node.addLabel(Label.label("Coordinates"));
                     node.setProperty("lat", i * squareValue);
                     node.setProperty("lon", (j + squareValue) / width + squareValue);
-                    nodes.add(node.getId());
+                    nodes.add(node.getElementId());
                     Node node2 = tx.createNode();
                     node2.addLabel(Label.label("Coordinates"));
                     node2.setProperty("lat", (j + squareValue) / width + squareValue);
                     node2.setProperty("lon", i * squareValue);
-                    nodes.add(node2.getId());
+                    nodes.add(node2.getElementId());
 
                 }
                 tx.commit();
@@ -1259,12 +1263,12 @@ public class RTreeBulkInsertTest {
                 node.addLabel(Label.label("Coordinates"));
                 node.setProperty("lat", ((double) i / (double) width));
                 node.setProperty("lon", ((double) i / (double) width));
-                nodes.add(node.getId());
+                nodes.add(node.getElementId());
                 Node node2 = tx.createNode();
                 node2.addLabel(Label.label("Coordinates"));
                 node2.setProperty("lat", ((double) (width - i) / (double) width));
                 node2.setProperty("lon", ((double) i / (double) width));
-                nodes.add(node2.getId());
+                nodes.add(node2.getElementId());
                 tx.commit();
             }
         }
@@ -1291,9 +1295,9 @@ public class RTreeBulkInsertTest {
 
     }
 
-    private List<Long> setup(String name, String index, int width) {
+    private List<String> setup(String name, String index, int width) {
         long start = System.currentTimeMillis();
-        List<Long> nodes = populateSquareTestData(width);
+        List<String> nodes = populateSquareTestData(width);
         System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to create " + (width * width) + " nodes");
         getOrCreateSimplePointLayer(name, index, "lon", "lat");
         return nodes;
@@ -1492,29 +1496,29 @@ public class RTreeBulkInsertTest {
     }
 
     private void verifyTreeStructure(Layer layer, String splitMode, TestStats stats) {
-        long layerNodeId;
+        String layerNodeId;
         try (Transaction tx = db.beginTx()) {
             Node layerNode = layer.getLayerNode(tx);
-            layerNodeId = layerNode.getId();
+            layerNodeId = layerNode.getElementId();
             tx.commit();
         }
         String queryDepthAndGeometries =
-                "MATCH (layer)-[:RTREE_ROOT]->(root) WHERE ID(layer)=$layerNodeId WITH root " +
-                        "MATCH p = (root)-[:RTREE_CHILD*]->(child)-[:RTREE_REFERENCE]->(geometry) " +
-                        "RETURN length(p) as depth, count(*) as geometries";
+            "MATCH (layer)-[:RTREE_ROOT]->(root) WHERE elementId(layer)=$layerNodeId WITH root " +
+                "MATCH p = (root)-[:RTREE_CHILD*]->(child)-[:RTREE_REFERENCE]->(geometry) " +
+                "RETURN length(p) as depth, count(*) as geometries";
 
-        String queryNumChildren = "MATCH (layer)-[:RTREE_ROOT]->(root) WHERE ID(layer)=$layerNodeId WITH root " +
-                "MATCH p = (root)-[:RTREE_CHILD*]->(child) " +
-                "WHERE exists((child)-[:RTREE_REFERENCE]->()) " +
-                "RETURN length(p) as depth, count (*) as leaves";
-        String queryChildrenPerParent = "MATCH (layer)-[:RTREE_ROOT]->(root) WHERE ID(layer)=$layerNodeId WITH root " +
-                "MATCH p = (root)-[:RTREE_CHILD*0..]->(parent)-[:RTREE_CHILD]->(child) " +
-                "WITH parent, count (*) as children RETURN avg(children) as childrenPerParent,min(children) as " +
-                "MinChildrenPerParent,max(children) as MaxChildrenPerParent";
+        String queryNumChildren = "MATCH (layer)-[:RTREE_ROOT]->(root) WHERE elementId(layer)=$layerNodeId WITH root " +
+            "MATCH p = (root)-[:RTREE_CHILD*]->(child) " +
+            "WHERE exists((child)-[:RTREE_REFERENCE]->()) " +
+            "RETURN length(p) as depth, count (*) as leaves";
+        String queryChildrenPerParent = "MATCH (layer)-[:RTREE_ROOT]->(root) WHERE elementId(layer)=$layerNodeId WITH root " +
+            "MATCH p = (root)-[:RTREE_CHILD*0..]->(parent)-[:RTREE_CHILD]->(child) " +
+            "WITH parent, count (*) as children RETURN avg(children) as childrenPerParent,min(children) as " +
+            "MinChildrenPerParent,max(children) as MaxChildrenPerParent";
         String queryChildrenPerParent2 =
-                "MATCH (layer)-[:RTREE_ROOT]->(root) WHERE ID(layer)=$layerNodeId WITH root " +
-                        "MATCH p = (root)-[:RTREE_CHILD*0..]->(parent)-[:RTREE_CHILD|:RTREE_REFERENCE]->(child) " +
-                        "RETURN parent, length(p) as depth, count (*) as children";
+            "MATCH (layer)-[:RTREE_ROOT]->(root) WHERE elementId(layer)=$layerNodeId WITH root " +
+                "MATCH p = (root)-[:RTREE_CHILD*0..]->(parent)-[:RTREE_CHILD|RTREE_REFERENCE]->(child) " +
+                "RETURN parent, length(p) as depth, count (*) as children";
         Map<String, Object> params = Collections.singletonMap("layerNodeId", layerNodeId);
         int balanced = 0;
         long geometries = 0;

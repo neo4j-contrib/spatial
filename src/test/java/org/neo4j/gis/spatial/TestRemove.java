@@ -41,7 +41,7 @@ public class TestRemove extends Neo4jTestCase {
 
         int rtreeMaxNodeReferences = 100;
 
-        long[] ids = new long[rtreeMaxNodeReferences + 1];
+        String[] ids = new String[rtreeMaxNodeReferences + 1];
 
         try (Transaction tx = graphDb().beginTx()) {
             EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName);
@@ -56,7 +56,7 @@ public class TestRemove extends Neo4jTestCase {
 
         try (Transaction tx = graphDb().beginTx()) {
             EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName);
-            for (long id : ids) {
+            for (String id : ids) {
                 layer.delete(tx, id);
             }
             tx.commit();

@@ -24,13 +24,13 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
-import org.geotools.data.Parameter;
+import org.geotools.api.data.Parameter;
 import org.geotools.feature.NameImpl;
 import org.geotools.process.ProcessExecutor;
 import org.geotools.process.Processors;
 import org.geotools.process.Progress;
 import org.geotools.util.KVP;
-import org.opengis.feature.type.Name;
+import org.geotools.api.feature.type.Name;
 
 import java.util.Map;
 import java.util.concurrent.ExecutionException;

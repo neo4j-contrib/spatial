@@ -19,17 +19,17 @@
  */
 package org.neo4j.gis.spatial.attributes;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialRelationshipTypes;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.ResourceIterable;
 import org.neo4j.graphdb.Transaction;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 public class PropertyMappingManager {
     private final Layer layer;
@@ -51,9 +51,11 @@ public class PropertyMappingManager {
 
     private Map<Node, PropertyMapper> loadMappers(Transaction tx) {
         HashMap<Node, PropertyMapper> mappers = new HashMap<>();
-        for (Relationship rel : layer.getLayerNode(tx).getRelationships(Direction.OUTGOING, SpatialRelationshipTypes.PROPERTY_MAPPING)) {
-            Node node = rel.getEndNode();
-            mappers.put(node, PropertyMapper.fromNode(node));
+        try (var relationships = layer.getLayerNode(tx).getRelationships(Direction.OUTGOING, SpatialRelationshipTypes.PROPERTY_MAPPING)) {
+            for (Relationship rel : relationships) {
+                Node node = rel.getEndNode();
+                mappers.put(node, PropertyMapper.fromNode(node));
+            }
         }
         return mappers;
     }
@@ -67,8 +69,10 @@ public class PropertyMappingManager {
             }
         }
         for (Node node : toDelete) {
-            for (Relationship rel : node.getRelationships()) {
-                rel.delete();
+            try(var relationships = node.getRelationships()){
+                for (Relationship rel : relationships) {
+                    rel.delete();
+                }
             }
             node.delete();
         }

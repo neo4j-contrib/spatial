@@ -103,6 +103,15 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 		@Override
 		public void setProperty(String key, Object value) {
 		}
+
+        @Override
+        public String getElementId() {
+            return null;
+        }
+
+        @Override
+        public void delete() {
+        }
 	}
 
 	public static class OSMGraphException extends SpatialDatabaseException {
@@ -136,7 +145,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	public void encodeEnvelope(Envelope mbb, Entity container) {
 		container.setProperty(PROP_BBOX, new double[] { mbb.getMinX(), mbb.getMaxX(), mbb.getMinY(), mbb.getMaxY() });
 	}
-	
+
 	public static Node getOSMNodeFromGeometryNode(Node geomNode) {
 		return geomNode.getSingleRelationship(OSMRelation.GEOM, Direction.INCOMING).getStartNode();
 	}
@@ -209,18 +218,20 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 			LinearRing outer = null;
 			ArrayList<LinearRing> inner = new ArrayList<LinearRing>();
 			// ArrayList<LinearRing> rings = new ArrayList<LinearRing>();
-			for (Relationship rel : osmNode.getRelationships(Direction.OUTGOING, OSMRelation.MEMBER)) {
-				Node wayNode = rel.getEndNode();
-				String role = (String) rel.getProperty("role", null);
-				if (role != null) {
-					LinearRing ring = getOuterLinearRingFromGeometry(decodeGeometryFromWay(wayNode, GTYPE_POLYGON, -1, geomFactory));
-					if (role.equals("outer")) {
-						outer = ring;
-					} else if (role.equals("inner")) {
-						inner.add(ring);
-					}
-				}
-			}
+            try(var  relationships = osmNode.getRelationships(Direction.OUTGOING, OSMRelation.MEMBER)) {
+                for (Relationship rel : relationships) {
+                    Node wayNode = rel.getEndNode();
+                    String role = (String) rel.getProperty("role", null);
+                    if (role != null) {
+                        LinearRing ring = getOuterLinearRingFromGeometry(decodeGeometryFromWay(wayNode, GTYPE_POLYGON, -1, geomFactory));
+                        if (role.equals("outer")) {
+                            outer = ring;
+                        } else if (role.equals("inner")) {
+                            inner.add(ring);
+                        }
+                    }
+                }
+            }
 			if (outer != null) {
 				return geomFactory.createPolygon(outer, inner.toArray(new LinearRing[inner.size()]));
 			} else {
@@ -228,7 +239,8 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 			}
 		case GTYPE_MULTIPOLYGON:
 			ArrayList<Polygon> polygons = new ArrayList<>();
-			for (Relationship rel : osmNode.getRelationships(Direction.OUTGOING, OSMRelation.MEMBER)) {
+            try(var relationships = osmNode.getRelationships(Direction.OUTGOING, OSMRelation.MEMBER)){
+            for (Relationship rel : relationships) {
 				Node member = rel.getEndNode();
 				Geometry geometry = null;
 				if (member.hasProperty("way_osm_id")) {
@@ -242,6 +254,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 					polygons.add((Polygon) geometry);
 				}
 			}
+            }
 			if (polygons.size() > 0) {
 				return geomFactory.createMultiPolygon(polygons.toArray(new Polygon[polygons.size()]));
 			} else {
@@ -287,7 +300,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 
 	/**
 	 * Extend the array by copying the first point into the last position
-	 * 
+     *
 	 * @param coords original array that is not closed
 	 * @return new array one point longer
 	 */
@@ -498,7 +511,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	 * This means the default way of storing attributes is simply as properties
 	 * of the geometry node. This behaviour can be changed by other domain
 	 * models with different encodings.
-	 * 
+     *
 	 * @param geomNode node to test
 	 * @param name attribute to check for existence of
 	 * @return true if node has the specified attribute
@@ -513,7 +526,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	 * properties of the geometry node. This behaviour can be changed by other
 	 * domain models with different encodings. If the property does not exist,
 	 * the method returns null.
-	 * 
+     *
 	 * @param geomNode node to test
 	 * @param name attribute to access
 	 * @return attribute value, or null

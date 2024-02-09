@@ -40,8 +40,8 @@ import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.core.NodeEntity;
 import org.neo4j.kernel.impl.coreapi.internal.CursorIterator;
 import org.neo4j.memory.EmptyMemoryTracker;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
-import org.opengis.referencing.cs.CoordinateSystemAxis;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
+import org.geotools.api.referencing.cs.CoordinateSystemAxis;
 
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -137,17 +137,17 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
             while (iterator.hasNext()) {
                 IndexDescriptor index = iterator.next();
                 // TODO: Do we need to support the new IndexType.RANGE index in Neo4j 4.4?
-                if (index.getIndexType() != IndexType.BTREE) {
+                if (index.getIndexType() != IndexType.RANGE) {
                     // Skip special indexes, such as the full-text indexes, because they can't handle all the queries we might throw at them.
                     continue;
                 }
                 // Ha! We found an index - let's use it to find matching nodes
                 try {
-                    NodeValueIndexCursor cursor = transaction.cursors().allocateNodeValueIndexCursor(CursorContext.NULL, EmptyMemoryTracker.INSTANCE);
+                    NodeValueIndexCursor cursor = transaction.cursors().allocateNodeValueIndexCursor(CursorContext.NULL_CONTEXT, EmptyMemoryTracker.INSTANCE);
                     IndexReadSession indexSession = read.indexReadSession(index);
                     read.nodeIndexSeek(transaction.queryContext(), indexSession, cursor, IndexQueryConstraints.unordered(false), query);
 
-                    return new CursorIterator<>(cursor, NodeIndexCursor::nodeReference, (c) -> new NodeEntity(transaction.internalTransaction(), c.nodeReference()), EMPTY_RESOURCE_TRACKER);
+                    return new CursorIterator<>(cursor, NodeIndexCursor::nodeReference, c -> new NodeEntity(transaction.internalTransaction(), c.nodeReference()));
                 } catch (KernelException e) {
                     // weird at this point but ignore and fallback to a label scan
                 }

@@ -19,17 +19,16 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.filter.text.ecql.ECQL;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
-
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * <p>
@@ -58,9 +57,11 @@ public class DynamicLayer extends EditableLayerImpl {
         if (layers == null) {
             layers = new LinkedHashMap<>();
             layers.put(getName(), this);
-            for (Relationship rel : getLayerNode(tx).getRelationships(Direction.OUTGOING, SpatialRelationshipTypes.LAYER_CONFIG)) {
-                DynamicLayerConfig config = new DynamicLayerConfig(this, rel.getEndNode());
-                layers.put(config.getName(), config);
+            try (var relationships = getLayerNode(tx).getRelationships(Direction.OUTGOING, SpatialRelationshipTypes.LAYER_CONFIG)) {
+                for (Relationship rel : relationships) {
+                    DynamicLayerConfig config = new DynamicLayerConfig(this, rel.getEndNode());
+                    layers.put(config.getName(), config);
+                }
             }
         }
         return layers;

@@ -3,8 +3,8 @@ package org.neo4j.gis.spatial.utilities;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.ReferencingFactoryFinder;
 import org.neo4j.gis.spatial.SpatialDatabaseException;
-import org.opengis.referencing.FactoryException;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.geotools.api.referencing.FactoryException;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 
 import static org.geotools.referencing.crs.DefaultEngineeringCRS.GENERIC_2D;
 import static org.geotools.referencing.crs.DefaultGeographicCRS.WGS84;

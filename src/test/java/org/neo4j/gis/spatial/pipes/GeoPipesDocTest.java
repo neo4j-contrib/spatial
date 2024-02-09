@@ -25,7 +25,7 @@ import org.geotools.feature.FeatureCollection;
 import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.crs.DefaultEngineeringCRS;
-import org.geotools.styling.Style;
+import org.geotools.api.style.Style;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -662,7 +662,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
                 .unionAll()
                 .createWellKnownText();
 
-        assertEquals("POLYGON ((0 0, 0 5, 2 5, 2 6, 4 6, 4 10, 10 10, 10 4, 6 4, 6 2, 5 2, 5 0, 0 0))", pipeline.next().getProperty(tx, "WellKnownText"));
+        assertEquals("POLYGON ((2 5, 2 6, 4 6, 4 10, 10 10, 10 4, 6 4, 6 2, 5 2, 5 0, 0 0, 0 5, 2 5))", pipeline.next().getProperty(tx, "WellKnownText"));
 
         try {
             pipeline.next();

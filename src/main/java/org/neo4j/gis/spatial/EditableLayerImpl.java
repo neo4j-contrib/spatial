@@ -44,20 +44,20 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 	}
 
 	@Override
-	public void update(Transaction tx, long geomNodeId, Geometry geometry) {
+    public void update(Transaction tx, String geomNodeId, Geometry geometry) {
 		indexWriter.remove(tx, geomNodeId, false, true);
-		Node geomNode = tx.getNodeById(geomNodeId);
+        Node geomNode = tx.getNodeByElementId(geomNodeId);
 		getGeometryEncoder().encodeGeometry(tx, geometry, geomNode);
 		indexWriter.add(tx, geomNode);
 	}
 
 	@Override
-	public void delete(Transaction tx, long geomNodeId) {
+    public void delete(Transaction tx, String geomNodeId) {
 		indexWriter.remove(tx, geomNodeId, true, false);
 	}
 
 	@Override
-	public void removeFromIndex(Transaction tx, long geomNodeId) {
+    public void removeFromIndex(Transaction tx, String geomNodeId) {
 		final boolean deleteGeomNode = false;
 		indexWriter.remove(tx, geomNodeId, deleteGeomNode, false);
 	}

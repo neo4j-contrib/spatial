@@ -32,10 +32,9 @@ import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.utilities.GeotoolsAdapter;
-import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 
 import java.util.*;
 
@@ -193,7 +192,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
     public void initialize(Transaction tx, IndexManager indexManager, String name, Node layerNode) {
         //this.spatialDatabase = spatialDatabase;
         this.name = name;
-        this.layerNodeId = layerNode.getId();
+        this.layerNodeId = layerNode.getElementId();
 
         this.geometryFactory = new GeometryFactory();
         CoordinateReferenceSystem crs = getCoordinateReferenceSystem(tx);
@@ -250,7 +249,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
      * relationships (sub-graph) or both to describe the contents of the layer
      */
     public Node getLayerNode(Transaction tx) {
-        return tx.getNodeById(layerNodeId);
+        return tx.getNodeByElementId(layerNodeId);
     }
 
     /**
@@ -260,7 +259,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
         indexWriter.removeAll(tx, true, monitor);
         Node layerNode = getLayerNode(tx);
         layerNode.delete();
-        layerNodeId = -1L;
+        layerNodeId = null;
     }
 
     // Private methods
@@ -274,7 +273,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 
     //private SpatialDatabaseService spatialDatabase;
     private String name;
-    protected Long layerNodeId = -1L;
+    protected String layerNodeId = null;
     private GeometryEncoder geometryEncoder;
     private GeometryFactory geometryFactory;
     protected LayerIndexReader indexReader;
@@ -290,7 +289,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 
     @Override
     public boolean containsGeometryNode(Transaction tx, Node geomNode) {
-        return indexReader.isNodeIndexed(tx, geomNode.getId());
+        return indexReader.isNodeIndexed(tx, geomNode.getElementId());
     }
 
     /**

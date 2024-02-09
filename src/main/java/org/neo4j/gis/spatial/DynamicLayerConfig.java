@@ -24,22 +24,20 @@ import java.io.PrintStream;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
 import org.geotools.filter.text.cql2.CQLException;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.index.LayerTreeIndexReader;
+import org.neo4j.gis.spatial.indexfilter.CQLIndexReader;
+import org.neo4j.gis.spatial.indexfilter.DynamicIndexReader;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
-import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
-import org.neo4j.gis.spatial.indexfilter.CQLIndexReader;
-import org.neo4j.gis.spatial.indexfilter.DynamicIndexReader;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
-
-import org.locationtech.jts.geom.GeometryFactory;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 
 public class DynamicLayerConfig implements Layer, Constants {
 
@@ -47,7 +45,7 @@ public class DynamicLayerConfig implements Layer, Constants {
     private final String name;
     private final int geometryType;
     private final String query;
-    protected long configNodeId;
+    protected String configNodeId;
     private String[] propertyNames;
 
     /**
@@ -58,7 +56,7 @@ public class DynamicLayerConfig implements Layer, Constants {
         this.name = (String) configNode.getProperty(PROP_LAYER);
         this.geometryType = (Integer) configNode.getProperty(PROP_TYPE);
         this.query = (String) configNode.getProperty(PROP_QUERY);
-        this.configNodeId = configNode.getId();
+        this.configNodeId = configNode.getElementId();
         this.propertyNames = (String[]) configNode.getProperty("propertyNames", null);
     }
 
@@ -81,7 +79,7 @@ public class DynamicLayerConfig implements Layer, Constants {
         this.name = name;
         this.geometryType = geometryType;
         this.query = query;
-        configNodeId = node.getId();
+        configNodeId = node.getElementId();
     }
 
     @Override
@@ -196,7 +194,7 @@ public class DynamicLayerConfig implements Layer, Constants {
     }
 
     public Node configNode(Transaction tx) {
-        return tx.getNodeById(configNodeId);
+        return tx.getNodeByElementId(configNodeId);
     }
 
     public void setExtraPropertyNames(Transaction tx, String[] names) {

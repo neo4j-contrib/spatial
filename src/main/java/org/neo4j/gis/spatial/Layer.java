@@ -25,7 +25,7 @@ import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 
 import org.locationtech.jts.geom.GeometryFactory;
 
@@ -53,7 +53,7 @@ public interface Layer {
     /**
      * Every layer using a specific implementation of the SpatialIndexReader and SpatialIndexWriter
      * for indexing the data in that layer.
-     * 
+     *
      * @return the SpatialIndexReader used to perform searches on the data in the layer
      */
     LayerIndexReader getIndex();
@@ -102,7 +102,7 @@ public interface Layer {
      * implement the layer should also provide appropriate GeometryEncoders for encoding and
      * decoding the geometries. This can be either as properties of a geometry node, or as
      * sub-graphs accessible from some geometry node.
-     * 
+     *
      * @return implementation of the GemoetryEncoder class enabling encoding/decoding of geometries
      *         from the graph
      */
@@ -116,7 +116,7 @@ public interface Layer {
 
     /**
      * Each layer contains geometries with optional attributes.
-     * 
+     *
      * @return String array of all attribute names
      * @param tx
      */
@@ -124,7 +124,7 @@ public interface Layer {
 
     /**
      * The layer conforms with the Geotools pattern of only allowing a single geometry per layer.
-     * 
+     *
      * @return integer key for the geotools geometry type
      */
     Integer getGeometryType(Transaction tx);
@@ -132,7 +132,7 @@ public interface Layer {
     /**
      * Each layer is associated with a SpatialDataset. This can be a one-for-one match to the layer,
      * or can be expressed as many layers on a single dataset.
-     * 
+     *
      * @return SpatialDataset containing the data indexed by this layer.
      */
     SpatialDataset getDataset();
@@ -143,7 +143,7 @@ public interface Layer {
 	 * Style is returned, it is used. If a File is returned, it is opened and
 	 * assumed to contain SLD contents. If a String is returned, it is assumed
 	 * to contain SLD contents.
-	 * 
+	 *
 	 * @return Style, String, File or null
 	 */
 	Object getStyle();

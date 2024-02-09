@@ -30,6 +30,7 @@ Over the years there have been various efforts to make the library more appropri
 * 0.25: Addition of GeoHash indexes for point layers 
 * 0.26: Support for native Neo4j point types
 * 0.27: Major port to Neo4j 4.x which deprecated many of the Neo4j API's the library depended on
+* 0.29: Port to Neo4j 5.13
 
 However, despite all these improvements, the core of the library only exposes the rich capabilities of JTS and GeoTools
 if used in an embedded environment.
@@ -359,7 +360,7 @@ The Neo4j Spatial Plugin is available for inclusion in the server version of Neo
   * [v0.27.2 for Neo4j 4.2.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.27.2-neo4j-4.2.3/neo4j-spatial-0.27.2-neo4j-4.2.3-server-plugin.jar?raw=true)
   * [v0.28.0 for Neo4j 4.2.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.28.0-neo4j-4.2.3/neo4j-spatial-0.28.0-neo4j-4.2.3-server-plugin.jar?raw=true)
   * [v0.28.1 for Neo4j 4.3.10](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.28.1-neo4j-4.3.10/neo4j-spatial-0.28.1-neo4j-4.3.10-server-plugin.jar?raw=true)
-  * [v0.28.1 for Neo4j 4.4.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.28.1-neo4j-4.4.3/neo4j-spatial-0.28.1-neo4j-4.4.3-server-plugin.jar?raw=true)
+  * [v0.28.1 for Neo4j 4.4.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.30.0-neo4j-5.13.0/neo4j-spatial-0.30.0-neo4j-5.13.0-server-plugin.jar?raw=true)
 
 For versions up to 0.15-neo4j-2.3.4:
 
@@ -476,7 +477,7 @@ Add the following repositories and dependency to your project's pom.xml:
     <dependency>
         <groupId>org.neo4j</groupId>
         <artifactId>neo4j-spatial</artifactId>
-        <version>0.28.1-neo4j-4.4.3</version>
+        <version>0.30.0-neo4j-5.13.0</version>
     </dependency>
 ~~~
 

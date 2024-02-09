@@ -45,7 +45,7 @@ public class GeoPipeFlow implements SpatialRecord {
     }
 
     public GeoPipeFlow(SpatialDatabaseRecord record) {
-        this.id = Long.toString(record.getNodeId());
+        this.id = record.getNodeId();
         this.records.add(record);
         this.geometry = record.getGeometry();
     }

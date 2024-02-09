@@ -28,15 +28,15 @@ import org.geotools.data.neo4j.StyledImageExporter;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.map.MapContent;
 import org.geotools.renderer.lite.StreamingRenderer;
-import org.geotools.styling.Style;
+import org.geotools.api.style.Style;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.GeometryEncoder;
 import org.neo4j.gis.spatial.SpatialTopologyUtils;
 import org.neo4j.gis.spatial.Utilities;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
-import org.opengis.feature.simple.SimpleFeatureType;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.geotools.api.feature.simple.SimpleFeatureType;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 
 import javax.imageio.ImageIO;
 import java.awt.*;

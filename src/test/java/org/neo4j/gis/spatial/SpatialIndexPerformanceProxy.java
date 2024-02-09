@@ -90,7 +90,7 @@ public class SpatialIndexPerformanceProxy implements LayerIndexReader {
     }
 
     @Override
-    public boolean isNodeIndexed(Transaction tx, Long nodeId) {
+    public boolean isNodeIndexed(Transaction tx, String nodeId) {
         long start = System.currentTimeMillis();
         boolean result = spatialIndex.isNodeIndexed(tx, nodeId);
         long stop = System.currentTimeMillis();

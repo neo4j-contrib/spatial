@@ -72,7 +72,7 @@ public class LayerIndexReaderWrapper implements LayerIndexReader {
 	}
 
 	@Override
-	public boolean isNodeIndexed(Transaction tx, Long nodeId) {
+    public boolean isNodeIndexed(Transaction tx, String nodeId) {
 		return index.isNodeIndexed(tx, nodeId);
 	}
 

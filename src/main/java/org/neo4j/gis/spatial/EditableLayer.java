@@ -20,7 +20,7 @@
 package org.neo4j.gis.spatial;
 
 import org.neo4j.graphdb.Transaction;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 
 import org.locationtech.jts.geom.Geometry;
 
@@ -49,15 +49,15 @@ public interface EditableLayer extends Layer {
      * Delete the geometry identified by the passed node id. This might be as simple as deleting the
      * geometry node, or it might require extracting and deleting an entire sub-graph.
      */
-    void delete(Transaction tx, long geometryNodeId);
+    void delete(Transaction tx, String geometryNodeId);
 
     /**
      * Update the geometry identified by the passed node id. This might be as simple as changing
      * node properties or it might require editing an entire sub-graph.
      */
-    void update(Transaction tx, long geometryNodeId, Geometry geometry);
+    void update(Transaction tx, String geometryNodeId, Geometry geometry);
 
 	void setCoordinateReferenceSystem(Transaction tx, CoordinateReferenceSystem coordinateReferenceSystem);
 
-    void removeFromIndex(Transaction tx, long geomNodeId);
+    void removeFromIndex(Transaction tx, String geomNodeId);
 }

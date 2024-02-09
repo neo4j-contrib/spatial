@@ -39,7 +39,7 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 
 import java.io.File;
 import java.io.IOException;
@@ -134,7 +134,7 @@ public class OsmAnalysisTest extends TestOSMImportBase {
 
                 User user = userIndex.get(name);
                 if (user == null) {
-                    user = new User(userNode.getId(), name);
+                    user = new User(userNode.getElementId(), name);
                     userIndex.put(name, user);
                 }
                 user.addChangeset(cNode, timestamp);
@@ -331,7 +331,7 @@ public class OsmAnalysisTest extends TestOSMImportBase {
         }
 
         for (User user : users) {
-            Node userNode = tx.getNodeById(user.id);
+            Node userNode = tx.getNodeByElementId(user.id);
             System.out.println("analyzing user: " + userNode.getProperty("name"));
             for (Relationship r : userNode.getRelationships(Direction.INCOMING, OSMRelation.USER)) {
                 Node changeset = r.getStartNode();
@@ -392,13 +392,13 @@ public class OsmAnalysisTest extends TestOSMImportBase {
             Node userNode = r.getEndNode();
             String name = (String) userNode.getProperty("name");
 
-            User user = new User(userNode.getId(), name);
+            User user = new User(userNode.getElementId(), name);
             userIndex.put(name, user);
 
             for (Relationship ur : userNode.getRelationships(Direction.INCOMING, OSMRelation.USER)) {
                 Node node = ur.getStartNode();
                 if (node.hasProperty("changeset")) {
-                    user.changesets.add(node.getId());
+                    user.changesets.add(node.getElementId());
                 }
             }
         }
@@ -408,19 +408,19 @@ public class OsmAnalysisTest extends TestOSMImportBase {
 
     static class User implements Comparable<User> {
 
-        long id;
+        String id;
         int internalId;
         String name;
-        List<Long> changesets = new ArrayList<>();
+        List<String> changesets = new ArrayList<>();
         long latestTimestamp = 0L;
 
-        public User(long id, String name) {
+        public User(String  id, String name) {
             this.id = id;
             this.name = name;
         }
 
         public void addChangeset(Node cNode, long timestamp) {
-            changesets.add(cNode.getId());
+            changesets.add(cNode.getElementId());
             if (latestTimestamp < timestamp)
                 latestTimestamp = timestamp;
         }

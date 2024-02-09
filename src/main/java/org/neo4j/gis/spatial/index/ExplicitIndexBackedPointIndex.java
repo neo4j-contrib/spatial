@@ -19,6 +19,11 @@
  */
 package org.neo4j.gis.spatial.index;
 
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
+import java.util.stream.Stream;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.rtree.Envelope;
@@ -27,13 +32,12 @@ import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.TreeMonitor;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
-import org.neo4j.graphdb.*;
+import org.neo4j.graphdb.Label;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.NotFoundException;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.api.KernelTransaction;
-
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
 
 /**
  * 2D Point data can be indexed against a 1D backing index using a 2D->1D mapper.
@@ -91,14 +95,16 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
     }
 
     @Override
-    public void remove(Transaction tx, long geomNodeId, boolean deleteGeomNode, boolean throwExceptionIfNotFound) {
+    public void remove(Transaction tx, String geomNodeId, boolean deleteGeomNode, boolean throwExceptionIfNotFound) {
         try {
-            Node geomNode = tx.getNodeById(geomNodeId);
+            Node geomNode = tx.getNodeByElementId(geomNodeId);
             if (geomNode != null) {
                 index.remove(geomNode);
                 if (deleteGeomNode) {
-                    for (Relationship rel : geomNode.getRelationships()) {
-                        rel.delete();
+                    try (var relationships = geomNode.getRelationships()) {
+                        for (Relationship rel : relationships) {
+                            rel.delete();
+                        }
                     }
                     geomNode.delete();
                 }
@@ -114,7 +120,7 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
     public void removeAll(Transaction tx, boolean deleteGeomNodes, Listener monitor) {
         if (deleteGeomNodes) {
             for (Node node : getAllIndexedNodes(tx)) {
-                remove(tx, node.getId(), true, true);
+                remove(tx, node.getElementId(), true, true);
             }
         }
         index.delete(tx);
@@ -146,7 +152,7 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
     }
 
     @Override
-    public boolean isNodeIndexed(Transaction tx, Long nodeId) {
+    public boolean isNodeIndexed(Transaction tx, String nodeId) {
         return false;
     }
 
