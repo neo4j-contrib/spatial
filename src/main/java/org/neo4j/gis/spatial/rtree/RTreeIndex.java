@@ -27,6 +27,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
+
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.neo4j.gis.spatial.encoders.Configurable;
@@ -77,7 +79,8 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
     private int totalGeometryCount = 0;
     private boolean countSaved = false;
 
-    public void addMonitor(TreeMonitor monitor) {
+    @Override
+	public void addMonitor(TreeMonitor monitor) {
         this.monitor = monitor;
     }
 
@@ -109,7 +112,8 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
         configure(config);
     }
 
-    public String getConfiguration() {
+    @Override
+	public String getConfiguration() {
         HashMap<String, Object> config = new HashMap<>();
         config.put(KEY_SPLIT, this.splitMode);
         config.put(KEY_MAX_NODE_REFERENCES, this.maxNodeReferences);
@@ -117,7 +121,8 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
         return JSONObject.toJSONString(config);
     }
 
-    public void configure(Map<String, Object> config) {
+    @Override
+	public void configure(Map<String, Object> config) {
         for (String key : config.keySet()) {
             switch (key) {
                 case KEY_SPLIT:
@@ -219,7 +224,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
             }
             nodesToAdd.addAll(geomNodes);
             detachGeometryNodes(tx, false, getIndexRoot(tx), new NullListener());
-            deleteTreeBelow(tx, getIndexRoot(tx));
+            deleteTreeBelow(getIndexRoot(tx));
             buildRtreeFromScratch(tx, getIndexRoot(tx), decodeGeometryNodeEnvelopes(nodesToAdd), 0.7);
             countSaved = false;
             totalGeometryCount = nodesToAdd.size();
@@ -273,10 +278,9 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
         try (var relationships = rootNode.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD)) {
             if (relationships.iterator().hasNext()) {
                 return getHeight(relationships.iterator().next().getEndNode(), height + 1);
-            } else {
-                // Add one to account for the step to leaf nodes.
-                return height + 1; // todo should this really be +1 ?
             }
+			// Add one to account for the step to leaf nodes.
+			return height + 1; // todo should this really be +1 ?
         }
     }
 
@@ -299,13 +303,12 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
         List<NodeWithEnvelope> rootChildren = getIndexChildren(rootNode);
         if (depth == 1) {
             return rootChildren;
-        } else {
-            List<NodeWithEnvelope> result = new ArrayList<>(rootChildren.size() * 5);
-            for (NodeWithEnvelope child : rootChildren) {
-                result.addAll(getIndexChildren(child.node, depth - 1));
-            }
-            return result;
         }
+		List<NodeWithEnvelope> result = new ArrayList<>(rootChildren.size() * 5);
+		for (NodeWithEnvelope child : rootChildren) {
+		    result.addAll(getIndexChildren(child.node, depth - 1));
+		}
+		return result;
     }
 
     private List<NodeWithEnvelope> bulkInsertion(Transaction tx, Node rootNode, int rootNodeHeight, final List<NodeWithEnvelope> geomNodes, final double loadingFactor) {
@@ -490,10 +493,9 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
     private int expectedHeight(double loadingFactor, int size) {
         if (size == 1) {
             return 1;
-        } else {
-            final int targetLoading = (int) Math.floor(maxNodeReferences * loadingFactor);
-            return (int) Math.ceil(Math.log(size) / Math.log(targetLoading)); //exploit change of base formula
         }
+		final int targetLoading = (int) Math.floor(maxNodeReferences * loadingFactor);
+		return (int) Math.ceil(Math.log(size) / Math.log(targetLoading)); //exploit change of base formula
 
     }
 
@@ -561,7 +563,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
     // quick dirty way to partition a set into equal sized disjoint subsets
     // - TODO why not use list.sublist() without copying ?
 
-    private List<List<NodeWithEnvelope>> partitionList(List<NodeWithEnvelope> nodes, int numberOfPartitions) {
+    private static List<List<NodeWithEnvelope>> partitionList(List<NodeWithEnvelope> nodes, int numberOfPartitions) {
         int nodeCount = nodes.size();
         List<List<NodeWithEnvelope>> partitions = new ArrayList<>(numberOfPartitions);
 
@@ -633,13 +635,11 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 
                 indexNode.delete();
                 return deleteEmptyTreeNodes(parent, RTreeRelationshipTypes.RTREE_CHILD);
-            } else {
-                // root
-                return indexNode;
             }
-        } else {
-            return indexNode;
+			// root
+			return indexNode;
         }
+		return indexNode;
     }
 
     private void detachGeometryNodes(Transaction tx, final boolean deleteGeomNodes, Node indexRoot, final Listener monitor) {
@@ -822,9 +822,8 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
     private Envelope getChildNodeEnvelope(Node child, RelationshipType relType) {
         if (relType.name().equals(RTreeRelationshipTypes.RTREE_REFERENCE.name())) {
             return getLeafNodeEnvelope(child);
-        } else {
-            return getIndexNodeEnvelope(child);
         }
+		return getIndexNodeEnvelope(child);
     }
 
     /**
@@ -935,7 +934,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
         }
     }
 
-    private boolean nodeIsLeaf(Node node) {
+    private static boolean nodeIsLeaf(Node node) {
         return !node.hasRelationship(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD);
     }
 
@@ -1010,14 +1009,10 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
         return result;
     }
 
-    private int countChildren(Node indexNode, RelationshipType relationshipType) {
-        int counter = 0;
+    private static int countChildren(Node indexNode, RelationshipType relationshipType) {
         try (var relationships = indexNode.getRelationships(Direction.OUTGOING, relationshipType)) {
-            for (Relationship ignored : relationships) {
-                counter++;
-            }
+            return (int) StreamSupport.stream(relationships.spliterator(), false).count();
         }
-        return counter;
     }
 
     /**
@@ -1053,20 +1048,18 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
     private Node quadraticSplit(Transaction tx, Node indexNode) {
         if (nodeIsLeaf(indexNode)) {
             return quadraticSplit(tx, indexNode, RTreeRelationshipTypes.RTREE_REFERENCE);
-        } else {
-            return quadraticSplit(tx, indexNode, RTreeRelationshipTypes.RTREE_CHILD);
         }
+		return quadraticSplit(tx, indexNode, RTreeRelationshipTypes.RTREE_CHILD);
     }
 
     private Node greenesSplit(Transaction tx, Node indexNode) {
         if (nodeIsLeaf(indexNode)) {
             return greenesSplit(tx, indexNode, RTreeRelationshipTypes.RTREE_REFERENCE);
-        } else {
-            return greenesSplit(tx, indexNode, RTreeRelationshipTypes.RTREE_CHILD);
         }
+		return greenesSplit(tx, indexNode, RTreeRelationshipTypes.RTREE_CHILD);
     }
 
-    private NodeWithEnvelope[] mostDistantByDeadSpace(List<NodeWithEnvelope> entries) {
+    private static NodeWithEnvelope[] mostDistantByDeadSpace(List<NodeWithEnvelope> entries) {
         NodeWithEnvelope seed1 = entries.get(0);
         NodeWithEnvelope seed2 = entries.get(0);
         double worst = Double.NEGATIVE_INFINITY;
@@ -1085,7 +1078,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
         return new NodeWithEnvelope[]{seed1, seed2};
     }
 
-    private int findLongestDimension(List<NodeWithEnvelope> entries) {
+    private static int findLongestDimension(List<NodeWithEnvelope> entries) {
         if (entries.size() > 0) {
             Envelope env = new Envelope(entries.get(0).envelope);
             for (NodeWithEnvelope entry : entries) {
@@ -1101,9 +1094,8 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
                 }
             }
             return longestDimension;
-        } else {
-            return 0;
         }
+		return 0;
     }
 
     private List<NodeWithEnvelope> extractChildNodesWithEnvelopes(Node indexNode, RelationshipType relationshipType) {
@@ -1202,13 +1194,12 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 
             if (bestEntry == null) {
                 throw new RuntimeException("Should not be possible to fail to find a best entry during quadratic split");
-            } else {
-                // insert the best candidate entry in the best group
-                bestGroup.add(bestEntry);
-                bestGroupEnvelope.expandToInclude(bestEntry.envelope);
-
-                entries.remove(bestEntry);
             }
+			// insert the best candidate entry in the best group
+			bestGroup.add(bestEntry);
+			bestGroupEnvelope.expandToInclude(bestEntry.envelope);
+
+			entries.remove(bestEntry);
         }
 
         return reconnectTwoChildGroups(tx, indexNode, group1, group2, relationshipType);
@@ -1295,9 +1286,8 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
             || bbox.getMaxY() != old[3]) {
             setIndexNodeEnvelope(indexNode, bbox);
             return true;
-        } else {
-            return false;
         }
+		return false;
     }
 
     protected void setIndexNodeEnvelope(Node indexNode, Envelope bbox) {
@@ -1331,38 +1321,35 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
         return valueChanged;
     }
 
-    private boolean setMin(double[] parent, double[] child, int index) {
+    private static boolean setMin(double[] parent, double[] child, int index) {
         if (parent[index] > child[index]) {
             parent[index] = child[index];
             return true;
-        } else {
-            return false;
         }
+		return false;
     }
 
-    private boolean setMax(double[] parent, double[] child, int index) {
+    private static boolean setMax(double[] parent, double[] child, int index) {
         if (parent[index] < child[index]) {
             parent[index] = child[index];
             return true;
-        } else {
-            return false;
         }
+		return false;
     }
 
-    private Node getIndexNodeParent(Node indexNode) {
+    private static Node getIndexNodeParent(Node indexNode) {
         Relationship relationship = indexNode.getSingleRelationship(RTreeRelationshipTypes.RTREE_CHILD, Direction.INCOMING);
         if (relationship == null) {
             return null;
-        } else {
-            return relationship.getStartNode();
         }
+		return relationship.getStartNode();
     }
 
-    private double getArea(Envelope e) {
+    private static double getArea(Envelope e) {
         return e.getArea();
     }
 
-    private void deleteTreeBelow(Transaction ignored, Node rootNode) {
+    private void deleteTreeBelow(Node rootNode) {
         try (var relationships = rootNode.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD)) {
             for (Relationship relationship : relationships) {
                 deleteRecursivelySubtree(relationship.getEndNode(), relationship);
@@ -1410,7 +1397,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
         return root.getElementId().equals(getIndexRoot(tx).getElementId());
     }
 
-    private void deleteNode(Node node) {
+    private static void deleteNode(Node node) {
         try (var relationships = node.getRelationships()) {
             for (Relationship r : relationships) {
                 r.delete();
@@ -1435,11 +1422,13 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
     // Private classes
     private static class WarmUpVisitor implements SpatialIndexVisitor {
 
-        public boolean needsToVisit(Envelope indexNodeEnvelope) {
+        @Override
+		public boolean needsToVisit(Envelope indexNodeEnvelope) {
             return true;
         }
 
-        public void onIndexReference(Node geomNode) {
+        @Override
+		public void onIndexReference(Node geomNode) {
         }
     }
 
@@ -1456,12 +1445,14 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 
             Iterator<Node> geometryNodeIterator = null;
 
-            public boolean hasNext() {
+            @Override
+			public boolean hasNext() {
                 checkGeometryNodeIterator();
                 return geometryNodeIterator != null && geometryNodeIterator.hasNext();
             }
 
-            public Node next() {
+            @Override
+			public Node next() {
                 checkGeometryNodeIterator();
                 return geometryNodeIterator == null ? null : geometryNodeIterator.next();
             }
@@ -1479,7 +1470,8 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
                 }
             }
 
-            public void remove() {
+            @Override
+			public void remove() {
             }
         }
 
@@ -1487,7 +1479,8 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
             this.allIndexNodeIterator = allIndexNodes.iterator();
         }
 
-        public Iterator<Node> iterator() {
+        @Override
+		public Iterator<Node> iterator() {
             return new GeometryNodeIterator();
         }
     }

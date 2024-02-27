@@ -64,13 +64,12 @@ public class OrthodromicDistance extends AbstractGeoPipe {
         if (geometry instanceof Point) {
             Point point = (Point) geometry;
             return calculateDistance(reference, point.getCoordinate());
-        } else {
-            Geometry referencePoint = geometry.getFactory().createPoint(reference);
-            DistanceOp ops = new DistanceOp(referencePoint, geometry);
-            Coordinate[] nearest = ops.nearestPoints();
-            assert nearest.length == 2;
-            return calculateDistance(nearest[0], nearest[1]);
         }
+		Geometry referencePoint = geometry.getFactory().createPoint(reference);
+		DistanceOp ops = new DistanceOp(referencePoint, geometry);
+		Coordinate[] nearest = ops.nearestPoints();
+		assert nearest.length == 2;
+		return calculateDistance(nearest[0], nearest[1]);
     }
 
 	public static Envelope suggestSearchWindow(Coordinate reference, double maxDistanceInKm) {

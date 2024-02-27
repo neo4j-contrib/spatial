@@ -2,25 +2,25 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <properties>
-        <neo4j.version>5.13.0</neo4j.version>
-        <neo4j.java.version>17</neo4j.java.version>
+        <neo4j.version>5.17.0</neo4j.version>
+        <neo4j.java.version>21</neo4j.java.version>
         <skinGroupId>org.neo4j.maven.skins</skinGroupId>
         <skinArtifactId>default-skin</skinArtifactId>
         <skinVersion>2</skinVersion>
-        <geotools.version>30.0</geotools.version>
+        <geotools.version>30.1</geotools.version>
         <spatial.test.osm.version>20100819</spatial.test.osm.version>
         <spatial.test.shp.version>20100819</spatial.test.shp.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <bundle.namespace>org.neo4j.gis</bundle.namespace>
         <github.global.server>github</github.global.server>
-        <junit.version>5.10.0</junit.version>
-        <maven-surefire-plugin.version>3.2.1</maven-surefire-plugin.version>
+        <junit.version>5.10.2</junit.version>
+        <maven-surefire-plugin.version>3.2.2</maven-surefire-plugin.version>
     </properties>
 
     <modelVersion>4.0.0</modelVersion>
     <artifactId>neo4j-spatial</artifactId>
     <groupId>org.neo4j</groupId>
-    <version>0.30.0-neo4j-5.13.0</version>
+    <version>0.31.0-neo4j-5.17.0</version>
     <name>Neo4j - Spatial Components</name>
     <description>Spatial utilities and components for Neo4j</description>
     <url>http://components.neo4j.org/${project.artifactId}/${project.version}</url>
@@ -37,7 +37,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
+                <version>3.12.1</version>
                 <configuration>
                     <source>${neo4j.java.version}</source>
                     <target>${neo4j.java.version}</target>

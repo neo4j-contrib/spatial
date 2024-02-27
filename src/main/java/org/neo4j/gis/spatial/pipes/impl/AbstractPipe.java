@@ -30,18 +30,21 @@ public abstract class AbstractPipe<S, E> implements Pipe<S, E> {
         this.starts = starts;
     }
 
-    public void setStarts(final Iterator<S> starts) {
+    @Override
+	public void setStarts(final Iterator<S> starts) {
         if (starts instanceof Pipe)
             this.starts = starts;
         else
             this.starts = new LastElementIterator<>(starts);
     }
 
-    public void setStarts(final Iterable<S> starts) {
+    @Override
+	public void setStarts(final Iterable<S> starts) {
         this.setStarts(starts.iterator());
     }
 
-    public void reset() {
+    @Override
+	public void reset() {
         if (this.starts instanceof Pipe) {
             ((Pipe) this.starts).reset();
         }
@@ -53,7 +56,8 @@ public abstract class AbstractPipe<S, E> implements Pipe<S, E> {
         this.available = false;
     }
 
-    public List<E> getPath() {
+    @Override
+	public List<E> getPath() {
         final List<E> pathElements = getPathToHere();
         final int size = pathElements.size();
         // do not repeat filters as they dup the object
@@ -63,30 +67,30 @@ public abstract class AbstractPipe<S, E> implements Pipe<S, E> {
         return pathElements;
     }
 
-    public void remove() {
+    @Override
+	public void remove() {
         throw new UnsupportedOperationException();
     }
 
-    public E next() {
+    @Override
+	public E next() {
         if (this.available) {
             this.available = false;
             return (this.currentEnd = this.nextEnd);
-        } else {
-            return (this.currentEnd = this.processNextStart());
         }
+		return (this.currentEnd = this.processNextStart());
     }
 
-    public boolean hasNext() {
+    @Override
+	public boolean hasNext() {
         if (this.available)
             return true;
-        else {
-            try {
-                this.nextEnd = this.processNextStart();
-                return (this.available = true);
-            } catch (final NoSuchElementException e) {
-                return (this.available = false);
-            }
-        }
+		try {
+		    this.nextEnd = this.processNextStart();
+		    return (this.available = true);
+		} catch (final NoSuchElementException e) {
+		    return (this.available = false);
+		}
     }
 
     /**
@@ -95,11 +99,13 @@ public abstract class AbstractPipe<S, E> implements Pipe<S, E> {
      *
      * @return the pipe from the perspective of an iterator
      */
-    public Iterator<E> iterator() {
+    @Override
+	public Iterator<E> iterator() {
         return this;
     }
 
-    public String toString() {
+    @Override
+	public String toString() {
         return getClass().getSimpleName();
     }
 

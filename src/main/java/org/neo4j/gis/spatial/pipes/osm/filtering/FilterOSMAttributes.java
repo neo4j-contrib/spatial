@@ -51,8 +51,7 @@ public class FilterOSMAttributes extends AbstractGeoPipe {
 		if (tagNode.hasProperty(key) 
 				&& comparison.compare(tagNode.getProperty(key), value)) {
 			return flow;
-		} else {
-			return null;
 		}
+		return null;
 	}
 }

@@ -114,8 +114,7 @@ public class ProgressLoggingListener implements Listener {
     private String percText() {
         if (totalUnits > 0) {
             return String.format(Locale.ENGLISH,"%.2f", 100.0 * workedSoFar / totalUnits);
-        } else {
-            return "NaN";
         }
+		return "NaN";
     }
 }

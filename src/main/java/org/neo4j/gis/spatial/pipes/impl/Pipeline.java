@@ -78,19 +78,22 @@ public class Pipeline<S, E> implements Pipe<S, E> {
         this.setPipes(this.pipes);
     }
 
-    public void setStarts(final Iterator<S> starts) {
+    @Override
+	public void setStarts(final Iterator<S> starts) {
         this.starts = starts;
         this.startPipe.setStarts(starts);
     }
 
-    public void setStarts(final Iterable<S> starts) {
+    @Override
+	public void setStarts(final Iterable<S> starts) {
         this.setStarts(starts.iterator());
     }
 
     /**
      * An unsupported operation that throws an UnsupportedOperationException.
      */
-    public void remove() {
+    @Override
+	public void remove() {
         throw new UnsupportedOperationException();
     }
 
@@ -99,7 +102,8 @@ public class Pipeline<S, E> implements Pipe<S, E> {
      *
      * @return true if an object can be next()'d out of the pipeline
      */
-    public boolean hasNext() {
+    @Override
+	public boolean hasNext() {
         return this.endPipe.hasNext();
     }
 
@@ -109,11 +113,13 @@ public class Pipeline<S, E> implements Pipe<S, E> {
      *
      * @return the next emitted object
      */
-    public E next() {
+    @Override
+	public E next() {
         return this.endPipe.next();
     }
 
-    public List getPath() {
+    @Override
+	public List getPath() {
         return this.endPipe.getPath();
     }
 
@@ -126,7 +132,8 @@ public class Pipeline<S, E> implements Pipe<S, E> {
         return this.pipes.size();
     }
 
-    public void reset() {
+    @Override
+	public void reset() {
         this.startPipe.reset(); // Clear incoming state to avoid bug in Neo4j 4.3 with leaked RelationshipTraversalCursor
         this.endPipe.reset();
     }
@@ -136,11 +143,13 @@ public class Pipeline<S, E> implements Pipe<S, E> {
      *
      * @return returns the iterator representation of this pipeline
      */
-    public Iterator<E> iterator() {
+    @Override
+	public Iterator<E> iterator() {
         return this;
     }
 
-    public String toString() {
+    @Override
+	public String toString() {
         return this.pipes.toString();
     }
 
@@ -160,7 +169,8 @@ public class Pipeline<S, E> implements Pipe<S, E> {
         return this.pipes.get(index);
     }
 
-    public boolean equals(final Object object) {
+    @Override
+	public boolean equals(final Object object) {
         return (object instanceof Pipeline) && areEqual(this, (Pipeline) object);
     }
 

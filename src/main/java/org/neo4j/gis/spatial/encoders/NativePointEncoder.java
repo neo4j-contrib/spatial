@@ -66,9 +66,8 @@ public class NativePointEncoder extends AbstractGeometryEncoder implements Confi
         double[] coordinate = point.getCoordinate().getCoordinate();
         if (crs.dimensions() == 3) {
             return getGeometryFactory().createPoint(new Coordinate(coordinate[0], coordinate[1], coordinate[2]));
-        } else {
-            return getGeometryFactory().createPoint(new Coordinate(coordinate[0], coordinate[1]));
         }
+		return getGeometryFactory().createPoint(new Coordinate(coordinate[0], coordinate[1]));
     }
 
     @Override
