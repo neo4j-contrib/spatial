@@ -2,8 +2,8 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <properties>
-        <neo4j.version>5.17.0</neo4j.version>
-        <neo4j.java.version>21</neo4j.java.version>
+        <neo4j.version>5.13.0</neo4j.version>
+        <neo4j.java.version>17</neo4j.java.version>
         <skinGroupId>org.neo4j.maven.skins</skinGroupId>
         <skinArtifactId>default-skin</skinArtifactId>
         <skinVersion>2</skinVersion>
@@ -20,7 +20,7 @@
     <modelVersion>4.0.0</modelVersion>
     <artifactId>neo4j-spatial</artifactId>
     <groupId>org.neo4j</groupId>
-    <version>0.31.0-neo4j-5.17.0</version>
+    <version>0.30.0-neo4j-5.13.0</version>
     <name>Neo4j - Spatial Components</name>
     <description>Spatial utilities and components for Neo4j</description>
     <url>http://components.neo4j.org/${project.artifactId}/${project.version}</url>
