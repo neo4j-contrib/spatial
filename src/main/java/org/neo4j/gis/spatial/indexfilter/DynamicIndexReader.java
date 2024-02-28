@@ -79,7 +79,7 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 		this.query = (JSONObject) JSONValue.parse(query);
 	}
 
-	private boolean queryIndexNode(Envelope indexNodeEnvelope) {
+	private static boolean queryIndexNode(Envelope indexNodeEnvelope) {
 		// TODO: Support making the query on each index node for performance
 		return true;
 	}
@@ -112,15 +112,13 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 				Node node = rel.getOtherNode(source);
 				step = (JSONObject) step.get("step");
 				return queryNodeProperties(node, properties) && stepAndQuery(node, step);
-			} else {
-				return false;
 			}
-		} else {
-			return true;
+			return false;
 		}
+		return true;
 	}
 
-	private boolean queryNodeProperties(Node node, JSONObject properties) {
+	private static boolean queryNodeProperties(Node node, JSONObject properties) {
 		if (properties != null) {
 			if (properties.containsKey("geometry")) {
 				System.out.println("Unexpected 'geometry' in query string");

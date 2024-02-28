@@ -44,7 +44,6 @@ import org.neo4j.graphdb.Transaction;
 import org.geotools.api.feature.simple.SimpleFeature;
 import org.geotools.api.feature.simple.SimpleFeatureType;
 
-import java.io.IOException;
 import java.util.*;
 
 public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
@@ -787,7 +786,7 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
         };
     }
 
-    public FeatureCollection<SimpleFeatureType, SimpleFeature> toFeatureCollection(final Transaction tx) throws IOException {
+    public FeatureCollection<SimpleFeatureType, SimpleFeature> toFeatureCollection(final Transaction tx) {
         return toFeatureCollection(tx, Neo4jFeatureBuilder.getTypeFromLayer(tx, layer));
     }
 

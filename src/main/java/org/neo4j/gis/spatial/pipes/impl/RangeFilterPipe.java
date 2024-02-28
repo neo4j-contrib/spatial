@@ -23,7 +23,8 @@ public class RangeFilterPipe<S> extends AbstractPipe<S, S> implements FilterPipe
         }
     }
 
-    protected S processNextStart() {
+    @Override
+	protected S processNextStart() {
         while (true) {
             final S s = this.starts.next();
             this.counter++;
@@ -36,11 +37,13 @@ public class RangeFilterPipe<S> extends AbstractPipe<S, S> implements FilterPipe
         }
     }
 
-    public String toString() {
+    @Override
+	public String toString() {
         return String.format("%s (%d, %d)",getClass().getSimpleName(),low,high);
     }
 
-    public void reset() {
+    @Override
+	public void reset() {
         this.counter = -1;
         super.reset();
     }

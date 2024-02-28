@@ -50,7 +50,6 @@ import org.neo4j.gis.spatial.utilities.ReferenceNodes;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 
 /**
@@ -169,11 +168,10 @@ public class SpatialDatabaseService implements Constants {
     public DynamicLayer asDynamicLayer(Transaction tx, Layer layer) {
         if (layer instanceof DynamicLayer) {
             return (DynamicLayer) layer;
-        } else {
-            Node node = layer.getLayerNode(tx);
-            node.setProperty(PROP_LAYER_CLASS, DynamicLayer.class.getCanonicalName());
-            return (DynamicLayer) LayerUtilities.makeLayerFromNode(tx, indexManager, node);
         }
+		Node node = layer.getLayerNode(tx);
+		node.setProperty(PROP_LAYER_CLASS, DynamicLayer.class.getCanonicalName());
+		return (DynamicLayer) LayerUtilities.makeLayerFromNode(tx, indexManager, node);
     }
 
     public DefaultLayer getOrCreateDefaultLayer(Transaction tx, String name) {
@@ -268,17 +266,6 @@ public class SpatialDatabaseService implements Constants {
             Layer layer = getLayer(tx, layerName);
             if (layer.getDataset().containsGeometryNode(tx, geometryNode)) {
                 return layer;
-            }
-        }
-        return null;
-    }
-
-    private Layer getLayerFromChild(Transaction tx, Node child, RelationshipType relType) {
-        Relationship indexRel = child.getSingleRelationship(relType, Direction.INCOMING);
-        if (indexRel != null) {
-            Node layerNode = indexRel.getStartNode();
-            if (layerNode.hasProperty(PROP_LAYER)) {
-                return LayerUtilities.makeLayerFromNode(tx, indexManager, layerNode);
             }
         }
         return null;

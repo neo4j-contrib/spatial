@@ -29,7 +29,8 @@ public class LayerHilbertPointIndex extends LayerSpaceFillingCurvePointIndex {
         return "hilbert";
     }
 
-    protected SpaceFillingCurve makeCurve(Envelope envelope, int maxLevels) {
+    @Override
+	protected SpaceFillingCurve makeCurve(Envelope envelope, int maxLevels) {
         return new HilbertSpaceFillingCurve2D(envelope, maxLevels);
     }
 }

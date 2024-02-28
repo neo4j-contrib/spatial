@@ -28,7 +28,6 @@ import org.neo4j.gis.spatial.SpatialRelationshipTypes;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.ResourceIterable;
 import org.neo4j.graphdb.Transaction;
 
 public class PropertyMappingManager {
@@ -86,12 +85,6 @@ public class PropertyMappingManager {
     private void addPropertyMapper(Transaction tx, PropertyMapper mapper) {
         getPropertyMappers(tx).put(mapper.to(), mapper);
         save(tx);
-    }
-
-    private PropertyMapper removePropertyMapper(Transaction tx, String to) {
-        PropertyMapper mapper = getPropertyMappers(tx).remove(to);
-        if (mapper != null) save(tx);
-        return mapper;
     }
 
     public PropertyMapper getPropertyMapper(Transaction tx, String to) {

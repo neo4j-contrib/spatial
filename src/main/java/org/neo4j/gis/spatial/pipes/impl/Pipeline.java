@@ -52,8 +52,8 @@ public class Pipeline<S, E> implements Pipe<S, E> {
      * @param pipes the ordered list of pipes to chain together into a pipeline
      */
     protected void setPipes(final List<Pipe> pipes) {
-        this.startPipe = (Pipe<S, ?>) pipes.get(0);
-        this.endPipe = (Pipe<?, E>) pipes.get(pipes.size() - 1);
+        this.startPipe = pipes.get(0);
+        this.endPipe = pipes.get(pipes.size() - 1);
         for (int i = 1; i < pipes.size(); i++) {
             pipes.get(i).setStarts((Iterator) pipes.get(i - 1));
         }

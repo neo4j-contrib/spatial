@@ -95,7 +95,6 @@ public class Utilities {
 		return null;
 	}
 
-	@SuppressWarnings("deprecation")
 	private static Envelope extractEnvelopeFromGeometryFilter(GeometryFilterImpl intersectFilter) {
 		if (intersectFilter.getExpression1() instanceof LiteralExpressionImpl) {
 			return extractEnvelopeFromLiteralExpression((LiteralExpressionImpl) intersectFilter.getExpression1());
@@ -109,9 +108,8 @@ public class Utilities {
 	private static Envelope extractEnvelopeFromLiteralExpression(LiteralExpressionImpl exp) {
 		if (exp.getValue() instanceof Geometry) {
 			return fromJtsToNeo4j(((Geometry) exp.getValue()).getEnvelopeInternal());
-		} else {
-			return null;
 		}
+		return null;
 	}
 
     private static Envelope extractEnvelopeFromBBox(BBOXImpl boundingBox) {

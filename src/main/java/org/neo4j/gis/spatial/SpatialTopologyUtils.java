@@ -50,11 +50,13 @@ public class SpatialTopologyUtils {
             this.distance = distance;
         }
 
-        public Point getKey() {
+        @Override
+		public Point getKey() {
             return point;
         }
 
-        public SpatialDatabaseRecord getValue() {
+        @Override
+		public SpatialDatabaseRecord getValue() {
             return record;
         }
 
@@ -62,15 +64,18 @@ public class SpatialTopologyUtils {
             return distance;
         }
 
-        public SpatialDatabaseRecord setValue(SpatialDatabaseRecord value) {
+        @Override
+		public SpatialDatabaseRecord setValue(SpatialDatabaseRecord value) {
             return this.record = value;
         }
 
-        public int compareTo(PointResult other) {
+        @Override
+		public int compareTo(PointResult other) {
             return Double.compare(this.distance, other.distance);
         }
 
-        public String toString() {
+        @Override
+		public String toString() {
             return "Point[" + point + "] distance[" + distance + "] record[" + record + "]";
         }
     }
@@ -82,17 +87,16 @@ public class SpatialTopologyUtils {
     public static List<PointResult> findClosestEdges(Transaction tx, Point point, Layer layer, double distance) {
         if (layer.getIndex().isEmpty(tx)) {
             return new ArrayList<>(0);
-        } else {
-            ReferencedEnvelope env = new ReferencedEnvelope(
-                    Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox(tx)),
-                    layer.getCoordinateReferenceSystem(tx));
-            if (distance <= 0.0)
-                distance = env.getSpan(0) / 100.0;
-            Envelope search = new Envelope(point.getCoordinate());
-            search.expandBy(distance);
-            GeometryFactory factory = layer.getGeometryFactory();
-            return findClosestEdges(tx, point, layer, factory.toGeometry(search));
         }
+		ReferencedEnvelope env = new ReferencedEnvelope(
+		        Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox(tx)),
+		        layer.getCoordinateReferenceSystem(tx));
+		if (distance <= 0.0)
+		    distance = env.getSpan(0) / 100.0;
+		Envelope search = new Envelope(point.getCoordinate());
+		search.expandBy(distance);
+		GeometryFactory factory = layer.getGeometryFactory();
+		return findClosestEdges(tx, point, layer, factory.toGeometry(search));
     }
 
     /**
@@ -281,9 +285,8 @@ public class SpatialTopologyUtils {
         int count = layer.getIndex().count(tx);
         if (count > limit) {
             return createEnvelopeForGeometryDensityEstimate(tx, layer, point, (double) limit / (double) count);
-        } else {
-            return Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox(tx));
         }
+		return Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox(tx));
     }
 
     /**

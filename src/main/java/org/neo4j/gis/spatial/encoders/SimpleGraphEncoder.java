@@ -48,7 +48,7 @@ public class SimpleGraphEncoder extends AbstractGeometryEncoder {
         return geometryFactory;
     }
 
-    private Node testIsNode(Entity container) {
+    private static Node testIsNode(Entity container) {
         if (!(container instanceof Node)) {
             throw new SpatialDatabaseException("Cannot decode non-node geometry: " + container);
         }
@@ -74,7 +74,8 @@ public class SimpleGraphEncoder extends AbstractGeometryEncoder {
         }
     }
 
-    public Geometry decodeGeometry(Entity container) {
+    @Override
+	public Geometry decodeGeometry(Entity container) {
         Node node = testIsNode(container);
         CoordinateList coordinates = new CoordinateList();
         TraversalDescription td = new MonoDirectionalTraversalDescription().depthFirst()

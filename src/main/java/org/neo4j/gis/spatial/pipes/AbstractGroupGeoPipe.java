@@ -34,7 +34,7 @@ public abstract class AbstractGroupGeoPipe extends AbstractGeoPipe {
 		if (groupIterator == null) {
 			try {
 				while (true) {
-					group((GeoPipeFlow) starts.next());
+					group(starts.next());
 				}
 			} catch (NoSuchElementException e) {
 		    }

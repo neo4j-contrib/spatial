@@ -37,15 +37,18 @@ public class Neo4jGeometry implements org.neo4j.graphdb.spatial.Geometry {
         this.crs = crs;
     }
 
-    public String getGeometryType() {
+    @Override
+	public String getGeometryType() {
         return this.geometryType;
     }
 
-    public List<org.neo4j.graphdb.spatial.Coordinate> getCoordinates() {
+    @Override
+	public List<org.neo4j.graphdb.spatial.Coordinate> getCoordinates() {
         return this.coordinates;
     }
 
-    public CRS getCRS() {
+    @Override
+	public CRS getCRS() {
         return this.crs;
     }
 
@@ -53,7 +56,8 @@ public class Neo4jGeometry implements org.neo4j.graphdb.spatial.Geometry {
         return coordinates.stream().map(c -> Arrays.stream(c.getCoordinate()).mapToObj(Double::toString).collect(Collectors.joining(", "))).collect(Collectors.joining(", "));
     }
 
-    public String toString() {
+    @Override
+	public String toString() {
         return geometryType + "(" + coordinateString(coordinates) + ")[" + crs + "]";
     }
 }

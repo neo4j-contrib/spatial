@@ -70,7 +70,8 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
      * @deprecated This method is of questionable value, since it is better to
      * query the geometry object directly, outside the result
      */
-    public int getType() {
+    @Deprecated
+	public int getType() {
         //TODO: Get the type from the geometryEncoder
         return SpatialDatabaseService.convertJtsClassToGeometryType(getGeometry().getClass());
     }
@@ -119,7 +120,8 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
         return values;
     }
 
-    public Map<String, Object> getProperties(Transaction tx) {
+    @Override
+	public Map<String, Object> getProperties(Transaction tx) {
         Map<String, Object> result = new HashMap<>();
 
         String[] names = getPropertyNames(tx);
@@ -174,7 +176,7 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 
     // Private methods
 
-    private void checkIsNotReservedProperty(String name) {
+    private static void checkIsNotReservedProperty(String name) {
         for (String property : RESERVED_PROPS) {
             if (property.equals(name)) {
                 throw new SpatialDatabaseException("Updating not allowed for Reserved Property: " + name);

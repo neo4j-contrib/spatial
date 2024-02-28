@@ -48,7 +48,6 @@ import java.util.Iterator;
 import java.util.List;
 
 import static org.neo4j.internal.helpers.collection.Iterators.emptyResourceIterator;
-import static org.neo4j.kernel.api.ResourceTracker.EMPTY_RESOURCE_TRACKER;
 
 public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBackedPointIndex<Long> {
 
@@ -81,16 +80,16 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
 
     protected abstract SpaceFillingCurve makeCurve(Envelope envelope, int maxLevels);
 
-    private double getMin(CoordinateSystemAxis axis) {
+    private static double getMin(CoordinateSystemAxis axis) {
         double min = axis.getMinimumValue();
         if (Double.isInfinite(min)) return 0.0;
-        else return min;
+		return min;
     }
 
-    private double getMax(CoordinateSystemAxis axis) {
+    private static double getMax(CoordinateSystemAxis axis) {
         double max = axis.getMaximumValue();
         if (Double.isInfinite(max)) return 1.0;
-        else return max;
+		return max;
     }
 
     @Override
@@ -101,13 +100,13 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
         return getCurve(tx).derivedValueFor(new double[]{point.getX(), point.getY()});
     }
 
-    protected Neo4jIndexSearcher searcherFor(Transaction tx, SearchFilter filter) {
+    @Override
+	protected Neo4jIndexSearcher searcherFor(Transaction tx, SearchFilter filter) {
         if (filter instanceof AbstractSearchEnvelopeIntersection) {
             org.neo4j.gis.spatial.rtree.Envelope referenceEnvelope = ((AbstractSearchEnvelopeIntersection) filter).getReferenceEnvelope();
             return new RangeSearcher(getCurve(tx).getTilesIntersectingEnvelope(referenceEnvelope.getMin(), referenceEnvelope.getMax(), new StandardConfiguration()));
-        } else {
-            throw new UnsupportedOperationException("Hilbert Index only supports searches based on AbstractSearchEnvelopeIntersection, not " + filter.getClass().getCanonicalName());
         }
+		throw new UnsupportedOperationException("Hilbert Index only supports searches based on AbstractSearchEnvelopeIntersection, not " + filter.getClass().getCanonicalName());
     }
     public static class RangeSearcher implements Neo4jIndexSearcher {
         private final List<SpaceFillingCurve.LongRange> tiles;
@@ -116,7 +115,8 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
             this.tiles = tiles;
         }
 
-        public Iterator<Node> search(KernelTransaction ktx, Label label, String propertyKey) {
+        @Override
+		public Iterator<Node> search(KernelTransaction ktx, Label label, String propertyKey) {
             int labelId = ktx.tokenRead().nodeLabel(label.name());
             int propId = ktx.tokenRead().propertyKey(propertyKey);
             ArrayList<Iterator<Node>> results = new ArrayList<>();
@@ -127,7 +127,7 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
             return Iterators.concat(results.iterator());
         }
 
-        private ResourceIterator<Node> nodesByLabelAndProperty(KernelTransaction transaction, int labelId, PropertyIndexQuery query) {
+        private static ResourceIterator<Node> nodesByLabelAndProperty(KernelTransaction transaction, int labelId, PropertyIndexQuery query) {
             Read read = transaction.dataRead();
 
             if (query.propertyKeyId() == TokenRead.NO_TOKEN || labelId == TokenRead.NO_TOKEN) {

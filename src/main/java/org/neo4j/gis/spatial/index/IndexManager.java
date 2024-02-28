@@ -79,24 +79,22 @@ public class IndexManager {
         Thread exists = findThread(name);
         if (exists != null) {
             throw new IllegalStateException("Already have thread: " + exists.getName());
-        } else {
-            IndexMaker indexMaker = new IndexMaker(indexName, label, propertyKey);
-            Thread indexMakerThread = new Thread(indexMaker, name);
-            if (waitFor) {
-                indexMakerThread.start();
-                try {
-                    indexMakerThread.join();
-                    if (indexMaker.e != null) {
-                        throw new RuntimeException("Failed to make index " + indexMaker.description(), indexMaker.e);
-                    }
-                    return indexMaker.index;
-                } catch (InterruptedException e) {
-                    throw new RuntimeException("Failed to make index " + indexMaker.description(), e);
-                }
-            } else {
-                return null;
-            }
         }
+		IndexMaker indexMaker = new IndexMaker(indexName, label, propertyKey);
+		Thread indexMakerThread = new Thread(indexMaker, name);
+		if (waitFor) {
+		    indexMakerThread.start();
+		    try {
+		        indexMakerThread.join();
+		        if (indexMaker.e != null) {
+		            throw new RuntimeException("Failed to make index " + indexMaker.description(), indexMaker.e);
+		        }
+		        return indexMaker.index;
+		    } catch (InterruptedException e) {
+		        throw new RuntimeException("Failed to make index " + indexMaker.description(), e);
+		    }
+		}
+		return null;
     }
 
     public void deleteIndex(IndexDefinition index) {
@@ -116,7 +114,7 @@ public class IndexManager {
         waitForThreads("IndexRemover");
     }
 
-    private void waitForThreads(String prefix) {
+    private static void waitForThreads(String prefix) {
         Thread found;
         while ((found = findThread(prefix)) != null) {
             try {
@@ -127,7 +125,7 @@ public class IndexManager {
         }
     }
 
-    private Thread findThread(String prefix) {
+    private static Thread findThread(String prefix) {
         ThreadGroup rootGroup = Thread.currentThread().getThreadGroup();
         Thread found = findThread(rootGroup, prefix);
         if (found != null) {
@@ -146,7 +144,7 @@ public class IndexManager {
         return null;
     }
 
-    private Thread findThread(ThreadGroup group, String prefix) {
+    private static Thread findThread(ThreadGroup group, String prefix) {
         Thread[] threads = new Thread[group.activeCount()];
         while (group.enumerate(threads, true) == threads.length) {
             threads = new Thread[threads.length * 2];
@@ -207,9 +205,8 @@ public class IndexManager {
                     List<String> propertyKeys = (List<String>) anIndex.getPropertyKeys();
                     if (labels.size() == 1 && propertyKeys.size() == 1 && labels.get(0).equals(label) && propertyKeys.get(0).equals(propertyKey)) {
                         return true;
-                    } else {
-                        throw new IllegalStateException("Found index with matching name but different specification: " + anIndex);
                     }
+					throw new IllegalStateException("Found index with matching name but different specification: " + anIndex);
                 } catch (ClassCastException e) {
                     throw new RuntimeException("Neo4j API Changed - Failed to retrieve IndexDefinition for index " + description() + ": " + e.getMessage());
                 }
@@ -224,11 +221,8 @@ public class IndexManager {
 
     private class IndexRemover implements Runnable {
         private final IndexDefinition index;
-        private Exception e;
-
         private IndexRemover(IndexDefinition index) {
             this.index = index;
-            this.e = null;
         }
 
         @Override
@@ -243,7 +237,6 @@ public class IndexManager {
                     tx.commit();
                 }
             } catch (Exception e) {
-                this.e = e;
             }
         }
     }

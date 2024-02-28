@@ -102,41 +102,39 @@ public class DynamicLayer extends EditableLayerImpl {
     public DynamicLayerConfig addCQLDynamicLayerOnAttribute(Transaction tx, String key, String value, int gtype) {
         if (value == null) {
             return addLayerConfig(tx, "CQL:" + key, gtype, key + " IS NOT NULL AND " + makeGeometryCQL(gtype));
-        } else {
-            // TODO: Better escaping here
-            //return addLayerConfig("CQL:" + key + "-" + value, gtype, key + " = '" + value + "' AND " + makeGeometryCQL(gtype));
-            return addCQLDynamicLayerOnAttributes(tx, new String[]{key, value}, gtype);
         }
+		// TODO: Better escaping here
+		//return addLayerConfig("CQL:" + key + "-" + value, gtype, key + " = '" + value + "' AND " + makeGeometryCQL(gtype));
+		return addCQLDynamicLayerOnAttributes(tx, new String[]{key, value}, gtype);
     }
 
     public DynamicLayerConfig addCQLDynamicLayerOnAttributes(Transaction tx, String[] attributes, int gtype) {
         if (attributes == null) {
             return addCQLDynamicLayerOnGeometryType(tx, gtype);
-        } else {
-            StringBuilder name = new StringBuilder();
-            StringBuilder query = new StringBuilder();
-            if (gtype != GTYPE_GEOMETRY) {
-                query.append(makeGeometryCQL(gtype));
-            }
-            for (int i = 0; i < attributes.length; i += 2) {
-                String key = attributes[i];
-                if (name.length() > 0) {
-                    name.append("-");
-                }
-                if (query.length() > 0) {
-                    query.append(" AND ");
-                }
-                if (attributes.length > i + 1) {
-                    String value = attributes[i + 1];
-                    name.append(key).append("-").append(value);
-                    query.append(key).append(" = '").append(value).append("'");
-                } else {
-                    name.append(key);
-                    query.append(key).append(" IS NOT NULL");
-                }
-            }
-            return addLayerConfig(tx, "CQL:" + name.toString(), gtype, query.toString());
         }
+		StringBuilder name = new StringBuilder();
+		StringBuilder query = new StringBuilder();
+		if (gtype != GTYPE_GEOMETRY) {
+		    query.append(makeGeometryCQL(gtype));
+		}
+		for (int i = 0; i < attributes.length; i += 2) {
+		    String key = attributes[i];
+		    if (name.length() > 0) {
+		        name.append("-");
+		    }
+		    if (query.length() > 0) {
+		        query.append(" AND ");
+		    }
+		    if (attributes.length > i + 1) {
+		        String value = attributes[i + 1];
+		        name.append(key).append("-").append(value);
+		        query.append(key).append(" = '").append(value).append("'");
+		    } else {
+		        name.append(key);
+		        query.append(key).append(" IS NOT NULL");
+		    }
+		}
+		return addLayerConfig(tx, "CQL:" + name.toString(), gtype, query.toString());
     }
 
     public DynamicLayerConfig addLayerConfig(Transaction tx, String name, int type, String query) {
@@ -156,14 +154,13 @@ public class DynamicLayer extends EditableLayerImpl {
                 if (config.getGeometryType(tx) != type || !config.getQuery().equals(query)) {
                     System.err.println("Existing LayerConfig with different geometry type or query: " + config);
                     return null;
-                } else {
-                    return config;
                 }
-            } else {
-                System.err.println("Existing Layer has same name as requested LayerConfig: " + layer.getName());
-                return null;
+				return config;
             }
-        } else synchronized (this) {
+			System.err.println("Existing Layer has same name as requested LayerConfig: " + layer.getName());
+			return null;
+        }
+		synchronized (this) {
             DynamicLayerConfig config = new DynamicLayerConfig(tx, this, name, type, query);
             layers = null;    // force recalculation of layers cache
             return config;
@@ -191,14 +188,12 @@ public class DynamicLayer extends EditableLayerImpl {
                     config.setExtraPropertyNames(tx, names);
                 }
                 return config;
-            } else {
-                System.err.println("Existing Layer has same name as requested LayerConfig: " + layer.getName());
-                return null;
             }
-        } else {
-            System.err.println("No such layer: " + name);
-            return null;
+			System.err.println("Existing Layer has same name as requested LayerConfig: " + layer.getName());
+			return null;
         }
+		System.err.println("No such layer: " + name);
+		return null;
     }
 
     /**
