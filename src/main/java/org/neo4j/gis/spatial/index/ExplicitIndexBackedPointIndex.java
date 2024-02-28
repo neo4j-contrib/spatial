@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.stream.Stream;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.rtree.Envelope;
@@ -188,9 +187,8 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
                     next = node;
                     monitor.hit();
                     break;
-                } else {
-                    monitor.miss();
                 }
+				monitor.miss();
             }
         }
 
@@ -204,10 +202,9 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
             Node node = next;
             if (node == null) {
                 throw new NoSuchElementException(); // GeoPipes relies on this behaviour instead of hasNext()
-            } else {
-                prefetch();
-                return node;
             }
+			prefetch();
+			return node;
         }
     }
 

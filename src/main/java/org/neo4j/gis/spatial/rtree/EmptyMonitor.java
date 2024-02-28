@@ -34,7 +34,8 @@ public class EmptyMonitor implements TreeMonitor
     {
     }
 
-    public int getHeight()
+    @Override
+	public int getHeight()
     {
         return -1;
     }
@@ -95,6 +96,6 @@ public class EmptyMonitor implements TreeMonitor
 
     @Override
     public List<Node> getMatchedTreeNodes(int level) {
-        return new ArrayList();
+        return new ArrayList<>();
     }
 }

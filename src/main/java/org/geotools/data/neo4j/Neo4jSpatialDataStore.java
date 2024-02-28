@@ -167,9 +167,8 @@ public class Neo4jSpatialDataStore extends ContentDataStore implements Constants
         Neo4jSpatialFeatureSource source = new Neo4jSpatialFeatureSource(contentEntry, database, layer, buildFeatureType(contentEntry.getTypeName()), records, extraPropertyNames);
         if (layer instanceof EditableLayer) {
             return new Neo4jSpatialFeatureStore(contentEntry, database, (EditableLayer) layer, source);
-        } else {
-            return source;
         }
+		return source;
     }
 
     private CoordinateReferenceSystem getCRS(Transaction tx, Layer layer) {
@@ -187,7 +186,7 @@ public class Neo4jSpatialDataStore extends ContentDataStore implements Constants
             Layer layer = spatialDatabase.getLayer(tx, typeName);
             tx.commit();
             if (layer == null) return null;
-            else return layer.getStyle();
+			return layer.getStyle();
         }
     }
 
@@ -216,21 +215,5 @@ public class Neo4jSpatialDataStore extends ContentDataStore implements Constants
             styleIndex.put(typeName, result);
         }
         return result;
-    }
-
-    private EditableLayer getEditableLayer(String typeName) throws IOException {
-        try (Transaction tx = database.beginTx()) {
-            Layer layer = spatialDatabase.getLayer(tx, typeName);
-            if (layer == null) {
-                throw new IOException("Layer not found: " + typeName);
-            }
-
-            if (!(layer instanceof EditableLayer)) {
-                throw new IOException("Cannot create a FeatureWriter on a read-only layer: " + layer);
-            }
-            tx.commit();
-
-            return (EditableLayer) layer;
-        }
     }
 }

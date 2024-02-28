@@ -24,13 +24,13 @@ import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKBReader;
 import org.locationtech.jts.io.WKBWriter;
 import org.neo4j.gis.spatial.encoders.AbstractSinglePropertyEncoder;
-import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.Transaction;
 
-public class WKBGeometryEncoder extends AbstractSinglePropertyEncoder implements Configurable {
+public class WKBGeometryEncoder extends AbstractSinglePropertyEncoder {
 
-    public Geometry decodeGeometry(Entity container) {
+    @Override
+	public Geometry decodeGeometry(Entity container) {
         try {
             WKBReader reader = new WKBReader(layer.getGeometryFactory());
             return reader.read((byte[]) container.getProperty(geomProperty));

@@ -36,10 +36,9 @@ public class AbstractExtractGeoPipe extends AbstractGeoPipe {
         if (extractIterator != null) {
             if (extractIterator.hasNext()) {
                 return extractIterator.next();
-            } else {
-                extractIterator = null;
-                extracts.clear();
             }
+			extractIterator = null;
+			extracts.clear();
         }
 
         do {

@@ -20,7 +20,6 @@
 package org.neo4j.gis.spatial;
 
 import java.io.File;
-import java.io.PrintStream;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -120,9 +119,8 @@ public class DynamicLayerConfig implements Layer, Constants {
     public String[] getExtraPropertyNames(Transaction tx) {
         if (propertyNames != null && propertyNames.length > 0) {
             return propertyNames;
-        } else {
-            return parent.getExtraPropertyNames(tx);
         }
+		return parent.getExtraPropertyNames(tx);
     }
 
     private static class PropertyUsageSearch implements SearchFilter {
@@ -166,12 +164,6 @@ public class DynamicLayerConfig implements Layer, Constants {
 
         public int getNodeCount() {
             return nodeCount;
-        }
-
-        public void describeUsage(PrintStream out) {
-            for (String name : names.keySet()) {
-                out.println(name + "\t" + names.get(name));
-            }
         }
     }
 
@@ -224,17 +216,15 @@ public class DynamicLayerConfig implements Layer, Constants {
             if (query.startsWith("{")) {
                 // Make a standard JSON based dynamic layer
                 return new DynamicIndexReader((LayerTreeIndexReader) parent.indexReader, query);
-            } else {
-                // Make a CQL based dynamic layer
-                try {
-                    return new CQLIndexReader((LayerTreeIndexReader) parent.indexReader, this, query);
-                } catch (CQLException e) {
-                    throw new SpatialDatabaseException("Error while creating CQL based DynamicLayer", e);
-                }
             }
-        } else {
-            throw new SpatialDatabaseException("Cannot make a DynamicLayer from a non-LayerTreeIndexReader Layer");
+			// Make a CQL based dynamic layer
+			try {
+			    return new CQLIndexReader((LayerTreeIndexReader) parent.indexReader, this, query);
+			} catch (CQLException e) {
+			    throw new SpatialDatabaseException("Error while creating CQL based DynamicLayer", e);
+			}
         }
+		throw new SpatialDatabaseException("Cannot make a DynamicLayer from a non-LayerTreeIndexReader Layer");
     }
 
     @Override

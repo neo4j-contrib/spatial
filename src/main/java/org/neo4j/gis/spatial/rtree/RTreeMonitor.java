@@ -45,7 +45,8 @@ public class RTreeMonitor implements TreeMonitor {
         this.height = height;
     }
 
-    public int getHeight() {
+    @Override
+	public int getHeight() {
         return height;
     }
 

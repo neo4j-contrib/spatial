@@ -21,6 +21,7 @@ package org.geotools.data.neo4j;
 
 import org.geotools.api.data.DataStore;
 import org.geotools.api.data.DataStoreFactorySpi;
+import org.geotools.api.data.Parameter;
 import org.geotools.util.KVP;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
@@ -46,7 +47,7 @@ public class Neo4jSpatialDataStoreFactory implements DataStoreFactorySpi {
             "db", true);
 
     public static final Param DBTYPE = new Param("dbtype", String.class,
-            "must be 'neo4j'", true, "neo4j", new KVP(Param.LEVEL, "program"));
+            "must be 'neo4j'", true, "neo4j", new KVP(Parameter.LEVEL, "program"));
 
     /**
      * Creates a new instance of Neo4jSpatialDataStoreFactory

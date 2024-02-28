@@ -167,14 +167,17 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 			traverser = createTraverserInBackwardsCompatibleWay(traversalDescription, first).iterator();
 		}
 
+		@Override
 		public boolean hasNext() {
 			return traverser.hasNext();
 		}
 
+		@Override
 		public Node next() {
 			return traverser.next().endNode().getSingleRelationship(OSMRelation.NODE, Direction.OUTGOING).getEndNode();
 		}
 
+		@Override
 		public void remove() {
 		}
 
@@ -185,12 +188,14 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 		final NodeProxyIterator iterator = new NodeProxyIterator(firstNode);
 		return new Iterable<Node>() {
 
+			@Override
 			public Iterator<Node> iterator() {
 				return iterator;
 			}
 		};
 	}
 
+	@Override
 	public Geometry decodeGeometry(Entity container) {
 		Node geomNode = testIsNode(container);
 		try {
@@ -234,9 +239,8 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
             }
 			if (outer != null) {
 				return geomFactory.createPolygon(outer, inner.toArray(new LinearRing[inner.size()]));
-			} else {
-				return null;
 			}
+			return null;
 		case GTYPE_MULTIPOLYGON:
 			ArrayList<Polygon> polygons = new ArrayList<>();
             try(var relationships = osmNode.getRelationships(Direction.OUTGOING, OSMRelation.MEMBER)){
@@ -257,9 +261,8 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
             }
 			if (polygons.size() > 0) {
 				return geomFactory.createMultiPolygon(polygons.toArray(new Polygon[polygons.size()]));
-			} else {
-				return null;
 			}
+			return null;
 		default:
 			return null;
 		}
@@ -277,22 +280,20 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 			LineString line = (LineString) geometry;
 			if (line.getCoordinates().length < 3) {
 				return null;
-			} else {
-				Coordinate[] coords = line.getCoordinates();
-				if (!line.isClosed()) {
-					coords = closeCoords(coords);
-				}
-				LinearRing ring = geometry.getFactory().createLinearRing(coords);
-				if (ring.isValid()) {
-					return ring;
-				} else {
-					return getConvexHull(ring);
-				}
 			}
+			Coordinate[] coords = line.getCoordinates();
+			if (!line.isClosed()) {
+				coords = closeCoords(coords);
+			}
+			LinearRing ring = geometry.getFactory().createLinearRing(coords);
+			if (ring.isValid()) {
+				return ring;
+			}
+			return getConvexHull(ring);
 		} else if (geometry instanceof LinearRing) {
 			return (LinearRing) geometry;
 		} else if (geometry instanceof Polygon) {
-			return (LinearRing) ((Polygon) geometry).getExteriorRing();
+			return ((Polygon) geometry).getExteriorRing();
 		} else {
 			return getConvexHull(geometry);
 		}
@@ -304,7 +305,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	 * @param coords original array that is not closed
 	 * @return new array one point longer
 	 */
-	private Coordinate[] closeCoords(Coordinate[] coords) {
+	private static Coordinate[] closeCoords(Coordinate[] coords) {
 		Coordinate[] nc = new Coordinate[coords.length + 1];
 		System.arraycopy(coords, 0, nc, 0, coords.length);
 		nc[coords.length] = coords[0];
@@ -444,7 +445,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 		return way;
 	}
 
-	private Node makeOSMRelation(Geometry geometry, Node geomNode) {
+	private static Node makeOSMRelation(Geometry geometry, Node geomNode) {
 		relationId++;
 		throw new SpatialDatabaseException("Unimplemented: makeOSMRelation()");
 	}
@@ -516,6 +517,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	 * @param name attribute to check for existence of
 	 * @return true if node has the specified attribute
 	 */
+	@Override
 	public boolean hasAttribute(Node geomNode, String name) {
 		return getProperties(geomNode).hasProperty(name);
 	}
@@ -531,6 +533,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	 * @param name attribute to access
 	 * @return attribute value, or null
 	 */
+	@Override
 	public Object getAttribute(Node geomNode, String name) {
 		return getProperties(geomNode).getProperty(name);
 	}
@@ -543,6 +546,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 			this.name = name;
 		}
 
+		@Override
 		public String toString() {
 			return name;
 		}

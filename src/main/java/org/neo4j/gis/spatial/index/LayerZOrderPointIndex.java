@@ -29,7 +29,8 @@ public class LayerZOrderPointIndex extends LayerSpaceFillingCurvePointIndex {
         return "zorder";
     }
 
-    protected SpaceFillingCurve makeCurve(Envelope envelope, int maxLevels) {
+    @Override
+	protected SpaceFillingCurve makeCurve(Envelope envelope, int maxLevels) {
         return new ZOrderSpaceFillingCurve2D(envelope, maxLevels);
     }
 }

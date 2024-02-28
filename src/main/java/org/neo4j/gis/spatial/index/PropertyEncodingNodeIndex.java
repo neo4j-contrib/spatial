@@ -1,7 +1,6 @@
 package org.neo4j.gis.spatial.index;
 
 import java.util.Iterator;
-import java.util.stream.Stream;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;

@@ -120,15 +120,13 @@ public class ShapefileImporter implements Constants {
                 throw new IllegalArgumentException("Failed to access the shapefile at either '" + dataset + "' or '" + dataset + ".shp'", e);
             }
         }
-
-        ShapefileReader shpReader = new ShapefileReader(shpFiles, false, true, geomFactory);
-        try {
+        
+        try (ShapefileReader shpReader = new ShapefileReader(shpFiles, false, true, geomFactory)) {
             Class<? extends Geometry> geometryClass = JTSUtilities.findBestGeometryClass(shpReader.getHeader().getShapeType());
             int geometryType = SpatialDatabaseService.convertJtsClassToGeometryType(geometryClass);
 
-            // TODO ask charset to user?
-            DbaseFileReader dbfReader = new DbaseFileReader(shpFiles, true, charset);
-            try {
+            // TODO ask charset to user?           
+            try (DbaseFileReader dbfReader = new DbaseFileReader(shpFiles, true, charset)) {
                 DbaseFileHeader dbaseFileHeader = dbfReader.getHeader();
 
                 String[] fieldsName = new String[dbaseFileHeader.getNumFields() + 1];
@@ -212,19 +210,15 @@ public class ShapefileImporter implements Constants {
                 } finally {
                     monitor.done();
                 }
-            } finally {
-                dbfReader.close();
-            }
-        } finally {
-            shpReader.close();
-        }
+            } 
+        } 
 
         long stopTime = System.currentTimeMillis();
         log("info | elapsed time in seconds: " + (1.0 * (stopTime - startTime) / 1000));
         return added;
     }
 
-    private CoordinateReferenceSystem readCRS(ShpFiles shpFiles, ShapefileReader shpReader) {
+    private static CoordinateReferenceSystem readCRS(ShpFiles shpFiles, ShapefileReader shpReader) {
         try (PrjFileReader prjReader = new PrjFileReader(shpFiles.getReadChannel(ShpFileType.PRJ, shpReader))){
             return prjReader.getCoordinateReferenceSystem();
         } catch (IOException | FactoryException e) {
@@ -233,11 +227,11 @@ public class ShapefileImporter implements Constants {
         }
     }
 
-    private void log(String message) {
+    private static void log(String message) {
         System.out.println(message);
     }
 
-    private void log(String message, Exception e) {
+    private static void log(String message, Exception e) {
         System.out.println(message);
         e.printStackTrace();
     }

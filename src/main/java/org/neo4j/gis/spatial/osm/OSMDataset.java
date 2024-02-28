@@ -75,10 +75,9 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
         Relationship rel = layer.getLayerNode(tx).getSingleRelationship(SpatialRelationshipTypes.LAYERS, Direction.INCOMING);
         if (rel == null) {
             throw new SpatialDatabaseException("Layer '" + layer + "' does not have an associated dataset");
-        } else {
-            String datasetNodeId = rel.getStartNode().getElementId();
-            return new OSMDataset(layer, datasetNodeId);
         }
+		String datasetNodeId = rel.getStartNode().getElementId();
+		return new OSMDataset(layer, datasetNodeId);
     }
 
     public Iterable<Node> getAllUserNodes(Transaction tx) {
@@ -200,7 +199,8 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
             return node;
         }
 
-        public String toString() {
+        @Override
+		public String toString() {
             if (node.hasProperty("name")) {
                 return node.getProperty("name").toString();
             } else if (getGeometry() != null) {
@@ -226,22 +226,26 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
             return this;
         }
 
-        public Iterator<WayPoint> iterator() {
+        @Override
+		public Iterator<WayPoint> iterator() {
             if (wayPointNodeIterator == null || !wayPointNodeIterator.hasNext()) {
                 wayPointNodeIterator = getWayNodes().iterator();
             }
             return this;
         }
 
-        public boolean hasNext() {
+        @Override
+		public boolean hasNext() {
             return wayPointNodeIterator.hasNext();
         }
 
-        public WayPoint next() {
+        @Override
+		public WayPoint next() {
             return new WayPoint(wayPointNodeIterator.next());
         }
 
-        public void remove() {
+        @Override
+		public void remove() {
             throw new UnsupportedOperationException("Cannot modify way-point collection");
         }
 

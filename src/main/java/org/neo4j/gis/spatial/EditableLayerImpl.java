@@ -29,6 +29,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 	/**
 	 * Add a geometry to this layer.
 	 */
+	@Override
 	public SpatialDatabaseRecord add(Transaction tx, Geometry geometry) {
 		return add(tx, geometry, null, null);
 	}
@@ -77,6 +78,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 		return geomNode;
 	}
 
+	@Override
 	public String getSignature() {
 		return "Editable" + super.getSignature();
 	}

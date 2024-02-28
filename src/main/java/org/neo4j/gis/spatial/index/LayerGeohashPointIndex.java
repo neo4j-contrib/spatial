@@ -19,7 +19,6 @@
  */
 package org.neo4j.gis.spatial.index;
 
-import java.util.stream.Stream;
 import org.apache.lucene.util.BitUtil;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.Point;
@@ -28,7 +27,6 @@ import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.StringSearchMode;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.api.KernelTransaction;
@@ -57,7 +55,7 @@ public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String
         return geoTermToString(encoded);
     }
 
-    private String greatestCommonPrefix(String a, String b) {
+    private static String greatestCommonPrefix(String a, String b) {
         int minLength = Math.min(a.length(), b.length());
         for (int i = 0; i < minLength; i++) {
             if (a.charAt(i) != b.charAt(i)) {
@@ -67,15 +65,15 @@ public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String
         return a.substring(0, minLength);
     }
 
-    protected Neo4jIndexSearcher searcherFor(Transaction tx, SearchFilter filter) {
+    @Override
+	protected Neo4jIndexSearcher searcherFor(Transaction tx, SearchFilter filter) {
         if (filter instanceof AbstractSearchEnvelopeIntersection) {
             Envelope referenceEnvelope = ((AbstractSearchEnvelopeIntersection) filter).getReferenceEnvelope();
             String maxHash = geoTermToString(encode(referenceEnvelope.getMaxY(), referenceEnvelope.getMaxX()));
             String minHash = geoTermToString(encode(referenceEnvelope.getMinY(), referenceEnvelope.getMinX()));
             return new PrefixSearcher(greatestCommonPrefix(minHash, maxHash));
-        } else {
-            throw new UnsupportedOperationException("Geohash Index only supports searches based on AbstractSearchEnvelopeIntersection, not " + filter.getClass().getCanonicalName());
         }
+		throw new UnsupportedOperationException("Geohash Index only supports searches based on AbstractSearchEnvelopeIntersection, not " + filter.getClass().getCanonicalName());
     }
 
     public static class PrefixSearcher implements Neo4jIndexSearcher {
@@ -85,7 +83,8 @@ public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String
             this.prefix = prefix;
         }
 
-        public Iterator<Node> search(KernelTransaction ktx, Label label, String propertyKey) {
+        @Override
+		public Iterator<Node> search(KernelTransaction ktx, Label label, String propertyKey) {
             return ktx.internalTransaction().findNodes(label, propertyKey, prefix, StringSearchMode.PREFIX).stream().iterator();
         }
     }

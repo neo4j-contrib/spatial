@@ -49,7 +49,8 @@ public class OrderedEditableLayer extends EditableLayerImpl {
         GEOMETRIES, NEXT_GEOM
     }
 
-    protected Node addGeomNode(Transaction tx, Geometry geom, String[] fieldsName, Object[] fields) {
+    @Override
+	protected Node addGeomNode(Transaction tx, Geometry geom, String[] fieldsName, Object[] fields) {
         Node geomNode = super.addGeomNode(tx, geom, fieldsName, fields);
         Node layerNode = getLayerNode(tx);
         if (previousGeomNode == null) {
@@ -81,7 +82,8 @@ public class OrderedEditableLayer extends EditableLayerImpl {
      * @return iterable over geometry nodes in the dataset
      * @param tx
      */
-    public Iterable<Node> getAllGeometryNodes(Transaction tx) {
+    @Override
+	public Iterable<Node> getAllGeometryNodes(Transaction tx) {
         TraversalDescription td = new MonoDirectionalTraversalDescription()
                 .depthFirst()
                 .evaluator(Evaluators.excludeStartPosition())

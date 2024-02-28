@@ -120,10 +120,9 @@ public class OSMImporter implements Constants {
                 int num = stats.get(key);
                 stats.put(key, ++num);
                 return num;
-            } else {
-                stats.put(key, 1);
-                return 1;
             }
+			stats.put(key, 1);
+			return 1;
         }
 
         /**
@@ -138,12 +137,12 @@ public class OSMImporter implements Constants {
                 }
                 Collections.sort(tags);
                 return tags.toArray(new String[0]);
-            } else {
-                return new String[0];
             }
+			return new String[0];
         }
 
-        public String toString() {
+        @Override
+		public String toString() {
             return "TagStats[" + name + "]: " + asList(getTags());
         }
     }
@@ -335,7 +334,7 @@ public class OSMImporter implements Constants {
         return count;
     }
 
-    private List<Node> toList(Iterable<Node> iterable) {
+    private static List<Node> toList(Iterable<Node> iterable) {
         ArrayList<Node> list = new ArrayList<>();
         if (iterable != null) {
             for (Node e : iterable) {
@@ -491,7 +490,7 @@ public class OSMImporter implements Constants {
                     LogCounter found = nodeFindStats.get(type);
                     double rate = 0.0f;
                     if (found.totalTime > 0) {
-                        rate = (1000.0 * (float) found.count / (float) found.totalTime);
+                        rate = (1000.0 * found.count / found.totalTime);
                     }
                     System.out.println("\t" + type + ": \t" + found.count
                         + "/" + (found.totalTime / 1000)
@@ -517,7 +516,7 @@ public class OSMImporter implements Constants {
                 logTime = currentTime;
             }
             if (currentTime - logTime > 1432) {
-                System.out.println(new Date(currentTime) + ": Saving " + type + " " + count + " \t(" + (1000.0 * (float) count / (float) (currentTime - firstLogTime)) + " " + type + "/second)");
+                System.out.println(new Date(currentTime) + ": Saving " + type + " " + count + " \t(" + (1000.0 * (float) count / (currentTime - firstLogTime)) + " " + type + "/second)");
                 logTime = currentTime;
             }
         }
@@ -999,7 +998,8 @@ public class OSMImporter implements Constants {
             System.out.println("Finished populating way and relation indexes");
         }
 
-        protected void optimize() {
+        @Override
+		protected void optimize() {
             for (IndexDefinition index : new IndexDefinition[]{nodeIndex, wayIndex, relationIndex}) {
                 if (index != null) {
                     tx.schema().awaitIndexOnline(index, 30, TimeUnit.MINUTES);
@@ -1010,11 +1010,10 @@ public class OSMImporter implements Constants {
         private Label getLabelHashed(Label label) {
             if (hashedLabels.containsKey(label)) {
                 return hashedLabels.get(label);
-            } else {
-                Label hashed = Label.label(label.name() + "_" + layerHash);
-                hashedLabels.put(label, hashed);
-                return hashed;
             }
+			Label hashed = Label.label(label.name() + "_" + layerHash);
+			hashedLabels.put(label, hashed);
+			return hashed;
         }
 
         private Node findNodeByLabelProperty(Transaction tx, Label label, String propertyKey, Object value) {
@@ -1046,15 +1045,14 @@ public class OSMImporter implements Constants {
             return index;
         }
 
-        private IndexDefinition findIndex(Transaction tx, String indexName, Label label, String propertyKey) {
+        private static IndexDefinition findIndex(Transaction tx, String indexName, Label label, String propertyKey) {
             for (IndexDefinition index : tx.schema().getIndexes(label)) {
                 for (String prop : index.getPropertyKeys()) {
                     if (prop.equals(propertyKey)) {
                         if (index.getName().equals(indexName)) {
                             return index;
-                        } else {
-                            throw new IllegalStateException(String.format("Found pre-existing index '%s' for index '%s'", index.getName(), indexName));
                         }
+						throw new IllegalStateException(String.format("Found pre-existing index '%s' for index '%s'", index.getName(), indexName));
                     }
                 }
             }
@@ -1276,7 +1274,8 @@ public class OSMImporter implements Constants {
             return currentUserNode;
         }
 
-        public String toString() {
+        @Override
+		public String toString() {
             return "OSMGraphWriter: DatabaseService[" + graphDb + "]:txInterval[" + this.txInterval + "]";
         }
 
@@ -1319,7 +1318,8 @@ public class OSMImporter implements Constants {
             return (int) (100.0 * getProgress());
         }
 
-        public int read(char[] cbuf, int offset, int length)
+        @Override
+		public int read(char[] cbuf, int offset, int length)
             throws IOException {
             int read = super.read(cbuf, offset, length);
             if (read > 0) charsRead += read;

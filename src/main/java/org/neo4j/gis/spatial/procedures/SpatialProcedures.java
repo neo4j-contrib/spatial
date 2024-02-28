@@ -19,7 +19,6 @@
  */
 package org.neo4j.gis.spatial.procedures;
 
-import javax.annotation.Nullable;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.locationtech.jts.geom.*;
 import org.locationtech.jts.io.ParseException;
@@ -47,7 +46,6 @@ import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.internal.kernel.api.exceptions.ProcedureException;
 import org.neo4j.internal.kernel.api.procs.ProcedureSignature;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.api.KernelTransaction;
@@ -187,7 +185,7 @@ public class SpatialProcedures {
 
     @Procedure("spatial.procedures")
     @Description("Lists all spatial procedures with name and signature")
-    public Stream<NameResult> listProcedures() throws ProcedureException {
+    public Stream<NameResult> listProcedures() {
         GlobalProcedures procedures = ((GraphDatabaseAPI) db).getDependencyResolver().resolveDependency(GlobalProcedures.class);
         Stream.Builder<NameResult> builder = Stream.builder();
         for (ProcedureSignature proc : procedures.getCurrentView().getAllProcedures()) {
@@ -249,9 +247,8 @@ public class SpatialProcedures {
             return streamNode(sdb.createLayer(tx, name, SimplePointEncoder.class, SimplePointLayer.class,
                     sdb.resolveIndexClass(indexType), null,
                     selectCRS(crsName)).getLayerNode(tx));
-        } else {
-            throw new IllegalArgumentException("Cannot create existing layer: " + name);
         }
+		throw new IllegalArgumentException("Cannot create existing layer: " + name);
     }
 
     @Procedure(value="spatial.addPointLayerGeohash", mode=WRITE)
@@ -265,9 +262,8 @@ public class SpatialProcedures {
             return streamNode(sdb.createLayer(tx, name, SimplePointEncoder.class, SimplePointLayer.class,
                     LayerGeohashPointIndex.class, null,
                     selectCRS(crsName)).getLayerNode(tx));
-        } else {
-            throw new IllegalArgumentException("Cannot create existing layer: " + name);
         }
+		throw new IllegalArgumentException("Cannot create existing layer: " + name);
     }
 
     @Procedure(value="spatial.addPointLayerZOrder", mode=WRITE)
@@ -277,9 +273,8 @@ public class SpatialProcedures {
         Layer layer = sdb.getLayer(tx, name);
         if (layer == null) {
             return streamNode(sdb.createLayer(tx, name, SimplePointEncoder.class, SimplePointLayer.class, LayerZOrderPointIndex.class, null, DefaultGeographicCRS.WGS84).getLayerNode(tx));
-        } else {
-            throw new IllegalArgumentException("Cannot create existing layer: " + name);
         }
+		throw new IllegalArgumentException("Cannot create existing layer: " + name);
     }
 
     @Procedure(value="spatial.addPointLayerHilbert", mode=WRITE)
@@ -289,9 +284,8 @@ public class SpatialProcedures {
         Layer layer = sdb.getLayer(tx, name);
         if (layer == null) {
             return streamNode(sdb.createLayer(tx, name, SimplePointEncoder.class, SimplePointLayer.class, LayerHilbertPointIndex.class, null, DefaultGeographicCRS.WGS84).getLayerNode(tx));
-        } else {
-            throw new IllegalArgumentException("Cannot create existing layer: " + name);
         }
+		throw new IllegalArgumentException("Cannot create existing layer: " + name);
     }
 
     @Procedure(value="spatial.addPointLayerXY", mode=WRITE)
@@ -309,12 +303,10 @@ public class SpatialProcedures {
                 return streamNode(sdb.createLayer(tx, name, SimplePointEncoder.class, SimplePointLayer.class,
                         sdb.resolveIndexClass(indexType), sdb.makeEncoderConfig(xProperty, yProperty),
                         selectCRS(hintCRSName(crsName, yProperty))).getLayerNode(tx));
-            } else {
-                throw new IllegalArgumentException("Cannot create layer '" + name + "': Missing encoder config values: xProperty[" + xProperty + "], yProperty[" + yProperty + "]");
             }
-        } else {
-            throw new IllegalArgumentException("Cannot create existing layer: " + name);
+			throw new IllegalArgumentException("Cannot create layer '" + name + "': Missing encoder config values: xProperty[" + xProperty + "], yProperty[" + yProperty + "]");
         }
+		throw new IllegalArgumentException("Cannot create existing layer: " + name);
     }
 
     @Procedure(value="spatial.addPointLayerWithConfig", mode=WRITE)
@@ -331,12 +323,10 @@ public class SpatialProcedures {
                 return streamNode(sdb.createLayer(tx, name, SimplePointEncoder.class, SimplePointLayer.class,
                         sdb.resolveIndexClass(indexType), encoderConfig,
                         selectCRS(hintCRSName(crsName, encoderConfig))).getLayerNode(tx));
-            } else {
-                throw new IllegalArgumentException("Cannot create layer '" + name + "': invalid encoder config '" + encoderConfig + "'");
             }
-        } else {
-            throw new IllegalArgumentException("Cannot create existing layer: " + name);
+			throw new IllegalArgumentException("Cannot create layer '" + name + "': invalid encoder config '" + encoderConfig + "'");
         }
+		throw new IllegalArgumentException("Cannot create existing layer: " + name);
     }
 
     @Procedure(value="spatial.addNativePointLayer", mode=WRITE)
@@ -349,9 +339,8 @@ public class SpatialProcedures {
         Layer layer = sdb.getLayer(tx, name);
         if (layer == null) {
             return streamNode(sdb.createLayer(tx, name, NativePointEncoder.class, SimplePointLayer.class, sdb.resolveIndexClass(indexType), null, selectCRS(crsName)).getLayerNode(tx));
-        } else {
-            throw new IllegalArgumentException("Cannot create existing layer: " + name);
         }
+		throw new IllegalArgumentException("Cannot create existing layer: " + name);
     }
 
     @Procedure(value="spatial.addNativePointLayerGeohash", mode=WRITE)
@@ -363,9 +352,8 @@ public class SpatialProcedures {
         Layer layer = sdb.getLayer(tx, name);
         if (layer == null) {
             return streamNode(sdb.createLayer(tx, name, NativePointEncoder.class, SimplePointLayer.class, LayerGeohashPointIndex.class, null, selectCRS(crsName)).getLayerNode(tx));
-        } else {
-            throw new IllegalArgumentException("Cannot create existing layer: " + name);
         }
+		throw new IllegalArgumentException("Cannot create existing layer: " + name);
     }
 
     @Procedure(value="spatial.addNativePointLayerZOrder", mode=WRITE)
@@ -375,9 +363,8 @@ public class SpatialProcedures {
         Layer layer = sdb.getLayer(tx, name);
         if (layer == null) {
             return streamNode(sdb.createLayer(tx, name, NativePointEncoder.class, SimplePointLayer.class, LayerZOrderPointIndex.class, null, DefaultGeographicCRS.WGS84).getLayerNode(tx));
-        } else {
-            throw new IllegalArgumentException("Cannot create existing layer: " + name);
         }
+		throw new IllegalArgumentException("Cannot create existing layer: " + name);
     }
 
     @Procedure(value="spatial.addNativePointLayerHilbert", mode=WRITE)
@@ -387,9 +374,8 @@ public class SpatialProcedures {
         Layer layer = sdb.getLayer(tx, name);
         if (layer == null) {
             return streamNode(sdb.createLayer(tx, name, NativePointEncoder.class, SimplePointLayer.class, LayerHilbertPointIndex.class, null, DefaultGeographicCRS.WGS84).getLayerNode(tx));
-        } else {
-            throw new IllegalArgumentException("Cannot create existing layer: " + name);
         }
+		throw new IllegalArgumentException("Cannot create existing layer: " + name);
     }
 
     @Procedure(value="spatial.addNativePointLayerXY", mode=WRITE)
@@ -407,12 +393,10 @@ public class SpatialProcedures {
                 return streamNode(sdb.createLayer(tx, name, NativePointEncoder.class, SimplePointLayer.class,
                         sdb.resolveIndexClass(indexType), sdb.makeEncoderConfig(xProperty, yProperty),
                         selectCRS(hintCRSName(crsName, yProperty))).getLayerNode(tx));
-            } else {
-                throw new IllegalArgumentException("Cannot create layer '" + name + "': Missing encoder config values: xProperty[" + xProperty + "], yProperty[" + yProperty + "]");
             }
-        } else {
-            throw new IllegalArgumentException("Cannot create existing layer: " + name);
+			throw new IllegalArgumentException("Cannot create layer '" + name + "': Missing encoder config values: xProperty[" + xProperty + "], yProperty[" + yProperty + "]");
         }
+		throw new IllegalArgumentException("Cannot create existing layer: " + name);
     }
 
     @Procedure(value="spatial.addNativePointLayerWithConfig", mode=WRITE)
@@ -429,12 +413,10 @@ public class SpatialProcedures {
                 return streamNode(sdb.createLayer(tx, name, NativePointEncoder.class, SimplePointLayer.class,
                         sdb.resolveIndexClass(indexType), encoderConfig,
                         selectCRS(hintCRSName(crsName, encoderConfig))).getLayerNode(tx));
-            } else {
-                throw new IllegalArgumentException("Cannot create layer '" + name + "': invalid encoder config '" + encoderConfig + "'");
             }
-        } else {
-            throw new IllegalArgumentException("Cannot create existing layer: " + name);
+			throw new IllegalArgumentException("Cannot create layer '" + name + "': invalid encoder config '" + encoderConfig + "'");
         }
+		throw new IllegalArgumentException("Cannot create existing layer: " + name);
     }
 
     public static final String UNSET_CRS_NAME = "";
@@ -449,19 +431,18 @@ public class SpatialProcedures {
     public CoordinateReferenceSystem selectCRS(String name) {
         if (name == null) {
             return null;
-        } else {
-            switch (name.toLowerCase()) {
-                case WGS84_CRS_NAME:
-                    return org.geotools.referencing.crs.DefaultGeographicCRS.WGS84;
-                case UNSET_CRS_NAME:
-                    return null;
-                default:
-                    throw new IllegalArgumentException("Unsupported CRS name: " + name);
-            }
         }
+		switch (name.toLowerCase()) {
+		    case WGS84_CRS_NAME:
+		        return org.geotools.referencing.crs.DefaultGeographicCRS.WGS84;
+		    case UNSET_CRS_NAME:
+		        return null;
+		    default:
+		        throw new IllegalArgumentException("Unsupported CRS name: " + name);
+		}
     }
 
-    private String hintCRSName(String crsName, String hint) {
+    private static String hintCRSName(String crsName, String hint) {
         if (crsName.equals(UNSET_CRS_NAME) && hint.toLowerCase().contains("lat")) {
             crsName = WGS84_CRS_NAME;
         }
@@ -481,12 +462,10 @@ public class SpatialProcedures {
             Class layerClass = sdb.suggestLayerClassForEncoder(encoderClass);
             if (encoderClass != null) {
                 return streamNode(sdb.createLayer(tx, name, encoderClass, layerClass, null, encoderConfig).getLayerNode(tx));
-            } else {
-                throw new IllegalArgumentException("Cannot create layer '" + name + "': invalid encoder class '" + encoderClassName + "'");
             }
-        } else {
-            throw new IllegalArgumentException("Cannot create existing layer: " + name);
+			throw new IllegalArgumentException("Cannot create layer '" + name + "': invalid encoder class '" + encoderClassName + "'");
         }
+		throw new IllegalArgumentException("Cannot create existing layer: " + name);
     }
 
     @Procedure(value="spatial.addLayer", mode=WRITE)
@@ -501,19 +480,17 @@ public class SpatialProcedures {
             Map<String, String> knownTypes = sdb.getRegisteredLayerTypes();
             if (knownTypes.containsKey(type.toLowerCase())) {
                 return streamNode(sdb.getOrCreateRegisteredTypeLayer(tx, name, type, encoderConfig).getLayerNode(tx));
-            } else {
-                throw new IllegalArgumentException("Cannot create layer '" + name + "': unknown type '" + type + "' - supported types are " + knownTypes.toString());
             }
-        } else {
-            throw new IllegalArgumentException("Cannot create existing layer: " + name);
+			throw new IllegalArgumentException("Cannot create layer '" + name + "': unknown type '" + type + "' - supported types are " + knownTypes.toString());
         }
+		throw new IllegalArgumentException("Cannot create existing layer: " + name);
     }
 
-    private Stream<NodeResult> streamNode(Node node) {
+    private static Stream<NodeResult> streamNode(Node node) {
         return Stream.of(new NodeResult(node));
     }
 
-    private Stream<NodeIdResult> streamNode(String nodeId) {
+    private static Stream<NodeIdResult> streamNode(String nodeId) {
         return Stream.of(new NodeIdResult(nodeId));
     }
 
@@ -626,7 +603,7 @@ public class SpatialProcedures {
 
     @Procedure(value="spatial.addWKT", mode=WRITE)
     @Description("Adds the given WKT string to the layer, returns the created geometry node")
-    public Stream<NodeResult> addGeometryWKTToLayer(@Name("layerName") String name, @Name("geometry") String geometryWKT) throws ParseException {
+    public Stream<NodeResult> addGeometryWKTToLayer(@Name("layerName") String name, @Name("geometry") String geometryWKT) {
         EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
         WKTReader reader = new WKTReader(layer.getGeometryFactory());
         return streamNode(addGeometryWkt(layer, reader, geometryWKT));
@@ -634,7 +611,7 @@ public class SpatialProcedures {
 
     @Procedure(value="spatial.addWKTs", mode=WRITE)
     @Description("Adds the given WKT string list to the layer, returns the created geometry nodes")
-    public Stream<NodeResult> addGeometryWKTsToLayer(@Name("layerName") String name, @Name("geometry") List<String> geometryWKTs) throws ParseException {
+    public Stream<NodeResult> addGeometryWKTsToLayer(@Name("layerName") String name, @Name("geometry") List<String> geometryWKTs) {
         EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
         WKTReader reader = new WKTReader(layer.getGeometryFactory());
         return geometryWKTs.stream().map(geometryWKT -> addGeometryWkt(layer, reader, geometryWKT)).map(NodeResult::new);
@@ -675,9 +652,8 @@ public class SpatialProcedures {
         if (layer == null) {
             String layerName = shpPath.substring(shpPath.lastIndexOf(File.separator) + 1);
             return importer.importFile(shpPath, layerName);
-        } else {
-            return importer.importFile(shpPath, layer, Charset.defaultCharset());
         }
+		return importer.importFile(shpPath, layer, Charset.defaultCharset());
     }
 
     @Procedure(value="spatial.importOSMToLayer", mode=WRITE)
@@ -739,9 +715,8 @@ public class SpatialProcedures {
         long getResult() {
             if (e == null) {
                 return rc;
-            } else {
-                throw new RuntimeException("Failed to import " + osmPath + " to layer '" + layerName + "': " + e.getMessage(), e);
             }
+			throw new RuntimeException("Failed to import " + osmPath + " to layer '" + layerName + "': " + e.getMessage(), e);
         }
 
         @Override
@@ -867,7 +842,7 @@ public class SpatialProcedures {
                 .stream().map(GeoPipeFlow::getGeomNode).map(NodeResult::new);
     }
 
-    private Geometry toJTSGeometry(Layer layer, Object value) {
+    private static Geometry toJTSGeometry(Layer layer, Object value) {
         GeometryFactory factory = layer.getGeometryFactory();
         if (value instanceof org.neo4j.graphdb.spatial.Point) {
             org.neo4j.graphdb.spatial.Point point = (org.neo4j.graphdb.spatial.Point) value;
@@ -895,9 +870,8 @@ public class SpatialProcedures {
     private static org.neo4j.graphdb.spatial.Coordinate toNeo4jCoordinate(Coordinate coordinate) {
         if (coordinate.z == Coordinate.NULL_ORDINATE) {
             return new org.neo4j.graphdb.spatial.Coordinate(coordinate.x, coordinate.y);
-        } else {
-            return new org.neo4j.graphdb.spatial.Coordinate(coordinate.x, coordinate.y, coordinate.z);
         }
+		return new org.neo4j.graphdb.spatial.Coordinate(coordinate.x, coordinate.y, coordinate.z);
     }
 
     private static List<org.neo4j.graphdb.spatial.Coordinate> toNeo4jCoordinates(Coordinate[] coordinates) {
@@ -988,9 +962,8 @@ public class SpatialProcedures {
         if (geometry instanceof org.neo4j.graphdb.spatial.Point) {
             org.neo4j.graphdb.spatial.Point point = (org.neo4j.graphdb.spatial.Point) geometry;
             return map("type", geometry.getGeometryType(), "coordinate", point.getCoordinate().getCoordinate());
-        } else {
-            return map("type", geometry.getGeometryType(), "coordinates", toCoordinateArrayFromCoordinates(geometry.getCoordinates()));
         }
+		return map("type", geometry.getGeometryType(), "coordinates", toCoordinateArrayFromCoordinates(geometry.getCoordinates()));
     }
 
     private Map<String, Object> toPublic(Map incoming) {
@@ -1046,9 +1019,8 @@ public class SpatialProcedures {
         EditableLayer layer = (EditableLayer) spatial.getLayer(tx, name);
         if (layer != null) {
             return layer;
-        } else {
-            throw new IllegalArgumentException("No such layer '" + name + "'");
         }
+		throw new IllegalArgumentException("No such layer '" + name + "'");
     }
 
     private static void assertLayerDoesNotExists(Transaction tx, SpatialDatabaseService spatial, String name) {

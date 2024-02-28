@@ -19,6 +19,8 @@
  */
 package org.neo4j.gis.spatial.utilities;
 
+import java.lang.reflect.InvocationTargetException;
+
 import org.neo4j.gis.spatial.*;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.index.LayerIndexReader;
@@ -82,11 +84,11 @@ public class LayerUtilities implements Constants {
         } catch (Exception e) {
             throw new SpatialDatabaseException(e);
         }
-    }
-
-    private static Layer makeLayerInstance(Transaction tx, IndexManager indexManager, String name, Node layerNode, Class<? extends Layer> layerClass) throws InstantiationException, IllegalAccessException {
+    }    
+   
+    private static Layer makeLayerInstance(Transaction tx, IndexManager indexManager, String name, Node layerNode, Class<? extends Layer> layerClass) throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, NoSuchMethodException, SecurityException {
         if (layerClass == null) layerClass = Layer.class;
-        Layer layer = layerClass.newInstance();
+        Layer layer = layerClass.getDeclaredConstructor().newInstance();
         layer.initialize(tx, indexManager, name, layerNode);
         return layer;
     }

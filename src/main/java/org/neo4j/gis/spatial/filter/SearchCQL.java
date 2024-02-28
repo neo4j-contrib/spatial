@@ -38,14 +38,12 @@ import org.geotools.api.feature.simple.SimpleFeature;
  */
 public class SearchCQL implements SearchFilter {
 
-    private final Transaction tx;
     private final Neo4jFeatureBuilder featureBuilder;
     private final Layer layer;
     private final org.geotools.api.filter.Filter filter;
     private final Envelope filterEnvelope;
 
     public SearchCQL(Transaction tx, Layer layer, org.geotools.api.filter.Filter filter) {
-        this.tx = tx;
         this.layer = layer;
         this.featureBuilder = Neo4jFeatureBuilder.fromLayer(tx, layer);
         this.filter = filter;
@@ -53,7 +51,6 @@ public class SearchCQL implements SearchFilter {
     }
 
     public SearchCQL(Transaction tx, Layer layer, String cql) {
-        this.tx = tx;
         this.layer = layer;
         this.featureBuilder = Neo4jFeatureBuilder.fromLayer(tx, layer);
         try {

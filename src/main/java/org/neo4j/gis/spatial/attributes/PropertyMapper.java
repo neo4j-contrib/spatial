@@ -37,13 +37,13 @@ public abstract class PropertyMapper {
 		this.params = params;
 	}
 
+	@Override
 	public boolean equals(Object obj) {
 		if (obj instanceof PropertyMapper) {
 			PropertyMapper other = (PropertyMapper) obj;
 			return this.key().equals(other.key());
-		} else {
-			return false;
 		}
+		return false;
 	}
 
 	protected void save(Transaction tx, Node node) {

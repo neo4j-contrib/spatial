@@ -57,7 +57,8 @@ public class OSMLayer extends DynamicLayer {
      *
      * @param tx
      */
-    public CoordinateReferenceSystem getCoordinateReferenceSystem(Transaction tx) {
+    @Override
+	public CoordinateReferenceSystem getCoordinateReferenceSystem(Transaction tx) {
         try {
             return DefaultGeographicCRS.WGS84;
         } catch (Exception e) {
@@ -97,9 +98,8 @@ public class OSMLayer extends DynamicLayer {
                 // e.printStackTrace(System.err);
             }
             return geomNode;
-        } else {
-            return null;
         }
+		return null;
     }
 
     /**
@@ -112,7 +112,8 @@ public class OSMLayer extends DynamicLayer {
      * @param tx
      * @return iterable over geometry nodes in the dataset
      */
-    public Iterable<Node> getAllGeometryNodes(Transaction tx) {
+    @Override
+	public Iterable<Node> getAllGeometryNodes(Transaction tx) {
         return indexReader.getAllIndexedNodes(tx);
     }
 
@@ -257,7 +258,8 @@ public class OSMLayer extends DynamicLayer {
      *
      * @return Style or null
      */
-    public File getStyle() {
+    @Override
+	public File getStyle() {
         // TODO: Replace with a proper resource lookup, since this will be in the JAR
         return new File("dev/neo4j/neo4j-spatial/src/main/resources/sld/osm/osm.sld");
     }

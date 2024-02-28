@@ -32,9 +32,8 @@ public abstract class AbstractFilterGeoPipe extends AbstractGeoPipe {
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
 		if (validate(flow)) {
 			return flow;
-		} else {
-			return null;
 		}
+		return null;
 	}
 
 	/**

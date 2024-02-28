@@ -194,17 +194,17 @@ public class RTreeImageExporter {
         mapContent.addLayer(new org.geotools.map.FeatureLayer(makeEnvelopeFeatures(envelopes), style));
     }
 
-    private void drawIndexNodes(int level, MapContent mapContent, List<RTreeIndex.NodeWithEnvelope> nodes, Color color) throws IOException {
+    private void drawIndexNodes(int level, MapContent mapContent, List<RTreeIndex.NodeWithEnvelope> nodes, Color color) {
         Style style = StyledImageExporter.createPolygonStyle(color, Color.WHITE, 0.8, 0.0, level + 1);
         mapContent.addLayer(new org.geotools.map.FeatureLayer(makeIndexNodeFeatures(nodes), style));
     }
 
-    private void drawEnvelope(MapContent mapContent, Coordinate min, Coordinate max, Color color) throws IOException {
+    private void drawEnvelope(MapContent mapContent, Coordinate min, Coordinate max, Color color) {
         Style style = StyledImageExporter.createPolygonStyle(color, Color.WHITE, 0.8, 0.0, 3);
         mapContent.addLayer(new org.geotools.map.FeatureLayer(makeEnvelopeFeatures(min, max), style));
     }
 
-    private void drawBounds(MapContent mapContent, ReferencedEnvelope bounds, Color color) throws IOException {
+    private void drawBounds(MapContent mapContent, ReferencedEnvelope bounds, Color color) {
         Style style = StyledImageExporter.createPolygonStyle(color, Color.WHITE, 0.8, 1.0, 6);
         double[] min = bounds.getLowerCorner().getCoordinate();
         double[] max = bounds.getUpperCorner().getCoordinate();
