@@ -25,18 +25,18 @@ package org.neo4j.gis.spatial.rtree;
  */
 public class NullListener implements Listener {
 
-    // Public methods
+	// Public methods
 
 	@Override
-    public void begin(int unitsOfWork) {
-    }
-	
+	public void begin(int unitsOfWork) {
+	}
+
 	@Override
-    public void worked(int workedSinceLastNotification) {
-    }
-	
+	public void worked(int workedSinceLastNotification) {
+	}
+
 	@Override
-    public void done() {
-    }
+	public void done() {
+	}
 
 }

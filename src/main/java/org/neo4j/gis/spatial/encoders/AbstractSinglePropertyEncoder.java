@@ -10,10 +10,12 @@ public abstract class AbstractSinglePropertyEncoder extends AbstractGeometryEnco
 	public void setConfiguration(String configuration) {
 		if (configuration != null && configuration.trim().length() > 0) {
 			String[] fields = configuration.split(":");
-			if (fields.length > 0)
+			if (fields.length > 0) {
 				geomProperty = fields[0];
-			if (fields.length > 1)
+			}
+			if (fields.length > 1) {
 				bboxProperty = fields[1];
+			}
 		}
 	}
 

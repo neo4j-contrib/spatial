@@ -30,15 +30,15 @@ public class NumPoints extends AbstractGeoPipe {
 
 	public NumPoints() {
 	}
-	
+
 	/**
 	 * @param resultPropertyName property name to use for geometry output
-	 */	
+	 */
 	public NumPoints(String resultPropertyName) {
 		super(resultPropertyName);
-	}	
+	}
 
-	@Override	
+	@Override
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
 		setProperty(flow, flow.getGeometry().getNumPoints());
 		return flow;

@@ -25,7 +25,6 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
-
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
@@ -37,9 +36,9 @@ public class Sort extends AbstractGeoPipe {
 	private final List<GeoPipeFlow> sortedFlow;
 	private final Comparator<GeoPipeFlow> comparator;
 	private Iterator<GeoPipeFlow> flowIterator;
-	
+
 	public Sort(final String property, final Comparator<Object> propertyComparator) {
-        this.sortedFlow = new ArrayList<>();
+		this.sortedFlow = new ArrayList<>();
 		this.comparator = (o1, o2) -> {
 			Object p1 = o1.getProperties().get(property);
 			Object p2 = o2.getProperties().get(property);
@@ -55,7 +54,7 @@ public class Sort extends AbstractGeoPipe {
 			}
 		};
 	}
-	
+
 	public Sort(String property, final boolean asc) {
 		this(property, (o1, o2) -> {
 			int result = ((Comparable) o1).compareTo(o2);
@@ -65,7 +64,7 @@ public class Sort extends AbstractGeoPipe {
 			return result;
 		});
 	}
-	
+
 	@Override
 	public GeoPipeFlow processNextStart() {
 		if (flowIterator == null) {
@@ -74,12 +73,12 @@ public class Sort extends AbstractGeoPipe {
 					sortedFlow.add(starts.next());
 				}
 			} catch (NoSuchElementException e) {
-		    }
-			
+			}
+
 			Collections.sort(sortedFlow, comparator);
 			flowIterator = sortedFlow.iterator();
 		}
-		
+
 		return flowIterator.next();
 	}
 

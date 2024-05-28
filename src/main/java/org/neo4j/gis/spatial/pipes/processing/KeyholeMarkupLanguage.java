@@ -20,7 +20,6 @@
 package org.neo4j.gis.spatial.pipes.processing;
 
 import java.io.IOException;
-
 import org.geotools.kml.KML;
 import org.geotools.kml.KMLConfiguration;
 import org.geotools.xsd.Encoder;
@@ -33,16 +32,16 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 public class KeyholeMarkupLanguage extends AbstractGeoPipe {
 
 	public KeyholeMarkupLanguage() {
-	}		
-	
+	}
+
 	/**
 	 * @param resultPropertyName property name to use for geometry output
-	 */	
+	 */
 	public KeyholeMarkupLanguage(String resultPropertyName) {
 		super(resultPropertyName);
-	}	
+	}
 
-	@Override	
+	@Override
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
 		Encoder encoder = new Encoder(new KMLConfiguration());
 		encoder.setIndenting(true);
@@ -50,8 +49,8 @@ public class KeyholeMarkupLanguage extends AbstractGeoPipe {
 			setProperty(flow, encoder.encodeAsString(flow.getGeometry(), KML.Geometry));
 		} catch (IOException e) {
 			setProperty(flow, e.getMessage());
-		}		
+		}
 		return flow;
-	}	
-	
+	}
+
 }

@@ -21,9 +21,9 @@ package org.neo4j.gis.spatial.index;
 
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.Layer;
+import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
-import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.graphdb.Transaction;
 
 /**
@@ -35,26 +35,26 @@ import org.neo4j.graphdb.Transaction;
  */
 public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader, Constants {
 
-    private Layer layer;
+	private Layer layer;
 
-    @Override
-    public void init(Transaction tx, IndexManager indexManager, Layer layer) {
-        init(tx, layer, 100);
-    }
+	@Override
+	public void init(Transaction tx, IndexManager indexManager, Layer layer) {
+		init(tx, layer, 100);
+	}
 
-    public void init(Transaction tx, Layer layer, int maxNodeReferences) {
-        super.init(tx, layer.getLayerNode(tx), layer.getGeometryEncoder(), maxNodeReferences);
-        this.layer = layer;
-    }
+	public void init(Transaction tx, Layer layer, int maxNodeReferences) {
+		super.init(tx, layer.getLayerNode(tx), layer.getGeometryEncoder(), maxNodeReferences);
+		this.layer = layer;
+	}
 
-    @Override
-    public Layer getLayer() {
-        return layer;
-    }
+	@Override
+	public Layer getLayer() {
+		return layer;
+	}
 
-    @Override
-    public SearchRecords search(Transaction tx, SearchFilter filter) {
-        return new SearchRecords(layer, searchIndex(tx, filter));
-    }
+	@Override
+	public SearchRecords search(Transaction tx, SearchFilter filter) {
+		return new SearchRecords(layer, searchIndex(tx, filter));
+	}
 
 }

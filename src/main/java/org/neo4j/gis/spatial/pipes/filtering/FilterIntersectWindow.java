@@ -19,12 +19,11 @@
  */
 package org.neo4j.gis.spatial.pipes.filtering;
 
-import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
-import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
+import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
+import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 
 /**
@@ -34,19 +33,19 @@ public class FilterIntersectWindow extends AbstractFilterGeoPipe {
 
 	private Envelope envelope;
 	private Geometry envelopeGeom;
-	
+
 	public FilterIntersectWindow(GeometryFactory geomFactory, double xmin, double ymin, double xmax, double ymax) {
 		this(geomFactory, new Envelope(xmin, xmax, ymin, ymax));
 	}
-	
+
 	public FilterIntersectWindow(GeometryFactory geomFactory, Envelope envelope) {
 		this.envelope = envelope;
 		this.envelopeGeom = geomFactory.toGeometry(envelope);
-	}	
-	
+	}
+
 	@Override
 	protected boolean validate(GeoPipeFlow flow) {
-		return envelope.intersects(flow.getEnvelope()) 
+		return envelope.intersects(flow.getEnvelope())
 				&& envelopeGeom.intersects(flow.getGeometry());
 	}
 }

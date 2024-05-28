@@ -20,16 +20,16 @@
 package org.neo4j.gis.spatial;
 
 import java.io.PrintStream;
-
 import org.neo4j.gis.spatial.rtree.Listener;
 
 
 /**
  * This listener simply logs progress to System.out.
- * 
+ *
  * @author Craig Taverner
  */
 public class ConsoleListener implements Listener {
+
 	private PrintStream out;
 	private int total = 0;
 	private int current = 0;

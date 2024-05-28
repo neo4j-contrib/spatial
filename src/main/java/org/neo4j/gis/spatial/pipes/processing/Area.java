@@ -29,19 +29,19 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 public class Area extends AbstractGeoPipe {
 
 	public Area() {
-	}		
+	}
 
 	/**
 	 * @param resultPropertyName property name to use for output
 	 */
 	public Area(String resultPropertyName) {
 		super(resultPropertyName);
-	}	
+	}
 
-	@Override	
+	@Override
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
 		setProperty(flow, flow.getGeometry().getArea());
 		return flow;
-	}	
-	
+	}
+
 }

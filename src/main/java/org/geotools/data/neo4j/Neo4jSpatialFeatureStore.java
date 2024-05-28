@@ -19,9 +19,13 @@
  */
 package org.geotools.data.neo4j;
 
+import java.io.IOException;
+import java.util.logging.Logger;
 import org.geotools.api.data.FeatureReader;
 import org.geotools.api.data.FeatureWriter;
 import org.geotools.api.data.Query;
+import org.geotools.api.feature.simple.SimpleFeature;
+import org.geotools.api.feature.simple.SimpleFeatureType;
 import org.geotools.data.store.ContentEntry;
 import org.geotools.data.store.ContentFeatureStore;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
@@ -30,11 +34,6 @@ import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.EditableLayer;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
-import org.geotools.api.feature.simple.SimpleFeature;
-import org.geotools.api.feature.simple.SimpleFeatureType;
-
-import java.io.IOException;
-import java.util.logging.Logger;
 
 /**
  * FeatureWriter implementation. Instances of this class are created by
@@ -42,161 +41,163 @@ import java.util.logging.Logger;
  */
 public class Neo4jSpatialFeatureStore extends ContentFeatureStore {
 
-    private final GraphDatabaseService database;
-    private final SimpleFeatureType featureType;
-    private final Neo4jSpatialFeatureSource reader;
-    private final EditableLayer layer;
+	private final GraphDatabaseService database;
+	private final SimpleFeatureType featureType;
+	private final Neo4jSpatialFeatureSource reader;
+	private final EditableLayer layer;
 
-    private static final Logger LOGGER = org.geotools.util.logging.Logging.getLogger("org.neo4j.gis.spatial");
+	private static final Logger LOGGER = org.geotools.util.logging.Logging.getLogger("org.neo4j.gis.spatial");
 
-    protected Neo4jSpatialFeatureStore(ContentEntry contentEntry, GraphDatabaseService database, EditableLayer layer, Neo4jSpatialFeatureSource reader) {
-        super(contentEntry, Query.ALL);
-        this.database = database;
-        this.reader = reader;
-        this.layer = layer;
-        this.featureType = reader.buildFeatureType();
-    }
+	protected Neo4jSpatialFeatureStore(ContentEntry contentEntry, GraphDatabaseService database, EditableLayer layer,
+			Neo4jSpatialFeatureSource reader) {
+		super(contentEntry, Query.ALL);
+		this.database = database;
+		this.reader = reader;
+		this.layer = layer;
+		this.featureType = reader.buildFeatureType();
+	}
 
-    public SimpleFeatureType getFeatureType() {
-        return featureType;
-    }
+	public SimpleFeatureType getFeatureType() {
+		return featureType;
+	}
 
-    @Override
-    protected FeatureWriter<SimpleFeatureType, SimpleFeature> getWriterInternal(Query query, int flags) {
-        return new Writer(reader.getReaderInternal(query));
-    }
+	@Override
+	protected FeatureWriter<SimpleFeatureType, SimpleFeature> getWriterInternal(Query query, int flags) {
+		return new Writer(reader.getReaderInternal(query));
+	}
 
-    @Override
-    protected ReferencedEnvelope getBoundsInternal(Query query) {
-        return reader.getBoundsInternal(query);
-    }
+	@Override
+	protected ReferencedEnvelope getBoundsInternal(Query query) {
+		return reader.getBoundsInternal(query);
+	}
 
-    @Override
-    protected int getCountInternal(Query query) {
-        return reader.getCountInternal(query);
-    }
+	@Override
+	protected int getCountInternal(Query query) {
+		return reader.getCountInternal(query);
+	}
 
-    @Override
-    protected FeatureReader<SimpleFeatureType, SimpleFeature> getReaderInternal(Query query) {
-        return reader.getReaderInternal(query);
-    }
+	@Override
+	protected FeatureReader<SimpleFeatureType, SimpleFeature> getReaderInternal(Query query) {
+		return reader.getReaderInternal(query);
+	}
 
-    @Override
-    protected SimpleFeatureType buildFeatureType() {
-        return featureType;
-    }
+	@Override
+	protected SimpleFeatureType buildFeatureType() {
+		return featureType;
+	}
 
-    class Writer implements FeatureWriter<SimpleFeatureType, SimpleFeature> {
-        private SimpleFeature live;    // current for FeatureWriter
-        private SimpleFeature current; // copy of live returned to user
-        private boolean closed;
-        private final FeatureReader<SimpleFeatureType, SimpleFeature> reader;
+	class Writer implements FeatureWriter<SimpleFeatureType, SimpleFeature> {
 
-        public Writer(FeatureReader<SimpleFeatureType, SimpleFeature> reader) {
-            this.reader = reader;
-        }
+		private SimpleFeature live;    // current for FeatureWriter
+		private SimpleFeature current; // copy of live returned to user
+		private boolean closed;
+		private final FeatureReader<SimpleFeatureType, SimpleFeature> reader;
 
-        @Override
-        public SimpleFeatureType getFeatureType() {
-            return reader.getFeatureType();
-        }
+		public Writer(FeatureReader<SimpleFeatureType, SimpleFeature> reader) {
+			this.reader = reader;
+		}
 
-        @Override
-        public SimpleFeature next() throws IOException {
-            if (closed) {
-                throw new IOException("FeatureWriter has been closed");
-            }
+		@Override
+		public SimpleFeatureType getFeatureType() {
+			return reader.getFeatureType();
+		}
 
-            SimpleFeatureType featureType = getFeatureType();
+		@Override
+		public SimpleFeature next() throws IOException {
+			if (closed) {
+				throw new IOException("FeatureWriter has been closed");
+			}
 
-            if (hasNext()) {
-                live = reader.next();
-                current = SimpleFeatureBuilder.copy(live);
-                LOGGER.finer("Calling next on writer");
-            } else {
-                // new content
-                live = null;
-                current = SimpleFeatureBuilder.template(featureType, null);
-            }
+			SimpleFeatureType featureType = getFeatureType();
 
-            return current;
-        }
+			if (hasNext()) {
+				live = reader.next();
+				current = SimpleFeatureBuilder.copy(live);
+				LOGGER.finer("Calling next on writer");
+			} else {
+				// new content
+				live = null;
+				current = SimpleFeatureBuilder.template(featureType, null);
+			}
 
-        @Override
-        public void remove() throws IOException {
-            if (closed) {
-                throw new IOException("FeatureWriter has been closed");
-            }
+			return current;
+		}
 
-            if (current == null) {
-                throw new IOException("No feature available to remove");
-            }
+		@Override
+		public void remove() throws IOException {
+			if (closed) {
+				throw new IOException("FeatureWriter has been closed");
+			}
 
-            if (live != null) {
-                LOGGER.fine("Removing " + live);
+			if (current == null) {
+				throw new IOException("No feature available to remove");
+			}
 
-                try (Transaction tx = database.beginTx()) {
-                    layer.delete(tx, live.getID());
-                    tx.commit();
-                }
+			if (live != null) {
+				LOGGER.fine("Removing " + live);
 
-                Neo4jSpatialFeatureStore.this.getState().fireFeatureRemoved(Neo4jSpatialFeatureStore.this, live);
-            }
+				try (Transaction tx = database.beginTx()) {
+					layer.delete(tx, live.getID());
+					tx.commit();
+				}
 
-            live = null;
-            current = null;
-        }
+				Neo4jSpatialFeatureStore.this.getState().fireFeatureRemoved(Neo4jSpatialFeatureStore.this, live);
+			}
 
-        @Override
-        public void write() throws IOException {
-            if (closed) {
-                throw new IOException("FeatureWriter has been closed");
-            }
+			live = null;
+			current = null;
+		}
 
-            if (current == null) {
-                throw new IOException("No feature available to write");
-            }
+		@Override
+		public void write() throws IOException {
+			if (closed) {
+				throw new IOException("FeatureWriter has been closed");
+			}
 
-            LOGGER.fine("Write called, live is " + live + " and cur is " + current);
+			if (current == null) {
+				throw new IOException("No feature available to write");
+			}
 
-            if (live != null) {
-                if (!live.equals(current)) {
-                    LOGGER.fine("Updating " + current);
-                    try (Transaction tx = database.beginTx()) {
-                        layer.update(tx, current.getID(), (Geometry) current.getDefaultGeometry());
-                        tx.commit();
-                    }
+			LOGGER.fine("Write called, live is " + live + " and cur is " + current);
 
-                    Neo4jSpatialFeatureStore.this.getState().fireFeatureUpdated(
-                            Neo4jSpatialFeatureStore.this, live,
-                            new ReferencedEnvelope(current.getBounds()));
+			if (live != null) {
+				if (!live.equals(current)) {
+					LOGGER.fine("Updating " + current);
+					try (Transaction tx = database.beginTx()) {
+						layer.update(tx, current.getID(), (Geometry) current.getDefaultGeometry());
+						tx.commit();
+					}
 
-                }
-            } else {
-                LOGGER.fine("Inserting " + current);
-                try (Transaction tx = database.beginTx()) {
-                    layer.add(tx, (Geometry) current.getDefaultGeometry());
-                    tx.commit();
-                }
+					Neo4jSpatialFeatureStore.this.getState().fireFeatureUpdated(
+							Neo4jSpatialFeatureStore.this, live,
+							new ReferencedEnvelope(current.getBounds()));
 
-                Neo4jSpatialFeatureStore.this.getState().fireFeatureAdded(Neo4jSpatialFeatureStore.this, current);
-            }
+				}
+			} else {
+				LOGGER.fine("Inserting " + current);
+				try (Transaction tx = database.beginTx()) {
+					layer.add(tx, (Geometry) current.getDefaultGeometry());
+					tx.commit();
+				}
 
-            live = null;
-            current = null;
-        }
+				Neo4jSpatialFeatureStore.this.getState().fireFeatureAdded(Neo4jSpatialFeatureStore.this, current);
+			}
 
-        @Override
-        public boolean hasNext() throws IOException {
-            if (closed) {
-                throw new IOException("Feature writer is closed");
-            }
-            return reader != null && reader.hasNext();
-        }
+			live = null;
+			current = null;
+		}
 
-        @Override
-        public void close() throws IOException {
-            reader.close();
-        }
-    }
+		@Override
+		public boolean hasNext() throws IOException {
+			if (closed) {
+				throw new IOException("Feature writer is closed");
+			}
+			return reader != null && reader.hasNext();
+		}
+
+		@Override
+		public void close() throws IOException {
+			reader.close();
+		}
+	}
 }

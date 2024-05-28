@@ -19,10 +19,9 @@
  */
 package org.neo4j.gis.spatial.pipes.filtering;
 
+import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-
-import org.locationtech.jts.geom.Geometry;
 
 
 /**
@@ -31,7 +30,7 @@ import org.locationtech.jts.geom.Geometry;
 public class FilterOverlap extends AbstractFilterGeoPipe {
 
 	private Geometry other;
-	
+
 	public FilterOverlap(Geometry other) {
 		this.other = other;
 	}

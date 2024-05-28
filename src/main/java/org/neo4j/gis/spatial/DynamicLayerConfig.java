@@ -24,6 +24,7 @@ import java.io.PrintStream;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.filter.text.cql2.CQLException;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
@@ -37,262 +38,270 @@ import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
-import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 
 public class DynamicLayerConfig implements Layer, Constants {
 
-    private final DynamicLayer parent;
-    private final String name;
-    private final int geometryType;
-    private final String query;
-    protected String configNodeId;
-    private String[] propertyNames;
+	private final DynamicLayer parent;
+	private final String name;
+	private final int geometryType;
+	private final String query;
+	protected String configNodeId;
+	private String[] propertyNames;
 
-    /**
-     * Construct the layer config instance on existing config information in the database.
-     */
-    public DynamicLayerConfig(DynamicLayer parent, Node configNode) {
-        this.parent = parent;
-        this.name = (String) configNode.getProperty(PROP_LAYER);
-        this.geometryType = (Integer) configNode.getProperty(PROP_TYPE);
-        this.query = (String) configNode.getProperty(PROP_QUERY);
-        this.configNodeId = configNode.getElementId();
-        this.propertyNames = (String[]) configNode.getProperty("propertyNames", null);
-    }
+	/**
+	 * Construct the layer config instance on existing config information in the database.
+	 */
+	public DynamicLayerConfig(DynamicLayer parent, Node configNode) {
+		this.parent = parent;
+		this.name = (String) configNode.getProperty(PROP_LAYER);
+		this.geometryType = (Integer) configNode.getProperty(PROP_TYPE);
+		this.query = (String) configNode.getProperty(PROP_QUERY);
+		this.configNodeId = configNode.getElementId();
+		this.propertyNames = (String[]) configNode.getProperty("propertyNames", null);
+	}
 
-    /**
-     * Construct a new layer config by building the database structure to support the necessary configuration
-     *
-     * @param tx           the Transaction in which this config is created
-     * @param parent       the DynamicLayer containing this config
-     * @param name         of the new dynamic layer
-     * @param geometryType the geometry this layer supports
-     * @param query        formatted query string for this dynamic layer
-     */
-    public DynamicLayerConfig(Transaction tx, DynamicLayer parent, String name, int geometryType, String query) {
-        this.parent = parent;
-        Node node = tx.createNode();
-        node.setProperty(PROP_LAYER, name);
-        node.setProperty(PROP_TYPE, geometryType);
-        node.setProperty(PROP_QUERY, query);
-        parent.getLayerNode(tx).createRelationshipTo(node, SpatialRelationshipTypes.LAYER_CONFIG);
-        this.name = name;
-        this.geometryType = geometryType;
-        this.query = query;
-        configNodeId = node.getElementId();
-    }
+	/**
+	 * Construct a new layer config by building the database structure to support the necessary configuration
+	 *
+	 * @param tx           the Transaction in which this config is created
+	 * @param parent       the DynamicLayer containing this config
+	 * @param name         of the new dynamic layer
+	 * @param geometryType the geometry this layer supports
+	 * @param query        formatted query string for this dynamic layer
+	 */
+	public DynamicLayerConfig(Transaction tx, DynamicLayer parent, String name, int geometryType, String query) {
+		this.parent = parent;
+		Node node = tx.createNode();
+		node.setProperty(PROP_LAYER, name);
+		node.setProperty(PROP_TYPE, geometryType);
+		node.setProperty(PROP_QUERY, query);
+		parent.getLayerNode(tx).createRelationshipTo(node, SpatialRelationshipTypes.LAYER_CONFIG);
+		this.name = name;
+		this.geometryType = geometryType;
+		this.query = query;
+		configNodeId = node.getElementId();
+	}
 
-    @Override
-    public String getName() {
-        return name;
-    }
+	@Override
+	public String getName() {
+		return name;
+	}
 
-    public String getQuery() {
-        return query;
-    }
+	public String getQuery() {
+		return query;
+	}
 
-    @Override
-    public SpatialDatabaseRecord add(Transaction tx, Node geomNode) {
-        throw new SpatialDatabaseException("Cannot add nodes to dynamic layers, add the node to the base layer instead");
-    }
+	@Override
+	public SpatialDatabaseRecord add(Transaction tx, Node geomNode) {
+		throw new SpatialDatabaseException(
+				"Cannot add nodes to dynamic layers, add the node to the base layer instead");
+	}
 
-    @Override
-    public int addAll(Transaction tx, List<Node> geomNodes) {
-        throw new SpatialDatabaseException("Cannot add nodes to dynamic layers, add the node to the base layer instead");
-    }
+	@Override
+	public int addAll(Transaction tx, List<Node> geomNodes) {
+		throw new SpatialDatabaseException(
+				"Cannot add nodes to dynamic layers, add the node to the base layer instead");
+	}
 
-    @Override
-    public void delete(Transaction tx, Listener monitor) {
-        throw new SpatialDatabaseException("Cannot delete dynamic layers, delete the base layer instead");
-    }
+	@Override
+	public void delete(Transaction tx, Listener monitor) {
+		throw new SpatialDatabaseException("Cannot delete dynamic layers, delete the base layer instead");
+	}
 
-    @Override
-    public CoordinateReferenceSystem getCoordinateReferenceSystem(Transaction tx) {
-        return parent.getCoordinateReferenceSystem(tx);
-    }
+	@Override
+	public CoordinateReferenceSystem getCoordinateReferenceSystem(Transaction tx) {
+		return parent.getCoordinateReferenceSystem(tx);
+	}
 
-    @Override
-    public SpatialDataset getDataset() {
-        return parent.getDataset();
-    }
+	@Override
+	public SpatialDataset getDataset() {
+		return parent.getDataset();
+	}
 
-    @Override
-    public String[] getExtraPropertyNames(Transaction tx) {
-        if (propertyNames != null && propertyNames.length > 0) {
-            return propertyNames;
-        } else {
-            return parent.getExtraPropertyNames(tx);
-        }
-    }
+	@Override
+	public String[] getExtraPropertyNames(Transaction tx) {
+		if (propertyNames != null && propertyNames.length > 0) {
+			return propertyNames;
+		} else {
+			return parent.getExtraPropertyNames(tx);
+		}
+	}
 
-    private static class PropertyUsageSearch implements SearchFilter {
+	private static class PropertyUsageSearch implements SearchFilter {
 
-        private final Layer layer;
-        private final LinkedHashMap<String, Integer> names = new LinkedHashMap<>();
-        private int nodeCount = 0;
-        private final int MAX_COUNT = 10000;
+		private final Layer layer;
+		private final LinkedHashMap<String, Integer> names = new LinkedHashMap<>();
+		private int nodeCount = 0;
+		private final int MAX_COUNT = 10000;
 
-        public PropertyUsageSearch(Layer layer) {
-            this.layer = layer;
-        }
+		public PropertyUsageSearch(Layer layer) {
+			this.layer = layer;
+		}
 
-        @Override
-        public boolean needsToVisit(Envelope indexNodeEnvelope) {
-            return nodeCount < MAX_COUNT;
-        }
+		@Override
+		public boolean needsToVisit(Envelope indexNodeEnvelope) {
+			return nodeCount < MAX_COUNT;
+		}
 
-        @Override
-        public boolean geometryMatches(Transaction tx, Node geomNode) {
-            if (nodeCount++ < MAX_COUNT) {
-                SpatialDatabaseRecord record = new SpatialDatabaseRecord(layer, geomNode);
-                for (String name : record.getPropertyNames(tx)) {
-                    Object value = record.getProperty(tx, name);
-                    if (value != null) {
-                        Integer count = names.get(name);
-                        if (count == null)
-                            count = 0;
-                        names.put(name, count + 1);
-                    }
-                }
-            }
+		@Override
+		public boolean geometryMatches(Transaction tx, Node geomNode) {
+			if (nodeCount++ < MAX_COUNT) {
+				SpatialDatabaseRecord record = new SpatialDatabaseRecord(layer, geomNode);
+				for (String name : record.getPropertyNames(tx)) {
+					Object value = record.getProperty(tx, name);
+					if (value != null) {
+						Integer count = names.get(name);
+						if (count == null) {
+							count = 0;
+						}
+						names.put(name, count + 1);
+					}
+				}
+			}
 
-            // no need to collect nodes
-            return false;
-        }
+			// no need to collect nodes
+			return false;
+		}
 
-        public String[] getNames() {
-            return names.keySet().toArray(new String[]{});
-        }
+		public String[] getNames() {
+			return names.keySet().toArray(new String[]{});
+		}
 
-        public int getNodeCount() {
-            return nodeCount;
-        }
+		public int getNodeCount() {
+			return nodeCount;
+		}
 
-        public void describeUsage(PrintStream out) {
-            for (String name : names.keySet()) {
-                out.println(name + "\t" + names.get(name));
-            }
-        }
-    }
+		public void describeUsage(PrintStream out) {
+			for (String name : names.keySet()) {
+				out.println(name + "\t" + names.get(name));
+			}
+		}
+	}
 
-    /**
-     * This method will scan the layer for property names that are actually
-     * used, and restrict the layer properties to those
-     */
-    public void restrictLayerProperties(Transaction tx) {
-        if (propertyNames != null && propertyNames.length > 0) {
-            System.out.println("Restricted property names already exists - will be overwritten");
-        }
-        System.out.println("Before property scan we have " + getExtraPropertyNames(tx).length + " known attributes for layer " + getName());
+	/**
+	 * This method will scan the layer for property names that are actually
+	 * used, and restrict the layer properties to those
+	 */
+	public void restrictLayerProperties(Transaction tx) {
+		if (propertyNames != null && propertyNames.length > 0) {
+			System.out.println("Restricted property names already exists - will be overwritten");
+		}
+		System.out.println(
+				"Before property scan we have " + getExtraPropertyNames(tx).length + " known attributes for layer "
+						+ getName());
 
-        PropertyUsageSearch search = new PropertyUsageSearch(this);
-        getIndex().searchIndex(tx, search).count();
-        setExtraPropertyNames(tx, search.getNames());
+		PropertyUsageSearch search = new PropertyUsageSearch(this);
+		getIndex().searchIndex(tx, search).count();
+		setExtraPropertyNames(tx, search.getNames());
 
-        System.out.println("After property scan of " + search.getNodeCount() + " nodes, we have " + getExtraPropertyNames(tx).length + " known attributes for layer " + getName());
-        // search.describeUsage(System.out);
-    }
+		System.out.println(
+				"After property scan of " + search.getNodeCount() + " nodes, we have " + getExtraPropertyNames(
+						tx).length + " known attributes for layer " + getName());
+		// search.describeUsage(System.out);
+	}
 
-    public Node configNode(Transaction tx) {
-        return tx.getNodeByElementId(configNodeId);
-    }
+	public Node configNode(Transaction tx) {
+		return tx.getNodeByElementId(configNodeId);
+	}
 
-    public void setExtraPropertyNames(Transaction tx, String[] names) {
-        configNode(tx).setProperty("propertyNames", names);
-        propertyNames = names;
-    }
+	public void setExtraPropertyNames(Transaction tx, String[] names) {
+		configNode(tx).setProperty("propertyNames", names);
+		propertyNames = names;
+	}
 
-    @Override
-    public GeometryEncoder getGeometryEncoder() {
-        return parent.getGeometryEncoder();
-    }
+	@Override
+	public GeometryEncoder getGeometryEncoder() {
+		return parent.getGeometryEncoder();
+	}
 
-    @Override
-    public GeometryFactory getGeometryFactory() {
-        return parent.getGeometryFactory();
-    }
+	@Override
+	public GeometryFactory getGeometryFactory() {
+		return parent.getGeometryFactory();
+	}
 
-    @Override
-    public Integer getGeometryType(Transaction tx) {
-        return (Integer) configNode(tx).getProperty(PROP_TYPE);
-    }
+	@Override
+	public Integer getGeometryType(Transaction tx) {
+		return (Integer) configNode(tx).getProperty(PROP_TYPE);
+	}
 
-    @Override
-    public LayerIndexReader getIndex() {
-        if (parent.indexReader instanceof LayerTreeIndexReader) {
-            String query = getQuery();
-            if (query.startsWith("{")) {
-                // Make a standard JSON based dynamic layer
-                return new DynamicIndexReader((LayerTreeIndexReader) parent.indexReader, query);
-            } else {
-                // Make a CQL based dynamic layer
-                try {
-                    return new CQLIndexReader((LayerTreeIndexReader) parent.indexReader, this, query);
-                } catch (CQLException e) {
-                    throw new SpatialDatabaseException("Error while creating CQL based DynamicLayer", e);
-                }
-            }
-        } else {
-            throw new SpatialDatabaseException("Cannot make a DynamicLayer from a non-LayerTreeIndexReader Layer");
-        }
-    }
+	@Override
+	public LayerIndexReader getIndex() {
+		if (parent.indexReader instanceof LayerTreeIndexReader) {
+			String query = getQuery();
+			if (query.startsWith("{")) {
+				// Make a standard JSON based dynamic layer
+				return new DynamicIndexReader((LayerTreeIndexReader) parent.indexReader, query);
+			} else {
+				// Make a CQL based dynamic layer
+				try {
+					return new CQLIndexReader((LayerTreeIndexReader) parent.indexReader, this, query);
+				} catch (CQLException e) {
+					throw new SpatialDatabaseException("Error while creating CQL based DynamicLayer", e);
+				}
+			}
+		} else {
+			throw new SpatialDatabaseException("Cannot make a DynamicLayer from a non-LayerTreeIndexReader Layer");
+		}
+	}
 
-    @Override
-    public Node getLayerNode(Transaction tx) {
-        // TODO: Make sure that the mismatch between the name on the dynamic
-        // layer node and the dynamic layer translates into the correct
-        // object being returned
-        return parent.getLayerNode(tx);
-    }
+	@Override
+	public Node getLayerNode(Transaction tx) {
+		// TODO: Make sure that the mismatch between the name on the dynamic
+		// layer node and the dynamic layer translates into the correct
+		// object being returned
+		return parent.getLayerNode(tx);
+	}
 
-    @Override
-    public void initialize(Transaction tx, IndexManager indexManager, String name, Node layerNode) {
-        throw new SpatialDatabaseException("Cannot initialize the layer config, initialize only the dynamic layer node");
-    }
+	@Override
+	public void initialize(Transaction tx, IndexManager indexManager, String name, Node layerNode) {
+		throw new SpatialDatabaseException(
+				"Cannot initialize the layer config, initialize only the dynamic layer node");
+	}
 
-    @Override
-    public Object getStyle() {
-        Object style = parent.getStyle();
-        if (style instanceof File) {
-            File parent = ((File) style).getParentFile();
-            File newStyle = new File(parent, getName() + ".sld");
-            if (newStyle.canRead()) {
-                style = newStyle;
-            }
-        }
-        return style;
-    }
+	@Override
+	public Object getStyle() {
+		Object style = parent.getStyle();
+		if (style instanceof File) {
+			File parent = ((File) style).getParentFile();
+			File newStyle = new File(parent, getName() + ".sld");
+			if (newStyle.canRead()) {
+				style = newStyle;
+			}
+		}
+		return style;
+	}
 
-    public Layer getParent() {
-        return parent;
-    }
+	public Layer getParent() {
+		return parent;
+	}
 
-    @Override
-    public String toString() {
-        return getName();
-    }
+	@Override
+	public String toString() {
+		return getName();
+	}
 
-    private PropertyMappingManager propertyMappingManager;
+	private PropertyMappingManager propertyMappingManager;
 
-    @Override
-    public PropertyMappingManager getPropertyMappingManager() {
-        if (propertyMappingManager == null) {
-            propertyMappingManager = new PropertyMappingManager(this);
-        }
-        return propertyMappingManager;
-    }
+	@Override
+	public PropertyMappingManager getPropertyMappingManager() {
+		if (propertyMappingManager == null) {
+			propertyMappingManager = new PropertyMappingManager(this);
+		}
+		return propertyMappingManager;
+	}
 
-    protected Map<String, String> getConfig() {
-        Map<String, String> config = new LinkedHashMap<>();
-        config.put("layer", this.name);
-        config.put("type", String.valueOf(this.geometryType));
-        config.put("query", this.query);
-        return config;
-    }
+	protected Map<String, String> getConfig() {
+		Map<String, String> config = new LinkedHashMap<>();
+		config.put("layer", this.name);
+		config.put("type", String.valueOf(this.geometryType));
+		config.put("query", this.query);
+		return config;
+	}
 
-    @Override
-    public String getSignature() {
-        Map<String, String> config = getConfig();
-        return "DynamicLayer(name='" + getName() + "', config={layer='" + config.get("layer") + "', query=\"" + config.get("query") + "\"})";
-    }
+	@Override
+	public String getSignature() {
+		Map<String, String> config = getConfig();
+		return "DynamicLayer(name='" + getName() + "', config={layer='" + config.get("layer") + "', query=\""
+				+ config.get("query") + "\"})";
+	}
 }

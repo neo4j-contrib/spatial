@@ -21,12 +21,12 @@ package org.neo4j.gis.spatial.index;
 
 public class LayerRTreeNativePointIndexTest extends NativePointIndexTestBase {
 
-    protected Class<? extends LayerIndexReader> getIndexClass() {
-        return LayerRTreeIndex.class;
-    }
+	protected Class<? extends LayerIndexReader> getIndexClass() {
+		return LayerRTreeIndex.class;
+	}
 
-    @Override
-    protected LayerIndexReader makeIndex() {
-        return new LayerRTreeIndex();
-    }
+	@Override
+	protected LayerIndexReader makeIndex() {
+		return new LayerRTreeIndex();
+	}
 }

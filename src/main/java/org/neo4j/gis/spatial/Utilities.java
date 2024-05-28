@@ -21,7 +21,8 @@ package org.neo4j.gis.spatial;
 
 import java.util.Comparator;
 import java.util.Iterator;
-
+import org.geotools.api.filter.Filter;
+import org.geotools.api.geometry.BoundingBox;
 import org.geotools.filter.AndImpl;
 import org.geotools.filter.GeometryFilterImpl;
 import org.geotools.filter.LiteralExpressionImpl;
@@ -33,13 +34,10 @@ import org.geotools.filter.spatial.IntersectsImpl;
 import org.geotools.filter.spatial.OverlapsImpl;
 import org.geotools.filter.spatial.TouchesImpl;
 import org.geotools.filter.spatial.WithinImpl;
+import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
 import org.neo4j.graphdb.Node;
-import org.geotools.api.filter.Filter;
-
-import org.locationtech.jts.geom.Geometry;
-import org.geotools.api.geometry.BoundingBox;
 
 public class Utilities {
 
@@ -69,16 +67,17 @@ public class Utilities {
 	}
 
 	@SuppressWarnings("rawtypes")
-	private static org.neo4j.gis.spatial.rtree.Envelope extractEnvelopeFromFilter(Filter filter, boolean inspectAndFilters) {
+	private static org.neo4j.gis.spatial.rtree.Envelope extractEnvelopeFromFilter(Filter filter,
+			boolean inspectAndFilters) {
 		if (filter instanceof BBOXImpl) {
 			return extractEnvelopeFromBBox((BBOXImpl) filter);
 		} else if (filter instanceof IntersectsImpl ||
-				   filter instanceof ContainsImpl ||
-				   filter instanceof CrossesImpl ||
-				   filter instanceof EqualsImpl ||
-				   filter instanceof OverlapsImpl ||
-				   filter instanceof TouchesImpl ||
-				   filter instanceof WithinImpl) {
+				filter instanceof ContainsImpl ||
+				filter instanceof CrossesImpl ||
+				filter instanceof EqualsImpl ||
+				filter instanceof OverlapsImpl ||
+				filter instanceof TouchesImpl ||
+				filter instanceof WithinImpl) {
 			return extractEnvelopeFromGeometryFilter((GeometryFilterImpl) filter);
 		} else if (filter instanceof AndImpl && inspectAndFilters) {
 			AndImpl andFilter = (AndImpl) filter;
@@ -114,19 +113,20 @@ public class Utilities {
 		}
 	}
 
-    private static Envelope extractEnvelopeFromBBox(BBOXImpl boundingBox) {
+	private static Envelope extractEnvelopeFromBBox(BBOXImpl boundingBox) {
 		BoundingBox bbox = boundingBox.getBounds();
-    	return new Envelope(bbox.getMinX(), bbox.getMaxX(), bbox.getMinY(), bbox.getMaxY());
-    }
+		return new Envelope(bbox.getMinX(), bbox.getMaxX(), bbox.getMinY(), bbox.getMaxY());
+	}
 
 
 	/**
 	 * Comparator for comparing nodes by compaing the xMin on their evelopes.
 	 */
 	public static class ComparatorOnXMin implements Comparator<Node> {
+
 		final private EnvelopeDecoder decoder;
 
-		public ComparatorOnXMin(EnvelopeDecoder decoder){
+		public ComparatorOnXMin(EnvelopeDecoder decoder) {
 			this.decoder = decoder;
 		}
 
@@ -140,9 +140,10 @@ public class Utilities {
 	 * Comparator or comparing nodes by coparing the yMin on their envelopes.
 	 */
 	public static class ComparatorOnYMin implements Comparator<Node> {
+
 		final private EnvelopeDecoder decoder;
 
-		public ComparatorOnYMin(EnvelopeDecoder decoder){
+		public ComparatorOnYMin(EnvelopeDecoder decoder) {
 			this.decoder = decoder;
 		}
 

@@ -29,19 +29,19 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 public class Length extends AbstractGeoPipe {
 
 	public Length() {
-	}		
-	
+	}
+
 	/**
 	 * @param resultPropertyName property name to use for geometry output
-	 */	
+	 */
 	public Length(String resultPropertyName) {
 		super(resultPropertyName);
-	}	
+	}
 
-	@Override	
+	@Override
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
 		setProperty(flow, flow.getGeometry().getLength());
 		return flow;
-	}	
-	
+	}
+
 }

@@ -37,14 +37,14 @@ public abstract class AbstractGroupGeoPipe extends AbstractGeoPipe {
 					group((GeoPipeFlow) starts.next());
 				}
 			} catch (NoSuchElementException e) {
-		    }
-			
-			groupIterator = groups.iterator();			
-		} 
-		
+			}
+
+			groupIterator = groups.iterator();
+		}
+
 		return groupIterator.next();
 	}
-	
+
 	/**
 	 * Subclasses should override this method
 	 */

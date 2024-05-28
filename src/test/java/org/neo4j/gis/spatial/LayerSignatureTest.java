@@ -19,6 +19,10 @@
  */
 package org.neo4j.gis.spatial;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import java.util.function.Consumer;
+import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.gis.spatial.index.IndexManager;
@@ -26,83 +30,86 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
-import java.util.function.Consumer;
-import java.util.function.Function;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 public class LayerSignatureTest extends Neo4jTestCase implements Constants {
-    private SpatialDatabaseService spatial;
 
-    @BeforeEach
-    public void setup() throws Exception {
-        super.setUp();
-        spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
-    }
+	private SpatialDatabaseService spatial;
 
-    @Test
-    public void testSimplePointLayer() {
-        testLayerSignature("EditableLayer(name='test', encoder=SimplePointEncoder(x='lng', y='lat', bbox='bbox'))",
-                tx -> spatial.createSimplePointLayer(tx, "test", "lng", "lat"));
-    }
+	@BeforeEach
+	public void setup() throws Exception {
+		super.setUp();
+		spatial = new SpatialDatabaseService(
+				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+	}
 
-    @Test
-    public void testNativePointLayer() {
-        testLayerSignature("EditableLayer(name='test', encoder=NativePointEncoder(geometry='position', bbox='mbr', crs=4326))",
-                tx -> spatial.createNativePointLayer(tx, "test", "position", "mbr"));
-    }
+	@Test
+	public void testSimplePointLayer() {
+		testLayerSignature("EditableLayer(name='test', encoder=SimplePointEncoder(x='lng', y='lat', bbox='bbox'))",
+				tx -> spatial.createSimplePointLayer(tx, "test", "lng", "lat"));
+	}
 
-    @Test
-    public void testDefaultSimplePointLayer() {
-        testLayerSignature("EditableLayer(name='test', encoder=SimplePointEncoder(x='longitude', y='latitude', bbox='bbox'))",
-                tx -> spatial.createSimplePointLayer(tx, "test"));
-    }
+	@Test
+	public void testNativePointLayer() {
+		testLayerSignature(
+				"EditableLayer(name='test', encoder=NativePointEncoder(geometry='position', bbox='mbr', crs=4326))",
+				tx -> spatial.createNativePointLayer(tx, "test", "position", "mbr"));
+	}
 
-    @Test
-    public void testSimpleWKBLayer() {
-        testLayerSignature("EditableLayer(name='test', encoder=WKBGeometryEncoder(geom='geometry', bbox='bbox'))",
-                tx -> spatial.createWKBLayer(tx, "test"));
-    }
+	@Test
+	public void testDefaultSimplePointLayer() {
+		testLayerSignature(
+				"EditableLayer(name='test', encoder=SimplePointEncoder(x='longitude', y='latitude', bbox='bbox'))",
+				tx -> spatial.createSimplePointLayer(tx, "test"));
+	}
 
-    @Test
-    public void testWKBLayer() {
-        testLayerSignature("EditableLayer(name='test', encoder=WKBGeometryEncoder(geom='wkb', bbox='bbox'))",
-                tx -> spatial.getOrCreateEditableLayer(tx, "test", "wkb", "wkb"));
-    }
+	@Test
+	public void testSimpleWKBLayer() {
+		testLayerSignature("EditableLayer(name='test', encoder=WKBGeometryEncoder(geom='geometry', bbox='bbox'))",
+				tx -> spatial.createWKBLayer(tx, "test"));
+	}
 
-    @Test
-    public void testWKTLayer() {
-        testLayerSignature("EditableLayer(name='test', encoder=WKTGeometryEncoder(geom='wkt', bbox='bbox'))",
-                tx -> spatial.getOrCreateEditableLayer(tx, "test", "wkt", "wkt"));
-    }
+	@Test
+	public void testWKBLayer() {
+		testLayerSignature("EditableLayer(name='test', encoder=WKBGeometryEncoder(geom='wkb', bbox='bbox'))",
+				tx -> spatial.getOrCreateEditableLayer(tx, "test", "wkb", "wkb"));
+	}
 
-    private Layer testLayerSignature(String signature, Function<Transaction, Layer> layerMaker) {
-        Layer layer;
-        try (Transaction tx = graphDb().beginTx()) {
-            layer = layerMaker.apply(tx);
-            tx.commit();
-        }
-        assertEquals(signature, layer.getSignature());
-        return layer;
-    }
+	@Test
+	public void testWKTLayer() {
+		testLayerSignature("EditableLayer(name='test', encoder=WKTGeometryEncoder(geom='wkt', bbox='bbox'))",
+				tx -> spatial.getOrCreateEditableLayer(tx, "test", "wkt", "wkt"));
+	}
 
-    private void inTx(Consumer<Transaction> txFunction) {
-        try (Transaction tx = graphDb().beginTx()) {
-            txFunction.accept(tx);
-            tx.commit();
-        }
-    }
+	private Layer testLayerSignature(String signature, Function<Transaction, Layer> layerMaker) {
+		Layer layer;
+		try (Transaction tx = graphDb().beginTx()) {
+			layer = layerMaker.apply(tx);
+			tx.commit();
+		}
+		assertEquals(signature, layer.getSignature());
+		return layer;
+	}
 
-    @Test
-    public void testDynamicLayer() {
-        Layer layer = testLayerSignature("EditableLayer(name='test', encoder=WKTGeometryEncoder(geom='wkt', bbox='bbox'))",
-                tx -> spatial.getOrCreateEditableLayer(tx, "test", "wkt", "wkt"));
-        inTx(tx -> {
-            DynamicLayer dynamic = spatial.asDynamicLayer(tx, layer);
-            assertEquals("EditableLayer(name='test', encoder=WKTGeometryEncoder(geom='wkt', bbox='bbox'))", dynamic.getSignature());
-            DynamicLayerConfig points = dynamic.addCQLDynamicLayerOnAttribute(tx, "is_a", "point", GTYPE_POINT);
-            assertEquals("DynamicLayer(name='CQL:is_a-point', config={layer='CQL:is_a-point', query=\"geometryType(the_geom) = 'Point' AND is_a = 'point'\"})", points.getSignature());
-        });
-    }
+	private void inTx(Consumer<Transaction> txFunction) {
+		try (Transaction tx = graphDb().beginTx()) {
+			txFunction.accept(tx);
+			tx.commit();
+		}
+	}
+
+	@Test
+	public void testDynamicLayer() {
+		Layer layer = testLayerSignature(
+				"EditableLayer(name='test', encoder=WKTGeometryEncoder(geom='wkt', bbox='bbox'))",
+				tx -> spatial.getOrCreateEditableLayer(tx, "test", "wkt", "wkt"));
+		inTx(tx -> {
+			DynamicLayer dynamic = spatial.asDynamicLayer(tx, layer);
+			assertEquals("EditableLayer(name='test', encoder=WKTGeometryEncoder(geom='wkt', bbox='bbox'))",
+					dynamic.getSignature());
+			DynamicLayerConfig points = dynamic.addCQLDynamicLayerOnAttribute(tx, "is_a", "point", GTYPE_POINT);
+			assertEquals(
+					"DynamicLayer(name='CQL:is_a-point', config={layer='CQL:is_a-point', query=\"geometryType(the_geom) = 'Point' AND is_a = 'point'\"})",
+					points.getSignature());
+		});
+	}
 
 }

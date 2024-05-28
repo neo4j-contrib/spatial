@@ -22,11 +22,10 @@ package org.geotools.data.neo4j;
 import java.net.URI;
 import java.util.HashSet;
 import java.util.Set;
-
 import org.geotools.api.data.ResourceInfo;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.feature.FeatureTypes;
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 
 /**
  * ResourceInfo implementation.
@@ -42,7 +41,6 @@ public class DefaultResourceInfo implements ResourceInfo {
 	private ReferencedEnvelope bbox;
 
 	/**
-	 *
 	 * @param name
 	 * @param crs
 	 * @param bbox
@@ -59,36 +57,42 @@ public class DefaultResourceInfo implements ResourceInfo {
 	public String getName() {
 		return name;
 	}
+
 	/**
 	 *
 	 */
 	public String getTitle() {
 		return name;
 	}
+
 	/**
 	 *
 	 */
 	public String getDescription() {
 		return description;
 	}
+
 	/**
 	 *
 	 */
 	public Set<String> getKeywords() {
-        return keywords;
+		return keywords;
 	}
+
 	/**
 	 *
 	 */
 	public URI getSchema() {
-        return FeatureTypes.DEFAULT_NAMESPACE;
+		return FeatureTypes.DEFAULT_NAMESPACE;
 	}
+
 	/**
 	 *
 	 */
 	public CoordinateReferenceSystem getCRS() {
 		return crs;
 	}
+
 	/**
 	 *
 	 */

@@ -35,30 +35,30 @@ import org.neo4j.graphdb.Transaction;
  * even in read-only queries like 'findLayer', it messed with nested transactions where both might
  * try create the same node, even if the developer was careful to split read and write aspects of the
  * code.
- *
+ * <p>
  * It is time to stop using a root node. This class will remain only for the purpose of helping
  * users transition older spatial models away from root nodes.
  */
 public class ReferenceNodes {
 
-    public static final Label LABEL_REFERENCE = Label.label("ReferenceNode");
-    public static final String PROP_NAME = "name";
+	public static final Label LABEL_REFERENCE = Label.label("ReferenceNode");
+	public static final String PROP_NAME = "name";
 
-    @Deprecated
-    public static Node getReferenceNode(Transaction tx, String name) {
-        throw new IllegalStateException("It is no longer valid to use a root or reference node in the spatial model");
-    }
+	@Deprecated
+	public static Node getReferenceNode(Transaction tx, String name) {
+		throw new IllegalStateException("It is no longer valid to use a root or reference node in the spatial model");
+	}
 
-    public static Node findDeprecatedReferenceNode(Transaction tx, String name) {
-        return tx.findNode(LABEL_REFERENCE, PROP_NAME, name);
-    }
+	public static Node findDeprecatedReferenceNode(Transaction tx, String name) {
+		return tx.findNode(LABEL_REFERENCE, PROP_NAME, name);
+	}
 
-    /**
-     * Should be used for tests only. No attempt is made to ensure no duplicates are created.
-     */
-    public static Node createDeprecatedReferenceNode(Transaction tx, String name) {
-        Node node = tx.createNode(LABEL_REFERENCE);
-        node.setProperty(PROP_NAME, name);
-        return node;
-    }
+	/**
+	 * Should be used for tests only. No attempt is made to ensure no duplicates are created.
+	 */
+	public static Node createDeprecatedReferenceNode(Transaction tx, String name) {
+		Node node = tx.createNode(LABEL_REFERENCE);
+		node.setProperty(PROP_NAME, name);
+		return node;
+	}
 }

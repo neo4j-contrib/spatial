@@ -19,9 +19,8 @@
  */
 package org.neo4j.gis.spatial;
 
-import org.neo4j.graphdb.Node;
-
 import org.locationtech.jts.geom.Geometry;
+import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
 /**
@@ -39,46 +38,46 @@ import org.neo4j.graphdb.Transaction;
  */
 public interface SpatialDataset {
 
-    /**
-     * Provides a method for iterating over all nodes that represent geometries in this dataset.
-     * This is similar to the getAllNodes() methods from GraphDatabaseService but will only return
-     * nodes that this dataset considers its own, and can be passed to the GeometryEncoder to
-     * generate a Geometry. There is no restriction on a node belonging to multiple datasets, or
-     * multiple layers within the same dataset.
-     * 
-     * @return iterable over geometry nodes in the dataset
-     * @param tx
-     */
-    public Iterable<Node> getAllGeometryNodes(Transaction tx);
+	/**
+	 * Provides a method for iterating over all nodes that represent geometries in this dataset.
+	 * This is similar to the getAllNodes() methods from GraphDatabaseService but will only return
+	 * nodes that this dataset considers its own, and can be passed to the GeometryEncoder to
+	 * generate a Geometry. There is no restriction on a node belonging to multiple datasets, or
+	 * multiple layers within the same dataset.
+	 *
+	 * @param tx
+	 * @return iterable over geometry nodes in the dataset
+	 */
+	public Iterable<Node> getAllGeometryNodes(Transaction tx);
 
-    /**
-     * Provides a method for iterating over all geometries in this dataset. This is similar to the
-     * getAllGeometryNodes() method but internally converts the Node to a Geometry.
-     * 
-     * @return iterable over geometries in the dataset
-     */
-    public Iterable< ? extends Geometry> getAllGeometries(Transaction tx);
+	/**
+	 * Provides a method for iterating over all geometries in this dataset. This is similar to the
+	 * getAllGeometryNodes() method but internally converts the Node to a Geometry.
+	 *
+	 * @return iterable over geometries in the dataset
+	 */
+	public Iterable<? extends Geometry> getAllGeometries(Transaction tx);
 
-    /**
-     * Return the geometry encoder used by this SpatialDataset to convert individual geometries to
-     * and from the database structure.
-     * 
-     * @return GeometryEncoder for this dataset
-     */
-    public GeometryEncoder getGeometryEncoder();
+	/**
+	 * Return the geometry encoder used by this SpatialDataset to convert individual geometries to
+	 * and from the database structure.
+	 *
+	 * @return GeometryEncoder for this dataset
+	 */
+	public GeometryEncoder getGeometryEncoder();
 
-    /**
-     * Each dataset can have one or more layers. This methods provides a way to iterate over all
-     * layers.
-     * 
-     * @return iterable over all Layers that can be viewed from this dataset
-     */
-    public Iterable< ? extends Layer> getLayers();
+	/**
+	 * Each dataset can have one or more layers. This methods provides a way to iterate over all
+	 * layers.
+	 *
+	 * @return iterable over all Layers that can be viewed from this dataset
+	 */
+	public Iterable<? extends Layer> getLayers();
 
-    /**
-     * Does the dataset (or layer) contain the geometry specified by this node.
-     * 
-     * @return boolean true/false if the geometry node is in this Dataset or Layer
-     */
-    public boolean containsGeometryNode(Transaction tx, Node node);
+	/**
+	 * Does the dataset (or layer) contain the geometry specified by this node.
+	 *
+	 * @return boolean true/false if the geometry node is in this Dataset or Layer
+	 */
+	public boolean containsGeometryNode(Transaction tx, Node node);
 }
