@@ -54,7 +54,7 @@ This has meant that the spatial library needed a major refactoring to work with 
   The removal of this support required that all internal API's needed to include parameters
   for the current transaction, and only the specific surface designed for embedded use not have that.
 * The library made use of Lucene based explicit indexes in many places.
-  The removal of support for explicit indexes required completely new solutions in sevaral places:
+  The removal of support for explicit indexes required completely new solutions in several places:
 	* The `OSMImporter` will instead now use normal Neo4j schema indexes (introduced in 2.0).
 	  However, these can only be created in separate index transactions.
 	  Due to the new transaction model this requires stopping the import transaction,
@@ -129,7 +129,7 @@ The key concepts of this library include:
 	* WKT and WKB stored as properties of nodes
 	* Simple points as properties of nodes (two doubles, or a double[] or a native Neo4j `Point`)
 	* OpenStreetMap with complex geometries stored as sub-graphs to reflect the original topology of the OSM model
-* Multile CoordinationReferenceSystem support using GeoTools
+* Multiple CoordinationReferenceSystem support using GeoTools
 * Support the concept of multiple geographic layers, each with its own CRS and Index
 * Include an index capable of searching for complex geometries (in-graph RTree index)
 * Support import and export in a number of known formats (e.g. Shapefile and OSM)
@@ -316,9 +316,9 @@ This has not been tested at all in any GeoTools enabled application, but could p
 * restart geoserver
 * configure a new workspace
 * configure a new datasource neo4j in your workspace. Point the "The directory path of the Neo4j database:" parameter to
-  the relative (form the GeoServer working dir) or aboslute path to a Neo4j Spatial database with layers (
+  the relative (form the GeoServer working dir) or absolute path to a Neo4j Spatial database with layers (
   see [Neo4j Spatial](https://github.com/neo4j/spatial))
-* in Layers, do "Add new resource" and choose your Neo4j datastore to see the exisitng Neo4j Spatial layers and add
+* in Layers, do "Add new resource" and choose your Neo4j datastore to see the existing Neo4j Spatial layers and add
   them.
 
 ### Testing in GeoServer trunk ###
@@ -537,7 +537,7 @@ at [Neo4j Spatial Releases](https://github.com/neo4j-contrib/m2/tree/master/rele
 
 ## Running Neo4j spatial code from the command-line ##
 
-Some of the classes in Neoj4-Spatial include main() methods and can be run on the command-line.
+Some of the classes in Neo4j-Spatial include main() methods and can be run on the command-line.
 For example there are command-line options for importing SHP and OSM data. See the main methods
 in the OSMImporter and ShapefileImporter classes. Here we will describe how to set up the dependencies
 for running the command-line, using the OSMImporter and the sample OSM file two-street.osm.
