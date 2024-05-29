@@ -29,7 +29,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class SimplifyPreservingTopology extends AbstractGeoPipe {
 
-	private double distanceTolerance;
+	private final double distanceTolerance;
 
 	public SimplifyPreservingTopology(double distanceTolerance) {
 		this.distanceTolerance = distanceTolerance;

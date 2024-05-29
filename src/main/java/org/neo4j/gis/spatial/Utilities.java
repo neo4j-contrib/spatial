@@ -71,7 +71,8 @@ public class Utilities {
 			boolean inspectAndFilters) {
 		if (filter instanceof BBOXImpl) {
 			return extractEnvelopeFromBBox((BBOXImpl) filter);
-		} else if (filter instanceof IntersectsImpl ||
+		}
+		if (filter instanceof IntersectsImpl ||
 				filter instanceof ContainsImpl ||
 				filter instanceof CrossesImpl ||
 				filter instanceof EqualsImpl ||
@@ -79,8 +80,8 @@ public class Utilities {
 				filter instanceof TouchesImpl ||
 				filter instanceof WithinImpl) {
 			return extractEnvelopeFromGeometryFilter((GeometryFilterImpl) filter);
-		} else if (filter instanceof AndImpl && inspectAndFilters) {
-			AndImpl andFilter = (AndImpl) filter;
+		}
+		if (filter instanceof AndImpl andFilter && inspectAndFilters) {
 			Iterator children = andFilter.getFilterIterator();
 			while (children.hasNext()) {
 				Filter child = (Filter) children.next();
@@ -94,11 +95,11 @@ public class Utilities {
 		return null;
 	}
 
-	@SuppressWarnings("deprecation")
 	private static Envelope extractEnvelopeFromGeometryFilter(GeometryFilterImpl intersectFilter) {
 		if (intersectFilter.getExpression1() instanceof LiteralExpressionImpl) {
 			return extractEnvelopeFromLiteralExpression((LiteralExpressionImpl) intersectFilter.getExpression1());
-		} else if (intersectFilter.getExpression2() instanceof LiteralExpressionImpl) {
+		}
+		if (intersectFilter.getExpression2() instanceof LiteralExpressionImpl) {
 			return extractEnvelopeFromLiteralExpression((LiteralExpressionImpl) intersectFilter.getExpression2());
 		}
 
@@ -108,9 +109,8 @@ public class Utilities {
 	private static Envelope extractEnvelopeFromLiteralExpression(LiteralExpressionImpl exp) {
 		if (exp.getValue() instanceof Geometry) {
 			return fromJtsToNeo4j(((Geometry) exp.getValue()).getEnvelopeInternal());
-		} else {
-			return null;
 		}
+		return null;
 	}
 
 	private static Envelope extractEnvelopeFromBBox(BBOXImpl boundingBox) {

@@ -31,8 +31,8 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class FilterEqualNorm extends AbstractFilterGeoPipe {
 
-	private Geometry other;
-	private double tolerance;
+	private final Geometry other;
+	private final double tolerance;
 
 	public FilterEqualNorm(Geometry other) {
 		this(other, 0);

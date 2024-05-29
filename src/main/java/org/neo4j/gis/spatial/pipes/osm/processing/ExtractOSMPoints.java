@@ -37,7 +37,7 @@ import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 
 public class ExtractOSMPoints extends AbstractExtractGeoPipe {
 
-	private GeometryFactory geomFactory;
+	private final GeometryFactory geomFactory;
 
 	public ExtractOSMPoints(GeometryFactory geomFactory) {
 		this.geomFactory = geomFactory;

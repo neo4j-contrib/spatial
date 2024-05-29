@@ -29,7 +29,7 @@ import org.neo4j.graphdb.Transaction;
 /**
  * The RTreeIndex is the first and still standard index for Neo4j Spatial. It
  * implements both SpatialIndexReader and SpatialIndexWriter for read and write
- * support. In addition it implements SpatialTreeIndex which allows it to be
+ * support. In addition, it implements SpatialTreeIndex which allows it to be
  * wrapped with modifying search functions to that custom classes can be used to
  * perform filtering searches on the tree.
  */

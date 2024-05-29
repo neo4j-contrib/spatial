@@ -29,7 +29,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class Min extends AbstractGroupGeoPipe {
 
-	private String property;
+	private final String property;
 	private Comparator<Object> comparator;
 
 	public Min(String property, Comparator<Object> comparator) {
@@ -48,7 +48,7 @@ public class Min extends AbstractGroupGeoPipe {
 			return;
 		}
 
-		if (groups.size() == 0) {
+		if (groups.isEmpty()) {
 			groups.add(flow);
 		} else {
 			Object min = groups.get(0).getProperties().get(property);

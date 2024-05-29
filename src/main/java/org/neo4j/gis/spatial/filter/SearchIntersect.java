@@ -37,6 +37,7 @@ public class SearchIntersect extends AbstractSearchIntersection {
 		super(layer, other);
 	}
 
+	@Override
 	protected boolean onEnvelopeIntersection(Node geomNode, Envelope geomEnvelope) {
 		Geometry geometry = decode(geomNode);
 		return geometry.intersects(referenceGeometry);

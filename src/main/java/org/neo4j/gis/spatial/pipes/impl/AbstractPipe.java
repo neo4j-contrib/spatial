@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import javax.annotation.Nonnull;
 
 /**
  * An AbstractPipe provides most of the functionality that is repeated in every instance of a Pipe.
@@ -18,7 +19,7 @@ import java.util.NoSuchElementException;
  * If the current incoming S is not to be emitted and there are no other S objects to process and emit, then throw a
  * NoSuchElementException.
  *
- * @author Marko A. Rodriguez (http://markorodriguez.com)
+ * @author <a href="http://markorodriguez.com" >Marko A. Rodriguez</a>
  */
 public abstract class AbstractPipe<S, E> implements Pipe<S, E> {
 
@@ -31,6 +32,7 @@ public abstract class AbstractPipe<S, E> implements Pipe<S, E> {
 		this.starts = starts;
 	}
 
+	@Override
 	public void setStarts(final Iterator<S> starts) {
 		if (starts instanceof Pipe) {
 			this.starts = starts;
@@ -39,22 +41,25 @@ public abstract class AbstractPipe<S, E> implements Pipe<S, E> {
 		}
 	}
 
+	@Override
 	public void setStarts(final Iterable<S> starts) {
 		this.setStarts(starts.iterator());
 	}
 
+	@Override
 	public void reset() {
 		if (this.starts instanceof Pipe) {
-			((Pipe) this.starts).reset();
+			((Pipe<?, ?>) this.starts).reset();
 		}
 		if (this.starts instanceof LastElementIterator) {
-			((LastElementIterator) this.starts).reset();
+			((LastElementIterator<?>) this.starts).reset();
 		}
 		this.nextEnd = null;
 		this.currentEnd = null;
 		this.available = false;
 	}
 
+	@Override
 	public List<E> getPath() {
 		final List<E> pathElements = getPathToHere();
 		final int size = pathElements.size();
@@ -65,29 +70,30 @@ public abstract class AbstractPipe<S, E> implements Pipe<S, E> {
 		return pathElements;
 	}
 
+	@Override
 	public void remove() {
 		throw new UnsupportedOperationException();
 	}
 
+	@Override
 	public E next() {
 		if (this.available) {
 			this.available = false;
 			return (this.currentEnd = this.nextEnd);
-		} else {
-			return (this.currentEnd = this.processNextStart());
 		}
+		return (this.currentEnd = this.processNextStart());
 	}
 
+	@Override
 	public boolean hasNext() {
 		if (this.available) {
 			return true;
-		} else {
-			try {
-				this.nextEnd = this.processNextStart();
-				return (this.available = true);
-			} catch (final NoSuchElementException e) {
-				return (this.available = false);
-			}
+		}
+		try {
+			this.nextEnd = this.processNextStart();
+			return (this.available = true);
+		} catch (final NoSuchElementException e) {
+			return (this.available = false);
 		}
 	}
 
@@ -97,6 +103,8 @@ public abstract class AbstractPipe<S, E> implements Pipe<S, E> {
 	 *
 	 * @return the pipe from the perspective of an iterator
 	 */
+	@Override
+	@Nonnull
 	public Iterator<E> iterator() {
 		return this;
 	}
@@ -107,16 +115,17 @@ public abstract class AbstractPipe<S, E> implements Pipe<S, E> {
 
 	protected abstract E processNextStart() throws NoSuchElementException;
 
+	@SuppressWarnings("unchecked")
 	protected List<E> getPathToHere() {
 		if (this.starts instanceof Pipe) {
-			return ((Pipe) this.starts).getPath();
-		} else if (this.starts instanceof LastElementIterator) {
-			final List<E> list = new ArrayList<>();
-			list.add((E) ((LastElementIterator) starts).lastElement());
-			return list;
-		} else {
-			return new ArrayList<>();
+			return ((Pipe<?, E>) this.starts).getPath();
 		}
+		if (this.starts instanceof LastElementIterator<?> iter) {
+			final List<E> list = new ArrayList<>();
+			list.add((E) iter.lastElement());
+			return list;
+		}
+		return new ArrayList<>();
 	}
 
 

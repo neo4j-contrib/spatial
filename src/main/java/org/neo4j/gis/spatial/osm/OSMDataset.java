@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial.osm;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Objects;
+import javax.annotation.Nonnull;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
@@ -80,10 +81,9 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
 				.getSingleRelationship(SpatialRelationshipTypes.LAYERS, Direction.INCOMING);
 		if (rel == null) {
 			throw new SpatialDatabaseException("Layer '" + layer + "' does not have an associated dataset");
-		} else {
-			String datasetNodeId = rel.getStartNode().getElementId();
-			return new OSMDataset(layer, datasetNodeId);
 		}
+		String datasetNodeId = rel.getStartNode().getElementId();
+		return new OSMDataset(layer, datasetNodeId);
 	}
 
 	public Iterable<Node> getAllUserNodes(Transaction tx) {
@@ -173,7 +173,7 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
 
 	public class OSMNode {
 
-		protected Node node;
+		protected final Node node;
 		protected Node geomNode;
 		protected Geometry geometry;
 
@@ -211,11 +211,11 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
 		public String toString() {
 			if (node.hasProperty("name")) {
 				return node.getProperty("name").toString();
-			} else if (getGeometry() != null) {
-				return getGeometry().getGeometryType();
-			} else {
-				return node.toString();
 			}
+			if (getGeometry() != null) {
+				return getGeometry().getGeometryType();
+			}
+			return node.toString();
 		}
 	}
 
@@ -235,6 +235,8 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
 			return this;
 		}
 
+		@Override
+		@Nonnull
 		public Iterator<WayPoint> iterator() {
 			if (wayPointNodeIterator == null || !wayPointNodeIterator.hasNext()) {
 				wayPointNodeIterator = getWayNodes().iterator();
@@ -242,14 +244,17 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
 			return this;
 		}
 
+		@Override
 		public boolean hasNext() {
 			return wayPointNodeIterator.hasNext();
 		}
 
+		@Override
 		public WayPoint next() {
 			return new WayPoint(wayPointNodeIterator.next());
 		}
 
+		@Override
 		public void remove() {
 			throw new UnsupportedOperationException("Cannot modify way-point collection");
 		}

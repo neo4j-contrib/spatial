@@ -70,7 +70,7 @@ public class SimplePointEncoder extends AbstractGeometryEncoder implements Confi
 
 	@Override
 	public void setConfiguration(String configuration) {
-		if (configuration != null && configuration.trim().length() > 0) {
+		if (configuration != null && !configuration.trim().isEmpty()) {
 			String[] fields = configuration.split(":");
 			if (fields.length > 0) {
 				xProperty = fields[0];

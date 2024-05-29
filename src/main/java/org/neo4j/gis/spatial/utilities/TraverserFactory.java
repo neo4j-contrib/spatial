@@ -36,11 +36,7 @@ public class TraverserFactory {
 				return (Traverser) TraversalDescription.class.getDeclaredMethod("traverse",
 						Node[].class).invoke(traversalDescription, new Object[]{new Node[]{layerNode}});
 			}
-		} catch (IllegalAccessException e) {
-			throw new IllegalStateException("You seem to be using an unsupported version of Neo4j.", e);
-		} catch (InvocationTargetException e) {
-			throw new IllegalStateException("You seem to be using an unsupported version of Neo4j.", e);
-		} catch (NoSuchMethodException e) {
+		} catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
 			throw new IllegalStateException("You seem to be using an unsupported version of Neo4j.", e);
 		}
 	}

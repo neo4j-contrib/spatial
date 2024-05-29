@@ -47,7 +47,7 @@ Also review the classes in the +org.neo4j.gis.spatial.query package+ for the ful
 [[spatial-export-shapefile]]
 == Export a shapefile
 
-The ESRI Shapefile that we imported in the first example above was actually created by Neo4j-Spatial. It is possible to use the results of a query, or a DynamicLayer, to create a new Shapefile using the ShapefileExporter. If we were to export the complete layer created from importing a shapefile, we would not achieve much, but we can could use this capability to create shapefiles that are subsets of other layers, or that are created from data in another format.
+The ESRI Shapefile that we imported in the first example above was actually created by Neo4j-Spatial. It is possible to use the results of a query, or a DynamicLayer, to create a new Shapefile using the ShapefileExporter. If we were to export the complete layer created from importing a shapefile, we would not achieve much, but we could use this capability to create shapefiles that are subsets of other layers, or that are created from data in another format.
 
 [source,java,indent=0]
 ----
@@ -61,7 +61,7 @@ This example shows how we can import an OSM dataset, which contains data with a 
 include::{sourceDir}/org/neo4j/gis/spatial/TestsForDocs.java[tags=exportShapefileFromQuery]
 ----
 
-This time we import the same OSM model, but query for all geometries inside a envelope, and export that to a new Shapefile.
+This time we import the same OSM model, but query for all geometries inside an envelope, and export that to a new Shapefile.
 
 [[spatial-geopipes]]
 == GeoPipes

@@ -28,7 +28,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class ExtractPoints extends AbstractExtractGeoPipe {
 
-	private GeometryFactory geomFactory;
+	private final GeometryFactory geomFactory;
 
 	public ExtractPoints(GeometryFactory geomFactory) {
 		this.geomFactory = geomFactory;

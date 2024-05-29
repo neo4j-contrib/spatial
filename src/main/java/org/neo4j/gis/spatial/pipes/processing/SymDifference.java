@@ -29,7 +29,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class SymDifference extends AbstractGeoPipe {
 
-	private Geometry other;
+	private final Geometry other;
 
 	public SymDifference(Geometry other) {
 		this.other = other;

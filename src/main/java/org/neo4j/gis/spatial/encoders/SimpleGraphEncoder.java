@@ -35,17 +35,16 @@ import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 
 /**
- * Simple encoder that stores geometries as an linked list of point
+ * Simple encoder that stores geometries as a linked list of point
  * nodes. Only supports LineString geometries.
- *
- * @TODO: Consider generalizing this code and making a general linked list geometry store available in the library
  */
+// TODO: Consider generalizing this code and making a general linked list geometry store available in the library
 public class SimpleGraphEncoder extends AbstractGeometryEncoder {
 
 	private GeometryFactory geometryFactory;
 
 	protected enum SimpleRelationshipTypes implements RelationshipType {
-		FIRST, NEXT;
+		FIRST, NEXT
 	}
 
 	private GeometryFactory getGeometryFactory() {
@@ -81,6 +80,7 @@ public class SimpleGraphEncoder extends AbstractGeometryEncoder {
 		}
 	}
 
+	@Override
 	public Geometry decodeGeometry(Entity container) {
 		Node node = testIsNode(container);
 		CoordinateList coordinates = new CoordinateList();

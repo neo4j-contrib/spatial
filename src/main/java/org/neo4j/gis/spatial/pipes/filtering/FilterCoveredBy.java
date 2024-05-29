@@ -30,8 +30,8 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class FilterCoveredBy extends AbstractFilterGeoPipe {
 
-	private Geometry other;
-	private Envelope otherEnvelope;
+	private final Geometry other;
+	private final Envelope otherEnvelope;
 
 	public FilterCoveredBy(Geometry other) {
 		this.other = other;

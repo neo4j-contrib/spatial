@@ -30,8 +30,8 @@ import org.neo4j.graphdb.Node;
  */
 public abstract class AbstractSearchIntersection extends AbstractSearchEnvelopeIntersection {
 
-	protected Geometry referenceGeometry;
-	protected Layer layer;
+	protected final Geometry referenceGeometry;
+	protected final Layer layer;
 
 	public AbstractSearchIntersection(Layer layer, Geometry referenceGeometry) {
 		super(layer.getGeometryEncoder(), Utilities.fromJtsToNeo4j(referenceGeometry.getEnvelopeInternal()));

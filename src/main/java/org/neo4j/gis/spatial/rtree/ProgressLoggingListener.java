@@ -45,7 +45,7 @@ public class ProgressLoggingListener implements Listener {
 
 	public ProgressLoggingListener(String name, final PrintStream out) {
 		this.name = name;
-		this.out = line -> out.println(line);
+		this.out = out::println;
 	}
 
 	public ProgressLoggingListener(String name, Log log, Level level) {
@@ -103,7 +103,7 @@ public class ProgressLoggingListener implements Listener {
 		long now = System.currentTimeMillis();
 		if (enabled && now - lastLogTime > timeWait) {
 			if (totalUnits > 0) {
-				out.log("" + percText() + " (" + workedSoFar + "/" + totalUnits + ") - " + action + " " + name);
+				out.log(percText() + " (" + workedSoFar + "/" + totalUnits + ") - " + action + " " + name);
 			} else {
 				out.log(action + " " + name);
 			}
@@ -114,8 +114,7 @@ public class ProgressLoggingListener implements Listener {
 	private String percText() {
 		if (totalUnits > 0) {
 			return String.format(Locale.ENGLISH, "%.2f", 100.0 * workedSoFar / totalUnits);
-		} else {
-			return "NaN";
 		}
+		return "NaN";
 	}
 }

@@ -28,7 +28,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class Buffer extends AbstractGeoPipe {
 
-	private double distance;
+	private final double distance;
 
 	/**
 	 * @param distance buffer size

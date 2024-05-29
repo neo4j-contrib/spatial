@@ -123,6 +123,7 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 		return values;
 	}
 
+	@Override
 	public Map<String, Object> getProperties(Transaction tx) {
 		Map<String, Object> result = new HashMap<>();
 
@@ -189,7 +190,7 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 	private String getPropString() {
 		StringBuilder text = new StringBuilder();
 		for (String key : geomNode.getPropertyKeys()) {
-			if (text.length() > 0) {
+			if (!text.isEmpty()) {
 				text.append(", ");
 			}
 			text.append(key).append(": ").append(geomNode.getProperty(key).toString());

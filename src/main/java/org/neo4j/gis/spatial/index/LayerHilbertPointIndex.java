@@ -25,10 +25,6 @@ import org.neo4j.gis.spatial.index.curves.SpaceFillingCurve;
 public class LayerHilbertPointIndex extends LayerSpaceFillingCurvePointIndex {
 
 	@Override
-	protected String indexTypeName() {
-		return "hilbert";
-	}
-
 	protected SpaceFillingCurve makeCurve(Envelope envelope, int maxLevels) {
 		return new HilbertSpaceFillingCurve2D(envelope, maxLevels);
 	}

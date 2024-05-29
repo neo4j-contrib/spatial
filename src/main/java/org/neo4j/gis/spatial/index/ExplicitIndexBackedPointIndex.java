@@ -188,9 +188,8 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
 					next = node;
 					monitor.hit();
 					break;
-				} else {
-					monitor.miss();
 				}
+				monitor.miss();
 			}
 		}
 
@@ -204,10 +203,10 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
 			Node node = next;
 			if (node == null) {
 				throw new NoSuchElementException(); // GeoPipes relies on this behaviour instead of hasNext()
-			} else {
-				prefetch();
-				return node;
 			}
+
+			prefetch();
+			return node;
 		}
 	}
 

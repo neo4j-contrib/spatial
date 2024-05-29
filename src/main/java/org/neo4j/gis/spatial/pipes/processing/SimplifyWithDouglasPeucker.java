@@ -30,7 +30,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class SimplifyWithDouglasPeucker extends AbstractGeoPipe {
 
-	private double distanceTolerance;
+	private final double distanceTolerance;
 
 	public SimplifyWithDouglasPeucker(double distanceTolerance) {
 		this.distanceTolerance = distanceTolerance;

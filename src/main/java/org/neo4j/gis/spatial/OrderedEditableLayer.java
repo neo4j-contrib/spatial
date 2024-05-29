@@ -50,6 +50,7 @@ public class OrderedEditableLayer extends EditableLayerImpl {
 		GEOMETRIES, NEXT_GEOM
 	}
 
+	@Override
 	protected Node addGeomNode(Transaction tx, Geometry geom, String[] fieldsName, Object[] fields) {
 		Node geomNode = super.addGeomNode(tx, geom, fieldsName, fields);
 		Node layerNode = getLayerNode(tx);
@@ -79,9 +80,10 @@ public class OrderedEditableLayer extends EditableLayerImpl {
 	 * generate a Geometry. There is no restricting on a node belonging to multiple datasets, or
 	 * multiple layers within the same dataset.
 	 *
-	 * @param tx
+	 * @param tx the transaction
 	 * @return iterable over geometry nodes in the dataset
 	 */
+	@Override
 	public Iterable<Node> getAllGeometryNodes(Transaction tx) {
 		TraversalDescription td = new MonoDirectionalTraversalDescription()
 				.depthFirst()

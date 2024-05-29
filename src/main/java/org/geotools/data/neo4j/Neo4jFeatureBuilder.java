@@ -55,16 +55,13 @@ public class Neo4jFeatureBuilder {
 	private final SimpleFeatureBuilder builder;
 	private final List<String> extraPropertyNames;
 
-	/**
-	 *
-	 */
 	public Neo4jFeatureBuilder(SimpleFeatureType sft, List<String> extraPropertyNames) {
 		this.builder = new SimpleFeatureBuilder(sft);
 		this.extraPropertyNames = extraPropertyNames;
 	}
 
 	/**
-	 * If it is necessary to lookup the layer type with a transaction, use this factory method to make the feature
+	 * If it is necessary to look up the layer type with a transaction, use this factory method to make the feature
 	 * builder
 	 */
 	public static Neo4jFeatureBuilder fromLayer(Transaction tx, Layer layer) {
@@ -135,11 +132,11 @@ public class Neo4jFeatureBuilder {
 
 		GeometryType geometryType = build.buildGeometryType();
 
-		List<AttributeDescriptor> attributes = new ArrayList<AttributeDescriptor>();
+		List<AttributeDescriptor> attributes = new ArrayList<>();
 		attributes.add(build.buildDescriptor(BasicFeatureTypes.GEOMETRY_ATTRIBUTE_NAME, geometryType));
 
 		if (extraPropertyNames != null) {
-			Set<String> usedNames = new HashSet<String>();
+			Set<String> usedNames = new HashSet<>();
 			// record names in case of duplicates
 			usedNames.add(BasicFeatureTypes.GEOMETRY_ATTRIBUTE_NAME);
 

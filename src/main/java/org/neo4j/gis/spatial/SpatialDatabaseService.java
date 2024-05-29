@@ -172,11 +172,10 @@ public class SpatialDatabaseService implements Constants {
 	public DynamicLayer asDynamicLayer(Transaction tx, Layer layer) {
 		if (layer instanceof DynamicLayer) {
 			return (DynamicLayer) layer;
-		} else {
-			Node node = layer.getLayerNode(tx);
-			node.setProperty(PROP_LAYER_CLASS, DynamicLayer.class.getCanonicalName());
-			return (DynamicLayer) LayerUtilities.makeLayerFromNode(tx, indexManager, node);
 		}
+		Node node = layer.getLayerNode(tx);
+		node.setProperty(PROP_LAYER_CLASS, DynamicLayer.class.getCanonicalName());
+		return (DynamicLayer) LayerUtilities.makeLayerFromNode(tx, indexManager, node);
 	}
 
 	public DefaultLayer getOrCreateDefaultLayer(Transaction tx, String name) {
@@ -207,17 +206,13 @@ public class SpatialDatabaseService implements Constants {
 		if (index == null) {
 			return LayerRTreeIndex.class;
 		}
-		switch (index.toLowerCase()) {
-			case RTREE_INDEX_NAME:
-				return LayerRTreeIndex.class;
-			case GEOHASH_INDEX_NAME:
-				return LayerGeohashPointIndex.class;
-			case "zorder":
-				return LayerZOrderPointIndex.class;
-			case "hilbert":
-				return LayerHilbertPointIndex.class;
-		}
-		throw new IllegalArgumentException("Unknown index: " + index);
+		return switch (index.toLowerCase()) {
+			case RTREE_INDEX_NAME -> LayerRTreeIndex.class;
+			case GEOHASH_INDEX_NAME -> LayerGeohashPointIndex.class;
+			case "zorder" -> LayerZOrderPointIndex.class;
+			case "hilbert" -> LayerHilbertPointIndex.class;
+			default -> throw new IllegalArgumentException("Unknown index: " + index);
+		};
 	}
 
 	public EditableLayer getOrCreateSimplePointLayer(Transaction tx, String name, String index, String xProperty,
@@ -238,12 +233,12 @@ public class SpatialDatabaseService implements Constants {
 		if (layer == null) {
 			return (EditableLayer) createLayer(tx, name, encoderClass, SimplePointLayer.class, indexClass,
 					makeEncoderConfig(encoderConfig), DefaultGeographicCRS.WGS84);
-		} else if (layer instanceof EditableLayer) {
-			return (EditableLayer) layer;
-		} else {
-			throw new SpatialDatabaseException(
-					"Existing layer '" + layer + "' is not of the expected type: " + EditableLayer.class);
 		}
+		if (layer instanceof EditableLayer) {
+			return (EditableLayer) layer;
+		}
+		throw new SpatialDatabaseException(
+				"Existing layer '" + layer + "' is not of the expected type: " + EditableLayer.class);
 	}
 
 	public Layer getOrCreateLayer(Transaction tx, String name, Class<? extends GeometryEncoder> geometryEncoder,
@@ -343,7 +338,7 @@ public class SpatialDatabaseService implements Constants {
 		if (args != null) {
 			for (String arg : args) {
 				if (arg != null) {
-					if (sb.length() > 0) {
+					if (!sb.isEmpty()) {
 						sb.append(":");
 					}
 					sb.append(arg);
@@ -373,7 +368,7 @@ public class SpatialDatabaseService implements Constants {
 
 		Layer layer = LayerUtilities.makeLayerAndNode(tx, indexManager, name, geometryEncoderClass, layerClass,
 				indexClass);
-		if (encoderConfig != null && encoderConfig.length() > 0) {
+		if (encoderConfig != null && !encoderConfig.isEmpty()) {
 			GeometryEncoder encoder = layer.getGeometryEncoder();
 			if (encoder instanceof Configurable) {
 				((Configurable) encoder).setConfiguration(encoderConfig);
@@ -403,8 +398,12 @@ public class SpatialDatabaseService implements Constants {
 			return GTYPE_GEOMETRY;
 		}
 		try {
-			return convertJtsClassToGeometryType(
-					(Class<? extends Geometry>) Class.forName("org.locationtech.jts.geom." + geometryName));
+			Class<?> aClass = Class.forName("org.locationtech.jts.geom." + geometryName);
+			if (!Geometry.class.isAssignableFrom(aClass)) {
+				throw new ClassNotFoundException("Not a geometry class");
+			}
+			//noinspection unchecked
+			return convertJtsClassToGeometryType((Class<? extends Geometry>) aClass);
 		} catch (ClassNotFoundException e) {
 			System.err.println("Unrecognized geometry '" + geometryName + "': " + e);
 			return GTYPE_GEOMETRY;
@@ -416,40 +415,37 @@ public class SpatialDatabaseService implements Constants {
 	}
 
 	public static Class<? extends Geometry> convertGeometryTypeToJtsClass(Integer geometryType) {
-		switch (geometryType) {
-			case GTYPE_POINT:
-				return Point.class;
-			case GTYPE_LINESTRING:
-				return LineString.class;
-			case GTYPE_POLYGON:
-				return Polygon.class;
-			case GTYPE_MULTIPOINT:
-				return MultiPoint.class;
-			case GTYPE_MULTILINESTRING:
-				return MultiLineString.class;
-			case GTYPE_MULTIPOLYGON:
-				return MultiPolygon.class;
-			default:
-				return Geometry.class;
-		}
+		return switch (geometryType) {
+			case GTYPE_POINT -> Point.class;
+			case GTYPE_LINESTRING -> LineString.class;
+			case GTYPE_POLYGON -> Polygon.class;
+			case GTYPE_MULTIPOINT -> MultiPoint.class;
+			case GTYPE_MULTILINESTRING -> MultiLineString.class;
+			case GTYPE_MULTIPOLYGON -> MultiPolygon.class;
+			default -> Geometry.class;
+		};
 	}
 
 	public static int convertJtsClassToGeometryType(Class<? extends Geometry> jtsClass) {
 		if (jtsClass.equals(Point.class)) {
 			return GTYPE_POINT;
-		} else if (jtsClass.equals(LineString.class)) {
-			return GTYPE_LINESTRING;
-		} else if (jtsClass.equals(Polygon.class)) {
-			return GTYPE_POLYGON;
-		} else if (jtsClass.equals(MultiPoint.class)) {
-			return GTYPE_MULTIPOINT;
-		} else if (jtsClass.equals(MultiLineString.class)) {
-			return GTYPE_MULTILINESTRING;
-		} else if (jtsClass.equals(MultiPolygon.class)) {
-			return GTYPE_MULTIPOLYGON;
-		} else {
-			return GTYPE_GEOMETRY;
 		}
+		if (jtsClass.equals(LineString.class)) {
+			return GTYPE_LINESTRING;
+		}
+		if (jtsClass.equals(Polygon.class)) {
+			return GTYPE_POLYGON;
+		}
+		if (jtsClass.equals(MultiPoint.class)) {
+			return GTYPE_MULTIPOINT;
+		}
+		if (jtsClass.equals(MultiLineString.class)) {
+			return GTYPE_MULTILINESTRING;
+		}
+		if (jtsClass.equals(MultiPolygon.class)) {
+			return GTYPE_MULTIPOLYGON;
+		}
+		return GTYPE_GEOMETRY;
 	}
 
 	/**
@@ -484,12 +480,12 @@ public class SpatialDatabaseService implements Constants {
 	 */
 	public static class RegisteredLayerType {
 
-		String typeName;
-		Class<? extends GeometryEncoder> geometryEncoder;
-		Class<? extends Layer> layerClass;
-		Class<? extends LayerIndexReader> layerIndexClass;
-		String defaultConfig;
-		org.geotools.referencing.crs.AbstractCRS crs;
+		final String typeName;
+		final Class<? extends GeometryEncoder> geometryEncoder;
+		final Class<? extends Layer> layerClass;
+		final Class<? extends LayerIndexReader> layerIndexClass;
+		final String defaultConfig;
+		final org.geotools.referencing.crs.AbstractCRS crs;
 
 		RegisteredLayerType(String typeName, Class<? extends GeometryEncoder> geometryEncoder,
 				Class<? extends Layer> layerClass, AbstractCRS crs,

@@ -29,9 +29,9 @@ import org.neo4j.graphdb.Node;
 
 public class FilterOSMAttributes extends AbstractGeoPipe {
 
-	private String key;
-	private Object value;
-	private FilterPipe.Filter comparison;
+	private final String key;
+	private final Object value;
+	private final FilterPipe.Filter comparison;
 
 	public FilterOSMAttributes(String key, Object value) {
 		this(key, value, FilterPipe.Filter.EQUAL);
@@ -51,8 +51,7 @@ public class FilterOSMAttributes extends AbstractGeoPipe {
 		if (tagNode.hasProperty(key)
 				&& comparison.compare(tagNode.getProperty(key), value)) {
 			return flow;
-		} else {
-			return null;
 		}
+		return null;
 	}
 }

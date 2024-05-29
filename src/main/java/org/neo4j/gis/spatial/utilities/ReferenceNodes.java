@@ -26,14 +26,14 @@ import org.neo4j.graphdb.Transaction;
 
 /**
  * In Neo4j 0.x and even 1.x it was common to not use an index for the starting point of a search.
- * Instead Neo4j had a single reference node id=0 which always existed
+ * Instead, Neo4j had a single reference node id=0 which always existed
  * and all models could be connected at some point to that node.
  * Finding things was always by traversal.
  * This model was used in Neo4j Spatial, and transitioned to using a special spatial reference node.
  * However, this kind of thinking became more and more of a problem as we moved to procedures in Neo4j 3.0
  * and in particular the nested transaction model of Neo4j 4.0. Since this node was created on-demand
  * even in read-only queries like 'findLayer', it messed with nested transactions where both might
- * try create the same node, even if the developer was careful to split read and write aspects of the
+ * try to create the same node, even if the developer was careful to split read and write aspects of the
  * code.
  * <p>
  * It is time to stop using a root node. This class will remain only for the purpose of helping

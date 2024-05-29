@@ -178,9 +178,8 @@ public class Neo4jSpatialDataStore extends ContentDataStore implements Constants
 				buildFeatureType(contentEntry.getTypeName()), records, extraPropertyNames);
 		if (layer instanceof EditableLayer) {
 			return new Neo4jSpatialFeatureStore(contentEntry, database, (EditableLayer) layer, source);
-		} else {
-			return source;
 		}
+		return source;
 	}
 
 	private CoordinateReferenceSystem getCRS(Transaction tx, Layer layer) {
@@ -199,9 +198,8 @@ public class Neo4jSpatialDataStore extends ContentDataStore implements Constants
 			tx.commit();
 			if (layer == null) {
 				return null;
-			} else {
-				return layer.getStyle();
 			}
+			return layer.getStyle();
 		}
 	}
 

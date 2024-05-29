@@ -34,16 +34,15 @@ import org.geotools.geometry.jts.ReferencedEnvelope;
  */
 public class DefaultResourceInfo implements ResourceInfo {
 
-	private String name;
-	private String description = "";
-	private Set<String> keywords = new HashSet<String>();
-	private CoordinateReferenceSystem crs;
-	private ReferencedEnvelope bbox;
+	private final String name;
+	private final Set<String> keywords = new HashSet<>();
+	private final CoordinateReferenceSystem crs;
+	private final ReferencedEnvelope bbox;
 
 	/**
-	 * @param name
-	 * @param crs
-	 * @param bbox
+	 * @param name The name of the resource.
+	 * @param crs  The CoordinateReferenceSystem of the resource.
+	 * @param bbox The bounding box of the resource.
 	 */
 	public DefaultResourceInfo(String name, CoordinateReferenceSystem crs, ReferencedEnvelope bbox) {
 		this.name = name;
@@ -51,51 +50,37 @@ public class DefaultResourceInfo implements ResourceInfo {
 		this.bbox = bbox;
 	}
 
-	/**
-	 *
-	 */
+	@Override
 	public String getName() {
 		return name;
 	}
 
-	/**
-	 *
-	 */
+	@Override
 	public String getTitle() {
 		return name;
 	}
 
-	/**
-	 *
-	 */
+	@Override
 	public String getDescription() {
-		return description;
+		return "";
 	}
 
-	/**
-	 *
-	 */
+	@Override
 	public Set<String> getKeywords() {
 		return keywords;
 	}
 
-	/**
-	 *
-	 */
+	@Override
 	public URI getSchema() {
 		return FeatureTypes.DEFAULT_NAMESPACE;
 	}
 
-	/**
-	 *
-	 */
+	@Override
 	public CoordinateReferenceSystem getCRS() {
 		return crs;
 	}
 
-	/**
-	 *
-	 */
+	@Override
 	public ReferencedEnvelope getBounds() {
 		return bbox;
 	}

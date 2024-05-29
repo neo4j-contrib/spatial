@@ -29,7 +29,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class ApplyAffineTransformation extends AbstractGeoPipe {
 
-	private AffineTransformation t;
+	private final AffineTransformation t;
 
 	/**
 	 * @param t affine transformation

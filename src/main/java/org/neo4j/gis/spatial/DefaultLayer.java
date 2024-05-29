@@ -24,6 +24,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import javax.annotation.Nonnull;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -56,14 +57,17 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 
 	// Public methods
 
+	@Override
 	public String getName() {
 		return name;
 	}
 
+	@Override
 	public LayerIndexReader getIndex() {
 		return indexReader;
 	}
 
+	@Override
 	public String getSignature() {
 		return "Layer(name='" + getName() + "', encoder=" + getGeometryEncoder().getSignature() + ")";
 	}
@@ -71,6 +75,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 	/**
 	 * Add the geometry encoded in the given Node. This causes the geometry to appear in the index.
 	 */
+	@Override
 	public SpatialDatabaseRecord add(Transaction tx, Node geomNode) {
 		Geometry geometry = getGeometryEncoder().decodeGeometry(geomNode);
 
@@ -94,6 +99,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 		return geomNodes.size();
 	}
 
+	@Override
 	public GeometryFactory getGeometryFactory() {
 		return geometryFactory;
 	}
@@ -103,13 +109,13 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 		layerNode.setProperty(PROP_CRS, crs.toWKT());
 	}
 
+	@Override
 	public CoordinateReferenceSystem getCoordinateReferenceSystem(Transaction tx) {
 		Node layerNode = getLayerNode(tx);
 		if (layerNode.hasProperty(PROP_CRS)) {
 			return GeotoolsAdapter.getCRS((String) layerNode.getProperty(PROP_CRS));
-		} else {
-			return null;
 		}
+		return null;
 	}
 
 	public void setGeometryType(Transaction tx, int geometryType) {
@@ -121,17 +127,17 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 		layerNode.setProperty(PROP_TYPE, geometryType);
 	}
 
+	@Override
 	public Integer getGeometryType(Transaction tx) {
 		Node layerNode = getLayerNode(tx);
 		if (layerNode.hasProperty(PROP_TYPE)) {
 			return (Integer) layerNode.getProperty(PROP_TYPE);
-		} else {
-			GuessGeometryTypeSearch geomTypeSearch = new GuessGeometryTypeSearch();
-			indexReader.searchIndex(tx, geomTypeSearch).count();
-
-			// returns null for an empty layer!
-			return geomTypeSearch.firstFoundType;
 		}
+		GuessGeometryTypeSearch geomTypeSearch = new GuessGeometryTypeSearch();
+		indexReader.searchIndex(tx, geomTypeSearch).count();
+
+		// returns null for an empty layer!
+		return geomTypeSearch.firstFoundType;
 	}
 
 	private static class GuessGeometryTypeSearch implements SearchFilter {
@@ -153,6 +159,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 		}
 	}
 
+	@Override
 	public String[] getExtraPropertyNames(Transaction tx) {
 		Node layerNode = getLayerNode(tx);
 		String[] extraPropertyNames;
@@ -254,6 +261,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 	 * All layers are associated with a single node in the database. This node will have properties,
 	 * relationships (sub-graph) or both to describe the contents of the layer
 	 */
+	@Override
 	public Node getLayerNode(Transaction tx) {
 		return tx.getNodeByElementId(layerNodeId);
 	}
@@ -261,6 +269,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 	/**
 	 * Delete Layer
 	 */
+	@Override
 	public void delete(Transaction tx, Listener monitor) {
 		indexWriter.removeAll(tx, true, monitor);
 		Node layerNode = getLayerNode(tx);
@@ -284,10 +293,12 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 	protected LayerIndexReader indexReader;
 	protected SpatialIndexWriter indexWriter;
 
+	@Override
 	public SpatialDataset getDataset() {
 		return this;
 	}
 
+	@Override
 	public Iterable<Node> getAllGeometryNodes(Transaction tx) {
 		return indexReader.getAllIndexedNodes(tx);
 	}
@@ -303,6 +314,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 	 *
 	 * @return iterable over geometries in the dataset
 	 */
+	@Override
 	public Iterable<? extends Geometry> getAllGeometries(Transaction tx) {
 		return new NodeToGeometryIterable(getAllGeometryNodes(tx));
 	}
@@ -318,14 +330,17 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 
 		private class GeometryIterator implements Iterator<Geometry> {
 
+			@Override
 			public boolean hasNext() {
 				return NodeToGeometryIterable.this.allGeometryNodeIterator.hasNext();
 			}
 
+			@Override
 			public Geometry next() {
 				return geometryEncoder.decodeGeometry(NodeToGeometryIterable.this.allGeometryNodeIterator.next());
 			}
 
+			@Override
 			public void remove() {
 			}
 
@@ -335,6 +350,8 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 			this.allGeometryNodeIterator = allGeometryNodes.iterator();
 		}
 
+		@Override
+		@Nonnull
 		public Iterator<Geometry> iterator() {
 			return new GeometryIterator();
 		}
@@ -347,6 +364,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 	 *
 	 * @return GeometryEncoder for this dataset
 	 */
+	@Override
 	public GeometryEncoder getGeometryEncoder() {
 		return geometryEncoder;
 	}
@@ -356,6 +374,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 	 *
 	 * @return iterable over all Layers that can be viewed from this dataset
 	 */
+	@Override
 	public Iterable<? extends Layer> getLayers() {
 		return Collections.singletonList(this);
 	}
@@ -368,6 +387,7 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 	 *
 	 * @return null
 	 */
+	@Override
 	public Object getStyle() {
 		return null;
 	}

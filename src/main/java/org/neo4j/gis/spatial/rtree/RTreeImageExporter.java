@@ -54,15 +54,15 @@ import org.neo4j.graphdb.Transaction;
 
 public class RTreeImageExporter {
 
-	private CoordinateReferenceSystem crs;
+	private final CoordinateReferenceSystem crs;
 	private File exportDir;
-	double zoom = 0.98;
-	double[] offset = new double[]{0, 0};
-	Rectangle displaySize = new Rectangle(2160, 2160);
-	private RTreeIndex index;
-	private GeometryFactory geometryFactory;
-	private GeometryEncoder geometryEncoder;
-	private SimpleFeatureType featureType;
+	final double zoom = 0.98;
+	final double[] offset = new double[]{0, 0};
+	final Rectangle displaySize = new Rectangle(2160, 2160);
+	private final RTreeIndex index;
+	private final GeometryFactory geometryFactory;
+	private final GeometryEncoder geometryEncoder;
+	private final SimpleFeatureType featureType;
 	private final Color[] colors = new Color[]{Color.BLUE, Color.CYAN, Color.GREEN, Color.RED, Color.YELLOW, Color.PINK,
 			Color.ORANGE};
 	ReferencedEnvelope bounds;
@@ -205,18 +205,18 @@ public class RTreeImageExporter {
 		mapContent.addLayer(new org.geotools.map.FeatureLayer(makeEnvelopeFeatures(envelopes), style));
 	}
 
-	private void drawIndexNodes(int level, MapContent mapContent, List<RTreeIndex.NodeWithEnvelope> nodes, Color color)
-			throws IOException {
+	private void drawIndexNodes(int level, MapContent mapContent, List<RTreeIndex.NodeWithEnvelope> nodes,
+			Color color) {
 		Style style = StyledImageExporter.createPolygonStyle(color, Color.WHITE, 0.8, 0.0, level + 1);
 		mapContent.addLayer(new org.geotools.map.FeatureLayer(makeIndexNodeFeatures(nodes), style));
 	}
 
-	private void drawEnvelope(MapContent mapContent, Coordinate min, Coordinate max, Color color) throws IOException {
+	private void drawEnvelope(MapContent mapContent, Coordinate min, Coordinate max, Color color) {
 		Style style = StyledImageExporter.createPolygonStyle(color, Color.WHITE, 0.8, 0.0, 3);
 		mapContent.addLayer(new org.geotools.map.FeatureLayer(makeEnvelopeFeatures(min, max), style));
 	}
 
-	private void drawBounds(MapContent mapContent, ReferencedEnvelope bounds, Color color) throws IOException {
+	private void drawBounds(MapContent mapContent, ReferencedEnvelope bounds, Color color) {
 		Style style = StyledImageExporter.createPolygonStyle(color, Color.WHITE, 0.8, 1.0, 6);
 		double[] min = bounds.getLowerCorner().getCoordinate();
 		double[] max = bounds.getUpperCorner().getCoordinate();
@@ -227,7 +227,7 @@ public class RTreeImageExporter {
 	private MemoryFeatureCollection makeEnvelopeFeatures(List<Envelope> envelopes) {
 		SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("Polygon", Constants.GTYPE_POLYGON, crs,
 				new String[]{});
-		Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, new ArrayList<String>());
+		Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, new ArrayList<>());
 		MemoryFeatureCollection features = new MemoryFeatureCollection(featureType);
 		for (Envelope envelope : envelopes) {
 
@@ -247,7 +247,7 @@ public class RTreeImageExporter {
 	private MemoryFeatureCollection makeEnvelopeFeatures(Coordinate min, Coordinate max) {
 		SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("Polygon", Constants.GTYPE_POLYGON, crs,
 				new String[]{});
-		Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, new ArrayList<String>());
+		Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, new ArrayList<>());
 		MemoryFeatureCollection features = new MemoryFeatureCollection(featureType);
 		Coordinate[] coordinates = new Coordinate[]{
 				new Coordinate(min.x, min.y),
@@ -264,10 +264,9 @@ public class RTreeImageExporter {
 	private MemoryFeatureCollection makeIndexNodeFeatures(List<RTreeIndex.NodeWithEnvelope> nodes) {
 		SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("Polygon", Constants.GTYPE_POLYGON, crs,
 				new String[]{});
-		Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, new ArrayList<String>());
+		Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, new ArrayList<>());
 		MemoryFeatureCollection features = new MemoryFeatureCollection(featureType);
-		for (int i = 0; i < nodes.size(); i++) {
-			RTreeIndex.NodeWithEnvelope node = nodes.get(i);
+		for (RTreeIndex.NodeWithEnvelope node : nodes) {
 			Envelope envelope = node.envelope;
 			Coordinate[] coordinates = new Coordinate[]{
 					new Coordinate(envelope.getMinX(), envelope.getMinY()),
@@ -283,7 +282,7 @@ public class RTreeImageExporter {
 	}
 
 	private MemoryFeatureCollection makeGeometryNodeFeatures(List<Node> nodes, SimpleFeatureType featureType) {
-		Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, new ArrayList<String>());
+		Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, new ArrayList<>());
 		MemoryFeatureCollection features = new MemoryFeatureCollection(featureType);
 		for (Node node : nodes) {
 			Geometry geometry = geometryEncoder.decodeGeometry(node);

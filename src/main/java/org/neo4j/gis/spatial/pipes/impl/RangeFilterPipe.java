@@ -7,7 +7,7 @@ import java.util.NoSuchElementException;
  * This pipe can be provided -1 for both its high and low range to denote a wildcard for high and/or low.
  * Note that -1 for both high and low is equivalent to the IdentityPipe.
  *
- * @author Marko A. Rodriguez (http://markorodriguez.com)
+ * @author <a href="http://markorodriguez.com" >Marko A. Rodriguez</a>
  */
 public class RangeFilterPipe<S> extends AbstractPipe<S, S> implements FilterPipe<S> {
 
@@ -23,6 +23,7 @@ public class RangeFilterPipe<S> extends AbstractPipe<S, S> implements FilterPipe
 		}
 	}
 
+	@Override
 	protected S processNextStart() {
 		while (true) {
 			final S s = this.starts.next();
@@ -40,6 +41,7 @@ public class RangeFilterPipe<S> extends AbstractPipe<S, S> implements FilterPipe
 		return String.format("%s (%d, %d)", getClass().getSimpleName(), low, high);
 	}
 
+	@Override
 	public void reset() {
 		this.counter = -1;
 		super.reset();

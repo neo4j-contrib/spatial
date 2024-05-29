@@ -45,10 +45,10 @@ public interface SpatialDataset {
 	 * generate a Geometry. There is no restriction on a node belonging to multiple datasets, or
 	 * multiple layers within the same dataset.
 	 *
-	 * @param tx
+	 * @param tx the transaction to use
 	 * @return iterable over geometry nodes in the dataset
 	 */
-	public Iterable<Node> getAllGeometryNodes(Transaction tx);
+	Iterable<Node> getAllGeometryNodes(Transaction tx);
 
 	/**
 	 * Provides a method for iterating over all geometries in this dataset. This is similar to the
@@ -56,7 +56,7 @@ public interface SpatialDataset {
 	 *
 	 * @return iterable over geometries in the dataset
 	 */
-	public Iterable<? extends Geometry> getAllGeometries(Transaction tx);
+	Iterable<? extends Geometry> getAllGeometries(Transaction tx);
 
 	/**
 	 * Return the geometry encoder used by this SpatialDataset to convert individual geometries to
@@ -64,20 +64,20 @@ public interface SpatialDataset {
 	 *
 	 * @return GeometryEncoder for this dataset
 	 */
-	public GeometryEncoder getGeometryEncoder();
+	GeometryEncoder getGeometryEncoder();
 
 	/**
-	 * Each dataset can have one or more layers. This methods provides a way to iterate over all
+	 * Each dataset can have one or more layers. These methods provide a way to iterate over all
 	 * layers.
 	 *
 	 * @return iterable over all Layers that can be viewed from this dataset
 	 */
-	public Iterable<? extends Layer> getLayers();
+	Iterable<? extends Layer> getLayers();
 
 	/**
 	 * Does the dataset (or layer) contain the geometry specified by this node.
 	 *
 	 * @return boolean true/false if the geometry node is in this Dataset or Layer
 	 */
-	public boolean containsGeometryNode(Transaction tx, Node node);
+	boolean containsGeometryNode(Transaction tx, Node node);
 }

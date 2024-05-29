@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
@@ -33,8 +32,8 @@ public class RTreeMonitor implements TreeMonitor {
 	private int nbrSplit;
 	private int height;
 	private int nbrRebuilt;
-	private HashMap<String, Integer> cases = new HashMap<>();
-	private ArrayList<ArrayList<Node>> matchedTreeNodes = new ArrayList<>();
+	private final HashMap<String, Integer> cases = new HashMap<>();
+	private final ArrayList<ArrayList<Node>> matchedTreeNodes = new ArrayList<>();
 
 	public RTreeMonitor() {
 		reset();
@@ -45,6 +44,7 @@ public class RTreeMonitor implements TreeMonitor {
 		this.height = height;
 	}
 
+	@Override
 	public int getHeight() {
 		return height;
 	}
@@ -112,13 +112,13 @@ public class RTreeMonitor implements TreeMonitor {
 
 	private void ensureMatchedTreeNodeLevel(int level) {
 		while (matchedTreeNodes.size() <= level) {
-			matchedTreeNodes.add(new ArrayList<Node>());
+			matchedTreeNodes.add(new ArrayList<>());
 		}
 	}
 
 	@Override
 	public List<Node> getMatchedTreeNodes(int level) {
 		ensureMatchedTreeNodeLevel(level);
-		return matchedTreeNodes.get(level).stream().collect(Collectors.toList());
+		return new ArrayList<>(matchedTreeNodes.get(level));
 	}
 }

@@ -31,7 +31,7 @@ public class UnionAll extends AbstractGroupGeoPipe {
 
 	@Override
 	protected void group(GeoPipeFlow flow) {
-		if (groups.size() == 0) {
+		if (groups.isEmpty()) {
 			groups.add(flow);
 		} else {
 			GeoPipeFlow result = groups.get(0);

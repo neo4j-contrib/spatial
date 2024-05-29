@@ -30,17 +30,17 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class Densify extends AbstractGeoPipe {
 
-	private double distanceTolerance;
+	private final double distanceTolerance;
 
 	/**
-	 * @param distanceTolerance
+	 * @param distanceTolerance maximum distance between vertices
 	 */
 	public Densify(double distanceTolerance) {
 		this.distanceTolerance = distanceTolerance;
 	}
 
 	/**
-	 * @param distanceTolerance
+	 * @param distanceTolerance  maximum distance between vertices
 	 * @param resultPropertyName property name to use for geometry output
 	 */
 	public Densify(double distanceTolerance, String resultPropertyName) {

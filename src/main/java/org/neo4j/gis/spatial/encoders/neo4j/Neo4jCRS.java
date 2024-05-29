@@ -49,15 +49,12 @@ public class Neo4jCRS implements org.neo4j.graphdb.spatial.CRS {
 	}
 
 	public static Neo4jCRS findCRS(String crs) {
-		switch (crs) {
-			case "WGS-84":      // name in Neo4j CRS table
-			case "WGS84(DD)":   // name in geotools crs library
-				return makeCRS(4326);
-			case "Cartesian":
-				return makeCRS(7203);
-			default:
-				throw new IllegalArgumentException("Cypher type system does not support CRS: " + crs);
-		}
+		return switch (crs) {      // name in Neo4j CRS table
+			case "WGS-84", "WGS84(DD)" ->   // name in geotools crs library
+					makeCRS(4326);
+			case "Cartesian" -> makeCRS(7203);
+			default -> throw new IllegalArgumentException("Cypher type system does not support CRS: " + crs);
+		};
 	}
 
 	public static Neo4jCRS makeCRS(final int code) {
