@@ -27,6 +27,10 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.gis.spatial.Constants.LABEL_LAYER;
 import static org.neo4j.gis.spatial.Constants.PROP_GEOMENCODER;
@@ -136,11 +140,11 @@ public class SpatialProceduresTest {
 	public static void testCall(GraphDatabaseService db, String call, Map<String, Object> params,
 			Consumer<Map<String, Object>> consumer, boolean onlyOne) {
 		testResult(db, call, params, (res) -> {
-			Assertions.assertTrue(res.hasNext(), "Expect at least one result but got none: " + call);
+			assertTrue(res.hasNext(), "Expect at least one result but got none: " + call);
 			Map<String, Object> row = res.next();
 			consumer.accept(row);
 			if (onlyOne) {
-				Assertions.assertFalse(res.hasNext(), "Expected only one result, but there are more");
+				assertFalse(res.hasNext(), "Expected only one result, but there are more");
 			}
 		});
 	}
@@ -154,7 +158,7 @@ public class SpatialProceduresTest {
 				res.next();
 				numLeft--;
 			}
-			Assertions.assertFalse(res.hasNext(), "Expected " + count + " results but there are more");
+			assertFalse(res.hasNext(), "Expected " + count + " results but there are more");
 		});
 	}
 
@@ -355,7 +359,7 @@ public class SpatialProceduresTest {
 	@Test
 	public void create_point_and_return() {
 		Object geometry = executeObject("RETURN point({latitude: 5.0, longitude: 4.0}) as geometry", "geometry");
-		Assertions.assertTrue(geometry instanceof Geometry, "Should be Geometry type");
+		assertInstanceOf(Geometry.class, geometry, "Should be Geometry type");
 	}
 
 	@Test
@@ -363,14 +367,14 @@ public class SpatialProceduresTest {
 		Object geometry = executeObject(
 				"WITH point({latitude: 5.0, longitude: 4.0}) as geom RETURN spatial.asGeometry(geom) AS geometry",
 				"geometry");
-		Assertions.assertTrue(geometry instanceof Geometry, "Should be Geometry type");
+		assertInstanceOf(Geometry.class, geometry, "Should be Geometry type");
 	}
 
 	@Test
 	public void literal_geometry_return() {
 		Object geometry = executeObject(
 				"WITH spatial.asGeometry({latitude: 5.0, longitude: 4.0}) AS geometry RETURN geometry", "geometry");
-		Assertions.assertTrue(geometry instanceof Geometry, "Should be Geometry type");
+		assertInstanceOf(Geometry.class, geometry, "Should be Geometry type");
 	}
 
 	@Test
@@ -379,7 +383,7 @@ public class SpatialProceduresTest {
 		Object geometry = executeObject(
 				"CREATE (n:Node {geom:'POINT(4.0 5.0)'}) RETURN spatial.decodeGeometry('geom',n) AS geometry",
 				"geometry");
-		Assertions.assertTrue(geometry instanceof Geometry, "Should be Geometry type");
+		assertInstanceOf(Geometry.class, geometry, "Should be Geometry type");
 	}
 
 	@Test
@@ -781,7 +785,7 @@ public class SpatialProceduresTest {
 		execute("CALL spatial.addPointLayer('geom')");
 		Node node = createNode("CREATE (n:Node {latitude:60.1,longitude:15.2}) RETURN n", "n");
 		testCall(db, "MATCH (n:Node) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node",
-				r -> Assertions.assertEquals(node, r.get("node")));
+				r -> assertEquals(node, r.get("node")));
 	}
 
 	@Test
@@ -789,7 +793,7 @@ public class SpatialProceduresTest {
 		execute("CALL spatial.addPointLayerGeohash('geom')");
 		Node node = createNode("CREATE (n:Node {latitude:60.1,longitude:15.2}) RETURN n", "n");
 		testCall(db, "MATCH (n:Node) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node",
-				r -> Assertions.assertEquals(node, r.get("node")));
+				r -> assertEquals(node, r.get("node")));
 	}
 
 	@Test
@@ -797,7 +801,7 @@ public class SpatialProceduresTest {
 		execute("CALL spatial.addPointLayerZOrder('geom')");
 		Node node = createNode("CREATE (n:Node {latitude:60.1,longitude:15.2}) RETURN n", "n");
 		testCall(db, "MATCH (n:Node) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node",
-				r -> Assertions.assertEquals(node, r.get("node")));
+				r -> assertEquals(node, r.get("node")));
 	}
 
 	@Test
@@ -805,7 +809,7 @@ public class SpatialProceduresTest {
 		execute("CALL spatial.addPointLayerHilbert('geom')");
 		Node node = createNode("CREATE (n:Node {latitude:60.1,longitude:15.2}) RETURN n", "n");
 		testCall(db, "MATCH (n:Node) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node",
-				r -> Assertions.assertEquals(node, r.get("node")));
+				r -> assertEquals(node, r.get("node")));
 	}
 
 	@Test
@@ -836,7 +840,7 @@ public class SpatialProceduresTest {
 		for (String encoder : encoders) {
 			for (String indexType : indexes) {
 				String layerName = (encoder + indexType).toLowerCase();
-				testCall(db, "MATCH (node:Node) RETURN node", r -> Assertions.assertEquals(node, r.get("node")));
+				testCall(db, "MATCH (node:Node) RETURN node", r -> assertEquals(node, r.get("node")));
 				testCall(db, "MATCH (n:Node) WITH n CALL spatial.addNode('" + layerName + "',n) YIELD node RETURN node",
 						r -> Assertions.assertEquals(node, r.get("node")));
 				testCall(db, "CALL spatial.withinDistance('" + layerName + "',{lon:15.0,lat:60.0},100)",
@@ -908,7 +912,7 @@ public class SpatialProceduresTest {
 		execute("CALL spatial.addPointLayerXY('geom','lon','lat')");
 		Node node = createNode("CREATE (n:Node {lat:60.1,lon:15.2}) RETURN n", "n");
 		testCall(db, "MATCH (n:Node) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node",
-				r -> Assertions.assertEquals(node, r.get("node")));
+				r -> assertEquals(node, r.get("node")));
 	}
 
 	@Test
@@ -916,7 +920,7 @@ public class SpatialProceduresTest {
 		execute("CALL spatial.addPointLayerXY('geom','lon','lat','geohash')");
 		Node node = createNode("CREATE (n:Node {lat:60.1,lon:15.2}) RETURN n", "n");
 		testCall(db, "MATCH (n:Node) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node",
-				r -> Assertions.assertEquals(node, r.get("node")));
+				r -> assertEquals(node, r.get("node")));
 	}
 
 	@Test
@@ -931,7 +935,7 @@ public class SpatialProceduresTest {
 			node1 = ((Node) row.get("n1")).getElementId();
 			node2 = ((Node) row.get("n2")).getElementId();
 			long count = (Long) row.get("count");
-			Assertions.assertEquals(2L, count);
+			assertEquals(2L, count);
 			result.close();
 			tx.commit();
 		}
@@ -947,7 +951,7 @@ public class SpatialProceduresTest {
 					map("nodeId", node1)).next().get("node");
 			Result removeResult = tx.execute("CALL spatial.removeNode('geom',$node) YIELD nodeId RETURN nodeId",
 					map("node", node));
-			Assertions.assertEquals(node1, removeResult.next().get("nodeId"));
+			assertEquals(node1, removeResult.next().get("nodeId"));
 			removeResult.close();
 			tx.commit();
 		}
@@ -959,7 +963,7 @@ public class SpatialProceduresTest {
 		try (Transaction tx = db.beginTx()) {
 			Result removeResult = tx.execute("CALL spatial.removeNode.byId('geom',$nodeId) YIELD nodeId RETURN nodeId",
 					map("nodeId", node2));
-			Assertions.assertEquals(node2, removeResult.next().get("nodeId"));
+			assertEquals(node2, removeResult.next().get("nodeId"));
 			removeResult.close();
 			tx.commit();
 		}
@@ -1227,10 +1231,10 @@ public class SpatialProceduresTest {
 		}
 		long start = System.currentTimeMillis();
 		testResult(db, query, params, res -> {
-			Assertions.assertTrue(res.hasNext(), "Expected a single result");
+					Assertions.assertTrue(res.hasNext(), "Expected a single result");
 					long c = (Long) res.next().get(column);
-			Assertions.assertFalse(res.hasNext(), "Expected a single result");
-			Assertions.assertEquals(count, c, "Expected count of " + count + " nodes but got " + c);
+					assertFalse(res.hasNext(), "Expected a single result");
+					assertEquals(count, c, "Expected count of " + count + " nodes but got " + c);
 				}
 		);
 		System.out.println(name + " query took " + (System.currentTimeMillis() - start) + "ms - " + params);

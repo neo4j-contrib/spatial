@@ -628,7 +628,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 
 			assertEquals(1, flow.getProperties().size());
 			String wkt = (String) flow.getProperties().get("WellKnownText");
-			assertTrue(wkt.indexOf("POINT") == 0);
+			assertEquals(0, wkt.indexOf("POINT"));
 		}
 
 		// every rectangle has 5 points, the last point is in the same position of the first

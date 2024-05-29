@@ -23,9 +23,10 @@ package org.neo4j.gis.spatial;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.gis.spatial.rtree.RTreeIndex.DEFAULT_MAX_NODE_REFERENCES;
 import static org.neo4j.internal.helpers.collection.MapUtil.map;
@@ -1137,7 +1138,7 @@ public class RTreeBulkInsertTest {
 			Result result = tx.execute(cypher);
 //           System.out.println(result.columns().toString());
 			Object obj = result.columnAs("count").next();
-			assertTrue(obj instanceof Long);
+			assertInstanceOf(Long.class, obj);
 			assertEquals((long) ((Long) obj), numNodes);
 			tx.commit();
 		}
@@ -1152,7 +1153,7 @@ public class RTreeBulkInsertTest {
 			Result result = tx.execute(cypher);
 //           System.out.println(result.columns().toString());
 			Object obj = result.columnAs("count").next();
-			assertTrue(obj instanceof Long);
+			assertInstanceOf(Long.class, obj);
 			assertEquals((long) ((Long) obj), numNodes);
 			tx.commit();
 		}
@@ -1492,8 +1493,8 @@ public class RTreeBulkInsertTest {
 			stats.put("Indexed", geometrySize);
 			System.out.println("Index contains " + geometrySize + " geometries");
 		}
-		assertEquals("Expected " + config.expectedGeometries + " nodes to be returned", config.expectedGeometries,
-				countGeometries);
+		assertEquals(config.expectedGeometries, countGeometries,
+				"Expected " + config.expectedGeometries + " nodes to be returned");
 		return nodes;
 	}
 
@@ -1529,7 +1530,8 @@ public class RTreeBulkInsertTest {
 		// unless the polygon is a rectangle, in which case they are not contained, leading to
 		// different numbers for expectedGeometries and expectedCount.
 		// See https://github.com/locationtech/jts/blob/master/modules/core/src/main/java/org/locationtech/jts/operation/predicate/RectangleContains.java#L70
-		assertEquals("Expected " + config.expectedCount + " nodes to be matched", config.expectedCount, matched);
+		assertEquals(config.expectedCount, matched,
+				"Expected " + config.expectedCount + " nodes to be matched");
 		int maxNodeReferences = stats.maxNodeReferences;
 		int maxExpectedGeometriesTouched = matched * maxNodeReferences;
 		if (countGeometries > 1 && assertTouches) {
@@ -1555,7 +1557,8 @@ public class RTreeBulkInsertTest {
 		// unless the polygon is a rectangle, in which case they are not contained, leading to
 		// different numbers for expectedGeometries and expectedCount.
 		// See https://github.com/locationtech/jts/blob/master/modules/core/src/main/java/org/locationtech/jts/operation/predicate/RectangleContains.java#L70
-		assertEquals("Expected " + config.expectedCount + " nodes to be matched", config.expectedCount, matched);
+		assertEquals(config.expectedCount, matched,
+				"Expected " + config.expectedCount + " nodes to be matched");
 	}
 
 	private class TimedLogger {
@@ -1599,17 +1602,17 @@ public class RTreeBulkInsertTest {
 
 	private void verifyGeohashIndex(Layer layer) {
 		LayerIndexReader index = layer.getIndex();
-		assertTrue("Index should be a geohash index", index instanceof LayerGeohashPointIndex);
+		assertInstanceOf(LayerGeohashPointIndex.class, index, "Index should be a geohash index");
 	}
 
 	private void verifyHilbertIndex(Layer layer) {
 		LayerIndexReader index = layer.getIndex();
-		assertTrue("Index should be a hilbert index", index instanceof LayerHilbertPointIndex);
+		assertInstanceOf(LayerHilbertPointIndex.class, index, "Index should be a hilbert index");
 	}
 
 	private void verifyZOrderIndex(Layer layer) {
 		LayerIndexReader index = layer.getIndex();
-		assertTrue("Index should be a Z-Order index", index instanceof LayerZOrderPointIndex);
+		assertInstanceOf(LayerZOrderPointIndex.class, index, "Index should be a Z-Order index");
 	}
 
 	private void verifyTreeStructure(Layer layer, String splitMode, TestStats stats) {
@@ -1650,7 +1653,7 @@ public class RTreeBulkInsertTest {
 				System.out.println("Tree depth to all geometries: " + depthMap);
 			}
 		}
-		assertEquals("All geometries should be at the same depth", 1, balanced);
+		assertEquals(1, balanced, "All geometries should be at the same depth");
 		Map<String, Object> leafMap;
 		try (Transaction tx = db.beginTx()) {
 			Result resultNumChildren = tx.execute(queryNumChildren, params);
