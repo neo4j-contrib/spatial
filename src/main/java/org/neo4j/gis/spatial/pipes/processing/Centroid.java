@@ -28,21 +28,21 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  * Item geometry is replaced by pipe output unless an alternative property name is given in the constructor.
  */
 public class Centroid extends AbstractGeoPipe {
-	
+
 	public Centroid() {
-	}		
-	
+	}
+
 	/**
 	 * @param resultPropertyName property name to use for geometry output
-	 */	
+	 */
 	public Centroid(String resultPropertyName) {
 		super(resultPropertyName);
-	}	
+	}
 
-	@Override	
+	@Override
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
 		setGeometry(flow, flow.getGeometry().getCentroid());
 		return flow;
-	}	
-	
+	}
+
 }

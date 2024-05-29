@@ -20,17 +20,17 @@
 package org.neo4j.gis.spatial;
 
 import java.io.PrintStream;
-
 import org.neo4j.gis.spatial.rtree.Listener;
 
 
 /**
  * This listener simply logs progress to System.out.
- * 
+ *
  * @author Craig Taverner
  */
 public class ConsoleListener implements Listener {
-	private PrintStream out;
+
+	private final PrintStream out;
 	private int total = 0;
 	private int current = 0;
 
@@ -42,23 +42,26 @@ public class ConsoleListener implements Listener {
 		this.out = out;
 	}
 
+	@Override
 	public void begin(int unitsOfWork) {
 		total = unitsOfWork;
 		current = 0;
 	}
 
+	@Override
 	public void worked(int workedSinceLastNotification) {
 		current += workedSinceLastNotification;
 		if (total < 1) {
 			out.println("Completed " + current);
 		} else if (total == 100) {
-			out.println("" + current + "%: completed");
+			out.println(current + "%: completed");
 		} else {
 			int perc = (int) (100.0 * current / total);
-			out.println("" + perc + "%: completed " + current + " / " + total);
+			out.println(perc + "%: completed " + current + " / " + total);
 		}
 	}
 
+	@Override
 	public void done() {
 	}
 

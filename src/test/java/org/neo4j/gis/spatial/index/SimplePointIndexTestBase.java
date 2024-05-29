@@ -24,13 +24,13 @@ import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 
 public abstract class SimplePointIndexTestBase extends LayerIndexTestBase {
 
-    @Override
-    protected Class<? extends GeometryEncoder> getEncoderClass() {
-        return SimplePointEncoder.class;
-    }
+	@Override
+	protected Class<? extends GeometryEncoder> getEncoderClass() {
+		return SimplePointEncoder.class;
+	}
 
-    @Override
-    protected final GeometryEncoder makeGeometryEncoder() {
-        return new SimplePointEncoder();
-    }
+	@Override
+	protected final GeometryEncoder makeGeometryEncoder() {
+		return new SimplePointEncoder();
+	}
 }

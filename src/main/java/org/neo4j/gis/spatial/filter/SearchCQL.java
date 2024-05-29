@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial.filter;
 
+import org.geotools.api.feature.simple.SimpleFeature;
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.filter.text.ecql.ECQL;
@@ -30,7 +31,6 @@ import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
-import org.opengis.feature.simple.SimpleFeature;
 
 /**
  * Find geometries that have at least one point in common with the given
@@ -38,41 +38,41 @@ import org.opengis.feature.simple.SimpleFeature;
  */
 public class SearchCQL implements SearchFilter {
 
-    private final Transaction tx;
-    private final Neo4jFeatureBuilder featureBuilder;
-    private final Layer layer;
-    private final org.opengis.filter.Filter filter;
-    private final Envelope filterEnvelope;
+	private final Transaction tx;
+	private final Neo4jFeatureBuilder featureBuilder;
+	private final Layer layer;
+	private final org.geotools.api.filter.Filter filter;
+	private final Envelope filterEnvelope;
 
-    public SearchCQL(Transaction tx, Layer layer, org.opengis.filter.Filter filter) {
-        this.tx = tx;
-        this.layer = layer;
-        this.featureBuilder = Neo4jFeatureBuilder.fromLayer(tx, layer);
-        this.filter = filter;
-        this.filterEnvelope = Utilities.extractEnvelopeFromFilter(filter);
-    }
+	public SearchCQL(Transaction tx, Layer layer, org.geotools.api.filter.Filter filter) {
+		this.tx = tx;
+		this.layer = layer;
+		this.featureBuilder = Neo4jFeatureBuilder.fromLayer(tx, layer);
+		this.filter = filter;
+		this.filterEnvelope = Utilities.extractEnvelopeFromFilter(filter);
+	}
 
-    public SearchCQL(Transaction tx, Layer layer, String cql) {
-        this.tx = tx;
-        this.layer = layer;
-        this.featureBuilder = Neo4jFeatureBuilder.fromLayer(tx, layer);
-        try {
-            this.filter = ECQL.toFilter(cql);
-            this.filterEnvelope = Utilities.extractEnvelopeFromFilter(filter);
-        } catch (CQLException e) {
-            throw new SpatialDatabaseException("CQLException: " + e.getMessage());
-        }
-    }
+	public SearchCQL(Transaction tx, Layer layer, String cql) {
+		this.tx = tx;
+		this.layer = layer;
+		this.featureBuilder = Neo4jFeatureBuilder.fromLayer(tx, layer);
+		try {
+			this.filter = ECQL.toFilter(cql);
+			this.filterEnvelope = Utilities.extractEnvelopeFromFilter(filter);
+		} catch (CQLException e) {
+			throw new SpatialDatabaseException("CQLException: " + e.getMessage());
+		}
+	}
 
-    @Override
-    public boolean needsToVisit(Envelope envelope) {
-        return filterEnvelope == null || filterEnvelope.intersects(envelope);
-    }
+	@Override
+	public boolean needsToVisit(Envelope envelope) {
+		return filterEnvelope == null || filterEnvelope.intersects(envelope);
+	}
 
-    @Override
-    public boolean geometryMatches(Transaction tx, Node geomNode) {
-        SimpleFeature feature = featureBuilder.buildFeature(tx, new SpatialDatabaseRecord(this.layer, geomNode));
-        return filter.evaluate(feature);
-    }
+	@Override
+	public boolean geometryMatches(Transaction tx, Node geomNode) {
+		SimpleFeature feature = featureBuilder.buildFeature(tx, new SpatialDatabaseRecord(this.layer, geomNode));
+		return filter.evaluate(feature);
+	}
 
 }

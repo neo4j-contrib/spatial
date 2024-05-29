@@ -29,14 +29,14 @@ import org.neo4j.graphdb.Node;
 
 public class FilterOSMAttributes extends AbstractGeoPipe {
 
-	private String key;
-	private Object value;
-	private FilterPipe.Filter comparison;
-	
+	private final String key;
+	private final Object value;
+	private final FilterPipe.Filter comparison;
+
 	public FilterOSMAttributes(String key, Object value) {
 		this(key, value, FilterPipe.Filter.EQUAL);
-	}	
-	
+	}
+
 	public FilterOSMAttributes(String key, Object value, FilterPipe.Filter comparison) {
 		this.key = key;
 		this.value = value;
@@ -48,11 +48,10 @@ public class FilterOSMAttributes extends AbstractGeoPipe {
 		Node geomNode = flow.getRecord().getGeomNode();
 		Node waysNode = geomNode.getSingleRelationship(OSMRelation.GEOM, Direction.INCOMING).getStartNode();
 		Node tagNode = waysNode.getSingleRelationship(OSMRelation.TAGS, Direction.OUTGOING).getEndNode();
-		if (tagNode.hasProperty(key) 
+		if (tagNode.hasProperty(key)
 				&& comparison.compare(tagNode.getProperty(key), value)) {
 			return flow;
-		} else {
-			return null;
 		}
+		return null;
 	}
 }

@@ -27,18 +27,18 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  * Item geometry is replaced by pipe output unless an alternative property name is given in the constructor.
  */
 public class Envelope extends AbstractGeoPipe {
-	
+
 	public Envelope() {
-	}	
-	
+	}
+
 	/**
 	 * @param resultPropertyName property name to use for geometry output
-	 */	
+	 */
 	public Envelope(String resultPropertyName) {
 		super(resultPropertyName);
-	}	
+	}
 
-	@Override	
+	@Override
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
 		setGeometry(flow, flow.getGeometry().getEnvelope());
 		return flow;

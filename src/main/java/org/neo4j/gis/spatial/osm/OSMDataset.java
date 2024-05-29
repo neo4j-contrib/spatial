@@ -19,390 +19,416 @@
  */
 package org.neo4j.gis.spatial.osm;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.Objects;
+import javax.annotation.Nonnull;
+import javax.xml.bind.DatatypeConverter;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
-import org.neo4j.gis.spatial.*;
-import org.neo4j.graphdb.*;
+import org.neo4j.gis.spatial.GeometryEncoder;
+import org.neo4j.gis.spatial.Layer;
+import org.neo4j.gis.spatial.SpatialDatabaseException;
+import org.neo4j.gis.spatial.SpatialDataset;
+import org.neo4j.gis.spatial.SpatialRelationshipTypes;
+import org.neo4j.gis.spatial.utilities.RelationshipTraversal;
+import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.Label;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 
-import javax.xml.bind.DatatypeConverter;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Iterator;
-
 public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
-    private final OSMLayer layer;
-    private final long datasetNodeId;
-    private Iterator<Node> wayNodeIterator;
-    private final LabelHasher labelHasher;
 
-    private OSMDataset(OSMLayer layer, long datasetNodeId) {
-        this.layer = layer;
-        this.datasetNodeId = datasetNodeId;
-        this.layer.setDataset(this);
-        try {
-            this.labelHasher = new LabelHasher(layer.getName());
-        } catch (NoSuchAlgorithmException e) {
-            throw new SpatialDatabaseException("Failed to initialize OSM dataset '" + layer.getName() + "': " + e.getMessage(), e);
-        }
-    }
+	private final OSMLayer layer;
+	private final String datasetNodeId;
+	private Iterator<Node> wayNodeIterator;
+	private final LabelHasher labelHasher;
 
-    /**
-     * This method is used to construct the dataset on an existing node when the node id is known,
-     * which is the case with OSM importers.
-     */
-    public static OSMDataset withDatasetId(Transaction tx, OSMLayer layer, long datasetNodeId) {
-        Node datasetNode = tx.getNodeById(datasetNodeId);
-        Node layerNode = layer.getLayerNode(tx);
-        Relationship rel = layerNode.getSingleRelationship(SpatialRelationshipTypes.LAYERS, Direction.INCOMING);
-        if (rel == null) {
-            datasetNode.createRelationshipTo(layerNode, SpatialRelationshipTypes.LAYERS);
-        } else {
-            Node node = rel.getStartNode();
-            if (!node.equals(datasetNode)) {
-                throw new SpatialDatabaseException("Layer '" + layer + "' already belongs to another dataset: " + node);
-            }
-        }
-        return new OSMDataset(layer, datasetNodeId);
-    }
+	private OSMDataset(OSMLayer layer, String datasetNodeId) {
+		this.layer = layer;
+		this.datasetNodeId = datasetNodeId;
+		this.layer.setDataset(this);
+		try {
+			this.labelHasher = new LabelHasher(layer.getName());
+		} catch (NoSuchAlgorithmException e) {
+			throw new SpatialDatabaseException(
+					"Failed to initialize OSM dataset '" + layer.getName() + "': " + e.getMessage(), e);
+		}
+	}
 
-    /**
-     * This method is used to construct the dataset when only the layer node is known, and the
-     * dataset node needs to be searched for.
-     */
-    public static OSMDataset fromLayer(Transaction tx, OSMLayer layer) {
-        Relationship rel = layer.getLayerNode(tx).getSingleRelationship(SpatialRelationshipTypes.LAYERS, Direction.INCOMING);
-        if (rel == null) {
-            Node datasetNode = tx.createNode(OSMModel.LABEL_DATASET);
-            datasetNode.setProperty("name", layer.getName());
-            datasetNode.setProperty("type", "osm");
-            datasetNode.createRelationshipTo(layer.getLayerNode(tx), SpatialRelationshipTypes.LAYERS);
-            return new OSMDataset(layer, datasetNode.getId());
-        } else {
-            long datasetNodeId = rel.getStartNode().getId();
-            return new OSMDataset(layer, datasetNodeId);
-        }
-    }
+	/**
+	 * This method is used to construct the dataset on an existing node when the node id is known,
+	 * which is the case with OSM importers.
+	 */
+	public static OSMDataset withDatasetId(Transaction tx, OSMLayer layer, String datasetNodeId) {
+		Node datasetNode = tx.getNodeByElementId(datasetNodeId);
+		Node layerNode = layer.getLayerNode(tx);
+		Relationship rel = layerNode.getSingleRelationship(SpatialRelationshipTypes.LAYERS, Direction.INCOMING);
+		if (rel == null) {
+			datasetNode.createRelationshipTo(layerNode, SpatialRelationshipTypes.LAYERS);
+		} else {
+			Node node = rel.getStartNode();
+			if (!node.equals(datasetNode)) {
+				throw new SpatialDatabaseException("Layer '" + layer + "' already belongs to another dataset: " + node);
+			}
+		}
+		return new OSMDataset(layer, datasetNodeId);
+	}
 
-    public Iterable<Node> getAllUserNodes(Transaction tx) {
-        return () -> tx.findNodes(labelHasher.getLabelHashed(OSMModel.LABEL_USER));
-    }
+	/**
+	 * This method is used to construct the dataset when only the layer node is known, and the
+	 * dataset node needs to be searched for.
+	 */
+	public static OSMDataset fromLayer(Transaction tx, OSMLayer layer) {
+		Relationship rel = layer.getLayerNode(tx)
+				.getSingleRelationship(SpatialRelationshipTypes.LAYERS, Direction.INCOMING);
+		if (rel == null) {
+			Node datasetNode = tx.createNode(OSMModel.LABEL_DATASET);
+			datasetNode.setProperty("name", layer.getName());
+			datasetNode.setProperty("type", "osm");
+			datasetNode.createRelationshipTo(layer.getLayerNode(tx), SpatialRelationshipTypes.LAYERS);
+			return new OSMDataset(layer, datasetNode.getElementId());
+		}
+		String datasetNodeId = rel.getStartNode().getElementId();
+		return new OSMDataset(layer, datasetNodeId);
+	}
 
-    public Iterable<Node> getAllChangesetNodes(Transaction tx) {
-        return () -> tx.findNodes(labelHasher.getLabelHashed(OSMModel.LABEL_CHANGESET));
-    }
+	public Iterable<Node> getAllUserNodes(Transaction tx) {
+		return () -> tx.findNodes(labelHasher.getLabelHashed(OSMModel.LABEL_USER));
+	}
 
-    public Iterable<Node> getAllWayNodes(Transaction tx) {
-        return () -> tx.findNodes(labelHasher.getLabelHashed(OSMModel.LABEL_WAY));
-    }
+	public Iterable<Node> getAllChangesetNodes(Transaction tx) {
+		return () -> tx.findNodes(labelHasher.getLabelHashed(OSMModel.LABEL_CHANGESET));
+	}
 
-    public Iterable<Node> getAllPointNodes(Transaction tx) {
-        return () -> tx.findNodes(labelHasher.getLabelHashed(OSMModel.LABEL_NODE));
-    }
+	public Iterable<Node> getAllWayNodes(Transaction tx) {
+		return () -> tx.findNodes(labelHasher.getLabelHashed(OSMModel.LABEL_WAY));
+	}
 
-    public Iterable<Node> getWayNodes(Node way) {
-        TraversalDescription td = new MonoDirectionalTraversalDescription()
-                .depthFirst()
-                .relationships(OSMRelation.NEXT, Direction.OUTGOING)
-                .relationships(OSMRelation.NODE, Direction.OUTGOING)
-                .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(OSMRelation.NODE));
-        return td.traverse(
-                way.getSingleRelationship(OSMRelation.FIRST_NODE, Direction.OUTGOING).getEndNode()
-        ).nodes();
-    }
+	public Iterable<Node> getAllPointNodes(Transaction tx) {
+		return () -> tx.findNodes(labelHasher.getLabelHashed(OSMModel.LABEL_NODE));
+	}
 
-    public Node getChangeset(Node way) {
-        try {
-            return way.getSingleRelationship(OSMRelation.CHANGESET, Direction.OUTGOING).getEndNode();
-        } catch (Exception e) {
-            System.out.println("Node has no changeset: " + e.getMessage());
-            return null;
-        }
-    }
+	public Iterable<Node> getWayNodes(Node way) {
+		TraversalDescription td = new MonoDirectionalTraversalDescription()
+				.depthFirst()
+				.relationships(OSMRelation.NEXT, Direction.OUTGOING)
+				.relationships(OSMRelation.NODE, Direction.OUTGOING)
+				.evaluator(Evaluators.includeWhereLastRelationshipTypeIs(OSMRelation.NODE));
+		return td.traverse(
+				way.getSingleRelationship(OSMRelation.FIRST_NODE, Direction.OUTGOING).getEndNode()
+		).nodes();
+	}
 
-    public Node getUser(Node nodeWayOrChangeset) {
-        TraversalDescription td = new MonoDirectionalTraversalDescription()
-                .depthFirst()
-                .relationships(OSMRelation.CHANGESET, Direction.OUTGOING)
-                .relationships(OSMRelation.USER, Direction.OUTGOING)
-                .evaluator(Evaluators.includeWhereLastRelationshipTypeIs(OSMRelation.USER));
-        Iterator<Node> results = td.traverse(nodeWayOrChangeset).nodes().iterator();
-        return results.hasNext() ? results.next() : null;
-    }
+	public Node getChangeset(Node way) {
+		try {
+			return way.getSingleRelationship(OSMRelation.CHANGESET, Direction.OUTGOING).getEndNode();
+		} catch (Exception e) {
+			System.out.println("Node has no changeset: " + e.getMessage());
+			return null;
+		}
+	}
 
-    public Node getDatasetNode(Transaction tx) {
-        return tx.getNodeById(datasetNodeId);
-    }
+	public Node getUser(Node nodeWayOrChangeset) {
+		TraversalDescription td = new MonoDirectionalTraversalDescription()
+				.depthFirst()
+				.relationships(OSMRelation.CHANGESET, Direction.OUTGOING)
+				.relationships(OSMRelation.USER, Direction.OUTGOING)
+				.evaluator(Evaluators.includeWhereLastRelationshipTypeIs(OSMRelation.USER));
+		return RelationshipTraversal.getFirstNode(td.traverse(nodeWayOrChangeset).nodes());
+	}
 
-    public Way getWayFromId(Transaction tx, long id) {
-        return getWayFrom(tx.getNodeById(id));
-    }
+	public Node getDatasetNode(Transaction tx) {
+		return tx.getNodeByElementId(datasetNodeId);
+	}
 
-    public Way getWayFrom(Node osmNodeOrWayNodeOrGeomNode) {
-        TraversalDescription td = new MonoDirectionalTraversalDescription()
-                .depthFirst()
-                .relationships(OSMRelation.NODE, Direction.INCOMING)
-                .relationships(OSMRelation.NEXT, Direction.INCOMING)
-                .relationships(OSMRelation.FIRST_NODE, Direction.INCOMING)
-                .relationships(OSMRelation.GEOM, Direction.INCOMING)
-                .evaluator(path -> path.endNode().hasProperty("way_osm_id") ? Evaluation.INCLUDE_AND_PRUNE
-                        : Evaluation.EXCLUDE_AND_CONTINUE);
-        Iterator<Node> results = td.traverse(osmNodeOrWayNodeOrGeomNode).nodes().iterator();
-        return results.hasNext() ? new Way(results.next()) : null;
-    }
+	public Way getWayFromId(Transaction tx, String id) {
+		return getWayFrom(tx.getNodeByElementId(id));
+	}
 
-    public class OSMNode {
-        protected Node node;
-        protected Node geomNode;
-        protected Geometry geometry;
+	public Way getWayFrom(Node osmNodeOrWayNodeOrGeomNode) {
+		TraversalDescription td = new MonoDirectionalTraversalDescription()
+				.depthFirst()
+				.relationships(OSMRelation.NODE, Direction.INCOMING)
+				.relationships(OSMRelation.NEXT, Direction.INCOMING)
+				.relationships(OSMRelation.FIRST_NODE, Direction.INCOMING)
+				.relationships(OSMRelation.GEOM, Direction.INCOMING)
+				.evaluator(path -> path.endNode().hasProperty("way_osm_id") ? Evaluation.INCLUDE_AND_PRUNE
+						: Evaluation.EXCLUDE_AND_CONTINUE);
+		Node node = RelationshipTraversal.getFirstNode(td.traverse(osmNodeOrWayNodeOrGeomNode).nodes());
+		return node != null ? new Way(node) : null;
+	}
 
-        OSMNode(Node node) {
-            this.node = node;
-            Relationship geomRel = this.node.getSingleRelationship(OSMRelation.GEOM, Direction.OUTGOING);
-            if (geomRel != null) geomNode = geomRel.getEndNode();
-        }
+	public class OSMNode {
 
-        public Way getWay() {
-            return OSMDataset.this.getWayFrom(this.node);
-        }
+		protected final Node node;
+		protected Node geomNode;
+		protected Geometry geometry;
 
-        public Geometry getGeometry() {
-            if (geometry == null && geomNode != null) {
-                geometry = layer.getGeometryEncoder().decodeGeometry(geomNode);
-            }
-            return geometry;
-        }
+		OSMNode(Node node) {
+			this.node = node;
+			Relationship geomRel = this.node.getSingleRelationship(OSMRelation.GEOM, Direction.OUTGOING);
+			if (geomRel != null) {
+				geomNode = geomRel.getEndNode();
+			}
+		}
 
-        public Envelope getEnvelope() {
-            return getGeometry().getEnvelopeInternal();
-        }
+		public Way getWay() {
+			return OSMDataset.this.getWayFrom(this.node);
+		}
 
-        public boolean equals(OSMNode other) {
-            return this.node.getId() == other.node.getId();
-        }
+		public Geometry getGeometry() {
+			if (geometry == null && geomNode != null) {
+				geometry = layer.getGeometryEncoder().decodeGeometry(geomNode);
+			}
+			return geometry;
+		}
 
-        public Node getNode() {
-            return node;
-        }
+		public Envelope getEnvelope() {
+			return getGeometry().getEnvelopeInternal();
+		}
 
-        public String toString() {
-            if (node.hasProperty("name")) {
-                return node.getProperty("name").toString();
-            } else if (getGeometry() != null) {
-                return getGeometry().getGeometryType();
-            } else {
-                return node.toString();
-            }
-        }
-    }
+		public boolean equals(OSMNode other) {
+			return Objects.equals(this.node.getElementId(), other.node.getElementId());
+		}
 
-    public class Way extends OSMNode implements Iterable<WayPoint>, Iterator<WayPoint> {
-        private Iterator<Node> wayPointNodeIterator;
+		public Node getNode() {
+			return node;
+		}
 
-        Way(Node node) {
-            super(node);
-        }
+		public String toString() {
+			if (node.hasProperty("name")) {
+				return node.getProperty("name").toString();
+			}
+			if (getGeometry() != null) {
+				return getGeometry().getGeometryType();
+			}
+			return node.toString();
+		}
+	}
 
-        Iterable<Node> getWayNodes() {
-            return OSMDataset.this.getWayNodes(this.node);
-        }
+	public class Way extends OSMNode implements Iterable<WayPoint>, Iterator<WayPoint> {
 
-        public Iterable<WayPoint> getWayPoints() {
-            return this;
-        }
+		private Iterator<Node> wayPointNodeIterator;
 
-        public Iterator<WayPoint> iterator() {
-            if (wayPointNodeIterator == null || !wayPointNodeIterator.hasNext()) {
-                wayPointNodeIterator = getWayNodes().iterator();
-            }
-            return this;
-        }
+		Way(Node node) {
+			super(node);
+		}
 
-        public boolean hasNext() {
-            return wayPointNodeIterator.hasNext();
-        }
+		Iterable<Node> getWayNodes() {
+			return OSMDataset.this.getWayNodes(this.node);
+		}
 
-        public WayPoint next() {
-            return new WayPoint(wayPointNodeIterator.next());
-        }
+		public Iterable<WayPoint> getWayPoints() {
+			return this;
+		}
 
-        public void remove() {
-            throw new UnsupportedOperationException("Cannot modify way-point collection");
-        }
+		@Override
+		@Nonnull
+		public Iterator<WayPoint> iterator() {
+			if (wayPointNodeIterator == null || !wayPointNodeIterator.hasNext()) {
+				wayPointNodeIterator = getWayNodes().iterator();
+			}
+			return this;
+		}
 
-        public WayPoint getPointAt(Coordinate coordinate) {
-            for (WayPoint wayPoint : getWayPoints()) {
-                if (wayPoint.isAt(coordinate))
-                    return wayPoint;
-            }
-            return null;
-        }
+		@Override
+		public boolean hasNext() {
+			return wayPointNodeIterator.hasNext();
+		}
 
-    }
+		@Override
+		public WayPoint next() {
+			return new WayPoint(wayPointNodeIterator.next());
+		}
 
-    public class WayPoint extends OSMNode {
-        WayPoint(Node node) {
-            super(node);
-        }
+		@Override
+		public void remove() {
+			throw new UnsupportedOperationException("Cannot modify way-point collection");
+		}
 
-        boolean isAt(Coordinate coord) {
-            return getCoordinate().equals(coord);
-        }
+		public WayPoint getPointAt(Coordinate coordinate) {
+			for (WayPoint wayPoint : getWayPoints()) {
+				if (wayPoint.isAt(coordinate)) {
+					return wayPoint;
+				}
+			}
+			return null;
+		}
 
-        public Coordinate getCoordinate() {
-            return new Coordinate(getX(), getY());
-        }
+	}
 
-        private double getY() {
-            return (Double) node.getProperty("latitude", 0.0);
-        }
+	public class WayPoint extends OSMNode {
 
-        private double getX() {
-            return (Double) node.getProperty("longitude", 0.0);
-        }
-    }
+		WayPoint(Node node) {
+			super(node);
+		}
 
-    @Override
-    public Iterable<? extends Geometry> getAllGeometries(Transaction tx) {
-        //@TODO: support multiple layers
-        return layer.getAllGeometries(tx);
-    }
+		boolean isAt(Coordinate coord) {
+			return getCoordinate().equals(coord);
+		}
 
-    @Override
-    public Iterable<Node> getAllGeometryNodes(Transaction tx) {
-        //@TODO: support multiple layers
-        return layer.getAllGeometryNodes(tx);
-    }
+		public Coordinate getCoordinate() {
+			return new Coordinate(getX(), getY());
+		}
 
-    @Override
-    public boolean containsGeometryNode(Transaction tx, Node geomNode) {
-        //@TODO: support multiple layers
-        return layer.containsGeometryNode(tx, geomNode);
-    }
+		private double getY() {
+			return (Double) node.getProperty("latitude", 0.0);
+		}
 
-    @Override
-    public GeometryEncoder getGeometryEncoder() {
-        //@TODO: support multiple layers
-        return layer.getGeometryEncoder();
-    }
+		private double getX() {
+			return (Double) node.getProperty("longitude", 0.0);
+		}
+	}
 
-    @Override
-    public Iterable<? extends Layer> getLayers() {
-        return Collections.singletonList(layer);
-    }
+	@Override
+	public Iterable<? extends Geometry> getAllGeometries(Transaction tx) {
+		//@TODO: support multiple layers
+		return layer.getAllGeometries(tx);
+	}
 
-    public Iterable<Way> getWays(final Transaction tx) {
-        return () -> OSMDataset.this.iterator(tx);
-    }
+	@Override
+	public Iterable<Node> getAllGeometryNodes(Transaction tx) {
+		//@TODO: support multiple layers
+		return layer.getAllGeometryNodes(tx);
+	}
 
-    public Iterator<Way> iterator(Transaction tx) {
-        if (wayNodeIterator == null || !wayNodeIterator.hasNext()) {
-            wayNodeIterator = getAllWayNodes(tx).iterator();
-        }
-        return this;
-    }
+	@Override
+	public boolean containsGeometryNode(Transaction tx, Node geomNode) {
+		//@TODO: support multiple layers
+		return layer.containsGeometryNode(tx, geomNode);
+	}
 
-    @Override
-    public boolean hasNext() {
-        return wayNodeIterator.hasNext();
-    }
+	@Override
+	public GeometryEncoder getGeometryEncoder() {
+		//@TODO: support multiple layers
+		return layer.getGeometryEncoder();
+	}
 
-    @Override
-    public Way next() {
-        return new Way(wayNodeIterator.next());
-    }
+	@Override
+	public Iterable<? extends Layer> getLayers() {
+		return Collections.singletonList(layer);
+	}
 
-    @Override
-    public void remove() {
-        throw new UnsupportedOperationException("Cannot modify way collection");
-    }
+	public Iterable<Way> getWays(final Transaction tx) {
+		return () -> OSMDataset.this.iterator(tx);
+	}
 
-    public int getPoiCount(Transaction tx) {
-        return (Integer) tx.getNodeById(this.datasetNodeId).getProperty("poiCount", 0);
-    }
+	public Iterator<Way> iterator(Transaction tx) {
+		if (wayNodeIterator == null || !wayNodeIterator.hasNext()) {
+			wayNodeIterator = getAllWayNodes(tx).iterator();
+		}
+		return this;
+	}
 
-    public int getNodeCount(Transaction tx) {
-        return (Integer) tx.getNodeById(this.datasetNodeId).getProperty("nodeCount", 0);
-    }
+	@Override
+	public boolean hasNext() {
+		return wayNodeIterator.hasNext();
+	}
 
-    public int getWayCount(Transaction tx) {
-        return (Integer) tx.getNodeById(this.datasetNodeId).getProperty("wayCount", 0);
-    }
+	@Override
+	public Way next() {
+		return new Way(wayNodeIterator.next());
+	}
 
-    public int getRelationCount(Transaction tx) {
-        return (Integer) tx.getNodeById(this.datasetNodeId).getProperty("relationCount", 0);
-    }
+	@Override
+	public void remove() {
+		throw new UnsupportedOperationException("Cannot modify way collection");
+	}
 
-    public int getChangesetCount(Transaction tx) {
-        return (Integer) tx.getNodeById(this.datasetNodeId).getProperty("changesetCount", 0);
-    }
+	public int getPoiCount(Transaction tx) {
+		return (Integer) tx.getNodeByElementId(this.datasetNodeId).getProperty("poiCount", 0);
+	}
 
-    public int getUserCount(Transaction tx) {
-        return (Integer) tx.getNodeById(this.datasetNodeId).getProperty("userCount", 0);
-    }
+	public int getNodeCount(Transaction tx) {
+		return (Integer) tx.getNodeByElementId(this.datasetNodeId).getProperty("nodeCount", 0);
+	}
 
-    public String getIndexName(Transaction tx, Label label, String propertyKey) {
-        Node datasetNode = tx.getNodeById(this.datasetNodeId);
-        String indexKey = indexKeyFor(label, propertyKey);
-        return (String) datasetNode.getProperty(indexKey, null);
-    }
+	public int getWayCount(Transaction tx) {
+		return (Integer) tx.getNodeByElementId(this.datasetNodeId).getProperty("wayCount", 0);
+	}
 
-    public IndexDefinition getIndex(Transaction tx, Label label, String propertyKey) {
-        String indexName = getIndexName(tx, label, propertyKey);
-        if (indexName == null) {
-            throw new IllegalArgumentException(String.format("OSM Dataset '%s' does not have an index for label '%s' and property '%s'", this.layer.getName(), label.name(), propertyKey));
-        } else {
-            return tx.schema().getIndexByName(indexName);
-        }
-    }
+	public int getRelationCount(Transaction tx) {
+		return (Integer) tx.getNodeByElementId(this.datasetNodeId).getProperty("relationCount", 0);
+	}
 
-    public static String indexKeyFor(Label label, String propertyKey) {
-        return String.format("Index:%s:%s", label.name(), propertyKey);
-    }
+	public int getChangesetCount(Transaction tx) {
+		return (Integer) tx.getNodeByElementId(this.datasetNodeId).getProperty("changesetCount", 0);
+	}
 
-    public static String indexNameFor(String layerName, String hashedLabel, String propertyKey) {
-        return String.format("OSM-%s-%s-%s", layerName, hashedLabel, propertyKey);
-    }
+	public int getUserCount(Transaction tx) {
+		return (Integer) tx.getNodeByElementId(this.datasetNodeId).getProperty("userCount", 0);
+	}
 
-    public static Label hashedLabelFrom(String indexName) {
-        String[] fields = indexName.split("-");
-        if (fields.length == 4) {
-            return Label.label(fields[2]);
-        } else {
-            throw new IllegalArgumentException(String.format("Index name '%s' is not correctly formatted - cannot extract label hash", indexName));
-        }
-    }
+	public String getIndexName(Transaction tx, Label label, String propertyKey) {
+		Node datasetNode = tx.getNodeByElementId(this.datasetNodeId);
+		String indexKey = indexKeyFor(label, propertyKey);
+		return (String) datasetNode.getProperty(indexKey, null);
+	}
 
-    public static class LabelHasher {
-        private final String layerHash;
-        private final HashMap<Label, Label> hashedLabels = new HashMap<>();
+	public IndexDefinition getIndex(Transaction tx, Label label, String propertyKey) {
+		String indexName = getIndexName(tx, label, propertyKey);
+		if (indexName == null) {
+			throw new IllegalArgumentException(
+					String.format("OSM Dataset '%s' does not have an index for label '%s' and property '%s'",
+							this.layer.getName(), label.name(), propertyKey));
+		} else {
+			return tx.schema().getIndexByName(indexName);
+		}
+	}
 
-        public LabelHasher(String layerName) throws NoSuchAlgorithmException {
-            this.layerHash = md5Hash(layerName);
-        }
+	public static String indexKeyFor(Label label, String propertyKey) {
+		return String.format("Index:%s:%s", label.name(), propertyKey);
+	}
 
-        public Label getLabelHashed(Label label) {
-            if (hashedLabels.containsKey(label)) {
-                return hashedLabels.get(label);
-            } else {
-                Label hashed = Label.label(label.name() + "_" + layerHash);
-                hashedLabels.put(label, hashed);
-                return hashed;
-            }
-        }
+	public static String indexNameFor(String layerName, String hashedLabel, String propertyKey) {
+		return String.format("OSM-%s-%s-%s", layerName, hashedLabel, propertyKey);
+	}
 
-        public static String md5Hash(String text) throws NoSuchAlgorithmException {
-            MessageDigest md = MessageDigest.getInstance("MD5");
-            md.update(text.getBytes());
-            byte[] digest = md.digest();
-            return DatatypeConverter.printHexBinary(digest).toUpperCase();
-        }
-    }
+	public static Label hashedLabelFrom(String indexName) {
+		String[] fields = indexName.split("-");
+		if (fields.length == 4) {
+			return Label.label(fields[2]);
+		} else {
+			throw new IllegalArgumentException(
+					String.format("Index name '%s' is not correctly formatted - cannot extract label hash", indexName));
+		}
+	}
+
+	public static class LabelHasher {
+
+		private final String layerHash;
+		private final HashMap<Label, Label> hashedLabels = new HashMap<>();
+
+		public LabelHasher(String layerName) throws NoSuchAlgorithmException {
+			this.layerHash = md5Hash(layerName);
+		}
+
+		public Label getLabelHashed(Label label) {
+			if (hashedLabels.containsKey(label)) {
+				return hashedLabels.get(label);
+			} else {
+				Label hashed = Label.label(label.name() + "_" + layerHash);
+				hashedLabels.put(label, hashed);
+				return hashed;
+			}
+		}
+
+		public static String md5Hash(String text) throws NoSuchAlgorithmException {
+			MessageDigest md = MessageDigest.getInstance("MD5");
+			md.update(text.getBytes());
+			byte[] digest = md.digest();
+			return DatatypeConverter.printHexBinary(digest).toUpperCase();
+		}
+	}
 }

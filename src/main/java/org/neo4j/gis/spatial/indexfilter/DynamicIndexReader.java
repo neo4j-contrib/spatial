@@ -21,13 +21,17 @@ package org.neo4j.gis.spatial.indexfilter;
 
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
+import org.neo4j.gis.spatial.filter.SearchRecords;
+import org.neo4j.gis.spatial.index.LayerTreeIndexReader;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.SpatialIndexRecordCounter;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
-import org.neo4j.gis.spatial.index.LayerTreeIndexReader;
-import org.neo4j.gis.spatial.filter.SearchRecords;
-import org.neo4j.graphdb.*;
+import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.graphdb.Transaction;
 
 
 /**
@@ -38,9 +42,9 @@ import org.neo4j.graphdb.*;
  * which means that queries for properties on nodes further away require
  * traversals in the JSON. The following example demonstrates a query for
  * an OSM geometry layer, with a test of the geometry type on the geometry
- * node itself, followed by a two step traversal to the ways tag node, and
+ * node itself, followed by a two-step traversal to the ways tag node, and
  * then a query on the tags.
- * 
+ *
  * <pre>
  * { "properties": {"type": "geometry"},
  *   "step": {"type": "GEOM", "direction": "INCOMING"
@@ -50,15 +54,15 @@ import org.neo4j.graphdb.*;
  *   }
  * }
  * </pre>
- * 
+ * <p>
  * This will work with OSM datasets, traversing from the geometry node to
  * the way node and then to the tags node to test if the way is a
  * residential street.
  */
 public class DynamicIndexReader extends LayerIndexReaderWrapper {
-	
-	private JSONObject query;
-    
+
+	private final JSONObject query;
+
 	private class DynamicRecordCounter extends SpatialIndexRecordCounter {
 
 		@Override
@@ -91,33 +95,32 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 	 * querying recursively each nodes properties on the way, as along as
 	 * the JSON contains to have properties to test, and traversal steps to
 	 * take.
-	 * 
-	 * @param geomNode
+	 *
+	 * @param geomNode the node to test
 	 * @return true if the node matches the query string, or the query
-	 *         string is empty
+	 * string is empty
 	 */
 	private boolean queryLeafNode(Node geomNode) {
 		// TODO: Extend support for more complex queries
 		JSONObject properties = (JSONObject) query.get("properties");
 		JSONObject step = (JSONObject) query.get("step");
-		return queryNodeProperties(geomNode,properties) && stepAndQuery(geomNode,step);
+		return queryNodeProperties(geomNode, properties) && stepAndQuery(geomNode, step);
 	}
-	
+
 	private boolean stepAndQuery(Node source, JSONObject step) {
 		if (step != null) {
 			JSONObject properties = (JSONObject) step.get("properties");
 			RelationshipType relType = RelationshipType.withName(step.get("type").toString());
-			Relationship rel = source.getSingleRelationship(relType, Direction.valueOf(step.get("direction").toString()));
+			Relationship rel = source.getSingleRelationship(relType,
+					Direction.valueOf(step.get("direction").toString()));
 			if (rel != null) {
 				Node node = rel.getOtherNode(source);
 				step = (JSONObject) step.get("step");
 				return queryNodeProperties(node, properties) && stepAndQuery(node, step);
-			} else {
-				return false;
 			}
-		} else {
-			return true;
+			return false;
 		}
+		return true;
 	}
 
 	private boolean queryNodeProperties(Node node, JSONObject properties) {
@@ -126,17 +129,18 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 				System.out.println("Unexpected 'geometry' in query string");
 				properties.remove("geometry");
 			}
-			
+
 			for (Object key : properties.keySet()) {
 				Object value = node.getProperty(key.toString(), null);
 				Object match = properties.get(key);
 				// TODO: Find a better way to solve minor type mismatches (Long!=Integer) than the string conversion below
-				if (value == null || (match != null && !value.equals(match) && !value.toString().equals(match.toString()))) {
+				if (value == null || (match != null && !value.equals(match) && !value.toString()
+						.equals(match.toString()))) {
 					return false;
 				}
 			}
 		}
-		
+
 		return true;
 	}
 
@@ -146,30 +150,30 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 		index.visit(tx, counter, index.getIndexRoot(tx));
 		return counter.getResult();
 	}
-	
+
 	private SearchFilter wrapSearchFilter(final SearchFilter filter) {
 		return new SearchFilter() {
 
 			@Override
 			public boolean needsToVisit(Envelope envelope) {
-				return queryIndexNode(envelope) && 
-					filter.needsToVisit(envelope);
+				return queryIndexNode(envelope) &&
+						filter.needsToVisit(envelope);
 			}
 
 			@Override
 			public boolean geometryMatches(Transaction tx, Node geomNode) {
 				return queryLeafNode(geomNode) && filter.geometryMatches(tx, geomNode);
-			}	
+			}
 		};
-	}	
-	
+	}
+
 	@Override
 	public SearchResults searchIndex(Transaction tx, final SearchFilter filter) {
 		return index.searchIndex(tx, wrapSearchFilter(filter));
 	}
-	
+
 	@Override
 	public SearchRecords search(Transaction tx, SearchFilter filter) {
 		return index.search(tx, wrapSearchFilter(filter));
-	}	
+	}
 }

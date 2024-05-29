@@ -21,12 +21,12 @@ package org.neo4j.gis.spatial.index;
 
 public class LayerHilbertNativePointIndexTest extends NativePointIndexTestBase {
 
-    protected Class<? extends LayerIndexReader> getIndexClass() {
-        return LayerHilbertPointIndex.class;
-    }
+	protected Class<? extends LayerIndexReader> getIndexClass() {
+		return LayerHilbertPointIndex.class;
+	}
 
-    @Override
-    protected LayerIndexReader makeIndex() {
-        return new LayerHilbertPointIndex();
-    }
+	@Override
+	protected LayerIndexReader makeIndex() {
+		return new LayerHilbertPointIndex();
+	}
 }

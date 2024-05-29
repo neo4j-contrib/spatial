@@ -19,11 +19,10 @@
  */
 package org.neo4j.gis.spatial.pipes.filtering;
 
-import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
-import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
+import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
+import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 
 /**
@@ -31,9 +30,9 @@ import org.locationtech.jts.geom.Geometry;
  */
 public class FilterWithin extends AbstractFilterGeoPipe {
 
-	private Geometry other;
-	private Envelope otherEnvelope;
-	
+	private final Geometry other;
+	private final Envelope otherEnvelope;
+
 	public FilterWithin(Geometry other) {
 		this.other = other;
 		this.otherEnvelope = other.getEnvelopeInternal();
@@ -43,7 +42,7 @@ public class FilterWithin extends AbstractFilterGeoPipe {
 	protected boolean validate(GeoPipeFlow flow) {
 		// check if every point of this geometry is a point of the other geometry,
 		// and the interiors of the two geometries have at least one point in common
-		return otherEnvelope.contains(flow.getEnvelope()) 
+		return otherEnvelope.contains(flow.getEnvelope())
 				&& flow.getGeometry().within(other);
 	}
 }

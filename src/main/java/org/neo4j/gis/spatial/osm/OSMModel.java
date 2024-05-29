@@ -22,24 +22,25 @@ package org.neo4j.gis.spatial.osm;
 import org.neo4j.graphdb.Label;
 
 public class OSMModel {
-    public static Label LABEL_DATASET = Label.label("OSMDataset");
-    public static Label LABEL_BBOX = Label.label("OSMBBox");
-    public static Label LABEL_CHANGESET = Label.label("OSMChangeset");
-    public static Label LABEL_USER = Label.label("OSMUser");
-    public static Label LABEL_TAGS = Label.label("OSMTags");
-    public static Label LABEL_NODE = Label.label("OSMNode");
-    public static Label LABEL_GEOM = Label.label("OSMGeometry");
-    public static Label LABEL_WAY = Label.label("OSMWay");
-    public static Label LABEL_WAY_NODE = Label.label("OSMWayNode");
-    public static Label LABEL_RELATION = Label.label("OSMRelation");
-    public static String PROP_BBOX = "bbox";
-    public static String PROP_TIMESTAMP = "timestamp";
-    public static String PROP_CHANGESET = "changeset";
-    public static String PROP_USER_NAME = "user";
-    public static String PROP_USER_ID = "uid";
-    public static String PROP_NODE_ID = "node_osm_id";
-    public static String PROP_NODE_LON = "lon";
-    public static String PROP_NODE_LAT = "lat";
-    public static String PROP_WAY_ID = "way_osm_id";
-    public static String PROP_RELATION_ID = "relation_osm_id";
+
+	public static Label LABEL_DATASET = Label.label("OSMDataset");
+	public static Label LABEL_BBOX = Label.label("OSMBBox");
+	public static Label LABEL_CHANGESET = Label.label("OSMChangeset");
+	public static Label LABEL_USER = Label.label("OSMUser");
+	public static Label LABEL_TAGS = Label.label("OSMTags");
+	public static Label LABEL_NODE = Label.label("OSMNode");
+	public static Label LABEL_GEOM = Label.label("OSMGeometry");
+	public static Label LABEL_WAY = Label.label("OSMWay");
+	public static Label LABEL_WAY_NODE = Label.label("OSMWayNode");
+	public static Label LABEL_RELATION = Label.label("OSMRelation");
+	public static String PROP_BBOX = "bbox";
+	public static String PROP_TIMESTAMP = "timestamp";
+	public static String PROP_CHANGESET = "changeset";
+	public static String PROP_USER_NAME = "user";
+	public static String PROP_USER_ID = "uid";
+	public static String PROP_NODE_ID = "node_osm_id";
+	public static String PROP_NODE_LON = "lon";
+	public static String PROP_NODE_LAT = "lat";
+	public static String PROP_WAY_ID = "way_osm_id";
+	public static String PROP_RELATION_ID = "relation_osm_id";
 }

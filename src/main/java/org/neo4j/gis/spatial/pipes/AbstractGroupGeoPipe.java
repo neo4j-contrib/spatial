@@ -26,25 +26,25 @@ import java.util.NoSuchElementException;
 
 public abstract class AbstractGroupGeoPipe extends AbstractGeoPipe {
 
-	protected List<GeoPipeFlow> groups = new ArrayList<GeoPipeFlow>();
+	protected final List<GeoPipeFlow> groups = new ArrayList<>();
 	protected Iterator<GeoPipeFlow> groupIterator = null;
 
 	@Override
 	public GeoPipeFlow processNextStart() {
 		if (groupIterator == null) {
-			try {
-				while (true) {
-					group((GeoPipeFlow) starts.next());
+			while (true) {
+				try {
+					group(starts.next());
+				} catch (NoSuchElementException e) {
+					break;
 				}
-			} catch (NoSuchElementException e) {
-		    }
-			
-			groupIterator = groups.iterator();			
-		} 
-		
+			}
+			groupIterator = groups.iterator();
+		}
+
 		return groupIterator.next();
 	}
-	
+
 	/**
 	 * Subclasses should override this method
 	 */

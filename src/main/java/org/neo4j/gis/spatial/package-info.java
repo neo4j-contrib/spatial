@@ -19,7 +19,7 @@
  */
 /**
  * Provides spatial indexing capabilities to the Neo4j graph. This component is a
- * collection of various utilities for indexing parts of a Neo4j graph in 
+ * collection of various utilities for indexing parts of a Neo4j graph in
  * different ways. Different APIs are supported, such as the GeoTools spatial API
  * and the Neo4j Index provider API. This component also makes it possible to
  * run Neo4j via GeoTools as a backend for GeoServer, Geomajas and uDig.

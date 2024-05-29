@@ -32,32 +32,32 @@ import org.neo4j.graphdb.Transaction;
  */
 public class CopyDatabaseRecordProperties extends AbstractGeoPipe {
 
-    private final String[] keys;
-    private final Transaction tx;
+	private final String[] keys;
+	private final Transaction tx;
 
-    public CopyDatabaseRecordProperties(Transaction tx) {
-        this.tx = tx;
-        this.keys = null;
-    }
+	public CopyDatabaseRecordProperties(Transaction tx) {
+		this.tx = tx;
+		this.keys = null;
+	}
 
-    public CopyDatabaseRecordProperties(Transaction tx, String key) {
-        this.tx = tx;
-        this.keys = new String[]{key};
-    }
+	public CopyDatabaseRecordProperties(Transaction tx, String key) {
+		this.tx = tx;
+		this.keys = new String[]{key};
+	}
 
-    public CopyDatabaseRecordProperties(Transaction tx, String[] keys) {
-        this.tx = tx;
-        this.keys = keys;
-    }
+	public CopyDatabaseRecordProperties(Transaction tx, String[] keys) {
+		this.tx = tx;
+		this.keys = keys;
+	}
 
-    @Override
-    protected GeoPipeFlow process(GeoPipeFlow flow) {
-        String[] names = keys != null ? keys : flow.getRecord().getPropertyNames(tx);
-        for (String name : names) {
-            flow.getProperties().put(name, flow.getRecord().getProperty(tx, name));
-        }
+	@Override
+	protected GeoPipeFlow process(GeoPipeFlow flow) {
+		String[] names = keys != null ? keys : flow.getRecord().getPropertyNames(tx);
+		for (String name : names) {
+			flow.getProperties().put(name, flow.getRecord().getProperty(tx, name));
+		}
 
-        return flow;
-    }
+		return flow;
+	}
 
 }

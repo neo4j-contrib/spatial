@@ -19,18 +19,35 @@
  */
 package org.geotools.data.neo4j;
 
-import org.geotools.data.simple.SimpleFeatureSource;
+import java.io.File;
+import java.io.FileReader;
+import java.io.IOException;
+import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.geotools.api.data.SimpleFeatureSource;
+import org.geotools.api.feature.simple.SimpleFeatureType;
+import org.geotools.api.feature.type.Name;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
+import org.geotools.api.style.Style;
+import org.geotools.api.style.StyleFactory;
 import org.geotools.data.store.ContentDataStore;
 import org.geotools.data.store.ContentEntry;
 import org.geotools.data.store.ContentFeatureSource;
 import org.geotools.feature.NameImpl;
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.geotools.styling.Style;
-import org.geotools.styling.StyleFactory;
 import org.geotools.styling.StyleFactoryImpl;
 import org.geotools.xml.styling.SLDParser;
 import org.locationtech.jts.geom.Envelope;
-import org.neo4j.gis.spatial.*;
+import org.neo4j.gis.spatial.Constants;
+import org.neo4j.gis.spatial.EditableLayer;
+import org.neo4j.gis.spatial.Layer;
+import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import org.neo4j.gis.spatial.SpatialDatabaseService;
+import org.neo4j.gis.spatial.Utilities;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.rtree.filter.SearchAll;
@@ -38,199 +55,194 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
-import org.opengis.feature.simple.SimpleFeatureType;
-import org.opengis.feature.type.Name;
-import org.opengis.referencing.crs.CoordinateReferenceSystem;
-
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.io.StringReader;
-import java.util.*;
 
 /**
  * Geotools DataStore implementation.
  */
 public class Neo4jSpatialDataStore extends ContentDataStore implements Constants {
-    private List<Name> typeNames;
-    private final Map<String, SimpleFeatureType> simpleFeatureTypeIndex = Collections.synchronizedMap(new HashMap<>());
-    private final Map<String, CoordinateReferenceSystem> crsIndex = Collections.synchronizedMap(new HashMap<>());
-    private final Map<String, Style> styleIndex = Collections.synchronizedMap(new HashMap<>());
-    private final Map<String, ReferencedEnvelope> boundsIndex = Collections.synchronizedMap(new HashMap<>());
-    private final Map<String, SimpleFeatureSource> featureSourceIndex = Collections.synchronizedMap(new HashMap<>());
-    private final GraphDatabaseService database;
-    private final SpatialDatabaseService spatialDatabase;
 
-    public Neo4jSpatialDataStore(GraphDatabaseService database) {
-        this.database = database;
-        this.spatialDatabase = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) database, SecurityContext.AUTH_DISABLED));
-    }
+	private List<Name> typeNames;
+	private final Map<String, SimpleFeatureType> simpleFeatureTypeIndex = Collections.synchronizedMap(new HashMap<>());
+	private final Map<String, CoordinateReferenceSystem> crsIndex = Collections.synchronizedMap(new HashMap<>());
+	private final Map<String, Style> styleIndex = Collections.synchronizedMap(new HashMap<>());
+	private final Map<String, ReferencedEnvelope> boundsIndex = Collections.synchronizedMap(new HashMap<>());
+	private final Map<String, SimpleFeatureSource> featureSourceIndex = Collections.synchronizedMap(new HashMap<>());
+	private final GraphDatabaseService database;
+	private final SpatialDatabaseService spatialDatabase;
 
-    /**
-     * Return list of not-empty Layer names.
-     * The list is cached in memory.
-     *
-     * @return layer names
-     */
-    @Override
-    protected List<Name> createTypeNames() {
-        if (typeNames == null) {
-            try (Transaction tx = database.beginTx()) {
-                List<Name> notEmptyTypes = new ArrayList<>();
-                String[] allTypeNames = spatialDatabase.getLayerNames(tx);
-                for (String allTypeName : allTypeNames) {
-                    // discard empty layers
-                    System.out.print("loading layer " + allTypeName);
-                    Layer layer = spatialDatabase.getLayer(tx, allTypeName);
-                    if (!layer.getIndex().isEmpty(tx)) {
-                        notEmptyTypes.add(new NameImpl(allTypeName));
-                    }
-                }
-                typeNames = notEmptyTypes;
-                tx.commit();
-            }
-        }
-        return typeNames;
-    }
+	public Neo4jSpatialDataStore(GraphDatabaseService database) {
+		this.database = database;
+		this.spatialDatabase = new SpatialDatabaseService(
+				new IndexManager((GraphDatabaseAPI) database, SecurityContext.AUTH_DISABLED));
+	}
 
-    /**
-     * Return FeatureType of the given Layer.
-     * FeatureTypes are cached in memory.
-     */
-    public SimpleFeatureType buildFeatureType(String typeName) throws IOException {
-        SimpleFeatureType result = simpleFeatureTypeIndex.get(typeName);
-        if (result == null) {
-            try (Transaction tx = database.beginTx()) {
-                Layer layer = spatialDatabase.getLayer(tx, typeName);
-                if (layer == null) {
-                    throw new IOException("Layer not found: " + typeName);
-                }
+	/**
+	 * Return list of not-empty Layer names.
+	 * The list is cached in memory.
+	 *
+	 * @return layer names
+	 */
+	@Override
+	protected List<Name> createTypeNames() {
+		if (typeNames == null) {
+			try (Transaction tx = database.beginTx()) {
+				List<Name> notEmptyTypes = new ArrayList<>();
+				String[] allTypeNames = spatialDatabase.getLayerNames(tx);
+				for (String allTypeName : allTypeNames) {
+					// discard empty layers
+					System.out.print("loading layer " + allTypeName);
+					Layer layer = spatialDatabase.getLayer(tx, allTypeName);
+					if (!layer.getIndex().isEmpty(tx)) {
+						notEmptyTypes.add(new NameImpl(allTypeName));
+					}
+				}
+				typeNames = notEmptyTypes;
+				tx.commit();
+			}
+		}
+		return typeNames;
+	}
 
-                result = Neo4jFeatureBuilder.getTypeFromLayer(tx, layer);
-                simpleFeatureTypeIndex.put(typeName, result);
-                tx.commit();
-            }
-        }
+	/**
+	 * Return FeatureType of the given Layer.
+	 * FeatureTypes are cached in memory.
+	 */
+	public SimpleFeatureType buildFeatureType(String typeName) throws IOException {
+		SimpleFeatureType result = simpleFeatureTypeIndex.get(typeName);
+		if (result == null) {
+			try (Transaction tx = database.beginTx()) {
+				Layer layer = spatialDatabase.getLayer(tx, typeName);
+				if (layer == null) {
+					throw new IOException("Layer not found: " + typeName);
+				}
 
-        return result;
-    }
+				result = Neo4jFeatureBuilder.getTypeFromLayer(tx, layer);
+				simpleFeatureTypeIndex.put(typeName, result);
+				tx.commit();
+			}
+		}
 
-    public ReferencedEnvelope getBounds(String typeName) {
-        ReferencedEnvelope result = boundsIndex.get(typeName);
-        if (result == null) {
-            try (Transaction tx = database.beginTx()) {
-                Layer layer = spatialDatabase.getLayer(tx, typeName);
-                if (layer != null) {
-                    Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox(tx));
-                    result = new ReferencedEnvelope(bbox, getCRS(tx, layer));
-                    boundsIndex.put(typeName, result);
-                }
-                tx.commit();
-            }
-        }
-        return result;
-    }
+		return result;
+	}
 
-    public SpatialDatabaseService getSpatialDatabaseService() {
-        return spatialDatabase;
-    }
+	public ReferencedEnvelope getBounds(String typeName) {
+		ReferencedEnvelope result = boundsIndex.get(typeName);
+		if (result == null) {
+			try (Transaction tx = database.beginTx()) {
+				Layer layer = spatialDatabase.getLayer(tx, typeName);
+				if (layer != null) {
+					Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox(tx));
+					result = new ReferencedEnvelope(bbox, getCRS(tx, layer));
+					boundsIndex.put(typeName, result);
+				}
+				tx.commit();
+			}
+		}
+		return result;
+	}
 
-    public Transaction beginTx() {
-        return database.beginTx();
-    }
+	public SpatialDatabaseService getSpatialDatabaseService() {
+		return spatialDatabase;
+	}
 
-    public void clearCache() {
-        typeNames = null;
-        simpleFeatureTypeIndex.clear();
-        crsIndex.clear();
-        styleIndex.clear();
-        boundsIndex.clear();
-        featureSourceIndex.clear();
-    }
+	public Transaction beginTx() {
+		return database.beginTx();
+	}
 
-    @Override
-    protected ContentFeatureSource createFeatureSource(ContentEntry contentEntry) throws IOException {
-        Layer layer;
-        ArrayList<SpatialDatabaseRecord> records = new ArrayList<>();
-        String[] extraPropertyNames;
-        try (Transaction tx = database.beginTx()) {
-            layer = spatialDatabase.getLayer(tx, contentEntry.getTypeName());
-            SearchRecords results = layer.getIndex().search(tx, new SearchAll());
-            // We need to pull all records during this transaction, so that later readers do not have a transaction violation
-            // TODO: See if there is a more memory efficient way of doing this, perhaps create a transaction at read time in the reader?
-            for (SpatialDatabaseRecord record : results) {
-                records.add(record);
-            }
-            extraPropertyNames = layer.getExtraPropertyNames(tx);
-            tx.commit();
-        }
-        Neo4jSpatialFeatureSource source = new Neo4jSpatialFeatureSource(contentEntry, database, layer, buildFeatureType(contentEntry.getTypeName()), records, extraPropertyNames);
-        if (layer instanceof EditableLayer) {
-            return new Neo4jSpatialFeatureStore(contentEntry, database, (EditableLayer) layer, source);
-        } else {
-            return source;
-        }
-    }
+	public void clearCache() {
+		typeNames = null;
+		simpleFeatureTypeIndex.clear();
+		crsIndex.clear();
+		styleIndex.clear();
+		boundsIndex.clear();
+		featureSourceIndex.clear();
+	}
 
-    private CoordinateReferenceSystem getCRS(Transaction tx, Layer layer) {
-        CoordinateReferenceSystem result = crsIndex.get(layer.getName());
-        if (result == null) {
-            result = layer.getCoordinateReferenceSystem(tx);
-            crsIndex.put(layer.getName(), result);
-        }
+	@Override
+	protected ContentFeatureSource createFeatureSource(ContentEntry contentEntry) throws IOException {
+		Layer layer;
+		ArrayList<SpatialDatabaseRecord> records = new ArrayList<>();
+		String[] extraPropertyNames;
+		try (Transaction tx = database.beginTx()) {
+			layer = spatialDatabase.getLayer(tx, contentEntry.getTypeName());
+			SearchRecords results = layer.getIndex().search(tx, new SearchAll());
+			// We need to pull all records during this transaction, so that later readers do not have a transaction violation
+			// TODO: See if there is a more memory efficient way of doing this, perhaps create a transaction at read time in the reader?
+			for (SpatialDatabaseRecord record : results) {
+				records.add(record);
+			}
+			extraPropertyNames = layer.getExtraPropertyNames(tx);
+			tx.commit();
+		}
+		Neo4jSpatialFeatureSource source = new Neo4jSpatialFeatureSource(contentEntry, database, layer,
+				buildFeatureType(contentEntry.getTypeName()), records, extraPropertyNames);
+		if (layer instanceof EditableLayer) {
+			return new Neo4jSpatialFeatureStore(contentEntry, database, (EditableLayer) layer, source);
+		}
+		return source;
+	}
 
-        return result;
-    }
+	private CoordinateReferenceSystem getCRS(Transaction tx, Layer layer) {
+		CoordinateReferenceSystem result = crsIndex.get(layer.getName());
+		if (result == null) {
+			result = layer.getCoordinateReferenceSystem(tx);
+			crsIndex.put(layer.getName(), result);
+		}
 
-    private Object getLayerStyle(String typeName) {
-        try (Transaction tx = database.beginTx()) {
-            Layer layer = spatialDatabase.getLayer(tx, typeName);
-            tx.commit();
-            if (layer == null) return null;
-            else return layer.getStyle();
-        }
-    }
+		return result;
+	}
 
-    public Style getStyle(String typeName) {
-        Style result = styleIndex.get(typeName);
-        if (result == null) {
-            Object obj = getLayerStyle(typeName);
-            if (obj instanceof Style) {
-                result = (Style) obj;
-            } else if (obj instanceof File || obj instanceof String) {
-                StyleFactory styleFactory = new StyleFactoryImpl();
-                SLDParser parser = new SLDParser(styleFactory);
-                try {
-                    if (obj instanceof File) {
-                        parser.setInput(new FileReader((File) obj));
-                    } else {
-                        parser.setInput(new StringReader(obj.toString()));
-                    }
-                    Style[] styles = parser.readXML();
-                    result = styles[0];
-                } catch (Exception e) {
-                    System.err.println("Error loading style '" + obj + "': " + e.getMessage());
-                    e.printStackTrace(System.err);
-                }
-            }
-            styleIndex.put(typeName, result);
-        }
-        return result;
-    }
+	private Object getLayerStyle(String typeName) {
+		try (Transaction tx = database.beginTx()) {
+			Layer layer = spatialDatabase.getLayer(tx, typeName);
+			tx.commit();
+			if (layer == null) {
+				return null;
+			}
+			return layer.getStyle();
+		}
+	}
 
-    private EditableLayer getEditableLayer(String typeName) throws IOException {
-        try (Transaction tx = database.beginTx()) {
-            Layer layer = spatialDatabase.getLayer(tx, typeName);
-            if (layer == null) {
-                throw new IOException("Layer not found: " + typeName);
-            }
+	public Style getStyle(String typeName) {
+		Style result = styleIndex.get(typeName);
+		if (result == null) {
+			Object obj = getLayerStyle(typeName);
+			if (obj instanceof Style) {
+				result = (Style) obj;
+			} else if (obj instanceof File || obj instanceof String) {
+				StyleFactory styleFactory = new StyleFactoryImpl();
+				SLDParser parser = new SLDParser(styleFactory);
+				try {
+					if (obj instanceof File) {
+						parser.setInput(new FileReader((File) obj));
+					} else {
+						parser.setInput(new StringReader(obj.toString()));
+					}
+					Style[] styles = parser.readXML();
+					result = styles[0];
+				} catch (Exception e) {
+					System.err.println("Error loading style '" + obj + "': " + e.getMessage());
+					e.printStackTrace(System.err);
+				}
+			}
+			styleIndex.put(typeName, result);
+		}
+		return result;
+	}
 
-            if (!(layer instanceof EditableLayer)) {
-                throw new IOException("Cannot create a FeatureWriter on a read-only layer: " + layer);
-            }
-            tx.commit();
+	private EditableLayer getEditableLayer(String typeName) throws IOException {
+		try (Transaction tx = database.beginTx()) {
+			Layer layer = spatialDatabase.getLayer(tx, typeName);
+			if (layer == null) {
+				throw new IOException("Layer not found: " + typeName);
+			}
 
-            return (EditableLayer) layer;
-        }
-    }
+			if (!(layer instanceof EditableLayer)) {
+				throw new IOException("Cannot create a FeatureWriter on a read-only layer: " + layer);
+			}
+			tx.commit();
+
+			return (EditableLayer) layer;
+		}
+	}
 }

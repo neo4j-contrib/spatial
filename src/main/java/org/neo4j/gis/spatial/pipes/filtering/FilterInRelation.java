@@ -19,10 +19,9 @@
  */
 package org.neo4j.gis.spatial.pipes.filtering;
 
+import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-
-import org.locationtech.jts.geom.Geometry;
 
 
 /**
@@ -30,12 +29,13 @@ import org.locationtech.jts.geom.Geometry;
  */
 public class FilterInRelation extends AbstractFilterGeoPipe {
 
-	private Geometry other;
-	private String intersectionPattern;	
-	
+	private final Geometry other;
+	private final String intersectionPattern;
+
 	/**
-	 * @param other geometry
-	 * @param intersectionPattern a 9-character string (for more information on the DE-9IM, see the OpenGIS Simple Features Specification)
+	 * @param other               geometry
+	 * @param intersectionPattern a 9-character string (for more information on the DE-9IM, see the OpenGIS Simple
+	 *                            Features Specification)
 	 */
 	public FilterInRelation(Geometry other, String intersectionPattern) {
 		this.other = other;

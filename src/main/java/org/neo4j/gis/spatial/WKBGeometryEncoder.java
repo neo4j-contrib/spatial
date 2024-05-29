@@ -30,23 +30,24 @@ import org.neo4j.graphdb.Transaction;
 
 public class WKBGeometryEncoder extends AbstractSinglePropertyEncoder implements Configurable {
 
-    public Geometry decodeGeometry(Entity container) {
-        try {
-            WKBReader reader = new WKBReader(layer.getGeometryFactory());
-            return reader.read((byte[]) container.getProperty(geomProperty));
-        } catch (ParseException e) {
-            throw new SpatialDatabaseException(e.getMessage(), e);
-        }
-    }
+	@Override
+	public Geometry decodeGeometry(Entity container) {
+		try {
+			WKBReader reader = new WKBReader(layer.getGeometryFactory());
+			return reader.read((byte[]) container.getProperty(geomProperty));
+		} catch (ParseException e) {
+			throw new SpatialDatabaseException(e.getMessage(), e);
+		}
+	}
 
-    @Override
-    protected void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container) {
-        WKBWriter writer = new WKBWriter();
-        container.setProperty(geomProperty, writer.write(geometry));
-    }
+	@Override
+	protected void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container) {
+		WKBWriter writer = new WKBWriter();
+		container.setProperty(geomProperty, writer.write(geometry));
+	}
 
-    @Override
-    public String getSignature() {
-        return "WKB" + super.getSignature();
-    }
+	@Override
+	public String getSignature() {
+		return "WKB" + super.getSignature();
+	}
 }

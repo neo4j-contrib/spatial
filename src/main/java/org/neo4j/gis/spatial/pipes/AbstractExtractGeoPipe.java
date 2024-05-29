@@ -28,32 +28,32 @@ import java.util.List;
  */
 public class AbstractExtractGeoPipe extends AbstractGeoPipe {
 
-    protected List<GeoPipeFlow> extracts = new ArrayList<GeoPipeFlow>();
-    protected Iterator<GeoPipeFlow> extractIterator = null;
+	protected final List<GeoPipeFlow> extracts = new ArrayList<>();
+	protected Iterator<GeoPipeFlow> extractIterator = null;
 
-    @Override
-    public GeoPipeFlow processNextStart() {
-        if (extractIterator != null) {
-            if (extractIterator.hasNext()) {
-                return extractIterator.next();
-            } else {
-                extractIterator = null;
-                extracts.clear();
-            }
-        }
+	@Override
+	public GeoPipeFlow processNextStart() {
+		if (extractIterator != null) {
+			if (extractIterator.hasNext()) {
+				return extractIterator.next();
+			} else {
+				extractIterator = null;
+				extracts.clear();
+			}
+		}
 
-        do {
-            extract(process(starts.next()));
-        } while (extracts.size() == 0);
+		do {
+			extract(process(starts.next()));
+		} while (extracts.isEmpty());
 
-        extractIterator = extracts.iterator();
-        return extractIterator.next();
-    }
+		extractIterator = extracts.iterator();
+		return extractIterator.next();
+	}
 
-    /**
-     * Subclasses should override this method
-     */
-    protected void extract(GeoPipeFlow flow) {
-        extracts.add(flow);
-    }
+	/**
+	 * Subclasses should override this method
+	 */
+	protected void extract(GeoPipeFlow flow) {
+		extracts.add(flow);
+	}
 }

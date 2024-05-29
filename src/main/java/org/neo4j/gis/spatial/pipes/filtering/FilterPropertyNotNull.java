@@ -28,8 +28,8 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class FilterPropertyNotNull extends AbstractFilterGeoPipe {
 
-	private String property;
-	
+	private final String property;
+
 	public FilterPropertyNotNull(String property) {
 		this.property = property;
 	}

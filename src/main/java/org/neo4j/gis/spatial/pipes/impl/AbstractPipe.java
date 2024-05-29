@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import javax.annotation.Nonnull;
 
 /**
  * An AbstractPipe provides most of the functionality that is repeated in every instance of a Pipe.
@@ -15,104 +16,117 @@ import java.util.NoSuchElementException;
  *   return e;
  * }
  * </pre>
- * If the current incoming S is not to be emitted and there are no other S objects to process and emit, then throw a NoSuchElementException.
+ * If the current incoming S is not to be emitted and there are no other S objects to process and emit, then throw a
+ * NoSuchElementException.
  *
- * @author Marko A. Rodriguez (http://markorodriguez.com)
+ * @author <a href="http://markorodriguez.com" >Marko A. Rodriguez</a>
  */
 public abstract class AbstractPipe<S, E> implements Pipe<S, E> {
 
-    protected Iterator<S> starts;
-    private E nextEnd;
-    protected E currentEnd;
-    private boolean available = false;
+	protected Iterator<S> starts;
+	private E nextEnd;
+	protected E currentEnd;
+	private boolean available = false;
 
-    public void setStarts(final Pipe<?, S> starts) {
-        this.starts = starts;
-    }
+	public void setStarts(final Pipe<?, S> starts) {
+		this.starts = starts;
+	}
 
-    public void setStarts(final Iterator<S> starts) {
-        if (starts instanceof Pipe)
-            this.starts = starts;
-        else
-            this.starts = new LastElementIterator<>(starts);
-    }
+	@Override
+	public void setStarts(final Iterator<S> starts) {
+		if (starts instanceof Pipe) {
+			this.starts = starts;
+		} else {
+			this.starts = new LastElementIterator<>(starts);
+		}
+	}
 
-    public void setStarts(final Iterable<S> starts) {
-        this.setStarts(starts.iterator());
-    }
+	@Override
+	public void setStarts(final Iterable<S> starts) {
+		this.setStarts(starts.iterator());
+	}
 
-    public void reset() {
-        if (this.starts instanceof Pipe) {
-            ((Pipe) this.starts).reset();
-        }
-        this.nextEnd = null;
-        this.currentEnd = null;
-        this.available = false;
-    }
+	@Override
+	public void reset() {
+		if (this.starts instanceof Pipe) {
+			((Pipe<?, ?>) this.starts).reset();
+		}
+		if (this.starts instanceof LastElementIterator) {
+			((LastElementIterator<?>) this.starts).reset();
+		}
+		this.nextEnd = null;
+		this.currentEnd = null;
+		this.available = false;
+	}
 
-    public List<E> getPath() {
-        final List<E> pathElements = getPathToHere();
-        final int size = pathElements.size();
-        // do not repeat filters as they dup the object
-        if (size == 0 || pathElements.get(size - 1) != this.currentEnd) {
-            pathElements.add(this.currentEnd);
-        }
-        return pathElements;
-    }
+	@Override
+	public List<E> getPath() {
+		final List<E> pathElements = getPathToHere();
+		final int size = pathElements.size();
+		// do not repeat filters as they dup the object
+		if (size == 0 || pathElements.get(size - 1) != this.currentEnd) {
+			pathElements.add(this.currentEnd);
+		}
+		return pathElements;
+	}
 
-    public void remove() {
-        throw new UnsupportedOperationException();
-    }
+	@Override
+	public void remove() {
+		throw new UnsupportedOperationException();
+	}
 
-    public E next() {
-        if (this.available) {
-            this.available = false;
-            return (this.currentEnd = this.nextEnd);
-        } else {
-            return (this.currentEnd = this.processNextStart());
-        }
-    }
+	@Override
+	public E next() {
+		if (this.available) {
+			this.available = false;
+			return (this.currentEnd = this.nextEnd);
+		}
+		return (this.currentEnd = this.processNextStart());
+	}
 
-    public boolean hasNext() {
-        if (this.available)
-            return true;
-        else {
-            try {
-                this.nextEnd = this.processNextStart();
-                return (this.available = true);
-            } catch (final NoSuchElementException e) {
-                return (this.available = false);
-            }
-        }
-    }
+	@Override
+	public boolean hasNext() {
+		if (this.available) {
+			return true;
+		}
+		try {
+			this.nextEnd = this.processNextStart();
+			return (this.available = true);
+		} catch (final NoSuchElementException e) {
+			return (this.available = false);
+		}
+	}
 
-    /**
-     * The iterator method of Iterable is not faithful to the Java semantics of iterator().
-     * This method simply returns the pipe itself (which is an iterator) and thus, is useful only for foreach iteration.
-     *
-     * @return the pipe from the perspective of an iterator
-     */
-    public Iterator<E> iterator() {
-        return this;
-    }
+	/**
+	 * The iterator method of Iterable is not faithful to the Java semantics of iterator().
+	 * This method simply returns the pipe itself (which is an iterator) and thus, is useful only for foreach iteration.
+	 *
+	 * @return the pipe from the perspective of an iterator
+	 */
+	@Override
+	@Nonnull
+	public Iterator<E> iterator() {
+		return this;
+	}
 
-    public String toString() {
-        return getClass().getSimpleName();
-    }
+	public String toString() {
+		return getClass().getSimpleName();
+	}
 
-    protected abstract E processNextStart() throws NoSuchElementException;
+	protected abstract E processNextStart() throws NoSuchElementException;
 
-    protected List<E> getPathToHere() {
-        if (this.starts instanceof Pipe) {
-            return ((Pipe) this.starts).getPath();
-        } else if (this.starts instanceof LastElementIterator) {
-            final List<E> list = new ArrayList<>();
-            list.add((E) ((LastElementIterator) starts).lastElement());
-            return list;
-        } else {
-            return new ArrayList<>();
-        }
-    }
+	@SuppressWarnings("unchecked")
+	protected List<E> getPathToHere() {
+		if (this.starts instanceof Pipe) {
+			return ((Pipe<?, E>) this.starts).getPath();
+		}
+		if (this.starts instanceof LastElementIterator<?> iter) {
+			final List<E> list = new ArrayList<>();
+			list.add((E) iter.lastElement());
+			return list;
+		}
+		return new ArrayList<>();
+	}
 
 
 }

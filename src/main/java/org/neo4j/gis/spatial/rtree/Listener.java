@@ -21,8 +21,8 @@ package org.neo4j.gis.spatial.rtree;
 
 
 /**
- * Classes that implement this interface will be notified of units of work done, 
- * and can therefor be used for progress bars or console logging or similar activities. 
+ * Classes that implement this interface will be notified of units of work done,
+ * and can therefor be used for progress bars or console logging or similar activities.
  */
 public interface Listener {
 

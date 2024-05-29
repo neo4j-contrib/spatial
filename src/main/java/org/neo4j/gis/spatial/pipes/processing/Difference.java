@@ -19,35 +19,34 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
+import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-
-import org.locationtech.jts.geom.Geometry;
 
 /**
  * Computes a geometry representing the points making up item geometry that do not make up the given geometry.
  * Item geometry is replaced by pipe output unless an alternative property name is given in the constructor.
  */
 public class Difference extends AbstractGeoPipe {
-	
-	private Geometry other;
-	
+
+	private final Geometry other;
+
 	public Difference(Geometry other) {
 		this.other = other;
-	}		
-	
+	}
+
 	/**
-	 * @param other geometry
+	 * @param other              geometry
 	 * @param resultPropertyName property name to use for geometry output
-	 */	
+	 */
 	public Difference(Geometry other, String resultPropertyName) {
 		super(resultPropertyName);
 		this.other = other;
-	}		
-	
-	@Override	
+	}
+
+	@Override
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
-		setGeometry(flow, flow.getGeometry().difference(other));			
+		setGeometry(flow, flow.getGeometry().difference(other));
 		return flow;
 	}
 }

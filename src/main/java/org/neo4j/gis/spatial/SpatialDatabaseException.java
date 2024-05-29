@@ -27,8 +27,8 @@ public class SpatialDatabaseException extends RuntimeException {
 
 	public SpatialDatabaseException(Throwable error) {
 		super(error);
-	}	
-	
+	}
+
 	public SpatialDatabaseException(String message, Throwable error) {
 		super(message, error);
 	}

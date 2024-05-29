@@ -27,5 +27,5 @@ public interface SpatialIndexVisitor {
 	boolean needsToVisit(Envelope indexNodeEnvelope);
 
 	void onIndexReference(Node geomNode);
-	
+
 }

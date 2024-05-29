@@ -11,10 +11,12 @@ package org.neo4j.gis.spatial.pipes.impl;
  * </pre>
  * <p/>
  *
- * @author Marko A. Rodriguez (http://markorodriguez.com)
+ * @author <a href="http://markorodriguez.com" >Marko A. Rodriguez</a>
  */
 public class IdentityPipe<S> extends AbstractPipe<S, S> {
-    protected S processNextStart() {
-        return this.starts.next();
-    }
+
+	@Override
+	protected S processNextStart() {
+		return this.starts.next();
+	}
 }

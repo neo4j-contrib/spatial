@@ -20,22 +20,23 @@
 package org.neo4j.gis.spatial.index;
 
 public class ExplicitIndexBackedMonitor {
-    long hits = 0L;
-    long misses = 0;
 
-    public void hit() {
-        hits++;
-    }
+	long hits = 0L;
+	long misses = 0;
 
-    public void miss() {
-        misses++;
-    }
+	public void hit() {
+		hits++;
+	}
 
-    public long getHits() {
-        return hits;
-    }
+	public void miss() {
+		misses++;
+	}
 
-    public long getMisses() {
-        return misses;
-    }
+	public long getHits() {
+		return hits;
+	}
+
+	public long getMisses() {
+		return misses;
+	}
 }

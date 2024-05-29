@@ -20,12 +20,10 @@
 package org.neo4j.gis.spatial.pipes.processing;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
-
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
@@ -37,49 +35,55 @@ public class Sort extends AbstractGeoPipe {
 	private final List<GeoPipeFlow> sortedFlow;
 	private final Comparator<GeoPipeFlow> comparator;
 	private Iterator<GeoPipeFlow> flowIterator;
-	
+
 	public Sort(final String property, final Comparator<Object> propertyComparator) {
-        this.sortedFlow = new ArrayList<>();
+		this.sortedFlow = new ArrayList<>();
 		this.comparator = (o1, o2) -> {
 			Object p1 = o1.getProperties().get(property);
 			Object p2 = o2.getProperties().get(property);
 
 			if (p1 == null && p2 == null) {
 				return 0;
-			} else if (p1 == null) {
-				return -1;
-			} else if (p2 == null) {
-				return 1;
-			} else {
-				return propertyComparator.compare(p1, p2);
 			}
+			if (p1 == null) {
+				return -1;
+			}
+			if (p2 == null) {
+				return 1;
+			}
+			return propertyComparator.compare(p1, p2);
 		};
 	}
-	
+
 	public Sort(String property, final boolean asc) {
 		this(property, (o1, o2) -> {
-			int result = ((Comparable) o1).compareTo(o2);
+			if (!(o1 instanceof Comparable<?> comparable)) {
+				throw new IllegalArgumentException("Property value is not comparable");
+			}
+			//noinspection unchecked
+			int result = ((Comparable<Object>) comparable).compareTo(o2);
 			if (!asc) {
 				result *= -1;
 			}
 			return result;
 		});
 	}
-	
+
 	@Override
 	public GeoPipeFlow processNextStart() {
 		if (flowIterator == null) {
-			try {
-				while (true) {
+			while (true) {
+				try {
 					sortedFlow.add(starts.next());
+				} catch (NoSuchElementException e) {
+					break;
 				}
-			} catch (NoSuchElementException e) {
-		    }
-			
-			Collections.sort(sortedFlow, comparator);
+			}
+
+			sortedFlow.sort(comparator);
 			flowIterator = sortedFlow.iterator();
 		}
-		
+
 		return flowIterator.next();
 	}
 

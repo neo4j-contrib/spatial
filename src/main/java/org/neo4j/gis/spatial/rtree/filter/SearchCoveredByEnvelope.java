@@ -35,7 +35,7 @@ public class SearchCoveredByEnvelope extends AbstractSearchEnvelopeIntersection 
 	@Override
 	protected boolean onEnvelopeIntersection(Node geomNode, Envelope geomEnvelope) {
 		// check if every point of this Envelope is a point of the Reference Envelope
-	    return referenceEnvelope.contains(geomEnvelope);
+		return referenceEnvelope.contains(geomEnvelope);
 	}
 
 }

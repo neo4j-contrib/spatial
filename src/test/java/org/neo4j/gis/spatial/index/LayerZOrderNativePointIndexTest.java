@@ -21,12 +21,12 @@ package org.neo4j.gis.spatial.index;
 
 public class LayerZOrderNativePointIndexTest extends NativePointIndexTestBase {
 
-    protected Class<? extends LayerIndexReader> getIndexClass() {
-        return LayerZOrderPointIndex.class;
-    }
+	protected Class<? extends LayerIndexReader> getIndexClass() {
+		return LayerZOrderPointIndex.class;
+	}
 
-    @Override
-    protected LayerIndexReader makeIndex() {
-        return new LayerZOrderPointIndex();
-    }
+	@Override
+	protected LayerIndexReader makeIndex() {
+		return new LayerZOrderPointIndex();
+	}
 }

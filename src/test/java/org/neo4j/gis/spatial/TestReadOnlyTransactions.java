@@ -19,9 +19,15 @@
  */
 package org.neo4j.gis.spatial;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -29,13 +35,6 @@ import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.io.fs.FileUtils;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Path;
-
-import static org.junit.Assert.assertEquals;
-import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 /**
  * This test was written to test the subtle behavior of nested transactions in the Neo4j 1.x-3.x code.
@@ -46,102 +45,106 @@ import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAM
  * // TODO: Consider deleting this test as it probably no longer makes sense in Neo4j 4.0
  */
 public class TestReadOnlyTransactions {
-    private DatabaseManagementService databases;
-    private GraphDatabaseService graph;
-    private static final Path basePath = new File("target/var").toPath();
-    private static final String dbPrefix = "neo4j-db";
 
-    private long storePrefix;
+	private DatabaseManagementService databases;
+	private GraphDatabaseService graph;
+	private static final Path basePath = new File("target/var").toPath();
+	private static final String dbPrefix = "neo4j-db";
 
-    private static long n1Id = 0L;
-    private static long n2Id = 0L;
+	private static long storePrefix;
 
-    @Before
-    public void setUp() throws Exception {
-        storePrefix++;
-        this.databases = new TestDatabaseManagementServiceBuilder(basePath.resolve(dbPrefix + storePrefix)).impermanent().build();
-        this.graph = databases.database(DEFAULT_DATABASE_NAME);
-        buildDataModel();
-    }
+	private static String n1Id;
+	private static String n2Id;
 
-    @After
-    public void tearDown() {
-        databases.shutdown();
-        try {
-            FileUtils.deleteDirectory(basePath);
-        } catch (IOException e) {
-            System.out.println("Failed to delete database: " + e);
-            e.printStackTrace();
-        }
-    }
+	@BeforeEach
+	public void setUp() throws Exception {
+		storePrefix++;
+		System.out.println("Creating store at " + dbPrefix + storePrefix);
+		this.databases = new TestDatabaseManagementServiceBuilder(
+				basePath.resolve(dbPrefix + storePrefix)).impermanent().build();
+		this.graph = databases.database(DEFAULT_DATABASE_NAME);
+		buildDataModel();
+	}
 
-    private void buildDataModel() {
-        try (Transaction tx = graph.beginTx()) {
-            Node n1 = tx.createNode();
-            n1.setProperty("name", "n1");
-            Node n2 = tx.createNode();
-            n2.setProperty("name", "n2");
-            n1.createRelationshipTo(n2, RelationshipType.withName("LIKES"));
-            n1Id = n1.getId();
-            n2Id = n2.getId();
-            tx.commit();
-        }
-    }
+	@AfterEach
+	public void tearDown() {
+		databases.shutdown();
+		try {
+			FileUtils.deleteDirectory(basePath);
+		} catch (IOException e) {
+			System.out.println("Failed to delete database: " + e);
+			e.printStackTrace();
+		}
+	}
 
-    private void readNames(Transaction tx) {
-        Node n1 = tx.getNodeById(n1Id);
-        Node n2 = tx.getNodeById(n2Id);
-        String n1Name = (String) n1.getProperty("name");
-        String n2Name = (String) n2.getProperty("name");
-        System.out.println("First node: " + n1Name);
-        System.out.println("Second node: " + n2Name);
-        assertEquals("Name does not match", n1Name, "n1");
-        assertEquals("Name does not match", n2Name, "n2");
-    }
+	private void buildDataModel() {
+		try (Transaction tx = graph.beginTx()) {
+			Node n1 = tx.createNode();
+			n1.setProperty("name", "n1");
+			Node n2 = tx.createNode();
+			n2.setProperty("name", "n2");
+			n1.createRelationshipTo(n2, RelationshipType.withName("LIKES"));
+			n1Id = n1.getElementId();
+			n2Id = n2.getElementId();
+			tx.commit();
+		}
+	}
 
-    private void readNamesWithNestedTransaction(boolean outer, boolean inner) {
-        try (Transaction tx_outer = graph.beginTx()) {
-            try (Transaction tx_inner = graph.beginTx()) {
-                readNames(tx_inner);
-                if (inner) {
-                    tx_inner.commit();
-                }
-            }
-            if (outer) {
-                tx_outer.commit();
-            }
-        }
-    }
+	private void readNames(Transaction tx) {
+		Node n1 = tx.getNodeByElementId(n1Id);
+		Node n2 = tx.getNodeByElementId(n2Id);
+		String n1Name = (String) n1.getProperty("name");
+		String n2Name = (String) n2.getProperty("name");
+		System.out.println("First node: " + n1Name);
+		System.out.println("Second node: " + n2Name);
+		assertEquals("n1", n1Name, "Name does not match");
+		assertEquals("n2", n2Name, "Name does not match");
+	}
 
-    @Test
-    public void testNormalTransaction() {
-        try (Transaction tx = graph.beginTx()) {
-            readNames(tx);
-        }
-    }
+	private void readNamesWithNestedTransaction(boolean outer, boolean inner) {
+		try (Transaction tx_outer = graph.beginTx()) {
+			try (Transaction tx_inner = graph.beginTx()) {
+				readNames(tx_inner);
+				if (inner) {
+					tx_inner.commit();
+				}
+			}
+			if (outer) {
+				tx_outer.commit();
+			}
+		}
+	}
 
-    @Test
-    public void testNestedTransactionFF() {
-        readNamesWithNestedTransaction(false, false);
-    }
+	@Test
+	public void testNormalTransaction() {
+		try (Transaction tx = graph.beginTx()) {
+			readNames(tx);
+			tx.commit();
+		}
+	}
 
-    @Test
-    public void testNestedTransactionSS() {
-        readNamesWithNestedTransaction(true, true);
-    }
+	@Test
+	public void testNestedTransactionFF() {
+		readNamesWithNestedTransaction(false, false);
+	}
 
-    @Test
-    public void testNestedTransactionFS() {
-        readNamesWithNestedTransaction(false, true);
-    }
+	@Test
+	public void testNestedTransactionSS() {
+		readNamesWithNestedTransaction(true, true);
+	}
 
-    @Test
-    public void testNestedTransactionSF() {
-        try {
-            readNamesWithNestedTransaction(true, false);
-        } catch (Exception e) {
-            assertEquals("Expected transaction failure from RollbackException",
-                    "Transaction rolled back even if marked as successful", e.getCause().getMessage());
-        }
-    }
+	@Test
+	public void testNestedTransactionFS() {
+		readNamesWithNestedTransaction(false, true);
+	}
+
+	@Test
+	public void testNestedTransactionSF() {
+		try {
+			readNamesWithNestedTransaction(true, false);
+		} catch (Exception e) {
+			assertEquals("Transaction rolled back even if marked as successful", e.getCause().getMessage(),
+					"Expected transaction failure from RollbackException");
+		}
+	}
 }
