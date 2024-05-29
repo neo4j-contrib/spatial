@@ -19,8 +19,8 @@
  */
 package org.neo4j.gis.spatial;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -117,7 +117,7 @@ public class Neo4jTestUtils {
 
 	public static <T> void assertCollection(Collection<T> collection, T... expectedItems) {
 		String collectionString = join(", ", collection.toArray());
-		assertEquals(collectionString, expectedItems.length, collection.size());
+		assertEquals(expectedItems.length, collection.size(), collectionString);
 		for (T item : expectedItems) {
 			assertTrue(collection.contains(item));
 		}

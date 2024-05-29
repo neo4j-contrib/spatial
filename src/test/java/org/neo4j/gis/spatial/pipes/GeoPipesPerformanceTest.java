@@ -19,7 +19,7 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import org.junit.jupiter.api.BeforeEach;
@@ -136,9 +136,9 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 				count += rec.count;
 				System.out.println("\t" + rec);
 				float average = (float) rec.time / (float) rec.count;
-				assertTrue("Expected record average of " + rec.average()
+				assertTrue(rec.average() < 2 * average, "Expected record average of " + rec.average()
 						+ " to not be substantially larger than running average "
-						+ average, rec.average() < 2 * average);
+						+ average);
 			}
 			tx.commit();
 		}

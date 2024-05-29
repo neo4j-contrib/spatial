@@ -21,9 +21,9 @@ package org.neo4j.gis.spatial;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 import java.io.File;
@@ -274,12 +274,12 @@ public class LayersTest {
 		inTx(tx -> {
 			Layer layer = spatial.createLayer(tx, layerName, geometryEncoderClass, layerClass);
 			assertNotNull(layer);
-			assertTrue(layer instanceof EditableLayer, "Should be an editable layer");
+			assertInstanceOf(EditableLayer.class, layer, "Should be an editable layer");
 		});
 		inTx(tx -> {
 			Layer layer = spatial.getLayer(tx, layerName);
 			assertNotNull(layer);
-			assertTrue(layer instanceof EditableLayer, "Should be an editable layer");
+			assertInstanceOf(EditableLayer.class, layer, "Should be an editable layer");
 			EditableLayer editableLayer = (EditableLayer) layer;
 
 			CoordinateList coordinates = new CoordinateList();
@@ -388,7 +388,7 @@ public class LayersTest {
 			Result result = tx.execute(cypher);
 //           System.out.println(result.columns().toString());
 			Object obj = result.columnAs("count(p)").next();
-			assertTrue(obj instanceof Long);
+			assertInstanceOf(Long.class, obj);
 			assertEquals(1000L, (long) ((Long) obj));
 			tx.commit();
 		}

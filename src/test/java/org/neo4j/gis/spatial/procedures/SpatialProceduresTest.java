@@ -26,10 +26,11 @@ import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasKey;
 import static org.hamcrest.Matchers.not;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.gis.spatial.Constants.LABEL_LAYER;
 import static org.neo4j.gis.spatial.Constants.PROP_GEOMENCODER;
@@ -46,11 +47,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.hamcrest.MatcherAssert;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
@@ -80,7 +80,7 @@ public class SpatialProceduresTest {
 	private DatabaseManagementService databases;
 	private GraphDatabaseService db;
 
-	@Before
+	@BeforeEach
 	public void setUp() throws KernelException, IOException {
 		Path dbRoot = new File("target/procedures").toPath();
 		FileUtils.deleteDirectory(dbRoot);
@@ -92,7 +92,7 @@ public class SpatialProceduresTest {
 		registerProceduresAndFunctions(db, SpatialProcedures.class);
 	}
 
-	@After
+	@AfterEach
 	public void tearDown() {
 		databases.shutdown();
 	}
@@ -130,11 +130,11 @@ public class SpatialProceduresTest {
 	public static void testCall(GraphDatabaseService db, String call, Map<String, Object> params,
 			Consumer<Map<String, Object>> consumer, boolean onlyOne) {
 		testResult(db, call, params, (res) -> {
-			Assert.assertTrue("Expect at least one result but got none: " + call, res.hasNext());
+			assertTrue(res.hasNext(), "Expect at least one result but got none: " + call);
 			Map<String, Object> row = res.next();
 			consumer.accept(row);
 			if (onlyOne) {
-				Assert.assertFalse("Expected only one result, but there are more", res.hasNext());
+				assertFalse(res.hasNext(), "Expected only one result, but there are more");
 			}
 		});
 	}
@@ -143,11 +143,12 @@ public class SpatialProceduresTest {
 		testResult(db, call, params, (res) -> {
 			int numLeft = count;
 			while (numLeft > 0) {
-				assertTrue("Expected " + count + " results but found only " + (count - numLeft), res.hasNext());
+				assertTrue(res.hasNext(),
+						"Expected " + count + " results but found only " + (count - numLeft));
 				res.next();
 				numLeft--;
 			}
-			Assert.assertFalse("Expected " + count + " results but there are more", res.hasNext());
+			assertFalse(res.hasNext(), "Expected " + count + " results but there are more");
 		});
 	}
 
@@ -317,7 +318,7 @@ public class SpatialProceduresTest {
 //        assertEquals("Expected two nodes when using low precision", countLow, equalTo(2L));
 		long countHigh = execute(
 				"call spatial.withinDistance('bar', {latitude:52.2029252,longitude:0.0905302}, 100) YIELD node RETURN node");
-		assertEquals("Expected two nodes when using high precision", 2L, countHigh);
+		assertEquals(2L, countHigh, "Expected two nodes when using high precision");
 	}
 
 	//
@@ -344,7 +345,7 @@ public class SpatialProceduresTest {
 	@Test
 	public void create_point_and_return() {
 		Object geometry = executeObject("RETURN point({latitude: 5.0, longitude: 4.0}) as geometry", "geometry");
-		assertTrue("Should be Geometry type", geometry instanceof Geometry);
+		assertInstanceOf(Geometry.class, geometry, "Should be Geometry type");
 	}
 
 	@Test
@@ -352,14 +353,14 @@ public class SpatialProceduresTest {
 		Object geometry = executeObject(
 				"WITH point({latitude: 5.0, longitude: 4.0}) as geom RETURN spatial.asGeometry(geom) AS geometry",
 				"geometry");
-		assertTrue("Should be Geometry type", geometry instanceof Geometry);
+		assertInstanceOf(Geometry.class, geometry, "Should be Geometry type");
 	}
 
 	@Test
 	public void literal_geometry_return() {
 		Object geometry = executeObject(
 				"WITH spatial.asGeometry({latitude: 5.0, longitude: 4.0}) AS geometry RETURN geometry", "geometry");
-		assertTrue("Should be Geometry type", geometry instanceof Geometry);
+		assertInstanceOf(Geometry.class, geometry, "Should be Geometry type");
 	}
 
 	@Test
@@ -368,7 +369,7 @@ public class SpatialProceduresTest {
 		Object geometry = executeObject(
 				"CREATE (n:Node {geom:'POINT(4.0 5.0)'}) RETURN spatial.decodeGeometry('geom',n) AS geometry",
 				"geometry");
-		assertTrue("Should be Geometry type", geometry instanceof Geometry);
+		assertInstanceOf(Geometry.class, geometry, "Should be Geometry type");
 	}
 
 	@Test
@@ -552,7 +553,8 @@ public class SpatialProceduresTest {
 		testCall(db, "CALL spatial.addLayerWithEncoder('geom','SimplePointEncoder','')", (r) -> {
 			Node node = dump((Node) r.get("node"));
 			assertEquals("geom", node.getProperty("layer"));
-			assertEquals("org.neo4j.gis.spatial.encoders.SimplePointEncoder", node.getProperty("geomencoder"));
+			assertEquals("org.neo4j.gis.spatial.encoders.SimplePointEncoder",
+					node.getProperty("geomencoder"));
 			assertEquals("org.neo4j.gis.spatial.SimplePointLayer", node.getProperty("layer_class"));
 			assertFalse(node.hasProperty(PROP_GEOMENCODER_CONFIG));
 		});
@@ -563,7 +565,8 @@ public class SpatialProceduresTest {
 		testCall(db, "CALL spatial.addLayerWithEncoder('geom','SimplePointEncoder','x:y:mbr')", (r) -> {
 			Node node = dump((Node) r.get("node"));
 			assertEquals("geom", node.getProperty(PROP_LAYER));
-			assertEquals("org.neo4j.gis.spatial.encoders.SimplePointEncoder", node.getProperty(PROP_GEOMENCODER));
+			assertEquals("org.neo4j.gis.spatial.encoders.SimplePointEncoder",
+					node.getProperty(PROP_GEOMENCODER));
 			assertEquals("org.neo4j.gis.spatial.SimplePointLayer", node.getProperty(PROP_LAYER_CLASS));
 			assertEquals("x:y:mbr", node.getProperty(PROP_GEOMENCODER_CONFIG));
 		});
@@ -574,7 +577,8 @@ public class SpatialProceduresTest {
 		testCall(db, "CALL spatial.addLayerWithEncoder('geom','NativePointEncoder','')", (r) -> {
 			Node node = dump((Node) r.get("node"));
 			assertEquals("geom", node.getProperty(PROP_LAYER));
-			assertEquals("org.neo4j.gis.spatial.encoders.NativePointEncoder", node.getProperty(PROP_GEOMENCODER));
+			assertEquals("org.neo4j.gis.spatial.encoders.NativePointEncoder",
+					node.getProperty(PROP_GEOMENCODER));
 			assertEquals("org.neo4j.gis.spatial.SimplePointLayer", node.getProperty(PROP_LAYER_CLASS));
 			assertFalse(node.hasProperty(PROP_GEOMENCODER_CONFIG));
 		});
@@ -585,7 +589,8 @@ public class SpatialProceduresTest {
 		testCall(db, "CALL spatial.addLayerWithEncoder('geom','NativePointEncoder','pos:mbr')", (r) -> {
 			Node node = dump((Node) r.get("node"));
 			assertEquals("geom", node.getProperty(PROP_LAYER));
-			assertEquals("org.neo4j.gis.spatial.encoders.NativePointEncoder", node.getProperty(PROP_GEOMENCODER));
+			assertEquals("org.neo4j.gis.spatial.encoders.NativePointEncoder",
+					node.getProperty(PROP_GEOMENCODER));
 			assertEquals("org.neo4j.gis.spatial.SimplePointLayer", node.getProperty(PROP_LAYER_CLASS));
 			assertEquals("pos:mbr", node.getProperty(PROP_GEOMENCODER_CONFIG));
 		});
@@ -596,7 +601,8 @@ public class SpatialProceduresTest {
 		testCall(db, "CALL spatial.addLayerWithEncoder('geom','NativePointEncoder','pos:mbr:Cartesian')", (r) -> {
 			Node node = dump((Node) r.get("node"));
 			assertEquals("geom", node.getProperty(PROP_LAYER));
-			assertEquals("org.neo4j.gis.spatial.encoders.NativePointEncoder", node.getProperty(PROP_GEOMENCODER));
+			assertEquals("org.neo4j.gis.spatial.encoders.NativePointEncoder",
+					node.getProperty(PROP_GEOMENCODER));
 			assertEquals("org.neo4j.gis.spatial.SimplePointLayer", node.getProperty(PROP_LAYER_CLASS));
 			assertEquals("pos:mbr:Cartesian", node.getProperty(PROP_GEOMENCODER_CONFIG));
 		});
@@ -607,7 +613,8 @@ public class SpatialProceduresTest {
 		testCall(db, "CALL spatial.addLayerWithEncoder('geom','NativePointEncoder','pos:mbr:WGS-84')", (r) -> {
 			Node node = dump((Node) r.get("node"));
 			assertEquals("geom", node.getProperty(PROP_LAYER));
-			assertEquals("org.neo4j.gis.spatial.encoders.NativePointEncoder", node.getProperty(PROP_GEOMENCODER));
+			assertEquals("org.neo4j.gis.spatial.encoders.NativePointEncoder",
+					node.getProperty(PROP_GEOMENCODER));
 			assertEquals("org.neo4j.gis.spatial.SimplePointLayer", node.getProperty(PROP_LAYER_CLASS));
 			assertEquals("pos:mbr:WGS-84", node.getProperty(PROP_GEOMENCODER_CONFIG));
 		});
@@ -682,9 +689,11 @@ public class SpatialProceduresTest {
 			}
 			assertEquals("spatial.procedures() :: (name :: STRING, signature :: STRING)",
 					procs.get("spatial.procedures"));
-			assertEquals("spatial.layers() :: (name :: STRING, signature :: STRING)", procs.get("spatial.layers"));
+			assertEquals("spatial.layers() :: (name :: STRING, signature :: STRING)",
+					procs.get("spatial.layers"));
 			assertEquals("spatial.layer(name :: STRING) :: (node :: NODE)", procs.get("spatial.layer"));
-			assertEquals("spatial.addLayer(name :: STRING, type :: STRING, encoderConfig :: STRING) :: (node :: NODE)",
+			assertEquals(
+					"spatial.addLayer(name :: STRING, type :: STRING, encoderConfig :: STRING) :: (node :: NODE)",
 					procs.get("spatial.addLayer"));
 			assertEquals("spatial.addNode(layerName :: STRING, node :: NODE) :: (node :: NODE)",
 					procs.get("spatial.addNode"));
@@ -755,7 +764,7 @@ public class SpatialProceduresTest {
 		execute("CALL spatial.addPointLayer('geom')");
 		Node node = createNode("CREATE (n:Node {latitude:60.1,longitude:15.2}) RETURN n", "n");
 		testCall(db, "MATCH (n:Node) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node",
-				r -> Assert.assertEquals(node, r.get("node")));
+				r -> assertEquals(node, r.get("node")));
 	}
 
 	@Test
@@ -763,7 +772,7 @@ public class SpatialProceduresTest {
 		execute("CALL spatial.addPointLayerGeohash('geom')");
 		Node node = createNode("CREATE (n:Node {latitude:60.1,longitude:15.2}) RETURN n", "n");
 		testCall(db, "MATCH (n:Node) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node",
-				r -> Assert.assertEquals(node, r.get("node")));
+				r -> assertEquals(node, r.get("node")));
 	}
 
 	@Test
@@ -771,7 +780,7 @@ public class SpatialProceduresTest {
 		execute("CALL spatial.addPointLayerZOrder('geom')");
 		Node node = createNode("CREATE (n:Node {latitude:60.1,longitude:15.2}) RETURN n", "n");
 		testCall(db, "MATCH (n:Node) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node",
-				r -> Assert.assertEquals(node, r.get("node")));
+				r -> assertEquals(node, r.get("node")));
 	}
 
 	@Test
@@ -779,7 +788,7 @@ public class SpatialProceduresTest {
 		execute("CALL spatial.addPointLayerHilbert('geom')");
 		Node node = createNode("CREATE (n:Node {latitude:60.1,longitude:15.2}) RETURN n", "n");
 		testCall(db, "MATCH (n:Node) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node",
-				r -> Assert.assertEquals(node, r.get("node")));
+				r -> assertEquals(node, r.get("node")));
 	}
 
 	@Test
@@ -810,7 +819,7 @@ public class SpatialProceduresTest {
 		for (String encoder : encoders) {
 			for (String indexType : indexes) {
 				String layerName = (encoder + indexType).toLowerCase();
-				testCall(db, "MATCH (node:Node) RETURN node", r -> Assert.assertEquals(node, r.get("node")));
+				testCall(db, "MATCH (node:Node) RETURN node", r -> assertEquals(node, r.get("node")));
 				testCall(db, "MATCH (n:Node) WITH n CALL spatial.addNode('" + layerName + "',n) YIELD node RETURN node",
 						r -> assertEquals(node, r.get("node")));
 				testCall(db, "CALL spatial.withinDistance('" + layerName + "',{lon:15.0,lat:60.0},100)",
@@ -882,7 +891,7 @@ public class SpatialProceduresTest {
 		execute("CALL spatial.addPointLayerXY('geom','lon','lat')");
 		Node node = createNode("CREATE (n:Node {lat:60.1,lon:15.2}) RETURN n", "n");
 		testCall(db, "MATCH (n:Node) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node",
-				r -> Assert.assertEquals(node, r.get("node")));
+				r -> assertEquals(node, r.get("node")));
 	}
 
 	@Test
@@ -890,7 +899,7 @@ public class SpatialProceduresTest {
 		execute("CALL spatial.addPointLayerXY('geom','lon','lat','geohash')");
 		Node node = createNode("CREATE (n:Node {lat:60.1,lon:15.2}) RETURN n", "n");
 		testCall(db, "MATCH (n:Node) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node",
-				r -> Assert.assertEquals(node, r.get("node")));
+				r -> assertEquals(node, r.get("node")));
 	}
 
 	@Test
@@ -905,7 +914,7 @@ public class SpatialProceduresTest {
 			node1 = ((Node) row.get("n1")).getElementId();
 			node2 = ((Node) row.get("n2")).getElementId();
 			long count = (Long) row.get("count");
-			Assert.assertEquals(2L, count);
+			assertEquals(2L, count);
 			result.close();
 			tx.commit();
 		}
@@ -921,7 +930,7 @@ public class SpatialProceduresTest {
 					map("nodeId", node1)).next().get("node");
 			Result removeResult = tx.execute("CALL spatial.removeNode('geom',$node) YIELD nodeId RETURN nodeId",
 					map("node", node));
-			Assert.assertEquals(node1, removeResult.next().get("nodeId"));
+			assertEquals(node1, removeResult.next().get("nodeId"));
 			removeResult.close();
 			tx.commit();
 		}
@@ -933,7 +942,7 @@ public class SpatialProceduresTest {
 		try (Transaction tx = db.beginTx()) {
 			Result removeResult = tx.execute("CALL spatial.removeNode.byId('geom',$nodeId) YIELD nodeId RETURN nodeId",
 					map("nodeId", node2));
-			Assert.assertEquals(node2, removeResult.next().get("nodeId"));
+			assertEquals(node2, removeResult.next().get("nodeId"));
 			removeResult.close();
 			tx.commit();
 		}
@@ -1101,7 +1110,7 @@ public class SpatialProceduresTest {
 				217);
 	}
 
-	@Ignore
+	@Disabled
 	public void import_cracow_to_layer() {
 		execute("CALL spatial.addLayer('geom','OSM','')");
 		testCountQuery("importCracowToLayer", "CALL spatial.importOSMToLayer('geom','issue-347/cra.osm')", 256253,
@@ -1201,10 +1210,10 @@ public class SpatialProceduresTest {
 		}
 		long start = System.currentTimeMillis();
 		testResult(db, query, params, res -> {
-					assertTrue("Expected a single result", res.hasNext());
+			assertTrue(res.hasNext(), "Expected a single result");
 					long c = (Long) res.next().get(column);
-					assertFalse("Expected a single result", res.hasNext());
-					Assert.assertEquals("Expected count of " + count + " nodes but got " + c, count, c);
+			assertFalse(res.hasNext(), "Expected a single result");
+			assertEquals(count, c, "Expected count of " + count + " nodes but got " + c);
 				}
 		);
 		System.out.println(name + " query took " + (System.currentTimeMillis() - start) + "ms - " + params);
