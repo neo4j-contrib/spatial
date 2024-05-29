@@ -32,11 +32,11 @@ import org.neo4j.graphdb.Transaction;
 
 public class GeoPipeFlow implements SpatialRecord {
 
-	private String id;
-	private List<SpatialDatabaseRecord> records = new ArrayList<SpatialDatabaseRecord>();
+	private final String id;
+	private final List<SpatialDatabaseRecord> records = new ArrayList<>();
 	private Geometry geometry;
 	private Envelope geometryEnvelope;
-	private Map<String, Object> properties = new HashMap<>();
+	private final Map<String, Object> properties = new HashMap<>();
 
 	private GeoPipeFlow(String id) {
 		this.id = id;

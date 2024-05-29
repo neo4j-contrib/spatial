@@ -31,8 +31,8 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class FilterIntersectWindow extends AbstractFilterGeoPipe {
 
-	private Envelope envelope;
-	private Geometry envelopeGeom;
+	private final Envelope envelope;
+	private final Geometry envelopeGeom;
 
 	public FilterIntersectWindow(GeometryFactory geomFactory, double xmin, double ymin, double xmax, double ymax) {
 		this(geomFactory, new Envelope(xmin, xmax, ymin, ymax));

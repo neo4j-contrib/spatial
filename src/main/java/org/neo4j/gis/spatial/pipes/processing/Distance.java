@@ -29,7 +29,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class Distance extends AbstractGeoPipe {
 
-	private Geometry reference;
+	private final Geometry reference;
 
 	public Distance(Geometry reference) {
 		this.reference = reference;

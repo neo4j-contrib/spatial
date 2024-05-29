@@ -26,8 +26,8 @@ import org.neo4j.graphdb.Transaction;
 
 public abstract class AbstractSearchEnvelopeIntersection implements SearchFilter {
 
-	protected EnvelopeDecoder decoder;
-	protected Envelope referenceEnvelope;
+	protected final EnvelopeDecoder decoder;
+	protected final Envelope referenceEnvelope;
 
 	public AbstractSearchEnvelopeIntersection(EnvelopeDecoder decoder, Envelope referenceEnvelope) {
 		this.decoder = decoder;

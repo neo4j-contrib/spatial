@@ -29,8 +29,8 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class FilterInRelation extends AbstractFilterGeoPipe {
 
-	private Geometry other;
-	private String intersectionPattern;
+	private final Geometry other;
+	private final String intersectionPattern;
 
 	/**
 	 * @param other               geometry

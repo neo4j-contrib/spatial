@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial.rtree.filter;
 
 import java.util.Iterator;
+import javax.annotation.Nonnull;
 import org.neo4j.graphdb.Node;
 
 public class SearchResults implements Iterable<Node> {
@@ -32,6 +33,7 @@ public class SearchResults implements Iterable<Node> {
 	}
 
 	@Override
+	@Nonnull
 	public Iterator<Node> iterator() {
 		return traverser.iterator();
 	}

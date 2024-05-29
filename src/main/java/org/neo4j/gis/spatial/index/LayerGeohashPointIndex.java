@@ -63,17 +63,17 @@ public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String
 		return a.substring(0, minLength);
 	}
 
+	@Override
 	protected Neo4jIndexSearcher searcherFor(Transaction tx, SearchFilter filter) {
 		if (filter instanceof AbstractSearchEnvelopeIntersection) {
 			Envelope referenceEnvelope = ((AbstractSearchEnvelopeIntersection) filter).getReferenceEnvelope();
 			String maxHash = geoTermToString(encode(referenceEnvelope.getMaxY(), referenceEnvelope.getMaxX()));
 			String minHash = geoTermToString(encode(referenceEnvelope.getMinY(), referenceEnvelope.getMinX()));
 			return new PrefixSearcher(greatestCommonPrefix(minHash, maxHash));
-		} else {
-			throw new UnsupportedOperationException(
-					"Geohash Index only supports searches based on AbstractSearchEnvelopeIntersection, not "
-							+ filter.getClass().getCanonicalName());
 		}
+		throw new UnsupportedOperationException(
+				"Geohash Index only supports searches based on AbstractSearchEnvelopeIntersection, not "
+						+ filter.getClass().getCanonicalName());
 	}
 
 	public static class PrefixSearcher implements Neo4jIndexSearcher {
@@ -84,6 +84,7 @@ public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String
 			this.prefix = prefix;
 		}
 
+		@Override
 		public Iterator<Node> search(KernelTransaction ktx, Label label, String propertyKey) {
 			return ktx.internalTransaction().findNodes(label, propertyKey, prefix, StringSearchMode.PREFIX).stream()
 					.iterator();

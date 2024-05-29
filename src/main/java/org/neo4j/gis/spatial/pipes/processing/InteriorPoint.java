@@ -24,7 +24,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 /**
  * Computes an interior point of a geometry.
- * An interior point is guaranteed to lie in the interior of the Geometry, if it possible.
+ * An interior point is guaranteed to lie in the interior of the Geometry, if possible.
  * Otherwise, the point may lie on the boundary of the geometry.
  * Item geometry is replaced by pipe output unless an alternative property name is given in the constructor.
  */

@@ -8,7 +8,7 @@ public abstract class AbstractSinglePropertyEncoder extends AbstractGeometryEnco
 
 	@Override
 	public void setConfiguration(String configuration) {
-		if (configuration != null && configuration.trim().length() > 0) {
+		if (configuration != null && !configuration.trim().isEmpty()) {
 			String[] fields = configuration.split(":");
 			if (fields.length > 0) {
 				geomProperty = fields[0];

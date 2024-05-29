@@ -28,7 +28,7 @@ import java.util.List;
  */
 public class AbstractExtractGeoPipe extends AbstractGeoPipe {
 
-	protected List<GeoPipeFlow> extracts = new ArrayList<GeoPipeFlow>();
+	protected final List<GeoPipeFlow> extracts = new ArrayList<>();
 	protected Iterator<GeoPipeFlow> extractIterator = null;
 
 	@Override
@@ -44,7 +44,7 @@ public class AbstractExtractGeoPipe extends AbstractGeoPipe {
 
 		do {
 			extract(process(starts.next()));
-		} while (extracts.size() == 0);
+		} while (extracts.isEmpty());
 
 		extractIterator = extracts.iterator();
 		return extractIterator.next();

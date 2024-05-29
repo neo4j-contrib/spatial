@@ -52,12 +52,12 @@ public class LineStringNetworkGenerator {
 		Geometry geometry = record.getGeometry();
 		if (geometry instanceof MultiLineString) {
 			add(tx, (MultiLineString) geometry, record);
-		} else if (geometry instanceof LineString) {
-			add(tx, (LineString) geometry, record);
-		} else {
-			// TODO better handling?
-			throw new IllegalArgumentException("geometry type not supported: " + geometry.getGeometryType());
-		}
+		} else // TODO better handling?
+			if (geometry instanceof LineString) {
+				add(tx, (LineString) geometry, record);
+			} else {
+				throw new IllegalArgumentException("geometry type not supported: " + geometry.getGeometryType());
+			}
 	}
 
 	public void add(Transaction tx, MultiLineString lines) {
@@ -88,7 +88,7 @@ public class LineStringNetworkGenerator {
 
 	protected void addEdgePoint(Transaction tx, Node edge, Geometry edgePoint) {
 		if (buffer != null) {
-			edgePoint = edgePoint.buffer(buffer.doubleValue());
+			edgePoint = edgePoint.buffer(buffer);
 		}
 
 		Iterator<SpatialDatabaseRecord> results = pointsLayer.getIndex()

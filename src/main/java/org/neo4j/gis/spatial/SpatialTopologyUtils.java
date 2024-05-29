@@ -60,10 +60,12 @@ public class SpatialTopologyUtils {
 			this.distance = distance;
 		}
 
+		@Override
 		public Point getKey() {
 			return point;
 		}
 
+		@Override
 		public SpatialDatabaseRecord getValue() {
 			return record;
 		}
@@ -72,10 +74,12 @@ public class SpatialTopologyUtils {
 			return distance;
 		}
 
+		@Override
 		public SpatialDatabaseRecord setValue(SpatialDatabaseRecord value) {
 			return this.record = value;
 		}
 
+		@Override
 		public int compareTo(PointResult other) {
 			return Double.compare(this.distance, other.distance);
 		}
@@ -92,18 +96,17 @@ public class SpatialTopologyUtils {
 	public static List<PointResult> findClosestEdges(Transaction tx, Point point, Layer layer, double distance) {
 		if (layer.getIndex().isEmpty(tx)) {
 			return new ArrayList<>(0);
-		} else {
-			ReferencedEnvelope env = new ReferencedEnvelope(
-					Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox(tx)),
-					layer.getCoordinateReferenceSystem(tx));
-			if (distance <= 0.0) {
-				distance = env.getSpan(0) / 100.0;
-			}
-			Envelope search = new Envelope(point.getCoordinate());
-			search.expandBy(distance);
-			GeometryFactory factory = layer.getGeometryFactory();
-			return findClosestEdges(tx, point, layer, factory.toGeometry(search));
 		}
+		ReferencedEnvelope env = new ReferencedEnvelope(
+				Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox(tx)),
+				layer.getCoordinateReferenceSystem(tx));
+		if (distance <= 0.0) {
+			distance = env.getSpan(0) / 100.0;
+		}
+		Envelope search = new Envelope(point.getCoordinate());
+		search.expandBy(distance);
+		GeometryFactory factory = layer.getGeometryFactory();
+		return findClosestEdges(tx, point, layer, factory.toGeometry(search));
 	}
 
 	/**
@@ -126,8 +129,7 @@ public class SpatialTopologyUtils {
 				double distance = snap.distance(point.getCoordinate());
 				results.add(new PointResult(layer.getGeometryFactory()
 						.createPoint(snap), record, distance));
-			} else if (geom instanceof Point) {
-				Point here = (Point) geom;
+			} else if (geom instanceof Point here) {
 				results.add(new PointResult(here, record, here.distance(point)));
 			}
 		}
@@ -147,8 +149,10 @@ public class SpatialTopologyUtils {
 	 * @param geometry Geometry to measure
 	 * @param measure  the distance along the geometry
 	 * @return Point at 'measure' distance along the geometry
-	 * @see http://download.oracle.com/docs/cd/B13789_01/appdev.101/b10826/sdo_lrs_ref.htm#i85478
-	 * @see http://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/linearref/LengthIndexedLine.html
+	 * @see <a
+	 * href="https://download.oracle.com/docs/cd/B13789_01/appdev.101/b10826/sdo_lrs_ref.htm#i85478">SDO_LRS.LOCATE_PT</a>
+	 * @see <a
+	 * href="https://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/linearref/LengthIndexedLine.html">LengthIndexedLine</a>
 	 */
 	public static Point locatePoint(Layer layer, Geometry geometry, double measure) {
 		return layer.getGeometryFactory().createPoint(locatePoint(geometry, measure));
@@ -164,8 +168,10 @@ public class SpatialTopologyUtils {
 	 * @param geometry Geometry to measure
 	 * @param measure  the distance along the geometry
 	 * @return Coordinate at 'measure' distance along the geometry
-	 * @see http://download.oracle.com/docs/cd/B13789_01/appdev.101/b10826/sdo_lrs_ref.htm#i85478
-	 * @see http://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/linearref/LengthIndexedLine.html
+	 * @see <a
+	 * href="https://download.oracle.com/docs/cd/B13789_01/appdev.101/b10826/sdo_lrs_ref.htm#i85478">SDO_LRS.LOCATE_PT</a>
+	 * @see <a
+	 * href="https://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/linearref/LengthIndexedLine.html">LengthIndexedLine</a>
 	 */
 	public static Coordinate locatePoint(Geometry geometry, double measure) {
 		return new LengthIndexedLine(geometry).extractPoint(measure);
@@ -185,8 +191,10 @@ public class SpatialTopologyUtils {
 	 * @param measure  the distance along the geometry
 	 * @param offset   the distance offset to the left (or right for negative numbers)
 	 * @return Point at 'measure' distance along the geometry, and offset
-	 * @see http://download.oracle.com/docs/cd/B13789_01/appdev.101/b10826/sdo_lrs_ref.htm#i85478
-	 * @see http://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/linearref/LengthIndexedLine.html
+	 * @see <a
+	 * href="https://download.oracle.com/docs/cd/B13789_01/appdev.101/b10826/sdo_lrs_ref.htm#i85478">SDO_LRS.LOCATE_PT</a>
+	 * @see <a
+	 * href="https://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/linearref/LengthIndexedLine.html">LengthIndexedLine</a>
 	 */
 	public static Point locatePoint(Layer layer, Geometry geometry, double measure, double offset) {
 		return layer.getGeometryFactory().createPoint(locatePoint(geometry, measure, offset));
@@ -204,8 +212,10 @@ public class SpatialTopologyUtils {
 	 * @param measure  the distance along the geometry
 	 * @param offset   the distance offset to the left (or right for negative numbers)
 	 * @return Point at 'measure' distance along the geometry, and offset
-	 * @see http://download.oracle.com/docs/cd/B13789_01/appdev.101/b10826/sdo_lrs_ref.htm#i85478
-	 * @see http://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/linearref/LengthIndexedLine.html
+	 * @see <a
+	 * href="https://download.oracle.com/docs/cd/B13789_01/appdev.101/b10826/sdo_lrs_ref.htm#i85478">SDO_LRS.LOCATE_PT</a>
+	 * @see <a
+	 * href="https://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/linearref/LengthIndexedLine.html">LengthIndexedLine</a>
 	 */
 	public static Coordinate locatePoint(Geometry geometry, double measure, double offset) {
 		return new LengthIndexedLine(geometry).extractPoint(measure, offset);
@@ -293,9 +303,8 @@ public class SpatialTopologyUtils {
 		int count = layer.getIndex().count(tx);
 		if (count > limit) {
 			return createEnvelopeForGeometryDensityEstimate(tx, layer, point, (double) limit / (double) count);
-		} else {
-			return Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox(tx));
 		}
+		return Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox(tx));
 	}
 
 	/**

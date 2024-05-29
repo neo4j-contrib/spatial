@@ -30,6 +30,7 @@ import org.neo4j.graphdb.Transaction;
 
 public class WKTGeometryEncoder extends AbstractSinglePropertyEncoder implements Configurable {
 
+	@Override
 	public Geometry decodeGeometry(Entity container) {
 		try {
 			WKTReader reader = new WKTReader(layer.getGeometryFactory());

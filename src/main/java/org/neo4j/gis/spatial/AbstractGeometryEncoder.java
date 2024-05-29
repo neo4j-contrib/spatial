@@ -72,24 +72,16 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 	protected abstract void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container);
 
 	protected Integer encodeGeometryType(String jtsGeometryType) {
-		// TODO: Consider alternatives for specifying type, like relationship to
-		// type category
-		// objects (or similar indexing structure)
-		if ("Point".equals(jtsGeometryType)) {
-			return GTYPE_POINT;
-		} else if ("MultiPoint".equals(jtsGeometryType)) {
-			return GTYPE_MULTIPOINT;
-		} else if ("LineString".equals(jtsGeometryType)) {
-			return GTYPE_LINESTRING;
-		} else if ("MultiLineString".equals(jtsGeometryType)) {
-			return GTYPE_MULTILINESTRING;
-		} else if ("Polygon".equals(jtsGeometryType)) {
-			return GTYPE_POLYGON;
-		} else if ("MultiPolygon".equals(jtsGeometryType)) {
-			return GTYPE_MULTIPOLYGON;
-		} else {
-			throw new IllegalArgumentException("unknown type:" + jtsGeometryType);
-		}
+		// TODO: Consider alternatives for specifying type, like relationship to type category objects (or similar indexing structure)
+		return switch (jtsGeometryType) {
+			case "Point" -> GTYPE_POINT;
+			case "MultiPoint" -> GTYPE_MULTIPOINT;
+			case "LineString" -> GTYPE_LINESTRING;
+			case "MultiLineString" -> GTYPE_MULTILINESTRING;
+			case "Polygon" -> GTYPE_POLYGON;
+			case "MultiPolygon" -> GTYPE_MULTIPOLYGON;
+			default -> throw new IllegalArgumentException("unknown type:" + jtsGeometryType);
+		};
 	}
 
 	/**
@@ -98,6 +90,7 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 	 * of the geometry node. This behaviour can be changed by other domain
 	 * models with different encodings.
 	 */
+	@Override
 	public boolean hasAttribute(Node geomNode, String name) {
 		return geomNode.hasProperty(name);
 	}
@@ -109,6 +102,7 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 	 * domain models with different encodings. If the property does not exist,
 	 * the method returns null.
 	 */
+	@Override
 	public Object getAttribute(Node geomNode, String name) {
 		return geomNode.getProperty(name, null);
 	}
@@ -118,6 +112,7 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 	 *
 	 * @return descriptive signature of encoder, type and configuration
 	 */
+	@Override
 	public String getSignature() {
 		return "GeometryEncoder(bbox='" + bboxProperty + "')";
 	}

@@ -80,24 +80,22 @@ public class IndexManager {
 		Thread exists = findThread(name);
 		if (exists != null) {
 			throw new IllegalStateException("Already have thread: " + exists.getName());
-		} else {
-			IndexMaker indexMaker = new IndexMaker(indexName, label, propertyKey);
-			Thread indexMakerThread = new Thread(indexMaker, name);
-			if (waitFor) {
-				indexMakerThread.start();
-				try {
-					indexMakerThread.join();
-					if (indexMaker.e != null) {
-						throw new RuntimeException("Failed to make index " + indexMaker.description(), indexMaker.e);
-					}
-					return indexMaker.index;
-				} catch (InterruptedException e) {
-					throw new RuntimeException("Failed to make index " + indexMaker.description(), e);
+		}
+		IndexMaker indexMaker = new IndexMaker(indexName, label, propertyKey);
+		Thread indexMakerThread = new Thread(indexMaker, name);
+		if (waitFor) {
+			indexMakerThread.start();
+			try {
+				indexMakerThread.join();
+				if (indexMaker.e != null) {
+					throw new RuntimeException("Failed to make index " + indexMaker.description(), indexMaker.e);
 				}
-			} else {
-				return null;
+				return indexMaker.index;
+			} catch (InterruptedException e) {
+				throw new RuntimeException("Failed to make index " + indexMaker.description(), e);
 			}
 		}
+		return null;
 	}
 
 	public void deleteIndex(IndexDefinition index) {
@@ -210,10 +208,9 @@ public class IndexManager {
 					if (labels.size() == 1 && propertyKeys.size() == 1 && labels.get(0).equals(label)
 							&& propertyKeys.get(0).equals(propertyKey)) {
 						return true;
-					} else {
-						throw new IllegalStateException(
-								"Found index with matching name but different specification: " + anIndex);
 					}
+					throw new IllegalStateException(
+							"Found index with matching name but different specification: " + anIndex);
 				} catch (ClassCastException e) {
 					throw new RuntimeException(
 							"Neo4j API Changed - Failed to retrieve IndexDefinition for index " + description() + ": "

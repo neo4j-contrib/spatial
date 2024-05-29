@@ -42,7 +42,7 @@ import org.neo4j.graphdb.Transaction;
  * which means that queries for properties on nodes further away require
  * traversals in the JSON. The following example demonstrates a query for
  * an OSM geometry layer, with a test of the geometry type on the geometry
- * node itself, followed by a two step traversal to the ways tag node, and
+ * node itself, followed by a two-step traversal to the ways tag node, and
  * then a query on the tags.
  *
  * <pre>
@@ -61,7 +61,7 @@ import org.neo4j.graphdb.Transaction;
  */
 public class DynamicIndexReader extends LayerIndexReaderWrapper {
 
-	private JSONObject query;
+	private final JSONObject query;
 
 	private class DynamicRecordCounter extends SpatialIndexRecordCounter {
 
@@ -96,7 +96,7 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 	 * the JSON contains to have properties to test, and traversal steps to
 	 * take.
 	 *
-	 * @param geomNode
+	 * @param geomNode the node to test
 	 * @return true if the node matches the query string, or the query
 	 * string is empty
 	 */
@@ -117,12 +117,10 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 				Node node = rel.getOtherNode(source);
 				step = (JSONObject) step.get("step");
 				return queryNodeProperties(node, properties) && stepAndQuery(node, step);
-			} else {
-				return false;
 			}
-		} else {
-			return true;
+			return false;
 		}
+		return true;
 	}
 
 	private boolean queryNodeProperties(Node node, JSONObject properties) {

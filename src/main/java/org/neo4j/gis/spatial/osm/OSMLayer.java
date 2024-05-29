@@ -62,8 +62,9 @@ public class OSMLayer extends DynamicLayer {
 	/**
 	 * OSM always uses WGS84 CRS; so we return that.
 	 *
-	 * @param tx
+	 * @param tx the transaction
 	 */
+	@Override
 	public CoordinateReferenceSystem getCoordinateReferenceSystem(Transaction tx) {
 		try {
 			return DefaultGeographicCRS.WGS84;
@@ -106,9 +107,8 @@ public class OSMLayer extends DynamicLayer {
 				// e.printStackTrace(System.err);
 			}
 			return geomNode;
-		} else {
-			return null;
 		}
+		return null;
 	}
 
 	/**
@@ -118,9 +118,10 @@ public class OSMLayer extends DynamicLayer {
 	 * generate a Geometry. There is no restriction on a node belonging to multiple datasets, or
 	 * multiple layers within the same dataset.
 	 *
-	 * @param tx
+	 * @param tx the transaction
 	 * @return iterable over geometry nodes in the dataset
 	 */
+	@Override
 	public Iterable<Node> getAllGeometryNodes(Transaction tx) {
 		return indexReader.getAllIndexedNodes(tx);
 	}
@@ -152,7 +153,7 @@ public class OSMLayer extends DynamicLayer {
 			JSONObject properties = new JSONObject();
 			for (Object key : tags.keySet()) {
 				Object value = tags.get(key);
-				if (value != null && (value.toString().length() < 1 || value.equals("*"))) {
+				if (value != null && (value.toString().isEmpty() || value.equals("*"))) {
 					value = null;
 				}
 				properties.put(key.toString(), value);
@@ -228,7 +229,7 @@ public class OSMLayer extends DynamicLayer {
 			String key = fields[0];
 			String value = fields.length > 1 ? fields[1] : "*";
 			tags.put(key, value);
-			if (name.length() > 0) {
+			if (!name.isEmpty()) {
 				name.append("-");
 			}
 			name.append(key);
@@ -270,6 +271,7 @@ public class OSMLayer extends DynamicLayer {
 	 *
 	 * @return Style or null
 	 */
+	@Override
 	public File getStyle() {
 		// TODO: Replace with a proper resource lookup, since this will be in the JAR
 		return new File("dev/neo4j/neo4j-spatial/src/main/resources/sld/osm/osm.sld");

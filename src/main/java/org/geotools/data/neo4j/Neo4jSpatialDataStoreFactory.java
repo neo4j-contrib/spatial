@@ -33,13 +33,13 @@ import org.neo4j.graphdb.GraphDatabaseService;
 
 /**
  * DataStoreFactorySpi implementation. It needs an "url" parameter containing a
- * path of a Neo4j neostore.id file.
+ * path of a Neo4j neostore-id file.
  */
 public class Neo4jSpatialDataStoreFactory implements DataStoreFactorySpi {
 
 	// TODO: This should change to Neo4j 4.x directory layout and possible multiple databases
 	/**
-	 * url to the neostore.id file.
+	 * url to the neostore-id file.
 	 */
 	public static final Param DIRECTORY = new Param("The directory path of the Neo4j database: ", File.class,
 			"db", true);
@@ -78,7 +78,7 @@ public class Neo4jSpatialDataStoreFactory implements DataStoreFactorySpi {
 	}
 
 	@Override
-	public DataStore createNewDataStore(Map params) throws IOException {
+	public DataStore createNewDataStore(Map params) {
 		throw new UnsupportedOperationException("Neo4j Spatial cannot create a new database!");
 	}
 

@@ -28,9 +28,9 @@ import org.neo4j.gis.spatial.pipes.impl.FilterPipe;
  */
 public class FilterProperty extends AbstractFilterGeoPipe {
 
-	private String key;
-	private Object value;
-	private FilterPipe.Filter comparison;
+	private final String key;
+	private final Object value;
+	private final FilterPipe.Filter comparison;
 
 	public FilterProperty(String key, Object value) {
 		this(key, value, FilterPipe.Filter.EQUAL);
@@ -45,39 +45,6 @@ public class FilterProperty extends AbstractFilterGeoPipe {
 	@Override
 	protected boolean validate(GeoPipeFlow flow) {
 		final Object leftObject = flow.getProperties().get(key);
-		switch (comparison) {
-			case EQUAL:
-				if (null == leftObject) {
-					return value == null;
-				}
-				return leftObject.equals(value);
-			case NOT_EQUAL:
-				if (null == leftObject) {
-					return value != null;
-				}
-				return !leftObject.equals(value);
-			case GREATER_THAN:
-				if (null == leftObject || value == null) {
-					return false;
-				}
-				return ((Comparable) leftObject).compareTo(value) == 1;
-			case LESS_THAN:
-				if (null == leftObject || value == null) {
-					return false;
-				}
-				return ((Comparable) leftObject).compareTo(value) == -1;
-			case GREATER_THAN_EQUAL:
-				if (null == leftObject || value == null) {
-					return false;
-				}
-				return ((Comparable) leftObject).compareTo(value) >= 0;
-			case LESS_THAN_EQUAL:
-				if (null == leftObject || value == null) {
-					return false;
-				}
-				return ((Comparable) leftObject).compareTo(value) <= 0;
-			default:
-				throw new IllegalArgumentException("Invalid state as no valid filter was provided");
-		}
+		return comparison.compare(leftObject, value);
 	}
 }

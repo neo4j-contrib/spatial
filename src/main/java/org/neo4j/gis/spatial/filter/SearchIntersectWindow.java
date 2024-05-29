@@ -33,8 +33,8 @@ import org.neo4j.graphdb.Node;
  */
 public class SearchIntersectWindow extends AbstractSearchEnvelopeIntersection {
 
-	private Layer layer;
-	private Geometry windowGeom;
+	private final Layer layer;
+	private final Geometry windowGeom;
 
 	public SearchIntersectWindow(Layer layer, Envelope envelope) {
 		this(layer, Utilities.fromNeo4jToJts(envelope));

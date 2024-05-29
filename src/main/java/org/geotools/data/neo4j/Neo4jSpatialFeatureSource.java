@@ -19,7 +19,6 @@
  */
 package org.geotools.data.neo4j;
 
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import org.geotools.api.data.FeatureReader;
@@ -112,7 +111,7 @@ public class Neo4jSpatialFeatureSource extends ContentFeatureSource {
 		}
 
 		@Override
-		public SimpleFeature next() throws IOException, IllegalArgumentException, NoSuchElementException {
+		public SimpleFeature next() throws IllegalArgumentException, NoSuchElementException {
 			if (results == null) {
 				return null;
 			}
@@ -143,7 +142,7 @@ public class Neo4jSpatialFeatureSource extends ContentFeatureSource {
 		}
 
 		@Override
-		public boolean hasNext() throws IOException {
+		public boolean hasNext() {
 			if (results == null) {
 				return false;
 			}
@@ -155,7 +154,7 @@ public class Neo4jSpatialFeatureSource extends ContentFeatureSource {
 		}
 
 		@Override
-		public void close() throws IOException {
+		public void close() {
 		}
 	}
 }

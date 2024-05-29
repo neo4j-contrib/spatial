@@ -72,9 +72,8 @@ public class NativePointEncoder extends AbstractGeometryEncoder implements Confi
 		double[] coordinate = point.getCoordinate().getCoordinate();
 		if (crs.dimensions() == 3) {
 			return getGeometryFactory().createPoint(new Coordinate(coordinate[0], coordinate[1], coordinate[2]));
-		} else {
-			return getGeometryFactory().createPoint(new Coordinate(coordinate[0], coordinate[1]));
 		}
+		return getGeometryFactory().createPoint(new Coordinate(coordinate[0], coordinate[1]));
 	}
 
 	@Override
@@ -84,7 +83,7 @@ public class NativePointEncoder extends AbstractGeometryEncoder implements Confi
 
 	@Override
 	public void setConfiguration(String configuration) {
-		if (configuration != null && configuration.trim().length() > 0) {
+		if (configuration != null && !configuration.trim().isEmpty()) {
 			String[] fields = configuration.split(":");
 			if (fields.length > 0) {
 				locationProperty = fields[0];

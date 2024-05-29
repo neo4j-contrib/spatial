@@ -21,12 +21,12 @@ public class GeotoolsAdapter {
 		try {
 			if (crsText.startsWith("GEOGCS[\"WGS84(DD)\"")) {
 				return WGS84;
-			} else if (crsText.startsWith("LOCAL_CS[\"Generic cartesian 2D\"")) {
-				return GENERIC_2D;
-			} else {
-				System.out.println("Attempting to use geotools to lookup CRS - might fail with Java11: " + crsText);
-				return ReferencingFactoryFinder.getCRSFactory(null).createFromWKT(crsText);
 			}
+			if (crsText.startsWith("LOCAL_CS[\"Generic cartesian 2D\"")) {
+				return GENERIC_2D;
+			}
+			System.out.println("Attempting to use geotools to lookup CRS - might fail with Java11: " + crsText);
+			return ReferencingFactoryFinder.getCRSFactory(null).createFromWKT(crsText);
 		} catch (FactoryException e) {
 			throw new SpatialDatabaseException(e);
 		}

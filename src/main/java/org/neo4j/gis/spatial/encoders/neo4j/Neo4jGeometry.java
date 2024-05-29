@@ -37,14 +37,17 @@ public class Neo4jGeometry implements org.neo4j.graphdb.spatial.Geometry {
 		this.crs = crs;
 	}
 
+	@Override
 	public String getGeometryType() {
 		return this.geometryType;
 	}
 
+	@Override
 	public List<org.neo4j.graphdb.spatial.Coordinate> getCoordinates() {
 		return this.coordinates;
 	}
 
+	@Override
 	public CRS getCRS() {
 		return this.crs;
 	}

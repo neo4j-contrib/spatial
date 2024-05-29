@@ -29,7 +29,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class FilterIntersect extends AbstractFilterGeoPipe {
 
-	private Geometry geometry;
+	private final Geometry geometry;
 
 	public FilterIntersect(Geometry geometry) {
 		this.geometry = geometry;

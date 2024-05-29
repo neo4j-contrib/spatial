@@ -65,7 +65,7 @@ public class Envelope extends org.neo4j.gis.spatial.index.Envelope {
 			if (!ans) {
 				return ans;
 			}
-			ans = ans && other.min[i] >= min[i] && other.max[i] <= max[i];
+			ans = other.min[i] >= min[i] && other.max[i] <= max[i];
 		}
 		return ans;
 	}
@@ -135,10 +135,9 @@ public class Envelope extends org.neo4j.gis.spatial.index.Envelope {
 			Envelope result = new Envelope(this);
 			result.expandToInclude(other);
 			return result;
-		} else {
-			throw new IllegalArgumentException(
-					"Cannot calculate bounding box of Envelopes with different dimensions: " + this.getDimension()
-							+ " != " + other.getDimension());
 		}
+		throw new IllegalArgumentException(
+				"Cannot calculate bounding box of Envelopes with different dimensions: " + this.getDimension()
+						+ " != " + other.getDimension());
 	}
 }

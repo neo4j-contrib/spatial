@@ -35,17 +35,15 @@ public class EnvelopeDecoderFromDoubleArray implements EnvelopeDecoder {
 	public Envelope decodeEnvelope(Entity container) {
 		Object propValue = container.getProperty(propertyName);
 
-		if (propValue instanceof Double[]) {
-			Double[] bbox = (Double[]) propValue;
+		if (propValue instanceof Double[] bbox) {
 			return new Envelope(bbox[0], bbox[2], bbox[1], bbox[3]);
-		} else if (propValue instanceof double[]) {
-			double[] bbox = (double[]) propValue;
-			return new Envelope(bbox[0], bbox[2], bbox[1], bbox[3]);
-		} else {
-			// invalid content
-			return new Envelope(new double[0]);
 		}
+		// invalid content
+		if (propValue instanceof double[] bbox) {
+			return new Envelope(bbox[0], bbox[2], bbox[1], bbox[3]);
+		}
+		return new Envelope(new double[0]);
 	}
 
-	private String propertyName;
+	private final String propertyName;
 }

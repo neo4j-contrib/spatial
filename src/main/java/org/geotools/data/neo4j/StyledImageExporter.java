@@ -30,6 +30,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collections;
 import javax.imageio.ImageIO;
 import org.geotools.api.data.DataStore;
 import org.geotools.api.data.SimpleFeatureSource;
@@ -72,21 +73,21 @@ import org.neo4j.graphdb.Transaction;
 
 public class StyledImageExporter {
 
-	private GraphDatabaseService db;
+	private final GraphDatabaseService db;
 	private File exportDir;
 	double zoom = 1.0;
-	double[] offset = new double[]{0, 0};
+	final double[] offset = new double[]{0, 0};
 	Rectangle displaySize = new Rectangle(400, 300);
 	private String[] styleFiles;
-	static StyleFactory styleFactory = CommonFactoryFinder.getStyleFactory(null);
-	static FilterFactory filterFactory = CommonFactoryFinder.getFilterFactory(null);
+	static final StyleFactory styleFactory = CommonFactoryFinder.getStyleFactory(null);
+	static final FilterFactory filterFactory = CommonFactoryFinder.getFilterFactory(null);
 
 	public StyledImageExporter(GraphDatabaseService db) {
 		this.db = db;
 	}
 
 	public void setExportDir(String dir) {
-		exportDir = (dir == null || dir.length() == 0) ? null : (new File(dir)).getAbsoluteFile();
+		exportDir = (dir == null || dir.isEmpty()) ? null : (new File(dir)).getAbsoluteFile();
 	}
 
 	public void setZoom(double zoom) {
@@ -104,9 +105,8 @@ public class StyledImageExporter {
 	public Style getStyle(int i) {
 		if (styleFiles != null && i < styleFiles.length) {
 			return getStyleFromSLDFile(styleFiles[i]);
-		} else {
-			return null;
 		}
+		return null;
 	}
 
 	/**
@@ -135,11 +135,11 @@ public class StyledImageExporter {
 		return file;
 	}
 
-	@SuppressWarnings({"unchecked", "unused"})
+	@SuppressWarnings({"unused"})
 	private void debugStore(DataStore store, String[] layerNames) throws IOException {
-		for (int i = 0; i < layerNames.length; i++) {
+		for (String layerName : layerNames) {
 			System.out.println(asList(store.getTypeNames()));
-			System.out.println(asList(store.getSchema(layerNames[i]).getAttributeDescriptors()));
+			System.out.println(Collections.singletonList(store.getSchema(layerName).getAttributeDescriptors()));
 		}
 	}
 
@@ -203,9 +203,9 @@ public class StyledImageExporter {
 		DataStore store = new Neo4jSpatialDataStore(db);
 		try (Transaction tx = db.beginTx()) {
 			// debugStore(store, layerNames);
-			StringBuffer names = new StringBuffer();
+			StringBuilder names = new StringBuilder();
 			for (String name : layerNames) {
-				if (names.length() > 0) {
+				if (!names.isEmpty()) {
 					names.append(", ");
 				}
 				names.append(name);
@@ -223,7 +223,7 @@ public class StyledImageExporter {
 				}
 
 				if (featureStyle == null) {
-					featureStyle = createStyleFromGeometry((SimpleFeatureType) featureSource.getSchema(), Color.BLUE,
+					featureStyle = createStyleFromGeometry(featureSource.getSchema(), Color.BLUE,
 							Color.CYAN);
 					System.out.println(
 							"Created style from geometry '" + featureSource.getSchema().getGeometryDescriptor()
@@ -300,23 +300,25 @@ public class StyledImageExporter {
 
 	/**
 	 * Here is a programmatic alternative to using JSimpleStyleDialog to
-	 * get a Style. This methods works out what sort of feature geometry
+	 * get a Style. These methods works out what sort of feature geometry
 	 * we have in the shapefile and then delegates to an appropriate style
 	 * creating method.
-	 * TODO: Consider adding support for attribute based color schemes like in
-	 * http://docs.geotools.org/stable/userguide/examples/stylefunctionlab.html
+	 * <a href="https://docs.geotools.org/stable/userguide/examples/stylefunctionlab.html">stylefunctionlab</a>
 	 */
+	// TODO: Consider adding support for attribute based color schemes like in
 	public static Style createStyleFromGeometry(FeatureType schema, Color strokeColor, Color fillColor) {
 		if (schema != null) {
 			Class<?> geomType = schema.getGeometryDescriptor().getType().getBinding();
 			if (Polygon.class.isAssignableFrom(geomType)
 					|| MultiPolygon.class.isAssignableFrom(geomType)) {
 				return createPolygonStyle(strokeColor, fillColor);
-			} else if (LineString.class.isAssignableFrom(geomType)
+			}
+			if (LineString.class.isAssignableFrom(geomType)
 					|| LinearRing.class.isAssignableFrom(geomType)
 					|| MultiLineString.class.isAssignableFrom(geomType)) {
 				return createLineStyle(strokeColor);
-			} else if (Point.class.isAssignableFrom(geomType)
+			}
+			if (Point.class.isAssignableFrom(geomType)
 					|| MultiPoint.class.isAssignableFrom(geomType)) {
 				return createPointStyle(strokeColor, fillColor);
 			}
@@ -368,7 +370,7 @@ public class StyledImageExporter {
 			e.printStackTrace();
 		}
 
-		FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(new Rule[]{rule});
+		FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(rule);
 		Style style = styleFactory.createStyle();
 		style.featureTypeStyles().add(fts);
 //        System.out.println("Created Polygon Style: " + style);
@@ -400,7 +402,7 @@ public class StyledImageExporter {
 			e.printStackTrace();
 		}
 
-		FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(new Rule[]{rule});
+		FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(rule);
 		Style style = styleFactory.createStyle();
 		style.featureTypeStyles().add(fts);
 //        System.out.println("Created Line Style: "+style);
@@ -437,7 +439,7 @@ public class StyledImageExporter {
 			e.printStackTrace();
 		}
 
-		FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(new Rule[]{rule});
+		FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(rule);
 		Style style = styleFactory.createStyle();
 		style.featureTypeStyles().add(fts);
 //        System.out.println("Created Point Style: " + style);
@@ -457,7 +459,7 @@ public class StyledImageExporter {
 		String database = args[1];
 		String exportdir = args[2];
 		String stylefile = args[3];
-		double zoom = Double.valueOf(args[4]);
+		double zoom = Double.parseDouble(args[4]);
 		DatabaseManagementService databases = new DatabaseManagementServiceBuilder(Path.of(homeDir)).build();
 		GraphDatabaseService db = databases.database(database);
 		try {

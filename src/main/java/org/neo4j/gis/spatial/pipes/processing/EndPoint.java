@@ -30,7 +30,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class EndPoint extends AbstractGeoPipe {
 
-	private GeometryFactory geomFactory;
+	private final GeometryFactory geomFactory;
 
 	public EndPoint(GeometryFactory geomFactory) {
 		this.geomFactory = geomFactory;

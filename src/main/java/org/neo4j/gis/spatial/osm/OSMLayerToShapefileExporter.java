@@ -42,7 +42,7 @@ public class OSMLayerToShapefileExporter {
 	 * This method allows for a console, command-line application for loading
 	 * accessing an existing database containing an existing OSM model, and
 	 * exporting one or more dynamic layers to shapefiles. The layer
-	 * specifications are key.value pairs (dot separated). If the value is left
+	 * specifications are key-value pairs (dot separated). If the value is left
 	 * out, all values are accepted (test for existance of key only).
 	 *
 	 * @param args , the database directory, OSM dataset and layer

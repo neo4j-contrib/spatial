@@ -33,7 +33,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class OrthodromicLength extends AbstractGeoPipe {
 
-	protected CoordinateReferenceSystem crs;
+	protected final CoordinateReferenceSystem crs;
 
 	public OrthodromicLength(CoordinateReferenceSystem crs) {
 		this.crs = crs;

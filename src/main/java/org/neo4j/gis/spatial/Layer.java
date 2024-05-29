@@ -60,7 +60,7 @@ public interface Layer {
 	 * This method adds existing geometries to the layer for indexing. After this method is called the geometry should
 	 * be searchable.
 	 *
-	 * @param geomNode
+	 * @param geomNode the node containing the geometry to be added to the layer
 	 * @return SpatialDatabaseRecord representation of the geometry added to the database
 	 */
 	SpatialDatabaseRecord add(Transaction tx, Node geomNode);
@@ -69,7 +69,7 @@ public interface Layer {
 	 * This method adds existing geometries to the layer for indexing in bulk. After this method is called the geometry
 	 * should be searchable.
 	 *
-	 * @param geomNodes
+	 * @param geomNodes the nodes containing the geometries to be added to the layer
 	 * @return the number of geometries added to the database
 	 */
 	int addAll(Transaction tx, List<Node> geomNodes);
@@ -117,7 +117,7 @@ public interface Layer {
 	/**
 	 * Each layer contains geometries with optional attributes.
 	 *
-	 * @param tx
+	 * @param tx the transaction
 	 * @return String array of all attribute names
 	 */
 	String[] getExtraPropertyNames(Transaction tx);

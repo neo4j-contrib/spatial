@@ -19,7 +19,6 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -113,7 +112,7 @@ import org.neo4j.graphdb.Transaction;
 
 public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 
-	protected Layer layer;
+	protected final Layer layer;
 
 	protected GeoPipeline(Layer layer) {
 		this.layer = layer;
@@ -260,10 +259,10 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 
 	/**
 	 * Calculates the distance between Layer items nearest to the given point and the given point.
-	 * The search window created is based on Layer items density and it could lead to no results.
+	 * The search window created is based on Layer items density, and it could lead to no results.
 	 *
-	 * @param layer               with latitude, longitude coordinates
-	 * @param point
+	 * @param layer               the layer to search
+	 * @param point               with latitude, longitude coordinates
 	 * @param numberOfItemsToFind tries to find this number of items for comparison
 	 * @return geoPipeline
 	 */
@@ -277,9 +276,9 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 	/**
 	 * Calculates the distance between Layer items inside the given search window and the given point.
 	 *
-	 * @param layer        with latitude, longitude coordinates
-	 * @param point
-	 * @param searchWindow
+	 * @param layer        the layer to search
+	 * @param point        with latitude, longitude coordinates
+	 * @param searchWindow the search window
 	 * @return geoPipeline
 	 */
 	public static GeoPipeline startNearestNeighborLatLonSearch(final Transaction tx, Layer layer, Coordinate point,
@@ -290,9 +289,9 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 	/**
 	 * Extracts Layer items with a distance from the given point that is less than or equal the given distance.
 	 *
-	 * @param layer           with latitude, longitude coordinates
-	 * @param point
-	 * @param maxDistanceInKm
+	 * @param layer           the layer to search
+	 * @param point           with latitude, longitude coordinates
+	 * @param maxDistanceInKm the maximum distance in kilometers
 	 * @return geoPipeline
 	 */
 	public static GeoPipeline startNearestNeighborLatLonSearch(final Transaction tx, Layer layer, Coordinate point,
@@ -306,10 +305,10 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 
 	/**
 	 * Calculates the distance between Layer items nearest to the given point and the given point.
-	 * The search window created is based on Layer items density and it could lead to no results.
+	 * The search window created is based on Layer items density, and it could lead to no results.
 	 *
-	 * @param layer
-	 * @param point
+	 * @param layer               the layer to search
+	 * @param point               with latitude, longitude coordinates
 	 * @param numberOfItemsToFind tries to find this number of items for comparison
 	 * @return geoPipeline
 	 */
@@ -323,9 +322,9 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 	/**
 	 * Calculates the distance between Layer items inside the given search window and the given point.
 	 *
-	 * @param layer
-	 * @param point
-	 * @param searchWindow
+	 * @param layer        the layer to search
+	 * @param point        with latitude, longitude coordinates
+	 * @param searchWindow the search window
 	 * @return geoPipeline
 	 */
 	public static GeoPipeline startNearestNeighborSearch(final Transaction tx, Layer layer, Coordinate point,
@@ -337,9 +336,9 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 	/**
 	 * Extracts Layer items with a distance from the given point that is less than or equal the given distance.
 	 *
-	 * @param layer
-	 * @param point
-	 * @param maxDistance
+	 * @param layer       the layer to search
+	 * @param point       with latitude, longitude coordinates
+	 * @param maxDistance the maximum distance in kilometers
 	 * @return geoPipeline
 	 */
 	public static GeoPipeline startNearestNeighborSearch(final Transaction tx, Layer layer, Coordinate point,
@@ -355,7 +354,7 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 	/**
 	 * Adds a pipe at the end of this pipeline
 	 *
-	 * @param geoPipe
+	 * @param geoPipe the pipe to add
 	 * @return geoPipeline
 	 */
 	public GeoPipeline addPipe(AbstractGeoPipe geoPipe) {
@@ -840,7 +839,7 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 
 			@Override
 			protected Iterator<SimpleFeature> openIterator() {
-				return new Iterator<SimpleFeature>() {
+				return new Iterator<>() {
 					@Override
 					public boolean hasNext() {
 						return GeoPipeline.this.hasNext();
@@ -865,8 +864,7 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 		};
 	}
 
-	public FeatureCollection<SimpleFeatureType, SimpleFeature> toFeatureCollection(final Transaction tx)
-			throws IOException {
+	public FeatureCollection<SimpleFeatureType, SimpleFeature> toFeatureCollection(final Transaction tx) {
 		return toFeatureCollection(tx, Neo4jFeatureBuilder.getTypeFromLayer(tx, layer));
 	}
 
@@ -936,11 +934,12 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 
 		List<SpatialDatabaseRecord> result = new ArrayList<>();
 
-		try {
-			while (true) {
+		while (true) {
+			try {
 				result.add(next().getRecord());
+			} catch (NoSuchElementException e) {
+				break;
 			}
-		} catch (NoSuchElementException e) {
 		}
 		return result;
 	}
@@ -953,12 +952,13 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 	 * or with pipes that group many items into fewer items.
 	 */
 	public List<Node> toNodeList() {
-		List<Node> result = new ArrayList<Node>();
-		try {
-			while (true) {
+		List<Node> result = new ArrayList<>();
+		while (true) {
+			try {
 				result.add(next().getRecord().getGeomNode());
+			} catch (NoSuchElementException e) {
+				break;
 			}
-		} catch (NoSuchElementException e) {
 		}
 		return result;
 

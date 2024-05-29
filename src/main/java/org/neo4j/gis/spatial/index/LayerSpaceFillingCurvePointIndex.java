@@ -90,18 +90,16 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
 		double min = axis.getMinimumValue();
 		if (Double.isInfinite(min)) {
 			return 0.0;
-		} else {
-			return min;
 		}
+		return min;
 	}
 
 	private double getMax(CoordinateSystemAxis axis) {
 		double max = axis.getMaximumValue();
 		if (Double.isInfinite(max)) {
 			return 1.0;
-		} else {
-			return max;
 		}
+		return max;
 	}
 
 	@Override
@@ -112,17 +110,17 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
 		return getCurve(tx).derivedValueFor(new double[]{point.getX(), point.getY()});
 	}
 
+	@Override
 	protected Neo4jIndexSearcher searcherFor(Transaction tx, SearchFilter filter) {
 		if (filter instanceof AbstractSearchEnvelopeIntersection) {
 			org.neo4j.gis.spatial.rtree.Envelope referenceEnvelope = ((AbstractSearchEnvelopeIntersection) filter).getReferenceEnvelope();
 			return new RangeSearcher(
 					getCurve(tx).getTilesIntersectingEnvelope(referenceEnvelope.getMin(), referenceEnvelope.getMax(),
 							new StandardConfiguration()));
-		} else {
-			throw new UnsupportedOperationException(
-					"Hilbert Index only supports searches based on AbstractSearchEnvelopeIntersection, not "
-							+ filter.getClass().getCanonicalName());
 		}
+		throw new UnsupportedOperationException(
+				"Hilbert Index only supports searches based on AbstractSearchEnvelopeIntersection, not "
+						+ filter.getClass().getCanonicalName());
 	}
 
 	public static class RangeSearcher implements Neo4jIndexSearcher {
@@ -133,6 +131,7 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
 			this.tiles = tiles;
 		}
 
+		@Override
 		public Iterator<Node> search(KernelTransaction ktx, Label label, String propertyKey) {
 			int labelId = ktx.tokenRead().nodeLabel(label.name());
 			int propId = ktx.tokenRead().propertyKey(propertyKey);
@@ -156,8 +155,8 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
 			while (iterator.hasNext()) {
 				IndexDescriptor index = iterator.next();
 				// TODO: Do we need to support the new IndexType.RANGE index in Neo4j 4.4?
+				// Skip special indexes, such as the full-text indexes, because they can't handle all the queries we might throw at them.
 				if (index.getIndexType() != IndexType.RANGE) {
-					// Skip special indexes, such as the full-text indexes, because they can't handle all the queries we might throw at them.
 					continue;
 				}
 				// Ha! We found an index - let's use it to find matching nodes

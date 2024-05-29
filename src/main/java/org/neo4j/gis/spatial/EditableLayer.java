@@ -40,9 +40,8 @@ public interface EditableLayer extends Layer {
 
 	/**
 	 * Add a new geometry to the layer. This will add the geometry to the index.
-	 *
-	 * @TODO: Rather use a HashMap of properties
 	 */
+	//TODO: Rather use a HashMap of properties
 	SpatialDatabaseRecord add(Transaction tx, Geometry geometry, String[] fieldsName, Object[] fields);
 
 	/**
@@ -53,7 +52,7 @@ public interface EditableLayer extends Layer {
 
 	/**
 	 * Update the geometry identified by the passed node id. This might be as simple as changing
-	 * node properties or it might require editing an entire sub-graph.
+	 * node properties, or it might require editing an entire sub-graph.
 	 */
 	void update(Transaction tx, String geometryNodeId, Geometry geometry);
 

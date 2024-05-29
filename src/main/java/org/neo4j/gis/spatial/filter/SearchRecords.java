@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial.filter;
 
 import java.util.Iterator;
+import javax.annotation.Nonnull;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
@@ -38,6 +39,7 @@ public class SearchRecords implements Iterable<SpatialDatabaseRecord>, Iterator<
 	}
 
 	@Override
+	@Nonnull
 	public Iterator<SpatialDatabaseRecord> iterator() {
 		return this;
 	}

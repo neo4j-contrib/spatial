@@ -127,15 +127,13 @@ public class ShapefileImporter implements Constants {
 			}
 		}
 
-		ShapefileReader shpReader = new ShapefileReader(shpFiles, false, true, geomFactory);
-		try {
+		try (ShapefileReader shpReader = new ShapefileReader(shpFiles, false, true, geomFactory)) {
 			Class<? extends Geometry> geometryClass = JTSUtilities.findBestGeometryClass(
 					shpReader.getHeader().getShapeType());
 			int geometryType = SpatialDatabaseService.convertJtsClassToGeometryType(geometryClass);
 
 			// TODO ask charset to user?
-			DbaseFileReader dbfReader = new DbaseFileReader(shpFiles, true, charset);
-			try {
+			try (DbaseFileReader dbfReader = new DbaseFileReader(shpFiles, true, charset)) {
 				DbaseFileHeader dbaseFileHeader = dbfReader.getHeader();
 
 				String[] fieldsName = new String[dbaseFileHeader.getNumFields() + 1];
@@ -165,7 +163,6 @@ public class ShapefileImporter implements Constants {
 					int recordCounter = 0;
 					int filterCounter = 0;
 					while (shpReader.hasNext() && dbfReader.hasNext()) {
-						;
 						try (var tx = database.beginTx()) {
 							int committedSinceLastNotification = 0;
 							for (int i = 0; i < commitInterval; i++) {
@@ -183,8 +180,7 @@ public class ShapefileImporter implements Constants {
 											//convert Date to String
 											//necessary because Neo4j doesn't support Date properties on nodes
 											for (int k = 0; k < fieldsName.length - 1; k++) {
-												if (values[k] instanceof Date) {
-													Date aux = (Date) values[k];
+												if (values[k] instanceof Date aux) {
 													values[k] = aux.toString();
 												}
 											}
@@ -222,11 +218,7 @@ public class ShapefileImporter implements Constants {
 				} finally {
 					monitor.done();
 				}
-			} finally {
-				dbfReader.close();
 			}
-		} finally {
-			shpReader.close();
 		}
 
 		long stopTime = System.currentTimeMillis();

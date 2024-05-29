@@ -35,7 +35,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class FilterEqualTopo extends AbstractFilterGeoPipe {
 
-	private Geometry other;
+	private final Geometry other;
 
 	public FilterEqualTopo(Geometry other) {
 		this.other = other;

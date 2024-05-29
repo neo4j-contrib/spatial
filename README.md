@@ -45,7 +45,7 @@ highlighted the need for a new approach to spatial libraries for Neo4j.
 
 This library was originally written in 2010 when Neo4j was still releasing early 1.x versions.
 This means it made use of internal Java API's that were deprecated over the years, some as early as Neo4j 2.x.
-When Neo4j 4.0 was released, many deprecated API's were entirely removed.
+When Neo4j 4.0 was released, many deprecated APIs were entirely removed.
 And the transaction API was changed in a fundamental way.
 This has meant that the spatial library needed a major refactoring to work with Neo4j 4.x:
 
@@ -69,7 +69,7 @@ This has meant that the spatial library needed a major refactoring to work with 
   It was therefor necessary to upgrade the GeoTools libraries to version 24.2.
   This in turn required a re-write of the Neo4jDataStore interface since the older API had
   long been deprecated, and was entirely unavailable in newer versions.
-* Neo4j 4.1 was slightly stricter with regards to passing nodes as parameters, requiring the nodes
+* Neo4j 4.1 was slightly stricter in regard to passing nodes as parameters, requiring the nodes
   objects to have been created in the current transaction.
   To work around this we added `.byId` versions of the `spatial.addNode` and `spatial.removeNode` procedures.
   We also changed the `spatial.removeNode` procedures to return `nodeId` instead of `node`.
@@ -82,7 +82,7 @@ This has meant that the spatial library needed a major refactoring to work with 
 * 0.28.0 tackles the ability to import multiple OSM files. The initial solution for Neo4j 4.x made use
   of schema indexes keyed by the label and property. However, that means that all OSM imports would share
   the same index. If they are completely disjointed data sets, this would not matter. But if you import
-  overlapping OSM files or different versions of the same file file, a mangled partial merger would result.
+  overlapping OSM files or different versions of the same file, a mangled partial merger would result.
   0.28.0 solves this by using different indexes, and keeping all imports completely separate.
   The more complex problems of importing newer versions, and stitching together overlapping areas, are not
   yet solved.
@@ -132,7 +132,7 @@ The key concepts of this library include:
 * Multile CoordinationReferenceSystem support using GeoTools
 * Support the concept of multiple geographic layers, each with its own CRS and Index
 * Include an index capable of searching for complex geometries (in-graph RTree index)
-* Support import and export in a number of known formats (eg. Shapefile and OSM)
+* Support import and export in a number of known formats (e.g. Shapefile and OSM)
 * Embed the library and Neo4j within GIS tools like uDig and GeoServer
 
 Some key features include:
@@ -183,7 +183,7 @@ instructions on the spatial server plugin below.
 ## Layers and GeometryEncoders ##
 
 The primary type that defines a collection of geometries is the Layer. A layer contains an index for querying. In
-addition a Layer can be an EditableLayer if it is possible to add and modify geometries in the layer. The next most
+addition, a Layer can be an EditableLayer if it is possible to add and modify geometries in the layer. The next most
 important interface is the GeometryEncoder.
 
 The DefaultLayer is the standard layer, making use of the WKBGeometryEncoder for storing all geometry types as byte[]
@@ -192,8 +192,9 @@ properties of one node per geometry instance.
 The OSMLayer is a special layer supporting Open Street Map and storing the OSM model as a single fully connected graph.
 The set of Geometries provided by this layer includes Points, LineStrings and Polygons, and as such cannot be exported
 to Shapefile format, since that format only allows a single Geometry per layer. However, OMSLayer extends DynamicLayer,
-which allow it to provide any number of sub-layers, each with a specific geometry type and in addition based on a OSM
-tag filter. For example you can have a layer providing all cycle paths as LineStrings, or a layer providing all lakes as
+which allow it to provide any number of sub-layers, each with a specific geometry type and in addition based on an OSM
+tag filter. For example, you can have a layer providing all cycle paths as LineStrings, or a layer providing all lakes
+as
 Polygons. Underneath these are all still backed by the same fully connected graph, but exposed dynamically as apparently
 separate geometry layers.
 
@@ -204,17 +205,17 @@ separate geometry layers.
 Spatial data is divided in Layers and indexed by a RTree.
 
 ~~~java
-    GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(storeDir);
-    try{
+GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(storeDir);
+try{
 ShapefileImporter importer = new ShapefileImporter(database);
-        importer.
+	importer.
 
 importFile("roads.shp","layer_roads");
-    }finally{
-			database.
+}finally{
+		database.
 
 shutdown();
-    }
+}
 ~~~
 
 If using the server, the same can be achieved with spatial procedures (3.x only):
@@ -232,35 +233,35 @@ read this that will already be available. Refer to the unit tests in classes Tes
 latest code for importing OSM data. At the time of writing the following worked:
 
 ~~~java
-    OSMImporter importer = new OSMImporter("sweden");
-    Map<String, String> config = new HashMap<String, String>();
-    config.put("neostore.nodestore.db.mapped_memory", "90M" );
-    config.put("dump_configuration", "true");
-    config.put("use_memory_mapped_buffers", "true");
-    BatchInserter batchInserter = BatchInserters.inserter(new File(dir), config);
-    importer.importFile(batchInserter, "sweden.osm", false);
-    batchInserter.shutdown();
+OSMImporter importer = new OSMImporter("sweden");
+Map<String, String> config = new HashMap<String, String>();
+config.put("neostore.nodestore.db.mapped_memory", "90M" );
+config.put("dump_configuration", "true");
+config.put("use_memory_mapped_buffers", "true");
+BatchInserter batchInserter = BatchInserters.inserter(new File(dir), config);
+importer.importFile(batchInserter, "sweden.osm", false);
+batchInserter.shutdown();
 
-    GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dir);
-    importer.reIndex(db, 10000);
-    db.shutdown();
+GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dir);
+importer.reIndex(db, 10000);
+db.shutdown();
 ~~~
 
 ### Executing a spatial query ###
 
 ~~~java
-    GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(storeDir);
-    try {
-    	SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
-        Layer layer = spatialService.getLayer("layer_roads");
-        SpatialIndexReader spatialIndex = layer.getIndex();
-        	
-        Search searchQuery = new SearchIntersectWindow(new Envelope(xmin, xmax, ymin, ymax));
-        spatialIndex.executeSearch(searchQuery);
-   	List<SpatialDatabaseRecord> results = searchQuery.getResults();
-    } finally {
+GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(storeDir);
+try {
+	SpatialDatabaseService spatialService = new SpatialDatabaseService(database);
+	Layer layer = spatialService.getLayer("layer_roads");
+	SpatialIndexReader spatialIndex = layer.getIndex();
+		
+	Search searchQuery = new SearchIntersectWindow(new Envelope(xmin, xmax, ymin, ymax));
+	spatialIndex.executeSearch(searchQuery);
+	List<SpatialDatabaseRecord> results = searchQuery.getResults();
+} finally {
 	database.shutdown();
-    }
+}
 ~~~
 
 If using the server, the same can be achieved with spatial procedures (3.x only):
@@ -360,7 +361,7 @@ This has not been tested at all in any GeoTools enabled application, but could p
 ~~~
 
 The version specified on the version line can be changed to match the version you wish to work with (based on the
-version of Neo4j itself you are using). Too see which versions are available see the list
+version of Neo4j itself you are using). To see which versions are available see the list
 at [Neo4j Spatial Releases](https://github.com/neo4j-contrib/m2/tree/master/releases/org/neo4j/neo4j-spatial).
 
 * start the GeoServer webapp again with the added neo4j profile
@@ -437,7 +438,7 @@ The server plugin provides access to the internal spatial capabilities using thr
 * A REST API for creating layers and adding nodes or geometries to layers.
 	* For usage information
 	  see [Neo4j Spatial Manual REST](http://neo4j-contrib.github.io/spatial/#spatial-server-plugin)
-	* Note that this API provides only limited access to Spatial, with no access the the GeoPipes or import utilities
+	* Note that this API provides only limited access to Spatial, with no access the GeoPipes or import utilities
 	* This API was entirely removed when support for Neo4j 4.0 was added (version 0.27)
 * An IndexProvider API (2.x only) for Cypher access using START node=node:geom({query})
 	* It is only possible to add nodes and query for nodes, and the resulting graph structure is not compatible with any
@@ -473,7 +474,7 @@ for examples.
 
 ### Building Neo4j Spatial Documentation ###
 
-Add your Github credentials in your `~/.m2/settings.xml`
+Add your GitHub credentials in your `~/.m2/settings.xml`
 
 ~~~xml
 <settings>
@@ -531,17 +532,17 @@ Add the following repositories and dependency to your project's pom.xml:
 ~~~
 
 The version specified on the last version line can be changed to match the version you wish to work with (based on the
-version of Neo4j itself you are using). Too see which versions are available see the list
+version of Neo4j itself you are using). To see which versions are available see the list
 at [Neo4j Spatial Releases](https://github.com/neo4j-contrib/m2/tree/master/releases/org/neo4j/neo4j-spatial).
 
 ## Running Neo4j spatial code from the command-line ##
 
 Some of the classes in Neoj4-Spatial include main() methods and can be run on the command-line.
 For example there are command-line options for importing SHP and OSM data. See the main methods
-in the OSMImporter and ShapefileImporter classes. Here we will describe how to setup the dependencies
+in the OSMImporter and ShapefileImporter classes. Here we will describe how to set up the dependencies
 for running the command-line, using the OSMImporter and the sample OSM file two-street.osm.
 We will show two ways to run this on the command line, one with the java command itself, and the
-other using the 'exec:java' target in maven. In both cases we use maven to setup the dependencies.
+other using the 'exec:java' target in maven. In both cases we use maven to set up the dependencies.
 
 ### Compile ###
 
