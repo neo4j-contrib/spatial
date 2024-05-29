@@ -19,10 +19,9 @@
  */
 package org.neo4j.gis.spatial.pipes.filtering;
 
+import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-
-import org.locationtech.jts.geom.Geometry;
 
 
 /**
@@ -30,8 +29,8 @@ import org.locationtech.jts.geom.Geometry;
  */
 public class FilterCross extends AbstractFilterGeoPipe {
 
-	private Geometry other;
-	
+	private final Geometry other;
+
 	public FilterCross(Geometry other) {
 		this.other = other;
 	}

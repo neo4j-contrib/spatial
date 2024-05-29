@@ -19,156 +19,161 @@
  */
 package org.neo4j.gis.spatial;
 
-import org.neo4j.gis.spatial.index.IndexManager;
-import org.neo4j.gis.spatial.rtree.RTreeIndex;
-import org.neo4j.gis.spatial.rtree.RTreeRelationshipTypes;
-import org.neo4j.graphdb.*;
-import org.neo4j.internal.kernel.api.security.SecurityContext;
-import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import org.neo4j.gis.spatial.index.IndexManager;
+import org.neo4j.gis.spatial.rtree.RTreeIndex;
+import org.neo4j.gis.spatial.rtree.RTreeRelationshipTypes;
+import org.neo4j.graphdb.Direction;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
+import org.neo4j.graphdb.Transaction;
+import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 public class Neo4jTestUtils {
 
-    public static <T> int countIterable(Iterable<T> iterable) {
-        int counter = 0;
-        Iterator<T> itr = iterable.iterator();
-        while (itr.hasNext()) {
-            itr.next();
-            counter++;
-        }
-        return counter;
-    }
+	public static <T> int countIterable(Iterable<T> iterable) {
+		int counter = 0;
+		Iterator<T> itr = iterable.iterator();
+		while (itr.hasNext()) {
+			itr.next();
+			counter++;
+		}
+		return counter;
+	}
 
-    public static void debugIndexTree(GraphDatabaseService db, String layerName) {
-        try (Transaction tx = db.beginTx()) {
-            SpatialDatabaseService spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
-            Layer layer = spatial.getLayer(tx, layerName);
-            RTreeIndex index = (RTreeIndex) layer.getIndex();
-            printTree(index.getIndexRoot(tx), 0);
-            tx.commit();
-        }
+	public static void debugIndexTree(GraphDatabaseService db, String layerName) {
+		try (Transaction tx = db.beginTx()) {
+			SpatialDatabaseService spatial = new SpatialDatabaseService(
+					new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
+			Layer layer = spatial.getLayer(tx, layerName);
+			RTreeIndex index = (RTreeIndex) layer.getIndex();
+			printTree(index.getIndexRoot(tx), 0);
+			tx.commit();
+		}
 
-    }
+	}
 
-    private static String arrayString(double[] test) {
-        StringBuffer sb = new StringBuffer();
-        for (double d : test) {
-            addToArrayString(sb, d);
-        }
-        sb.append("]");
-        return sb.toString();
-    }
+	private static String arrayString(double[] test) {
+		StringBuffer sb = new StringBuffer();
+		for (double d : test) {
+			addToArrayString(sb, d);
+		}
+		sb.append("]");
+		return sb.toString();
+	}
 
-    private static void addToArrayString(StringBuffer sb, Object obj) {
-        if (sb.length() == 0) {
-            sb.append("[");
-        } else {
-            sb.append(",");
-        }
-        sb.append(obj);
-    }
+	private static void addToArrayString(StringBuffer sb, Object obj) {
+		if (sb.length() == 0) {
+			sb.append("[");
+		} else {
+			sb.append(",");
+		}
+		sb.append(obj);
+	}
 
-    public static void printTree(Node root, int depth) {
-        StringBuffer tab = new StringBuffer();
-        for (int i = 0; i < depth; i++) {
-            tab.append("  ");
-        }
+	public static void printTree(Node root, int depth) {
+		StringBuffer tab = new StringBuffer();
+		for (int i = 0; i < depth; i++) {
+			tab.append("  ");
+		}
 
-        if (root.hasProperty(Constants.PROP_BBOX)) {
-            System.out.println(tab.toString() + "INDEX: " + root + " BBOX[" + arrayString((double[]) root.getProperty(Constants.PROP_BBOX)) + "]");
-        } else {
-            System.out.println(tab.toString() + "INDEX: " + root);
-        }
+		if (root.hasProperty(Constants.PROP_BBOX)) {
+			System.out.println(tab.toString() + "INDEX: " + root + " BBOX[" + arrayString(
+					(double[]) root.getProperty(Constants.PROP_BBOX)) + "]");
+		} else {
+			System.out.println(tab.toString() + "INDEX: " + root);
+		}
 
-        StringBuffer data = new StringBuffer();
-        for (Relationship rel : root.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_REFERENCE)) {
-            if (data.length() > 0) {
-                data.append(", ");
-            } else {
-                data.append("DATA: ");
-            }
+		StringBuffer data = new StringBuffer();
+		for (Relationship rel : root.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_REFERENCE)) {
+			if (data.length() > 0) {
+				data.append(", ");
+			} else {
+				data.append("DATA: ");
+			}
 //			data.append(rel.getEndNode().toString());
-            data.append(rel.getEndNode().toString() + " BBOX[" + arrayString((double[]) rel.getEndNode().getProperty
-                    (Constants
-                            .PROP_BBOX)) + "]");
-        }
+			data.append(rel.getEndNode().toString() + " BBOX[" + arrayString((double[]) rel.getEndNode().getProperty
+					(Constants
+							.PROP_BBOX)) + "]");
+		}
 
-        if (data.length() > 0) {
-            System.out.println("  " + tab + data);
-        }
+		if (data.length() > 0) {
+			System.out.println("  " + tab + data);
+		}
 
-        for (Relationship rel : root.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD)) {
-            printTree(rel.getEndNode(), depth + 1);
-        }
-    }
+		for (Relationship rel : root.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD)) {
+			printTree(rel.getEndNode(), depth + 1);
+		}
+	}
 
-    public static <T> void assertCollection(Collection<T> collection, T... expectedItems) {
-        String collectionString = join(", ", collection.toArray());
-        assertEquals(collectionString, expectedItems.length, collection.size());
-        for (T item : expectedItems) {
-            assertTrue(collection.contains(item));
-        }
-    }
+	public static <T> void assertCollection(Collection<T> collection, T... expectedItems) {
+		String collectionString = join(", ", collection.toArray());
+		assertEquals(collectionString, expectedItems.length, collection.size());
+		for (T item : expectedItems) {
+			assertTrue(collection.contains(item));
+		}
+	}
 
-    public static <T> Collection<T> asCollection(Iterable<T> iterable) {
-        List<T> list = new ArrayList<T>();
-        for (T item : iterable) {
-            list.add(item);
-        }
-        return list;
-    }
+	public static <T> Collection<T> asCollection(Iterable<T> iterable) {
+		List<T> list = new ArrayList<T>();
+		for (T item : iterable) {
+			list.add(item);
+		}
+		return list;
+	}
 
-    private static <T> String join(String delimiter, T... items) {
-        StringBuffer buffer = new StringBuffer();
-        for (T item : items) {
-            if (buffer.length() > 0) {
-                buffer.append(delimiter);
-            }
-            buffer.append(item.toString());
-        }
-        return buffer.toString();
-    }
+	private static <T> String join(String delimiter, T... items) {
+		StringBuffer buffer = new StringBuffer();
+		for (T item : items) {
+			if (buffer.length() > 0) {
+				buffer.append(delimiter);
+			}
+			buffer.append(item.toString());
+		}
+		return buffer.toString();
+	}
 
-    public static void printDatabaseStats(GraphDatabaseService db, File path) {
-        System.out.println("Database stats:");
-        System.out.println("\tTotal disk usage: " + (databaseDiskUsage(path)) / (1024.0 * 1024.0) + "MB");
-        System.out.println("\tTotal # nodes:    " + getNumberOfNodes(db));
-        System.out.println("\tTotal # rels:     " + getNumberOfRelationships(db));
-    }
+	public static void printDatabaseStats(GraphDatabaseService db, File path) {
+		System.out.println("Database stats:");
+		System.out.println("\tTotal disk usage: " + (databaseDiskUsage(path)) / (1024.0 * 1024.0) + "MB");
+		System.out.println("\tTotal # nodes:    " + getNumberOfNodes(db));
+		System.out.println("\tTotal # rels:     " + getNumberOfRelationships(db));
+	}
 
-    private static long calculateDiskUsage(File file) {
-        if (file.isDirectory()) {
-            long count = 0;
-            for (File sub : file.listFiles()) {
-                count += calculateDiskUsage(sub);
-            }
-            return count;
-        } else {
-            return file.length();
-        }
-    }
+	private static long calculateDiskUsage(File file) {
+		if (file.isDirectory()) {
+			long count = 0;
+			for (File sub : file.listFiles()) {
+				count += calculateDiskUsage(sub);
+			}
+			return count;
+		} else {
+			return file.length();
+		}
+	}
 
-    private static long databaseDiskUsage(File path) {
-        return calculateDiskUsage(path);
-    }
+	private static long databaseDiskUsage(File path) {
+		return calculateDiskUsage(path);
+	}
 
-    private static long getNumberOfNodes(GraphDatabaseService db) {
-        try (Transaction tx = db.beginTx()) {
-            return (Long) tx.execute("MATCH (n) RETURN count(n)").columnAs("count(n)").next();
-        }
-    }
+	private static long getNumberOfNodes(GraphDatabaseService db) {
+		try (Transaction tx = db.beginTx()) {
+			return (Long) tx.execute("MATCH (n) RETURN count(n)").columnAs("count(n)").next();
+		}
+	}
 
-    private static long getNumberOfRelationships(GraphDatabaseService db) {
-        try (Transaction tx = db.beginTx()) {
-            return (Long) tx.execute("MATCH ()-[r]->() RETURN count(r)").columnAs("count(r)").next();
-        }
-    }
+	private static long getNumberOfRelationships(GraphDatabaseService db) {
+		try (Transaction tx = db.beginTx()) {
+			return (Long) tx.execute("MATCH ()-[r]->() RETURN count(r)").columnAs("count(r)").next();
+		}
+	}
 }

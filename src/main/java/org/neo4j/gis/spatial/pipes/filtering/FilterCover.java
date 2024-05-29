@@ -19,11 +19,10 @@
  */
 package org.neo4j.gis.spatial.pipes.filtering;
 
-import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
-import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
+import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
+import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 
 /**
@@ -31,9 +30,9 @@ import org.locationtech.jts.geom.Geometry;
  */
 public class FilterCover extends AbstractFilterGeoPipe {
 
-	private Geometry other;
-	private Envelope otherEnvelope;
-	
+	private final Geometry other;
+	private final Envelope otherEnvelope;
+
 	public FilterCover(Geometry other) {
 		this.other = other;
 		this.otherEnvelope = other.getEnvelopeInternal();

@@ -31,68 +31,70 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 
 public class PropertyMappingManager {
-    private final Layer layer;
-    private LinkedHashMap<String, PropertyMapper> propertyMappers;
 
-    public PropertyMappingManager(Layer layer) {
-        this.layer = layer;
-    }
+	private final Layer layer;
+	private LinkedHashMap<String, PropertyMapper> propertyMappers;
 
-    private LinkedHashMap<String, PropertyMapper> getPropertyMappers(Transaction tx) {
-        if (propertyMappers == null) {
-            propertyMappers = new LinkedHashMap<>();
-            for (PropertyMapper mapper : loadMappers(tx).values()) {
-                addPropertyMapper(tx, mapper);
-            }
-        }
-        return propertyMappers;
-    }
+	public PropertyMappingManager(Layer layer) {
+		this.layer = layer;
+	}
 
-    private Map<Node, PropertyMapper> loadMappers(Transaction tx) {
-        HashMap<Node, PropertyMapper> mappers = new HashMap<>();
-        try (var relationships = layer.getLayerNode(tx).getRelationships(Direction.OUTGOING, SpatialRelationshipTypes.PROPERTY_MAPPING)) {
-            for (Relationship rel : relationships) {
-                Node node = rel.getEndNode();
-                mappers.put(node, PropertyMapper.fromNode(node));
-            }
-        }
-        return mappers;
-    }
+	private LinkedHashMap<String, PropertyMapper> getPropertyMappers(Transaction tx) {
+		if (propertyMappers == null) {
+			propertyMappers = new LinkedHashMap<>();
+			for (PropertyMapper mapper : loadMappers(tx).values()) {
+				addPropertyMapper(tx, mapper);
+			}
+		}
+		return propertyMappers;
+	}
 
-    private void save(Transaction tx) {
-        ArrayList<PropertyMapper> toSave = new ArrayList<>(getPropertyMappers(tx).values());
-        ArrayList<Node> toDelete = new ArrayList<>();
-        for (Map.Entry<Node, PropertyMapper> entry : loadMappers(tx).entrySet()) {
-            if (!toSave.remove(entry.getValue())) {
-                toDelete.add(entry.getKey());
-            }
-        }
-        for (Node node : toDelete) {
-            try(var relationships = node.getRelationships()){
-                for (Relationship rel : relationships) {
-                    rel.delete();
-                }
-            }
-            node.delete();
-        }
-        for (PropertyMapper mapper : toSave) {
-            Node node = tx.createNode();
-            mapper.save(tx, node);
-            layer.getLayerNode(tx).createRelationshipTo(node, SpatialRelationshipTypes.PROPERTY_MAPPING);
-        }
-    }
+	private Map<Node, PropertyMapper> loadMappers(Transaction tx) {
+		HashMap<Node, PropertyMapper> mappers = new HashMap<>();
+		try (var relationships = layer.getLayerNode(tx)
+				.getRelationships(Direction.OUTGOING, SpatialRelationshipTypes.PROPERTY_MAPPING)) {
+			for (Relationship rel : relationships) {
+				Node node = rel.getEndNode();
+				mappers.put(node, PropertyMapper.fromNode(node));
+			}
+		}
+		return mappers;
+	}
 
-    private void addPropertyMapper(Transaction tx, PropertyMapper mapper) {
-        getPropertyMappers(tx).put(mapper.to(), mapper);
-        save(tx);
-    }
+	private void save(Transaction tx) {
+		ArrayList<PropertyMapper> toSave = new ArrayList<>(getPropertyMappers(tx).values());
+		ArrayList<Node> toDelete = new ArrayList<>();
+		for (Map.Entry<Node, PropertyMapper> entry : loadMappers(tx).entrySet()) {
+			if (!toSave.remove(entry.getValue())) {
+				toDelete.add(entry.getKey());
+			}
+		}
+		for (Node node : toDelete) {
+			try (var relationships = node.getRelationships()) {
+				for (Relationship rel : relationships) {
+					rel.delete();
+				}
+			}
+			node.delete();
+		}
+		for (PropertyMapper mapper : toSave) {
+			Node node = tx.createNode();
+			mapper.save(tx, node);
+			layer.getLayerNode(tx).createRelationshipTo(node, SpatialRelationshipTypes.PROPERTY_MAPPING);
+		}
+	}
 
-    public PropertyMapper getPropertyMapper(Transaction tx, String to) {
-        return getPropertyMappers(tx).get(to);
-    }
+	private void addPropertyMapper(Transaction tx, PropertyMapper mapper) {
+		getPropertyMappers(tx).put(mapper.to(), mapper);
+		save(tx);
+	}
 
-    public void addPropertyMapper(Transaction tx, String from, String to, String type, String params) {
-        addPropertyMapper(tx, PropertyMapper.fromParams(from, to, type, params));
-    }
+	public PropertyMapper getPropertyMapper(Transaction tx, String to) {
+		return getPropertyMappers(tx).get(to);
+	}
+
+	public void addPropertyMapper(Transaction tx, String from, String to, String type, String params) {
+		addPropertyMapper(tx, PropertyMapper.fromParams(from, to, type, params));
+	}
 
 }

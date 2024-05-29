@@ -24,13 +24,13 @@ import org.neo4j.gis.spatial.index.curves.ZOrderSpaceFillingCurve2D;
 
 public class LayerZOrderPointIndex extends LayerSpaceFillingCurvePointIndex {
 
-    @Override
-    protected String indexTypeName() {
-        return "zorder";
-    }
+	@Override
+	protected String indexTypeName() {
+		return "zorder";
+	}
 
-    @Override
+	@Override
 	protected SpaceFillingCurve makeCurve(Envelope envelope, int maxLevels) {
-        return new ZOrderSpaceFillingCurve2D(envelope, maxLevels);
-    }
+		return new ZOrderSpaceFillingCurve2D(envelope, maxLevels);
+	}
 }

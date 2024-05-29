@@ -19,40 +19,39 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
+import org.locationtech.jts.densify.Densifier;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
-import org.locationtech.jts.densify.Densifier;
-
 /**
- * Densify geometries by inserting extra vertices along the line segments in the geometry. 
+ * Densify geometries by inserting extra vertices along the line segments in the geometry.
  * The densified geometry contains no line segment which is longer than the given distance tolerance.
  * Item geometry is replaced by pipe output unless an alternative property name is given in the constructor.
  */
 public class Densify extends AbstractGeoPipe {
 
-	private double distanceTolerance;
+	private final double distanceTolerance;
 
 	/**
-	 * @param distanceTolerance
+	 * @param distanceTolerance maximum distance between vertices
 	 */
 	public Densify(double distanceTolerance) {
 		this.distanceTolerance = distanceTolerance;
-	}		
-	
+	}
+
 	/**
-	 * @param distanceTolerance
+	 * @param distanceTolerance  maximum distance between vertices
 	 * @param resultPropertyName property name to use for geometry output
 	 */
 	public Densify(double distanceTolerance, String resultPropertyName) {
 		super(resultPropertyName);
 		this.distanceTolerance = distanceTolerance;
-	}	
+	}
 
-	@Override	
+	@Override
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
 		setGeometry(flow, Densifier.densify(flow.getGeometry(), distanceTolerance));
 		return flow;
-	}	
-	
+	}
+
 }

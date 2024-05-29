@@ -34,59 +34,72 @@ import org.neo4j.graphdb.Transaction;
  * Simple encoder that stores point geometries as one Neo4j Point property.
  */
 public class NativePointEncoder extends AbstractGeometryEncoder implements Configurable {
-    private static final String DEFAULT_GEOM = "location";
-    private static GeometryFactory geometryFactory;
-    private String locationProperty = DEFAULT_GEOM;
-    private Neo4jCRS crs = Neo4jCRS.findCRS("WGS-84");
 
-    protected GeometryFactory getGeometryFactory() {
-        if (geometryFactory == null) geometryFactory = new GeometryFactory();
-        return geometryFactory;
-    }
+	private static final String DEFAULT_GEOM = "location";
+	private static GeometryFactory geometryFactory;
+	private String locationProperty = DEFAULT_GEOM;
+	private Neo4jCRS crs = Neo4jCRS.findCRS("WGS-84");
 
-    @Override
-    protected void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container) {
-        int gtype = SpatialDatabaseService.convertJtsClassToGeometryType(geometry.getClass());
-        if (gtype == GTYPE_POINT) {
-            container.setProperty("gtype", gtype);
-            Neo4jPoint neo4jPoint = new Neo4jPoint((Point) geometry, crs);
-            container.setProperty(locationProperty, neo4jPoint);
-        } else {
-            throw new IllegalArgumentException("Cannot store non-Point types as Native Neo4j properties: " + SpatialDatabaseService.convertGeometryTypeToName(gtype));
-        }
+	protected GeometryFactory getGeometryFactory() {
+		if (geometryFactory == null) {
+			geometryFactory = new GeometryFactory();
+		}
+		return geometryFactory;
+	}
 
-    }
+	@Override
+	protected void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container) {
+		int gtype = SpatialDatabaseService.convertJtsClassToGeometryType(geometry.getClass());
+		if (gtype == GTYPE_POINT) {
+			container.setProperty("gtype", gtype);
+			Neo4jPoint neo4jPoint = new Neo4jPoint((Point) geometry, crs);
+			container.setProperty(locationProperty, neo4jPoint);
+		} else {
+			throw new IllegalArgumentException("Cannot store non-Point types as Native Neo4j properties: "
+					+ SpatialDatabaseService.convertGeometryTypeToName(gtype));
+		}
 
-    @Override
-    public Geometry decodeGeometry(Entity container) {
-        org.neo4j.graphdb.spatial.Point point = ((org.neo4j.graphdb.spatial.Point) container.getProperty(locationProperty));
-        if (point.getCRS().getCode() != crs.getCode()) {
-            throw new IllegalStateException("Trying to decode geometry with wrong CRS: layer configured to crs=" + crs + ", but geometry has crs=" + point.getCRS().getCode());
-        }
-        double[] coordinate = point.getCoordinate().getCoordinate();
-        if (crs.dimensions() == 3) {
-            return getGeometryFactory().createPoint(new Coordinate(coordinate[0], coordinate[1], coordinate[2]));
-        }
+	}
+
+	@Override
+	public Geometry decodeGeometry(Entity container) {
+		org.neo4j.graphdb.spatial.Point point = ((org.neo4j.graphdb.spatial.Point) container.getProperty(
+				locationProperty));
+		if (point.getCRS().getCode() != crs.getCode()) {
+			throw new IllegalStateException("Trying to decode geometry with wrong CRS: layer configured to crs=" + crs
+					+ ", but geometry has crs=" + point.getCRS().getCode());
+		}
+		double[] coordinate = point.getCoordinate().getCoordinate();
+		if (crs.dimensions() == 3) {
+			return getGeometryFactory().createPoint(new Coordinate(coordinate[0], coordinate[1], coordinate[2]));
+		}
 		return getGeometryFactory().createPoint(new Coordinate(coordinate[0], coordinate[1]));
-    }
+	}
 
-    @Override
-    public String getConfiguration() {
-        return locationProperty + ":" + bboxProperty + ": " + crs.getCode();
-    }
+	@Override
+	public String getConfiguration() {
+		return locationProperty + ":" + bboxProperty + ": " + crs.getCode();
+	}
 
-    @Override
-    public void setConfiguration(String configuration) {
-        if (configuration != null && configuration.trim().length() > 0) {
-            String[] fields = configuration.split(":");
-            if (fields.length > 0) locationProperty = fields[0];
-            if (fields.length > 1) bboxProperty = fields[1];
-            if (fields.length > 2) crs = Neo4jCRS.findCRS(fields[2]);
-        }
-    }
+	@Override
+	public void setConfiguration(String configuration) {
+		if (configuration != null && !configuration.trim().isEmpty()) {
+			String[] fields = configuration.split(":");
+			if (fields.length > 0) {
+				locationProperty = fields[0];
+			}
+			if (fields.length > 1) {
+				bboxProperty = fields[1];
+			}
+			if (fields.length > 2) {
+				crs = Neo4jCRS.findCRS(fields[2]);
+			}
+		}
+	}
 
-    @Override
-    public String getSignature() {
-        return "NativePointEncoder(geometry='" + locationProperty + "', bbox='" + bboxProperty + "', crs=" + crs.getCode() + ")";
-    }
+	@Override
+	public String getSignature() {
+		return "NativePointEncoder(geometry='" + locationProperty + "', bbox='" + bboxProperty + "', crs="
+				+ crs.getCode() + ")";
+	}
 }

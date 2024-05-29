@@ -27,7 +27,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  * Find empty geometries.
  */
 public class FilterEmpty extends AbstractFilterGeoPipe {
-	
+
 	@Override
 	protected boolean validate(GeoPipeFlow flow) {
 		return flow.getGeometry().isEmpty();

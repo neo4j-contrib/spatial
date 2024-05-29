@@ -19,20 +19,19 @@
  */
 package org.neo4j.gis.spatial.filter;
 
-import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
+import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.Utilities;
+import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
 import org.neo4j.graphdb.Node;
-
-import org.locationtech.jts.geom.Geometry;
 
 /**
  * @author Craig Taverner
  */
 public abstract class AbstractSearchIntersection extends AbstractSearchEnvelopeIntersection {
-	
-	protected Geometry referenceGeometry;
-	protected Layer layer;
+
+	protected final Geometry referenceGeometry;
+	protected final Layer layer;
 
 	public AbstractSearchIntersection(Layer layer, Geometry referenceGeometry) {
 		super(layer.getGeometryEncoder(), Utilities.fromJtsToNeo4j(referenceGeometry.getEnvelopeInternal()));

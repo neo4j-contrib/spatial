@@ -19,27 +19,26 @@
  */
 package org.neo4j.gis.spatial.filter;
 
-import org.neo4j.gis.spatial.index.Envelope;
-import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
+import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.Utilities;
+import org.neo4j.gis.spatial.index.Envelope;
+import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
 import org.neo4j.graphdb.Node;
-
-import org.locationtech.jts.geom.Geometry;
 
 /**
  * Find geometries that intersect with the specified search window.
- * 
+ *
  * @author Craig Taverner
  */
 public class SearchIntersectWindow extends AbstractSearchEnvelopeIntersection {
 
-	private Layer layer;
-	private Geometry windowGeom;
+	private final Layer layer;
+	private final Geometry windowGeom;
 
-    public SearchIntersectWindow(Layer layer, Envelope envelope) {
-        this(layer, Utilities.fromNeo4jToJts(envelope));
-    }
+	public SearchIntersectWindow(Layer layer, Envelope envelope) {
+		this(layer, Utilities.fromNeo4jToJts(envelope));
+	}
 
 	public SearchIntersectWindow(Layer layer, org.locationtech.jts.geom.Envelope other) {
 		super(layer.getGeometryEncoder(), Utilities.fromJtsToNeo4j(other));

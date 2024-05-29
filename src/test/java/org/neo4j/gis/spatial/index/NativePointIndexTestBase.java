@@ -24,13 +24,13 @@ import org.neo4j.gis.spatial.encoders.NativePointEncoder;
 
 public abstract class NativePointIndexTestBase extends LayerIndexTestBase {
 
-    @Override
-    protected Class<? extends GeometryEncoder> getEncoderClass() {
-        return NativePointEncoder.class;
-    }
+	@Override
+	protected Class<? extends GeometryEncoder> getEncoderClass() {
+		return NativePointEncoder.class;
+	}
 
-    @Override
-    protected final GeometryEncoder makeGeometryEncoder() {
-        return new NativePointEncoder();
-    }
+	@Override
+	protected final GeometryEncoder makeGeometryEncoder() {
+		return new NativePointEncoder();
+	}
 }

@@ -18,47 +18,48 @@ import org.neo4j.kernel.impl.coreapi.InternalTransaction;
  * @param <E> either a String or a Long depending on whether the index is geohash or space-filling curve.
  */
 public class PropertyEncodingNodeIndex<E> {
-    private IndexDefinition index;
-    private final String indexName;
-    private final Label label;
-    private final String propertyKey;
-    private final IndexManager indexManager;
 
-    public PropertyEncodingNodeIndex(IndexManager indexManager, String indexName, Label label, String propertyKey) {
-        this.indexName = indexName;
-        this.label = label;
-        this.propertyKey = propertyKey;
-        this.indexManager = indexManager;
-    }
+	private IndexDefinition index;
+	private final String indexName;
+	private final Label label;
+	private final String propertyKey;
+	private final IndexManager indexManager;
 
-    public void initialize(Transaction tx) {
-        index = indexManager.indexFor(tx, indexName, label, propertyKey);
-    }
+	public PropertyEncodingNodeIndex(IndexManager indexManager, String indexName, Label label, String propertyKey) {
+		this.indexName = indexName;
+		this.label = label;
+		this.propertyKey = propertyKey;
+		this.indexManager = indexManager;
+	}
 
-    public void add(Node geomNode, E indexValueFor) {
-        geomNode.addLabel(label);
-        geomNode.setProperty(propertyKey, indexValueFor);
-    }
+	public void initialize(Transaction tx) {
+		index = indexManager.indexFor(tx, indexName, label, propertyKey);
+	}
 
-    public void remove(Node geomNode) {
-        geomNode.removeLabel(label);
-        geomNode.removeProperty(propertyKey);
-    }
+	public void add(Node geomNode, E indexValueFor) {
+		geomNode.addLabel(label);
+		geomNode.setProperty(propertyKey, indexValueFor);
+	}
 
-    public Iterable<Node> queryAll(Transaction tx) {
-        return Iterators.loop(tx.findNodes(label));
-    }
+	public void remove(Node geomNode) {
+		geomNode.removeLabel(label);
+		geomNode.removeProperty(propertyKey);
+	}
 
-    public Iterator<Node> query(Transaction tx, ExplicitIndexBackedPointIndex.Neo4jIndexSearcher searcher) {
-        KernelTransaction ktx = ((InternalTransaction) tx).kernelTransaction();
-        return searcher.search(ktx, label, propertyKey);
-    }
+	public Iterable<Node> queryAll(Transaction tx) {
+		return Iterators.loop(tx.findNodes(label));
+	}
 
-    public void delete(Transaction tx) {
-        for (Node node : queryAll(tx)) {
-            node.removeLabel(label);
-            node.removeProperty(propertyKey);
-        }
-        indexManager.deleteIndex(index);
-    }
+	public Iterator<Node> query(Transaction tx, ExplicitIndexBackedPointIndex.Neo4jIndexSearcher searcher) {
+		KernelTransaction ktx = ((InternalTransaction) tx).kernelTransaction();
+		return searcher.search(ktx, label, propertyKey);
+	}
+
+	public void delete(Transaction tx) {
+		for (Node node : queryAll(tx)) {
+			node.removeLabel(label);
+			node.removeProperty(propertyKey);
+		}
+		indexManager.deleteIndex(index);
+	}
 }

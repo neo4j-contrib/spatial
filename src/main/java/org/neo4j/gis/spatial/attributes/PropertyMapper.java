@@ -20,15 +20,15 @@
 package org.neo4j.gis.spatial.attributes;
 
 import java.util.HashMap;
-
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
 public abstract class PropertyMapper {
-	private String from;
-	private String to;
-	protected String type;
-	private String params;
+
+	private final String from;
+	private final String to;
+	protected final String type;
+	private final String params;
 
 	public PropertyMapper(String from, String to, String type, String params) {
 		this.from = from;
@@ -39,8 +39,7 @@ public abstract class PropertyMapper {
 
 	@Override
 	public boolean equals(Object obj) {
-		if (obj instanceof PropertyMapper) {
-			PropertyMapper other = (PropertyMapper) obj;
+		if (obj instanceof PropertyMapper other) {
 			return this.key().equals(other.key());
 		}
 		return false;
@@ -64,7 +63,8 @@ public abstract class PropertyMapper {
 	}
 
 	public String key() {
-		return new StringBuffer().append(from).append("-").append(to).append("-").append(type).append("-").append(params).toString();
+		return from + "-" + to + "-" + type + "-"
+				+ params;
 	}
 
 	public static PropertyMapper fromNode(Node node) {
@@ -76,17 +76,12 @@ public abstract class PropertyMapper {
 	}
 
 	public static PropertyMapper fromParams(String from, String to, String type, String params) {
-		if (type == null) {
-			return new IdentityMapper(from, to);
-		} else if (type.equals("DeltaLong")) {
-			return new DeltaLongMapper(from, to, type, Long.parseLong(params));
-		} else if (type.equals("Days")) {
-			return new DaysPropertyMapper(from, to, type, Long.parseLong(params));
-		} else if (type.equals("Map")) {
-			return new MapMapper(from, to, type, params);
-		} else {
-			return new IdentityMapper(from, to);
-		}
+		return switch (type) {
+			case "DeltaLong" -> new DeltaLongMapper(from, to, type, Long.parseLong(params));
+			case "Days" -> new DaysPropertyMapper(from, to, type, Long.parseLong(params));
+			case "Map" -> new MapMapper(from, to, type, params);
+			default -> new IdentityMapper(from, to);
+		};
 	}
 
 	private static class IdentityMapper extends PropertyMapper {
@@ -103,7 +98,8 @@ public abstract class PropertyMapper {
 	}
 
 	private static class DeltaLongMapper extends PropertyMapper {
-		protected long reference;
+
+		protected final long reference;
 
 		public DeltaLongMapper(String from, String to, String type, long reference) {
 			super(from, to, type, Long.toString(reference));
@@ -119,14 +115,13 @@ public abstract class PropertyMapper {
 
 	private static class DaysPropertyMapper extends DeltaLongMapper {
 
-		private long msPerDay = 24 * 3600 * 1000;
-
 		public DaysPropertyMapper(String from, String to, String type, long referenceTimestamp) {
 			super(from, to, type, referenceTimestamp);
 		}
 
 		@Override
 		public Object map(Object value) {
+			long msPerDay = 24 * 3600 * 1000;
 			return ((Long) super.map(value)) / msPerDay;
 		}
 
@@ -134,13 +129,13 @@ public abstract class PropertyMapper {
 
 	private static class MapMapper extends PropertyMapper {
 
-		private HashMap<String,String> map = new HashMap<String,String>();
+		private final HashMap<String, String> map = new HashMap<>();
 
 		public MapMapper(String from, String to, String type, String params) {
 			super(from, to, type, params);
-			for(String param:params.split(",")){
+			for (String param : params.split(",")) {
 				String[] fields = param.split(":");
-				map.put(fields[0],fields[1]);
+				map.put(fields[0], fields[1]);
 			}
 		}
 

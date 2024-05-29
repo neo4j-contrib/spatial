@@ -30,47 +30,48 @@ import com.google.gson.JsonParser;
  * Naive implementation of a JSON prettifier.
  */
 public class JSONPrettifier {
-    private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
-    private static final JsonParser JSON_PARSER = new JsonParser();
-    private static final ObjectMapper MAPPER = new ObjectMapper();
-    private static final ObjectWriter WRITER = MAPPER.writerWithDefaultPrettyPrinter();
 
-    public static String parse(final String json) {
-        if (json == null) {
-            return "";
-        }
+	private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+	private static final JsonParser JSON_PARSER = new JsonParser();
+	private static final ObjectMapper MAPPER = new ObjectMapper();
+	private static final ObjectWriter WRITER = MAPPER.writerWithDefaultPrettyPrinter();
 
-        String result = json;
+	public static String parse(final String json) {
+		if (json == null) {
+			return "";
+		}
 
-        try {
-            if (json.contains("\"exception\"")) {
-                // the gson renderer is much better for stacktraces
-                result = gsonPrettyPrint(json);
-            } else {
-                result = jacksonPrettyPrint(json);
-            }
-        } catch (Exception e) {
-            /*
-             * Enable the output to see where exceptions happen.
-             * We need to be able to tell the rest docs tools to expect
-             * a json parsing error from here, then we can simply throw an exception instead.
-             * (we have tests sending in broken json to test the response)
-             */
-            // System.out.println( "***************************************" );
-            // System.out.println( json );
-            // System.out.println( "***************************************" );
-        }
-        return result;
-    }
+		String result = json;
 
-    private static String gsonPrettyPrint(final String json) {
-        JsonElement element = JSON_PARSER.parse(json);
-        return GSON.toJson(element);
-    }
+		try {
+			if (json.contains("\"exception\"")) {
+				// the gson renderer is much better for stacktraces
+				result = gsonPrettyPrint(json);
+			} else {
+				result = jacksonPrettyPrint(json);
+			}
+		} catch (Exception e) {
+			/*
+			 * Enable the output to see where exceptions happen.
+			 * We need to be able to tell the rest docs tools to expect
+			 * a json parsing error from here, then we can simply throw an exception instead.
+			 * (we have tests sending in broken json to test the response)
+			 */
+			// System.out.println( "***************************************" );
+			// System.out.println( json );
+			// System.out.println( "***************************************" );
+		}
+		return result;
+	}
 
-    private static String jacksonPrettyPrint(final String json)
-            throws Exception {
-        Object myObject = MAPPER.readValue(json, Object.class);
-        return WRITER.writeValueAsString(myObject);
-    }
+	private static String gsonPrettyPrint(final String json) {
+		JsonElement element = JSON_PARSER.parse(json);
+		return GSON.toJson(element);
+	}
+
+	private static String jacksonPrettyPrint(final String json)
+			throws Exception {
+		Object myObject = MAPPER.readValue(json, Object.class);
+		return WRITER.writeValueAsString(myObject);
+	}
 }

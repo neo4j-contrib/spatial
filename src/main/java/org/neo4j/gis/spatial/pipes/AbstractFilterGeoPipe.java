@@ -27,7 +27,7 @@ public abstract class AbstractFilterGeoPipe extends AbstractGeoPipe {
 
 	protected AbstractFilterGeoPipe() {
 	}
-		
+
 	@Override
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
 		if (validate(flow)) {

@@ -19,30 +19,29 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.operation.distance.DistanceOp;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
-import org.locationtech.jts.geom.Coordinate;
-import org.locationtech.jts.geom.Envelope;
-
 
 /**
  * Calculates distance between the given geometry and item geometry for each item in the pipeline.
  * This pipe assume Layer contains geometries with Latitude / Longitude coordinates in degrees.
- *
- * Algorithm reference: http://www.movable-type.co.uk/scripts/latlong-db.html
+ * <p>
+ * <a href="https://www.movable-type.co.uk/scripts/latlong-db.html">Algorithm reference</a>
  */
 public class OrthodromicDistance extends AbstractGeoPipe {
 
-	private Coordinate reference;
+	private final Coordinate reference;
 	public static final double earthRadiusInKm = 6371;
-    public static final String DISTANCE = "OrthodromicDistance";
+	public static final String DISTANCE = "OrthodromicDistance";
 
 	public OrthodromicDistance(Coordinate reference) {
-        this(reference, OrthodromicDistance.DISTANCE);
+		this(reference, OrthodromicDistance.DISTANCE);
 	}
 
 	/**
@@ -55,44 +54,45 @@ public class OrthodromicDistance extends AbstractGeoPipe {
 
 	@Override
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
-	    double distanceInKm = calculateDistanceToGeometry(reference, flow.getGeometry());
+		double distanceInKm = calculateDistanceToGeometry(reference, flow.getGeometry());
 		setProperty(flow, distanceInKm);
 		return flow;
 	}
 
-    public static double calculateDistanceToGeometry(Coordinate reference, Geometry geometry) {
-        if (geometry instanceof Point) {
-            Point point = (Point) geometry;
-            return calculateDistance(reference, point.getCoordinate());
-        }
+	public static double calculateDistanceToGeometry(Coordinate reference, Geometry geometry) {
+		if (geometry instanceof Point point) {
+			return calculateDistance(reference, point.getCoordinate());
+		}
 		Geometry referencePoint = geometry.getFactory().createPoint(reference);
 		DistanceOp ops = new DistanceOp(referencePoint, geometry);
 		Coordinate[] nearest = ops.nearestPoints();
 		assert nearest.length == 2;
 		return calculateDistance(nearest[0], nearest[1]);
-    }
+	}
 
 	public static Envelope suggestSearchWindow(Coordinate reference, double maxDistanceInKm) {
 		double lat = reference.y;
 		double lon = reference.x;
 
+		double degrees = Math.toDegrees(maxDistanceInKm / earthRadiusInKm);
+
 		// first-cut bounding box (in degrees)
-		double maxLat = lat + Math.toDegrees(maxDistanceInKm / earthRadiusInKm);
-		double minLat = lat - Math.toDegrees(maxDistanceInKm / earthRadiusInKm);
+		double maxLat = lat + degrees;
+		double minLat = lat - degrees;
+
+		degrees = Math.toDegrees(maxDistanceInKm / earthRadiusInKm / Math.cos(Math.toRadians(lat)));
 		// compensate for degrees longitude getting smaller with increasing latitude
-		double maxLon = lon + Math.toDegrees(maxDistanceInKm / earthRadiusInKm / Math.cos(Math.toRadians(lat)));
-		double minLon = lon - Math.toDegrees(maxDistanceInKm / earthRadiusInKm / Math.cos(Math.toRadians(lat)));
+		double maxLon = lon + degrees;
+		double minLon = lon - degrees;
 		return new Envelope(minLon, maxLon, minLat, maxLat);
 	}
 
 	public static double calculateDistance(Coordinate reference, Coordinate point) {
 		// TODO use org.geotools.referencing.GeodeticCalculator?
-
 		// d = acos(sin(lat1) * sin(lat2) + cos(lat1) * cos(lat2) * cos(lon2 - lon1)) * R
-		double distanceInKm = Math.acos(Math.min(Math.sin(Math.toRadians(reference.y)) * Math.sin(Math.toRadians(point.y))
+		return Math.acos(Math.min(Math.sin(Math.toRadians(reference.y)) * Math.sin(Math.toRadians(point.y))
 				+ Math.cos(Math.toRadians(reference.y)) * Math.cos(Math.toRadians(point.y))
-				* Math.cos(Math.toRadians(point.x) - Math.toRadians(reference.x)),1.0))
+				* Math.cos(Math.toRadians(point.x) - Math.toRadians(reference.x)), 1.0))
 				* earthRadiusInKm;
-		return distanceInKm;
 	}
 }

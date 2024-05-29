@@ -7,44 +7,44 @@ import java.util.NoSuchElementException;
  * This pipe can be provided -1 for both its high and low range to denote a wildcard for high and/or low.
  * Note that -1 for both high and low is equivalent to the IdentityPipe.
  *
- * @author Marko A. Rodriguez (http://markorodriguez.com)
+ * @author <a href="http://markorodriguez.com" >Marko A. Rodriguez</a>
  */
 public class RangeFilterPipe<S> extends AbstractPipe<S, S> implements FilterPipe<S> {
 
-    private final long low;
-    private final long high;
-    private int counter = -1;
+	private final long low;
+	private final long high;
+	private int counter = -1;
 
-    public RangeFilterPipe(final long low, final long high) {
-        this.low = low;
-        this.high = high;
-        if (this.low != -1 && this.high != -1 && this.low > this.high) {
-            throw new IllegalArgumentException("Not a legal range: [" + low + ", " + high + "]");
-        }
-    }
+	public RangeFilterPipe(final long low, final long high) {
+		this.low = low;
+		this.high = high;
+		if (this.low != -1 && this.high != -1 && this.low > this.high) {
+			throw new IllegalArgumentException("Not a legal range: [" + low + ", " + high + "]");
+		}
+	}
 
-    @Override
+	@Override
 	protected S processNextStart() {
-        while (true) {
-            final S s = this.starts.next();
-            this.counter++;
-            if ((this.low == -1 || this.counter >= this.low) && (this.high == -1 || this.counter <= this.high)) {
-                return s;
-            }
-            if (this.high != -1 && this.counter > this.high) {
-                throw new NoSuchElementException();
-            }
-        }
-    }
+		while (true) {
+			final S s = this.starts.next();
+			this.counter++;
+			if ((this.low == -1 || this.counter >= this.low) && (this.high == -1 || this.counter <= this.high)) {
+				return s;
+			}
+			if (this.high != -1 && this.counter > this.high) {
+				throw new NoSuchElementException();
+			}
+		}
+	}
 
-    @Override
+	@Override
 	public String toString() {
-        return String.format("%s (%d, %d)",getClass().getSimpleName(),low,high);
-    }
+		return String.format("%s (%d, %d)", getClass().getSimpleName(), low, high);
+	}
 
-    @Override
+	@Override
 	public void reset() {
-        this.counter = -1;
-        super.reset();
-    }
+		this.counter = -1;
+		super.reset();
+	}
 }

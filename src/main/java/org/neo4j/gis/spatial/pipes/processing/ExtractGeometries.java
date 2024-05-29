@@ -26,7 +26,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  * Extracts every geometry contained in an item multi geometry.
  */
 public class ExtractGeometries extends AbstractExtractGeoPipe {
-	
+
 	@Override
 	protected void extract(GeoPipeFlow pipeFlow) {
 		if (pipeFlow.getGeometry().getNumGeometries() == 1) {

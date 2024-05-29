@@ -30,20 +30,20 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 public class GeoJSON extends AbstractGeoPipe {
 
 	public GeoJSON() {
-	}		
-	
+	}
+
 	/**
 	 * @param resultPropertyName property name to use for geometry output
-	 */	
+	 */
 	public GeoJSON(String resultPropertyName) {
 		super(resultPropertyName);
-	}	
+	}
 
-	@Override	
+	@Override
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
 		GeometryJSON json = new GeometryJSON();
 		setProperty(flow, json.toString(flow.getGeometry()));
 		return flow;
-	}	
-	
+	}
+
 }
