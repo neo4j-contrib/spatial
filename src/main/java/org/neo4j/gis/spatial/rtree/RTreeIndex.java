@@ -707,7 +707,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 
 	@Override
 	public void clear(Transaction tx, final Listener monitor) {
-		removeAll(tx, false, new NullListener());
+		removeAll(tx, false, monitor);
 		initIndexRoot(tx);
 		initIndexMetadata(tx);
 	}

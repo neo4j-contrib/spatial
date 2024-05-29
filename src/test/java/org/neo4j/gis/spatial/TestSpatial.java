@@ -369,6 +369,8 @@ public class TestSpatial extends Neo4jTestCase {
 			System.out.println(
 					"Total time for index test: " + 1.0 * (System.currentTimeMillis() - start) / 1000.0 + "s");
 			tx.commit();
+		} catch (Exception e) {
+			throw new SpatialDatabaseException("Failed to run index test: " + e.getMessage(), e);
 		}
 	}
 

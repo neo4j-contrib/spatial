@@ -19,8 +19,9 @@
  */
 package org.neo4j.gis.spatial;
 
+import static org.neo4j.gis.spatial.osm.OSMModel.PROP_CHANGESET;
+
 import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -47,7 +48,6 @@ import org.locationtech.jts.geom.Coordinate;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.osm.OSMDataset;
-import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.osm.OSMRelation;
 import org.neo4j.gis.spatial.rtree.Envelope;
@@ -130,7 +130,7 @@ public class OsmAnalysisTest extends TestOSMImportBase {
 		testAnalysis2(osm, years, days);
 	}
 
-	public void testAnalysis2(String osm, int years, int days) throws IOException {
+	public void testAnalysis2(String osm, int years, int days) throws Exception {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		LinkedHashMap<DynamicLayerConfig, Long> slides = new LinkedHashMap<>();
@@ -145,7 +145,7 @@ public class OsmAnalysisTest extends TestOSMImportBase {
 			for (Node cNode : dataset.getAllChangesetNodes(tx)) {
 				long timestamp = (Long) cNode.getProperty("timestamp", 0L);
 				Node userNode = dataset.getUser(cNode);
-				String name = (String) userNode.getProperty("name");
+				String name = (String) userNode.getProperty("user");
 
 				User user = userIndex.get(name);
 				if (user == null) {
@@ -254,17 +254,18 @@ public class OsmAnalysisTest extends TestOSMImportBase {
 	}
 
 	public void testAnalysis(String osm) throws Exception {
+
+		SpatialDatabaseService spatial = new SpatialDatabaseService(
+				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		SortedMap<String, Layer> layers;
 		ReferencedEnvelope bbox;
 		try (Transaction tx = graphDb().beginTx()) {
-			Node osmImport = tx.findNode(OSMImporter.LABEL_DATASET, "name", osm);
-			Node usersNode = osmImport.getSingleRelationship(OSMRelation.USERS, Direction.OUTGOING).getEndNode();
+			OSMLayer layer = (OSMLayer) spatial.getLayer(tx, osm);
+			OSMDataset dataset = OSMDataset.fromLayer(tx, layer);
 
-			Map<String, User> userIndex = collectUserChangesetData(usersNode);
+			Map<String, User> userIndex = collectUserChangesetData(dataset.getAllUserNodes(tx));
 			SortedSet<User> topTen = getTopTen(userIndex);
 
-			SpatialDatabaseService spatial = new SpatialDatabaseService(
-					new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 			layers = exportPoints(tx, osm, spatial, topTen);
 
 			layers = removeEmptyLayers(tx, layers);
@@ -420,23 +421,19 @@ public class OsmAnalysisTest extends TestOSMImportBase {
 		return topTen;
 	}
 
-	private Map<String, User> collectUserChangesetData(Node usersNode) {
+	private Map<String, User> collectUserChangesetData(Iterable<Node> userNodes) {
 		Map<String, User> userIndex = new HashMap<>();
-		for (Relationship r : usersNode.getRelationships(Direction.OUTGOING, OSMRelation.OSM_USER)) {
-			Node userNode = r.getEndNode();
+		for (Node userNode : userNodes) {
 			String name = (String) userNode.getProperty("name");
-
 			User user = new User(userNode.getElementId(), name);
 			userIndex.put(name, user);
-
 			for (Relationship ur : userNode.getRelationships(Direction.INCOMING, OSMRelation.USER)) {
 				Node node = ur.getStartNode();
-				if (node.hasProperty("changeset")) {
+				if (node.hasProperty(PROP_CHANGESET)) {
 					user.changesets.add(node.getElementId());
 				}
 			}
 		}
-
 		return userIndex;
 	}
 

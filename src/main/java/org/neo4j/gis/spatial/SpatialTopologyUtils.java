@@ -152,7 +152,7 @@ public class SpatialTopologyUtils {
 	 * @see <a
 	 * href="https://download.oracle.com/docs/cd/B13789_01/appdev.101/b10826/sdo_lrs_ref.htm#i85478">SDO_LRS.LOCATE_PT</a>
 	 * @see <a
-	 * href="https://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/linearref/LengthIndexedLine.html">LengthIndexedLine</a>
+	 * href="https://locationtech.github.io/jts/javadoc/org/locationtech/jts/linearref/LengthIndexedLine.html">LengthIndexedLine</a>
 	 */
 	public static Point locatePoint(Layer layer, Geometry geometry, double measure) {
 		return layer.getGeometryFactory().createPoint(locatePoint(geometry, measure));
@@ -171,7 +171,7 @@ public class SpatialTopologyUtils {
 	 * @see <a
 	 * href="https://download.oracle.com/docs/cd/B13789_01/appdev.101/b10826/sdo_lrs_ref.htm#i85478">SDO_LRS.LOCATE_PT</a>
 	 * @see <a
-	 * href="https://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/linearref/LengthIndexedLine.html">LengthIndexedLine</a>
+	 * href="https://locationtech.github.io/jts/javadoc/org/locationtech/jts/linearref/LengthIndexedLine.html">LengthIndexedLine</a>
 	 */
 	public static Coordinate locatePoint(Geometry geometry, double measure) {
 		return new LengthIndexedLine(geometry).extractPoint(measure);
@@ -194,7 +194,7 @@ public class SpatialTopologyUtils {
 	 * @see <a
 	 * href="https://download.oracle.com/docs/cd/B13789_01/appdev.101/b10826/sdo_lrs_ref.htm#i85478">SDO_LRS.LOCATE_PT</a>
 	 * @see <a
-	 * href="https://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/linearref/LengthIndexedLine.html">LengthIndexedLine</a>
+	 * href="https://locationtech.github.io/jts/javadoc/org/locationtech/jts/linearref/LengthIndexedLine.html">LengthIndexedLine</a>
 	 */
 	public static Point locatePoint(Layer layer, Geometry geometry, double measure, double offset) {
 		return layer.getGeometryFactory().createPoint(locatePoint(geometry, measure, offset));
@@ -215,7 +215,7 @@ public class SpatialTopologyUtils {
 	 * @see <a
 	 * href="https://download.oracle.com/docs/cd/B13789_01/appdev.101/b10826/sdo_lrs_ref.htm#i85478">SDO_LRS.LOCATE_PT</a>
 	 * @see <a
-	 * href="https://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/linearref/LengthIndexedLine.html">LengthIndexedLine</a>
+	 * href="https://locationtech.github.io/jts/javadoc/org/locationtech/jts/linearref/LengthIndexedLine.html">LengthIndexedLine</a>
 	 */
 	public static Coordinate locatePoint(Geometry geometry, double measure, double offset) {
 		return new LengthIndexedLine(geometry).extractPoint(measure, offset);

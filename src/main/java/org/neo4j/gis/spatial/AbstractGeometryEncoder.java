@@ -29,11 +29,10 @@ import org.neo4j.graphdb.Transaction;
 public abstract class AbstractGeometryEncoder implements GeometryEncoder, Constants {
 
 	protected String bboxProperty = PROP_BBOX;
-
-	// Public methods
+	protected Layer layer;
 
 	@Override
-	public void init(Layer layer) {
+	public void init(Transaction tx, Layer layer) {
 		this.layer = layer;
 	}
 
@@ -116,8 +115,4 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 	public String getSignature() {
 		return "GeometryEncoder(bbox='" + bboxProperty + "')";
 	}
-
-	// Attributes
-
-	protected Layer layer;
 }
