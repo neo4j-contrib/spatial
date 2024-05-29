@@ -42,11 +42,13 @@ public class ConsoleListener implements Listener {
 		this.out = out;
 	}
 
+	@Override
 	public void begin(int unitsOfWork) {
 		total = unitsOfWork;
 		current = 0;
 	}
 
+	@Override
 	public void worked(int workedSinceLastNotification) {
 		current += workedSinceLastNotification;
 		if (total < 1) {
@@ -59,6 +61,7 @@ public class ConsoleListener implements Listener {
 		}
 	}
 
+	@Override
 	public void done() {
 	}
 

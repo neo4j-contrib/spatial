@@ -100,7 +100,8 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
      * of the geometry node. This behaviour can be changed by other domain
      * models with different encodings.
      */
-    public boolean hasAttribute(Node geomNode, String name) {
+    @Override
+	public boolean hasAttribute(Node geomNode, String name) {
         return geomNode.hasProperty(name);
     }
 
@@ -111,7 +112,8 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
      * domain models with different encodings. If the property does not exist,
      * the method returns null.
      */
-    public Object getAttribute(Node geomNode, String name) {
+    @Override
+	public Object getAttribute(Node geomNode, String name) {
         return geomNode.getProperty(name, null);
     }
 
@@ -120,7 +122,8 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
      *
      * @return descriptive signature of encoder, type and configuration
      */
-    public String getSignature() {
+    @Override
+	public String getSignature() {
         return "GeometryEncoder(bbox='" + bboxProperty + "')";
     }
 

@@ -39,7 +39,7 @@ public class NativePointEncoder extends AbstractGeometryEncoder implements Confi
     private String locationProperty = DEFAULT_GEOM;
     private Neo4jCRS crs = Neo4jCRS.findCRS("WGS-84");
 
-    protected GeometryFactory getGeometryFactory() {
+    protected static GeometryFactory getGeometryFactory() {
         if (geometryFactory == null) geometryFactory = new GeometryFactory();
         return geometryFactory;
     }

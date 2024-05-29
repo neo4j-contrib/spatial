@@ -77,7 +77,7 @@ public class PropertyMappingManager {
         }
         for (PropertyMapper mapper : toSave) {
             Node node = tx.createNode();
-            mapper.save(tx, node);
+            mapper.save(node);
             layer.getLayerNode(tx).createRelationshipTo(node, SpatialRelationshipTypes.PROPERTY_MAPPING);
         }
     }

@@ -46,7 +46,7 @@ public abstract class PropertyMapper {
 		return false;
 	}
 
-	protected void save(Transaction tx, Node node) {
+	protected void save(Node node) {
 		node.setProperty("from", this.from);
 		node.setProperty("to", this.to);
 		node.setProperty("type", this.type);

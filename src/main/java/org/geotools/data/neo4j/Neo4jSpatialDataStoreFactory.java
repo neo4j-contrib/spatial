@@ -56,7 +56,7 @@ public class Neo4jSpatialDataStoreFactory implements DataStoreFactorySpi {
     }
 
     @Override
-    public boolean canProcess(Map params) {
+    public boolean canProcess(Map<String, ?> params) {
         String type = (String) params.get("dbtype");
         if (type != null) {
             return type.equalsIgnoreCase("neo4j");
@@ -80,7 +80,7 @@ public class Neo4jSpatialDataStoreFactory implements DataStoreFactorySpi {
     }
 
     @Override
-    public DataStore createNewDataStore(Map params) throws IOException {
+    public DataStore createNewDataStore(Map<String, ?> params) throws IOException {
         throw new UnsupportedOperationException("Neo4j Spatial cannot create a new database!");
     }
 

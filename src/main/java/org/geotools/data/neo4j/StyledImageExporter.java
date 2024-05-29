@@ -88,9 +88,8 @@ public class StyledImageExporter {
 	public Style getStyle(int i) {
 		if (styleFiles != null && i < styleFiles.length) {
 			return getStyleFromSLDFile(styleFiles[i]);
-		} else {
-			return null;
 		}
+		return null;
 	}
 
 	/**
@@ -121,8 +120,8 @@ public class StyledImageExporter {
 		return file;
 	}
 
-	@SuppressWarnings({ "unchecked", "unused" })
-	private void debugStore(DataStore store, String[] layerNames) throws IOException {
+	@SuppressWarnings({ "unused" })
+	private static void debugStore(DataStore store, String[] layerNames) throws IOException {
 		for (int i = 0; i < layerNames.length; i++) {
 			System.out.println(asList(store.getTypeNames()));
 			System.out.println(asList(store.getSchema(layerNames[i]).getAttributeDescriptors()));
@@ -202,7 +201,7 @@ public class StyledImageExporter {
                 }
 
                 if (featureStyle == null) {
-                    featureStyle = createStyleFromGeometry((SimpleFeatureType) featureSource.getSchema(), Color.BLUE, Color.CYAN);
+                    featureStyle = createStyleFromGeometry(featureSource.getSchema(), Color.BLUE, Color.CYAN);
                     System.out.println("Created style from geometry '" + featureSource.getSchema().getGeometryDescriptor().getType() + "': " + featureStyle);
                 }
 
@@ -220,7 +219,7 @@ public class StyledImageExporter {
         }
 	}
 
-	private Style getStyleFromSLDFile(String sldFile) {
+	private static Style getStyleFromSLDFile(String sldFile) {
 		Style style = null;
 		if (sldFile != null) {
 			style = createStyleFromSLD(sldFile);
@@ -256,7 +255,7 @@ public class StyledImageExporter {
 	/**
      * Create a Style object from a definition in a SLD document
      */
-    private Style createStyleFromSLD(String sldFile) {
+    private static Style createStyleFromSLD(String sldFile) {
         try {
             SLDParser stylereader = new SLDParser(styleFactory, new File(sldFile).toURI().toURL());
             Style[] style = stylereader.readXML();

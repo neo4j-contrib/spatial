@@ -41,37 +41,29 @@ public class FilterProperty extends AbstractFilterGeoPipe {
 		this.value = value;
 		this.comparison = comparison;
 	}
-
+	
 	@Override
 	protected boolean validate(GeoPipeFlow flow) {
-        final Object leftObject = flow.getProperties().get(key);
-        switch (comparison) {
-            case EQUAL:
-                if (null == leftObject)
-                    return value == null;
-                return leftObject.equals(value);
-            case NOT_EQUAL:
-                if (null == leftObject)
-                    return value != null;
-                return !leftObject.equals(value);
-            case GREATER_THAN:
-                if (null == leftObject || value == null)
-                    return false;
-                return ((Comparable) leftObject).compareTo(value) == 1;
-            case LESS_THAN:
-                if (null == leftObject || value == null)
-                    return false;
-                return ((Comparable) leftObject).compareTo(value) == -1;
-            case GREATER_THAN_EQUAL:
-                if (null == leftObject || value == null)
-                    return false;
-                return ((Comparable) leftObject).compareTo(value) >= 0;
-            case LESS_THAN_EQUAL:
-                if (null == leftObject || value == null)
-                    return false;
-                return ((Comparable) leftObject).compareTo(value) <= 0;
-            default:
-                throw new IllegalArgumentException("Invalid state as no valid filter was provided");
-        }
+	    final Object leftObject = flow.getProperties().get(key);
+	    return switch (comparison) {
+	        case EQUAL -> (leftObject == null) ? value == null : leftObject.equals(value);
+	        case NOT_EQUAL -> (leftObject == null) ? value != null : !leftObject.equals(value);
+	        case GREATER_THAN, LESS_THAN, GREATER_THAN_EQUAL, LESS_THAN_EQUAL -> {
+	            if (leftObject == null || value == null) yield false;
+	            if (!(leftObject instanceof Comparable comparable))
+	                throw new IllegalArgumentException("leftObject is not Comparable");
+	           
+                int compareRes = comparable.compareTo(value);
+                yield switch (comparison) {
+                    case GREATER_THAN -> compareRes > 0;
+                    case LESS_THAN -> compareRes < 0;
+                    case GREATER_THAN_EQUAL -> compareRes >= 0;
+                    case LESS_THAN_EQUAL -> compareRes <= 0;
+                    default -> throw new AssertionError("Unexpected comparison: " + comparison);
+                };
+	        }
+	        default -> throw new IllegalArgumentException("Invalid state as no valid filter was provided");
+	    };	
+	    
     }
 }

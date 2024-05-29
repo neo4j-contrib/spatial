@@ -47,7 +47,7 @@ public class RelationshipTraversal {
      * Iterators, with no access to the original sources and no way to close the resources properly.
      * So to avoid the Neo4j 4.3 bug with leaked RelationshipTraversalCursor, we need to exhaust the iterator.
      */
-    public static void exhaustIterator(Iterator source) {
+    public static void exhaustIterator(Iterator<?> source) {
         while (source.hasNext()) {
             source.next();
         }

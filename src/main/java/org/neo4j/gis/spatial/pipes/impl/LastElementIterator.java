@@ -13,15 +13,18 @@ public class LastElementIterator<T> implements Iterator<T> {
         this.source = source;
     }
 
-    public boolean hasNext() {
+    @Override
+	public boolean hasNext() {
         return source.hasNext();
     }
 
-    public T next() {
+    @Override
+	public T next() {
         return lastElement = source.next();
     }
 
-    public void remove() {
+    @Override
+	public void remove() {
         throw new UnsupportedOperationException("remove not supported");
     }
 
