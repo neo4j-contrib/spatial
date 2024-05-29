@@ -244,7 +244,7 @@ public class IndexManager {
 					}
 					tx.commit();
 				}
-			} catch (Exception e) {
+			} catch (Exception ignored) {
 			}
 		}
 	}
