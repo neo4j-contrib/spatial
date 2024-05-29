@@ -1004,11 +1004,11 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		WKTReader reader = new WKTReader(layer.getGeometryFactory());
 		Geometry expected = reader.read(expectedWKT);
 		Geometry actual = reader.read(pipeline.next().getProperty(tx, "WellKnownText").toString());
-		assertEquals("Expected matching geometry types", expected.getGeometryType(), actual.getGeometryType());
-		assertEquals("Expected matching geometry areas", expected.getArea(), actual.getArea(), 0.000001);
+		assertEquals(expected.getGeometryType(), actual.getGeometryType(), "Expected matching geometry types");
+		assertEquals(expected.getArea(), actual.getArea(), 0.000001, "Expected matching geometry areas");
 		// JTS will handle different starting coordinates for matching geometries, so we check with JTS first, and only if that fails run the assertion to get the appropriate error message
 		if (!expected.equals(actual)) {
-			assertEquals("Expected matching geometries", expected, actual);
+			assertEquals(expected, actual, "Expected matching geometries");
 		}
 	}
 

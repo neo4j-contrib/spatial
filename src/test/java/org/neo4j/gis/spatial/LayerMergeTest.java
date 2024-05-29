@@ -31,9 +31,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateXY;
 import org.locationtech.jts.geom.Geometry;
@@ -60,7 +60,7 @@ public class LayerMergeTest {
 	private GraphDatabaseService graphDb;
 	private SpatialDatabaseService spatial;
 
-	@Before
+	@BeforeEach
 	public void setup() throws KernelException {
 		databases = new TestDatabaseManagementServiceBuilder(new File("target/layers").toPath()).impermanent().build();
 		graphDb = databases.database(DEFAULT_DATABASE_NAME);
@@ -68,7 +68,7 @@ public class LayerMergeTest {
 				new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
 	}
 
-	@After
+	@AfterEach
 	public void teardown() {
 		databases.shutdown();
 	}

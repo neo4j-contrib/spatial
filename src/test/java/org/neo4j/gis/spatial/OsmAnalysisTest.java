@@ -63,8 +63,6 @@ public class OsmAnalysisTest extends TestOSMImportBase {
 
 	public static final String spatialTestMode = System.getProperty("spatial.test.mode");
 	public static final boolean usePoints = true;
-	private final int years;
-	private final int days;
 
 	private static Stream<Arguments> parameters() {
 		deleteBaseDir();

@@ -49,11 +49,11 @@ import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.referencing.crs.DefaultEngineeringCRS;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.dbms.api.DatabaseManagementService;
@@ -94,17 +94,17 @@ public class RTreeBulkInsertTest {
 	// While the current lucene index implmentation is so slow (16n/s) we disable all benchmarks for lucene backed indexes
 	private static final boolean enableLucene = false;
 
-	@Before
+	@BeforeEach
 	public void before() throws IOException {
 		restart();
 	}
 
-	@After
+	@AfterEach
 	public void after() throws IOException {
 		doCleanShutdown();
 	}
 
-	@Ignore
+	@Disabled
 	public void shouldDeleteRecursiveTree() {
 		int depth = 5;
 		int width = 2;
@@ -185,7 +185,7 @@ public class RTreeBulkInsertTest {
 		}
 	}
 
-	@Ignore
+	@Disabled
 	public void shouldInsertSimpleRTree() {
 		int width = 20;
 		int blockSize = 10000;
@@ -603,12 +603,12 @@ public class RTreeBulkInsertTest {
 		insertManyNodesInBulk(new HilbertIndexMaker("Coordinates", "Bulk", testConfigs.get("small")), 5000);
 	}
 
-	@Ignore // takes too long, change to @Test when benchmarking
+	@Disabled // takes too long, change to @Test when benchmarking
 	public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_small_10() throws FactoryException, IOException {
 		insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("small"));
 	}
 
-	@Ignore // takes too long, change to @Test when benchmarking
+	@Disabled // takes too long, change to @Test when benchmarking
 	public void shouldInsertManyNodesIndividuallyGreenesSplit_small_10() throws FactoryException, IOException {
 		insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("small"));
 	}
@@ -627,12 +627,12 @@ public class RTreeBulkInsertTest {
 	 * Small model 250*250 nodes (shallow tree)
 	 */
 
-	@Ignore // takes too long, change to @Test when benchmarking
+	@Disabled // takes too long, change to @Test when benchmarking
 	public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_small_100() throws FactoryException, IOException {
 		insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("small"));
 	}
 
-	@Ignore // takes too long, change to @Test when benchmarking
+	@Disabled // takes too long, change to @Test when benchmarking
 	public void shouldInsertManyNodesIndividuallyGreenesSplit_small_100() throws FactoryException, IOException {
 		insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("small"));
 	}
@@ -681,12 +681,12 @@ public class RTreeBulkInsertTest {
 		insertManyNodesInBulk(new HilbertIndexMaker("Coordinates", "Bulk", testConfigs.get("medium")), 5000);
 	}
 
-	@Ignore
+	@Disabled
 	public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_medium_10() throws FactoryException, IOException {
 		insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("medium"));
 	}
 
-	@Ignore
+	@Disabled
 	public void shouldInsertManyNodesIndividuallyGreenesSplit_medium_10() throws FactoryException, IOException {
 		insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("medium"));
 	}
@@ -701,12 +701,12 @@ public class RTreeBulkInsertTest {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("medium"));
 	}
 
-	@Ignore
+	@Disabled
 	public void shouldInsertManyNodesInBulkWithQuadraticSplit_medium_10_merge() throws FactoryException, IOException {
 		insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("medium"), true);
 	}
 
-	@Ignore
+	@Disabled
 	public void shouldInsertManyNodesInBulkWithGreenesSplit_medium_10_merge() throws FactoryException, IOException {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("medium"), true);
 	}
@@ -715,17 +715,17 @@ public class RTreeBulkInsertTest {
 	 * Medium model 500*500 nodes (shallow tree - factor 100)
 	 */
 
-	@Ignore
+	@Disabled
 	public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_medium_100() throws FactoryException, IOException {
 		insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("medium"));
 	}
 
-	@Ignore
+	@Disabled
 	public void shouldInsertManyNodesIndividuallyGreenesSplit_medium_100() throws FactoryException, IOException {
 		insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("medium"));
 	}
 
-	@Ignore // takes too long, change to @Test when benchmarking
+	@Disabled // takes too long, change to @Test when benchmarking
 	public void shouldInsertManyNodesInBulkWithQuadraticSplit_medium_100() throws FactoryException, IOException {
 		insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("medium"));
 	}
@@ -735,12 +735,12 @@ public class RTreeBulkInsertTest {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("medium"));
 	}
 
-	@Ignore
+	@Disabled
 	public void shouldInsertManyNodesInBulkWithQuadraticSplit_medium_100_merge() throws FactoryException, IOException {
 		insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("medium"), true);
 	}
 
-	@Ignore
+	@Disabled
 	public void shouldInsertManyNodesInBulkWithGreenesSplit_medium_100_merge() throws FactoryException, IOException {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("medium"), true);
 	}
@@ -779,22 +779,22 @@ public class RTreeBulkInsertTest {
 		insertManyNodesInBulk(new HilbertIndexMaker("Coordinates", "Bulk", testConfigs.get("large")), 5000);
 	}
 
-	@Ignore // takes too long, change to @Test when benchmarking
+	@Disabled // takes too long, change to @Test when benchmarking
 	public void shouldInsertManyNodesInBulkWithQuadraticSplit_large_10() throws FactoryException, IOException {
 		insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("large"));
 	}
 
-	@Ignore // takes too long, change to @Test when benchmarking
+	@Disabled // takes too long, change to @Test when benchmarking
 	public void shouldInsertManyNodesInBulkWithGreenesSplit_large_10() throws FactoryException, IOException {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("large"));
 	}
 
-	@Ignore // takes too long, change to @Test when benchmarking
+	@Disabled // takes too long, change to @Test when benchmarking
 	public void shouldInsertManyNodesInBulkWithQuadraticSplit_large_100() throws FactoryException, IOException {
 		insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("large"));
 	}
 
-	@Ignore // takes too long, change to @Test when benchmarking
+	@Disabled // takes too long, change to @Test when benchmarking
 	public void shouldInsertManyNodesInBulkWithGreenesSplit_large_100() throws FactoryException, IOException {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("large"));
 	}
@@ -916,7 +916,7 @@ public class RTreeBulkInsertTest {
 	 * Run this manually to generate images of RTree that can be used for animation.
 	 * ffmpeg -f image2 -r 12 -i rtree-single/rtree-%d.png -r 12 -s 1280x960 rtree-single2_12fps.mp4
 	 */
-	@Ignore
+	@Disabled
 	public void shouldInsertManyNodesIndividuallyAndGenerateImagesForAnimation() throws FactoryException, IOException {
 		IndexTestConfig config = testConfigs.get("medium");
 		int blockSize = 5;
@@ -1029,7 +1029,7 @@ public class RTreeBulkInsertTest {
 	 * Run this manually to generate images of RTree that can be used for animation.
 	 * ffmpeg -f image2 -r 12 -i rtree-single/rtree-%d.png -r 12 -s 1280x960 rtree-single2_12fps.mp4
 	 */
-	@Ignore
+	@Disabled
 	public void shouldInsertManyNodesInBulkAndGenerateImagesForAnimation() throws FactoryException, IOException {
 		IndexTestConfig config = testConfigs.get("medium");
 		int blockSize = 1000;
@@ -1085,7 +1085,7 @@ public class RTreeBulkInsertTest {
 //        debugIndexTree((RTreeIndex) layer.getIndex());
 	}
 
-	@Ignore
+	@Disabled
 	public void shouldAccessIndexAfterBulkInsertion() throws Exception {
 		// Use these two lines if you want to examine the output.
 //        File dbPath = new File("target/var/BulkTest");
@@ -1159,7 +1159,7 @@ public class RTreeBulkInsertTest {
 		System.out.println("\t" + (System.currentTimeMillis() - start) + "ms");
 	}
 
-	@Ignore
+	@Disabled
 	public void shouldBuildTreeFromScratch() throws Exception {
 		//GraphDatabaseService db = this.databases.database("BultTest2");
 		GraphDatabaseService db = this.db;
@@ -1215,7 +1215,7 @@ public class RTreeBulkInsertTest {
 		}
 	}
 
-	@Ignore
+	@Disabled
 	public void shouldPerformRTreeBulkInsertion() throws Exception {
 		// Use this line if you want to examine the output.
 		//GraphDatabaseService db = databases.database("BulkTest");
@@ -1803,7 +1803,7 @@ public class RTreeBulkInsertTest {
 
 	private static final LinkedHashSet<TestStats> allStats = new LinkedHashSet<>();
 
-	@AfterClass
+	@AfterAll
 	public static void afterClass() {
 		System.out.println("\n\nComposite stats for " + allStats.size() + " tests run");
 		System.out.println(TestStats.headerString());

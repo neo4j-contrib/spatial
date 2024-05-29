@@ -106,7 +106,7 @@ public class TestOSMImport extends TestOSMImportBase {
 			debugNode(n2);
 			tx.commit();
 		} catch (Exception e) {
-			throw new SpatialDatabaseException("Failed to check OSM layer '" + layerName + "':" + e.getMessage(), e);
+			throw new SpatialDatabaseException("Failed to check OSM layer:" + e.getMessage(), e);
 		}
 		try (Transaction tx = this.graphDb().beginTx()) {
 			for (Node n : tx.getAllNodes()) {
