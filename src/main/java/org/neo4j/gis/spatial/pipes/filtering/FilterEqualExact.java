@@ -19,10 +19,9 @@
  */
 package org.neo4j.gis.spatial.pipes.filtering;
 
+import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-
-import org.locationtech.jts.geom.Geometry;
 
 
 /**
@@ -37,7 +36,7 @@ public class FilterEqualExact extends AbstractFilterGeoPipe {
 
 	private Geometry other;
 	private double tolerance;
-	
+
 	public FilterEqualExact(Geometry other) {
 		this(other, 0);
 	}
@@ -45,8 +44,8 @@ public class FilterEqualExact extends AbstractFilterGeoPipe {
 	public FilterEqualExact(Geometry other, double tolerance) {
 		this.other = other;
 		this.tolerance = tolerance;
-	}	
-	
+	}
+
 	@Override
 	protected boolean validate(GeoPipeFlow flow) {
 		return other.equalsExact(flow.getGeometry(), tolerance);

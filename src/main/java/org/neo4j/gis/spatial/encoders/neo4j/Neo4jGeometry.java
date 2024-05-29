@@ -19,41 +19,43 @@
  */
 package org.neo4j.gis.spatial.encoders.neo4j;
 
-import org.neo4j.graphdb.spatial.CRS;
-import org.neo4j.graphdb.spatial.Coordinate;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
+import org.neo4j.graphdb.spatial.CRS;
+import org.neo4j.graphdb.spatial.Coordinate;
 
 public class Neo4jGeometry implements org.neo4j.graphdb.spatial.Geometry {
-    protected final String geometryType;
-    protected final CRS crs;
-    protected final List<Coordinate> coordinates;
 
-    public Neo4jGeometry(String geometryType, List<org.neo4j.graphdb.spatial.Coordinate> coordinates, CRS crs) {
-        this.geometryType = geometryType;
-        this.coordinates = coordinates;
-        this.crs = crs;
-    }
+	protected final String geometryType;
+	protected final CRS crs;
+	protected final List<Coordinate> coordinates;
 
-    public String getGeometryType() {
-        return this.geometryType;
-    }
+	public Neo4jGeometry(String geometryType, List<org.neo4j.graphdb.spatial.Coordinate> coordinates, CRS crs) {
+		this.geometryType = geometryType;
+		this.coordinates = coordinates;
+		this.crs = crs;
+	}
 
-    public List<org.neo4j.graphdb.spatial.Coordinate> getCoordinates() {
-        return this.coordinates;
-    }
+	public String getGeometryType() {
+		return this.geometryType;
+	}
 
-    public CRS getCRS() {
-        return this.crs;
-    }
+	public List<org.neo4j.graphdb.spatial.Coordinate> getCoordinates() {
+		return this.coordinates;
+	}
 
-    public static String coordinateString(List<org.neo4j.graphdb.spatial.Coordinate> coordinates) {
-        return coordinates.stream().map(c -> Arrays.stream(c.getCoordinate()).mapToObj(Double::toString).collect(Collectors.joining(", "))).collect(Collectors.joining(", "));
-    }
+	public CRS getCRS() {
+		return this.crs;
+	}
 
-    public String toString() {
-        return geometryType + "(" + coordinateString(coordinates) + ")[" + crs + "]";
-    }
+	public static String coordinateString(List<org.neo4j.graphdb.spatial.Coordinate> coordinates) {
+		return coordinates.stream()
+				.map(c -> Arrays.stream(c.getCoordinate()).mapToObj(Double::toString).collect(Collectors.joining(", ")))
+				.collect(Collectors.joining(", "));
+	}
+
+	public String toString() {
+		return geometryType + "(" + coordinateString(coordinates) + ")[" + crs + "]";
+	}
 }

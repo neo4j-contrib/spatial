@@ -20,6 +20,8 @@
 package org.neo4j.gis.spatial.encoders;
 
 public interface Configurable {
+
 	String getConfiguration();
+
 	void setConfiguration(String configuration);
 }

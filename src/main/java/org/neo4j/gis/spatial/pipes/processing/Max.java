@@ -20,7 +20,6 @@
 package org.neo4j.gis.spatial.pipes.processing;
 
 import java.util.Comparator;
-
 import org.neo4j.gis.spatial.pipes.AbstractGroupGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
@@ -32,34 +31,34 @@ public class Max extends AbstractGroupGeoPipe {
 
 	private String property;
 	private Comparator<Object> comparator;
-	
+
 	public Max(String property, Comparator<Object> comparator) {
 		this.property = property;
 		this.comparator = comparator;
 	}
-	
+
 	public Max(String property) {
-		this.property = property;		
+		this.property = property;
 	}
-	
-	@SuppressWarnings({ "rawtypes", "unchecked" })
-	@Override	
+
+	@SuppressWarnings({"rawtypes", "unchecked"})
+	@Override
 	protected void group(GeoPipeFlow flow) {
 		if (flow.getProperties().get(property) == null) {
 			return;
 		}
-		
+
 		if (groups.size() == 0) {
 			groups.add(flow);
 		} else {
 			Object min = groups.get(0).getProperties().get(property);
 			Object other = flow.getProperties().get(property);
-			
+
 			int comparison;
 			if (comparator == null) {
 				comparison = ((Comparable) other).compareTo(min);
 			} else {
-				comparison = comparator.compare(other, min);				
+				comparison = comparator.compare(other, min);
 			}
 
 			if (comparison > 0) {

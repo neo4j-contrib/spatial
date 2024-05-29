@@ -35,33 +35,36 @@ import org.neo4j.graphdb.Transaction;
  * @TODO: Consider switching from Float to Double according to Davide Savazzi
  */
 public class SimplePropertyEncoder extends AbstractGeometryEncoder {
-    protected GeometryFactory geometryFactory;
 
-    protected GeometryFactory getGeometryFactory() {
-        if (geometryFactory == null) geometryFactory = new GeometryFactory();
-        return geometryFactory;
-    }
+	protected GeometryFactory geometryFactory;
 
-    @Override
-    protected void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container) {
-        container.setProperty("gtype", SpatialDatabaseService.convertJtsClassToGeometryType(geometry.getClass()));
-        Coordinate[] coords = geometry.getCoordinates();
-        float[] data = new float[coords.length * 2];
-        for (int i = 0; i < coords.length; i++) {
-            data[i * 2 + 0] = (float) coords[i].x;
-            data[i * 2 + 1] = (float) coords[i].y;
-        }
+	protected GeometryFactory getGeometryFactory() {
+		if (geometryFactory == null) {
+			geometryFactory = new GeometryFactory();
+		}
+		return geometryFactory;
+	}
 
-        container.setProperty("data", data);
-    }
+	@Override
+	protected void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container) {
+		container.setProperty("gtype", SpatialDatabaseService.convertJtsClassToGeometryType(geometry.getClass()));
+		Coordinate[] coords = geometry.getCoordinates();
+		float[] data = new float[coords.length * 2];
+		for (int i = 0; i < coords.length; i++) {
+			data[i * 2 + 0] = (float) coords[i].x;
+			data[i * 2 + 1] = (float) coords[i].y;
+		}
 
-    @Override
-    public Geometry decodeGeometry(Entity container) {
-        float[] data = (float[]) container.getProperty("data");
-        Coordinate[] coordinates = new Coordinate[data.length / 2];
-        for (int i = 0; i < data.length / 2; i++) {
-            coordinates[i] = new Coordinate(data[2 * i + 0], data[2 * i + 1]);
-        }
-        return getGeometryFactory().createLineString(coordinates);
-    }
+		container.setProperty("data", data);
+	}
+
+	@Override
+	public Geometry decodeGeometry(Entity container) {
+		float[] data = (float[]) container.getProperty("data");
+		Coordinate[] coordinates = new Coordinate[data.length / 2];
+		for (int i = 0; i < data.length / 2; i++) {
+			coordinates[i] = new Coordinate(data[2 * i + 0], data[2 * i + 1]);
+		}
+		return getGeometryFactory().createLineString(coordinates);
+	}
 }

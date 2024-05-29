@@ -23,7 +23,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.stream.Stream;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.rtree.Envelope;
@@ -55,183 +54,185 @@ import org.neo4j.kernel.api.KernelTransaction;
  */
 public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexReader, SpatialIndexWriter {
 
-    protected Layer layer;
-    private PropertyEncodingNodeIndex<E> index;
-    private final ExplicitIndexBackedMonitor monitor = new ExplicitIndexBackedMonitor();
+	protected Layer layer;
+	private PropertyEncodingNodeIndex<E> index;
+	private final ExplicitIndexBackedMonitor monitor = new ExplicitIndexBackedMonitor();
 
-    protected abstract String indexTypeName();
+	protected abstract String indexTypeName();
 
-    @Override
-    public void init(Transaction tx, IndexManager indexManager, Layer layer) {
-        this.layer = layer;
-        String indexName = "_SpatialIndex_" + indexTypeName() + "_" + layer.getName();
-        Label label = Label.label("SpatialIndex_" + indexTypeName() + "_" + layer.getName());
-        this.index = new PropertyEncodingNodeIndex<>(indexManager, indexName, label, indexName.toLowerCase());
-        this.index.initialize(tx);
-    }
+	@Override
+	public void init(Transaction tx, IndexManager indexManager, Layer layer) {
+		this.layer = layer;
+		String indexName = "_SpatialIndex_" + indexTypeName() + "_" + layer.getName();
+		Label label = Label.label("SpatialIndex_" + indexTypeName() + "_" + layer.getName());
+		this.index = new PropertyEncodingNodeIndex<>(indexManager, indexName, label, indexName.toLowerCase());
+		this.index.initialize(tx);
+	}
 
-    @Override
-    public Layer getLayer() {
-        return layer;
-    }
+	@Override
+	public Layer getLayer() {
+		return layer;
+	}
 
-    @Override
-    public SearchRecords search(Transaction tx, SearchFilter filter) {
-        return new SearchRecords(layer, searchIndex(tx, filter));
-    }
+	@Override
+	public SearchRecords search(Transaction tx, SearchFilter filter) {
+		return new SearchRecords(layer, searchIndex(tx, filter));
+	}
 
-    @Override
-    public void add(Transaction tx, Node geomNode) {
-        index.add(geomNode, getIndexValueFor(tx, geomNode));
-    }
+	@Override
+	public void add(Transaction tx, Node geomNode) {
+		index.add(geomNode, getIndexValueFor(tx, geomNode));
+	}
 
-    protected abstract E getIndexValueFor(Transaction tx, Node geomNode);
+	protected abstract E getIndexValueFor(Transaction tx, Node geomNode);
 
-    @Override
-    public void add(Transaction tx, List<Node> geomNodes) {
-        for (Node node : geomNodes) {
-            add(tx, node);
-        }
-    }
+	@Override
+	public void add(Transaction tx, List<Node> geomNodes) {
+		for (Node node : geomNodes) {
+			add(tx, node);
+		}
+	}
 
-    @Override
-    public void remove(Transaction tx, String geomNodeId, boolean deleteGeomNode, boolean throwExceptionIfNotFound) {
-        try {
-            Node geomNode = tx.getNodeByElementId(geomNodeId);
-            if (geomNode != null) {
-                index.remove(geomNode);
-                if (deleteGeomNode) {
-                    try (var relationships = geomNode.getRelationships()) {
-                        for (Relationship rel : relationships) {
-                            rel.delete();
-                        }
-                    }
-                    geomNode.delete();
-                }
-            }
-        } catch (NotFoundException nfe) {
-            if (throwExceptionIfNotFound) {
-                throw nfe;
-            }
-        }
-    }
+	@Override
+	public void remove(Transaction tx, String geomNodeId, boolean deleteGeomNode, boolean throwExceptionIfNotFound) {
+		try {
+			Node geomNode = tx.getNodeByElementId(geomNodeId);
+			if (geomNode != null) {
+				index.remove(geomNode);
+				if (deleteGeomNode) {
+					try (var relationships = geomNode.getRelationships()) {
+						for (Relationship rel : relationships) {
+							rel.delete();
+						}
+					}
+					geomNode.delete();
+				}
+			}
+		} catch (NotFoundException nfe) {
+			if (throwExceptionIfNotFound) {
+				throw nfe;
+			}
+		}
+	}
 
-    @Override
-    public void removeAll(Transaction tx, boolean deleteGeomNodes, Listener monitor) {
-        if (deleteGeomNodes) {
-            for (Node node : getAllIndexedNodes(tx)) {
-                remove(tx, node.getElementId(), true, true);
-            }
-        }
-        index.delete(tx);
-    }
+	@Override
+	public void removeAll(Transaction tx, boolean deleteGeomNodes, Listener monitor) {
+		if (deleteGeomNodes) {
+			for (Node node : getAllIndexedNodes(tx)) {
+				remove(tx, node.getElementId(), true, true);
+			}
+		}
+		index.delete(tx);
+	}
 
-    @Override
-    public void clear(Transaction tx, Listener monitor) {
-        removeAll(tx, false, monitor);
-    }
+	@Override
+	public void clear(Transaction tx, Listener monitor) {
+		removeAll(tx, false, monitor);
+	}
 
-    @Override
-    public EnvelopeDecoder getEnvelopeDecoder() {
-        return layer.getGeometryEncoder();
-    }
+	@Override
+	public EnvelopeDecoder getEnvelopeDecoder() {
+		return layer.getGeometryEncoder();
+	}
 
-    @Override
-    public boolean isEmpty(Transaction tx) {
-        return true;
-    }
+	@Override
+	public boolean isEmpty(Transaction tx) {
+		return true;
+	}
 
-    @Override
-    public int count(Transaction ignore) {
-        return 0;
-    }
+	@Override
+	public int count(Transaction ignore) {
+		return 0;
+	}
 
-    @Override
-    public Envelope getBoundingBox(Transaction tx) {
-        return null;
-    }
+	@Override
+	public Envelope getBoundingBox(Transaction tx) {
+		return null;
+	}
 
-    @Override
-    public boolean isNodeIndexed(Transaction tx, String nodeId) {
-        return false;
-    }
+	@Override
+	public boolean isNodeIndexed(Transaction tx, String nodeId) {
+		return false;
+	}
 
-    @Override
-    public Iterable<Node> getAllIndexedNodes(Transaction tx) {
-        return index.queryAll(tx);
-    }
+	@Override
+	public Iterable<Node> getAllIndexedNodes(Transaction tx) {
+		return index.queryAll(tx);
+	}
 
-    @Override
-    public SearchResults searchIndex(Transaction tx, SearchFilter filter) {
-        Iterator<Node> indexHits = index.query(tx, searcherFor(tx, filter));
-        return new SearchResults(() -> new FilteredIndexIterator(tx, indexHits, filter));
-    }
+	@Override
+	public SearchResults searchIndex(Transaction tx, SearchFilter filter) {
+		Iterator<Node> indexHits = index.query(tx, searcherFor(tx, filter));
+		return new SearchResults(() -> new FilteredIndexIterator(tx, indexHits, filter));
+	}
 
-    private class FilteredIndexIterator implements Iterator<Node> {
-        private final Transaction tx;
-        private final Iterator<Node> inner;
-        private final SearchFilter filter;
-        private Node next = null;
+	private class FilteredIndexIterator implements Iterator<Node> {
 
-        private FilteredIndexIterator(Transaction tx, Iterator<Node> inner, SearchFilter filter) {
-            this.tx = tx;
-            this.inner = inner;
-            this.filter = filter;
-            prefetch();
-        }
+		private final Transaction tx;
+		private final Iterator<Node> inner;
+		private final SearchFilter filter;
+		private Node next = null;
 
-        private void prefetch() {
-            next = null;
-            while (inner.hasNext()) {
-                Node node = inner.next();
-                if (filter.geometryMatches(tx, node)) {
-                    next = node;
-                    monitor.hit();
-                    break;
-                } else {
-                    monitor.miss();
-                }
-            }
-        }
+		private FilteredIndexIterator(Transaction tx, Iterator<Node> inner, SearchFilter filter) {
+			this.tx = tx;
+			this.inner = inner;
+			this.filter = filter;
+			prefetch();
+		}
 
-        @Override
-        public boolean hasNext() {
-            return next != null;
-        }
+		private void prefetch() {
+			next = null;
+			while (inner.hasNext()) {
+				Node node = inner.next();
+				if (filter.geometryMatches(tx, node)) {
+					next = node;
+					monitor.hit();
+					break;
+				} else {
+					monitor.miss();
+				}
+			}
+		}
 
-        @Override
-        public Node next() {
-            Node node = next;
-            if (node == null) {
-                throw new NoSuchElementException(); // GeoPipes relies on this behaviour instead of hasNext()
-            } else {
-                prefetch();
-                return node;
-            }
-        }
-    }
+		@Override
+		public boolean hasNext() {
+			return next != null;
+		}
 
-    /**
-     * Create a class capable of performing a specific search based on a custom 2D to 1D conversion.
-     */
-    protected abstract Neo4jIndexSearcher searcherFor(Transaction tx, SearchFilter filter);
+		@Override
+		public Node next() {
+			Node node = next;
+			if (node == null) {
+				throw new NoSuchElementException(); // GeoPipes relies on this behaviour instead of hasNext()
+			} else {
+				prefetch();
+				return node;
+			}
+		}
+	}
 
-    public interface Neo4jIndexSearcher {
-        Iterator<Node> search(KernelTransaction ktx, Label label, String propertyKey);
-    }
+	/**
+	 * Create a class capable of performing a specific search based on a custom 2D to 1D conversion.
+	 */
+	protected abstract Neo4jIndexSearcher searcherFor(Transaction tx, SearchFilter filter);
 
-    @Override
-    public void addMonitor(TreeMonitor monitor) {
+	public interface Neo4jIndexSearcher {
 
-    }
+		Iterator<Node> search(KernelTransaction ktx, Label label, String propertyKey);
+	}
 
-    public ExplicitIndexBackedMonitor getMonitor() {
-        return this.monitor;
-    }
+	@Override
+	public void addMonitor(TreeMonitor monitor) {
 
-    @Override
-    public void configure(Map<String, Object> config) {
+	}
 
-    }
+	public ExplicitIndexBackedMonitor getMonitor() {
+		return this.monitor;
+	}
+
+	@Override
+	public void configure(Map<String, Object> config) {
+
+	}
 
 }

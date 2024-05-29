@@ -28,7 +28,6 @@ public class DensityIslands extends AbstractGroupGeoPipe {
 	private double density;
 
 	/**
-	 * 
 	 * @param density
 	 */
 	public DensityIslands(double density) {
@@ -48,7 +47,7 @@ public class DensityIslands extends AbstractGroupGeoPipe {
 				islandFound = true;
 			}
 		}
-			
+
 		if (!islandFound) {
 			groups.add(pipeFlow);
 		}

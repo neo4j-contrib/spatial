@@ -25,19 +25,19 @@ import org.neo4j.graphdb.Node;
 public class SpatialIndexRecordCounter implements SpatialIndexVisitor {
 
 	@Override
-	public boolean needsToVisit(Envelope indexNodeEnvelope) { 
-		return true; 
-	}	
-	
+	public boolean needsToVisit(Envelope indexNodeEnvelope) {
+		return true;
+	}
+
 	@Override
-	public void onIndexReference(Node geomNode) { 
-		count++; 
+	public void onIndexReference(Node geomNode) {
+		count++;
 	}
-	
-	public int getResult() { 
-		return count; 
+
+	public int getResult() {
+		return count;
 	}
-	
-	
+
+
 	private int count = 0;
 }

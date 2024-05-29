@@ -22,44 +22,45 @@ package org.neo4j.gis.spatial.encoders.neo4j;
 import org.neo4j.values.storable.CoordinateReferenceSystem;
 
 public class Neo4jCRS implements org.neo4j.graphdb.spatial.CRS {
-    protected final CoordinateReferenceSystem crs;
 
-    public Neo4jCRS(CoordinateReferenceSystem crs) {
-        this.crs = crs;
-    }
+	protected final CoordinateReferenceSystem crs;
 
-    @Override
-    public int getCode() {
-        return crs.getCode();
-    }
+	public Neo4jCRS(CoordinateReferenceSystem crs) {
+		this.crs = crs;
+	}
 
-    @Override
-    public String getType() {
-        return crs.getType();
-    }
+	@Override
+	public int getCode() {
+		return crs.getCode();
+	}
 
-    @Override
-    public String getHref() {
-        return crs.getHref();
-    }
+	@Override
+	public String getType() {
+		return crs.getType();
+	}
 
-    public int dimensions() {
-        return crs.getDimension();
-    }
+	@Override
+	public String getHref() {
+		return crs.getHref();
+	}
 
-    public static Neo4jCRS findCRS(String crs) {
-        switch (crs) {
-            case "WGS-84":      // name in Neo4j CRS table
-            case "WGS84(DD)":   // name in geotools crs library
-                return makeCRS(4326);
-            case "Cartesian":
-                return makeCRS(7203);
-            default:
-                throw new IllegalArgumentException("Cypher type system does not support CRS: " + crs);
-        }
-    }
+	public int dimensions() {
+		return crs.getDimension();
+	}
 
-    public static Neo4jCRS makeCRS(final int code) {
-        return new Neo4jCRS(CoordinateReferenceSystem.get(code));
-    }
+	public static Neo4jCRS findCRS(String crs) {
+		switch (crs) {
+			case "WGS-84":      // name in Neo4j CRS table
+			case "WGS84(DD)":   // name in geotools crs library
+				return makeCRS(4326);
+			case "Cartesian":
+				return makeCRS(7203);
+			default:
+				throw new IllegalArgumentException("Cypher type system does not support CRS: " + crs);
+		}
+	}
+
+	public static Neo4jCRS makeCRS(final int code) {
+		return new Neo4jCRS(CoordinateReferenceSystem.get(code));
+	}
 }

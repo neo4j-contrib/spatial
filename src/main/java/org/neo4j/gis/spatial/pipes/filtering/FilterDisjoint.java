@@ -19,11 +19,10 @@
  */
 package org.neo4j.gis.spatial.pipes.filtering;
 
-import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
-import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
+import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
+import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 
 /**
@@ -33,12 +32,12 @@ public class FilterDisjoint extends AbstractFilterGeoPipe {
 
 	private Geometry other;
 	private Envelope otherEnvelope;
-	
+
 	public FilterDisjoint(Geometry other) {
 		this.other = other;
 		this.otherEnvelope = other.getEnvelopeInternal();
 	}
-	
+
 	@Override
 	protected boolean validate(GeoPipeFlow flow) {
 		return !flow.getEnvelope().intersects(otherEnvelope)

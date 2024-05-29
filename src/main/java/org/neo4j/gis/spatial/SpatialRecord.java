@@ -20,7 +20,6 @@
 package org.neo4j.gis.spatial;
 
 import java.util.Map;
-
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -28,7 +27,7 @@ import org.neo4j.graphdb.Transaction;
 public interface SpatialRecord {
 
 	String getId();
-	
+
 	Geometry getGeometry();
 
 	boolean hasProperty(Transaction tx, String name);

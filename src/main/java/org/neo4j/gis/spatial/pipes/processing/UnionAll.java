@@ -29,7 +29,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class UnionAll extends AbstractGroupGeoPipe {
 
-	@Override	
+	@Override
 	protected void group(GeoPipeFlow flow) {
 		if (groups.size() == 0) {
 			groups.add(flow);

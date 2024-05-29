@@ -20,11 +20,11 @@
 package org.neo4j.gis.spatial.attributes;
 
 import java.util.HashMap;
-
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
 public abstract class PropertyMapper {
+
 	private String from;
 	private String to;
 	protected String type;
@@ -64,7 +64,8 @@ public abstract class PropertyMapper {
 	}
 
 	public String key() {
-		return new StringBuffer().append(from).append("-").append(to).append("-").append(type).append("-").append(params).toString();
+		return new StringBuffer().append(from).append("-").append(to).append("-").append(type).append("-")
+				.append(params).toString();
 	}
 
 	public static PropertyMapper fromNode(Node node) {
@@ -103,6 +104,7 @@ public abstract class PropertyMapper {
 	}
 
 	private static class DeltaLongMapper extends PropertyMapper {
+
 		protected long reference;
 
 		public DeltaLongMapper(String from, String to, String type, long reference) {
@@ -134,13 +136,13 @@ public abstract class PropertyMapper {
 
 	private static class MapMapper extends PropertyMapper {
 
-		private HashMap<String,String> map = new HashMap<String,String>();
+		private HashMap<String, String> map = new HashMap<String, String>();
 
 		public MapMapper(String from, String to, String type, String params) {
 			super(from, to, type, params);
-			for(String param:params.split(",")){
+			for (String param : params.split(",")) {
 				String[] fields = param.split(":");
-				map.put(fields[0],fields[1]);
+				map.put(fields[0], fields[1]);
 			}
 		}
 

@@ -25,14 +25,14 @@ import org.neo4j.graphdb.Transaction;
 
 public class SearchAll implements SearchFilter {
 
-    @Override
-    public boolean needsToVisit(Envelope indexNodeEnvelope) {
-        return true;
-    }
+	@Override
+	public boolean needsToVisit(Envelope indexNodeEnvelope) {
+		return true;
+	}
 
-    @Override
-    public boolean geometryMatches(Transaction tx, Node geomNode) {
-        return true;
-    }
+	@Override
+	public boolean geometryMatches(Transaction tx, Node geomNode) {
+		return true;
+	}
 
 }

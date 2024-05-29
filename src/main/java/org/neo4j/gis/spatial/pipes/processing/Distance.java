@@ -19,10 +19,9 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
+import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-
-import org.locationtech.jts.geom.Geometry;
 
 
 /**
@@ -31,23 +30,23 @@ import org.locationtech.jts.geom.Geometry;
 public class Distance extends AbstractGeoPipe {
 
 	private Geometry reference;
-	
+
 	public Distance(Geometry reference) {
 		this.reference = reference;
-	}		
+	}
 
 	/**
 	 * @param resultPropertyName property name to use for geometry output
-	 */	
+	 */
 	public Distance(Geometry reference, String resultPropertyName) {
 		super(resultPropertyName);
 		this.reference = reference;
-	}	
+	}
 
-	@Override	
+	@Override
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
 		setProperty(flow, flow.getGeometry().distance(reference));
 		return flow;
-	}	
-	
+	}
+
 }

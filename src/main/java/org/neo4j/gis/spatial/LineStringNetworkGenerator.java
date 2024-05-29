@@ -20,13 +20,11 @@
 package org.neo4j.gis.spatial;
 
 import java.util.Iterator;
-
-import org.neo4j.gis.spatial.filter.SearchIntersect;
-import org.neo4j.graphdb.Node;
-
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.MultiLineString;
+import org.neo4j.gis.spatial.filter.SearchIntersect;
+import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
 /**
@@ -35,69 +33,73 @@ import org.neo4j.graphdb.Transaction;
  * the two LineStrings are connected together with a Relationship.
  */
 public class LineStringNetworkGenerator {
-    private final EditableLayer pointsLayer;
-    private final EditableLayer edgesLayer;
-    private final Double buffer;
 
-    public LineStringNetworkGenerator(EditableLayer pointsLayer, EditableLayer edgesLayer) {
-        this(pointsLayer, edgesLayer, null);
-    }
+	private final EditableLayer pointsLayer;
+	private final EditableLayer edgesLayer;
+	private final Double buffer;
 
-    public LineStringNetworkGenerator(EditableLayer pointsLayer, EditableLayer edgesLayer, Double buffer) {
-        this.pointsLayer = pointsLayer;
-        this.edgesLayer = edgesLayer;
-        this.buffer = buffer;
-    }
+	public LineStringNetworkGenerator(EditableLayer pointsLayer, EditableLayer edgesLayer) {
+		this(pointsLayer, edgesLayer, null);
+	}
 
-    public void add(Transaction tx, SpatialDatabaseRecord record) {
-        Geometry geometry = record.getGeometry();
-        if (geometry instanceof MultiLineString) {
-            add(tx, (MultiLineString) geometry, record);
-        } else if (geometry instanceof LineString) {
-            add(tx, (LineString) geometry, record);
-        } else {
-            // TODO better handling?
-            throw new IllegalArgumentException("geometry type not supported: " + geometry.getGeometryType());
-        }
-    }
+	public LineStringNetworkGenerator(EditableLayer pointsLayer, EditableLayer edgesLayer, Double buffer) {
+		this.pointsLayer = pointsLayer;
+		this.edgesLayer = edgesLayer;
+		this.buffer = buffer;
+	}
 
-    public void add(Transaction tx, MultiLineString lines) {
-        add(tx, lines, null);
-    }
+	public void add(Transaction tx, SpatialDatabaseRecord record) {
+		Geometry geometry = record.getGeometry();
+		if (geometry instanceof MultiLineString) {
+			add(tx, (MultiLineString) geometry, record);
+		} else if (geometry instanceof LineString) {
+			add(tx, (LineString) geometry, record);
+		} else {
+			// TODO better handling?
+			throw new IllegalArgumentException("geometry type not supported: " + geometry.getGeometryType());
+		}
+	}
 
-    public void add(Transaction tx, LineString line) {
-        add(tx, line, null);
-    }
+	public void add(Transaction tx, MultiLineString lines) {
+		add(tx, lines, null);
+	}
 
-    protected void add(Transaction tx, MultiLineString line, SpatialDatabaseRecord record) {
-        for (int i = 0; i < line.getNumGeometries(); i++) {
-            add(tx, (LineString) line.getGeometryN(i), record);
-        }
-    }
+	public void add(Transaction tx, LineString line) {
+		add(tx, line, null);
+	}
 
-    protected void add(Transaction tx, LineString line, SpatialDatabaseRecord edge) {
-        if (edge == null) {
-            edge = edgesLayer.add(tx, line);
-        }
+	protected void add(Transaction tx, MultiLineString line, SpatialDatabaseRecord record) {
+		for (int i = 0; i < line.getNumGeometries(); i++) {
+			add(tx, (LineString) line.getGeometryN(i), record);
+		}
+	}
 
-        // TODO reserved property?
-        edge.setProperty("_network_length", edge.getGeometry().getLength());
+	protected void add(Transaction tx, LineString line, SpatialDatabaseRecord edge) {
+		if (edge == null) {
+			edge = edgesLayer.add(tx, line);
+		}
 
-        addEdgePoint(tx, edge.getGeomNode(), line.getStartPoint());
-        addEdgePoint(tx, edge.getGeomNode(), line.getEndPoint());
-    }
+		// TODO reserved property?
+		edge.setProperty("_network_length", edge.getGeometry().getLength());
 
-    protected void addEdgePoint(Transaction tx, Node edge, Geometry edgePoint) {
-        if (buffer != null) edgePoint = edgePoint.buffer(buffer.doubleValue());
+		addEdgePoint(tx, edge.getGeomNode(), line.getStartPoint());
+		addEdgePoint(tx, edge.getGeomNode(), line.getEndPoint());
+	}
 
-        Iterator<SpatialDatabaseRecord> results = pointsLayer.getIndex().search(tx, new SearchIntersect(pointsLayer, edgePoint));
-        if (!results.hasNext()) {
-            SpatialDatabaseRecord point = pointsLayer.add(tx, edgePoint);
-            edge.createRelationshipTo(point.getGeomNode(), SpatialRelationshipTypes.NETWORK);
-        } else {
-            while (results.hasNext()) {
-                edge.createRelationshipTo(results.next().getGeomNode(), SpatialRelationshipTypes.NETWORK);
-            }
-        }
-    }
+	protected void addEdgePoint(Transaction tx, Node edge, Geometry edgePoint) {
+		if (buffer != null) {
+			edgePoint = edgePoint.buffer(buffer.doubleValue());
+		}
+
+		Iterator<SpatialDatabaseRecord> results = pointsLayer.getIndex()
+				.search(tx, new SearchIntersect(pointsLayer, edgePoint));
+		if (!results.hasNext()) {
+			SpatialDatabaseRecord point = pointsLayer.add(tx, edgePoint);
+			edge.createRelationshipTo(point.getGeomNode(), SpatialRelationshipTypes.NETWORK);
+		} else {
+			while (results.hasNext()) {
+				edge.createRelationshipTo(results.next().getGeomNode(), SpatialRelationshipTypes.NETWORK);
+			}
+		}
+	}
 }

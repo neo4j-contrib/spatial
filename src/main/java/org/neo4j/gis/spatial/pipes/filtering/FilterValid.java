@@ -28,7 +28,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  * Find valid geometries.
  */
 public class FilterValid extends AbstractFilterGeoPipe {
-	
+
 	@Override
 	protected boolean validate(GeoPipeFlow flow) {
 		return flow.getGeometry().isValid();

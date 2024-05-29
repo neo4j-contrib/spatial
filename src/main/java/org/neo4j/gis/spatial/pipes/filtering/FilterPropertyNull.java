@@ -28,7 +28,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 public class FilterPropertyNull extends AbstractFilterGeoPipe {
 
 	private String property;
-	
+
 	public FilterPropertyNull(String property) {
 		this.property = property;
 	}

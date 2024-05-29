@@ -19,102 +19,86 @@
  */
 package org.neo4j.doc.tools;
 
-import javax.ws.rs.core.MediaType;
 import java.util.Map;
+import javax.ws.rs.core.MediaType;
 
-class DocumentationData
-{
-    private String payload;
-    private MediaType payloadType = MediaType.APPLICATION_JSON_TYPE;
-    public String title;
-    public String description;
-    public String uri;
-    public String method;
-    public int status;
-    public String entity;
-    public Map<String, String> requestHeaders;
-    public Map<String, String> responseHeaders;
-    public boolean ignore;
+class DocumentationData {
 
-    public void setPayload( final String payload )
-    {
-        this.payload = payload;
-    }
+	private String payload;
+	private MediaType payloadType = MediaType.APPLICATION_JSON_TYPE;
+	public String title;
+	public String description;
+	public String uri;
+	public String method;
+	public int status;
+	public String entity;
+	public Map<String, String> requestHeaders;
+	public Map<String, String> responseHeaders;
+	public boolean ignore;
 
-    public String getPayload()
-    {
-        if ( this.payload != null && !this.payload.trim()
-                .isEmpty()
-                && MediaType.APPLICATION_JSON_TYPE.equals( payloadType ) )
-        {
-            return JSONPrettifier.parse( this.payload );
-        }
-        else
-        {
-            return this.payload;
-        }
-    }
+	public void setPayload(final String payload) {
+		this.payload = payload;
+	}
 
-    public String getPrettifiedEntity()
-    {
-        return JSONPrettifier.parse( entity );
-    }
+	public String getPayload() {
+		if (this.payload != null && !this.payload.trim()
+				.isEmpty()
+				&& MediaType.APPLICATION_JSON_TYPE.equals(payloadType)) {
+			return JSONPrettifier.parse(this.payload);
+		} else {
+			return this.payload;
+		}
+	}
 
-    public void setPayloadType( final MediaType payloadType )
-    {
-        this.payloadType = payloadType;
-    }
+	public String getPrettifiedEntity() {
+		return JSONPrettifier.parse(entity);
+	}
 
-    public void setDescription( final String description )
-    {
-        this.description = description;
-    }
+	public void setPayloadType(final MediaType payloadType) {
+		this.payloadType = payloadType;
+	}
 
-    public void setTitle( final String title )
-    {
-        this.title = title;
-    }
+	public void setDescription(final String description) {
+		this.description = description;
+	}
 
-    public void setUri( final String uri )
-    {
-        this.uri = uri;
-    }
+	public void setTitle(final String title) {
+		this.title = title;
+	}
 
-    public void setMethod( final String method )
-    {
-        this.method = method;
-    }
+	public void setUri(final String uri) {
+		this.uri = uri;
+	}
 
-    public void setStatus( final int responseCode )
-    {
-        this.status = responseCode;
+	public void setMethod(final String method) {
+		this.method = method;
+	}
 
-    }
+	public void setStatus(final int responseCode) {
+		this.status = responseCode;
 
-    public void setEntity( final String entity )
-    {
-        this.entity = entity;
-    }
+	}
 
-    public void setResponseHeaders( final Map<String, String> response )
-    {
-        responseHeaders = response;
-    }
+	public void setEntity(final String entity) {
+		this.entity = entity;
+	}
 
-    public void setRequestHeaders( final Map<String, String> request )
-    {
-        requestHeaders = request;
-    }
+	public void setResponseHeaders(final Map<String, String> response) {
+		responseHeaders = response;
+	}
 
-    public void setIgnore() {
-        this.ignore = true;
-    }
+	public void setRequestHeaders(final Map<String, String> request) {
+		requestHeaders = request;
+	}
 
-    @Override
-    public String toString()
-    {
-        return "DocumentationData [payload=" + payload + ", title=" + title + ", description=" + description
-                + ", uri=" + uri + ", method=" + method + ", status=" + status + ", entity=" + entity
-                + ", requestHeaders=" + requestHeaders + ", responseHeaders=" + responseHeaders + "]";
-    }
+	public void setIgnore() {
+		this.ignore = true;
+	}
+
+	@Override
+	public String toString() {
+		return "DocumentationData [payload=" + payload + ", title=" + title + ", description=" + description
+				+ ", uri=" + uri + ", method=" + method + ", status=" + status + ", entity=" + entity
+				+ ", requestHeaders=" + requestHeaders + ", responseHeaders=" + responseHeaders + "]";
+	}
 }

@@ -19,10 +19,9 @@
  */
 package org.neo4j.gis.spatial.pipes.filtering;
 
+import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-
-import org.locationtech.jts.geom.Geometry;
 
 
 /**
@@ -34,7 +33,7 @@ public class FilterEqualNorm extends AbstractFilterGeoPipe {
 
 	private Geometry other;
 	private double tolerance;
-	
+
 	public FilterEqualNorm(Geometry other) {
 		this(other, 0);
 	}
@@ -42,8 +41,8 @@ public class FilterEqualNorm extends AbstractFilterGeoPipe {
 	public FilterEqualNorm(Geometry other, double tolerance) {
 		this.other = other.norm();
 		this.tolerance = tolerance;
-	}	
-	
+	}
+
 	@Override
 	protected boolean validate(GeoPipeFlow flow) {
 		Geometry current = flow.getGeometry().norm();

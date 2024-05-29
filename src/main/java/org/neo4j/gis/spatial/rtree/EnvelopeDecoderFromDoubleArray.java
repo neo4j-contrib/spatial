@@ -23,7 +23,6 @@ import org.neo4j.graphdb.Entity;
 
 
 /**
- * 
  * The property must contain an array of double: xmin, ymin, xmax, ymax.
  */
 public class EnvelopeDecoderFromDoubleArray implements EnvelopeDecoder {
@@ -31,21 +30,21 @@ public class EnvelopeDecoderFromDoubleArray implements EnvelopeDecoder {
 	public EnvelopeDecoderFromDoubleArray(String propertyName) {
 		this.propertyName = propertyName;
 	}
-	
-	@Override	
+
+	@Override
 	public Envelope decodeEnvelope(Entity container) {
-	    Object propValue = container.getProperty(propertyName);
-	    
-	    if (propValue instanceof Double[]) {
-	    	Double[] bbox = (Double[]) propValue;
+		Object propValue = container.getProperty(propertyName);
+
+		if (propValue instanceof Double[]) {
+			Double[] bbox = (Double[]) propValue;
 			return new Envelope(bbox[0], bbox[2], bbox[1], bbox[3]);
 		} else if (propValue instanceof double[]) {
 			double[] bbox = (double[]) propValue;
 			return new Envelope(bbox[0], bbox[2], bbox[1], bbox[3]);
-	    } else {
-            // invalid content
-            return new Envelope(new double[0]);
-	    }
+		} else {
+			// invalid content
+			return new Envelope(new double[0]);
+		}
 	}
 
 	private String propertyName;

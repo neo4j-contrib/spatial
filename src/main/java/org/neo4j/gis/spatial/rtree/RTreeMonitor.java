@@ -20,105 +20,105 @@
 
 package org.neo4j.gis.spatial.rtree;
 
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Transaction;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 
 public class RTreeMonitor implements TreeMonitor {
-    private int nbrSplit;
-    private int height;
-    private int nbrRebuilt;
-    private HashMap<String, Integer> cases = new HashMap<>();
-    private ArrayList<ArrayList<Node>> matchedTreeNodes = new ArrayList<>();
 
-    public RTreeMonitor() {
-        reset();
-    }
+	private int nbrSplit;
+	private int height;
+	private int nbrRebuilt;
+	private HashMap<String, Integer> cases = new HashMap<>();
+	private ArrayList<ArrayList<Node>> matchedTreeNodes = new ArrayList<>();
 
-    @Override
-    public void setHeight(int height) {
-        this.height = height;
-    }
+	public RTreeMonitor() {
+		reset();
+	}
 
-    public int getHeight() {
-        return height;
-    }
+	@Override
+	public void setHeight(int height) {
+		this.height = height;
+	}
 
-    @Override
-    public void addNbrRebuilt(RTreeIndex rtree, Transaction tx) {
-        nbrRebuilt++;
-    }
+	public int getHeight() {
+		return height;
+	}
 
-    @Override
-    public int getNbrRebuilt() {
-        return nbrRebuilt;
-    }
+	@Override
+	public void addNbrRebuilt(RTreeIndex rtree, Transaction tx) {
+		nbrRebuilt++;
+	}
 
-    @Override
-    public void addSplit(Node indexNode) {
-        nbrSplit++;
-    }
+	@Override
+	public int getNbrRebuilt() {
+		return nbrRebuilt;
+	}
 
-    @Override
-    public void beforeMergeTree(Node indexNode, List<RTreeIndex.NodeWithEnvelope> right) {
+	@Override
+	public void addSplit(Node indexNode) {
+		nbrSplit++;
+	}
 
-    }
+	@Override
+	public void beforeMergeTree(Node indexNode, List<RTreeIndex.NodeWithEnvelope> right) {
 
-    @Override
-    public void afterMergeTree(Node indexNode) {
+	}
 
-    }
+	@Override
+	public void afterMergeTree(Node indexNode) {
 
-    @Override
-    public int getNbrSplit() {
-        return nbrSplit;
-    }
+	}
 
-    @Override
-    public void addCase(String key) {
-        Integer n = cases.get(key);
-        if (n != null) {
-            n++;
-        } else {
-            n = 1;
-        }
-        cases.put(key, n);
-    }
+	@Override
+	public int getNbrSplit() {
+		return nbrSplit;
+	}
 
-    @Override
-    public Map<String, Integer> getCaseCounts() {
-        return cases;
-    }
+	@Override
+	public void addCase(String key) {
+		Integer n = cases.get(key);
+		if (n != null) {
+			n++;
+		} else {
+			n = 1;
+		}
+		cases.put(key, n);
+	}
 
-    @Override
-    public void reset() {
-        cases.clear();
-        height = 0;
-        nbrRebuilt = 0;
-        nbrSplit = 0;
-        matchedTreeNodes.clear();
-    }
+	@Override
+	public Map<String, Integer> getCaseCounts() {
+		return cases;
+	}
 
-    @Override
-    public void matchedTreeNode(int level, Node node) {
-        ensureMatchedTreeNodeLevel(level);
-        matchedTreeNodes.get(level).add(node);
-    }
+	@Override
+	public void reset() {
+		cases.clear();
+		height = 0;
+		nbrRebuilt = 0;
+		nbrSplit = 0;
+		matchedTreeNodes.clear();
+	}
 
-    private void ensureMatchedTreeNodeLevel(int level) {
-        while (matchedTreeNodes.size() <= level) {
-            matchedTreeNodes.add(new ArrayList<Node>());
-        }
-    }
+	@Override
+	public void matchedTreeNode(int level, Node node) {
+		ensureMatchedTreeNodeLevel(level);
+		matchedTreeNodes.get(level).add(node);
+	}
 
-    @Override
-    public List<Node> getMatchedTreeNodes(int level) {
-        ensureMatchedTreeNodeLevel(level);
-        return matchedTreeNodes.get(level).stream().collect(Collectors.toList());
-    }
+	private void ensureMatchedTreeNodeLevel(int level) {
+		while (matchedTreeNodes.size() <= level) {
+			matchedTreeNodes.add(new ArrayList<Node>());
+		}
+	}
+
+	@Override
+	public List<Node> getMatchedTreeNodes(int level) {
+		ensureMatchedTreeNodeLevel(level);
+		return matchedTreeNodes.get(level).stream().collect(Collectors.toList());
+	}
 }

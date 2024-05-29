@@ -19,11 +19,10 @@
  */
 package org.neo4j.doc.tools;
 
-import org.neo4j.test.TestData.Producer;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.Writer;
+import org.neo4j.test.TestData.Producer;
 
 /**
  * This class is supporting the generation of ASCIIDOC documentation
@@ -31,39 +30,41 @@ import java.io.Writer;
  * and will replace their @@snippetName placeholders in the documentation description.
  */
 public class JavaTestDocsGenerator extends AsciiDocGenerator {
-    public static final Producer<JavaTestDocsGenerator> PRODUCER = (graph, title, documentation) -> (JavaTestDocsGenerator) new JavaTestDocsGenerator(title).description(documentation);
 
-    public JavaTestDocsGenerator(String title) {
-        super(title, "docs");
-    }
+	public static final Producer<JavaTestDocsGenerator> PRODUCER = (graph, title, documentation) -> (JavaTestDocsGenerator) new JavaTestDocsGenerator(
+			title).description(documentation);
 
-    public void document(String directory, String sectionName) {
-        this.setSection(sectionName);
-        String name = title.replace(" ", "-").toLowerCase();
-        File dir = new File(new File(directory), section);
-        String filename = name + ".asciidoc";
-        Writer fw = getFW(dir, filename);
-        description = replaceSnippets(description, dir, name);
-        try {
-            line(fw, "[[" + sectionName + "-" + name.replaceAll("[()]", "") + "]]");
-            String firstChar = title.substring(0, 1).toUpperCase();
-            line(fw, firstChar + title.substring(1));
-            for (int i = 0; i < title.length(); i++) {
-                fw.append("=");
-            }
-            fw.append("\n");
-            line(fw, "");
-            line(fw, description);
-            line(fw, "");
-            fw.flush();
-            fw.close();
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-    }
+	public JavaTestDocsGenerator(String title) {
+		super(title, "docs");
+	}
 
-    public void addImageSnippet(String tagName, String imageName, String title) {
-        this.addSnippet(tagName, "\nimage:" + imageName + "[" + title + "]\n");
-    }
+	public void document(String directory, String sectionName) {
+		this.setSection(sectionName);
+		String name = title.replace(" ", "-").toLowerCase();
+		File dir = new File(new File(directory), section);
+		String filename = name + ".asciidoc";
+		Writer fw = getFW(dir, filename);
+		description = replaceSnippets(description, dir, name);
+		try {
+			line(fw, "[[" + sectionName + "-" + name.replaceAll("[()]", "") + "]]");
+			String firstChar = title.substring(0, 1).toUpperCase();
+			line(fw, firstChar + title.substring(1));
+			for (int i = 0; i < title.length(); i++) {
+				fw.append("=");
+			}
+			fw.append("\n");
+			line(fw, "");
+			line(fw, description);
+			line(fw, "");
+			fw.flush();
+			fw.close();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	public void addImageSnippet(String tagName, String imageName, String title) {
+		this.addSnippet(tagName, "\nimage:" + imageName + "[" + title + "]\n");
+	}
 }

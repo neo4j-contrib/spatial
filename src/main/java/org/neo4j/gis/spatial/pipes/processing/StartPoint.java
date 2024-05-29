@@ -19,35 +19,34 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
+import org.locationtech.jts.geom.GeometryFactory;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-
-import org.locationtech.jts.geom.GeometryFactory;
 
 /**
  * Find the starting point of item geometry.
  * Item geometry is replaced by pipe output unless an alternative property name is given in the constructor.
  */
 public class StartPoint extends AbstractGeoPipe {
-	
+
 	private GeometryFactory geomFactory;
-	
+
 	public StartPoint(GeometryFactory geomFactory) {
 		this.geomFactory = geomFactory;
-	}		
-	
+	}
+
 	/**
 	 * @param resultPropertyName property name to use for geometry output
-	 */	
+	 */
 	public StartPoint(GeometryFactory geomFactory, String resultPropertyName) {
 		super(resultPropertyName);
 		this.geomFactory = geomFactory;
-	}	
+	}
 
-	@Override	
+	@Override
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
 		setGeometry(flow, geomFactory.createPoint(flow.getGeometry().getCoordinates()[0]));
 		return flow;
-	}	
-	
+	}
+
 }

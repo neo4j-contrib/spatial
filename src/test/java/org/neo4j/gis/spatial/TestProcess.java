@@ -19,50 +19,49 @@
  */
 package org.neo4j.gis.spatial;
 
-import org.junit.jupiter.api.Test;
-import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.io.ParseException;
-import org.locationtech.jts.io.WKTReader;
+import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import org.geotools.api.data.Parameter;
+import org.geotools.api.feature.type.Name;
 import org.geotools.feature.NameImpl;
 import org.geotools.process.ProcessExecutor;
 import org.geotools.process.Processors;
 import org.geotools.process.Progress;
 import org.geotools.util.KVP;
-import org.geotools.api.feature.type.Name;
-
-import java.util.Map;
-import java.util.concurrent.ExecutionException;
+import org.junit.jupiter.api.Test;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.GeometryFactory;
+import org.locationtech.jts.io.ParseException;
+import org.locationtech.jts.io.WKTReader;
 
 public class TestProcess extends Neo4jTestCase {
 
-    @Test
-    public void testProcess() throws ParseException, InterruptedException, ExecutionException {
-        WKTReader wktReader = new WKTReader(new GeometryFactory());
-        Geometry geom = wktReader.read("MULTIPOINT (1 1, 5 4, 7 9, 5 5, 2 2)");
+	@Test
+	public void testProcess() throws ParseException, InterruptedException, ExecutionException {
+		WKTReader wktReader = new WKTReader(new GeometryFactory());
+		Geometry geom = wktReader.read("MULTIPOINT (1 1, 5 4, 7 9, 5 5, 2 2)");
 
-        Name name = new NameImpl("spatial", "octagonalEnvelope");
-        org.geotools.process.Process process = Processors.createProcess(name);
-        System.out.println("Executing process: " + name);
-        for (Map.Entry<String, Parameter<?>> entry : Processors.getParameterInfo(name).entrySet()) {
-            System.out.println("\t" + entry.getKey() + ":\t" + entry.getValue());
-        }
+		Name name = new NameImpl("spatial", "octagonalEnvelope");
+		org.geotools.process.Process process = Processors.createProcess(name);
+		System.out.println("Executing process: " + name);
+		for (Map.Entry<String, Parameter<?>> entry : Processors.getParameterInfo(name).entrySet()) {
+			System.out.println("\t" + entry.getKey() + ":\t" + entry.getValue());
+		}
 
-        ProcessExecutor engine = Processors.newProcessExecutor(2);
+		ProcessExecutor engine = Processors.newProcessExecutor(2);
 
-        // quick map of inputs
-        Map<String, Object> input = new KVP("geom", geom);
-        Progress working = engine.submit(process, input);
+		// quick map of inputs
+		Map<String, Object> input = new KVP("geom", geom);
+		Progress working = engine.submit(process, input);
 
-        // you could do other stuff whle working is doing its thing
-        if (working.isCancelled()) {
-            return;
-        }
+		// you could do other stuff whle working is doing its thing
+		if (working.isCancelled()) {
+			return;
+		}
 
-        Map<String, Object> result = working.get(); // get is BLOCKING
-        Geometry octo = (Geometry) result.get("result");
+		Map<String, Object> result = working.get(); // get is BLOCKING
+		Geometry octo = (Geometry) result.get("result");
 
-        System.out.println(octo);
-    }
+		System.out.println(octo);
+	}
 }

@@ -21,12 +21,12 @@ package org.neo4j.gis.spatial.index;
 
 public class LayerGeohashSimplePointIndexTest extends SimplePointIndexTestBase {
 
-    protected Class<? extends LayerIndexReader> getIndexClass() {
-        return LayerGeohashPointIndex.class;
-    }
+	protected Class<? extends LayerIndexReader> getIndexClass() {
+		return LayerGeohashPointIndex.class;
+	}
 
-    @Override
-    protected LayerIndexReader makeIndex() {
-        return new LayerGeohashPointIndex();
-    }
+	@Override
+	protected LayerIndexReader makeIndex() {
+		return new LayerGeohashPointIndex();
+	}
 }
