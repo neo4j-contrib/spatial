@@ -53,7 +53,7 @@ public class OrthodromicLength extends AbstractGeoPipe {
 		return flow;
 	}
 
-	protected double calculateLength(Geometry geometry, CoordinateReferenceSystem crs) {
+	protected static double calculateLength(Geometry geometry, CoordinateReferenceSystem crs) {
 		GeodeticCalculator geodeticCalculator = new GeodeticCalculator(crs);
 
 		Coordinate[] coords = geometry.getCoordinates();

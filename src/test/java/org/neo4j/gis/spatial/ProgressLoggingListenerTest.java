@@ -47,7 +47,7 @@ public class ProgressLoggingListenerTest {
 		testProgressLoggingListenerWithSpecifiedWaits(unitsOfWork, timeWait, throttle, 3);
 	}
 
-	private void testProgressLoggingListenerWithSpecifiedWaits(int unitsOfWork, long timeWait, long throttle,
+	private static void testProgressLoggingListenerWithSpecifiedWaits(int unitsOfWork, long timeWait, long throttle,
 			int expectedLogCount) {
 		// When running maven-surefire System.out is replaced with a PrintStream that mockito cannot spy on, so we need to wrap it here
 		PrintStream wrapped = new PrintStream(System.out);

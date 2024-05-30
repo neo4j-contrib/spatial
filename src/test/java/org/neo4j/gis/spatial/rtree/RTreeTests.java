@@ -112,7 +112,7 @@ public class RTreeTests {
 		try (Transaction tx = db.beginTx()) {
 			RTreeIndex.NodeWithEnvelope rootNode = new RTreeIndex.NodeWithEnvelope(tx.createNode(),
 					new Envelope(min, max));
-			rtree.setIndexNodeEnvelope(rootNode);
+			TestRTreeIndex.setIndexNodeEnvelope(rootNode);
 			ArrayList<RTreeIndex.NodeWithEnvelope> parents = new ArrayList<>();
 			ArrayList<RTreeIndex.NodeWithEnvelope> children = new ArrayList<>();
 			parents.add(rootNode);
@@ -125,7 +125,7 @@ public class RTreeTests {
 							makeEnvelope(parent.envelope, 0.5, 0.0, 1.0)
 					};
 					for (Envelope env : envs) {
-						RTreeIndex.NodeWithEnvelope child = rtree.makeChildIndexNode(tx, parent, env);
+						RTreeIndex.NodeWithEnvelope child = TestRTreeIndex.makeChildIndexNode(tx, parent, env);
 						children.add(child);
 					}
 				}
@@ -139,7 +139,7 @@ public class RTreeTests {
 	}
 
 	@SuppressWarnings("SameParameterValue")
-	Envelope makeEnvelope(Envelope parent, double scaleFactor, double offsetX, double offsetY) {
+	static Envelope makeEnvelope(Envelope parent, double scaleFactor, double offsetX, double offsetY) {
 		Envelope env = new Envelope(parent);
 		env.scaleBy(scaleFactor);
 		env.shiftBy(offsetX * env.getWidth(0), 0);

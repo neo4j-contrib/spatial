@@ -136,7 +136,7 @@ public class StyledImageExporter {
 	}
 
 	@SuppressWarnings({"unused"})
-	private void debugStore(DataStore store, String[] layerNames) throws IOException {
+	private static void debugStore(DataStore store, String[] layerNames) throws IOException {
 		for (String layerName : layerNames) {
 			System.out.println(asList(store.getTypeNames()));
 			System.out.println(Collections.singletonList(store.getSchema(layerName).getAttributeDescriptors()));
@@ -244,7 +244,7 @@ public class StyledImageExporter {
 		}
 	}
 
-	private Style getStyleFromSLDFile(String sldFile) {
+	private static Style getStyleFromSLDFile(String sldFile) {
 		Style style = null;
 		if (sldFile != null) {
 			style = createStyleFromSLD(sldFile);
@@ -283,7 +283,7 @@ public class StyledImageExporter {
 	/**
 	 * Create a Style object from a definition in a SLD document
 	 */
-	private Style createStyleFromSLD(String sldFile) {
+	private static Style createStyleFromSLD(String sldFile) {
 		try {
 			SLDParser stylereader = new SLDParser(styleFactory, new File(sldFile).toURI().toURL());
 			Style[] style = stylereader.readXML();

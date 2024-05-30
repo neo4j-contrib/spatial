@@ -83,7 +83,7 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 		this.query = (JSONObject) JSONValue.parse(query);
 	}
 
-	private boolean queryIndexNode(Envelope indexNodeEnvelope) {
+	private static boolean queryIndexNode(Envelope indexNodeEnvelope) {
 		// TODO: Support making the query on each index node for performance
 		return true;
 	}
@@ -107,7 +107,7 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 		return queryNodeProperties(geomNode, properties) && stepAndQuery(geomNode, step);
 	}
 
-	private boolean stepAndQuery(Node source, JSONObject step) {
+	private static boolean stepAndQuery(Node source, JSONObject step) {
 		if (step != null) {
 			JSONObject properties = (JSONObject) step.get("properties");
 			RelationshipType relType = RelationshipType.withName(step.get("type").toString());
@@ -123,7 +123,7 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 		return true;
 	}
 
-	private boolean queryNodeProperties(Node node, JSONObject properties) {
+	private static boolean queryNodeProperties(Node node, JSONObject properties) {
 		if (properties != null) {
 			if (properties.containsKey("geometry")) {
 				System.out.println("Unexpected 'geometry' in query string");

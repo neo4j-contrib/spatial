@@ -83,17 +83,15 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 		public float average() {
 			if (count > 0) {
 				return (float) time / (float) count;
-			} else {
-				return 0;
 			}
+			return 0;
 		}
 
 		public String toString() {
 			if (count > 0) {
 				return "" + chunk + ": " + average() + "ms per record (" + count + " records over " + time + "ms)";
-			} else {
-				return "" + chunk + ": INVALID (" + count + " records over " + time + "ms)";
 			}
+			return "" + chunk + ": INVALID (" + count + " records over " + time + "ms)";
 		}
 	}
 

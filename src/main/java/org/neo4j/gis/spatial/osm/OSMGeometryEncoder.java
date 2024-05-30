@@ -193,7 +193,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 
 	}
 
-	public Iterable<Node> getPointNodesFromWayNode(Node wayNode) {
+	public static Iterable<Node> getPointNodesFromWayNode(Node wayNode) {
 		final Node firstNode = wayNode.getSingleRelationship(OSMRelation.FIRST_NODE, Direction.OUTGOING).getEndNode();
 		final NodeProxyIterator iterator = new NodeProxyIterator(firstNode);
 		return () -> iterator;
@@ -287,17 +287,16 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 		if (geometry instanceof LineString line) {
 			if (line.getCoordinates().length < 3) {
 				return null;
-			} else {
-				Coordinate[] coords = line.getCoordinates();
-				if (!line.isClosed()) {
-					coords = closeCoords(coords);
-				}
-				LinearRing ring = geometry.getFactory().createLinearRing(coords);
-				if (ring.isValid()) {
-					return ring;
-				}
-				return getConvexHull(ring);
 			}
+			Coordinate[] coords = line.getCoordinates();
+			if (!line.isClosed()) {
+				coords = closeCoords(coords);
+			}
+			LinearRing ring = geometry.getFactory().createLinearRing(coords);
+			if (ring.isValid()) {
+				return ring;
+			}
+			return getConvexHull(ring);
 		}
 		if (geometry instanceof Polygon polygon) {
 			return polygon.getExteriorRing();
@@ -311,7 +310,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	 * @param coords original array that is not closed
 	 * @return new array one point longer
 	 */
-	private Coordinate[] closeCoords(Coordinate[] coords) {
+	private static Coordinate[] closeCoords(Coordinate[] coords) {
 		Coordinate[] nc = new Coordinate[coords.length + 1];
 		System.arraycopy(coords, 0, nc, 0, coords.length);
 		nc[coords.length] = coords[0];
@@ -452,7 +451,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 		return way;
 	}
 
-	private Node makeOSMRelation(Geometry geometry, Node geomNode) {
+	private static Node makeOSMRelation(Geometry geometry, Node geomNode) {
 		relationId++;
 		throw new SpatialDatabaseException("Unimplemented: makeOSMRelation()");
 	}

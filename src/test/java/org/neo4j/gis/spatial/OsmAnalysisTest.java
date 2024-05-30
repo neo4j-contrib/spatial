@@ -144,7 +144,7 @@ public class OsmAnalysisTest extends TestOSMImportBase {
 
 			for (Node cNode : dataset.getAllChangesetNodes(tx)) {
 				long timestamp = (Long) cNode.getProperty("timestamp", 0L);
-				Node userNode = dataset.getUser(cNode);
+				Node userNode = OSMDataset.getUser(cNode);
 				String name = (String) userNode.getProperty("name");
 
 				User user = userIndex.get(name);
@@ -302,7 +302,7 @@ public class OsmAnalysisTest extends TestOSMImportBase {
 		}
 	}
 
-	private ReferencedEnvelope getEnvelope(Transaction tx, Collection<Layer> layers) {
+	private static ReferencedEnvelope getEnvelope(Transaction tx, Collection<Layer> layers) {
 		CoordinateReferenceSystem crs = null;
 
 		Envelope envelope = null;
@@ -321,7 +321,7 @@ public class OsmAnalysisTest extends TestOSMImportBase {
 		return new ReferencedEnvelope(Utilities.fromNeo4jToJts(envelope), crs);
 	}
 
-	private SortedMap<String, Layer> removeEmptyLayers(Transaction tx, Map<String, Layer> layers) {
+	private static SortedMap<String, Layer> removeEmptyLayers(Transaction tx, Map<String, Layer> layers) {
 		SortedMap<String, Layer> result = new TreeMap<>();
 
 		for (Entry<String, Layer> entry : layers.entrySet()) {
@@ -333,7 +333,7 @@ public class OsmAnalysisTest extends TestOSMImportBase {
 		return result;
 	}
 
-	private SortedMap<String, Layer> exportPoints(Transaction tx, String layerPrefix,
+	private static SortedMap<String, Layer> exportPoints(Transaction tx, String layerPrefix,
 			SpatialDatabaseService spatialService, Set<User> users) {
 		SortedMap<String, Layer> layers = new TreeMap<>();
 		int startYear = 2009;
@@ -399,7 +399,7 @@ public class OsmAnalysisTest extends TestOSMImportBase {
 		return layers;
 	}
 
-	private SortedSet<User> getTopTen(Map<String, User> userIndex) {
+	private static SortedSet<User> getTopTen(Map<String, User> userIndex) {
 		SortedSet<User> userList = new TreeSet<>(userIndex.values());
 		SortedSet<User> topTen = new TreeSet<>();
 
@@ -420,7 +420,7 @@ public class OsmAnalysisTest extends TestOSMImportBase {
 		return topTen;
 	}
 
-	private Map<String, User> collectUserChangesetData(Node usersNode) {
+	private static Map<String, User> collectUserChangesetData(Node usersNode) {
 		Map<String, User> userIndex = new HashMap<>();
 		for (Relationship r : usersNode.getRelationships(Direction.OUTGOING, OSMRelation.OSM_USER)) {
 			Node userNode = r.getEndNode();

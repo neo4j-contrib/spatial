@@ -53,7 +53,7 @@ public class OSMLayer extends DynamicLayer {
 		this.osmDataset = osmDataset;
 	}
 
-	public Integer getGeometryType() {
+	public static Integer getGeometryType() {
 		// The core layer in OSM is based on the Ways, and we return all of them
 		// as LINESTRING and POLYGON, so we use the parent GEOMETRY
 		return GTYPE_GEOMETRY;

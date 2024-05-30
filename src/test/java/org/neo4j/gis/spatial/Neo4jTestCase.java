@@ -143,7 +143,7 @@ public abstract class Neo4jTestCase {
 	private void beforeShutdown() {
 	}
 
-	Path getNeoPath() {
+	static Path getNeoPath() {
 		return dbPath.toAbsolutePath();
 	}
 
@@ -151,7 +151,7 @@ public abstract class Neo4jTestCase {
 		return dbPath.toAbsolutePath().resolve("test-" + storePrefix);
 	}
 
-	private void deleteDatabase() {
+	private static void deleteDatabase() {
 		try {
 			FileUtils.deleteDirectory(getNeoPath());
 		} catch (IOException e) {

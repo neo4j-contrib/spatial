@@ -125,7 +125,7 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
 		return td.traverse(tx.getNodeByElementId(datasetNodeId)).nodes();
 	}
 
-	public Iterable<Node> getWayNodes(Node way) {
+	public static Iterable<Node> getWayNodes(Node way) {
 		TraversalDescription td = new MonoDirectionalTraversalDescription()
 				.depthFirst()
 				.relationships(OSMRelation.NEXT, Direction.OUTGOING)
@@ -136,7 +136,7 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
 		).nodes();
 	}
 
-	public Node getChangeset(Node way) {
+	public static Node getChangeset(Node way) {
 		try {
 			return way.getSingleRelationship(OSMRelation.CHANGESET, Direction.OUTGOING).getEndNode();
 		} catch (Exception e) {
@@ -145,7 +145,7 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
 		}
 	}
 
-	public Node getUser(Node nodeWayOrChangeset) {
+	public static Node getUser(Node nodeWayOrChangeset) {
 		TraversalDescription td = new MonoDirectionalTraversalDescription()
 				.depthFirst()
 				.relationships(OSMRelation.CHANGESET, Direction.OUTGOING)
@@ -228,7 +228,7 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
 		}
 
 		Iterable<Node> getWayNodes() {
-			return OSMDataset.this.getWayNodes(this.node);
+			return OSMDataset.getWayNodes(this.node);
 		}
 
 		public Iterable<WayPoint> getWayPoints() {

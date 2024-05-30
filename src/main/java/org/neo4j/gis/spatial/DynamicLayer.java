@@ -101,11 +101,11 @@ public class DynamicLayer extends EditableLayerImpl {
 	}
 
 	public DynamicLayerConfig addCQLDynamicLayerOnAttribute(Transaction tx, String key, String value, int gtype) {
-		// TODO: Better escaping here
-		//return addLayerConfig("CQL:" + key + "-" + value, gtype, key + " = '" + value + "' AND " + makeGeometryCQL(gtype));
 		if (value == null) {
 			return addLayerConfig(tx, "CQL:" + key, gtype, key + " IS NOT NULL AND " + makeGeometryCQL(gtype));
 		}
+		// TODO: Better escaping here
+		//return addLayerConfig("CQL:" + key + "-" + value, gtype, key + " = '" + value + "' AND " + makeGeometryCQL(gtype));
 		return addCQLDynamicLayerOnAttributes(tx, new String[]{key, value}, gtype);
 	}
 

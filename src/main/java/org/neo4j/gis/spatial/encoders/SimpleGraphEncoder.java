@@ -54,7 +54,7 @@ public class SimpleGraphEncoder extends AbstractGeometryEncoder {
 		return geometryFactory;
 	}
 
-	private Node testIsNode(Entity container) {
+	private static Node testIsNode(Entity container) {
 		if (!(container instanceof Node)) {
 			throw new SpatialDatabaseException("Cannot decode non-node geometry: " + container);
 		}

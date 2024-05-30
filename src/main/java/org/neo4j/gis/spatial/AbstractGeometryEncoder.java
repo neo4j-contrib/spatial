@@ -71,7 +71,7 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 
 	protected abstract void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container);
 
-	protected Integer encodeGeometryType(String jtsGeometryType) {
+	protected static Integer encodeGeometryType(String jtsGeometryType) {
 		// TODO: Consider alternatives for specifying type, like relationship to type category objects (or similar indexing structure)
 		return switch (jtsGeometryType) {
 			case "Point" -> GTYPE_POINT;

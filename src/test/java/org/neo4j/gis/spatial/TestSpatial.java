@@ -372,7 +372,7 @@ public class TestSpatial extends Neo4jTestCase {
 		}
 	}
 
-	private void assertEnvelopeEquals(Envelope a, Envelope b) {
+	private static void assertEnvelopeEquals(Envelope a, Envelope b) {
 		Assertions.assertNotNull(a);
 		Assertions.assertNotNull(b);
 		Assertions.assertEquals(a.getDimension(), b.getDimension());

@@ -226,7 +226,7 @@ public class ShapefileImporter implements Constants {
 		return added;
 	}
 
-	private CoordinateReferenceSystem readCRS(ShpFiles shpFiles, ShapefileReader shpReader) {
+	private static CoordinateReferenceSystem readCRS(ShpFiles shpFiles, ShapefileReader shpReader) {
 		try (PrjFileReader prjReader = new PrjFileReader(shpFiles.getReadChannel(ShpFileType.PRJ, shpReader))) {
 			return prjReader.getCoordinateReferenceSystem();
 		} catch (IOException | FactoryException e) {
@@ -235,11 +235,11 @@ public class ShapefileImporter implements Constants {
 		}
 	}
 
-	private void log(String message) {
+	private static void log(String message) {
 		System.out.println(message);
 	}
 
-	private void log(String message, Exception e) {
+	private static void log(String message, Exception e) {
 		System.out.println(message);
 		e.printStackTrace();
 	}

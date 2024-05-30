@@ -98,7 +98,7 @@ public abstract class AsciiDocGenerator {
 		return this;
 	}
 
-	protected void line(final Writer fw, final String string)
+	protected static void line(final Writer fw, final String string)
 			throws IOException {
 		fw.append(string);
 		fw.append("\n");

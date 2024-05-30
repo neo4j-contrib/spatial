@@ -1064,7 +1064,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		exporter.setExportDir("target/docs/images/");
 	}
 
-	private GeoPipeFlow print(GeoPipeFlow pipeFlow) {
+	private static GeoPipeFlow print(GeoPipeFlow pipeFlow) {
 		System.out.println("GeoPipeFlow:");
 		for (String key : pipeFlow.getProperties().keySet()) {
 			System.out.println(key + "=" + pipeFlow.getProperties().get(key));

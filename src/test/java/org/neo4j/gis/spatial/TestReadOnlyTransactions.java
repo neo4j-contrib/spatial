@@ -91,7 +91,7 @@ public class TestReadOnlyTransactions {
 		}
 	}
 
-	private void readNames(Transaction tx) {
+	private static void readNames(Transaction tx) {
 		Node n1 = tx.getNodeByElementId(n1Id);
 		Node n2 = tx.getNodeByElementId(n2Id);
 		String n1Name = (String) n1.getProperty("name");

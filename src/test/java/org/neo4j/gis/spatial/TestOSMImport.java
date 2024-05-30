@@ -114,7 +114,7 @@ public class TestOSMImport extends TestOSMImportBase {
 		}
 	}
 
-	private void debugNode(Node node) {
+	private static void debugNode(Node node) {
 		Map<String, Object> properties = node.getProperties();
 		System.out.println(node + " has " + properties.size() + " properties");
 		for (Map.Entry<String, Object> property : properties.entrySet()) {

@@ -123,7 +123,7 @@ public class RTreeImageExporter {
 		MapContent mapContent = new MapContent();
 		drawBounds(mapContent, bounds, Color.WHITE);
 
-		int indexHeight = index.getHeight(rootNode, 0);
+		int indexHeight = RTreeIndex.getHeight(rootNode, 0);
 		ArrayList<ArrayList<RTreeIndex.NodeWithEnvelope>> layers = new ArrayList<>(indexHeight);
 		ArrayList<List<RTreeIndex.NodeWithEnvelope>> indexMatches = new ArrayList<>(indexHeight);
 		for (int i = 0; i < indexHeight; i++) {
@@ -133,10 +133,10 @@ public class RTreeImageExporter {
 			layers.add(new ArrayList<>());
 			ArrayList<RTreeIndex.NodeWithEnvelope> nodes = layers.get(i);
 			if (i == 0) {
-				nodes.add(new RTreeIndex.NodeWithEnvelope(rootNode, index.getIndexNodeEnvelope(rootNode)));
+				nodes.add(new RTreeIndex.NodeWithEnvelope(rootNode, RTreeIndex.getIndexNodeEnvelope(rootNode)));
 			} else {
 				for (RTreeIndex.NodeWithEnvelope parent : layers.get(i - 1)) {
-					for (RTreeIndex.NodeWithEnvelope child : index.getIndexChildren(parent.node)) {
+					for (RTreeIndex.NodeWithEnvelope child : RTreeIndex.getIndexChildren(parent.node)) {
 						layers.get(i).add(child);
 					}
 				}

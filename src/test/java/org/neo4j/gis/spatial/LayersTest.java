@@ -159,7 +159,7 @@ public class LayersTest {
 		inTx(tx -> spatial.deleteLayer(tx, layerName,
 				new ProgressLoggingListener("deleting layer '" + layerName + "'", System.out)));
 		inTx(tx -> assertNull(spatial.getLayer(tx, layerName)));
-		spatial.indexManager.waitForDeletions();
+		IndexManager.waitForDeletions();
 	}
 
 	@Test
@@ -317,7 +317,7 @@ public class LayersTest {
 		return layerName;
 	}
 
-	private void printResults(Layer layer, List<SpatialDatabaseRecord> results) {
+	private static void printResults(Layer layer, List<SpatialDatabaseRecord> results) {
 		System.out.println("\tTesting layer '" + layer.getName() + "' (class " + layer.getClass() + "), found results: "
 				+ results.size());
 		for (SpatialDatabaseRecord r : results) {

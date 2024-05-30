@@ -320,7 +320,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		assertIndexCountSameAs(layerNameC, coords.length);
 	}
 
-	private void checkPointOrder(List<GeoPipeFlow> results) {
+	private static void checkPointOrder(List<GeoPipeFlow> results) {
 		for (int i = 0; i < results.size() - 1; i++) {
 			GeoPipeFlow first = results.get(i);
 			GeoPipeFlow second = results.get(i + 1);
