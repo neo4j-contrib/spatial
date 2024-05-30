@@ -8,14 +8,14 @@
 
 :leveloffset: 1
 
-include::dev/introduction.txt[]
+include::dev/introduction.adoc[]
 
 :leveloffset: 1
 
-include::dev/index.txt[]
+include::dev/index.adoc[]
 
 :leveloffset: 1
 
-include::dev/appendix.txt[]
+include::dev/appendix.adoc[]
 
 

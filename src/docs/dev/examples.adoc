@@ -96,5 +96,5 @@ image::equalLayer.png[]
 
 :leveloffset: 2
 
-include::geo-pipes.txt[]
+include::geo-pipes.adoc[]
 
