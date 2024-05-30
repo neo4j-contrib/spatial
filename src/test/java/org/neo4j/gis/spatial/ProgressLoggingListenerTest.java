@@ -63,7 +63,7 @@ public class ProgressLoggingListenerTest {
 		}
 		listener.done();
 		verify(out).println("Starting test");
-		verify(out).println(String.format("%.2f (10/10) - Completed test", 100f));
+		verify(out).printf("%.2f (10/10) - Completed test%n", 100f);
 		verify(out, times(expectedLogCount)).println(Mockito.anyString());
 	}
 }

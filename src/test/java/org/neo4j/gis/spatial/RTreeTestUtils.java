@@ -37,19 +37,11 @@ import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 
 /**
+ * This class contain functions which can be used to test the integrity of the Rtree.
+ * <p>
  * Created by Philip Stephens on 12/11/2016.
  */
 public class RTreeTestUtils {
-
-	/**
-	 * This class contain functions which can be used to test the integrity of the Rtree.
-	 */
-
-	private final RTreeIndex rtree;
-
-	public RTreeTestUtils(RTreeIndex rtree) {
-		this.rtree = rtree;
-	}
 
 	public static double one_d_overlap(double a1, double a2, double b1, double b2) {
 		return Double.max(
@@ -63,7 +55,7 @@ public class RTreeTestUtils {
 				one_d_overlap(a.getMinY(), a.getMaxY(), b.getMinY(), b.getMaxY());
 	}
 
-	public double calculate_overlap(Node child) {
+	public static double calculate_overlap(Node child) {
 
 		Envelope parent = RTreeIndex.getIndexNodeEnvelope(child);
 		List<Envelope> children = new ArrayList<Envelope>();

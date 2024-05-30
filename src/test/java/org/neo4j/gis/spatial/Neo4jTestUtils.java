@@ -87,10 +87,10 @@ public class Neo4jTestUtils {
 		}
 
 		if (root.hasProperty(Constants.PROP_BBOX)) {
-			System.out.println(tab.toString() + "INDEX: " + root + " BBOX[" + arrayString(
+			System.out.println(tab + "INDEX: " + root + " BBOX[" + arrayString(
 					(double[]) root.getProperty(Constants.PROP_BBOX)) + "]");
 		} else {
-			System.out.println(tab.toString() + "INDEX: " + root);
+			System.out.println(tab + "INDEX: " + root);
 		}
 
 		StringBuffer data = new StringBuffer();

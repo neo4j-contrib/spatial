@@ -56,7 +56,7 @@ public abstract class Neo4jTestCase {
 		//NORMAL_CONFIG.put( GraphDatabaseSettings.nodestore_propertystore_mapped_memory_size.name(), "150M" );
 		//NORMAL_CONFIG.put( GraphDatabaseSettings.strings_mapped_memory_size.name(), "200M" );
 		//NORMAL_CONFIG.put( GraphDatabaseSettings.arrays_mapped_memory_size.name(), "0M" );
-		NORMAL_CONFIG.put(GraphDatabaseSettings.pagecache_memory, 200000000l);
+		NORMAL_CONFIG.put(GraphDatabaseSettings.pagecache_memory, 200000000L);
 		NORMAL_CONFIG.put(GraphDatabaseInternalSettings.trace_cursors, true);
 	}
 
@@ -68,7 +68,7 @@ public abstract class Neo4jTestCase {
 		//LARGE_CONFIG.put( GraphDatabaseSettings.nodestore_propertystore_mapped_memory_size.name(), "400M" );
 		//LARGE_CONFIG.put( GraphDatabaseSettings.strings_mapped_memory_size.name(), "800M" );
 		//LARGE_CONFIG.put( GraphDatabaseSettings.arrays_mapped_memory_size.name(), "10M" );
-		LARGE_CONFIG.put(GraphDatabaseSettings.pagecache_memory, 100000000l);
+		LARGE_CONFIG.put(GraphDatabaseSettings.pagecache_memory, 100000000L);
 	}
 
 	private static final File basePath = new File("target/var");
