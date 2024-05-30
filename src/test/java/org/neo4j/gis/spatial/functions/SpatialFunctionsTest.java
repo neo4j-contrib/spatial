@@ -311,4 +311,19 @@ public class SpatialFunctionsTest extends AbstractApiTest {
 			)));
 		}
 	}
+
+	@Test
+	public void testPointToWkt() {
+		Object wkt = executeObject("return spatial.neo4jGeometryToWkt(point({longitude: 1, latitude: 2})) as wkt",
+				"wkt");
+		assertThat(wkt, equalTo("POINT ( 1 2 )"));
+	}
+
+	@Test
+	public void testPointArrayToWkt() {
+		Object wkt = executeObject(
+				"return spatial.neo4jGeometryToWkt([point({longitude: 1, latitude: 2}), point({longitude: 3, latitude: 4}) ]) as wkt",
+				"wkt");
+		assertThat(wkt, equalTo("LINESTRING (1 2, 3 4)"));
+	}
 }
