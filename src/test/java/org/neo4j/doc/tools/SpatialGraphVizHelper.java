@@ -21,7 +21,6 @@ package org.neo4j.doc.tools;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
@@ -61,22 +60,18 @@ public class SpatialGraphVizHelper extends org.neo4j.visualization.asciidoc.Asci
 			String colorSet = "neoviz";
 			String graphAttrs = "";
 
-			try {
-				String result = "." + title + "\n[graphviz, "
-						+ (safeTitle + "-" + identifier).replace(" ", "-")
-						+ ", svg]\n"
-						+ "----\n" +
-						new GraphVizConfig(
-								out.toString(StandardCharsets.UTF_8.name()),
-								fontsDir,
-								colorSet, graphAttrs
-						).get() + "\n" +
-						"----\n";
-				System.out.println(result);
-				return result;
-			} catch (UnsupportedEncodingException e) {
-				throw new RuntimeException(e);
-			}
+			String result = "." + title + "\n[graphviz, "
+					+ (safeTitle + "-" + identifier).replace(" ", "-")
+					+ ", svg]\n"
+					+ "----\n" +
+					new GraphVizConfig(
+							out.toString(StandardCharsets.UTF_8),
+							fontsDir,
+							colorSet, graphAttrs
+					).get() + "\n" +
+					"----\n";
+			System.out.println(result);
+			return result;
 		}
 	}
 }

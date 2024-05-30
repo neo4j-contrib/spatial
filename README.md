@@ -172,7 +172,7 @@ The spatial queries implemented are:
 The simplest way to build Neo4j Spatial is by using maven. Just clone the git repository and run
 
 ~~~bash
-    mvn install
+mvn install
 ~~~
 
 This will download all dependencies, compiled the library, run the tests and install the artifact in your local
@@ -207,22 +207,18 @@ Spatial data is divided in Layers and indexed by a RTree.
 ~~~java
 GraphDatabaseService database = new GraphDatabaseFactory().newEmbeddedDatabase(storeDir);
 try{
-ShapefileImporter importer = new ShapefileImporter(database);
-	importer.
-
-importFile("roads.shp","layer_roads");
-}finally{
-		database.
-
-shutdown();
+	ShapefileImporter importer = new ShapefileImporter(database);
+	importer.importFile("roads.shp","layer_roads");
+} finally {
+	database.shutdown();
 }
 ~~~
 
 If using the server, the same can be achieved with spatial procedures (3.x only):
 
 ~~~cypher
-CALL spatial.addWKTLayer('layer_roads','geometry')
-CALL spatial.importShapefileToLayer('layer_roads','roads.shp')
+CALL spatial.addWKTLayer('layer_roads', 'geometry')
+CALL spatial.importShapefileToLayer('layer_roads', 'roads.shp')
 ~~~
 
 ### Importing an Open Street Map file ###
@@ -267,24 +263,24 @@ try {
 If using the server, the same can be achieved with spatial procedures (3.x only):
 
 ~~~cypher
-CALL spatial.bbox('layer_roads', {lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})
+CALL spatial.bbox('layer_roads', {lon: 15.0, lat: 60.0}, {lon: 15.3, lat: 61.0})
 ~~~
 
 Or using a polygon:
 
 ~~~cypher
-WITH "POLYGON((15.3 60.2, 15.3 60.4, 15.7 60.4, 15.7 60.2, 15.3 60.2))" as polygon
-CALL spatial.intersects('layer_roads',polygon) YIELD node RETURN node.name as name
+
+WITH 'POLYGON((15.3 60.2, 15.3 60.4, 15.7 60.4, 15.7 60.2, 15.3 60.2))' AS polygon
+CALL spatial.intersects('layer_roads', polygon) YIELD node
+RETURN node.name AS name
 ~~~
 
-For further Java examples, refer to the test code in
-the [LayersTest](https://github.com/neo4j-contrib/spatial/blob/master/src/test/java/org/neo4j/gis/spatial/LayersTest.java)
-and
-the [TestSpatial](https://github.com/neo4j-contrib/spatial/blob/master/src/test/java/org/neo4j/gis/spatial/TestSpatial.java)
-classes.
+For further Java examples, refer to the test code in the
+[LayersTest](src/test/java/org/neo4j/gis/spatial/LayersTest.java) and
+the [TestSpatial](src/test/java/org/neo4j/gis/spatial/TestSpatial.java) classes.
 
 For further Procedures examples, refer to the code in
-the [SpatialProceduresTest](https://github.com/neo4j-contrib/spatial/blob/master/src/test/java/org/neo4j/gis/spatial/procedures/SpatialProceduresTest.java)
+the [SpatialProceduresTest](src/test/java/org/neo4j/gis/spatial/procedures/SpatialProceduresTest.java)
 class.
 
 ## Neo4j Spatial Geoserver Plugin ##
@@ -306,7 +302,7 @@ This has not been tested at all in any GeoTools enabled application, but could p
 ### Building ###
 
 ~~~bash
-    mvn clean install
+mvn clean install
 ~~~
 
 ### Deployment into Geoserver ###
@@ -326,38 +322,38 @@ This has not been tested at all in any GeoTools enabled application, but could p
 * check out the geoserver source
 
 ~~~bash
-    svn co https://svn.codehaus.org/geoserver/trunk geoserver-trunk
+svn co https://svn.codehaus.org/geoserver/trunk geoserver-trunk
 ~~~
 
 * build the source
 
 ~~~bash
-    cd geoserver-trunk
-    mvn clean install
+cd geoserver-trunk
+mvn clean install
 ~~~
 
 * check that you can run the web app as
   of [The GeoServer Maven build guide](http://docs.geoserver.org/latest/en/developer/maven-guide/index.html#running-the-web-module-with-jetty)
 
 ~~~bash
-    cd src/web/app
-    mvn jetty:run
+cd src/web/app
+mvn jetty:run
 ~~~
 
 * in `$GEOSERVER_SOURCE/src/web/app/pom.xml` https://svn.codehaus.org/geoserver/trunk/src/web/app/pom.xml, add the
   following lines under the profiles section:
 
 ~~~xml
-    <profile>
-      <id>neo4j</id>
-      <dependencies>
-        <dependency>
-          <groupId>org.neo4j</groupId>
-          <artifactId>neo4j-spatial</artifactId>
-          <version>0.19-neo4j-3.0.3</version>
-        </dependency>
-      </dependencies>
-    </profile>
+<profile>
+	<id>neo4j</id>
+	<dependencies>
+		<dependency>
+			<groupId>org.neo4j</groupId>
+			<artifactId>neo4j-spatial</artifactId>
+			<version>0.19-neo4j-3.0.3</version>
+		</dependency>
+	</dependencies>
+</profile>
 ~~~
 
 The version specified on the version line can be changed to match the version you wish to work with (based on the
@@ -461,15 +457,15 @@ The Java API (the original API for Neo4j Spatial) still remains, however, the mo
 and therefor we recommend that if you need to access Neo4j server remotely, and want deeper access to Spatial functions,
 consider writing your own Procedures. The Neo4j 3.0 documentation provides some good information on how to do this,
 and you can also refer to
-the [Neo4j Spatial procedures source code](https://github.com/neo4j-contrib/spatial/blob/master/src/main/java/org/neo4j/gis/spatial/procedures/SpatialProcedures.java)
+the [Neo4j Spatial procedures source code](src/main/java/org/neo4j/gis/spatial/procedures/SpatialProcedures.java)
 for examples.
 
 ## Building Neo4j spatial ##
 
 ~~~bash  
-    git clone https://github.com/neo4j/spatial.git
-    cd spatial
-    mvn clean package
+git clone https://github.com/neo4j-contrib/spatial/spatial.git
+cd spatial
+mvn clean package
 ~~~
 
 ### Building Neo4j Spatial Documentation ###
@@ -478,22 +474,22 @@ Add your GitHub credentials in your `~/.m2/settings.xml`
 
 ~~~xml
 <settings>
-    <servers>
-      <server>
-        <id>github</id>
-        <username>xxx@xxx.xx</username>
-        <password>secret</password>
-      </server>
-    </servers>
+	<servers>
+		<server>
+			<id>github</id>
+			<username>xxx@xxx.xx</username>
+			<password>secret</password>
+		</server>
+	</servers>
 </settings>
 ~~~
 
 To build and deploy:
 
 ~~~bash
-    git clone https://github.com/neo4j/spatial.git
-    cd spatial
-    mvn clean install site -Pneo-docs-build  
+git clone https://github.com/neo4j/spatial.git
+cd spatial
+mvn clean install site -Pneo-docs-build  
 ~~~
 
 ## Using Neo4j spatial in your Java project with Maven ##
@@ -501,34 +497,34 @@ To build and deploy:
 Add the following repositories and dependency to your project's pom.xml:
 
 ~~~xml
-    <repositories>
-        <repository>
-            <id>neo4j-contrib-releases</id>
-            <url>https://raw.github.com/neo4j-contrib/m2/master/releases</url>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-        </repository>
-        <repository>
-            <id>neo4j-contrib-snapshots</id>
-            <url>https://raw.github.com/neo4j-contrib/m2/master/snapshots</url>
-            <releases>
-                <enabled>false</enabled>
-            </releases>
-            <snapshots>
-                <enabled>true</enabled>
-            </snapshots>
-        </repository>
-    </repositories>
-    [...]
-    <dependency>
-        <groupId>org.neo4j</groupId>
-        <artifactId>neo4j-spatial</artifactId>
-        <version>0.30.0-neo4j-5.13.0</version>
-    </dependency>
+<repositories>
+	<repository>
+		<id>neo4j-contrib-releases</id>
+		<url>https://raw.github.com/neo4j-contrib/m2/master/releases</url>
+		<releases>
+			<enabled>true</enabled>
+		</releases>
+		<snapshots>
+			<enabled>false</enabled>
+		</snapshots>
+	</repository>
+	<repository>
+		<id>neo4j-contrib-snapshots</id>
+		<url>https://raw.github.com/neo4j-contrib/m2/master/snapshots</url>
+		<releases>
+			<enabled>false</enabled>
+		</releases>
+		<snapshots>
+			<enabled>true</enabled>
+		</snapshots>
+	</repository>
+</repositories>
+[...]
+<dependency>
+	<groupId>org.neo4j</groupId>
+	<artifactId>neo4j-spatial</artifactId>
+	<version>0.30.0-neo4j-5.13.0</version>
+</dependency>
 ~~~
 
 The version specified on the last version line can be changed to match the version you wish to work with (based on the
@@ -547,16 +543,16 @@ other using the 'exec:java' target in maven. In both cases we use maven to set u
 ### Compile ###
 
 ~~~bash
-    git clone git://github.com/neo4j-contrib/spatial.git
-    cd spatial
-    mvn clean compile
+git clone git://github.com/neo4j-contrib/spatial.git
+cd spatial
+mvn clean compile
 ~~~
 
 ### Run using JAVA command ###
 
 ~~~bash
-    mvn dependency:copy-dependencies
-    java -cp target/classes:target/dependency/* org.neo4j.gis.spatial.osm.OSMImporter osm-db two-street.osm 
+mvn dependency:copy-dependencies
+java -cp target/classes:target/dependency/* org.neo4j.gis.spatial.osm.OSMImporter osm-db two-street.osm 
 ~~~
 
 _Note: On windows remember to separate the classpath with ';' instead of ':'._
@@ -571,7 +567,7 @@ the above approach is most certainly the easiest way to do this.
 ### Run using 'mvn exec:java' ###
 
 ~~~bash
-    mvn exec:java -Dexec.mainClass=org.neo4j.gis.spatial.osm.OSMImporter -Dexec.args="osm-db two-street.osm"
+mvn exec:java -Dexec.mainClass=org.neo4j.gis.spatial.osm.OSMImporter -Dexec.args="osm-db two-street.osm"
 ~~~
 
 Note that the OSMImporter cannot re-import the same data multiple times,

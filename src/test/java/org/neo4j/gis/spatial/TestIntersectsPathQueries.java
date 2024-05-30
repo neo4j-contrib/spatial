@@ -210,8 +210,8 @@ public class TestIntersectsPathQueries {
 	}
 
 	@SuppressWarnings("SameParameterValue")
-	private void runTestPointSetGeoptimaIntersection(String tracePath, String dbRoot, String dbName, String layerName,
-			boolean testMultiPoint) {
+	private static void runTestPointSetGeoptimaIntersection(String tracePath, String dbRoot, String dbName,
+			String layerName, boolean testMultiPoint) {
 		withDatabase(dbRoot, dbName, Neo4jTestCase.NORMAL_CONFIG, graphDb -> {
 			SpatialDatabaseService spatial = new SpatialDatabaseService(
 					new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));

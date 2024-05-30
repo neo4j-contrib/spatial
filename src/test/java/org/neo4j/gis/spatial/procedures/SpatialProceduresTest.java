@@ -31,70 +31,44 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
-import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.gis.spatial.Constants.LABEL_LAYER;
 import static org.neo4j.gis.spatial.Constants.PROP_GEOMENCODER;
 import static org.neo4j.gis.spatial.Constants.PROP_GEOMENCODER_CONFIG;
 import static org.neo4j.gis.spatial.Constants.PROP_LAYER;
 import static org.neo4j.gis.spatial.Constants.PROP_LAYER_CLASS;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import org.hamcrest.MatcherAssert;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.neo4j.configuration.GraphDatabaseInternalSettings;
-import org.neo4j.configuration.GraphDatabaseSettings;
-import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.exceptions.KernelException;
+import org.neo4j.gis.spatial.AbstractApiTest;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.SpatialRelationshipTypes;
+import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.utilities.ReferenceNodes;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.spatial.Geometry;
 import org.neo4j.graphdb.spatial.Point;
-import org.neo4j.internal.helpers.collection.Iterators;
-import org.neo4j.io.fs.FileUtils;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
-import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
-public class SpatialProceduresTest {
+public class SpatialProceduresTest extends AbstractApiTest {
 
-	private DatabaseManagementService databases;
-	private GraphDatabaseService db;
-
-	@BeforeEach
-	public void setUp() throws KernelException, IOException {
-		Path dbRoot = new File("target/procedures").toPath();
-		FileUtils.deleteDirectory(dbRoot);
-		databases = new TestDatabaseManagementServiceBuilder(dbRoot)
-				.setConfig(GraphDatabaseSettings.procedure_unrestricted, List.of("spatial.*"))
-				.setConfig(GraphDatabaseInternalSettings.trace_cursors, true)
-				.impermanent().build();
-		db = databases.database(DEFAULT_DATABASE_NAME);
-		registerProceduresAndFunctions(db, SpatialProcedures.class);
-	}
-
-	@AfterEach
-	public void tearDown() {
-		databases.shutdown();
+	@Override
+	protected void registerApiProceduresAndFunctions() throws KernelException {
+		registerProceduresAndFunctions(SpatialProcedures.class);
+		registerProceduresAndFunctions(SpatialFunctions.class);
 	}
 
 	public static void testCall(GraphDatabaseService db, String call, Consumer<Map<String, Object>> consumer) {
@@ -327,32 +301,8 @@ public class SpatialProceduresTest {
 	}
 
 	@Test
-	// TODO: Support this once procedures are able to return Geometry types
-	public void create_point_geometry_and_distance() {
-		double distance = (double) executeObject(
-				"WITH point({latitude: 5.0, longitude: 4.0}) as geom WITH spatial.asGeometry(geom) AS geometry RETURN point.distance(geometry, point({latitude: 5.0, longitude: 4.0})) as distance",
-				"distance");
-		System.out.println(distance);
-	}
-
-	@Test
 	public void create_point_and_return() {
 		Object geometry = executeObject("RETURN point({latitude: 5.0, longitude: 4.0}) as geometry", "geometry");
-		assertInstanceOf(Geometry.class, geometry, "Should be Geometry type");
-	}
-
-	@Test
-	public void create_point_geometry_return() {
-		Object geometry = executeObject(
-				"WITH point({latitude: 5.0, longitude: 4.0}) as geom RETURN spatial.asGeometry(geom) AS geometry",
-				"geometry");
-		assertInstanceOf(Geometry.class, geometry, "Should be Geometry type");
-	}
-
-	@Test
-	public void literal_geometry_return() {
-		Object geometry = executeObject(
-				"WITH spatial.asGeometry({latitude: 5.0, longitude: 4.0}) AS geometry RETURN geometry", "geometry");
 		assertInstanceOf(Geometry.class, geometry, "Should be Geometry type");
 	}
 
@@ -375,74 +325,6 @@ public class SpatialProceduresTest {
 		double distance = (Double) executeObject("RETURN point.distance($geom, point({y: 6.0, x: 4.0})) as distance",
 				Map.of("geom", geom), "distance");
 		MatcherAssert.assertThat("Expected the cartesian distance of 1.0", distance, closeTo(1.0, 0.00001));
-	}
-
-	@Test
-	// TODO: Currently this only works for point geometries because Neo4j 3.4 can only return Point geometries from procedures
-	public void create_point_and_pass_as_param() {
-		Geometry geom = (Geometry) executeObject("RETURN point({latitude: 5.0, longitude: 4.0}) as geometry",
-				"geometry");
-		double distance = (Double) executeObject(
-				"WITH spatial.asGeometry($geom) AS geometry RETURN point.distance(geometry, point({latitude: 5.1, longitude: 4.0})) as distance",
-				Map.of("geom", geom), "distance");
-		MatcherAssert.assertThat("Expected the geographic distance of 11132km", distance, closeTo(11132.0, 1.0));
-	}
-
-	private long execute(String statement) {
-		try (Transaction tx = db.beginTx()) {
-			long count = Iterators.count(tx.execute(statement));
-			tx.commit();
-			return count;
-		}
-	}
-
-	private long execute(String statement, Map<String, Object> params) {
-		try (Transaction tx = db.beginTx()) {
-			long count = Iterators.count(tx.execute(statement, params));
-			tx.commit();
-			return count;
-		}
-	}
-
-	private void executeWrite(String call) {
-		try (Transaction tx = db.beginTx()) {
-			tx.execute(call).accept(v -> true);
-			tx.commit();
-		}
-	}
-
-	private Node createNode(String call, String column) {
-		Node node;
-		try (Transaction tx = db.beginTx()) {
-			ResourceIterator<Object> nodes = tx.execute(call).columnAs(column);
-			node = (Node) nodes.next();
-			nodes.close();
-			tx.commit();
-		}
-		return node;
-	}
-
-	private Object executeObject(String call, String column) {
-		Object obj;
-		try (Transaction tx = db.beginTx()) {
-			ResourceIterator<Object> values = tx.execute(call).columnAs(column);
-			obj = values.next();
-			values.close();
-			tx.commit();
-		}
-		return obj;
-	}
-
-	private Object executeObject(String call, Map<String, Object> params, String column) {
-		Object obj;
-		try (Transaction tx = db.beginTx()) {
-			Map<String, Object> p = (params == null) ? Map.of() : params;
-			ResourceIterator<Object> values = tx.execute(call, p).columnAs(column);
-			obj = values.next();
-			values.close();
-			tx.commit();
-		}
-		return obj;
 	}
 
 	@Test
@@ -1104,6 +986,7 @@ public class SpatialProceduresTest {
 	}
 
 	@Disabled
+	@Test
 	public void import_cracow_to_layer() {
 		execute("CALL spatial.addLayer('geom','OSM','')");
 		testCountQuery("importCracowToLayer", "CALL spatial.importOSMToLayer('geom','issue-347/cra.osm')", 256253,

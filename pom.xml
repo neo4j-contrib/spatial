@@ -159,7 +159,7 @@
 			<plugin>
 				<groupId>org.asciidoctor</groupId>
 				<artifactId>asciidoctor-maven-plugin</artifactId>
-				<version>2.2.3</version>
+				<version>3.0.0</version>
 				<executions>
 					<execution>
 						<id>generate-docs</id>
@@ -172,12 +172,14 @@
 				<configuration>
 					<backend>html5</backend>
 					<!--preserveDirectories>true</preserveDirectories-->
-					<imagesDir>images</imagesDir>
 					<sourceDirectory>${basedir}/target/docs</sourceDirectory>
 					<sourceDocumentName>index.adoc</sourceDocumentName>
 					<outputDirectory>${basedir}/docs</outputDirectory>
 					<attributes>
 						<neo4j-version>${project.version}</neo4j-version>
+						<imagesdir>images</imagesdir>
+						<source-highlighter>coderay</source-highlighter>
+						<coderay-css>style</coderay-css>
 					</attributes>
 					<requires>
 						<require>asciidoctor-diagram</require>
@@ -204,17 +206,13 @@
 							</includes>
 						</resource>
 					</resources>
-					<source-highlighter>coderay</source-highlighter>
-					<coderay-css>style</coderay-css>
-					<requires>
-						<require>asciidoctor-diagram</require>
-					</requires>
+					<requires>asciidoctor-diagram</requires>
 				</configuration>
 				<dependencies>
 					<dependency>
 						<groupId>org.asciidoctor</groupId>
 						<artifactId>asciidoctorj-diagram</artifactId>
-						<version>2.2.1</version>
+						<version>2.3.0</version>
 					</dependency>
 				</dependencies>
 			</plugin>
