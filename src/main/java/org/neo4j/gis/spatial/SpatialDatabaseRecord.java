@@ -179,7 +179,7 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 
 	// Private methods
 
-	private void checkIsNotReservedProperty(String name) {
+	private static void checkIsNotReservedProperty(String name) {
 		for (String property : RESERVED_PROPS) {
 			if (property.equals(name)) {
 				throw new SpatialDatabaseException("Updating not allowed for Reserved Property: " + name);

@@ -180,6 +180,7 @@ public class Pipeline<S, E> implements Pipe<S, E> {
 		return this;
 	}
 
+	@Override
 	public String toString() {
 		return this.pipes.toString();
 	}
@@ -200,6 +201,7 @@ public class Pipeline<S, E> implements Pipe<S, E> {
 		return this.pipes.get(index);
 	}
 
+	@Override
 	public boolean equals(final Object object) {
 		return (object instanceof Pipeline) && areEqual(this, (Pipeline<?, ?>) object);
 	}

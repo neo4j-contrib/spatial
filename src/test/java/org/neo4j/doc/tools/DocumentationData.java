@@ -45,9 +45,8 @@ class DocumentationData {
 				.isEmpty()
 				&& MediaType.APPLICATION_JSON_TYPE.equals(payloadType)) {
 			return JSONPrettifier.parse(this.payload);
-		} else {
-			return this.payload;
-		}
+        }
+        return this.payload;
 	}
 
 	public String getPrettifiedEntity() {

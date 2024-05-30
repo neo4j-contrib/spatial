@@ -86,7 +86,7 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
 
 	protected abstract SpaceFillingCurve makeCurve(Envelope envelope, int maxLevels);
 
-	private double getMin(CoordinateSystemAxis axis) {
+	private static double getMin(CoordinateSystemAxis axis) {
 		double min = axis.getMinimumValue();
 		if (Double.isInfinite(min)) {
 			return 0.0;
@@ -94,7 +94,7 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
 		return min;
 	}
 
-	private double getMax(CoordinateSystemAxis axis) {
+	private static double getMax(CoordinateSystemAxis axis) {
 		double max = axis.getMaximumValue();
 		if (Double.isInfinite(max)) {
 			return 1.0;
@@ -143,7 +143,7 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
 			return Iterators.concat(results.iterator());
 		}
 
-		private ResourceIterator<Node> nodesByLabelAndProperty(KernelTransaction transaction, int labelId,
+		private static ResourceIterator<Node> nodesByLabelAndProperty(KernelTransaction transaction, int labelId,
 				PropertyIndexQuery query) {
 			Read read = transaction.dataRead();
 

@@ -228,13 +228,13 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 	}
 
 	@SuppressWarnings("SameParameterValue")
-	private Envelope scale(Envelope bbox, double fraction) {
+	private static Envelope scale(Envelope bbox, double fraction) {
 		double xoff = bbox.getWidth(0) * (1.0 - fraction) / 2.0;
 		double yoff = bbox.getWidth(1) * (1.0 - fraction) / 2.0;
 		return new Envelope(bbox.getMinX() + xoff, bbox.getMaxX() - xoff, bbox.getMinY() + yoff, bbox.getMaxY() - yoff);
 	}
 
-	private String toCoordinateText(Coordinate[] coordinates) {
+	private static String toCoordinateText(Coordinate[] coordinates) {
 		StringBuilder sb = new StringBuilder();
 		for (Coordinate c : coordinates) {
 			if (sb.length() > 0) {
@@ -245,7 +245,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		return sb.toString();
 	}
 
-	private String toCoordinateText(Envelope bbox) {
+	private static String toCoordinateText(Envelope bbox) {
 		return "" + bbox.getMinX() + ", " + bbox.getMinY() + ", " + bbox.getMaxX() + ", " + bbox.getMaxY();
 	}
 

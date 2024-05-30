@@ -140,7 +140,7 @@ public class TestsForDocs {
 		assertTrue(way.equals(osm.getWayFromId(tx, mostCommon)), "Start way should be most found way");
 	}
 
-	private void importMapOSM(GraphDatabaseService db) throws Exception {
+	private static void importMapOSM(GraphDatabaseService db) throws Exception {
 		// START SNIPPET: importOsm tag::importOsm[]
 		OSMImporter importer = new OSMImporter("map.osm");
 		importer.setCharset(StandardCharsets.UTF_8);
@@ -240,7 +240,7 @@ public class TestsForDocs {
 		doGeometryTestsOnResults(bbox, results);
 	}
 
-	private void doGeometryTestsOnResults(Envelope bbox, List<SpatialDatabaseRecord> results) {
+	private static void doGeometryTestsOnResults(Envelope bbox, List<SpatialDatabaseRecord> results) {
 		System.out.println("Found " + results.size() + " geometries in " + bbox);
 		Geometry geometry = results.get(0).getGeometry();
 		System.out.println("First geometry is " + geometry);

@@ -223,7 +223,7 @@ public abstract class LayerIndexTestBase {
 		}
 	}
 
-	private Polygon makeTestPolygonInSquare(GeometryFactory geometryFactory, int length) {
+	private static Polygon makeTestPolygonInSquare(GeometryFactory geometryFactory, int length) {
 		if (length < 4) {
 			throw new IllegalArgumentException("Cannot create letter C in square smaller than 4x4");
 		}

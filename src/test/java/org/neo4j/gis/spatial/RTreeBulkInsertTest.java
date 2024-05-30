@@ -155,7 +155,7 @@ public class RTreeBulkInsertTest {
 		}
 	}
 
-	private void deleteRecursivelySubtree(Node node, Relationship incoming) {
+	private static void deleteRecursivelySubtree(Node node, Relationship incoming) {
 		for (Relationship relationship : node.getRelationships(Direction.OUTGOING,
 				RTreeRelationshipTypes.RTREE_CHILD)) {
 			deleteRecursivelySubtree(relationship.getEndNode(), relationship);
@@ -233,7 +233,7 @@ public class RTreeBulkInsertTest {
 
 	}
 
-	private List<Node> idsToNodes(Transaction tx, List<String> nodeIds) {
+	private static List<Node> idsToNodes(Transaction tx, List<String> nodeIds) {
 		return nodeIds.stream().map(tx::getNodeByElementId).collect(Collectors.toList());
 	}
 
@@ -472,6 +472,7 @@ public class RTreeBulkInsertTest {
 			this.config = config;
 		}
 
+		@Override
 		public EditableLayer setupLayer(Transaction tx) {
 			this.nodes = setup(name, "rtree", config.width);
 			this.layer = (EditableLayer) spatial.getLayer(tx, name);
@@ -1206,7 +1207,7 @@ public class RTreeBulkInsertTest {
 				buildRTreeFromScratch.invoke(rtree, rtree.getIndexRoot(tx), decodeEnvelopes.invoke(rtree, coords), 0.7);
 				RTreeTestUtils testUtils = new RTreeTestUtils(rtree);
 
-				Map<Long, Long> results = testUtils.get_height_map(tx, rtree.getIndexRoot(tx));
+				Map<Long, Long> results = RTreeTestUtils.get_height_map(tx, rtree.getIndexRoot(tx));
 				assertEquals(1, results.size());
 				assertEquals((int) expectedHeight.invoke(rtree, 0.7, coords.size()),
 						results.keySet().iterator().next().intValue());
@@ -1252,7 +1253,7 @@ public class RTreeBulkInsertTest {
 
 				RTreeIndex rtree = (RTreeIndex) layer.getIndex();
 				RTreeTestUtils utils = new RTreeTestUtils(rtree);
-				assertTrue(utils.check_balance(tx, rtree.getIndexRoot(tx)));
+				assertTrue(RTreeTestUtils.check_balance(tx, rtree.getIndexRoot(tx)));
 
 				tx.commit();
 			}
@@ -1375,7 +1376,7 @@ public class RTreeBulkInsertTest {
 	}
 
 
-	private void searchForPos(int numNodes, GraphDatabaseService db) {
+	private static void searchForPos(int numNodes, GraphDatabaseService db) {
 		System.out.println("Searching with spatial.withinDistance");
 		long start = System.currentTimeMillis();
 		try (Transaction tx = db.beginTx()) { // 'points',{longitude:15.0,latitude:60.0},100
@@ -1414,26 +1415,25 @@ public class RTreeBulkInsertTest {
 		}
 	}
 
-	private void checkIndexOverlaps(Transaction tx, Layer layer, TestStats stats) {
+	private static void checkIndexOverlaps(Transaction tx, Layer layer, TestStats stats) {
 		RTreeIndex index = (RTreeIndex) layer.getIndex();
 		Node root = index.getIndexRoot(tx);
 		ArrayList<ArrayList<NodeWithEnvelope>> nodes = new ArrayList<>();
 		nodes.add(new ArrayList<>());
-		nodes.get(0).add(new NodeWithEnvelope(root, index.getIndexNodeEnvelope(root)));
+		nodes.get(0).add(new NodeWithEnvelope(root, RTreeIndex.getIndexNodeEnvelope(root)));
 		do {
 			ArrayList<NodeWithEnvelope> children = new ArrayList<>();
 			for (NodeWithEnvelope parent : nodes.get(nodes.size() - 1)) {
 				for (Relationship rel : parent.node.getRelationships(Direction.OUTGOING,
 						RTreeRelationshipTypes.RTREE_CHILD)) {
 					Node child = rel.getEndNode();
-					children.add(new NodeWithEnvelope(child, index.getIndexNodeEnvelope(child)));
+					children.add(new NodeWithEnvelope(child, RTreeIndex.getIndexNodeEnvelope(child)));
 				}
 			}
 			if (children.isEmpty()) {
 				break;
-			} else {
-				nodes.add(children);
 			}
+			nodes.add(children);
 		} while (true);
 		System.out.println("Comparison of index node areas to root area for " + nodes.size() + " index levels:");
 		for (int level = 0; level < nodes.size(); level++) {
@@ -1444,7 +1444,7 @@ public class RTreeBulkInsertTest {
 		}
 	}
 
-	private double[] calculateOverlap(NodeWithEnvelope root, List<NodeWithEnvelope> nodes) {
+	private static double[] calculateOverlap(NodeWithEnvelope root, List<NodeWithEnvelope> nodes) {
 		double rootArea = root.envelope.getArea();
 		double nodesArea = 0.0;
 		for (NodeWithEnvelope entry : nodes) {
@@ -1543,7 +1543,7 @@ public class RTreeBulkInsertTest {
 		}
 	}
 
-	private void getExplicitIndexBackedIndexStats(ExplicitIndexBackedPointIndex index, TestStats stats,
+	private static void getExplicitIndexBackedIndexStats(ExplicitIndexBackedPointIndex index, TestStats stats,
 			boolean assertTouches, long countGeometries) {
 		IndexTestConfig config = stats.config;
 		ExplicitIndexBackedMonitor monitor = index.getMonitor();
@@ -1600,17 +1600,17 @@ public class RTreeBulkInsertTest {
 		}
 	}
 
-	private void verifyGeohashIndex(Layer layer) {
+	private static void verifyGeohashIndex(Layer layer) {
 		LayerIndexReader index = layer.getIndex();
 		assertInstanceOf(LayerGeohashPointIndex.class, index, "Index should be a geohash index");
 	}
 
-	private void verifyHilbertIndex(Layer layer) {
+	private static void verifyHilbertIndex(Layer layer) {
 		LayerIndexReader index = layer.getIndex();
 		assertInstanceOf(LayerHilbertPointIndex.class, index, "Index should be a hilbert index");
 	}
 
-	private void verifyZOrderIndex(Layer layer) {
+	private static void verifyZOrderIndex(Layer layer) {
 		LayerIndexReader index = layer.getIndex();
 		assertInstanceOf(LayerZOrderPointIndex.class, index, "Index should be a Z-Order index");
 	}

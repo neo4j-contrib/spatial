@@ -65,11 +65,11 @@ public class RTreeTestUtils {
 
 	public double calculate_overlap(Node child) {
 
-		Envelope parent = rtree.getIndexNodeEnvelope(child);
+		Envelope parent = RTreeIndex.getIndexNodeEnvelope(child);
 		List<Envelope> children = new ArrayList<Envelope>();
 
 		for (Relationship r : child.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD)) {
-			children.add(rtree.getIndexNodeEnvelope(r.getEndNode()));
+			children.add(RTreeIndex.getIndexNodeEnvelope(r.getEndNode()));
 		}
 		children.sort(Comparator.comparing(Envelope::getMinX, Double::compare));
 		double total_overlap = 0.0;
@@ -88,7 +88,7 @@ public class RTreeTestUtils {
 
 	}
 
-	public Map<Long, Long> get_height_map(Transaction tx, Node root) {
+	public static Map<Long, Long> get_height_map(Transaction tx, Node root) {
 		String id = root.getElementId();
 
 		String cypher = "MATCH p = (root) -[:RTREE_CHILD*0..] ->(child) -[:RTREE_REFERENCE]->(leaf)\n" +
@@ -106,7 +106,7 @@ public class RTreeTestUtils {
 		return map;
 	}
 
-	public boolean check_balance(Transaction tx, Node root) {
+	public static boolean check_balance(Transaction tx, Node root) {
 		String id = root.getElementId();
 
 		String cypher = "MATCH p = (root) -[:RTREE_CHILD*0..] ->(child) -[:RTREE_REFERENCE]->(leaf)\n" +

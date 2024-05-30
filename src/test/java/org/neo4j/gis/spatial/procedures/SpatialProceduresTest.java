@@ -165,7 +165,8 @@ public class SpatialProceduresTest {
 		procedures.registerFunction(procedure);
 	}
 
-	private Layer makeLayerOfVariousTypes(SpatialDatabaseService spatial, Transaction tx, String name, int index) {
+	private static Layer makeLayerOfVariousTypes(SpatialDatabaseService spatial, Transaction tx, String name,
+			int index) {
 		switch (index % 3) {
 			case 0:
 				return spatial.getOrCreateSimplePointLayer(tx, name, SpatialDatabaseService.RTREE_INDEX_NAME, "x", "y");

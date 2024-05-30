@@ -139,14 +139,15 @@ public class Neo4jSpatialDataStoreTest {
 				hasItem("Nybrodalsvägen"));
 	}
 
-	private Set<String> featureNames(SimpleFeatureCollection features) {
+	private static Set<String> featureNames(SimpleFeatureCollection features) {
 		HashSet<String> names = new HashSet<>();
-		SimpleFeatureIterator featureIterator = features.features();
-		while (featureIterator.hasNext()) {
-			SimpleFeature feature = featureIterator.next();
-			Object name = feature.getAttribute("name");
-			if (name != null) {
-				names.add(name.toString());
+		try (SimpleFeatureIterator featureIterator = features.features()) {
+			while (featureIterator.hasNext()) {
+				SimpleFeature feature = featureIterator.next();
+				Object name = feature.getAttribute("name");
+				if (name != null) {
+					names.add(name.toString());
+				}
 			}
 		}
 		return names;

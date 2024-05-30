@@ -156,9 +156,8 @@ public class Neo4jTestUtils {
 				count += calculateDiskUsage(sub);
 			}
 			return count;
-		} else {
-			return file.length();
 		}
+		return file.length();
 	}
 
 	private static long databaseDiskUsage(File path) {

@@ -30,7 +30,8 @@ public class TestRTreeIndex extends RTreeIndex {
 		init(tx, tx.createNode(), new SimplePointEncoder(), DEFAULT_MAX_NODE_REFERENCES);
 	}
 
-	public RTreeIndex.NodeWithEnvelope makeChildIndexNode(Transaction tx, NodeWithEnvelope parent, Envelope bbox) {
+	public static RTreeIndex.NodeWithEnvelope makeChildIndexNode(Transaction tx, NodeWithEnvelope parent,
+			Envelope bbox) {
 		Node indexNode = tx.createNode();
 		setIndexNodeEnvelope(indexNode, bbox);
 		parent.node.createRelationshipTo(indexNode, RTreeRelationshipTypes.RTREE_CHILD);
@@ -39,11 +40,11 @@ public class TestRTreeIndex extends RTreeIndex {
 		return new NodeWithEnvelope(indexNode, bbox);
 	}
 
-	public void setIndexNodeEnvelope(NodeWithEnvelope indexNode) {
+	public static void setIndexNodeEnvelope(NodeWithEnvelope indexNode) {
 		setIndexNodeEnvelope(indexNode.node, indexNode.envelope);
 	}
 
 	public void mergeTwoTrees(Transaction tx, NodeWithEnvelope left, NodeWithEnvelope right) {
-		super.mergeTwoSubtrees(tx, left, this.getIndexChildren(right.node));
+		super.mergeTwoSubtrees(tx, left, getIndexChildren(right.node));
 	}
 }

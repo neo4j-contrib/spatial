@@ -145,6 +145,7 @@ public class OSMImporter implements Constants {
 			return new String[0];
 		}
 
+		@Override
 		public String toString() {
 			return "TagStats[" + name + "]: " + asList(getTags());
 		}
@@ -342,7 +343,7 @@ public class OSMImporter implements Constants {
 		return count;
 	}
 
-	private List<Node> toList(Iterable<Node> iterable) {
+	private static List<Node> toList(Iterable<Node> iterable) {
 		ArrayList<Node> list = new ArrayList<>();
 		if (iterable != null) {
 			for (Node e : iterable) {
@@ -1055,7 +1056,7 @@ public class OSMImporter implements Constants {
 			return index;
 		}
 
-		private IndexDefinition findIndex(Transaction tx, String indexName, Label label, String propertyKey) {
+		private static IndexDefinition findIndex(Transaction tx, String indexName, Label label, String propertyKey) {
 			for (IndexDefinition index : tx.schema().getIndexes(label)) {
 				for (String prop : index.getPropertyKeys()) {
 					if (prop.equals(propertyKey)) {
@@ -1097,7 +1098,7 @@ public class OSMImporter implements Constants {
 			}
 		}
 
-		private void addProperties(Entity node, Map<String, Object> properties) {
+		private static void addProperties(Entity node, Map<String, Object> properties) {
 			for (String property : properties.keySet()) {
 				node.setProperty(property, properties.get(property));
 			}
@@ -1297,6 +1298,7 @@ public class OSMImporter implements Constants {
 			return currentUserNode;
 		}
 
+		@Override
 		public String toString() {
 			return "OSMGraphWriter: DatabaseService[" + graphDb + "]:txInterval[" + this.txInterval + "]";
 		}

@@ -100,7 +100,7 @@ public class TestIntersectsPathQueries {
 		}
 	}
 
-	private void importShapefileDatabase(String shpPath, String dbRoot, String dbName, String layerName) {
+	private static void importShapefileDatabase(String shpPath, String dbRoot, String dbName, String layerName) {
 		withDatabase(dbRoot, dbName, Neo4jTestCase.LARGE_CONFIG, graphDb -> {
 			ShapefileImporter importer = new ShapefileImporter(graphDb, new ConsoleListener(), 10000, true);
 			importer.setFilterEnvelope(makeFilterEnvelope());
@@ -113,14 +113,14 @@ public class TestIntersectsPathQueries {
 		});
 	}
 
-	private Envelope makeFilterEnvelope() {
+	private static Envelope makeFilterEnvelope() {
 		Envelope filterEnvelope = new Envelope();
 		filterEnvelope.expandToInclude(new Coordinate(-71.00, 42.10));
 		filterEnvelope.expandToInclude(new Coordinate(-71.70, 42.50));
 		return filterEnvelope;
 	}
 
-	private void importOSMDatabase(String osmPath, String dbRoot, String dbName, String layerName)
+	private static void importOSMDatabase(String osmPath, String dbRoot, String dbName, String layerName)
 			throws InterruptedException {
 		// TODO: Port to batch inserter in `github.com/neo4j-contrib/osm` project
 		OSMImporter importer = new OSMImporter(layerName, new ConsoleListener(), makeFilterEnvelope());
@@ -181,14 +181,14 @@ public class TestIntersectsPathQueries {
 		private double overlaps(Collection<Node> original) {
 			if (results == null) {
 				return 0.0;
-			} else if (original.size() < results.size()) {
-				return fractionOf(results, original);
-			} else {
-				return fractionOf(original, results);
 			}
+			if (original.size() < results.size()) {
+				return fractionOf(results, original);
+			}
+			return fractionOf(original, results);
 		}
 
-		private double fractionOf(Collection<Node> subset, Collection<Node> set) {
+		private static double fractionOf(Collection<Node> subset, Collection<Node> set) {
 			HashSet<Node> all = new HashSet<>(set);
 			int count = 0;
 			for (Node node : subset) {
@@ -203,6 +203,7 @@ public class TestIntersectsPathQueries {
 			return duration / 1000.0;
 		}
 
+		@Override
 		public String toString() {
 			return name + "\t" + duration;
 		}
@@ -333,7 +334,7 @@ public class TestIntersectsPathQueries {
 		});
 	}
 
-	private void printResults(Collection<Node> results) {
+	private static void printResults(Collection<Node> results) {
 		System.out.println("\tFound " + results.size() + " results:");
 		int count = 0;
 		for (Node node : results) {
@@ -350,7 +351,7 @@ public class TestIntersectsPathQueries {
 	}
 
 	@SuppressWarnings("SameParameterValue")
-	private List<Node> runSearch(GeoPipeline pipeline, boolean verbose) {
+	private static List<Node> runSearch(GeoPipeline pipeline, boolean verbose) {
 		List<Node> results = pipeline.toNodeList();
 		if (verbose) {
 			printResults(results);

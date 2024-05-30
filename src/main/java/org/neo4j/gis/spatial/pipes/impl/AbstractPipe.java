@@ -129,6 +129,7 @@ public abstract class AbstractPipe<S, E> implements Pipe<S, E> {
 		return this;
 	}
 
+	@Override
 	public String toString() {
 		return getClass().getSimpleName();
 	}

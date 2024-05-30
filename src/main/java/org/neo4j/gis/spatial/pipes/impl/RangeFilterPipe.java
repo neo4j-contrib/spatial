@@ -57,6 +57,7 @@ public class RangeFilterPipe<S> extends AbstractPipe<S, S> implements FilterPipe
 		}
 	}
 
+	@Override
 	public String toString() {
 		return String.format("%s (%d, %d)", getClass().getSimpleName(), low, high);
 	}

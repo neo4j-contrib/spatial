@@ -53,7 +53,7 @@ public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String
 		return geoTermToString(encoded);
 	}
 
-	private String greatestCommonPrefix(String a, String b) {
+	private static String greatestCommonPrefix(String a, String b) {
 		int minLength = Math.min(a.length(), b.length());
 		for (int i = 0; i < minLength; i++) {
 			if (a.charAt(i) != b.charAt(i)) {

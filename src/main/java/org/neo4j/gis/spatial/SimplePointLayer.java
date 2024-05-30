@@ -46,7 +46,7 @@ public class SimplePointLayer extends EditableLayerImpl {
 		return add(tx, new Coordinate(x, y), fieldsName, fields);
 	}
 
-	public Integer getGeometryType() {
+	public static Integer getGeometryType() {
 		return GTYPE_POINT;
 	}
 

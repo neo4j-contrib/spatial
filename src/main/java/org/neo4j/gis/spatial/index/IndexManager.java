@@ -130,12 +130,12 @@ public class IndexManager {
 		}
 	}
 
-	public void waitForDeletions() {
+	public static void waitForDeletions() {
 		waitForThreads("IndexMaker");
 		waitForThreads("IndexRemover");
 	}
 
-	private void waitForThreads(String prefix) {
+	private static void waitForThreads(String prefix) {
 		Thread found;
 		while ((found = findThread(prefix)) != null) {
 			try {
@@ -146,7 +146,7 @@ public class IndexManager {
 		}
 	}
 
-	private Thread findThread(String prefix) {
+	private static Thread findThread(String prefix) {
 		ThreadGroup rootGroup = Thread.currentThread().getThreadGroup();
 		Thread found = findThread(rootGroup, prefix);
 		if (found != null) {
@@ -165,7 +165,7 @@ public class IndexManager {
 		return null;
 	}
 
-	private Thread findThread(ThreadGroup group, String prefix) {
+	private static Thread findThread(ThreadGroup group, String prefix) {
 		Thread[] threads = new Thread[group.activeCount()];
 		while (group.enumerate(threads, true) == threads.length) {
 			threads = new Thread[threads.length * 2];
