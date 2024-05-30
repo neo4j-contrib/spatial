@@ -84,6 +84,7 @@ public class SpatialTopologyUtils {
 			return Double.compare(this.distance, other.distance);
 		}
 
+		@Override
 		public String toString() {
 			return "Point[" + point + "] distance[" + distance + "] record[" + record + "]";
 		}

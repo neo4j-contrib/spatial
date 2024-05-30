@@ -203,6 +203,7 @@ public class TestIntersectsPathQueries {
 			return duration / 1000.0;
 		}
 
+		@Override
 		public String toString() {
 			return name + "\t" + duration;
 		}

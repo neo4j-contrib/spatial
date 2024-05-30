@@ -58,6 +58,7 @@ public abstract class AbstractJavaDocTestBase implements GraphHolder {
 
 	}
 
+	@Override
 	public GraphDatabaseService graphdb() {
 		return db;
 	}

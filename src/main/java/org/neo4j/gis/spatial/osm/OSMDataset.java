@@ -208,6 +208,7 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
 			return node;
 		}
 
+		@Override
 		public String toString() {
 			if (node.hasProperty("name")) {
 				return node.getProperty("name").toString();

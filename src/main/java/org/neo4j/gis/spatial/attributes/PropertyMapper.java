@@ -37,6 +37,7 @@ public abstract class PropertyMapper {
 		this.params = params;
 	}
 
+	@Override
 	public boolean equals(Object obj) {
 		if (obj instanceof PropertyMapper other) {
 			return this.key().equals(other.key());

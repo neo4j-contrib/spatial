@@ -58,6 +58,7 @@ public class Neo4jGeometry implements org.neo4j.graphdb.spatial.Geometry {
 				.collect(Collectors.joining(", "));
 	}
 
+	@Override
 	public String toString() {
 		return geometryType + "(" + coordinateString(coordinates) + ")[" + crs + "]";
 	}

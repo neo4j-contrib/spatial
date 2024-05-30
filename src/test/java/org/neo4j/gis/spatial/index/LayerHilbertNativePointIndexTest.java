@@ -21,6 +21,7 @@ package org.neo4j.gis.spatial.index;
 
 public class LayerHilbertNativePointIndexTest extends NativePointIndexTestBase {
 
+	@Override
 	protected Class<? extends LayerIndexReader> getIndexClass() {
 		return LayerHilbertPointIndex.class;
 	}

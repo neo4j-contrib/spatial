@@ -472,6 +472,7 @@ public class RTreeBulkInsertTest {
 			this.config = config;
 		}
 
+		@Override
 		public EditableLayer setupLayer(Transaction tx) {
 			this.nodes = setup(name, "rtree", config.width);
 			this.layer = (EditableLayer) spatial.getLayer(tx, name);

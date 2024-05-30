@@ -555,6 +555,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 			this.name = name;
 		}
 
+		@Override
 		public String toString() {
 			return name;
 		}

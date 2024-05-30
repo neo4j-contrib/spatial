@@ -87,6 +87,7 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 			return 0;
 		}
 
+		@Override
 		public String toString() {
 			if (count > 0) {
 				return "" + chunk + ": " + average() + "ms per record (" + count + " records over " + time + "ms)";

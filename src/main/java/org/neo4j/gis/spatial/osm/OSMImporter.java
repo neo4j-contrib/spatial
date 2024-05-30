@@ -145,6 +145,7 @@ public class OSMImporter implements Constants {
 			return new String[0];
 		}
 
+		@Override
 		public String toString() {
 			return "TagStats[" + name + "]: " + asList(getTags());
 		}
@@ -1297,6 +1298,7 @@ public class OSMImporter implements Constants {
 			return currentUserNode;
 		}
 
+		@Override
 		public String toString() {
 			return "OSMGraphWriter: DatabaseService[" + graphDb + "]:txInterval[" + this.txInterval + "]";
 		}
