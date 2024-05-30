@@ -2,13 +2,13 @@
 
 :leveloffset: 1
 
-include::udig.txt[]
+include::udig.adoc[]
 
 :leveloffset: 1
 
-include::geoserver.txt[]
+include::geoserver.adoc[]
 
 :leveloffset: 1
 
-include::geoserver2.txt[]
+include::geoserver2.adoc[]
 
