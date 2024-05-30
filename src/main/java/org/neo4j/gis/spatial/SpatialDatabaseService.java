@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -201,7 +201,7 @@ public class SpatialDatabaseService implements Constants {
 	public static final String RTREE_INDEX_NAME = "rtree";
 	public static final String GEOHASH_INDEX_NAME = "geohash";
 
-	public Class<? extends LayerIndexReader> resolveIndexClass(String index) {
+	public static Class<? extends LayerIndexReader> resolveIndexClass(String index) {
 		if (index == null) {
 			return LayerRTreeIndex.class;
 		}
@@ -321,7 +321,7 @@ public class SpatialDatabaseService implements Constants {
 				makeEncoderConfig(encoderConfig), org.geotools.referencing.crs.DefaultGeographicCRS.WGS84);
 	}
 
-	public String makeEncoderConfig(String... args) {
+	public static String makeEncoderConfig(String... args) {
 		StringBuilder sb = new StringBuilder();
 		if (args != null) {
 			for (String arg : args) {
@@ -543,13 +543,13 @@ public class SpatialDatabaseService implements Constants {
 				(config == null) ? registeredLayerType.defaultConfig : config);
 	}
 
-	public Map<String, String> getRegisteredLayerTypes() {
+	public static Map<String, String> getRegisteredLayerTypes() {
 		Map<String, String> results = new LinkedHashMap<>();
 		registeredLayerTypes.forEach((s, definition) -> results.put(s, definition.getSignature()));
 		return results;
 	}
 
-	public Class<? extends Layer> suggestLayerClassForEncoder(Class<? extends GeometryEncoder> encoderClass) {
+	public static Class<? extends Layer> suggestLayerClassForEncoder(Class<? extends GeometryEncoder> encoderClass) {
 		for (RegisteredLayerType type : registeredLayerTypes.values()) {
 			if (type.geometryEncoder == encoderClass) {
 				return type.layerClass;

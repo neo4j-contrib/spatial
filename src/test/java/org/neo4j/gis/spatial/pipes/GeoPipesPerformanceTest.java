@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -19,7 +19,7 @@
  */
 package org.neo4j.gis.spatial.pipes;
 
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import org.junit.jupiter.api.BeforeEach;
@@ -83,17 +83,16 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 		public float average() {
 			if (count > 0) {
 				return (float) time / (float) count;
-			} else {
-				return 0;
 			}
+			return 0;
 		}
 
+		@Override
 		public String toString() {
 			if (count > 0) {
 				return "" + chunk + ": " + average() + "ms per record (" + count + " records over " + time + "ms)";
-			} else {
-				return "" + chunk + ": INVALID (" + count + " records over " + time + "ms)";
 			}
+			return "" + chunk + ": INVALID (" + count + " records over " + time + "ms)";
 		}
 	}
 
@@ -136,9 +135,9 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 				count += rec.count;
 				System.out.println("\t" + rec);
 				float average = (float) rec.time / (float) rec.count;
-				assertTrue("Expected record average of " + rec.average()
+				assertTrue(rec.average() < 2 * average, "Expected record average of " + rec.average()
 						+ " to not be substantially larger than running average "
-						+ average, rec.average() < 2 * average);
+						+ average);
 			}
 			tx.commit();
 		}

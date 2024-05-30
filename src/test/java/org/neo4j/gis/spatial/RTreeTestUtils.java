@@ -1,3 +1,23 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [http://neo4j.com]
+ *
+ * This file is part of Neo4j Spatial.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package org.neo4j.gis.spatial;
 
 import java.util.ArrayList;
@@ -45,11 +65,11 @@ public class RTreeTestUtils {
 
 	public double calculate_overlap(Node child) {
 
-		Envelope parent = rtree.getIndexNodeEnvelope(child);
+		Envelope parent = RTreeIndex.getIndexNodeEnvelope(child);
 		List<Envelope> children = new ArrayList<Envelope>();
 
 		for (Relationship r : child.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD)) {
-			children.add(rtree.getIndexNodeEnvelope(r.getEndNode()));
+			children.add(RTreeIndex.getIndexNodeEnvelope(r.getEndNode()));
 		}
 		children.sort(Comparator.comparing(Envelope::getMinX, Double::compare));
 		double total_overlap = 0.0;
@@ -68,7 +88,7 @@ public class RTreeTestUtils {
 
 	}
 
-	public Map<Long, Long> get_height_map(Transaction tx, Node root) {
+	public static Map<Long, Long> get_height_map(Transaction tx, Node root) {
 		String id = root.getElementId();
 
 		String cypher = "MATCH p = (root) -[:RTREE_CHILD*0..] ->(child) -[:RTREE_REFERENCE]->(leaf)\n" +
@@ -86,7 +106,7 @@ public class RTreeTestUtils {
 		return map;
 	}
 
-	public boolean check_balance(Transaction tx, Node root) {
+	public static boolean check_balance(Transaction tx, Node root) {
 		String id = root.getElementId();
 
 		String cypher = "MATCH p = (root) -[:RTREE_CHILD*0..] ->(child) -[:RTREE_REFERENCE]->(leaf)\n" +

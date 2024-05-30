@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -221,7 +221,7 @@ public class SpatialProcedures {
 	public Stream<NameResult> getAllLayerTypes() {
 		SpatialDatabaseService sdb = spatial();
 		Stream.Builder<NameResult> builder = Stream.builder();
-		for (Map.Entry<String, String> entry : sdb.getRegisteredLayerTypes().entrySet()) {
+		for (Map.Entry<String, String> entry : SpatialDatabaseService.getRegisteredLayerTypes().entrySet()) {
 			builder.accept(new NameResult(entry.getKey(), entry.getValue()));
 		}
 		return builder.build();
@@ -237,7 +237,7 @@ public class SpatialProcedures {
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
 			return streamNode(sdb.createLayer(tx, name, SimplePointEncoder.class, SimplePointLayer.class,
-					sdb.resolveIndexClass(indexType), null,
+					SpatialDatabaseService.resolveIndexClass(indexType), null,
 					selectCRS(crsName)).getLayerNode(tx));
 		}
 		throw new IllegalArgumentException("Cannot create existing layer: " + name);
@@ -295,7 +295,8 @@ public class SpatialProcedures {
 		if (layer == null) {
 			if (xProperty != null && yProperty != null) {
 				return streamNode(sdb.createLayer(tx, name, SimplePointEncoder.class, SimplePointLayer.class,
-						sdb.resolveIndexClass(indexType), sdb.makeEncoderConfig(xProperty, yProperty),
+						SpatialDatabaseService.resolveIndexClass(indexType),
+						SpatialDatabaseService.makeEncoderConfig(xProperty, yProperty),
 						selectCRS(hintCRSName(crsName, yProperty))).getLayerNode(tx));
 			}
 			throw new IllegalArgumentException(
@@ -317,7 +318,7 @@ public class SpatialProcedures {
 		if (layer == null) {
 			if (encoderConfig.indexOf(':') > 0) {
 				return streamNode(sdb.createLayer(tx, name, SimplePointEncoder.class, SimplePointLayer.class,
-						sdb.resolveIndexClass(indexType), encoderConfig,
+						SpatialDatabaseService.resolveIndexClass(indexType), encoderConfig,
 						selectCRS(hintCRSName(crsName, encoderConfig))).getLayerNode(tx));
 			}
 			throw new IllegalArgumentException(
@@ -336,7 +337,7 @@ public class SpatialProcedures {
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
 			return streamNode(sdb.createLayer(tx, name, NativePointEncoder.class, SimplePointLayer.class,
-					sdb.resolveIndexClass(indexType), null, selectCRS(crsName)).getLayerNode(tx));
+					SpatialDatabaseService.resolveIndexClass(indexType), null, selectCRS(crsName)).getLayerNode(tx));
 		}
 		throw new IllegalArgumentException("Cannot create existing layer: " + name);
 	}
@@ -392,7 +393,8 @@ public class SpatialProcedures {
 		if (layer == null) {
 			if (xProperty != null && yProperty != null) {
 				return streamNode(sdb.createLayer(tx, name, NativePointEncoder.class, SimplePointLayer.class,
-						sdb.resolveIndexClass(indexType), sdb.makeEncoderConfig(xProperty, yProperty),
+						SpatialDatabaseService.resolveIndexClass(indexType),
+						SpatialDatabaseService.makeEncoderConfig(xProperty, yProperty),
 						selectCRS(hintCRSName(crsName, yProperty))).getLayerNode(tx));
 			}
 			throw new IllegalArgumentException(
@@ -414,7 +416,7 @@ public class SpatialProcedures {
 		if (layer == null) {
 			if (encoderConfig.indexOf(':') > 0) {
 				return streamNode(sdb.createLayer(tx, name, NativePointEncoder.class, SimplePointLayer.class,
-						sdb.resolveIndexClass(indexType), encoderConfig,
+						SpatialDatabaseService.resolveIndexClass(indexType), encoderConfig,
 						selectCRS(hintCRSName(crsName, encoderConfig))).getLayerNode(tx));
 			}
 			throw new IllegalArgumentException(
@@ -433,7 +435,7 @@ public class SpatialProcedures {
 	 * @param name CRS name
 	 * @return null or WGS84
 	 */
-	public CoordinateReferenceSystem selectCRS(String name) {
+	public static CoordinateReferenceSystem selectCRS(String name) {
 		if (name == null) {
 			return null;
 		}
@@ -461,7 +463,7 @@ public class SpatialProcedures {
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
 			Class<? extends GeometryEncoder> encoderClass = encoderClasses.get(encoderClassName);
-			Class<? extends Layer> layerClass = sdb.suggestLayerClassForEncoder(encoderClass);
+			Class<? extends Layer> layerClass = SpatialDatabaseService.suggestLayerClassForEncoder(encoderClass);
 			if (encoderClass != null) {
 				return streamNode(
 						sdb.createLayer(tx, name, encoderClass, layerClass, null, encoderConfig).getLayerNode(tx));
@@ -481,7 +483,7 @@ public class SpatialProcedures {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
-			Map<String, String> knownTypes = sdb.getRegisteredLayerTypes();
+			Map<String, String> knownTypes = SpatialDatabaseService.getRegisteredLayerTypes();
 			if (knownTypes.containsKey(type.toLowerCase())) {
 				return streamNode(sdb.getOrCreateRegisteredTypeLayer(tx, name, type, encoderConfig).getLayerNode(tx));
 			}
@@ -1007,7 +1009,7 @@ public class SpatialProcedures {
 		return map;
 	}
 
-	private Coordinate toCoordinate(Object value) {
+	private static Coordinate toCoordinate(Object value) {
 		if (value instanceof Coordinate) {
 			return (Coordinate) value;
 		}

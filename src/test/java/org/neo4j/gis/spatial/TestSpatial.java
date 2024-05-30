@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -372,7 +372,7 @@ public class TestSpatial extends Neo4jTestCase {
 		}
 	}
 
-	private void assertEnvelopeEquals(Envelope a, Envelope b) {
+	private static void assertEnvelopeEquals(Envelope a, Envelope b) {
 		Assertions.assertNotNull(a);
 		Assertions.assertNotNull(b);
 		Assertions.assertEquals(a.getDimension(), b.getDimension());

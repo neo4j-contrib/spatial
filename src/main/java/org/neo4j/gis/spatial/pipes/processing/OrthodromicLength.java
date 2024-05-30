@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -53,7 +53,7 @@ public class OrthodromicLength extends AbstractGeoPipe {
 		return flow;
 	}
 
-	protected double calculateLength(Geometry geometry, CoordinateReferenceSystem crs) {
+	protected static double calculateLength(Geometry geometry, CoordinateReferenceSystem crs) {
 		GeodeticCalculator geodeticCalculator = new GeodeticCalculator(crs);
 
 		Coordinate[] coords = geometry.getCoordinates();

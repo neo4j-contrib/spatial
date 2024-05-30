@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -107,7 +107,7 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 		return queryNodeProperties(geomNode, properties) && stepAndQuery(geomNode, step);
 	}
 
-	private boolean stepAndQuery(Node source, JSONObject step) {
+	private static boolean stepAndQuery(Node source, JSONObject step) {
 		if (step != null) {
 			JSONObject properties = (JSONObject) step.get("properties");
 			RelationshipType relType = RelationshipType.withName(step.get("type").toString());

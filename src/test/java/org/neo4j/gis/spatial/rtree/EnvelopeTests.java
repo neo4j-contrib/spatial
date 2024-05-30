@@ -1,21 +1,21 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
- * Neo4j is free software: you can redistribute it and/or modify it under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option) any later
- * version.
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 package org.neo4j.gis.spatial.rtree;
 
@@ -59,13 +59,13 @@ public class EnvelopeTests {
 		}
 	}
 
-	private void testDoesNotOverlap(Envelope left, Envelope right) {
+	private static void testDoesNotOverlap(Envelope left, Envelope right) {
 		Envelope bbox = new Envelope(left);
 		bbox.expandToInclude(right);
 		testOverlaps(left, right, false, 0.0);
 	}
 
-	private void testOverlaps(Envelope left, Envelope right, boolean intersects, double overlap) {
+	private static void testOverlaps(Envelope left, Envelope right, boolean intersects, double overlap) {
 		String intersectMessage = intersects ? "Should intersect" : "Should not intersect";
 		String overlapMessage = intersects ? "Should overlap" : "Should not have overlap";
 		assertThat(intersectMessage, left.intersects(right), equalTo(intersects));
@@ -75,7 +75,8 @@ public class EnvelopeTests {
 	}
 
 	@SuppressWarnings("SameParameterValue")
-	private void testOverlaps(Envelope left, Envelope right, boolean intersects, double overlap, double overlapArea,
+	private static void testOverlaps(Envelope left, Envelope right, boolean intersects, double overlap,
+			double overlapArea,
 			double bboxArea) {
 		testOverlaps(left, right, intersects, overlap);
 		assertThat("Expected overlap area", left.intersection(right).getArea(), closeTo(overlapArea, 0.000001));
@@ -98,7 +99,7 @@ public class EnvelopeTests {
 		testOverlaps(left, new Envelope(0.5, 1.5, 0.0, 1.0), true, 0.5, 0.5, 1.5);        // overlaps right half
 	}
 
-	private void makeAndTestEnvelope(double[] min, double[] max, double[] width) {
+	private static void makeAndTestEnvelope(double[] min, double[] max, double[] width) {
 		Envelope env = new Envelope(min, max);
 		assertThat("Expected min-x to be correct", env.getMinX(), equalTo(min[0]));
 		assertThat("Expected min-y to be correct", env.getMinY(), equalTo(min[1]));

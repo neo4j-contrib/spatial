@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-import junit.framework.AssertionFailedError;
 import org.geotools.data.neo4j.StyledImageExporter;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
@@ -48,6 +47,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.opentest4j.AssertionFailedError;
 
 public class TestSimplePointLayer extends Neo4jTestCase {
 
@@ -320,7 +320,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		assertIndexCountSameAs(layerNameC, coords.length);
 	}
 
-	private void checkPointOrder(List<GeoPipeFlow> results) {
+	private static void checkPointOrder(List<GeoPipeFlow> results) {
 		for (int i = 0; i < results.size() - 1; i++) {
 			GeoPipeFlow first = results.get(i);
 			GeoPipeFlow second = results.get(i + 1);

@@ -1,21 +1,21 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
- * Neo4j is free software: you can redistribute it and/or modify it under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option) any later
- * version.
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 package org.neo4j.gis.spatial.rtree;
 
@@ -112,7 +112,7 @@ public class RTreeTests {
 		try (Transaction tx = db.beginTx()) {
 			RTreeIndex.NodeWithEnvelope rootNode = new RTreeIndex.NodeWithEnvelope(tx.createNode(),
 					new Envelope(min, max));
-			rtree.setIndexNodeEnvelope(rootNode);
+			TestRTreeIndex.setIndexNodeEnvelope(rootNode);
 			ArrayList<RTreeIndex.NodeWithEnvelope> parents = new ArrayList<>();
 			ArrayList<RTreeIndex.NodeWithEnvelope> children = new ArrayList<>();
 			parents.add(rootNode);
@@ -125,7 +125,7 @@ public class RTreeTests {
 							makeEnvelope(parent.envelope, 0.5, 0.0, 1.0)
 					};
 					for (Envelope env : envs) {
-						RTreeIndex.NodeWithEnvelope child = rtree.makeChildIndexNode(tx, parent, env);
+						RTreeIndex.NodeWithEnvelope child = TestRTreeIndex.makeChildIndexNode(tx, parent, env);
 						children.add(child);
 					}
 				}
@@ -139,7 +139,7 @@ public class RTreeTests {
 	}
 
 	@SuppressWarnings("SameParameterValue")
-	Envelope makeEnvelope(Envelope parent, double scaleFactor, double offsetX, double offsetY) {
+	static Envelope makeEnvelope(Envelope parent, double scaleFactor, double offsetX, double offsetY) {
 		Envelope env = new Envelope(parent);
 		env.scaleBy(scaleFactor);
 		env.shiftBy(offsetX * env.getWidth(0), 0);

@@ -1,11 +1,32 @@
+/*
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [http://neo4j.com]
+ *
+ * This file is part of Neo4j Spatial.
+ *
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package org.neo4j.gis.spatial;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.lessThan;
 import static org.hamcrest.Matchers.lessThanOrEqualTo;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 import static org.neo4j.gis.spatial.rtree.RTreeIndex.DEFAULT_MAX_NODE_REFERENCES;
 import static org.neo4j.internal.helpers.collection.MapUtil.map;
@@ -29,11 +50,11 @@ import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.referencing.crs.DefaultEngineeringCRS;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.dbms.api.DatabaseManagementService;
@@ -74,17 +95,17 @@ public class RTreeBulkInsertTest {
 	// While the current lucene index implmentation is so slow (16n/s) we disable all benchmarks for lucene backed indexes
 	private static final boolean enableLucene = false;
 
-	@Before
+	@BeforeEach
 	public void before() throws IOException {
 		restart();
 	}
 
-	@After
+	@AfterEach
 	public void after() throws IOException {
 		doCleanShutdown();
 	}
 
-	@Ignore
+	@Disabled
 	public void shouldDeleteRecursiveTree() {
 		int depth = 5;
 		int width = 2;
@@ -134,7 +155,7 @@ public class RTreeBulkInsertTest {
 		}
 	}
 
-	private void deleteRecursivelySubtree(Node node, Relationship incoming) {
+	private static void deleteRecursivelySubtree(Node node, Relationship incoming) {
 		for (Relationship relationship : node.getRelationships(Direction.OUTGOING,
 				RTreeRelationshipTypes.RTREE_CHILD)) {
 			deleteRecursivelySubtree(relationship.getEndNode(), relationship);
@@ -165,7 +186,7 @@ public class RTreeBulkInsertTest {
 		}
 	}
 
-	@Ignore
+	@Disabled
 	public void shouldInsertSimpleRTree() {
 		int width = 20;
 		int blockSize = 10000;
@@ -212,7 +233,7 @@ public class RTreeBulkInsertTest {
 
 	}
 
-	private List<Node> idsToNodes(Transaction tx, List<String> nodeIds) {
+	private static List<Node> idsToNodes(Transaction tx, List<String> nodeIds) {
 		return nodeIds.stream().map(tx::getNodeByElementId).collect(Collectors.toList());
 	}
 
@@ -451,6 +472,7 @@ public class RTreeBulkInsertTest {
 			this.config = config;
 		}
 
+		@Override
 		public EditableLayer setupLayer(Transaction tx) {
 			this.nodes = setup(name, "rtree", config.width);
 			this.layer = (EditableLayer) spatial.getLayer(tx, name);
@@ -583,12 +605,12 @@ public class RTreeBulkInsertTest {
 		insertManyNodesInBulk(new HilbertIndexMaker("Coordinates", "Bulk", testConfigs.get("small")), 5000);
 	}
 
-	@Ignore // takes too long, change to @Test when benchmarking
+	@Disabled // takes too long, change to @Test when benchmarking
 	public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_small_10() throws FactoryException, IOException {
 		insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("small"));
 	}
 
-	@Ignore // takes too long, change to @Test when benchmarking
+	@Disabled // takes too long, change to @Test when benchmarking
 	public void shouldInsertManyNodesIndividuallyGreenesSplit_small_10() throws FactoryException, IOException {
 		insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("small"));
 	}
@@ -607,12 +629,12 @@ public class RTreeBulkInsertTest {
 	 * Small model 250*250 nodes (shallow tree)
 	 */
 
-	@Ignore // takes too long, change to @Test when benchmarking
+	@Disabled // takes too long, change to @Test when benchmarking
 	public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_small_100() throws FactoryException, IOException {
 		insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("small"));
 	}
 
-	@Ignore // takes too long, change to @Test when benchmarking
+	@Disabled // takes too long, change to @Test when benchmarking
 	public void shouldInsertManyNodesIndividuallyGreenesSplit_small_100() throws FactoryException, IOException {
 		insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("small"));
 	}
@@ -661,12 +683,12 @@ public class RTreeBulkInsertTest {
 		insertManyNodesInBulk(new HilbertIndexMaker("Coordinates", "Bulk", testConfigs.get("medium")), 5000);
 	}
 
-	@Ignore
+	@Disabled
 	public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_medium_10() throws FactoryException, IOException {
 		insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("medium"));
 	}
 
-	@Ignore
+	@Disabled
 	public void shouldInsertManyNodesIndividuallyGreenesSplit_medium_10() throws FactoryException, IOException {
 		insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("medium"));
 	}
@@ -681,12 +703,12 @@ public class RTreeBulkInsertTest {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("medium"));
 	}
 
-	@Ignore
+	@Disabled
 	public void shouldInsertManyNodesInBulkWithQuadraticSplit_medium_10_merge() throws FactoryException, IOException {
 		insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("medium"), true);
 	}
 
-	@Ignore
+	@Disabled
 	public void shouldInsertManyNodesInBulkWithGreenesSplit_medium_10_merge() throws FactoryException, IOException {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("medium"), true);
 	}
@@ -695,17 +717,17 @@ public class RTreeBulkInsertTest {
 	 * Medium model 500*500 nodes (shallow tree - factor 100)
 	 */
 
-	@Ignore
+	@Disabled
 	public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_medium_100() throws FactoryException, IOException {
 		insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("medium"));
 	}
 
-	@Ignore
+	@Disabled
 	public void shouldInsertManyNodesIndividuallyGreenesSplit_medium_100() throws FactoryException, IOException {
 		insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("medium"));
 	}
 
-	@Ignore // takes too long, change to @Test when benchmarking
+	@Disabled // takes too long, change to @Test when benchmarking
 	public void shouldInsertManyNodesInBulkWithQuadraticSplit_medium_100() throws FactoryException, IOException {
 		insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("medium"));
 	}
@@ -715,12 +737,12 @@ public class RTreeBulkInsertTest {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("medium"));
 	}
 
-	@Ignore
+	@Disabled
 	public void shouldInsertManyNodesInBulkWithQuadraticSplit_medium_100_merge() throws FactoryException, IOException {
 		insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("medium"), true);
 	}
 
-	@Ignore
+	@Disabled
 	public void shouldInsertManyNodesInBulkWithGreenesSplit_medium_100_merge() throws FactoryException, IOException {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("medium"), true);
 	}
@@ -759,22 +781,22 @@ public class RTreeBulkInsertTest {
 		insertManyNodesInBulk(new HilbertIndexMaker("Coordinates", "Bulk", testConfigs.get("large")), 5000);
 	}
 
-	@Ignore // takes too long, change to @Test when benchmarking
+	@Disabled // takes too long, change to @Test when benchmarking
 	public void shouldInsertManyNodesInBulkWithQuadraticSplit_large_10() throws FactoryException, IOException {
 		insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("large"));
 	}
 
-	@Ignore // takes too long, change to @Test when benchmarking
+	@Disabled // takes too long, change to @Test when benchmarking
 	public void shouldInsertManyNodesInBulkWithGreenesSplit_large_10() throws FactoryException, IOException {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("large"));
 	}
 
-	@Ignore // takes too long, change to @Test when benchmarking
+	@Disabled // takes too long, change to @Test when benchmarking
 	public void shouldInsertManyNodesInBulkWithQuadraticSplit_large_100() throws FactoryException, IOException {
 		insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("large"));
 	}
 
-	@Ignore // takes too long, change to @Test when benchmarking
+	@Disabled // takes too long, change to @Test when benchmarking
 	public void shouldInsertManyNodesInBulkWithGreenesSplit_large_100() throws FactoryException, IOException {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("large"));
 	}
@@ -896,7 +918,7 @@ public class RTreeBulkInsertTest {
 	 * Run this manually to generate images of RTree that can be used for animation.
 	 * ffmpeg -f image2 -r 12 -i rtree-single/rtree-%d.png -r 12 -s 1280x960 rtree-single2_12fps.mp4
 	 */
-	@Ignore
+	@Disabled
 	public void shouldInsertManyNodesIndividuallyAndGenerateImagesForAnimation() throws FactoryException, IOException {
 		IndexTestConfig config = testConfigs.get("medium");
 		int blockSize = 5;
@@ -1009,7 +1031,7 @@ public class RTreeBulkInsertTest {
 	 * Run this manually to generate images of RTree that can be used for animation.
 	 * ffmpeg -f image2 -r 12 -i rtree-single/rtree-%d.png -r 12 -s 1280x960 rtree-single2_12fps.mp4
 	 */
-	@Ignore
+	@Disabled
 	public void shouldInsertManyNodesInBulkAndGenerateImagesForAnimation() throws FactoryException, IOException {
 		IndexTestConfig config = testConfigs.get("medium");
 		int blockSize = 1000;
@@ -1065,7 +1087,7 @@ public class RTreeBulkInsertTest {
 //        debugIndexTree((RTreeIndex) layer.getIndex());
 	}
 
-	@Ignore
+	@Disabled
 	public void shouldAccessIndexAfterBulkInsertion() throws Exception {
 		// Use these two lines if you want to examine the output.
 //        File dbPath = new File("target/var/BulkTest");
@@ -1117,7 +1139,7 @@ public class RTreeBulkInsertTest {
 			Result result = tx.execute(cypher);
 //           System.out.println(result.columns().toString());
 			Object obj = result.columnAs("count").next();
-			assertTrue(obj instanceof Long);
+			assertInstanceOf(Long.class, obj);
 			assertEquals((long) ((Long) obj), numNodes);
 			tx.commit();
 		}
@@ -1132,14 +1154,14 @@ public class RTreeBulkInsertTest {
 			Result result = tx.execute(cypher);
 //           System.out.println(result.columns().toString());
 			Object obj = result.columnAs("count").next();
-			assertTrue(obj instanceof Long);
+			assertInstanceOf(Long.class, obj);
 			assertEquals((long) ((Long) obj), numNodes);
 			tx.commit();
 		}
 		System.out.println("\t" + (System.currentTimeMillis() - start) + "ms");
 	}
 
-	@Ignore
+	@Disabled
 	public void shouldBuildTreeFromScratch() throws Exception {
 		//GraphDatabaseService db = this.databases.database("BultTest2");
 		GraphDatabaseService db = this.db;
@@ -1185,7 +1207,7 @@ public class RTreeBulkInsertTest {
 				buildRTreeFromScratch.invoke(rtree, rtree.getIndexRoot(tx), decodeEnvelopes.invoke(rtree, coords), 0.7);
 				RTreeTestUtils testUtils = new RTreeTestUtils(rtree);
 
-				Map<Long, Long> results = testUtils.get_height_map(tx, rtree.getIndexRoot(tx));
+				Map<Long, Long> results = RTreeTestUtils.get_height_map(tx, rtree.getIndexRoot(tx));
 				assertEquals(1, results.size());
 				assertEquals((int) expectedHeight.invoke(rtree, 0.7, coords.size()),
 						results.keySet().iterator().next().intValue());
@@ -1195,7 +1217,7 @@ public class RTreeBulkInsertTest {
 		}
 	}
 
-	@Ignore
+	@Disabled
 	public void shouldPerformRTreeBulkInsertion() throws Exception {
 		// Use this line if you want to examine the output.
 		//GraphDatabaseService db = databases.database("BulkTest");
@@ -1231,7 +1253,7 @@ public class RTreeBulkInsertTest {
 
 				RTreeIndex rtree = (RTreeIndex) layer.getIndex();
 				RTreeTestUtils utils = new RTreeTestUtils(rtree);
-				assertTrue(utils.check_balance(tx, rtree.getIndexRoot(tx)));
+				assertTrue(RTreeTestUtils.check_balance(tx, rtree.getIndexRoot(tx)));
 
 				tx.commit();
 			}
@@ -1354,7 +1376,7 @@ public class RTreeBulkInsertTest {
 	}
 
 
-	private void searchForPos(int numNodes, GraphDatabaseService db) {
+	private static void searchForPos(int numNodes, GraphDatabaseService db) {
 		System.out.println("Searching with spatial.withinDistance");
 		long start = System.currentTimeMillis();
 		try (Transaction tx = db.beginTx()) { // 'points',{longitude:15.0,latitude:60.0},100
@@ -1393,26 +1415,25 @@ public class RTreeBulkInsertTest {
 		}
 	}
 
-	private void checkIndexOverlaps(Transaction tx, Layer layer, TestStats stats) {
+	private static void checkIndexOverlaps(Transaction tx, Layer layer, TestStats stats) {
 		RTreeIndex index = (RTreeIndex) layer.getIndex();
 		Node root = index.getIndexRoot(tx);
 		ArrayList<ArrayList<NodeWithEnvelope>> nodes = new ArrayList<>();
 		nodes.add(new ArrayList<>());
-		nodes.get(0).add(new NodeWithEnvelope(root, index.getIndexNodeEnvelope(root)));
+		nodes.get(0).add(new NodeWithEnvelope(root, RTreeIndex.getIndexNodeEnvelope(root)));
 		do {
 			ArrayList<NodeWithEnvelope> children = new ArrayList<>();
 			for (NodeWithEnvelope parent : nodes.get(nodes.size() - 1)) {
 				for (Relationship rel : parent.node.getRelationships(Direction.OUTGOING,
 						RTreeRelationshipTypes.RTREE_CHILD)) {
 					Node child = rel.getEndNode();
-					children.add(new NodeWithEnvelope(child, index.getIndexNodeEnvelope(child)));
+					children.add(new NodeWithEnvelope(child, RTreeIndex.getIndexNodeEnvelope(child)));
 				}
 			}
 			if (children.isEmpty()) {
 				break;
-			} else {
-				nodes.add(children);
 			}
+			nodes.add(children);
 		} while (true);
 		System.out.println("Comparison of index node areas to root area for " + nodes.size() + " index levels:");
 		for (int level = 0; level < nodes.size(); level++) {
@@ -1423,7 +1444,7 @@ public class RTreeBulkInsertTest {
 		}
 	}
 
-	private double[] calculateOverlap(NodeWithEnvelope root, List<NodeWithEnvelope> nodes) {
+	private static double[] calculateOverlap(NodeWithEnvelope root, List<NodeWithEnvelope> nodes) {
 		double rootArea = root.envelope.getArea();
 		double nodesArea = 0.0;
 		for (NodeWithEnvelope entry : nodes) {
@@ -1472,8 +1493,8 @@ public class RTreeBulkInsertTest {
 			stats.put("Indexed", geometrySize);
 			System.out.println("Index contains " + geometrySize + " geometries");
 		}
-		assertEquals("Expected " + config.expectedGeometries + " nodes to be returned", config.expectedGeometries,
-				countGeometries);
+		assertEquals(config.expectedGeometries, countGeometries,
+				"Expected " + config.expectedGeometries + " nodes to be returned");
 		return nodes;
 	}
 
@@ -1509,7 +1530,8 @@ public class RTreeBulkInsertTest {
 		// unless the polygon is a rectangle, in which case they are not contained, leading to
 		// different numbers for expectedGeometries and expectedCount.
 		// See https://github.com/locationtech/jts/blob/master/modules/core/src/main/java/org/locationtech/jts/operation/predicate/RectangleContains.java#L70
-		assertEquals("Expected " + config.expectedCount + " nodes to be matched", config.expectedCount, matched);
+		assertEquals(config.expectedCount, matched,
+				"Expected " + config.expectedCount + " nodes to be matched");
 		int maxNodeReferences = stats.maxNodeReferences;
 		int maxExpectedGeometriesTouched = matched * maxNodeReferences;
 		if (countGeometries > 1 && assertTouches) {
@@ -1521,7 +1543,7 @@ public class RTreeBulkInsertTest {
 		}
 	}
 
-	private void getExplicitIndexBackedIndexStats(ExplicitIndexBackedPointIndex index, TestStats stats,
+	private static void getExplicitIndexBackedIndexStats(ExplicitIndexBackedPointIndex index, TestStats stats,
 			boolean assertTouches, long countGeometries) {
 		IndexTestConfig config = stats.config;
 		ExplicitIndexBackedMonitor monitor = index.getMonitor();
@@ -1535,7 +1557,8 @@ public class RTreeBulkInsertTest {
 		// unless the polygon is a rectangle, in which case they are not contained, leading to
 		// different numbers for expectedGeometries and expectedCount.
 		// See https://github.com/locationtech/jts/blob/master/modules/core/src/main/java/org/locationtech/jts/operation/predicate/RectangleContains.java#L70
-		assertEquals("Expected " + config.expectedCount + " nodes to be matched", config.expectedCount, matched);
+		assertEquals(config.expectedCount, matched,
+				"Expected " + config.expectedCount + " nodes to be matched");
 	}
 
 	private class TimedLogger {
@@ -1577,19 +1600,19 @@ public class RTreeBulkInsertTest {
 		}
 	}
 
-	private void verifyGeohashIndex(Layer layer) {
+	private static void verifyGeohashIndex(Layer layer) {
 		LayerIndexReader index = layer.getIndex();
-		assertTrue("Index should be a geohash index", index instanceof LayerGeohashPointIndex);
+		assertInstanceOf(LayerGeohashPointIndex.class, index, "Index should be a geohash index");
 	}
 
-	private void verifyHilbertIndex(Layer layer) {
+	private static void verifyHilbertIndex(Layer layer) {
 		LayerIndexReader index = layer.getIndex();
-		assertTrue("Index should be a hilbert index", index instanceof LayerHilbertPointIndex);
+		assertInstanceOf(LayerHilbertPointIndex.class, index, "Index should be a hilbert index");
 	}
 
-	private void verifyZOrderIndex(Layer layer) {
+	private static void verifyZOrderIndex(Layer layer) {
 		LayerIndexReader index = layer.getIndex();
-		assertTrue("Index should be a Z-Order index", index instanceof LayerZOrderPointIndex);
+		assertInstanceOf(LayerZOrderPointIndex.class, index, "Index should be a Z-Order index");
 	}
 
 	private void verifyTreeStructure(Layer layer, String splitMode, TestStats stats) {
@@ -1630,7 +1653,7 @@ public class RTreeBulkInsertTest {
 				System.out.println("Tree depth to all geometries: " + depthMap);
 			}
 		}
-		assertEquals("All geometries should be at the same depth", 1, balanced);
+		assertEquals(1, balanced, "All geometries should be at the same depth");
 		Map<String, Object> leafMap;
 		try (Transaction tx = db.beginTx()) {
 			Result resultNumChildren = tx.execute(queryNumChildren, params);
@@ -1783,7 +1806,7 @@ public class RTreeBulkInsertTest {
 
 	private static final LinkedHashSet<TestStats> allStats = new LinkedHashSet<>();
 
-	@AfterClass
+	@AfterAll
 	public static void afterClass() {
 		System.out.println("\n\nComposite stats for " + allStats.size() + " tests run");
 		System.out.println(TestStats.headerString());

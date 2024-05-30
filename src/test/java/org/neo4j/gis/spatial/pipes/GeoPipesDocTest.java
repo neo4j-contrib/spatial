@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -630,7 +630,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 
 			assertEquals(1, flow.getProperties().size());
 			String wkt = (String) flow.getProperties().get("WellKnownText");
-			assertTrue(wkt.indexOf("POINT") == 0);
+			assertEquals(0, wkt.indexOf("POINT"));
 		}
 
 		// every rectangle has 5 points, the last point is in the same position of the first
@@ -1064,7 +1064,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		exporter.setExportDir("target/docs/images/");
 	}
 
-	private GeoPipeFlow print(GeoPipeFlow pipeFlow) {
+	private static GeoPipeFlow print(GeoPipeFlow pipeFlow) {
 		System.out.println("GeoPipeFlow:");
 		for (String key : pipeFlow.getProperties().keySet()) {
 			System.out.println(key + "=" + pipeFlow.getProperties().get(key));

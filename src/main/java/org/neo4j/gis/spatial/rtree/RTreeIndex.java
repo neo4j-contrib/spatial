@@ -1,20 +1,21 @@
 /*
- * Copyright (c) 2002-2020 Neo4j Sweden AB
+ * Copyright (c) "Neo4j"
+ * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
- * Neo4j is free software: you can redistribute it and/or modify it under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option) any later
- * version.
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 package org.neo4j.gis.spatial.rtree;
 
@@ -281,7 +282,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 	 * height is one.
 	 * Thus, the lowest level is 1.
 	 */
-	int getHeight(Node rootNode, int height) {
+	static int getHeight(Node rootNode, int height) {
 		try (var relationships = rootNode.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD)) {
 			if (relationships.iterator().hasNext()) {
 				return getHeight(relationships.iterator().next().getEndNode(), height + 1);
@@ -291,7 +292,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		}
 	}
 
-	List<NodeWithEnvelope> getIndexChildren(Node rootNode) {
+	static List<NodeWithEnvelope> getIndexChildren(Node rootNode) {
 		List<NodeWithEnvelope> result = new ArrayList<>();
 		try (var relationships = rootNode.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD)) {
 			for (Relationship r : relationships) {
@@ -302,7 +303,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		return result;
 	}
 
-	private List<NodeWithEnvelope> getIndexChildren(Node rootNode, int depth) {
+	private static List<NodeWithEnvelope> getIndexChildren(Node rootNode, int depth) {
 		if (depth < 1) {
 			throw new IllegalArgumentException("Depths must be at least one");
 		}
@@ -641,7 +642,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		}
 	}
 
-	private Node deleteEmptyTreeNodes(Node indexNode, RelationshipType relType) {
+	private static Node deleteEmptyTreeNodes(Node indexNode, RelationshipType relType) {
 		if (countChildren(indexNode, relType) == 0) {
 			Node parent = getIndexNodeParent(indexNode);
 			if (parent != null) {
@@ -865,7 +866,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 	 * to use the indexes internal knowledge of the index tree and node
 	 * structure for decoding the envelope.
 	 */
-	public Envelope getIndexNodeEnvelope(Node indexNode) {
+	public static Envelope getIndexNodeEnvelope(Node indexNode) {
 		// this is ok after an index node split
 		if (!indexNode.hasProperty(INDEX_PROP_BBOX)) {
 			return null;
@@ -876,7 +877,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		return new Envelope(bbox[0], bbox[2], bbox[1], bbox[3]);
 	}
 
-	private void visitInTx(Transaction tx, SpatialIndexVisitor visitor, String indexNodeId) {
+	private static void visitInTx(Transaction tx, SpatialIndexVisitor visitor, String indexNodeId) {
 		Node indexNode = tx.getNodeByElementId(indexNodeId);
 		if (!visitor.needsToVisit(getIndexNodeEnvelope(indexNode))) {
 			return;
@@ -1026,7 +1027,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		return getArea(after) - getArea(before);
 	}
 
-	private Node chooseIndexNodeWithSmallestArea(List<Node> indexNodes) {
+	private static Node chooseIndexNodeWithSmallestArea(List<Node> indexNodes) {
 		Node result = null;
 		double smallestArea = -1;
 
@@ -1318,7 +1319,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		return false;
 	}
 
-	protected void setIndexNodeEnvelope(Node indexNode, Envelope bbox) {
+	protected static void setIndexNodeEnvelope(Node indexNode, Envelope bbox) {
 		indexNode.setProperty(INDEX_PROP_BBOX,
 				new double[]{bbox.getMinX(), bbox.getMinY(), bbox.getMaxX(), bbox.getMaxY()});
 	}
@@ -1330,7 +1331,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 	 * @param childBBox geomNode inserted
 	 * @return is bbox changed?
 	 */
-	protected boolean expandParentBoundingBoxAfterNewChild(Node parent, double[] childBBox) {
+	protected static boolean expandParentBoundingBoxAfterNewChild(Node parent, double[] childBBox) {
 		if (!parent.hasProperty(INDEX_PROP_BBOX)) {
 			parent.setProperty(INDEX_PROP_BBOX, new double[]{childBBox[0], childBBox[1], childBBox[2], childBBox[3]});
 			return true;
@@ -1379,7 +1380,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		return e.getArea();
 	}
 
-	private void deleteTreeBelow(Node rootNode) {
+	private static void deleteTreeBelow(Node rootNode) {
 		try (var relationships = rootNode.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD)) {
 			for (Relationship relationship : relationships) {
 				deleteRecursivelySubtree(relationship.getEndNode(), relationship);
@@ -1387,7 +1388,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		}
 	}
 
-	private void deleteRecursivelySubtree(Node node, Relationship incoming) {
+	private static void deleteRecursivelySubtree(Node node, Relationship incoming) {
 		try (var relationships = node.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD)) {
 			for (Relationship relationship : relationships) {
 				deleteRecursivelySubtree(relationship.getEndNode(), relationship);
@@ -1405,11 +1406,11 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		node.delete();
 	}
 
-	protected boolean isGeometryNodeIndexed(Node geomNode) {
+	protected static boolean isGeometryNodeIndexed(Node geomNode) {
 		return geomNode.hasRelationship(Direction.INCOMING, RTreeRelationshipTypes.RTREE_REFERENCE);
 	}
 
-	protected Node findLeafContainingGeometryNode(Node geomNode) {
+	protected static Node findLeafContainingGeometryNode(Node geomNode) {
 		return geomNode.getSingleRelationship(RTreeRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING)
 				.getStartNode();
 	}

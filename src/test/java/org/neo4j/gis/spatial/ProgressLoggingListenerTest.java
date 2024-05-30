@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -47,7 +47,7 @@ public class ProgressLoggingListenerTest {
 		testProgressLoggingListenerWithSpecifiedWaits(unitsOfWork, timeWait, throttle, 3);
 	}
 
-	private void testProgressLoggingListenerWithSpecifiedWaits(int unitsOfWork, long timeWait, long throttle,
+	private static void testProgressLoggingListenerWithSpecifiedWaits(int unitsOfWork, long timeWait, long throttle,
 			int expectedLogCount) {
 		// When running maven-surefire System.out is replaced with a PrintStream that mockito cannot spy on, so we need to wrap it here
 		PrintStream wrapped = new PrintStream(System.out);

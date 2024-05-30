@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -40,7 +40,7 @@ public class NativePointEncoder extends AbstractGeometryEncoder implements Confi
 	private String locationProperty = DEFAULT_GEOM;
 	private Neo4jCRS crs = Neo4jCRS.findCRS("WGS-84");
 
-	protected GeometryFactory getGeometryFactory() {
+	protected static GeometryFactory getGeometryFactory() {
 		if (geometryFactory == null) {
 			geometryFactory = new GeometryFactory();
 		}

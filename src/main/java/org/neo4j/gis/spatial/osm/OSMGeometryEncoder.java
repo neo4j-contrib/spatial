@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -193,7 +193,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 
 	}
 
-	public Iterable<Node> getPointNodesFromWayNode(Node wayNode) {
+	public static Iterable<Node> getPointNodesFromWayNode(Node wayNode) {
 		final Node firstNode = wayNode.getSingleRelationship(OSMRelation.FIRST_NODE, Direction.OUTGOING).getEndNode();
 		final NodeProxyIterator iterator = new NodeProxyIterator(firstNode);
 		return () -> iterator;

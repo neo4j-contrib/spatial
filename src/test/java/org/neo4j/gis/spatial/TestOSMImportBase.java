@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -165,12 +165,12 @@ public class TestOSMImportBase extends Neo4jTestCase {
 			int node_count = 0;
 			int match_count = 0;
 			Assertions.assertNull(way.getProperty("changeset", null), "Way has changeset property");
-			Node wayChangeset = dataset.getChangeset(way);
+			Node wayChangeset = OSMDataset.getChangeset(way);
 			if (wayChangeset != null) {
 				long wayCS = (Long) wayChangeset.getProperty("changeset");
-				for (Node node : dataset.getWayNodes(way)) {
+				for (Node node : OSMDataset.getWayNodes(way)) {
 					Assertions.assertNull(node.getProperty("changeset", null), "Node has changeset property");
-					Node nodeChangeset = dataset.getChangeset(node);
+					Node nodeChangeset = OSMDataset.getChangeset(node);
 					if (nodeChangeset == null) {
 						nodesMissing++;
 					} else {
@@ -182,7 +182,7 @@ public class TestOSMImportBase extends Neo4jTestCase {
 									"Two changeset nodes should not have the same changeset number: way(" + wayCS
 											+ ")==node(" + nodeCS + ")");
 						}
-						Node user = dataset.getUser(nodeChangeset);
+						Node user = OSMDataset.getUser(nodeChangeset);
 						if (user != null) {
 							String userid = user.getElementId();
 							if (userNodeCount.containsKey(userid)) {

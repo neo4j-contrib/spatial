@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -82,7 +82,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
 	 * understand the behaviour of the JTS LRS methods better. Currently no
 	 * assertions are made.
 	 */
-	private void debugLRS(Geometry geometry) {
+	private static void debugLRS(Geometry geometry) {
 		LengthIndexedLine line = new org.locationtech.jts.linearref.LengthIndexedLine(geometry);
 		double length = line.getEndIndex() - line.getStartIndex();
 		System.out.println("Have Geometry: " + geometry);

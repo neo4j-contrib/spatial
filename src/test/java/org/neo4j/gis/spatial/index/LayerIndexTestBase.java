@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -223,7 +223,7 @@ public abstract class LayerIndexTestBase {
 		}
 	}
 
-	private Polygon makeTestPolygonInSquare(GeometryFactory geometryFactory, int length) {
+	private static Polygon makeTestPolygonInSquare(GeometryFactory geometryFactory, int length) {
 		if (length < 4) {
 			throw new IllegalArgumentException("Cannot create letter C in square smaller than 4x4");
 		}

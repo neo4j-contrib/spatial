@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -143,7 +143,7 @@ public abstract class Neo4jTestCase {
 	private void beforeShutdown() {
 	}
 
-	Path getNeoPath() {
+	static Path getNeoPath() {
 		return dbPath.toAbsolutePath();
 	}
 
@@ -151,7 +151,7 @@ public abstract class Neo4jTestCase {
 		return dbPath.toAbsolutePath().resolve("test-" + storePrefix);
 	}
 
-	private void deleteDatabase() {
+	private static void deleteDatabase() {
 		try {
 			FileUtils.deleteDirectory(getNeoPath());
 		} catch (IOException e) {
