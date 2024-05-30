@@ -141,15 +141,13 @@ public class SpatialProceduresTest extends AbstractApiTest {
 
 	private static Layer makeLayerOfVariousTypes(SpatialDatabaseService spatial, Transaction tx, String name,
 			int index) {
-		switch (index % 3) {
-			case 0:
-				return spatial.getOrCreateSimplePointLayer(tx, name, SpatialDatabaseService.RTREE_INDEX_NAME, "x", "y");
-			case 1:
-				return spatial.getOrCreateNativePointLayer(tx, name, SpatialDatabaseService.RTREE_INDEX_NAME,
-						"location");
-			default:
-				return spatial.getOrCreateDefaultLayer(tx, name);
-		}
+		return switch (index % 3) {
+			case 0 -> spatial.getOrCreateSimplePointLayer(tx, name, SpatialDatabaseService.RTREE_INDEX_NAME, "x", "y",
+					null);
+			case 1 -> spatial.getOrCreateNativePointLayer(tx, name, SpatialDatabaseService.RTREE_INDEX_NAME, "location",
+					null);
+			default -> spatial.getOrCreateDefaultLayer(tx, name, null);
+		};
 	}
 
 	private void makeOldSpatialModel(Transaction tx, String... layers) {
@@ -568,7 +566,7 @@ public class SpatialProceduresTest extends AbstractApiTest {
 					procs.get("spatial.layers"));
 			assertEquals("spatial.layer(name :: STRING) :: (node :: NODE)", procs.get("spatial.layer"));
 			assertEquals(
-					"spatial.addLayer(name :: STRING, type :: STRING, encoderConfig :: STRING) :: (node :: NODE)",
+					"spatial.addLayer(name :: STRING, type :: STRING, encoderConfig :: STRING, indexConfig =  :: STRING) :: (node :: NODE)",
 					procs.get("spatial.addLayer"));
 			assertEquals("spatial.addNode(layerName :: STRING, node :: NODE) :: (node :: NODE)",
 					procs.get("spatial.addNode"));
@@ -866,6 +864,41 @@ public class SpatialProceduresTest extends AbstractApiTest {
 				"RETURN count";
 		testCountQuery("addNodes", query, count, "count", Map.of("count", count));
 		testRemoveNodes("native_poi", count);
+	}
+
+	@Test
+	public void add_node_to_multiple_indexes_in_chunks() {
+		// Playing with this number in both tests leads to rough benchmarking of the addNode/addNodes comparison
+		int count = 100;
+		execute("""
+				UNWIND range(1,$count) as i
+				CREATE (n:Point {
+				    id: i,
+				    point1: point( { latitude: 56.0, longitude: 12.0 } ),
+				    point2: point( { latitude: 57.0, longitude: 13.0 } )
+				})""", Map.of("count", count));
+		execute("CALL spatial.addLayer('point1','NativePoint','point1:point1BB', '{\"referenceRelationshipType\": \"RTREE_P1_TYPE\"}')");
+		execute("CALL spatial.addLayer('point2','NativePoint','point2:point2BB', '{\"referenceRelationshipType\": \"RTREE_P2_TYPE\"}')");
+		db.executeTransactionally("""
+				MATCH (p:Point)
+				WITH (count(p) / 10) AS pages, collect(p) AS nodes
+				UNWIND range(0, pages) AS i CALL {
+				    WITH i, nodes
+				    CALL spatial.addNodes('point1', nodes[(i * 10)..((i + 1) * 10)]) YIELD count
+				    RETURN count AS count
+				} IN TRANSACTIONS OF 1 ROWS
+				RETURN sum(count) AS count
+				""");
+		db.executeTransactionally("""
+				MATCH (p:Point)
+				WITH (count(p) / 10) AS pages, collect(p) AS nodes
+				UNWIND range(0, pages) AS i CALL {
+				    WITH i, nodes
+				    CALL spatial.addNodes('point2', nodes[(i * 10)..((i + 1) * 10)]) YIELD count
+				    RETURN count AS count
+				} IN TRANSACTIONS OF 1 ROWS
+				RETURN sum(count) AS count
+				""");
 	}
 
 	@Test

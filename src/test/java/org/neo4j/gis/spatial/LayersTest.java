@@ -92,7 +92,7 @@ public class LayersTest {
 			assertNull(layer);
 		});
 		inTx(tx -> {
-			Layer layer = spatial.createWKBLayer(tx, layerName);
+			Layer layer = spatial.createWKBLayer(tx, layerName, null);
 			assertNotNull(layer);
 			assertThat("Should be a default layer", layer instanceof DefaultLayer);
 		});
@@ -128,7 +128,7 @@ public class LayersTest {
 				new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
 			EditableLayer layer = (EditableLayer) spatial.createLayer(tx, layerName, encoderClass,
-					EditableLayerImpl.class, indexClass, null);
+					EditableLayerImpl.class, indexClass, null, null);
 			assertNotNull(layer);
 		});
 		inTx(tx -> {
@@ -178,7 +178,7 @@ public class LayersTest {
 				new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
 			EditableLayer layer = (EditableLayer) spatial.createLayer(tx, layerName, encoderClass,
-					EditableLayerImpl.class, null, null);
+					EditableLayerImpl.class, null, null, null);
 			assertNotNull(layer);
 		});
 		inTx(tx -> {
@@ -197,7 +197,7 @@ public class LayersTest {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
-			EditableLayer layer = spatial.getOrCreateEditableLayer(tx, layerName);
+			EditableLayer layer = spatial.getOrCreateEditableLayer(tx, layerName, null, null);
 			assertNotNull(layer);
 		});
 		inTx(tx -> {
@@ -234,7 +234,7 @@ public class LayersTest {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
-			EditableLayer layer = spatial.getOrCreateEditableLayer(tx, "roads");
+			EditableLayer layer = spatial.getOrCreateEditableLayer(tx, "roads", null, null);
 			Coordinate crossing_bygg_forstadsgatan = new Coordinate(13.0171471, 55.6074148);
 			Coordinate[] waypoints_forstadsgatan = {new Coordinate(13.0201511, 55.6066846),
 					crossing_bygg_forstadsgatan};
@@ -272,7 +272,7 @@ public class LayersTest {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
-			Layer layer = spatial.createLayer(tx, layerName, geometryEncoderClass, layerClass);
+			Layer layer = spatial.createLayer(tx, layerName, geometryEncoderClass, layerClass, null);
 			assertNotNull(layer);
 			assertInstanceOf(EditableLayer.class, layer, "Should be an editable layer");
 		});
@@ -350,7 +350,7 @@ public class LayersTest {
 //        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath.getCanonicalPath());
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
-		inTx(tx -> spatial.getOrCreateSimplePointLayer(tx, "Coordinates", "rtree", "lat", "lon"));
+		inTx(tx -> spatial.getOrCreateSimplePointLayer(tx, "Coordinates", "rtree", "lat", "lon", null));
 
 		Random rand = new Random();
 

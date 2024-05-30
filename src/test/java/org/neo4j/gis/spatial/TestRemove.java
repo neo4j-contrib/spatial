@@ -37,7 +37,7 @@ public class TestRemove extends Neo4jTestCase {
 				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 
 		try (Transaction tx = graphDb().beginTx()) {
-			spatial.createLayer(tx, layerName, WKTGeometryEncoder.class, EditableLayerImpl.class);
+			spatial.createLayer(tx, layerName, WKTGeometryEncoder.class, EditableLayerImpl.class, "");
 			tx.commit();
 		}
 

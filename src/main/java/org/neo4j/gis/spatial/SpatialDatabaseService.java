@@ -61,6 +61,9 @@ import org.neo4j.graphdb.Transaction;
  */
 public class SpatialDatabaseService implements Constants {
 
+	public static final String RTREE_INDEX_NAME = "rtree";
+	public static final String GEOHASH_INDEX_NAME = "geohash";
+
 	public final IndexManager indexManager;
 
 	public SpatialDatabaseService(IndexManager indexManager) {
@@ -178,29 +181,28 @@ public class SpatialDatabaseService implements Constants {
 		return (DynamicLayer) LayerUtilities.makeLayerFromNode(tx, indexManager, node);
 	}
 
-	public DefaultLayer getOrCreateDefaultLayer(Transaction tx, String name) {
-		return (DefaultLayer) getOrCreateLayer(tx, name, WKBGeometryEncoder.class, EditableLayerImpl.class, "");
+	public DefaultLayer getOrCreateDefaultLayer(Transaction tx, String name, String indexConfig) {
+		return (DefaultLayer) getOrCreateLayer(tx, name, WKBGeometryEncoder.class, EditableLayerImpl.class, "",
+				indexConfig);
 	}
 
-	public EditableLayer getOrCreateEditableLayer(Transaction tx, String name, String format,
-			String propertyNameConfig) {
+	public EditableLayer getOrCreateEditableLayer(Transaction tx, String name, String format, String propertyNameConfig,
+			String indexConfig) {
 		Class<? extends GeometryEncoder> geClass = WKBGeometryEncoder.class;
 		if (format != null && format.toUpperCase().startsWith("WKT")) {
 			geClass = WKTGeometryEncoder.class;
 		}
-		return (EditableLayer) getOrCreateLayer(tx, name, geClass, EditableLayerImpl.class, propertyNameConfig);
+		return (EditableLayer) getOrCreateLayer(tx, name, geClass, EditableLayerImpl.class, propertyNameConfig,
+				indexConfig);
 	}
 
-	public EditableLayer getOrCreateEditableLayer(Transaction tx, String name) {
-		return getOrCreateEditableLayer(tx, name, "WKB", "");
+	public EditableLayer getOrCreateEditableLayer(Transaction tx, String name, String indexConfig) {
+		return getOrCreateEditableLayer(tx, name, "WKB", "", indexConfig);
 	}
 
-	public EditableLayer getOrCreateEditableLayer(Transaction tx, String name, String wktProperty) {
-		return getOrCreateEditableLayer(tx, name, "WKT", wktProperty);
+	public EditableLayer getOrCreateEditableLayer(Transaction tx, String name, String wktProperty, String indexConfig) {
+		return getOrCreateEditableLayer(tx, name, "WKT", wktProperty, indexConfig);
 	}
-
-	public static final String RTREE_INDEX_NAME = "rtree";
-	public static final String GEOHASH_INDEX_NAME = "geohash";
 
 	public static Class<? extends LayerIndexReader> resolveIndexClass(String index) {
 		if (index == null) {
@@ -216,23 +218,25 @@ public class SpatialDatabaseService implements Constants {
 	}
 
 	public EditableLayer getOrCreateSimplePointLayer(Transaction tx, String name, String index, String xProperty,
-			String yProperty) {
-		return getOrCreatePointLayer(tx, name, resolveIndexClass(index), SimplePointEncoder.class, xProperty,
+			String yProperty, String indexConfig) {
+		return getOrCreatePointLayer(tx, name, resolveIndexClass(index), SimplePointEncoder.class, indexConfig,
+				xProperty,
 				yProperty);
 	}
 
 	public EditableLayer getOrCreateNativePointLayer(Transaction tx, String name, String index,
-			String locationProperty) {
-		return getOrCreatePointLayer(tx, name, resolveIndexClass(index), SimplePointEncoder.class, locationProperty);
+			String locationProperty, String indexConfig) {
+		return getOrCreatePointLayer(tx, name, resolveIndexClass(index), SimplePointEncoder.class, indexConfig,
+				locationProperty);
 	}
 
 	public EditableLayer getOrCreatePointLayer(Transaction tx, String name,
 			Class<? extends LayerIndexReader> indexClass, Class<? extends GeometryEncoder> encoderClass,
-			String... encoderConfig) {
+			String indexConfig, String... encoderConfig) {
 		Layer layer = getLayer(tx, name);
 		if (layer == null) {
 			return (EditableLayer) createLayer(tx, name, encoderClass, SimplePointLayer.class, indexClass,
-					makeEncoderConfig(encoderConfig), DefaultGeographicCRS.WGS84);
+					makeEncoderConfig(encoderConfig), indexConfig, DefaultGeographicCRS.WGS84);
 		}
 		if (layer instanceof EditableLayer) {
 			return (EditableLayer) layer;
@@ -242,10 +246,10 @@ public class SpatialDatabaseService implements Constants {
 	}
 
 	public Layer getOrCreateLayer(Transaction tx, String name, Class<? extends GeometryEncoder> geometryEncoder,
-			Class<? extends Layer> layerClass, String config) {
+			Class<? extends Layer> layerClass, String encoderConfig, String indexConfig) {
 		Layer layer = getLayer(tx, name);
 		if (layer == null) {
-			layer = createLayer(tx, name, geometryEncoder, layerClass, null, config);
+			layer = createLayer(tx, name, geometryEncoder, layerClass, null, encoderConfig, indexConfig);
 		} else if (!(layerClass == null || layerClass.isInstance(layer))) {
 			throw new SpatialDatabaseException(
 					"Existing layer '" + layer + "' is not of the expected type: " + layerClass);
@@ -254,8 +258,8 @@ public class SpatialDatabaseService implements Constants {
 	}
 
 	public Layer getOrCreateLayer(Transaction tx, String name, Class<? extends GeometryEncoder> geometryEncoder,
-			Class<? extends Layer> layerClass) {
-		return getOrCreateLayer(tx, name, geometryEncoder, layerClass, "");
+			Class<? extends Layer> layerClass, String indexConfig) {
+		return getOrCreateLayer(tx, name, geometryEncoder, layerClass, "", indexConfig);
 	}
 
 	/**
@@ -298,8 +302,8 @@ public class SpatialDatabaseService implements Constants {
 		return getLayer(tx, name) != null;
 	}
 
-	public Layer createWKBLayer(Transaction tx, String name) {
-		return createLayer(tx, name, WKBGeometryEncoder.class, EditableLayerImpl.class);
+	public Layer createWKBLayer(Transaction tx, String name, String indexConfig) {
+		return createLayer(tx, name, WKBGeometryEncoder.class, EditableLayerImpl.class, indexConfig);
 	}
 
 	public SimplePointLayer createSimplePointLayer(Transaction tx, String name) {
@@ -311,7 +315,7 @@ public class SpatialDatabaseService implements Constants {
 	}
 
 	public SimplePointLayer createSimplePointLayer(Transaction tx, String name, String... xybProperties) {
-		return createPointLayer(tx, name, LayerRTreeIndex.class, SimplePointEncoder.class, xybProperties);
+		return createPointLayer(tx, name, LayerRTreeIndex.class, SimplePointEncoder.class, null, xybProperties);
 	}
 
 	public SimplePointLayer createNativePointLayer(Transaction tx, String name) {
@@ -324,13 +328,14 @@ public class SpatialDatabaseService implements Constants {
 	}
 
 	public SimplePointLayer createNativePointLayer(Transaction tx, String name, String... encoderConfig) {
-		return createPointLayer(tx, name, LayerRTreeIndex.class, NativePointEncoder.class, encoderConfig);
+		return createPointLayer(tx, name, LayerRTreeIndex.class, NativePointEncoder.class, null, encoderConfig);
 	}
 
 	public SimplePointLayer createPointLayer(Transaction tx, String name, Class<? extends LayerIndexReader> indexClass,
-			Class<? extends GeometryEncoder> encoderClass, String... encoderConfig) {
+			Class<? extends GeometryEncoder> encoderClass, String indexConfig, String... encoderConfig
+	) {
 		return (SimplePointLayer) createLayer(tx, name, encoderClass, SimplePointLayer.class, indexClass,
-				makeEncoderConfig(encoderConfig), org.geotools.referencing.crs.DefaultGeographicCRS.WGS84);
+				makeEncoderConfig(encoderConfig), indexConfig, org.geotools.referencing.crs.DefaultGeographicCRS.WGS84);
 	}
 
 	public static String makeEncoderConfig(String... args) {
@@ -349,19 +354,27 @@ public class SpatialDatabaseService implements Constants {
 	}
 
 	public Layer createLayer(Transaction tx, String name, Class<? extends GeometryEncoder> geometryEncoderClass,
-			Class<? extends Layer> layerClass) {
-		return createLayer(tx, name, geometryEncoderClass, layerClass, null, null);
+			Class<? extends Layer> layerClass, String indexConfig) {
+		return createLayer(tx, name, geometryEncoderClass, layerClass, null, null, indexConfig);
 	}
 
 	public Layer createLayer(Transaction tx, String name, Class<? extends GeometryEncoder> geometryEncoderClass,
 			Class<? extends Layer> layerClass, Class<? extends LayerIndexReader> indexClass,
-			String encoderConfig) {
-		return createLayer(tx, name, geometryEncoderClass, layerClass, indexClass, encoderConfig, null);
+			String encoderConfig,
+			String indexConfig
+	) {
+		return createLayer(tx, name, geometryEncoderClass, layerClass, indexClass, encoderConfig, indexConfig, null);
 	}
 
-	public Layer createLayer(Transaction tx, String name, Class<? extends GeometryEncoder> geometryEncoderClass,
-			Class<? extends Layer> layerClass, Class<? extends LayerIndexReader> indexClass,
-			String encoderConfig, CoordinateReferenceSystem crs) {
+	public Layer createLayer(Transaction tx,
+			String name,
+			Class<? extends GeometryEncoder> geometryEncoderClass,
+			Class<? extends Layer> layerClass,
+			Class<? extends LayerIndexReader> indexClass,
+			String encoderConfig,
+			String indexConfig,
+			CoordinateReferenceSystem crs
+	) {
 		if (containsLayer(tx, name)) {
 			throw new SpatialDatabaseException("Layer " + name + " already exists");
 		}
@@ -377,6 +390,17 @@ public class SpatialDatabaseService implements Constants {
 				System.out.println(
 						"Warning: encoder configuration '" + encoderConfig + "' passed to non-configurable encoder: "
 								+ geometryEncoderClass);
+			}
+		}
+		if (indexConfig != null && !indexConfig.isEmpty()) {
+			LayerIndexReader index = layer.getIndex();
+			if (index instanceof Configurable) {
+				((Configurable) index).setConfiguration(indexConfig);
+				layer.getLayerNode(tx).setProperty(PROP_INDEX_CONFIG, indexConfig);
+			} else {
+				System.out.println(
+						"Warning: index configuration '" + indexConfig + "' passed to non-configurable index: "
+								+ indexClass);
 			}
 		}
 		if (crs != null && layer instanceof EditableLayer) {
@@ -465,7 +489,7 @@ public class SpatialDatabaseService implements Constants {
 	 * @return new Layer with copy of all geometries
 	 */
 	public Layer createResultsLayer(Transaction tx, String layerName, List<SpatialDatabaseRecord> results) {
-		EditableLayer layer = (EditableLayer) createWKBLayer(tx, layerName);
+		EditableLayer layer = (EditableLayer) createWKBLayer(tx, layerName, "");
 		for (SpatialDatabaseRecord record : results) {
 			layer.add(tx, record.getGeometry());
 		}
@@ -544,15 +568,16 @@ public class SpatialDatabaseService implements Constants {
 		registeredLayerTypes.put(type.typeName.toLowerCase(), type);
 	}
 
-	public Layer getOrCreateRegisteredTypeLayer(Transaction tx, String name, String type, String config) {
+	public Layer getOrCreateRegisteredTypeLayer(Transaction tx, String name, String type, String encoderConfig,
+			String indexConfig) {
 		RegisteredLayerType registeredLayerType = registeredLayerTypes.get(type.toLowerCase());
-		return getOrCreateRegisteredTypeLayer(tx, name, registeredLayerType, config);
+		return getOrCreateRegisteredTypeLayer(tx, name, registeredLayerType, encoderConfig, indexConfig);
 	}
 
 	public Layer getOrCreateRegisteredTypeLayer(Transaction tx, String name, RegisteredLayerType registeredLayerType,
-			String config) {
+			String encoderConfig, String indexConfig) {
 		return getOrCreateLayer(tx, name, registeredLayerType.geometryEncoder, registeredLayerType.layerClass,
-				(config == null) ? registeredLayerType.defaultConfig : config);
+				(encoderConfig == null) ? registeredLayerType.defaultConfig : encoderConfig, indexConfig);
 	}
 
 	public static Map<String, String> getRegisteredLayerTypes() {
