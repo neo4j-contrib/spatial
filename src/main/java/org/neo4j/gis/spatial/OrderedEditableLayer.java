@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -19,6 +19,8 @@
  */
 package org.neo4j.gis.spatial;
 
+import static org.neo4j.gis.spatial.utilities.TraverserFactory.createTraverserInBackwardsCompatibleWay;
+
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
@@ -28,8 +30,6 @@ import org.neo4j.graphdb.traversal.BranchOrderingPolicies;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
-
-import static org.neo4j.gis.spatial.utilities.TraverserFactory.createTraverserInBackwardsCompatibleWay;
 
 /**
  * This class extends the EditableLayerImpl in a way that allows for the
@@ -43,52 +43,53 @@ import static org.neo4j.gis.spatial.utilities.TraverserFactory.createTraverserIn
  * non-ordered for a simpler data structure.
  */
 public class OrderedEditableLayer extends EditableLayerImpl {
-    private Node previousGeomNode;
 
-    enum OrderedRelationshipTypes implements RelationshipType {
-        GEOMETRIES, NEXT_GEOM
-    }
+	private Node previousGeomNode;
 
-    @Override
+	enum OrderedRelationshipTypes implements RelationshipType {
+		GEOMETRIES, NEXT_GEOM
+	}
+
+	@Override
 	protected Node addGeomNode(Transaction tx, Geometry geom, String[] fieldsName, Object[] fields) {
-        Node geomNode = super.addGeomNode(tx, geom, fieldsName, fields);
-        Node layerNode = getLayerNode(tx);
-        if (previousGeomNode == null) {
-            TraversalDescription traversalDescription = new MonoDirectionalTraversalDescription()
-                    .order(BranchOrderingPolicies.POSTORDER_BREADTH_FIRST)
-                    .relationships(OrderedRelationshipTypes.GEOMETRIES, Direction.INCOMING)
-                    .relationships(OrderedRelationshipTypes.NEXT_GEOM, Direction.INCOMING)
-                    .evaluator(Evaluators.excludeStartPosition());
-            for (Node node : createTraverserInBackwardsCompatibleWay(traversalDescription, layerNode).nodes()) {
-                previousGeomNode = node;
-            }
-        }
-        if (previousGeomNode != null) {
-            previousGeomNode.createRelationshipTo(geomNode, OrderedRelationshipTypes.NEXT_GEOM);
-        } else {
-            layerNode.createRelationshipTo(geomNode, OrderedRelationshipTypes.GEOMETRIES);
-        }
-        previousGeomNode = geomNode;
-        return geomNode;
-    }
+		Node geomNode = super.addGeomNode(tx, geom, fieldsName, fields);
+		Node layerNode = getLayerNode(tx);
+		if (previousGeomNode == null) {
+			TraversalDescription traversalDescription = new MonoDirectionalTraversalDescription()
+					.order(BranchOrderingPolicies.POSTORDER_BREADTH_FIRST)
+					.relationships(OrderedRelationshipTypes.GEOMETRIES, Direction.INCOMING)
+					.relationships(OrderedRelationshipTypes.NEXT_GEOM, Direction.INCOMING)
+					.evaluator(Evaluators.excludeStartPosition());
+			for (Node node : createTraverserInBackwardsCompatibleWay(traversalDescription, layerNode).nodes()) {
+				previousGeomNode = node;
+			}
+		}
+		if (previousGeomNode != null) {
+			previousGeomNode.createRelationshipTo(geomNode, OrderedRelationshipTypes.NEXT_GEOM);
+		} else {
+			layerNode.createRelationshipTo(geomNode, OrderedRelationshipTypes.GEOMETRIES);
+		}
+		previousGeomNode = geomNode;
+		return geomNode;
+	}
 
-    /**
-     * Provides a method for iterating over all nodes that represent geometries in this dataset.
-     * This is similar to the getAllNodes() methods from GraphDatabaseService but will only return
-     * nodes that this dataset considers its own, and can be passed to the GeometryEncoder to
-     * generate a Geometry. There is no restricting on a node belonging to multiple datasets, or
-     * multiple layers within the same dataset.
-     *
-     * @return iterable over geometry nodes in the dataset
-     * @param tx
-     */
-    @Override
+	/**
+	 * Provides a method for iterating over all nodes that represent geometries in this dataset.
+	 * This is similar to the getAllNodes() methods from GraphDatabaseService but will only return
+	 * nodes that this dataset considers its own, and can be passed to the GeometryEncoder to
+	 * generate a Geometry. There is no restricting on a node belonging to multiple datasets, or
+	 * multiple layers within the same dataset.
+	 *
+	 * @param tx the transaction
+	 * @return iterable over geometry nodes in the dataset
+	 */
+	@Override
 	public Iterable<Node> getAllGeometryNodes(Transaction tx) {
-        TraversalDescription td = new MonoDirectionalTraversalDescription()
-                .depthFirst()
-                .evaluator(Evaluators.excludeStartPosition())
-                .relationships(OrderedRelationshipTypes.GEOMETRIES, Direction.OUTGOING)
-                .relationships(OrderedRelationshipTypes.NEXT_GEOM, Direction.OUTGOING);
-        return td.traverse(getLayerNode(tx)).nodes();
-    }
+		TraversalDescription td = new MonoDirectionalTraversalDescription()
+				.depthFirst()
+				.evaluator(Evaluators.excludeStartPosition())
+				.relationships(OrderedRelationshipTypes.GEOMETRIES, Direction.OUTGOING)
+				.relationships(OrderedRelationshipTypes.NEXT_GEOM, Direction.OUTGOING);
+		return td.traverse(getLayerNode(tx)).nodes();
+	}
 }

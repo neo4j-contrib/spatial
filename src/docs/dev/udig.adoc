@@ -4,7 +4,7 @@ Neo4j Spatial supports Geotools, and therefor also Geotools based platforms like
 
 == uDig SDK
 
-Here we will discuss how to setup a development environment for developing code for uDig making use of Neo4j Spatial. For example, if you want to build a uDig plugin that makes use of Neo4j for the data model, or if you have a custom extension to Neo4j Spatial, and want to visualize the data in uDig.
+Here we will discuss how to set up a development environment for developing code for uDig making use of Neo4j Spatial. For example, if you want to build a uDig plugin that makes use of Neo4j for the data model, or if you have a custom extension to Neo4j Spatial, and want to visualize the data in uDig.
 
 == Setting up uDig SDK
 
@@ -16,7 +16,7 @@ Follow the uDig SDK Quickstart instructions on the uDig wiki at http://udig.refr
 * Install and RCP delta pack from http://download.eclipse.org/eclipse/downloads/
 * Install the uDig SDK from http://udig.refractions.net/files/downloads/branches/udig-1.2-SNAPSHOT-sdk.zip
 * Make sure your eclipse uses the downloaded JRE, has the dropins in its dropins folder and has the delta-pack and uDig SDK unpacked into a separate location.
-* In eclipse, setup the RCP target platform to include the SDK and delta-pack directories
+* In eclipse, set up the RCP target platform to include the SDK and delta-pack directories
 * Switch to the RCP perspective, use the plugins view to find the net.refractions.udig plugin and import it as a source project.
 * Double-click the 'udig.product' file to open it in the editors view, and then click the 'Launch and Eclipse Application'
 You should now have a running uDig, launched from the IDE. We can now move on and add Neo4j Spatial and its dependencies to the project. Shutdown uDig and move to the next section.
@@ -57,7 +57,7 @@ Adding Neo4j Spatial to uDig:
 
 == Testing sample layers in uDig
 
-When Neo4j Spatial was first installed above, you used 'mvn test' to run some test cases. This will have created a neo4j database with one or more layers, which you can use to display in uDig. However, we will take more control over this by specifically re-running one of the test cases so we know exactly which layers will be visible.
+When Neo4j Spatial was first installed above, you used 'mvn test' to run some test cases. This will have created a neo4j database with one or more layers, which you can use to display in uDig. However, we will take more control over this by specifically re-running one of the test cases, so we know exactly which layers will be visible.
 
 * Navigate to the test code for TestDynamicLayers, right click and choose 'Run as -> JUnit Test'
    * This test case will load an OSM dataset for the city of Malmö in Sweden. It will then assign a number of 'dynamic layers', which are pre-configured filters of the dataset, designed to look like separate layers in the GIS, but in reality being views of the same connected graph in the database.
@@ -73,9 +73,9 @@ When Neo4j Spatial was first installed above, you used 'mvn test' to run some te
 * Click the 'Run' button to run uDig with Neo4j support enabled
    * Once it has started, the eu.udig.catalog.neo4j plugin will scan your home directory for neo4j databases. In the catalog view you should see the one created by the unit test code. If you do not find one, you can import one:
       * Right click in the catalog view and choose 'Import->Data->Files'
-      * Select the neostore.id file in the database directory to add this database to the catalog
+      * Select the neostore-id file in the database directory to add this database to the catalog
 * Select one or more layers in the catalog and add them to the current map.
-   * If you select the map2.osm layer, you will get a single layer containing all geometry types recognized as Geometries in the database 
+   * If you select the map2.osm layer, you will get a single layer containing all geometry types recognized as Geometries in the database
 
 image::Udig-map2.png[]
 
@@ -83,13 +83,13 @@ image::Udig-map2.png[]
    * Adding multiple layers to the map allows you to reorder the layers and modify their styling separately.
    * Optionally change the projection to look better for northern latitudes:
    * Click on the projection button below the map, which initially says 'WGS84'
-   * Type 'RT90' into the filter, and then select 'RT90 2.5 gon V (3021)'. This is a common Swedish projection and so will work well for Malmö. 
+   * Type 'RT90' into the filter, and then select 'RT90 2.5 gon V (3021)'. This is a common Swedish projection and so will work well for Malmö.
 
 image::Udig-map2-rt90.png[]
 
       * Try set the style for the map2.osm layer using the sample style file in the Neo4j Spatial source code: neo.sld.xml
       * Turn off all layers but map2.osm in the layers view, to keep the view simple
-      * Right click on the map2.osm layer in the layers view and choose 'Style'
+      * Right-click on the map2.osm layer in the layers view and choose 'Style'
       * Go to the 'XML' option, and mark all XML and delete it
       * Open neo.sld.xml in a text editor, select all the text and copy and paste it into the Style editor
       * Click apply and see the map redraw with more complex styling
@@ -99,6 +99,6 @@ image::Udig-map2-styled.png[]
 
 == Update: New automatic styles for OSM
 
-As of the 20th October (commit 506ee4), OSM layers now publish default styles to the GIS. The initial styles are quite simple, but this does allow for nicer out the box experience. Currently the code will only work in a development environment with certain directory structure, but we'll make it more generic soon. 
+As of the 20th October (commit 506ee4), OSM layers now publish default styles to the GIS. The initial styles are quite simple, but this does allow for nicer out the box experience. Currently, the code will only work in a development environment with certain directory structure, but we'll make it more generic soon.
 
 image::Udig-multi-styled-layers.png[]

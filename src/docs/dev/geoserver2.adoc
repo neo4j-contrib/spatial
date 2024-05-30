@@ -12,8 +12,8 @@ Here we provide very basic instructions, with factors to consider regarding inst
 * Choose the right version for the version of Neo4j Spatial you are going to use:
    * Neo4j-Spatial trunk is currently coded to work with GeoTools 2.7, so this means we need to load it into GeoServer 2.1 or later. The version we tested against was geoserver-2.1-beta1
    * If you want to deploy on the stable release of GeoServer 2.0.2, then you can use an older Neo4j-Spatial, or modify the code to work with GeoTools 2.6 (the differences are small). The last version of Neo4j Spatial that works with the GeoServer 2.0 series, is from the end of September 2010.
-* If you already have a servlet container running, you can download the WAR version, otherwise download the BIN version (or the windows installer if on windows). Install and run using the included instructions in geoserver.
-* Once installed, open a web browser on on http://localhost:8080/geoserver/web/ (or other location is you configured it differently) to test that geoserver is runnning correctly.
+* If you already have a servlet container running, you can download the WAR version, otherwise download the BIN version (or the Windows installer if on Windows). Install and run using the included instructions in geoserver.
+* Once installed, open a web browser on http://localhost:8080/geoserver/web/ (or other location is you configured it differently) to test that geoserver is runnning correctly.
 
 === Adding Neo4j Spatial
 
@@ -25,7 +25,7 @@ Install Neo4j-Spatial by copying the following JAR files into the in the GeoServ
 * neo4j-index-1.2-1.2.M03.jar
 * neo4j-spatial.jar
 
-Getting this last jar can be achieved by using maven to compile from source, or by simply browsing to the maven repository website at http://m2.neo4j.org/org/neo4j/neo4j-spatial/ 
+Getting this last jar can be achieved by using maven to compile from source, or by simply browsing to the maven repository website at http://m2.neo4j.org/org/neo4j/neo4j-spatial/
 
 At the time of writing the latest JAR was:
 
@@ -57,7 +57,7 @@ image::Geoserver-3-path-to-neo4j-db.png[]
 
 * One option for the database location is a database created using the unit tests in Neo4j Spatial. The rest of this wiki assumes that you ran the TestDynamicLayers unit test which loads an OSM dataset for the city of Malmö in Sweden, and then creates a number of Dynamic Layers (or views) on this data, which we can publish in GeoServer.
 * If you do use the unit test for the sample database, then the location of the database will be in the target/var/neo4j-db directory of the Neo4j Source code.
-* Type the URL as the full path to the neostore.id file in the database directory
+* Type the URL as the full path to the neostore-id file in the database directory
 
 == Publish from data source
 
@@ -117,6 +117,6 @@ image::Geoserver-12-layer-group-preview.png[]
 
 == Controlling layer style
 
-If you want to change the styles of the layers, one option is to go back to the layers list, select a layer, click the display tab and edit the styling information. This will also effect the preview in openlayers.
+If you want to change the styles of the layers, one option is to go back to the layers list, select a layer, click the display tab and edit the styling information. This will also affect the preview in openlayers.
 
 image::Geoserver-13-layers-preview-with-styles.png[]

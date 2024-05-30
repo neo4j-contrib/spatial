@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -28,31 +28,31 @@ import java.util.List;
  */
 public class AbstractExtractGeoPipe extends AbstractGeoPipe {
 
-    protected List<GeoPipeFlow> extracts = new ArrayList<GeoPipeFlow>();
-    protected Iterator<GeoPipeFlow> extractIterator = null;
+	protected final List<GeoPipeFlow> extracts = new ArrayList<>();
+	protected Iterator<GeoPipeFlow> extractIterator = null;
 
-    @Override
-    public GeoPipeFlow processNextStart() {
-        if (extractIterator != null) {
-            if (extractIterator.hasNext()) {
-                return extractIterator.next();
-            }
+	@Override
+	public GeoPipeFlow processNextStart() {
+		if (extractIterator != null) {
+			if (extractIterator.hasNext()) {
+				return extractIterator.next();
+			}
 			extractIterator = null;
 			extracts.clear();
-        }
+		}
 
-        do {
-            extract(process(starts.next()));
-        } while (extracts.size() == 0);
+		do {
+			extract(process(starts.next()));
+		} while (extracts.isEmpty());
 
-        extractIterator = extracts.iterator();
-        return extractIterator.next();
-    }
+		extractIterator = extracts.iterator();
+		return extractIterator.next();
+	}
 
-    /**
-     * Subclasses should override this method
-     */
-    protected void extract(GeoPipeFlow flow) {
-        extracts.add(flow);
-    }
+	/**
+	 * Subclasses should override this method
+	 */
+	protected void extract(GeoPipeFlow flow) {
+		extracts.add(flow);
+	}
 }

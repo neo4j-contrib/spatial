@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -19,10 +19,9 @@
  */
 package org.neo4j.gis.spatial;
 
-import org.neo4j.graphdb.Transaction;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
-
 import org.locationtech.jts.geom.Geometry;
+import org.neo4j.graphdb.Transaction;
 
 /**
  * Instances of Layer provide the ability for developers to add/remove and edit geometries
@@ -34,30 +33,30 @@ import org.locationtech.jts.geom.Geometry;
  */
 public interface EditableLayer extends Layer {
 
-    /**
-     * Add a new geometry to the layer. This will add the geometry to the index.
-     */
-    SpatialDatabaseRecord add(Transaction tx, Geometry geometry);
+	/**
+	 * Add a new geometry to the layer. This will add the geometry to the index.
+	 */
+	SpatialDatabaseRecord add(Transaction tx, Geometry geometry);
 
-    /**
-     * Add a new geometry to the layer. This will add the geometry to the index.
-     * @TODO: Rather use a HashMap of properties
-     */
-    SpatialDatabaseRecord add(Transaction tx, Geometry geometry, String[] fieldsName, Object[] fields);
+	/**
+	 * Add a new geometry to the layer. This will add the geometry to the index.
+	 */
+	//TODO: Rather use a HashMap of properties
+	SpatialDatabaseRecord add(Transaction tx, Geometry geometry, String[] fieldsName, Object[] fields);
 
-    /**
-     * Delete the geometry identified by the passed node id. This might be as simple as deleting the
-     * geometry node, or it might require extracting and deleting an entire sub-graph.
-     */
-    void delete(Transaction tx, String geometryNodeId);
+	/**
+	 * Delete the geometry identified by the passed node id. This might be as simple as deleting the
+	 * geometry node, or it might require extracting and deleting an entire sub-graph.
+	 */
+	void delete(Transaction tx, String geometryNodeId);
 
-    /**
-     * Update the geometry identified by the passed node id. This might be as simple as changing
-     * node properties or it might require editing an entire sub-graph.
-     */
-    void update(Transaction tx, String geometryNodeId, Geometry geometry);
+	/**
+	 * Update the geometry identified by the passed node id. This might be as simple as changing
+	 * node properties, or it might require editing an entire sub-graph.
+	 */
+	void update(Transaction tx, String geometryNodeId, Geometry geometry);
 
 	void setCoordinateReferenceSystem(Transaction tx, CoordinateReferenceSystem coordinateReferenceSystem);
 
-    void removeFromIndex(Transaction tx, String geomNodeId);
+	void removeFromIndex(Transaction tx, String geomNodeId);
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -27,18 +27,18 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  * Item geometry is replaced by pipe output unless an alternative property name is given in the constructor.
  */
 public class ConvexHull extends AbstractGeoPipe {
-	
+
 	public ConvexHull() {
-	}		
-	
+	}
+
 	/**
 	 * @param resultPropertyName property name to use for geometry output
-	 */	
+	 */
 	public ConvexHull(String resultPropertyName) {
 		super(resultPropertyName);
-	}	
+	}
 
-	@Override	
+	@Override
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
 		setGeometry(flow, flow.getGeometry().convexHull());
 		return flow;

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -19,10 +19,9 @@
  */
 package org.neo4j.gis.spatial.pipes.filtering;
 
+import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-
-import org.locationtech.jts.geom.Geometry;
 
 
 /**
@@ -30,8 +29,8 @@ import org.locationtech.jts.geom.Geometry;
  */
 public class FilterTouch extends AbstractFilterGeoPipe {
 
-	private Geometry other;
-	
+	private final Geometry other;
+
 	public FilterTouch(Geometry other) {
 		this.other = other;
 	}

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -26,25 +26,25 @@ import java.util.NoSuchElementException;
 
 public abstract class AbstractGroupGeoPipe extends AbstractGeoPipe {
 
-	protected List<GeoPipeFlow> groups = new ArrayList<GeoPipeFlow>();
+	protected final List<GeoPipeFlow> groups = new ArrayList<>();
 	protected Iterator<GeoPipeFlow> groupIterator = null;
 
 	@Override
 	public GeoPipeFlow processNextStart() {
 		if (groupIterator == null) {
-			try {
-				while (true) {
+			while (true) {
+				try {
 					group(starts.next());
+				} catch (NoSuchElementException e) {
+					break;
 				}
-			} catch (NoSuchElementException e) {
-		    }
-			
-			groupIterator = groups.iterator();			
-		} 
-		
+			}
+			groupIterator = groups.iterator();
+		}
+
 		return groupIterator.next();
 	}
-	
+
 	/**
 	 * Subclasses should override this method
 	 */

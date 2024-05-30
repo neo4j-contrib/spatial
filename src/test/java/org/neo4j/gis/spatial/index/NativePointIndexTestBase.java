@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -24,13 +24,13 @@ import org.neo4j.gis.spatial.encoders.NativePointEncoder;
 
 public abstract class NativePointIndexTestBase extends LayerIndexTestBase {
 
-    @Override
-    protected Class<? extends GeometryEncoder> getEncoderClass() {
-        return NativePointEncoder.class;
-    }
+	@Override
+	protected Class<? extends GeometryEncoder> getEncoderClass() {
+		return NativePointEncoder.class;
+	}
 
-    @Override
-    protected final GeometryEncoder makeGeometryEncoder() {
-        return new NativePointEncoder();
-    }
+	@Override
+	protected final GeometryEncoder makeGeometryEncoder() {
+		return new NativePointEncoder();
+	}
 }

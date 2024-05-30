@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -28,19 +28,19 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class ExtractPoints extends AbstractExtractGeoPipe {
 
-    private GeometryFactory geomFactory;
+	private final GeometryFactory geomFactory;
 
-    public ExtractPoints(GeometryFactory geomFactory) {
-        this.geomFactory = geomFactory;
-    }
+	public ExtractPoints(GeometryFactory geomFactory) {
+		this.geomFactory = geomFactory;
+	}
 
-    @Override
-    protected void extract(GeoPipeFlow pipeFlow) {
-        int numPoints = pipeFlow.getGeometry().getCoordinates().length;
-        for (int i = 0; i < numPoints; i++) {
-            GeoPipeFlow newPoint = pipeFlow.makeClone("point" + i);
-            newPoint.setGeometry(geomFactory.createPoint(pipeFlow.getGeometry().getCoordinates()[i]));
-            extracts.add(newPoint);
-        }
-    }
+	@Override
+	protected void extract(GeoPipeFlow pipeFlow) {
+		int numPoints = pipeFlow.getGeometry().getCoordinates().length;
+		for (int i = 0; i < numPoints; i++) {
+			GeoPipeFlow newPoint = pipeFlow.makeClone("point" + i);
+			newPoint.setGeometry(geomFactory.createPoint(pipeFlow.getGeometry().getCoordinates()[i]));
+			extracts.add(newPoint);
+		}
+	}
 }

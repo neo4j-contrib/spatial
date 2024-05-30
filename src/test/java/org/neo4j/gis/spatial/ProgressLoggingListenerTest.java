@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -19,49 +19,52 @@
  */
 package org.neo4j.gis.spatial;
 
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
+import java.io.PrintStream;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.ProgressLoggingListener;
 
-import java.io.PrintStream;
-
-import static org.mockito.Mockito.*;
-
 public class ProgressLoggingListenerTest {
 
-    @Test
-    public void testProgressLoggingListnerWithAllLogs() {
-        int unitsOfWork = 10;
-        long timeWait = 10;
-        long throttle = 20;
-        testProgressLoggingListenerWithSpecifiedWaits(unitsOfWork, timeWait, throttle, unitsOfWork + 2);
-    }
+	@Test
+	public void testProgressLoggingListnerWithAllLogs() {
+		int unitsOfWork = 10;
+		long timeWait = 10;
+		long throttle = 20;
+		testProgressLoggingListenerWithSpecifiedWaits(unitsOfWork, timeWait, throttle, unitsOfWork + 2);
+	}
 
-    @Test
-    public void testProgressLoggingListnerWithOnlyStartAndEnd() {
-        int unitsOfWork = 10;
-        long timeWait = 1000;
-        long throttle = 10;
-        testProgressLoggingListenerWithSpecifiedWaits(unitsOfWork, timeWait, throttle, 3);
-    }
+	@Test
+	public void testProgressLoggingListnerWithOnlyStartAndEnd() {
+		int unitsOfWork = 10;
+		long timeWait = 1000;
+		long throttle = 10;
+		testProgressLoggingListenerWithSpecifiedWaits(unitsOfWork, timeWait, throttle, 3);
+	}
 
-    private void testProgressLoggingListenerWithSpecifiedWaits(int unitsOfWork, long timeWait, long throttle, int expectedLogCount) {
-        // When running maven-surefire System.out is replaced with a PrintStream that mockito cannot spy on, so we need to wrap it here
-        PrintStream wrapped = new PrintStream(System.out);
-        PrintStream out = spy(wrapped);
-        Listener listener = new ProgressLoggingListener("test", out).setTimeWait(timeWait);
-        listener.begin(unitsOfWork);
-        for (int step = 0; step < unitsOfWork; step++) {
-            listener.worked(1);
-            try {
-                Thread.sleep(throttle);
-            } catch (InterruptedException e) {
-            }
-        }
-        listener.done();
-        verify(out).println("Starting test");
-        verify(out).println(String.format("%.2f (10/10) - Completed test", 100f));
-        verify(out, times(expectedLogCount)).println(Mockito.anyString());
-    }
+	private static void testProgressLoggingListenerWithSpecifiedWaits(int unitsOfWork, long timeWait, long throttle,
+			int expectedLogCount) {
+		// When running maven-surefire System.out is replaced with a PrintStream that mockito cannot spy on, so we need to wrap it here
+		PrintStream wrapped = new PrintStream(System.out);
+		PrintStream out = spy(wrapped);
+		Listener listener = new ProgressLoggingListener("test", out).setTimeWait(timeWait);
+		listener.begin(unitsOfWork);
+		for (int step = 0; step < unitsOfWork; step++) {
+			listener.worked(1);
+			try {
+				Thread.sleep(throttle);
+			} catch (InterruptedException e) {
+			}
+		}
+		listener.done();
+		verify(out).println("Starting test");
+		//noinspection RedundantStringFormatCall
+		verify(out).println(String.format("%.2f (10/10) - Completed test", 100f));
+		verify(out, times(expectedLogCount)).println(Mockito.anyString());
+	}
 }

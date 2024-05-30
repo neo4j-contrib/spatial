@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -19,37 +19,36 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
-import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
-import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
+import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
+import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 /**
  * Find the ending point of item geometry.
  * Item geometry is replaced by pipe output unless an alternative property name is given in the constructor.
  */
 public class EndPoint extends AbstractGeoPipe {
-	
-	private GeometryFactory geomFactory;
-	
+
+	private final GeometryFactory geomFactory;
+
 	public EndPoint(GeometryFactory geomFactory) {
 		this.geomFactory = geomFactory;
-	}		
-	
+	}
+
 	/**
 	 * @param resultPropertyName property name to use for geometry output
-	 */	
+	 */
 	public EndPoint(GeometryFactory geomFactory, String resultPropertyName) {
 		super(resultPropertyName);
 		this.geomFactory = geomFactory;
-	}	
+	}
 
-	@Override	
+	@Override
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
 		Coordinate[] coords = flow.getGeometry().getCoordinates();
 		setGeometry(flow, geomFactory.createPoint(coords[coords.length - 1]));
 		return flow;
-	}	
-	
+	}
+
 }

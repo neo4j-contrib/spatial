@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -20,32 +20,24 @@
 package org.neo4j.gis.spatial.utilities;
 
 import java.lang.reflect.InvocationTargetException;
-
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.graphdb.traversal.Traverser;
 
 public class TraverserFactory {
-    public static Traverser createTraverserInBackwardsCompatibleWay( TraversalDescription traversalDescription,
-                                                                     Node layerNode ) {
-        try {
-            try {
-                return (Traverser) TraversalDescription.class.getDeclaredMethod( "traverse",
-                        Node.class ).invoke( traversalDescription, layerNode );
-            }
-            catch ( NoSuchMethodException e ) {
-                return (Traverser) TraversalDescription.class.getDeclaredMethod( "traverse",
-                        Node[].class ).invoke( traversalDescription, new Object[]{new Node[]{layerNode}} );
-            }
-        }
-        catch ( IllegalAccessException e ) {
-            throw new IllegalStateException( "You seem to be using an unsupported version of Neo4j.", e );
-        }
-        catch ( InvocationTargetException e ) {
-            throw new IllegalStateException( "You seem to be using an unsupported version of Neo4j.", e );
-        }
-        catch ( NoSuchMethodException e ) {
-            throw new IllegalStateException( "You seem to be using an unsupported version of Neo4j.", e );
-        }
-    }
+
+	public static Traverser createTraverserInBackwardsCompatibleWay(TraversalDescription traversalDescription,
+			Node layerNode) {
+		try {
+			try {
+				return (Traverser) TraversalDescription.class.getDeclaredMethod("traverse",
+						Node.class).invoke(traversalDescription, layerNode);
+			} catch (NoSuchMethodException e) {
+				return (Traverser) TraversalDescription.class.getDeclaredMethod("traverse",
+						Node[].class).invoke(traversalDescription, new Object[]{new Node[]{layerNode}});
+			}
+		} catch (IllegalAccessException | InvocationTargetException | NoSuchMethodException e) {
+			throw new IllegalStateException("You seem to be using an unsupported version of Neo4j.", e);
+		}
+	}
 }

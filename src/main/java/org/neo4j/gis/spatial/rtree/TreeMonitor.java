@@ -1,57 +1,56 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
  *
- * Neo4j is free software: you can redistribute it and/or modify it under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation, either version 3 of the License, or (at your option) any later
- * version.
+ * Neo4j is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * This program is distributed in the hope that it will be useful, but WITHOUT
- * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
- * FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
- * details.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
  *
- * You should have received a copy of the GNU General Public License along with
- * this program. If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU General Public License
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
 package org.neo4j.gis.spatial.rtree;
 
 
+import java.util.List;
+import java.util.Map;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
-import java.util.List;
-import java.util.Map;
+public interface TreeMonitor {
 
-public interface TreeMonitor
-{
-    void setHeight(int height);
+	void setHeight(int height);
 
-    int getHeight();
+	int getHeight();
 
-    void addNbrRebuilt(RTreeIndex rtree, Transaction tx);
+	void addNbrRebuilt(RTreeIndex rtree, Transaction tx);
 
-    int getNbrRebuilt();
+	int getNbrRebuilt();
 
-    void addSplit(Node indexNode);
+	void addSplit(Node indexNode);
 
-    void beforeMergeTree(Node indexNode, List<RTreeIndex.NodeWithEnvelope> right);
+	void beforeMergeTree(Node indexNode, List<RTreeIndex.NodeWithEnvelope> right);
 
-    void afterMergeTree(Node indexNode);
+	void afterMergeTree(Node indexNode);
 
-    int getNbrSplit();
+	int getNbrSplit();
 
-    void addCase(String key);
+	void addCase(String key);
 
-    Map<String, Integer> getCaseCounts();
+	Map<String, Integer> getCaseCounts();
 
-    void reset();
+	void reset();
 
-    void matchedTreeNode(int level, Node node);
+	void matchedTreeNode(int level, Node node);
 
-    List<Node> getMatchedTreeNodes(int level);
+	List<Node> getMatchedTreeNodes(int level);
 }

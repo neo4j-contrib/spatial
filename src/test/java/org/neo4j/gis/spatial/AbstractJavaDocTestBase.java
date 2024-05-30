@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.util.Map;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,45 +33,45 @@ import org.neo4j.test.GraphDescription;
 import org.neo4j.test.GraphHolder;
 import org.neo4j.test.TestData;
 
-import java.util.Map;
-
 /**
  * This class was copied from the class of the same name in neo4j-examples, in order to reduce the dependency chain
  */
 public abstract class AbstractJavaDocTestBase implements GraphHolder {
-    @RegisterExtension
-    public TestData<Map<String, Node>> data = TestData.producedThrough(GraphDescription.createGraphFor(this));
-    @RegisterExtension
-    public TestData<JavaTestDocsGenerator> gen = TestData.producedThrough(JavaTestDocsGenerator.PRODUCER);
-    protected static DatabaseManagementService databases;
-    protected static GraphDatabaseService db;
 
-    @AfterAll
-    public static void shutdownDb() {
-        try {
-            if (databases != null) {
-                databases.shutdown();
-            }
-        } finally {
-            databases = null;
-            db = null;
-        }
+	@RegisterExtension
+	public TestData<Map<String, Node>> data = TestData.producedThrough(GraphDescription.createGraphFor(this));
+	@RegisterExtension
+	public TestData<JavaTestDocsGenerator> gen = TestData.producedThrough(JavaTestDocsGenerator.PRODUCER);
+	protected static DatabaseManagementService databases;
+	protected static GraphDatabaseService db;
 
-    }
+	@AfterAll
+	public static void shutdownDb() {
+		try {
+			if (databases != null) {
+				databases.shutdown();
+			}
+		} finally {
+			databases = null;
+			db = null;
+		}
 
-    public GraphDatabaseService graphdb() {
-        return db;
-    }
+	}
 
-    @BeforeEach
-    public void setUp() {
-        GraphDatabaseService graphdb = this.graphdb();
-        GraphDatabaseServiceCleaner.cleanDatabaseContent(graphdb);
-        this.gen.get().setGraph(graphdb);
-    }
+	@Override
+	public GraphDatabaseService graphdb() {
+		return db;
+	}
 
-    @AfterEach
-    public void doc() {
-        this.gen.get().document("target/docs/dev", "examples");
-    }
+	@BeforeEach
+	public void setUp() {
+		GraphDatabaseService graphdb = this.graphdb();
+		GraphDatabaseServiceCleaner.cleanDatabaseContent(graphdb);
+		this.gen.get().setGraph(graphdb);
+	}
+
+	@AfterEach
+	public void doc() {
+		this.gen.get().document("target/docs/dev", "examples");
+	}
 }

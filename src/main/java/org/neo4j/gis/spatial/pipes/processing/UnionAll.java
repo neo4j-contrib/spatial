@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -29,9 +29,9 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class UnionAll extends AbstractGroupGeoPipe {
 
-	@Override	
+	@Override
 	protected void group(GeoPipeFlow flow) {
-		if (groups.size() == 0) {
+		if (groups.isEmpty()) {
 			groups.add(flow);
 		} else {
 			GeoPipeFlow result = groups.get(0);

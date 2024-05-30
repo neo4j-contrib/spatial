@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -19,16 +19,15 @@
  */
 package org.neo4j.gis.spatial.filter;
 
-import org.neo4j.gis.spatial.rtree.Envelope;
-import org.neo4j.gis.spatial.Layer;
-import org.neo4j.graphdb.Node;
-
 import org.locationtech.jts.geom.Geometry;
+import org.neo4j.gis.spatial.Layer;
+import org.neo4j.gis.spatial.rtree.Envelope;
+import org.neo4j.graphdb.Node;
 
 
 /**
  * Find geometries that have at least one point in common with the given geometry
- * 
+ *
  * @author Davide Savazzi
  * @author Craig Taverner
  */

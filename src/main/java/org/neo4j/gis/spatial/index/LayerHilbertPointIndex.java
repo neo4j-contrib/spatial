@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -24,13 +24,8 @@ import org.neo4j.gis.spatial.index.curves.SpaceFillingCurve;
 
 public class LayerHilbertPointIndex extends LayerSpaceFillingCurvePointIndex {
 
-    @Override
-    protected String indexTypeName() {
-        return "hilbert";
-    }
-
-    @Override
+	@Override
 	protected SpaceFillingCurve makeCurve(Envelope envelope, int maxLevels) {
-        return new HilbertSpaceFillingCurve2D(envelope, maxLevels);
-    }
+		return new HilbertSpaceFillingCurve2D(envelope, maxLevels);
+	}
 }

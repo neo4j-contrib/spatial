@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -19,44 +19,43 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
+import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-
-import org.locationtech.jts.geom.Geometry;
 
 /**
  * Unites item geometry with itself or with the given geometry.
  * Item geometry is replaced by pipe output unless an alternative property name is given in the constructor.
  */
 public class Union extends AbstractGeoPipe {
-	
+
 	private Geometry other = null;
-	
+
 	public Union() {
-	}		
-	
+	}
+
 	/**
 	 * @param resultPropertyName property name to use for geometry output
-	 */	
+	 */
 	public Union(String resultPropertyName) {
 		super(resultPropertyName);
-	}	
+	}
 
 	public Union(Geometry other) {
 		this.other = other;
-	}		
-	
+	}
+
 	public Union(Geometry other, String resultPropertyName) {
 		super(resultPropertyName);
 		this.other = other;
-	}		
-	
-	@Override	
+	}
+
+	@Override
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
 		if (other == null) {
 			setGeometry(flow, flow.getGeometry().union());
 		} else {
-			setGeometry(flow, flow.getGeometry().union(other));			
+			setGeometry(flow, flow.getGeometry().union(other));
 		}
 		return flow;
 	}

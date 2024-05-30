@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -21,40 +21,47 @@ package org.neo4j.gis.spatial.index;
 
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.rtree.RTreeIndex;
-import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.filter.SearchRecords;
+import org.neo4j.gis.spatial.rtree.RTreeIndex;
+import org.neo4j.gis.spatial.rtree.SpatialIndexVisitor;
+import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
+import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
 /**
  * The RTreeIndex is the first and still standard index for Neo4j Spatial. It
  * implements both SpatialIndexReader and SpatialIndexWriter for read and write
- * support. In addition it implements SpatialTreeIndex which allows it to be
+ * support. In addition, it implements SpatialTreeIndex which allows it to be
  * wrapped with modifying search functions to that custom classes can be used to
  * perform filtering searches on the tree.
  */
 public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader, Constants {
 
-    private Layer layer;
+	private Layer layer;
 
-    @Override
-    public void init(Transaction tx, IndexManager indexManager, Layer layer) {
-        init(tx, layer, 100);
-    }
+	@Override
+	public void init(Transaction tx, IndexManager indexManager, Layer layer) {
+		init(tx, layer, 100);
+	}
 
-    public void init(Transaction tx, Layer layer, int maxNodeReferences) {
-        super.init(tx, layer.getLayerNode(tx), layer.getGeometryEncoder(), maxNodeReferences);
-        this.layer = layer;
-    }
+	public void init(Transaction tx, Layer layer, int maxNodeReferences) {
+		super.init(tx, layer.getLayerNode(tx), layer.getGeometryEncoder(), maxNodeReferences);
+		this.layer = layer;
+	}
 
-    @Override
-    public Layer getLayer() {
-        return layer;
-    }
+	@Override
+	public void visit(Transaction tx, SpatialIndexVisitor visitor, Node indexNode) {
+		super.visit(tx, visitor, indexNode);
+	}
 
-    @Override
-    public SearchRecords search(Transaction tx, SearchFilter filter) {
-        return new SearchRecords(layer, searchIndex(tx, filter));
-    }
+	@Override
+	public Layer getLayer() {
+		return layer;
+	}
+
+	@Override
+	public SearchRecords search(Transaction tx, SearchFilter filter) {
+		return new SearchRecords(layer, searchIndex(tx, filter));
+	}
 
 }

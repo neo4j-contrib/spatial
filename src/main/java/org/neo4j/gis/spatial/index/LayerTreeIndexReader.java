@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -24,12 +24,13 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
 /**
- * Spatial Indexes based on tree structures can implement the following methods common to maintaining and searching tree structures.
+ * Spatial Indexes based on tree structures can implement the following methods common to maintaining and searching tree
+ * structures.
  */
 public interface LayerTreeIndexReader extends LayerIndexReader {
-	
+
 	Node getIndexRoot(Transaction tx);
-	
+
 	void visit(Transaction tx, SpatialIndexVisitor visitor, Node indexNode);
-	
+
 }

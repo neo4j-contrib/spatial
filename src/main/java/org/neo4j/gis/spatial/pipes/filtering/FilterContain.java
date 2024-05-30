@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -19,11 +19,10 @@
  */
 package org.neo4j.gis.spatial.pipes.filtering;
 
-import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
-import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
+import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
+import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 
 /**
@@ -31,9 +30,9 @@ import org.locationtech.jts.geom.Geometry;
  */
 public class FilterContain extends AbstractFilterGeoPipe {
 
-	private Geometry other;
-	private Envelope otherEnvelope;
-	
+	private final Geometry other;
+	private final Envelope otherEnvelope;
+
 	public FilterContain(Geometry other) {
 		this.other = other;
 		this.otherEnvelope = other.getEnvelopeInternal();
@@ -42,9 +41,9 @@ public class FilterContain extends AbstractFilterGeoPipe {
 	@Override
 	protected boolean validate(GeoPipeFlow flow) {
 		// check if every point of the other geometry is a point of this geometry,
-		// and the interiors of the two geometries have at least one point in common		
-	    return flow.getEnvelope().contains(otherEnvelope) 
-	    		&& flow.getGeometry().contains(other);
+		// and the interiors of the two geometries have at least one point in common
+		return flow.getEnvelope().contains(otherEnvelope)
+				&& flow.getGeometry().contains(other);
 	}
 
 }

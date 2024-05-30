@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -20,17 +20,17 @@
 package org.neo4j.gis.spatial;
 
 import java.io.PrintStream;
-
 import org.neo4j.gis.spatial.rtree.Listener;
 
 
 /**
  * This listener simply logs progress to System.out.
- * 
+ *
  * @author Craig Taverner
  */
 public class ConsoleListener implements Listener {
-	private PrintStream out;
+
+	private final PrintStream out;
 	private int total = 0;
 	private int current = 0;
 
@@ -54,10 +54,10 @@ public class ConsoleListener implements Listener {
 		if (total < 1) {
 			out.println("Completed " + current);
 		} else if (total == 100) {
-			out.println("" + current + "%: completed");
+			out.println(current + "%: completed");
 		} else {
 			int perc = (int) (100.0 * current / total);
-			out.println("" + perc + "%: completed " + current + " / " + total);
+			out.println(perc + "%: completed " + current + " / " + total);
 		}
 	}
 

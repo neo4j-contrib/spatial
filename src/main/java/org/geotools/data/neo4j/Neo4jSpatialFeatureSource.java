@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -19,12 +19,13 @@
  */
 package org.geotools.data.neo4j;
 
-import java.io.IOException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-
 import org.geotools.api.data.FeatureReader;
 import org.geotools.api.data.Query;
+import org.geotools.api.feature.simple.SimpleFeature;
+import org.geotools.api.feature.simple.SimpleFeatureType;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.data.store.ContentEntry;
 import org.geotools.data.store.ContentFeatureSource;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
@@ -35,9 +36,6 @@ import org.neo4j.gis.spatial.Utilities;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
-import org.geotools.api.feature.simple.SimpleFeature;
-import org.geotools.api.feature.simple.SimpleFeatureType;
-import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 
 
 /**
@@ -45,16 +43,18 @@ import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
  * Instances of this class are created by Neo4jSpatialDataStore.
  */
 public class Neo4jSpatialFeatureSource extends ContentFeatureSource {
+
 	protected static final String FEATURE_PROP_GEOM = "the_geom";
 
 	private final GraphDatabaseService database;
 	private final Layer layer;
 	private final SimpleFeatureType featureType;
-    private final SimpleFeatureBuilder builder;
+	private final SimpleFeatureBuilder builder;
 	private final Iterable<SpatialDatabaseRecord> results;
 	private final String[] extraPropertyNames;
 
-	public Neo4jSpatialFeatureSource(ContentEntry contentEntry, GraphDatabaseService database, Layer layer, SimpleFeatureType featureType, Iterable<SpatialDatabaseRecord> results, String[] extraPropertyNames) {
+	public Neo4jSpatialFeatureSource(ContentEntry contentEntry, GraphDatabaseService database, Layer layer,
+			SimpleFeatureType featureType, Iterable<SpatialDatabaseRecord> results, String[] extraPropertyNames) {
 		super(contentEntry, Query.ALL);
 		this.database = database;
 		this.layer = layer;
@@ -98,6 +98,7 @@ public class Neo4jSpatialFeatureSource extends ContentFeatureSource {
 	}
 
 	public class Reader implements FeatureReader<SimpleFeatureType, SimpleFeature> {
+
 		private final Iterator<SpatialDatabaseRecord> results;
 
 		Reader(Iterator<SpatialDatabaseRecord> results) {
@@ -110,12 +111,16 @@ public class Neo4jSpatialFeatureSource extends ContentFeatureSource {
 		}
 
 		@Override
-		public SimpleFeature next() throws IOException, IllegalArgumentException, NoSuchElementException {
-			if (results == null) return null;
+		public SimpleFeature next() throws IllegalArgumentException, NoSuchElementException {
+			if (results == null) {
+				return null;
+			}
 
 			try (Transaction tx = database.beginTx()) {
 				SpatialDatabaseRecord record = results.next();
-				if (record == null) return null;
+				if (record == null) {
+					return null;
+				}
 
 				record.refreshGeomNode(tx);
 
@@ -137,8 +142,10 @@ public class Neo4jSpatialFeatureSource extends ContentFeatureSource {
 		}
 
 		@Override
-		public boolean hasNext() throws IOException {
-			if (results == null) return false;
+		public boolean hasNext() {
+			if (results == null) {
+				return false;
+			}
 			try (Transaction tx = database.beginTx()) {
 				boolean ans = results.hasNext();
 				tx.commit();
@@ -147,7 +154,7 @@ public class Neo4jSpatialFeatureSource extends ContentFeatureSource {
 		}
 
 		@Override
-		public void close() throws IOException {
+		public void close() {
 		}
 	}
 }

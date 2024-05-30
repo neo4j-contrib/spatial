@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -31,52 +31,61 @@ import org.neo4j.graphdb.Transaction;
  * Simple encoder that stores point geometries as two x/y properties.
  */
 public class SimplePointEncoder extends AbstractGeometryEncoder implements Configurable {
-    public static final String DEFAULT_X = "longitude";
-    public static final String DEFAULT_Y = "latitude";
-    protected GeometryFactory geometryFactory;
-    protected String xProperty = DEFAULT_X;
-    protected String yProperty = DEFAULT_Y;
 
-    protected GeometryFactory getGeometryFactory() {
-        if (geometryFactory == null) geometryFactory = new GeometryFactory();
-        return geometryFactory;
-    }
+	public static final String DEFAULT_X = "longitude";
+	public static final String DEFAULT_Y = "latitude";
+	protected GeometryFactory geometryFactory;
+	protected String xProperty = DEFAULT_X;
+	protected String yProperty = DEFAULT_Y;
 
-    @Override
-    protected void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container) {
-        container.setProperty(
-                "gtype",
-                SpatialDatabaseService.convertJtsClassToGeometryType(geometry.getClass()));
-        Coordinate[] coords = geometry.getCoordinates();
-        container.setProperty(xProperty, coords[0].x);
-        container.setProperty(yProperty, coords[0].y);
-    }
+	protected GeometryFactory getGeometryFactory() {
+		if (geometryFactory == null) {
+			geometryFactory = new GeometryFactory();
+		}
+		return geometryFactory;
+	}
 
-    @Override
-    public Geometry decodeGeometry(Entity container) {
-        double x = ((Number) container.getProperty(xProperty)).doubleValue();
-        double y = ((Number) container.getProperty(yProperty)).doubleValue();
-        Coordinate coordinate = new Coordinate(x, y);
-        return getGeometryFactory().createPoint(coordinate);
-    }
+	@Override
+	protected void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container) {
+		container.setProperty(
+				"gtype",
+				SpatialDatabaseService.convertJtsClassToGeometryType(geometry.getClass()));
+		Coordinate[] coords = geometry.getCoordinates();
+		container.setProperty(xProperty, coords[0].x);
+		container.setProperty(yProperty, coords[0].y);
+	}
 
-    @Override
-    public String getConfiguration() {
-        return xProperty + ":" + yProperty + ":" + bboxProperty;
-    }
+	@Override
+	public Geometry decodeGeometry(Entity container) {
+		double x = ((Number) container.getProperty(xProperty)).doubleValue();
+		double y = ((Number) container.getProperty(yProperty)).doubleValue();
+		Coordinate coordinate = new Coordinate(x, y);
+		return getGeometryFactory().createPoint(coordinate);
+	}
 
-    @Override
-    public void setConfiguration(String configuration) {
-        if (configuration != null && configuration.trim().length() > 0) {
-            String[] fields = configuration.split(":");
-            if (fields.length > 0) xProperty = fields[0];
-            if (fields.length > 1) yProperty = fields[1];
-            if (fields.length > 2) bboxProperty = fields[2];
-        }
-    }
+	@Override
+	public String getConfiguration() {
+		return xProperty + ":" + yProperty + ":" + bboxProperty;
+	}
 
-    @Override
-    public String getSignature() {
-        return "SimplePointEncoder(x='" + xProperty + "', y='" + yProperty + "', bbox='" + bboxProperty + "')";
-    }
+	@Override
+	public void setConfiguration(String configuration) {
+		if (configuration != null && !configuration.trim().isEmpty()) {
+			String[] fields = configuration.split(":");
+			if (fields.length > 0) {
+				xProperty = fields[0];
+			}
+			if (fields.length > 1) {
+				yProperty = fields[1];
+			}
+			if (fields.length > 2) {
+				bboxProperty = fields[2];
+			}
+		}
+	}
+
+	@Override
+	public String getSignature() {
+		return "SimplePointEncoder(x='" + xProperty + "', y='" + yProperty + "', bbox='" + bboxProperty + "')";
+	}
 }

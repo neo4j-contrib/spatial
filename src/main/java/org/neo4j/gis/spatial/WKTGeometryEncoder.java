@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -29,24 +29,24 @@ import org.neo4j.graphdb.Transaction;
 
 public class WKTGeometryEncoder extends AbstractSinglePropertyEncoder {
 
-    @Override
+	@Override
 	public Geometry decodeGeometry(Entity container) {
-        try {
-            WKTReader reader = new WKTReader(layer.getGeometryFactory());
-            return reader.read((String) container.getProperty(geomProperty));
-        } catch (ParseException e) {
-            throw new SpatialDatabaseException(e.getMessage(), e);
-        }
-    }
+		try {
+			WKTReader reader = new WKTReader(layer.getGeometryFactory());
+			return reader.read((String) container.getProperty(geomProperty));
+		} catch (ParseException e) {
+			throw new SpatialDatabaseException(e.getMessage(), e);
+		}
+	}
 
-    @Override
-    protected void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container) {
-        WKTWriter writer = new WKTWriter();
-        container.setProperty(geomProperty, writer.write(geometry));
-    }
+	@Override
+	protected void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container) {
+		WKTWriter writer = new WKTWriter();
+		container.setProperty(geomProperty, writer.write(geometry));
+	}
 
-    @Override
-    public String getSignature() {
-        return "WKT" + super.getSignature();
-    }
+	@Override
+	public String getSignature() {
+		return "WKT" + super.getSignature();
+	}
 }

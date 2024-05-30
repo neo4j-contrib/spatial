@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -25,11 +25,10 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
 public class DensityIslands extends AbstractGroupGeoPipe {
 
-	private double density;
+	private final double density;
 
 	/**
-	 * 
-	 * @param density
+	 * @param density maximum distance between vertices
 	 */
 	public DensityIslands(double density) {
 		this.density = density;
@@ -38,9 +37,9 @@ public class DensityIslands extends AbstractGroupGeoPipe {
 	@Override
 	protected void group(GeoPipeFlow pipeFlow) {
 		boolean islandFound = false;
+		// determine if geometry is next to an islands else add
+		// geometry as a new islands.
 		for (int i = 0; i < groups.size() && !islandFound; i++) {
-			// determine if geometry is next to a islands else add
-			// geometry as a new islands.
 			if (pipeFlow.getGeometry().distance(groups.get(i).getGeometry()) <= density) {
 				// TODO test it with points
 				groups.get(i).setGeometry(groups.get(i).getGeometry().union(pipeFlow.getGeometry()));
@@ -48,7 +47,7 @@ public class DensityIslands extends AbstractGroupGeoPipe {
 				islandFound = true;
 			}
 		}
-			
+
 		if (!islandFound) {
 			groups.add(pipeFlow);
 		}

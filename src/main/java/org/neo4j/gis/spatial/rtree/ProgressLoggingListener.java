@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -15,15 +15,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 package org.neo4j.gis.spatial.rtree;
 
-import org.neo4j.logging.Level;
-import org.neo4j.logging.Log;
-
 import java.io.PrintStream;
 import java.util.Locale;
+import org.neo4j.logging.Level;
+import org.neo4j.logging.Log;
 
 /**
  * This listener logs percentage progress to the specified PrintStream or Logger based on a timer,
@@ -31,90 +30,91 @@ import java.util.Locale;
  */
 public class ProgressLoggingListener implements Listener {
 
-    private final ProgressLog out;
-    private final String name;
-    private long lastLogTime = 0L;
-    private int totalUnits = 0;
-    private int workedSoFar = 0;
-    private boolean enabled = false;
-    private long timeWait = 1000;
+	private final ProgressLog out;
+	private final String name;
+	private long lastLogTime = 0L;
+	private int totalUnits = 0;
+	private int workedSoFar = 0;
+	private boolean enabled = false;
+	private long timeWait = 1000;
 
-    public interface ProgressLog {
-        void log(String line);
-    }
+	public interface ProgressLog {
 
-    public ProgressLoggingListener(String name, final PrintStream out) {
-        this.name = name;
-        this.out = line -> out.println(line);
-    }
+		void log(String line);
+	}
 
-    public ProgressLoggingListener(String name, Log log, Level level) {
-        this.name = name;
-        this.out = line ->
-        {
-            switch (level) {
-                case DEBUG:
-                    log.debug(line);
-                case ERROR:
-                    log.error(line);
-                case INFO:
-                    log.info(line);
-                case WARN:
-                    log.warn(line);
-                default:
-                    break;
-            }
-        };
-    }
+	public ProgressLoggingListener(String name, final PrintStream out) {
+		this.name = name;
+		this.out = out::println;
+	}
 
-    public ProgressLoggingListener setTimeWait(long ms) {
-        this.timeWait = ms;
-        return this;
-    }
+	public ProgressLoggingListener(String name, Log log, Level level) {
+		this.name = name;
+		this.out = line ->
+		{
+			switch (level) {
+				case DEBUG:
+					log.debug(line);
+				case ERROR:
+					log.error(line);
+				case INFO:
+					log.info(line);
+				case WARN:
+					log.warn(line);
+				default:
+					break;
+			}
+		};
+	}
 
-	@Override
-    public void begin(int unitsOfWork) {
-        this.totalUnits = unitsOfWork;
-        this.workedSoFar = 0;
-        this.lastLogTime = 0L;
-        try {
-            this.enabled = true;
-            out.log("Starting " + name);
-        } catch (Exception e) {
-            System.err.println("Failed to write to output - disabling progress logger: " + e.getMessage());
-            this.enabled = false;
-        }
-    }
+	public ProgressLoggingListener setTimeWait(long ms) {
+		this.timeWait = ms;
+		return this;
+	}
 
 	@Override
-    public void worked(int workedSinceLastNotification) {
-        this.workedSoFar += workedSinceLastNotification;
-        logNoMoreThanOnceASecond("Running");
-    }
+	public void begin(int unitsOfWork) {
+		this.totalUnits = unitsOfWork;
+		this.workedSoFar = 0;
+		this.lastLogTime = 0L;
+		try {
+			this.enabled = true;
+			out.log("Starting " + name);
+		} catch (Exception e) {
+			System.err.println("Failed to write to output - disabling progress logger: " + e.getMessage());
+			this.enabled = false;
+		}
+	}
 
 	@Override
-    public void done() {
-        this.workedSoFar = this.totalUnits;
-        this.lastLogTime = 0L;
-        logNoMoreThanOnceASecond("Completed");
-    }
+	public void worked(int workedSinceLastNotification) {
+		this.workedSoFar += workedSinceLastNotification;
+		logNoMoreThanOnceASecond("Running");
+	}
 
-    private void logNoMoreThanOnceASecond(String action) {
-        long now = System.currentTimeMillis();
-        if (enabled && now - lastLogTime > timeWait) {
-            if (totalUnits > 0) {
-                out.log("" + percText() + " (" + workedSoFar + "/" + totalUnits + ") - " + action + " " + name);
-            } else {
-                out.log(action + " " + name);
-            }
-            this.lastLogTime = now;
-        }
-    }
+	@Override
+	public void done() {
+		this.workedSoFar = this.totalUnits;
+		this.lastLogTime = 0L;
+		logNoMoreThanOnceASecond("Completed");
+	}
 
-    private String percText() {
-        if (totalUnits > 0) {
-            return String.format(Locale.ENGLISH,"%.2f", 100.0 * workedSoFar / totalUnits);
-        }
+	private void logNoMoreThanOnceASecond(String action) {
+		long now = System.currentTimeMillis();
+		if (enabled && now - lastLogTime > timeWait) {
+			if (totalUnits > 0) {
+				out.log(percText() + " (" + workedSoFar + "/" + totalUnits + ") - " + action + " " + name);
+			} else {
+				out.log(action + " " + name);
+			}
+			this.lastLogTime = now;
+		}
+	}
+
+	private String percText() {
+		if (totalUnits > 0) {
+			return String.format(Locale.ENGLISH, "%.2f", 100.0 * workedSoFar / totalUnits);
+		}
 		return "NaN";
-    }
+	}
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -31,37 +31,37 @@ import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.graphdb.Transaction;
 
 public class OSMGeoPipeline extends GeoPipeline {
-	
-    protected OSMGeoPipeline(Layer layer) {
+
+	protected OSMGeoPipeline(Layer layer) {
 		super(layer);
 	}
 
-    public static OSMGeoPipeline startOsm(Transaction tx, Layer layer, final SearchRecords records) {
-    	OSMGeoPipeline pipeline = new OSMGeoPipeline(layer);
-    	return (OSMGeoPipeline) pipeline.add(createStartPipe(records));    	
-    }
-    
-    public static OSMGeoPipeline startOsm(Transaction tx, Layer layer, SearchFilter searchFilter) {
-    	return startOsm(tx, layer, layer.getIndex().search(tx, searchFilter));
-    }
+	public static OSMGeoPipeline startOsm(Transaction tx, Layer layer, final SearchRecords records) {
+		OSMGeoPipeline pipeline = new OSMGeoPipeline(layer);
+		return (OSMGeoPipeline) pipeline.add(createStartPipe(records));
+	}
 
-    public static OSMGeoPipeline startOsm(Transaction tx, Layer layer) {
-    	return startOsm(tx, layer, new SearchAll());
-    }    
-    
-    public OSMGeoPipeline addOsmPipe(AbstractGeoPipe geoPipe) {
-    	return (OSMGeoPipeline) add(geoPipe);
-    }    
-    
-    public OSMGeoPipeline extractOsmPoints() {
-    	return addOsmPipe(new ExtractOSMPoints(layer.getGeometryFactory()));
-    }
-    
-    public OSMGeoPipeline osmAttributeFilter(String key, Object value) {
-    	return addOsmPipe(new FilterOSMAttributes(key, value));
-    }    
-    
-    public OSMGeoPipeline osmAttributeFilter(String key, String value, FilterPipe.Filter comparison) {
-    	return addOsmPipe(new FilterOSMAttributes(key, value, comparison));    	
-    }
+	public static OSMGeoPipeline startOsm(Transaction tx, Layer layer, SearchFilter searchFilter) {
+		return startOsm(tx, layer, layer.getIndex().search(tx, searchFilter));
+	}
+
+	public static OSMGeoPipeline startOsm(Transaction tx, Layer layer) {
+		return startOsm(tx, layer, new SearchAll());
+	}
+
+	public OSMGeoPipeline addOsmPipe(AbstractGeoPipe geoPipe) {
+		return (OSMGeoPipeline) add(geoPipe);
+	}
+
+	public OSMGeoPipeline extractOsmPoints() {
+		return addOsmPipe(new ExtractOSMPoints(layer.getGeometryFactory()));
+	}
+
+	public OSMGeoPipeline osmAttributeFilter(String key, Object value) {
+		return addOsmPipe(new FilterOSMAttributes(key, value));
+	}
+
+	public OSMGeoPipeline osmAttributeFilter(String key, String value, FilterPipe.Filter comparison) {
+		return addOsmPipe(new FilterOSMAttributes(key, value, comparison));
+	}
 }

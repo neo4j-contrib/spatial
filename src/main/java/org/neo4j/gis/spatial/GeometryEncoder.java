@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -19,11 +19,10 @@
  */
 package org.neo4j.gis.spatial;
 
-import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Entity;
-
 import org.locationtech.jts.geom.Geometry;
+import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
+import org.neo4j.graphdb.Entity;
+import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
 
@@ -49,15 +48,15 @@ import org.neo4j.graphdb.Transaction;
  */
 public interface GeometryEncoder extends EnvelopeDecoder {
 
-    /**
-     * When accessing an existing layer, the Layer is constructed from a single node in the graph
-     * that represents a layer. This node is expected to have a property containing the class name
-     * of the GeometryEncoder for that layer, and it will be constructed and passed the layer using
-     * this method, allowing the Layer and the GeometryEncoder to interact.
-     * 
-     * @param layer recently created Layer class
-     */
-    void init(Layer layer);
+	/**
+	 * When accessing an existing layer, the Layer is constructed from a single node in the graph
+	 * that represents a layer. This node is expected to have a property containing the class name
+	 * of the GeometryEncoder for that layer, and it will be constructed and passed the layer using
+	 * this method, allowing the Layer and the GeometryEncoder to interact.
+	 *
+	 * @param layer recently created Layer class
+	 */
+	void init(Layer layer);
 
 	/**
 	 * This method is called to store a bounding box for the geometry to the database. It should write it to the
@@ -72,10 +71,10 @@ public interface GeometryEncoder extends EnvelopeDecoder {
 	void encodeGeometry(Transaction tx, Geometry geometry, Entity container);
 
 	/**
-     * This method is called on an individual container when we need to extract the geometry. If the
-     * container is a node, this could be the root of a sub-graph containing the geometry.
-     */
-    Geometry decodeGeometry(Entity container);
+	 * This method is called on an individual container when we need to extract the geometry. If the
+	 * container is a node, this could be the root of a sub-graph containing the geometry.
+	 */
+	Geometry decodeGeometry(Entity container);
 
 	/**
 	 * Each geometry might have a set of associated attributes, or properties.
@@ -97,7 +96,8 @@ public interface GeometryEncoder extends EnvelopeDecoder {
 
 	/**
 	 * For external expression of the configuration of this geometry encoder
+	 *
 	 * @return descriptive signature of encoder, type and configuration
-     */
+	 */
 	String getSignature();
 }

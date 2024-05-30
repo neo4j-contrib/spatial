@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -24,7 +24,6 @@ import org.geotools.process.factory.DescribeProcess;
 import org.geotools.process.factory.DescribeResult;
 import org.geotools.process.factory.StaticMethodsProcessFactory;
 import org.geotools.text.Text;
-
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.OctagonalEnvelope;
 
@@ -35,8 +34,8 @@ public class SpatialProcess extends StaticMethodsProcessFactory<SpatialProcess> 
 	}
 
 	@DescribeProcess(title = "Octagonal Envelope", description = "Get the octagonal envelope of this Geometry.")
-    @DescribeResult(description="octagonal of geom")
+	@DescribeResult(description = "octagonal of geom")
 	static public Geometry octagonalEnvelope(@DescribeParameter(name = "geom") Geometry geom) {
-	    return new OctagonalEnvelope(geom).toGeometry(geom.getFactory());
+		return new OctagonalEnvelope(geom).toGeometry(geom.getFactory());
 	}
 }

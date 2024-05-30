@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -28,7 +28,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  * Find valid geometries.
  */
 public class FilterValid extends AbstractFilterGeoPipe {
-	
+
 	@Override
 	protected boolean validate(GeoPipeFlow flow) {
 		return flow.getGeometry().isValid();

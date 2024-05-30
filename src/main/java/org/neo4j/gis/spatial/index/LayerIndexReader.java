@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -20,8 +20,8 @@
 package org.neo4j.gis.spatial.index;
 
 import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.filter.SearchRecords;
+import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.graphdb.Transaction;
 
 public interface LayerIndexReader extends SpatialIndexReader {
@@ -31,12 +31,12 @@ public interface LayerIndexReader extends SpatialIndexReader {
 	 * constructed with a default, no-arg constructor and then initialized with necessary parameters, such as the layer.
 	 *
 	 * @param indexManager for setting up index files on disk
-	 * @param layer object containing and controlling this index
+	 * @param layer        object containing and controlling this index
 	 */
 	void init(Transaction tx, IndexManager indexManager, Layer layer);
 
 	Layer getLayer();
 
 	SearchRecords search(Transaction tx, SearchFilter filter);
-	
+
 }

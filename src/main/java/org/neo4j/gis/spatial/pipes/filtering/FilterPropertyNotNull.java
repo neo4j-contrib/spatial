@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -28,8 +28,8 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
  */
 public class FilterPropertyNotNull extends AbstractFilterGeoPipe {
 
-	private String property;
-	
+	private final String property;
+
 	public FilterPropertyNotNull(String property) {
 		this.property = property;
 	}

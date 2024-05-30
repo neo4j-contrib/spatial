@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -20,17 +20,16 @@
 package org.neo4j.gis.spatial.indexfilter;
 
 import java.util.Map;
-
+import org.neo4j.gis.spatial.Layer;
+import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.index.IndexManager;
+import org.neo4j.gis.spatial.index.LayerIndexReader;
+import org.neo4j.gis.spatial.index.LayerTreeIndexReader;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
 import org.neo4j.gis.spatial.rtree.TreeMonitor;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
-import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
-import org.neo4j.gis.spatial.index.LayerTreeIndexReader;
-import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
@@ -38,14 +37,14 @@ import org.neo4j.graphdb.Transaction;
 /**
  * This class wraps a SpatialIndexReader instance, passing through all calls
  * transparently. This is a class that should not be used as is, as it provides
- * no additional functionality. However extending this class allows for
+ * no additional functionality. However, extending this class allows for
  * wrapping an existing index and modifying its behaviour through overriding
  * only specific methods. For example, override the executeSearch method with a
  * modification to the search parameter.
  */
 public class LayerIndexReaderWrapper implements LayerIndexReader {
 
-	protected LayerTreeIndexReader index;
+	protected final LayerTreeIndexReader index;
 
 	public LayerIndexReaderWrapper(LayerTreeIndexReader index) {
 		this.index = index;
@@ -53,7 +52,9 @@ public class LayerIndexReaderWrapper implements LayerIndexReader {
 
 	@Override
 	public void init(Transaction tx, IndexManager indexManager, Layer layer) {
-		if (layer != getLayer()) throw new IllegalArgumentException("Cannot change layer associated with this index");
+		if (layer != getLayer()) {
+			throw new IllegalArgumentException("Cannot change layer associated with this index");
+		}
 	}
 
 	@Override
@@ -72,7 +73,7 @@ public class LayerIndexReaderWrapper implements LayerIndexReader {
 	}
 
 	@Override
-    public boolean isNodeIndexed(Transaction tx, String nodeId) {
+	public boolean isNodeIndexed(Transaction tx, String nodeId) {
 		return index.isNodeIndexed(tx, nodeId);
 	}
 
@@ -97,8 +98,7 @@ public class LayerIndexReaderWrapper implements LayerIndexReader {
 	}
 
 	@Override
-	public void addMonitor( TreeMonitor monitor )
-	{
+	public void addMonitor(TreeMonitor monitor) {
 
 	}
 

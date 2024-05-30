@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -19,6 +19,14 @@
  */
 package org.neo4j.gis.spatial;
 
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
@@ -29,160 +37,153 @@ import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.config.Setting;
+import org.neo4j.io.fs.EphemeralFileSystemAbstraction;
 import org.neo4j.io.fs.FileUtils;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
-import org.neo4j.io.fs.EphemeralFileSystemAbstraction;
-
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Objects;
-
-import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 /**
  * Base class for the meta model tests.
  */
 public abstract class Neo4jTestCase {
-    static final Map<Setting<?>, Object> NORMAL_CONFIG = new HashMap<>();
 
-    static {
-        //NORMAL_CONFIG.put( GraphDatabaseSettings.nodestore_mapped_memory_size.name(), "50M" );
-        //NORMAL_CONFIG.put( GraphDatabaseSettings.relationshipstore_mapped_memory_size.name(), "120M" );
-        //NORMAL_CONFIG.put( GraphDatabaseSettings.nodestore_propertystore_mapped_memory_size.name(), "150M" );
-        //NORMAL_CONFIG.put( GraphDatabaseSettings.strings_mapped_memory_size.name(), "200M" );
-        //NORMAL_CONFIG.put( GraphDatabaseSettings.arrays_mapped_memory_size.name(), "0M" );
-        NORMAL_CONFIG.put(GraphDatabaseSettings.pagecache_memory, 200000000l);
-        NORMAL_CONFIG.put(GraphDatabaseInternalSettings.trace_cursors, true);
-    }
+	static final Map<Setting<?>, Object> NORMAL_CONFIG = new HashMap<>();
 
-    static final Map<Setting<?>, Object> LARGE_CONFIG = new HashMap<>();
+	static {
+		//NORMAL_CONFIG.put( GraphDatabaseSettings.nodestore_mapped_memory_size.name(), "50M" );
+		//NORMAL_CONFIG.put( GraphDatabaseSettings.relationshipstore_mapped_memory_size.name(), "120M" );
+		//NORMAL_CONFIG.put( GraphDatabaseSettings.nodestore_propertystore_mapped_memory_size.name(), "150M" );
+		//NORMAL_CONFIG.put( GraphDatabaseSettings.strings_mapped_memory_size.name(), "200M" );
+		//NORMAL_CONFIG.put( GraphDatabaseSettings.arrays_mapped_memory_size.name(), "0M" );
+		NORMAL_CONFIG.put(GraphDatabaseSettings.pagecache_memory, 200000000L);
+		NORMAL_CONFIG.put(GraphDatabaseInternalSettings.trace_cursors, true);
+	}
 
-    static {
-        //LARGE_CONFIG.put( GraphDatabaseSettings.nodestore_mapped_memory_size.name(), "100M" );
-        //LARGE_CONFIG.put( GraphDatabaseSettings.relationshipstore_mapped_memory_size.name(), "300M" );
-        //LARGE_CONFIG.put( GraphDatabaseSettings.nodestore_propertystore_mapped_memory_size.name(), "400M" );
-        //LARGE_CONFIG.put( GraphDatabaseSettings.strings_mapped_memory_size.name(), "800M" );
-        //LARGE_CONFIG.put( GraphDatabaseSettings.arrays_mapped_memory_size.name(), "10M" );
-        LARGE_CONFIG.put(GraphDatabaseSettings.pagecache_memory, 100000000l);
-    }
+	static final Map<Setting<?>, Object> LARGE_CONFIG = new HashMap<>();
 
-    private static final File basePath = new File("target/var");
-    private static final Path dbPath = new File(basePath, "neo4j-db").toPath();
-    private DatabaseManagementService databases;
-    private GraphDatabaseService graphDb;
+	static {
+		//LARGE_CONFIG.put( GraphDatabaseSettings.nodestore_mapped_memory_size.name(), "100M" );
+		//LARGE_CONFIG.put( GraphDatabaseSettings.relationshipstore_mapped_memory_size.name(), "300M" );
+		//LARGE_CONFIG.put( GraphDatabaseSettings.nodestore_propertystore_mapped_memory_size.name(), "400M" );
+		//LARGE_CONFIG.put( GraphDatabaseSettings.strings_mapped_memory_size.name(), "800M" );
+		//LARGE_CONFIG.put( GraphDatabaseSettings.arrays_mapped_memory_size.name(), "10M" );
+		LARGE_CONFIG.put(GraphDatabaseSettings.pagecache_memory, 100000000L);
+	}
 
-    private long storePrefix;
+	private static final File basePath = new File("target/var");
+	private static final Path dbPath = new File(basePath, "neo4j-db").toPath();
+	private DatabaseManagementService databases;
+	private GraphDatabaseService graphDb;
 
-    @BeforeEach
-    public void setUp() throws Exception {
-        updateStorePrefix();
-        setUp(true);
-    }
+	private long storePrefix;
 
-    private void updateStorePrefix() {
-        storePrefix++;
-    }
+	@BeforeEach
+	public void setUp() throws Exception {
+		updateStorePrefix();
+		setUp(true);
+	}
 
-    /**
-     * Configurable options for text cases, with or without deleting the previous database, and with
-     * or without using the BatchInserter for higher creation speeds. Note that tests that need to
-     * delete nodes or use transactions should not use the BatchInserter.
-     */
-    protected void setUp(boolean deleteDb) throws Exception {
-        shutdownDatabase(deleteDb);
-        Map<Setting<?>, Object> config = NORMAL_CONFIG;
-        String largeMode = System.getProperty("spatial.test.large");
-        if (largeMode != null && largeMode.equalsIgnoreCase("true")) {
-            config = LARGE_CONFIG;
-        }
-        databases = new TestDatabaseManagementServiceBuilder(getDbPath()).setConfig(config).build();
-        graphDb = databases.database(DEFAULT_DATABASE_NAME);
-        ((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency(GlobalProcedures.class).registerProcedure(SpatialProcedures.class);
-    }
+	private void updateStorePrefix() {
+		storePrefix++;
+	}
 
-    /**
-     * For test cases that want to control their own database access, we should
-     * shutdown the current one.
-     */
-    private void shutdownDatabase(boolean deleteDb) {
-        beforeShutdown();
-        if (graphDb != null) {
-            databases.shutdown();
-            databases = null;
-            graphDb = null;
-        }
-        if (deleteDb) {
-            deleteDatabase();
-        }
-    }
+	/**
+	 * Configurable options for text cases, with or without deleting the previous database, and with
+	 * or without using the BatchInserter for higher creation speeds. Note that tests that need to
+	 * delete nodes or use transactions should not use the BatchInserter.
+	 */
+	protected void setUp(boolean deleteDb) throws Exception {
+		shutdownDatabase(deleteDb);
+		Map<Setting<?>, Object> config = NORMAL_CONFIG;
+		String largeMode = System.getProperty("spatial.test.large");
+		if (largeMode != null && largeMode.equalsIgnoreCase("true")) {
+			config = LARGE_CONFIG;
+		}
+		databases = new TestDatabaseManagementServiceBuilder(getDbPath()).setConfig(config).build();
+		graphDb = databases.database(DEFAULT_DATABASE_NAME);
+		((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency(GlobalProcedures.class)
+				.registerProcedure(SpatialProcedures.class);
+	}
 
-    private static EphemeralFileSystemAbstraction fileSystem;
+	/**
+	 * For test cases that want to control their own database access, we should
+	 * shutdown the current one.
+	 */
+	private void shutdownDatabase(boolean deleteDb) {
+		beforeShutdown();
+		if (graphDb != null) {
+			databases.shutdown();
+			databases = null;
+			graphDb = null;
+		}
+		if (deleteDb) {
+			deleteDatabase();
+		}
+	}
 
-    @BeforeAll
-    static void beforeAll() throws IOException {
-        fileSystem = new EphemeralFileSystemAbstraction();
-        fileSystem.mkdirs(new File("target").toPath());
-    }
+	private static EphemeralFileSystemAbstraction fileSystem;
 
-    @AfterAll
-    static void afterAll() throws IOException {
-        fileSystem.close();
-    }
+	@BeforeAll
+	static void beforeAll() throws IOException {
+		fileSystem = new EphemeralFileSystemAbstraction();
+		fileSystem.mkdirs(new File("target").toPath());
+	}
 
-    @AfterEach
-    public void tearDown() {
-        shutdownDatabase(true);
-    }
+	@AfterAll
+	static void afterAll() throws IOException {
+		fileSystem.close();
+	}
 
-    private void beforeShutdown() {
-    }
+	@AfterEach
+	public void tearDown() {
+		shutdownDatabase(true);
+	}
 
-    Path getNeoPath() {
-        return dbPath.toAbsolutePath();
-    }
+	private void beforeShutdown() {
+	}
 
-    Path getDbPath() {
-        return dbPath.toAbsolutePath().resolve("test-" + storePrefix);
-    }
+	static Path getNeoPath() {
+		return dbPath.toAbsolutePath();
+	}
 
-    private void deleteDatabase() {
-        try {
-            FileUtils.deleteDirectory(getNeoPath());
-        } catch (IOException e) {
-            // TODO Auto-generated catch block
-            e.printStackTrace();
-        }
-    }
+	Path getDbPath() {
+		return dbPath.toAbsolutePath().resolve("test-" + storePrefix);
+	}
 
-    static void deleteBaseDir() {
-        deleteFileOrDirectory(basePath);
-    }
+	private static void deleteDatabase() {
+		try {
+			FileUtils.deleteDirectory(getNeoPath());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
 
-    private static void deleteFileOrDirectory(File file) {
-        if (!file.exists()) {
-            return;
-        }
+	static void deleteBaseDir() {
+		deleteFileOrDirectory(basePath);
+	}
 
-        if (file.isDirectory()) {
-            for (File child : Objects.requireNonNull(file.listFiles())) {
-                deleteFileOrDirectory(child);
-            }
-        } else {
-            //noinspection ResultOfMethodCallIgnored
-            file.delete();
-        }
-    }
+	private static void deleteFileOrDirectory(File file) {
+		if (!file.exists()) {
+			return;
+		}
 
-    void printDatabaseStats() {
-        Neo4jTestUtils.printDatabaseStats(graphDb(), getDbPath().toFile());
-    }
+		if (file.isDirectory()) {
+			for (File child : Objects.requireNonNull(file.listFiles())) {
+				deleteFileOrDirectory(child);
+			}
+		} else {
+			//noinspection ResultOfMethodCallIgnored
+			file.delete();
+		}
+	}
 
-    protected GraphDatabaseService graphDb() {
-        return graphDb;
-    }
+	void printDatabaseStats() {
+		Neo4jTestUtils.printDatabaseStats(graphDb(), getDbPath().toFile());
+	}
+
+	protected GraphDatabaseService graphDb() {
+		return graphDb;
+	}
 }

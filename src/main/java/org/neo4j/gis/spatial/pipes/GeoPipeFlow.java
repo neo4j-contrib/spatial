@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -23,110 +23,108 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
-import org.neo4j.gis.spatial.SpatialRecord;
-
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
+import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import org.neo4j.gis.spatial.SpatialRecord;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
 public class GeoPipeFlow implements SpatialRecord {
 
-    private String id;
-    private List<SpatialDatabaseRecord> records = new ArrayList<SpatialDatabaseRecord>();
-    private Geometry geometry;
-    private Envelope geometryEnvelope;
-    private Map<String, Object> properties = new HashMap<>();
+	private final String id;
+	private final List<SpatialDatabaseRecord> records = new ArrayList<>();
+	private Geometry geometry;
+	private Envelope geometryEnvelope;
+	private final Map<String, Object> properties = new HashMap<>();
 
-    private GeoPipeFlow(String id) {
-        this.id = id;
-    }
+	private GeoPipeFlow(String id) {
+		this.id = id;
+	}
 
-    public GeoPipeFlow(SpatialDatabaseRecord record) {
-        this.id = record.getNodeId();
-        this.records.add(record);
-        this.geometry = record.getGeometry();
-    }
+	public GeoPipeFlow(SpatialDatabaseRecord record) {
+		this.id = record.getNodeId();
+		this.records.add(record);
+		this.geometry = record.getGeometry();
+	}
 
-    public SpatialDatabaseRecord getRecord() {
-        return records.get(0);
-    }
+	public SpatialDatabaseRecord getRecord() {
+		return records.get(0);
+	}
 
-    @Override
-    public Node getGeomNode() {
-        return getRecord().getGeomNode();
-    }
+	@Override
+	public Node getGeomNode() {
+		return getRecord().getGeomNode();
+	}
 
-    public int countRecords() {
-        return records.size();
-    }
+	public int countRecords() {
+		return records.size();
+	}
 
-    public List<SpatialDatabaseRecord> getRecords() {
-        return records;
-    }
+	public List<SpatialDatabaseRecord> getRecords() {
+		return records;
+	}
 
-    @Override
-    public String getId() {
-        return id;
-    }
+	@Override
+	public String getId() {
+		return id;
+	}
 
-    @Override
-    public Geometry getGeometry() {
-        return geometry;
-    }
+	@Override
+	public Geometry getGeometry() {
+		return geometry;
+	}
 
-    public Envelope getEnvelope() {
-        if (geometryEnvelope == null) {
-            geometryEnvelope = geometry.getEnvelopeInternal();
-        }
+	public Envelope getEnvelope() {
+		if (geometryEnvelope == null) {
+			geometryEnvelope = geometry.getEnvelopeInternal();
+		}
 
-        return geometryEnvelope;
-    }
+		return geometryEnvelope;
+	}
 
-    public void setGeometry(Geometry geometry) {
-        this.geometry = geometry;
-        this.geometryEnvelope = null;
-    }
+	public void setGeometry(Geometry geometry) {
+		this.geometry = geometry;
+		this.geometryEnvelope = null;
+	}
 
-    @Override
-    public Map<String, Object> getProperties(Transaction ignored) {
-        return properties;
-    }
+	@Override
+	public Map<String, Object> getProperties(Transaction ignored) {
+		return properties;
+	}
 
-    // Alternative method since GeoPipes never work within a transactional context
-    public Map<String, Object> getProperties() {
-        return properties;
-    }
+	// Alternative method since GeoPipes never work within a transactional context
+	public Map<String, Object> getProperties() {
+		return properties;
+	}
 
-    @Override
-    public boolean hasProperty(Transaction tx, String name) {
-        return properties.containsKey(name);
-    }
+	@Override
+	public boolean hasProperty(Transaction tx, String name) {
+		return properties.containsKey(name);
+	}
 
-    @Override
-    public String[] getPropertyNames(Transaction tx) {
-        return properties.keySet().toArray(new String[]{});
-    }
+	@Override
+	public String[] getPropertyNames(Transaction tx) {
+		return properties.keySet().toArray(new String[]{});
+	}
 
-    @Override
-    public Object getProperty(Transaction ignored, String name) {
-        return properties.get(name);
-    }
+	@Override
+	public Object getProperty(Transaction ignored, String name) {
+		return properties.get(name);
+	}
 
-    public void merge(GeoPipeFlow other) {
-        records.addAll(other.records);
-        // TODO id?
-        // TODO properties?
-    }
+	public void merge(GeoPipeFlow other) {
+		records.addAll(other.records);
+		// TODO id?
+		// TODO properties?
+	}
 
-    public GeoPipeFlow makeClone(String idSuffix) {
-        // we don't need a deeper copy at the moment
-        GeoPipeFlow clone = new GeoPipeFlow(id + "-" + idSuffix);
-        clone.records.addAll(records);
-        clone.geometry = geometry;
-        clone.getProperties().putAll(getProperties());
-        return clone;
-    }
+	public GeoPipeFlow makeClone(String idSuffix) {
+		// we don't need a deeper copy at the moment
+		GeoPipeFlow clone = new GeoPipeFlow(id + "-" + idSuffix);
+		clone.records.addAll(records);
+		clone.geometry = geometry;
+		clone.getProperties().putAll(getProperties());
+		return clone;
+	}
 }

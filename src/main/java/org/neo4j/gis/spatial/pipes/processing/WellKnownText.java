@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -19,10 +19,9 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
+import org.locationtech.jts.io.WKTWriter;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-
-import org.locationtech.jts.io.WKTWriter;
 
 /**
  * Encodes item geometry to Well Known Text (WKT).
@@ -30,20 +29,20 @@ import org.locationtech.jts.io.WKTWriter;
 public class WellKnownText extends AbstractGeoPipe {
 
 	public WellKnownText() {
-	}		
-	
+	}
+
 	/**
 	 * @param resultPropertyName property name to use for geometry output
-	 */	
+	 */
 	public WellKnownText(String resultPropertyName) {
 		super(resultPropertyName);
-	}	
+	}
 
-	@Override	
+	@Override
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
 		WKTWriter wktWriter = new WKTWriter();
 		setProperty(flow, wktWriter.write(flow.getGeometry()));
 		return flow;
-	}	
-	
+	}
+
 }

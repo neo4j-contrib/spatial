@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -19,10 +19,9 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
+import org.locationtech.jts.simplify.DouglasPeuckerSimplifier;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
-
-import org.locationtech.jts.simplify.DouglasPeuckerSimplifier;
 
 
 /**
@@ -30,22 +29,22 @@ import org.locationtech.jts.simplify.DouglasPeuckerSimplifier;
  * Item geometry is replaced by pipe output unless an alternative property name is given in the constructor.
  */
 public class SimplifyWithDouglasPeucker extends AbstractGeoPipe {
-	
-	private double distanceTolerance;
-	
+
+	private final double distanceTolerance;
+
 	public SimplifyWithDouglasPeucker(double distanceTolerance) {
 		this.distanceTolerance = distanceTolerance;
-	}		
-	
+	}
+
 	/**
 	 * @param resultPropertyName property name to use for geometry output
-	 */	
+	 */
 	public SimplifyWithDouglasPeucker(double distanceTolerance, String resultPropertyName) {
 		super(resultPropertyName);
 		this.distanceTolerance = distanceTolerance;
-	}	
+	}
 
-	@Override	
+	@Override
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
 		setGeometry(flow, DouglasPeuckerSimplifier.simplify(flow.getGeometry(), distanceTolerance));
 		return flow;

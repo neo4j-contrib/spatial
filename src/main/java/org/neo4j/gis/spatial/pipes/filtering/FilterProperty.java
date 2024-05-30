@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -28,42 +28,23 @@ import org.neo4j.gis.spatial.pipes.impl.FilterPipe;
  */
 public class FilterProperty extends AbstractFilterGeoPipe {
 
-	private String key;
-	private Object value;
-	private FilterPipe.Filter comparison;
-	
+	private final String key;
+	private final Object value;
+	private final FilterPipe.Filter comparison;
+
 	public FilterProperty(String key, Object value) {
 		this(key, value, FilterPipe.Filter.EQUAL);
-	}	
-	
+	}
+
 	public FilterProperty(String key, Object value, FilterPipe.Filter comparison) {
 		this.key = key;
 		this.value = value;
 		this.comparison = comparison;
 	}
-	
+
 	@Override
 	protected boolean validate(GeoPipeFlow flow) {
-	    final Object leftObject = flow.getProperties().get(key);
-	    return switch (comparison) {
-	        case EQUAL -> (leftObject == null) ? value == null : leftObject.equals(value);
-	        case NOT_EQUAL -> (leftObject == null) ? value != null : !leftObject.equals(value);
-	        case GREATER_THAN, LESS_THAN, GREATER_THAN_EQUAL, LESS_THAN_EQUAL -> {
-	            if (leftObject == null || value == null) yield false;
-	            if (!(leftObject instanceof Comparable comparable))
-	                throw new IllegalArgumentException("leftObject is not Comparable");
-	           
-                int compareRes = comparable.compareTo(value);
-                yield switch (comparison) {
-                    case GREATER_THAN -> compareRes > 0;
-                    case LESS_THAN -> compareRes < 0;
-                    case GREATER_THAN_EQUAL -> compareRes >= 0;
-                    case LESS_THAN_EQUAL -> compareRes <= 0;
-                    default -> throw new AssertionError("Unexpected comparison: " + comparison);
-                };
-	        }
-	        default -> throw new IllegalArgumentException("Invalid state as no valid filter was provided");
-	    };	
-	    
-    }
+		final Object leftObject = flow.getProperties().get(key);
+		return comparison.compare(leftObject, value);
+	}
 }

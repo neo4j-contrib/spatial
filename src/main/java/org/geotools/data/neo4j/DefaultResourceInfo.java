@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2020 "Neo4j,"
+ * Copyright (c) "Neo4j"
  * Neo4j Sweden AB [http://neo4j.com]
  *
  * This file is part of Neo4j Spatial.
@@ -22,11 +22,10 @@ package org.geotools.data.neo4j;
 import java.net.URI;
 import java.util.HashSet;
 import java.util.Set;
-
 import org.geotools.api.data.ResourceInfo;
+import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.feature.FeatureTypes;
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 
 /**
  * ResourceInfo implementation.
@@ -35,17 +34,15 @@ import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
  */
 public class DefaultResourceInfo implements ResourceInfo {
 
-	private String name;
-	private String description = "";
-	private Set<String> keywords = new HashSet<String>();
-	private CoordinateReferenceSystem crs;
-	private ReferencedEnvelope bbox;
+	private final String name;
+	private final Set<String> keywords = new HashSet<>();
+	private final CoordinateReferenceSystem crs;
+	private final ReferencedEnvelope bbox;
 
 	/**
-	 *
-	 * @param name
-	 * @param crs
-	 * @param bbox
+	 * @param name The name of the resource.
+	 * @param crs  The CoordinateReferenceSystem of the resource.
+	 * @param bbox The bounding box of the resource.
 	 */
 	public DefaultResourceInfo(String name, CoordinateReferenceSystem crs, ReferencedEnvelope bbox) {
 		this.name = name;
@@ -53,51 +50,36 @@ public class DefaultResourceInfo implements ResourceInfo {
 		this.bbox = bbox;
 	}
 
-	/**
-	 *
-	 */
 	@Override
 	public String getName() {
 		return name;
 	}
-	/**
-	 *
-	 */
+
 	@Override
 	public String getTitle() {
 		return name;
 	}
-	/**
-	 *
-	 */
+
 	@Override
 	public String getDescription() {
-		return description;
+		return "";
 	}
-	/**
-	 *
-	 */
+
 	@Override
 	public Set<String> getKeywords() {
-        return keywords;
+		return keywords;
 	}
-	/**
-	 *
-	 */
+
 	@Override
 	public URI getSchema() {
-        return FeatureTypes.DEFAULT_NAMESPACE;
+		return FeatureTypes.DEFAULT_NAMESPACE;
 	}
-	/**
-	 *
-	 */
+
 	@Override
 	public CoordinateReferenceSystem getCRS() {
 		return crs;
 	}
-	/**
-	 *
-	 */
+
 	@Override
 	public ReferencedEnvelope getBounds() {
 		return bbox;
