@@ -19,12 +19,15 @@
  */
 package org.neo4j.gis.spatial.filter;
 
+import org.locationtech.jts.algorithm.Orientation;
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.Utilities;
 import org.neo4j.gis.spatial.index.Envelope;
 import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
+
 
 /**
  * Find geometries that intersect with the specified search window.
@@ -35,6 +38,7 @@ public class SearchIntersectWindow extends AbstractSearchEnvelopeIntersection {
 
 	private final Layer layer;
 	private final Geometry windowGeom;
+	private final boolean isBBox;
 
 	public SearchIntersectWindow(Layer layer, Envelope envelope) {
 		this(layer, Utilities.fromNeo4jToJts(envelope));
@@ -44,6 +48,32 @@ public class SearchIntersectWindow extends AbstractSearchEnvelopeIntersection {
 		super(layer.getGeometryEncoder(), Utilities.fromJtsToNeo4j(other));
 		this.layer = layer;
 		this.windowGeom = layer.getGeometryFactory().toGeometry(other);
+		this.isBBox = this.windowGeom.isRectangle()
+				// not a hole
+				&& !Orientation.isCCW(windowGeom.getCoordinates());
+	}
+
+	@Override
+	public EnvelopFilterResult needsToVisitExtended(org.neo4j.gis.spatial.rtree.Envelope indexNodeEnvelope) {
+		if (isBBox && referenceEnvelope.contains(indexNodeEnvelope)) {
+			return EnvelopFilterResult.INCLUDE_ALL;
+		}
+		if (indexNodeEnvelope.intersects(referenceEnvelope)) {
+			return EnvelopFilterResult.FILTER;
+		}
+		return EnvelopFilterResult.EXCLUDE_ALL;
+	}
+
+	@Override
+	public boolean geometryMatches(Transaction tx, Node geomNode) {
+		var geomEnvelope = decoder.decodeEnvelope(geomNode);
+		if (isBBox && referenceEnvelope.contains(geomEnvelope)) {
+			return true;
+		}
+		if (geomEnvelope.intersects(referenceEnvelope)) {
+			return onEnvelopeIntersection(geomNode, geomEnvelope);
+		}
+		return false;
 	}
 
 	@Override

@@ -44,12 +44,11 @@ public abstract class AbstractSearchEnvelopeIntersection implements SearchFilter
 	}
 
 	@Override
-	public final boolean geometryMatches(Transaction tx, Node geomNode) {
+	public boolean geometryMatches(Transaction tx, Node geomNode) {
 		Envelope geomEnvelope = decoder.decodeEnvelope(geomNode);
 		if (geomEnvelope.intersects(referenceEnvelope)) {
 			return onEnvelopeIntersection(geomNode, geomEnvelope);
 		}
-
 		return false;
 	}
 
