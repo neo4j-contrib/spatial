@@ -89,14 +89,6 @@ public class PropertyMappingManager {
 		save(tx);
 	}
 
-	private PropertyMapper removePropertyMapper(Transaction tx, String to) {
-		PropertyMapper mapper = getPropertyMappers(tx).remove(to);
-		if (mapper != null) {
-			save(tx);
-		}
-		return mapper;
-	}
-
 	public PropertyMapper getPropertyMapper(Transaction tx, String to) {
 		return getPropertyMappers(tx).get(to);
 	}
