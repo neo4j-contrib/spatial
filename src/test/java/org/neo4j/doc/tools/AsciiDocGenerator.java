@@ -179,7 +179,7 @@ public abstract class AsciiDocGenerator {
 		}
 		counter++;
 		counters.put(key, counter);
-		String testId = type + "-" + String.valueOf(counter);
+		String testId = type + "-" + counter;
 		return dumpToSeparateFile(dir, testId, content);
 	}
 

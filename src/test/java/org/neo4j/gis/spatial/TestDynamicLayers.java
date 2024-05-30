@@ -246,7 +246,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 	}
 
 	private static String toCoordinateText(Envelope bbox) {
-		return "" + bbox.getMinX() + ", " + bbox.getMinY() + ", " + bbox.getMaxX() + ", " + bbox.getMaxY();
+		return bbox.getMinX() + ", " + bbox.getMinY() + ", " + bbox.getMaxX() + ", " + bbox.getMaxY();
 	}
 
 	private void checkIndexAndFeatureCount(Layer layer) throws IOException {

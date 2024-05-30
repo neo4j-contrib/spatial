@@ -37,8 +37,8 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 public class GeoPipesPerformanceTest extends Neo4jTestCase {
 
-	private int records = 10000;
-	private int chunkSize = records / 10;
+	private final int records = 10000;
+	private final int chunkSize = records / 10;
 
 	@BeforeEach
 	public void setUp() throws Exception {
@@ -90,9 +90,9 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 		@Override
 		public String toString() {
 			if (count > 0) {
-				return "" + chunk + ": " + average() + "ms per record (" + count + " records over " + time + "ms)";
+				return chunk + ": " + average() + "ms per record (" + count + " records over " + time + "ms)";
 			}
-			return "" + chunk + ": INVALID (" + count + " records over " + time + "ms)";
+			return chunk + ": INVALID (" + count + " records over " + time + "ms)";
 		}
 	}
 

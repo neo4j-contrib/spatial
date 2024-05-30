@@ -20,14 +20,11 @@
 package org.neo4j.gis.spatial.procedures;
 
 import static org.neo4j.gis.spatial.SpatialDatabaseService.RTREE_INDEX_NAME;
-import static org.neo4j.gis.spatial.encoders.neo4j.Neo4jCRS.findCRS;
-import static org.neo4j.internal.helpers.collection.MapUtil.map;
 import static org.neo4j.procedure.Mode.WRITE;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -35,7 +32,6 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import org.geotools.api.referencing.ReferenceIdentifier;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.locationtech.jts.geom.Coordinate;
@@ -59,10 +55,6 @@ import org.neo4j.gis.spatial.encoders.NativePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePropertyEncoder;
-import org.neo4j.gis.spatial.encoders.neo4j.Neo4jCRS;
-import org.neo4j.gis.spatial.encoders.neo4j.Neo4jGeometry;
-import org.neo4j.gis.spatial.encoders.neo4j.Neo4jPoint;
-import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
 import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
 import org.neo4j.gis.spatial.index.LayerZOrderPointIndex;
@@ -73,6 +65,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
 import org.neo4j.gis.spatial.rtree.ProgressLoggingListener;
+import org.neo4j.gis.spatial.utilities.SpatialApiBase;
 import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -88,7 +81,6 @@ import org.neo4j.procedure.Context;
 import org.neo4j.procedure.Description;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.Procedure;
-import org.neo4j.procedure.UserFunction;
 
 /*
 TODO:
@@ -96,26 +88,14 @@ TODO:
 * optional default simplePointLayer should use the long form of "latitude and longitude" like the spatial functions do
 */
 
-public class SpatialProcedures {
+public class SpatialProcedures extends SpatialApiBase {
 
 	@Context
 	public GraphDatabaseService db;
 
 	@Context
-	public GraphDatabaseAPI api;
-
-	@Context
-	public Transaction tx;
-
-	@Context
-	public KernelTransaction ktx;
-
-	@Context
 	public Log log;
 
-	private SpatialDatabaseService spatial() {
-		return new SpatialDatabaseService(new IndexManager(api, ktx.securityContext()));
-	}
 
 	public record NodeResult(Node node) {
 
@@ -219,7 +199,6 @@ public class SpatialProcedures {
 	@Procedure("spatial.layerTypes")
 	@Description("Returns the different registered layer types")
 	public Stream<NameResult> getAllLayerTypes() {
-		SpatialDatabaseService sdb = spatial();
 		Stream.Builder<NameResult> builder = Stream.builder();
 		for (Map.Entry<String, String> entry : SpatialDatabaseService.getRegisteredLayerTypes().entrySet()) {
 			builder.accept(new NameResult(entry.getKey(), entry.getValue()));
@@ -811,32 +790,6 @@ public class SpatialProcedures {
 				});
 	}
 
-	@UserFunction("spatial.decodeGeometry")
-	@Description("Returns a geometry of a layer node as the Neo4j geometry type, to be passed to other procedures or returned to a client")
-	public Object decodeGeometry(
-			@Name("layerName") String name,
-			@Name("node") Node node) {
-
-		Layer layer = getLayerOrThrow(tx, spatial(), name);
-		GeometryResult result = new GeometryResult(
-				toNeo4jGeometry(layer, layer.getGeometryEncoder().decodeGeometry(node)));
-		return result.geometry;
-	}
-
-	@UserFunction("spatial.asMap")
-	@Description("Returns a Map object representing the Geometry, to be passed to other procedures or returned to a client")
-	public Object asMap(@Name("object") Object geometry) {
-		return toGeometryMap(geometry);
-	}
-
-	@UserFunction("spatial.asGeometry")
-	@Description("Returns a geometry object as the Neo4j geometry type, to be passed to other functions or procedures or returned to a client")
-	public Object asGeometry(
-			@Name("geometry") Object geometry) {
-
-		return toNeo4jGeometry(null, geometry);
-	}
-
 	@Deprecated
 	@Procedure("spatial.asGeometry")
 	@Description("Returns a geometry object as the Neo4j geometry type, to be passed to other procedures or returned to a client")
@@ -897,171 +850,9 @@ public class SpatialProcedures {
 		throw new RuntimeException("Can't convert " + value + " to a geometry");
 	}
 
-	private static org.neo4j.graphdb.spatial.Coordinate toNeo4jCoordinate(Coordinate coordinate) {
-		if (coordinate.z == Coordinate.NULL_ORDINATE) {
-			return new org.neo4j.graphdb.spatial.Coordinate(coordinate.x, coordinate.y);
-		}
-		return new org.neo4j.graphdb.spatial.Coordinate(coordinate.x, coordinate.y, coordinate.z);
-	}
-
-	private static List<org.neo4j.graphdb.spatial.Coordinate> toNeo4jCoordinates(Coordinate[] coordinates) {
-		ArrayList<org.neo4j.graphdb.spatial.Coordinate> converted = new ArrayList<>();
-		for (Coordinate coordinate : coordinates) {
-			converted.add(toNeo4jCoordinate(coordinate));
-		}
-		return converted;
-	}
-
-	private org.neo4j.graphdb.spatial.Geometry toNeo4jGeometry(Layer layer, Object value) {
-		if (value instanceof org.neo4j.graphdb.spatial.Geometry) {
-			return (org.neo4j.graphdb.spatial.Geometry) value;
-		}
-		Neo4jCRS crs = findCRS("Cartesian");
-		if (layer != null) {
-			CoordinateReferenceSystem layerCRS = layer.getCoordinateReferenceSystem(tx);
-			if (layerCRS != null) {
-				ReferenceIdentifier crsRef = layer.getCoordinateReferenceSystem(tx).getName();
-				crs = findCRS(crsRef.toString());
-			}
-		}
-		if (value instanceof Point point) {
-			return new Neo4jPoint(point, crs);
-		}
-		if (value instanceof Geometry geometry) {
-			return new Neo4jGeometry(geometry.getGeometryType(), toNeo4jCoordinates(geometry.getCoordinates()), crs);
-		}
-		if (value instanceof String && layer != null) {
-			GeometryFactory factory = layer.getGeometryFactory();
-			WKTReader reader = new WKTReader(factory);
-			try {
-				Geometry geometry = reader.read((String) value);
-				return new Neo4jGeometry(geometry.getGeometryType(), toNeo4jCoordinates(geometry.getCoordinates()),
-						crs);
-			} catch (ParseException e) {
-				throw new IllegalArgumentException("Invalid WKT: " + e.getMessage());
-			}
-		}
-		Map<String, Object> latLon = null;
-		if (value instanceof Entity) {
-			latLon = ((Entity) value).getProperties("latitude", "longitude", "lat", "lon");
-		}
-		if (value instanceof Map) {
-			//noinspection unchecked
-			latLon = (Map<String, Object>) value;
-		}
-		Coordinate coord = toCoordinate(latLon);
-		if (coord != null) {
-			return new Neo4jPoint(coord, crs);
-		}
-		throw new RuntimeException("Can't convert " + value + " to a geometry");
-	}
-
-	private Object toPublic(Object obj) {
-		if (obj instanceof Map<?, ?> map) {
-			return toPublic(map);
-		}
-		if (obj instanceof Entity entity) {
-			return toPublic(entity.getProperties());
-		}
-		if (obj instanceof Geometry geometry) {
-			return toMap(geometry);
-		}
-		return obj;
-	}
-
-	private Map<String, Object> toGeometryMap(Object geometry) {
-		return toMap(toNeo4jGeometry(null, geometry));
-	}
-
-	private Map<String, Object> toMap(Geometry geometry) {
-		return toMap(toNeo4jGeometry(null, geometry));
-	}
-
-	private static double[][] toCoordinateArrayFromCoordinates(List<org.neo4j.graphdb.spatial.Coordinate> coords) {
-		List<double[]> coordinates = new ArrayList<>(coords.size());
-		for (org.neo4j.graphdb.spatial.Coordinate coord : coords) {
-			coordinates.add(coord.getCoordinate());
-		}
-		return toCoordinateArray(coordinates);
-	}
-
-	private static double[][] toCoordinateArray(List<double[]> coords) {
-		double[][] coordinates = new double[coords.size()][];
-		for (int i = 0; i < coordinates.length; i++) {
-			coordinates[i] = coords.get(i);
-		}
-		return coordinates;
-	}
-
-	private static Map<String, Object> toMap(org.neo4j.graphdb.spatial.Geometry geometry) {
-		if (geometry instanceof org.neo4j.graphdb.spatial.Point point) {
-			return map("type", geometry.getGeometryType(), "coordinate", point.getCoordinate().getCoordinate());
-		}
-		return map("type", geometry.getGeometryType(), "coordinates",
-				toCoordinateArrayFromCoordinates(geometry.getCoordinates()));
-	}
-
-	private Map<String, Object> toPublic(Map<?, ?> incoming) {
-		Map<String, Object> map = new HashMap<>(incoming.size());
-		for (Object key : incoming.keySet()) {
-			map.put(key.toString(), toPublic(incoming.get(key)));
-		}
-		return map;
-	}
-
-	private static Coordinate toCoordinate(Object value) {
-		if (value instanceof Coordinate) {
-			return (Coordinate) value;
-		}
-		if (value instanceof org.neo4j.graphdb.spatial.Coordinate) {
-			return toCoordinate((org.neo4j.graphdb.spatial.Coordinate) value);
-		}
-		if (value instanceof org.neo4j.graphdb.spatial.Point) {
-			return toCoordinate(((org.neo4j.graphdb.spatial.Point) value).getCoordinate());
-		}
-		if (value instanceof Entity) {
-			return toCoordinate(((Entity) value).getProperties("latitude", "longitude", "lat", "lon"));
-		}
-		if (value instanceof Map<?, ?>) {
-			return toCoordinate((Map<?, ?>) value);
-		}
-		throw new RuntimeException("Can't convert " + value + " to a coordinate");
-	}
-
-	private static Coordinate toCoordinate(org.neo4j.graphdb.spatial.Coordinate point) {
-		double[] coordinate = point.getCoordinate();
-		return new Coordinate(coordinate[0], coordinate[1]);
-	}
-
-	private static Coordinate toCoordinate(Map<?, ?> map) {
-		if (map == null) {
-			return null;
-		}
-		Coordinate coord = toCoordinate(map, "longitude", "latitude");
-		if (coord == null) {
-			return toCoordinate(map, "lon", "lat");
-		}
-		return coord;
-	}
-
-	private static Coordinate toCoordinate(Map<?, ?> map, String xName, String yName) {
-		if (map.containsKey(xName) && map.containsKey(yName)) {
-			return new Coordinate(((Number) map.get(xName)).doubleValue(), ((Number) map.get(yName)).doubleValue());
-		}
-		return null;
-	}
-
 	private static EditableLayerImpl getEditableLayerOrThrow(Transaction tx, SpatialDatabaseService spatial,
 			String name) {
 		return (EditableLayerImpl) getLayerOrThrow(tx, spatial, name);
-	}
-
-	private static Layer getLayerOrThrow(Transaction tx, SpatialDatabaseService spatial, String name) {
-		EditableLayer layer = (EditableLayer) spatial.getLayer(tx, name);
-		if (layer != null) {
-			return layer;
-		}
-		throw new IllegalArgumentException("No such layer '" + name + "'");
 	}
 
 	private static void assertLayerDoesNotExists(Transaction tx, SpatialDatabaseService spatial, String name) {
