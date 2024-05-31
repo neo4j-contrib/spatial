@@ -1123,7 +1123,7 @@ public class OSMImporter implements Constants {
 					gtype = vertices > 1 ? GTYPE_MULTIPOINT : GTYPE_POINT;
 				}
 				Node geomNode = tx.createNode();
-				geomNode.setProperty("gtype", gtype);
+				geomNode.setProperty(PROP_TYPE, gtype);
 				geomNode.setProperty("vertices", vertices);
 				geomNode.setProperty(PROP_BBOX,
 						new double[]{bbox.getMinX(), bbox.getMaxX(), bbox.getMinY(), bbox.getMaxY()});
@@ -1207,7 +1207,7 @@ public class OSMImporter implements Constants {
 			try (var relationships = member.getRelationships(OSMRelation.GEOM)) {
 				for (Relationship rel : relationships) {
 					nodeProps = getNodeProperties(WrappedNode.fromNode(rel.getEndNode()));
-					metaGeom.checkSupportedGeometry((Integer) nodeProps.get("gtype"));
+					metaGeom.checkSupportedGeometry((Integer) nodeProps.get(PROP_TYPE));
 					metaGeom.expandToIncludeBBox(nodeProps);
 				}
 			}
