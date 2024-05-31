@@ -39,6 +39,16 @@ public class GeoJsonUtils {
 	}
 
 	public static Map<String, Object> toGeoJsonStructure(Geometry geometry) {
+		if (geometry instanceof GeometryCollection geometryCollection && "GeometryCollection".equals(
+				geometry.getGeometryType())) {
+			return Map.of(
+					"type", geometry.getGeometryType(),
+					"geometries", IntStream.range(0, geometryCollection.getNumGeometries())
+							.mapToObj(geometryCollection::getGeometryN)
+							.map(GeoJsonUtils::toGeoJsonStructure)
+							.toList()
+			);
+		}
 		return Map.of(
 				"type", geometry.getGeometryType(),
 				"coordinates", getCoordinates(geometry)

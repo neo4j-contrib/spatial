@@ -283,23 +283,28 @@ public class SpatialFunctionsTest extends AbstractApiTest {
 					"json");
 			assertThat(json, equalTo(Map.of(
 					"type", "GeometryCollection",
-					"coordinates", List.of(
-							// POINT
-							List.of(40., 10.),
-							// LINESTRING
-							List.of(
-									List.of(10., 10.),
-									List.of(20., 20.),
-									List.of(10., 40.)
-
+					"geometries", List.of(
+							Map.of( // Point
+									"type", "Point",
+									"coordinates", List.of(40., 10.)
 							),
-							// POLYGON
-							List.of(
-									List.of(
-											List.of(40., 40.),
-											List.of(20., 45.),
-											List.of(45., 30.),
-											List.of(40., 40.)
+							Map.of( // LineString
+									"type", "LineString",
+									"coordinates", List.of(
+											List.of(10., 10.),
+											List.of(20., 20.),
+											List.of(10., 40.)
+									)
+							),
+							Map.of( // Polygon
+									"type", "Polygon",
+									"coordinates", List.of(
+											List.of( // LineString
+													List.of(40., 40.),
+													List.of(20., 45.),
+													List.of(45., 30.),
+													List.of(40., 40.)
+											)
 									)
 							)
 					)
