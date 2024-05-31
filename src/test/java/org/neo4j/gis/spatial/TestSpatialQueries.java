@@ -53,7 +53,7 @@ public class TestSpatialQueries extends Neo4jTestCase {
 		Geometry longLineString;
 		Geometry point;
 		try (Transaction tx = graphDb().beginTx()) {
-			EditableLayer layer = spatial.getOrCreateEditableLayer(tx, layerName, "WKT");
+			EditableLayer layer = spatial.getOrCreateEditableLayer(tx, layerName, "WKT", null);
 			WKTReader wkt = new WKTReader(layer.getGeometryFactory());
 			shortLineString = wkt.read("LINESTRING(16.3493032 48.199882,16.3479487 48.1997337)");
 			longLineString = wkt.read(

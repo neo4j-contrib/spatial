@@ -170,7 +170,7 @@ public abstract class LayerIndexTestBase {
 
 	private SimplePointLayer makeTestPointLayer() {
 		try (Transaction tx = graph.beginTx()) {
-			SimplePointLayer layer = spatial.createPointLayer(tx, "test", getIndexClass(), getEncoderClass());
+			SimplePointLayer layer = spatial.createPointLayer(tx, "test", getIndexClass(), getEncoderClass(), null);
 			tx.commit();
 			return layer;
 		}
