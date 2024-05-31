@@ -62,7 +62,7 @@ public class SpatialFunctions extends SpatialApiBase {
 		return toNeo4jGeometry(null, geometry);
 	}
 
-	@UserFunction("spatial.convert.nativeToWkt")
+	@UserFunction("spatial.neo4jGeometryToWkt")
 	@Description("Converts a point or point array to WKT")
 	public String nativeToWkt(@Name("data") Object object) {
 		if (object instanceof Point point) {
