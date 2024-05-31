@@ -59,7 +59,7 @@ public class SpatialFunctions extends SpatialApiBase {
 	}
 
 
-	@UserFunction("spatial.convert.wktToGeoJson")
+	@UserFunction("spatial.wktToGeoJson")
 	@Description("Converts a WKT to GeoJson structure")
 	public Object wktToGeoJson(@Name("wkt") String wkt) throws ParseException {
 		if (wkt == null) {

@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import java.util.List;
 import java.util.Map;
 import org.hamcrest.MatcherAssert;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gis.spatial.AbstractApiTest;
@@ -73,23 +74,236 @@ public class SpatialFunctionsTest extends AbstractApiTest {
 		assertInstanceOf(Geometry.class, geometry, "Should be Geometry type");
 	}
 
-	@Test
-	public void wktToGeoJson() {
-		String wkt = "MULTIPOLYGON(((15.3 60.2, 15.3 60.4, 15.7 60.4, 15.7 60.2, 15.3 60.2)))";
-		Object json = executeObject("return spatial.convert.wktToGeoJson($wkt) as json", Map.of("wkt", wkt), "json");
-		assertThat(json, equalTo(Map.of(
-				"type", "MultiPolygon",
-				"coordinates", List.of( // MultiPolygon
-						List.of( // Polygon
-								List.of( // LineString
-										List.of(15.3, 60.2),
-										List.of(15.3, 60.4),
-										List.of(15.7, 60.4),
-										List.of(15.7, 60.2),
-										List.of(15.3, 60.2)
-								)
-						)
-				)
-		)));
+	/**
+	 * Test for all WKT types
+	 *
+	 * @see <a href="https://en.wikipedia.org/wiki/Well-known_text_representation_of_geometry">Wikipedia WKT</a>
+	 */
+	@Nested
+	class WktToGeoJson {
+
+		@Test
+		public void testPoint() {
+			String wkt = "POINT (30 10)";
+			Object json = executeObject("return spatial.wktToGeoJson($wkt) as json", Map.of("wkt", wkt),
+					"json");
+			assertThat(json, equalTo(Map.of(
+					"type", "Point",
+					"coordinates", List.of(30., 10.)
+			)));
+		}
+
+		@Test
+		public void testLineString() {
+			String wkt = "LINESTRING (30 10, 10 30, 40 40)";
+			Object json = executeObject("return spatial.wktToGeoJson($wkt) as json", Map.of("wkt", wkt),
+					"json");
+			assertThat(json, equalTo(Map.of(
+					"type", "LineString",
+					"coordinates", List.of(List.of(30., 10.), List.of(10., 30.), List.of(40., 40.))
+			)));
+		}
+
+		@Test
+		public void testPolygon() {
+			String wkt = "POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))";
+			Object json = executeObject("return spatial.wktToGeoJson($wkt) as json", Map.of("wkt", wkt),
+					"json");
+			assertThat(json, equalTo(Map.of(
+					"type", "Polygon",
+					"coordinates",
+					List.of( // Polygon
+							List.of( // LineString
+									List.of(30., 10.),
+									List.of(40., 40.),
+									List.of(20., 40.),
+									List.of(10., 20.),
+									List.of(30., 10.)
+							)
+					)
+			)));
+		}
+
+		@Test
+		public void testPolygonWithHole() {
+			String wkt = "POLYGON ((35 10, 45 45, 15 40, 10 20, 35 10),\n"
+					+ "(20 30, 35 35, 30 20, 20 30))";
+			Object json = executeObject("return spatial.wktToGeoJson($wkt) as json", Map.of("wkt", wkt),
+					"json");
+			assertThat(json, equalTo(Map.of(
+					"type", "Polygon",
+					"coordinates",
+					List.of( // Polygon
+							List.of( // LineString
+									List.of(35., 10.),
+									List.of(45., 45.),
+									List.of(15., 40.),
+									List.of(10., 20.),
+									List.of(35., 10.)
+							),
+							List.of( // hole
+									List.of(20., 30.),
+									List.of(35., 35.),
+									List.of(30., 20.),
+									List.of(20., 30.)
+							)
+					)
+			)));
+		}
+
+		@Test
+		public void testMultiPoint() {
+			String wkt = "MULTIPOINT ((10 40), (40 30), (20 20), (30 10))";
+			Object json = executeObject("return spatial.wktToGeoJson($wkt) as json", Map.of("wkt", wkt),
+					"json");
+			assertThat(json, equalTo(Map.of(
+					"type", "MultiPoint",
+					"coordinates", List.of(
+							List.of(10., 40.),
+							List.of(40., 30.),
+							List.of(20., 20.),
+							List.of(30., 10.)
+					))));
+		}
+
+		@Test
+		public void testMultiPoint2() {
+			String wkt = "MULTIPOINT (10 40, 40 30, 20 20, 30 10)";
+			Object json = executeObject("return spatial.wktToGeoJson($wkt) as json", Map.of("wkt", wkt),
+					"json");
+			assertThat(json, equalTo(Map.of(
+					"type", "MultiPoint",
+					"coordinates", List.of(
+							List.of(10., 40.),
+							List.of(40., 30.),
+							List.of(20., 20.),
+							List.of(30., 10.)
+					))));
+		}
+
+		@Test
+		public void testMultiLineString() {
+			String wkt = "MULTILINESTRING ((10 10, 20 20, 10 40),\n"
+					+ "(40 40, 30 30, 40 20, 30 10))";
+			Object json = executeObject("return spatial.wktToGeoJson($wkt) as json", Map.of("wkt", wkt),
+					"json");
+			assertThat(json, equalTo(Map.of(
+					"type", "MultiLineString",
+					"coordinates", List.of(
+							List.of( // LineString
+									List.of(10., 10.),
+									List.of(20., 20.),
+									List.of(10., 40.)
+							),
+							List.of( // LineString
+									List.of(40., 40.),
+									List.of(30., 30.),
+									List.of(40., 20.),
+									List.of(30., 10.)
+							)
+					))));
+		}
+
+		@Test
+		public void testMultiPolygon() {
+			String wkt = "MULTIPOLYGON (((30 20, 45 40, 10 40, 30 20)),\n"
+					+ "((15 5, 40 10, 10 20, 5 10, 15 5)))";
+			Object json = executeObject("return spatial.wktToGeoJson($wkt) as json", Map.of("wkt", wkt),
+					"json");
+			assertThat(json, equalTo(Map.of(
+					"type", "MultiPolygon",
+					"coordinates", List.of( // MultiPolygon
+							List.of( // Polygon
+									List.of( // LineString
+											List.of(30., 20.),
+											List.of(45., 40.),
+											List.of(10., 40.),
+											List.of(30., 20.)
+									)
+							),
+							List.of( // Polygon
+									List.of( // LineString
+											List.of(15., 5.),
+											List.of(40., 10.),
+											List.of(10., 20.),
+											List.of(5., 10.),
+											List.of(15., 5.)
+									)
+							)
+					)
+			)));
+		}
+
+		@Test
+		public void testMultiPolygon2() {
+			String wkt = """
+					MULTIPOLYGON (((40 40, 20 45, 45 30, 40 40)),
+					((20 35, 10 30, 10 10, 30 5, 45 20, 20 35),
+					(30 20, 20 15, 20 25, 30 20)))""";
+			Object json = executeObject("return spatial.wktToGeoJson($wkt) as json", Map.of("wkt", wkt),
+					"json");
+			assertThat(json, equalTo(Map.of(
+					"type", "MultiPolygon",
+					"coordinates", List.of( // MultiPolygon
+							List.of( // Polygon
+									List.of( // LineString
+											List.of(40., 40.),
+											List.of(20., 45.),
+											List.of(45., 30.),
+											List.of(40., 40.)
+									)
+							),
+							List.of( // Polygon
+									List.of( // LineString
+											List.of(20., 35.),
+											List.of(10., 30.),
+											List.of(10., 10.),
+											List.of(30., 5.),
+											List.of(45., 20.),
+											List.of(20., 35.)
+									),
+									List.of( // hole
+											List.of(30., 20.),
+											List.of(20., 15.),
+											List.of(20., 25.),
+											List.of(30., 20.)
+									)
+							)
+					)
+			)));
+		}
+
+		@Test
+		public void testGeometryCollection() {
+			String wkt = """
+					GEOMETRYCOLLECTION (POINT (40 10),
+					LINESTRING (10 10, 20 20, 10 40),
+					POLYGON ((40 40, 20 45, 45 30, 40 40)))""";
+			Object json = executeObject("return spatial.wktToGeoJson($wkt) as json", Map.of("wkt", wkt),
+					"json");
+			assertThat(json, equalTo(Map.of(
+					"type", "GeometryCollection",
+					"coordinates", List.of(
+							// POINT
+							List.of(40., 10.),
+							// LINESTRING
+							List.of(
+									List.of(10., 10.),
+									List.of(20., 20.),
+									List.of(10., 40.)
+
+							),
+							// POLYGON
+							List.of(
+									List.of(
+											List.of(40., 40.),
+											List.of(20., 45.),
+											List.of(45., 30.),
+											List.of(40., 40.)
+									)
+							)
+					)
+			)));
+		}
 	}
 }
