@@ -25,8 +25,14 @@ import org.neo4j.graphdb.Transaction;
 
 public interface SearchFilter {
 
+	enum EnvelopFilterResult {
+		INCLUDE_ALL, EXCLUDE_ALL, FILTER
+	}
 	boolean needsToVisit(Envelope envelope);
 
+	default EnvelopFilterResult needsToVisitExtended(Envelope envelope) {
+		return needsToVisit(envelope) ? EnvelopFilterResult.FILTER : EnvelopFilterResult.EXCLUDE_ALL;
+	}
 	boolean geometryMatches(Transaction tx, Node geomNode);
 
 }

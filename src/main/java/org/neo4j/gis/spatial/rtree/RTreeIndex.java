@@ -43,9 +43,11 @@ import org.neo4j.graphdb.Path;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.graphdb.impl.StandardExpander;
+import org.neo4j.graphdb.traversal.BranchState;
 import org.neo4j.graphdb.traversal.Evaluation;
-import org.neo4j.graphdb.traversal.Evaluator;
 import org.neo4j.graphdb.traversal.Evaluators;
+import org.neo4j.graphdb.traversal.PathEvaluator;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.graphdb.traversal.Traverser;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
@@ -755,7 +757,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		return new IndexNodeToGeometryNodeIterable(getAllIndexInternalNodes(tx));
 	}
 
-	private class SearchEvaluator implements Evaluator {
+	private class SearchEvaluator extends PathEvaluator.Adapter<SearchFilter.EnvelopFilterResult> {
 
 		private final SearchFilter filter;
 		private final Transaction tx;
@@ -766,14 +768,22 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		}
 
 		@Override
-		public Evaluation evaluate(Path path) {
+		public Evaluation evaluate(Path path, BranchState<SearchFilter.EnvelopFilterResult> state) {
 			Relationship rel = path.lastRelationship();
 			Node node = path.endNode();
 			if (rel == null) {
 				return Evaluation.EXCLUDE_AND_CONTINUE;
 			}
 			if (rel.isType(RTreeRelationshipTypes.RTREE_CHILD)) {
-				boolean shouldContinue = filter.needsToVisit(getIndexNodeEnvelope(node));
+				boolean shouldContinue;
+				if (state.getState() == SearchFilter.EnvelopFilterResult.INCLUDE_ALL) {
+					shouldContinue = true;
+				} else {
+					SearchFilter.EnvelopFilterResult envelopFilterResult = filter.needsToVisitExtended(
+							getIndexNodeEnvelope(node));
+					state.setState(envelopFilterResult);
+					shouldContinue = envelopFilterResult != SearchFilter.EnvelopFilterResult.EXCLUDE_ALL;
+				}
 				if (shouldContinue) {
 					monitor.matchedTreeNode(path.length(), node);
 				}
@@ -783,7 +793,12 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 						Evaluation.EXCLUDE_AND_PRUNE;
 			}
 			if (rel.isType(RTreeRelationshipTypes.RTREE_REFERENCE)) {
-				boolean found = filter.geometryMatches(tx, node);
+				boolean found;
+				if (state.getState() == SearchFilter.EnvelopFilterResult.INCLUDE_ALL) {
+					found = true;
+				} else {
+					found = filter.geometryMatches(tx, node);
+				}
 				monitor.addCase(found ? "Geometry Matches" : "Geometry Does NOT Match");
 				if (found) {
 					monitor.setHeight(path.length());
@@ -802,6 +817,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		MonoDirectionalTraversalDescription traversal = new MonoDirectionalTraversalDescription();
 		TraversalDescription td = traversal
 				.depthFirst()
+				.expand(StandardExpander.DEFAULT, path -> SearchFilter.EnvelopFilterResult.FILTER)
 				.relationships(RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)
 				.relationships(RTreeRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)
 				.evaluator(searchEvaluator);
