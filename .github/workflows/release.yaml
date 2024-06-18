@@ -1,0 +1,127 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      GPG_PRIVATE_KEY:
+        description: 'The private key to sign the artifacts'
+        required: true
+        type: string
+      GPG_PASSPHRASE:
+        description: 'The passphrase for the private key'
+        required: false
+        type: string
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          java-version: 17
+          distribution: adopt
+
+      - name: Cache Maven packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+
+      - name: Build and Test
+        run: ./mvnw --no-transfer-progress clean verify
+
+      - name: Prepare for release
+        run: ./mvnw versions:set -DremoveSnapshot=true
+
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=version::$(./mvnw -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
+
+      - name: Import GPG key
+        run: echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --import
+        env:
+          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+
+      - name: Deploy
+        run: ./mvnw -Prelease --batch-mode -DskipTests deploy
+        env:
+          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+
+      - name: Build Changelog
+        id: build_changelog
+        uses: mikepenz/release-changelog-builder-action@v4
+        with:
+          configuration: ".github/workflows/changelog-configuration.json"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get_version.output.version }}
+          release_name: Release ${{ steps.get_version.output.version }}
+          draft: false
+          prerelease: false
+          body: ${{steps.build_changelog.outputs.changelog}}
+
+      - name: Upload jar to Release
+        id: upload-release-asset2
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./target/neo4j-spatial-${{ steps.get_version.output.version }}.jar
+          asset_name: neo4j-spatial-${{ steps.get_version.output.version }}.jar
+          asset_content_type: application/java-archive
+
+      - name: Upload server-plugin.zip to Release
+        id: upload-release-asset1
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./target/neo4j-spatial-${{ steps.get_version.output.version }}-server-plugin.zip
+          asset_name: neo4j-spatial-${{ steps.get_version.output.version }}-server-plugin.zip
+          asset_content_type: application/zip
+
+      - name: Upload sources jar to Release
+        id: upload-release-asset-sources
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./target/neo4j-spatial-${{ steps.get_version.outputs.version }}-sources.jar
+          asset_name: neo4j-spatial-${{ steps.get_version.outputs.version }}-sources.jar
+          asset_content_type: application/java-archive
+
+      - name: Commit release POM and Tag
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git commit -m "Release ${{ steps.get_version.outputs.version }}" -a
+          git tag ${{ steps.get_version.outputs.version }}
+
+      - name: Set next development version
+        run: ./mvnw versions:set -DnextSnapshot=true
+
+      - name: Commit next snapshot
+        run: |
+          git commit -m "Next development version" -a
+
+      - name: Push
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
