@@ -33,9 +33,6 @@ jobs:
       - name: Run Maven build
         run: ./mvnw --no-transfer-progress clean compile test
 
-      - name: Prepare for release
-        run: ./mvnw mvn versions:set -DremoveSnapshot=true
-
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
