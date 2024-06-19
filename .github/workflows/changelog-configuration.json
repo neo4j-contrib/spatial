@@ -29,6 +29,12 @@
 			]
 		},
 		{
+			"title": "## Code-Cleanup",
+			"labels": [
+				"refactoring"
+			]
+		},
+		{
 			"title": "## Updated dependencies",
 			"labels": [
 				"dependencies"
