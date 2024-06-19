@@ -17,24 +17,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Java JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: 17
-          distribution: adopt
-
-      - name: Cache Maven packages
-        uses: actions/cache@v3
-        with:
-          path: ~/.m2
-          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-          restore-keys: ${{ runner.os }}-m2
-
-      - name: Build and Test
-        run: ./mvnw --no-transfer-progress clean verify
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-jdk
+      - uses: ./.github/actions/setup-maven-cache
+      - uses: ./.github/actions/run-tests
 
       - name: Prepare for release
         run: ./mvnw versions:set -DremoveSnapshot=true
@@ -49,7 +35,7 @@ jobs:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
 
       - name: Deploy
-        run: ./mvnw -Prelease --batch-mode -DskipTests deploy
+        run: ./mvnw -Psign --batch-mode -DskipTests deploy
         env:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
 
@@ -73,38 +59,17 @@ jobs:
           prerelease: false
           body: ${{steps.build_changelog.outputs.changelog}}
 
-      - name: Upload jar to Release
-        id: upload-release-asset2
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./target/neo4j-spatial-${{ steps.get_version.output.version }}.jar
-          asset_name: neo4j-spatial-${{ steps.get_version.output.version }}.jar
-          asset_content_type: application/java-archive
-
-      - name: Upload server-plugin.zip to Release
-        id: upload-release-asset1
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./target/neo4j-spatial-${{ steps.get_version.output.version }}-server-plugin.zip
-          asset_name: neo4j-spatial-${{ steps.get_version.output.version }}-server-plugin.zip
-          asset_content_type: application/zip
-
-      - name: Upload sources jar to Release
-        id: upload-release-asset-sources
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./target/neo4j-spatial-${{ steps.get_version.outputs.version }}-sources.jar
-          asset_name: neo4j-spatial-${{ steps.get_version.outputs.version }}-sources.jar
-          asset_content_type: application/java-archive
+      - name: Upload all jars to Release
+        run: |
+          for file in ./target/*.jar; do
+            echo "Uploading $file"
+            curl \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Content-Type: $(file -b --mime-type $file)" \
+              --data-binary @"$file" \
+              "${{ steps.create_release.outputs.upload_url }}?name=$(basename $file)"
+          done
+        shell: bash
 
       - name: Commit release POM and Tag
         run: |

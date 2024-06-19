@@ -477,7 +477,7 @@
 	</repositories>
 	<profiles>
 		<profile>
-			<id>release</id>
+			<id>sign</id>
 			<build>
 				<plugins>
 					<plugin>
@@ -487,6 +487,15 @@
 						<configuration>
 							<bestPractices>true</bestPractices>
 						</configuration>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+							</execution>
+						</executions>
 					</plugin>
 				</plugins>
 			</build>
