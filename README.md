@@ -350,7 +350,7 @@ mvn jetty:run
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-spatial</artifactId>
-			<version>5.19.0</version>
+			<version>5.20.0</version>
 		</dependency>
 	</dependencies>
 </profile>
@@ -500,7 +500,7 @@ Add the following repositories and dependency to your project's pom.xml:
 <dependency>
 	<groupId>org.neo4j</groupId>
 	<artifactId>neo4j-spatial</artifactId>
-	<version>5.19.0</version>
+	<version>5.20.0</version>
 </dependency>
 ~~~
 
