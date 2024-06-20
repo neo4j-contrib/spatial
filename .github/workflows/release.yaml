@@ -4,8 +4,8 @@ on:
   workflow_dispatch: { }
 
 jobs:
-  build_and_deploy:
-    name: Build and Deploy to Maven Central
+  build:
+    name: Build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,7 +20,7 @@ jobs:
         id: get_version
         run: echo "VERSION=$(./mvnw -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)" >> $GITHUB_ENV
 
-      - name: Deploy
+      - name: Build
         run: ./mvnw -P release --batch-mode -DskipTests package
 
       - name: Upload JARs as artifact
@@ -31,7 +31,7 @@ jobs:
 
   commit_and_tag:
     name: Commit and Tag
-    needs: build_and_deploy
+    needs: build
     runs-on: ubuntu-latest
     steps:
       - uses: ./.github/actions/setup-jdk
