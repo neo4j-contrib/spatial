@@ -20,7 +20,7 @@ jobs:
         run: echo "VERSION=$(./mvnw -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)" >> $GITHUB_ENV
 
       - name: Build
-        run: ./mvnw -P release --batch-mode -DskipTests package
+        run: ./mvnw -P release --batch-mode package
 
       - name: Update README.md
         run: sed -i "s|<version>.*</version>|<version>${{ env.VERSION }}</version>|g" README.md
@@ -63,7 +63,7 @@ jobs:
           tag_name: ${{ env.VERSION }}
           release_name: Release ${{ env.VERSION }}
           draft: true
-          prerelease: true
+          prerelease: false
           body: ${{steps.build_changelog.outputs.changelog}}
 
       - name: Upload all jars to Release
