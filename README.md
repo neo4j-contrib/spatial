@@ -350,7 +350,7 @@ mvn jetty:run
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-spatial</artifactId>
-			<version>0.19-neo4j-3.0.3</version>
+			<version>111</version>
 		</dependency>
 	</dependencies>
 </profile>
@@ -497,33 +497,10 @@ mvn clean install site -Pneo-docs-build
 Add the following repositories and dependency to your project's pom.xml:
 
 ~~~xml
-<repositories>
-	<repository>
-		<id>neo4j-contrib-releases</id>
-		<url>https://raw.github.com/neo4j-contrib/m2/master/releases</url>
-		<releases>
-			<enabled>true</enabled>
-		</releases>
-		<snapshots>
-			<enabled>false</enabled>
-		</snapshots>
-	</repository>
-	<repository>
-		<id>neo4j-contrib-snapshots</id>
-		<url>https://raw.github.com/neo4j-contrib/m2/master/snapshots</url>
-		<releases>
-			<enabled>false</enabled>
-		</releases>
-		<snapshots>
-			<enabled>true</enabled>
-		</snapshots>
-	</repository>
-</repositories>
-[...]
 <dependency>
 	<groupId>org.neo4j</groupId>
 	<artifactId>neo4j-spatial</artifactId>
-	<version>0.30.0-neo4j-5.13.0</version>
+	<version>5.13.0</version>
 </dependency>
 ~~~
 

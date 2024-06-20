@@ -7,15 +7,19 @@ on:
         description: 'The private key to sign the artifacts'
         required: true
         type: string
-      GPG_PASSPHRASE:
-        description: 'The passphrase for the private key'
-        required: false
+      OSSRH_USERNAME:
+        description: 'The username to deploy to Maven Central'
+        required: true
+        type: string
+      OSSRH_TOKEN:
+        description: 'The token to deploy to Maven Central'
+        required: true
         type: string
 
 jobs:
-  build:
+  build_and_deploy:
+    name: Build and Deploy to Maven Central
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-jdk
@@ -23,7 +27,7 @@ jobs:
       - uses: ./.github/actions/run-tests
 
       - name: Prepare for release
-        run: ./mvnw versions:set -DremoveSnapshot=true
+        run: ./mvnw versions:set -DremoveSnapshot=true -DgenerateBackupPoms=false
 
       - name: Get the version
         id: get_version
@@ -35,9 +39,60 @@ jobs:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
 
       - name: Deploy
-        run: ./mvnw -Psign --batch-mode -DskipTests deploy
+        run: ./mvnw -P release --batch-mode -DskipTests deploy
         env:
-          MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
+          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+
+      - name: Upload JARs as artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: jars
+          path: ./target/*.jar
+
+  commit_and_tag:
+    name: Commit and Tag
+    needs: build_and_sign
+    runs-on: ubuntu-latest
+    steps:
+      - uses: ./.github/actions/setup-jdk
+
+      - name: Set version
+        run: ./mvnw versions:set -DnewVersion=${{ steps.get_version.outputs.version }} -DgenerateBackupPoms=false
+
+      - name: Update README.md
+        run: sed -i "s|<version>.*</version>|<version>${{ steps.get_version.outputs.version }}</version>|g" README.md
+
+      - name: Commit release POM and Tag
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git commit -m "Release ${{ steps.get_version.outputs.version }}" -a
+          git tag ${{ steps.get_version.outputs.version }}
+
+      - name: Set next development version
+        run: ./mvnw versions:set -DnextSnapshot=true -DgenerateBackupPoms=false
+
+      - name: Commit next snapshot
+        run: |
+          git commit -m "Next development version" -a
+
+      - name: Push
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: ${{ github.ref }}
+
+  create_github_release_and_attach_artifacts:
+    name: Create GitHub Release and attach artifacts
+    needs: commit_and_tag
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v2
+        with:
+          name: build-artifacts
+          path: ./target
 
       - name: Build Changelog
         id: build_changelog
@@ -70,23 +125,3 @@ jobs:
               "${{ steps.create_release.outputs.upload_url }}?name=$(basename $file)"
           done
         shell: bash
-
-      - name: Commit release POM and Tag
-        run: |
-          git config --local user.email "action@github.com"
-          git config --local user.name "GitHub Action"
-          git commit -m "Release ${{ steps.get_version.outputs.version }}" -a
-          git tag ${{ steps.get_version.outputs.version }}
-
-      - name: Set next development version
-        run: ./mvnw versions:set -DnextSnapshot=true
-
-      - name: Commit next snapshot
-        run: |
-          git commit -m "Next development version" -a
-
-      - name: Push
-        uses: ad-m/github-push-action@master
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          branch: ${{ github.ref }}
