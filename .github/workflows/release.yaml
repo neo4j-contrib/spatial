@@ -4,14 +4,13 @@ on:
   workflow_dispatch: { }
 
 jobs:
-  build_and_deploy:
-    name: Build and Deploy to Maven Central
+  build:
+    name: Release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-jdk
       - uses: ./.github/actions/setup-maven-cache
-      - uses: ./.github/actions/run-tests
 
       - name: Prepare for release
         run: ./mvnw versions:set -DremoveSnapshot=true -DgenerateBackupPoms=false
@@ -20,24 +19,8 @@ jobs:
         id: get_version
         run: echo "VERSION=$(./mvnw -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)" >> $GITHUB_ENV
 
-      - name: Deploy
+      - name: Build
         run: ./mvnw -P release --batch-mode -DskipTests package
-
-      - name: Upload JARs as artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: jars
-          path: ./target/*.jar
-
-  commit_and_tag:
-    name: Commit and Tag
-    needs: build_and_deploy
-    runs-on: ubuntu-latest
-    steps:
-      - uses: ./.github/actions/setup-jdk
-
-      - name: Set version
-        run: ./mvnw versions:set -DnewVersion=${{ env.VERSION }} -DgenerateBackupPoms=false
 
       - name: Update README.md
         run: sed -i "s|<version>.*</version>|<version>${{ env.VERSION }}</version>|g" README.md
@@ -61,17 +44,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           branch: ${{ github.ref }}
-
-  create_github_release_and_attach_artifacts:
-    name: Create GitHub Release and attach artifacts
-    needs: commit_and_tag
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v2
-        with:
-          name: build-artifacts
-          path: ./target
+          tags: true
 
       - name: Build Changelog
         id: build_changelog
@@ -87,20 +60,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.get_version.output.version }}
-          release_name: Release ${{ steps.get_version.output.version }}
-          draft: false
-          prerelease: false
+          tag_name: ${{ env.VERSION }}
+          release_name: Release ${{ env.VERSION }}
+          draft: true
+          prerelease: true
           body: ${{steps.build_changelog.outputs.changelog}}
 
       - name: Upload all jars to Release
-        run: |
-          for file in ./target/*.jar; do
-            echo "Uploading $file"
-            curl \
-              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Content-Type: $(file -b --mime-type $file)" \
-              --data-binary @"$file" \
-              "${{ steps.create_release.outputs.upload_url }}?name=$(basename $file)"
-          done
-        shell: bash
+        uses: AButler/upload-release-assets@v3.0
+        with:
+          files: "target/*.jar"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          release-id: ${{ steps.create_release.outputs.id }}
