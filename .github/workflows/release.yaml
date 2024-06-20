@@ -1,4 +1,4 @@
-name: Release
+name: release
 
 on:
   workflow_dispatch:
@@ -52,7 +52,7 @@ jobs:
 
   commit_and_tag:
     name: Commit and Tag
-    needs: build_and_sign
+    needs: build_and_deploy
     runs-on: ubuntu-latest
     steps:
       - uses: ./.github/actions/setup-jdk
