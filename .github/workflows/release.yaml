@@ -1,20 +1,7 @@
 name: release
 
 on:
-  workflow_dispatch:
-    inputs:
-      GPG_PRIVATE_KEY:
-        description: 'The private key to sign the artifacts'
-        required: true
-        type: string
-      OSSRH_USERNAME:
-        description: 'The username to deploy to Maven Central'
-        required: true
-        type: string
-      OSSRH_TOKEN:
-        description: 'The token to deploy to Maven Central'
-        required: true
-        type: string
+  workflow_dispatch: { }
 
 jobs:
   build_and_deploy:
@@ -31,18 +18,10 @@ jobs:
 
       - name: Get the version
         id: get_version
-        run: echo ::set-output name=version::$(./mvnw -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)
-
-      - name: Import GPG key
-        run: echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --import
-        env:
-          GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
+        run: echo "VERSION=$(./mvnw -q -Dexec.executable=echo -Dexec.args='${project.version}' --non-recursive exec:exec)" >> $GITHUB_ENV
 
       - name: Deploy
-        run: ./mvnw -P release --batch-mode -DskipTests deploy
-        env:
-          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+        run: ./mvnw -P release --batch-mode -DskipTests package
 
       - name: Upload JARs as artifact
         uses: actions/upload-artifact@v2
@@ -58,17 +37,17 @@ jobs:
       - uses: ./.github/actions/setup-jdk
 
       - name: Set version
-        run: ./mvnw versions:set -DnewVersion=${{ steps.get_version.outputs.version }} -DgenerateBackupPoms=false
+        run: ./mvnw versions:set -DnewVersion=${{ env.VERSION }} -DgenerateBackupPoms=false
 
       - name: Update README.md
-        run: sed -i "s|<version>.*</version>|<version>${{ steps.get_version.outputs.version }}</version>|g" README.md
+        run: sed -i "s|<version>.*</version>|<version>${{ env.VERSION }}</version>|g" README.md
 
       - name: Commit release POM and Tag
         run: |
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          git commit -m "Release ${{ steps.get_version.outputs.version }}" -a
-          git tag ${{ steps.get_version.outputs.version }}
+          git commit -m "Release ${{ env.VERSION }}" -a
+          git tag ${{ env.VERSION }}
 
       - name: Set next development version
         run: ./mvnw versions:set -DnextSnapshot=true -DgenerateBackupPoms=false
