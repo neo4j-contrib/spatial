@@ -28,6 +28,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
@@ -227,7 +228,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 			}
 			nodesToAdd.addAll(geomNodes);
 			detachGeometryNodes(tx, false, getIndexRoot(tx), new NullListener());
-			deleteTreeBelow(tx, getIndexRoot(tx));
+			deleteTreeBelow(getIndexRoot(tx));
 			buildRtreeFromScratch(tx, getIndexRoot(tx), decodeGeometryNodeEnvelopes(nodesToAdd), 0.7);
 			countSaved = false;
 			totalGeometryCount = nodesToAdd.size();
@@ -1058,13 +1059,9 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 	}
 
 	private static int countChildren(Node indexNode, RelationshipType relationshipType) {
-		int counter = 0;
 		try (var relationships = indexNode.getRelationships(Direction.OUTGOING, relationshipType)) {
-			for (Relationship ignored : relationships) {
-				counter++;
-			}
+			return (int) StreamSupport.stream(relationships.spliterator(), false).count();
 		}
-		return counter;
 	}
 
 	/**
@@ -1399,7 +1396,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		return e.getArea();
 	}
 
-	private static void deleteTreeBelow(Transaction ignored, Node rootNode) {
+	private static void deleteTreeBelow(Node rootNode) {
 		try (var relationships = rootNode.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD)) {
 			for (Relationship relationship : relationships) {
 				deleteRecursivelySubtree(relationship.getEndNode(), relationship);

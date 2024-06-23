@@ -79,7 +79,7 @@ public class PropertyMappingManager {
 		}
 		for (PropertyMapper mapper : toSave) {
 			Node node = tx.createNode();
-			mapper.save(tx, node);
+			mapper.save(node);
 			layer.getLayerNode(tx).createRelationshipTo(node, SpatialRelationshipTypes.PROPERTY_MAPPING);
 		}
 	}
@@ -87,14 +87,6 @@ public class PropertyMappingManager {
 	private void addPropertyMapper(Transaction tx, PropertyMapper mapper) {
 		getPropertyMappers(tx).put(mapper.to(), mapper);
 		save(tx);
-	}
-
-	private PropertyMapper removePropertyMapper(Transaction tx, String to) {
-		PropertyMapper mapper = getPropertyMappers(tx).remove(to);
-		if (mapper != null) {
-			save(tx);
-		}
-		return mapper;
 	}
 
 	public PropertyMapper getPropertyMapper(Transaction tx, String to) {

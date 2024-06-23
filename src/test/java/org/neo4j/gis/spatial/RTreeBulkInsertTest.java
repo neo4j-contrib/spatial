@@ -43,9 +43,10 @@ import java.util.Map;
 import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.stream.StreamSupport;
+
 import org.apache.commons.io.FileUtils;
 import org.geotools.api.feature.simple.SimpleFeatureType;
-import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.referencing.crs.DefaultEngineeringCRS;
@@ -100,7 +101,7 @@ public class RTreeBulkInsertTest {
 	}
 
 	@AfterEach
-	public void after() throws IOException {
+	public void after() {
 		doCleanShutdown();
 	}
 
@@ -190,8 +191,6 @@ public class RTreeBulkInsertTest {
 	@Test
 	public void shouldInsertSimpleRTree() {
 		int width = 20;
-		int blockSize = 10000;
-		CoordinateReferenceSystem crs = DefaultEngineeringCRS.GENERIC_2D;
 		EditableLayer layer = getOrCreateSimplePointLayer("Coordinates", "rtree", "lon", "lat");
 		List<String> nodes = new ArrayList<>();
 		try (Transaction tx = db.beginTx()) {
@@ -348,7 +347,6 @@ public class RTreeBulkInsertTest {
 
 	private class ZOrderIndexMaker implements IndexMaker {
 
-		private final SpatialDatabaseService spatial = spatial();
 		private final String name;
 		private final String insertMode;
 		private final IndexTestConfig config;
@@ -552,23 +550,22 @@ public class RTreeBulkInsertTest {
 	}
 
 	@Test
-	public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_very_small_10()
-			throws FactoryException, IOException {
+	public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_very_small_10() {
 		insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("very_small"));
 	}
 
 	@Test
-	public void shouldInsertManyNodesIndividuallyGreenesSplit_very_small_10() throws FactoryException, IOException {
+	public void shouldInsertManyNodesIndividuallyGreenesSplit_very_small_10() {
 		insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("very_small"));
 	}
 
 	@Test
-	public void shouldInsertManyNodesInBulkWithQuadraticSplit_very_small_10() throws FactoryException, IOException {
+	public void shouldInsertManyNodesInBulkWithQuadraticSplit_very_small_10() {
 		insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("very_small"));
 	}
 
 	@Test
-	public void shouldInsertManyNodesInBulkWithGreenesSplit_very_small_10() throws FactoryException, IOException {
+	public void shouldInsertManyNodesInBulkWithGreenesSplit_very_small_10() {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("very_small"));
 	}
 
@@ -608,23 +605,23 @@ public class RTreeBulkInsertTest {
 
 	@Disabled // takes too long, change to @Test when benchmarking
 	@Test
-	public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_small_10() throws FactoryException, IOException {
+	public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_small_10() {
 		insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("small"));
 	}
 
 	@Disabled // takes too long, change to @Test when benchmarking
 	@Test
-	public void shouldInsertManyNodesIndividuallyGreenesSplit_small_10() throws FactoryException, IOException {
+	public void shouldInsertManyNodesIndividuallyGreenesSplit_small_10() {
 		insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("small"));
 	}
 
 	@Test
-	public void shouldInsertManyNodesInBulkWithQuadraticSplit_small_10() throws FactoryException, IOException {
+	public void shouldInsertManyNodesInBulkWithQuadraticSplit_small_10() {
 		insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("small"));
 	}
 
 	@Test
-	public void shouldInsertManyNodesInBulkWithGreenesSplit_small_10() throws FactoryException, IOException {
+	public void shouldInsertManyNodesInBulkWithGreenesSplit_small_10() {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("small"));
 	}
 
@@ -634,23 +631,23 @@ public class RTreeBulkInsertTest {
 
 	@Disabled // takes too long, change to @Test when benchmarking
 	@Test
-	public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_small_100() throws FactoryException, IOException {
+	public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_small_100() {
 		insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("small"));
 	}
 
 	@Disabled // takes too long, change to @Test when benchmarking
 	@Test
-	public void shouldInsertManyNodesIndividuallyGreenesSplit_small_100() throws FactoryException, IOException {
+	public void shouldInsertManyNodesIndividuallyGreenesSplit_small_100() {
 		insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("small"));
 	}
 
 	@Test
-	public void shouldInsertManyNodesInBulkWithQuadraticSplit_small_100() throws FactoryException, IOException {
+	public void shouldInsertManyNodesInBulkWithQuadraticSplit_small_100() {
 		insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("small"));
 	}
 
 	@Test
-	public void shouldInsertManyNodesInBulkWithGreenesSplit_small_100() throws FactoryException, IOException {
+	public void shouldInsertManyNodesInBulkWithGreenesSplit_small_100() {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("small"));
 	}
 
@@ -690,35 +687,35 @@ public class RTreeBulkInsertTest {
 
 	@Disabled
 	@Test
-	public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_medium_10() throws FactoryException, IOException {
+	public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_medium_10() {
 		insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("medium"));
 	}
 
 	@Disabled
 	@Test
-	public void shouldInsertManyNodesIndividuallyGreenesSplit_medium_10() throws FactoryException, IOException {
+	public void shouldInsertManyNodesIndividuallyGreenesSplit_medium_10() {
 		insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("medium"));
 	}
 
 	@Test
-	public void shouldInsertManyNodesInBulkWithQuadraticSplit_medium_10() throws FactoryException, IOException {
+	public void shouldInsertManyNodesInBulkWithQuadraticSplit_medium_10() {
 		insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("medium"));
 	}
 
 	@Test
-	public void shouldInsertManyNodesInBulkWithGreenesSplit_medium_10() throws FactoryException, IOException {
+	public void shouldInsertManyNodesInBulkWithGreenesSplit_medium_10() {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("medium"));
 	}
 
 	@Disabled
 	@Test
-	public void shouldInsertManyNodesInBulkWithQuadraticSplit_medium_10_merge() throws FactoryException, IOException {
+	public void shouldInsertManyNodesInBulkWithQuadraticSplit_medium_10_merge() {
 		insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("medium"), true);
 	}
 
 	@Disabled
 	@Test
-	public void shouldInsertManyNodesInBulkWithGreenesSplit_medium_10_merge() throws FactoryException, IOException {
+	public void shouldInsertManyNodesInBulkWithGreenesSplit_medium_10_merge() {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("medium"), true);
 	}
 
@@ -728,36 +725,36 @@ public class RTreeBulkInsertTest {
 
 	@Disabled
 	@Test
-	public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_medium_100() throws FactoryException, IOException {
+	public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_medium_100() {
 		insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("medium"));
 	}
 
 	@Disabled
 	@Test
-	public void shouldInsertManyNodesIndividuallyGreenesSplit_medium_100() throws FactoryException, IOException {
+	public void shouldInsertManyNodesIndividuallyGreenesSplit_medium_100() {
 		insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("medium"));
 	}
 
 	@Disabled // takes too long, change to @Test when benchmarking
 	@Test
-	public void shouldInsertManyNodesInBulkWithQuadraticSplit_medium_100() throws FactoryException, IOException {
+	public void shouldInsertManyNodesInBulkWithQuadraticSplit_medium_100() {
 		insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("medium"));
 	}
 
 	@Test
-	public void shouldInsertManyNodesInBulkWithGreenesSplit_medium_100() throws FactoryException, IOException {
+	public void shouldInsertManyNodesInBulkWithGreenesSplit_medium_100() {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("medium"));
 	}
 
 	@Disabled
 	@Test
-	public void shouldInsertManyNodesInBulkWithQuadraticSplit_medium_100_merge() throws FactoryException, IOException {
+	public void shouldInsertManyNodesInBulkWithQuadraticSplit_medium_100_merge() {
 		insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("medium"), true);
 	}
 
 	@Disabled
 	@Test
-	public void shouldInsertManyNodesInBulkWithGreenesSplit_medium_100_merge() throws FactoryException, IOException {
+	public void shouldInsertManyNodesInBulkWithGreenesSplit_medium_100_merge() {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("medium"), true);
 	}
 
@@ -797,25 +794,25 @@ public class RTreeBulkInsertTest {
 
 	@Disabled // takes too long, change to @Test when benchmarking
 	@Test
-	public void shouldInsertManyNodesInBulkWithQuadraticSplit_large_10() throws FactoryException, IOException {
+	public void shouldInsertManyNodesInBulkWithQuadraticSplit_large_10() {
 		insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("large"));
 	}
 
 	@Disabled // takes too long, change to @Test when benchmarking
 	@Test
-	public void shouldInsertManyNodesInBulkWithGreenesSplit_large_10() throws FactoryException, IOException {
+	public void shouldInsertManyNodesInBulkWithGreenesSplit_large_10() {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("large"));
 	}
 
 	@Disabled // takes too long, change to @Test when benchmarking
 	@Test
-	public void shouldInsertManyNodesInBulkWithQuadraticSplit_large_100() throws FactoryException, IOException {
+	public void shouldInsertManyNodesInBulkWithQuadraticSplit_large_100() {
 		insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("large"));
 	}
 
 	@Disabled // takes too long, change to @Test when benchmarking
 	@Test
-	public void shouldInsertManyNodesInBulkWithGreenesSplit_large_100() throws FactoryException, IOException {
+	public void shouldInsertManyNodesInBulkWithGreenesSplit_large_100() {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("large"));
 	}
 
@@ -967,7 +964,6 @@ public class RTreeBulkInsertTest {
 		int currBlock = 1;
 		while (currBlock < nodes.size()) {
 			List<String> slice = nodes.subList(prevBlock, currBlock);
-			long startIndexing = System.currentTimeMillis();
 			try (Transaction tx = db.beginTx()) {
 				for (String node : slice) {
 					layer.add(tx, tx.getNodeByElementId(node));
@@ -1108,10 +1104,6 @@ public class RTreeBulkInsertTest {
 	@Disabled
 	@Test
 	public void shouldAccessIndexAfterBulkInsertion() {
-		// Use these two lines if you want to examine the output.
-//        File dbPath = new File("target/var/BulkTest");
-//        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath.getCanonicalPath());
-		SpatialDatabaseService sdbs = spatial();
 		EditableLayer layer = getOrCreateSimplePointLayer("Coordinates", "rtree", "lon", "lat");
 
 		final long numNodes = 100000;
@@ -1186,7 +1178,6 @@ public class RTreeBulkInsertTest {
 		//GraphDatabaseService db = this.databases.database("BultTest2");
 		GraphDatabaseService db = this.db;
 
-		SpatialDatabaseService sdbs = spatial();
 		GeometryEncoder encoder = new SimplePointEncoder();
 
 		Method decodeEnvelopes = RTreeIndex.class.getDeclaredMethod("decodeEnvelopes", List.class);
@@ -1331,88 +1322,6 @@ public class RTreeBulkInsertTest {
 		return nodes;
 	}
 
-	private List<String> populateSquareTestDataHeavy(int width) {
-		List<String> nodes = populateSquareTestData(width);
-		Random rand = new Random(42);
-
-		for (int i = 0; i < width / 2; i++) {
-			try (Transaction tx = db.beginTx()) {
-				for (int j = 0; j < width / 2; j++) {
-					Node node = tx.createNode();
-					node.addLabel(Label.label("Coordinates"));
-
-					node.setProperty("lat", ((double) rand.nextInt(width / 10) / (double) width));
-					node.setProperty("lon", ((double) rand.nextInt(width / 10) / (double) width));
-					nodes.add(node.getElementId());
-				}
-				tx.commit();
-			}
-		}
-		java.util.Collections.shuffle(nodes, new Random(8));
-		return nodes;
-	}
-
-	private List<String> populateSquareWithStreets(int width) {
-		List<String> nodes = new ArrayList<>();
-		double squareValue = 0.25;
-		for (int i = 1; i < 4; i += 2) {
-			try (Transaction tx = db.beginTx()) {
-				for (int j = (int) squareValue * width; j < 2 * squareValue * width; j++) {
-					Node node = tx.createNode();
-					node.addLabel(Label.label("Coordinates"));
-					node.setProperty("lat", i * squareValue);
-					node.setProperty("lon", (j + squareValue) / width + squareValue);
-					nodes.add(node.getElementId());
-					Node node2 = tx.createNode();
-					node2.addLabel(Label.label("Coordinates"));
-					node2.setProperty("lat", (j + squareValue) / width + squareValue);
-					node2.setProperty("lon", i * squareValue);
-					nodes.add(node2.getElementId());
-
-				}
-				tx.commit();
-			}
-		}
-		for (int i = 0; i < width; i++) {
-			try (Transaction tx = db.beginTx()) {
-
-				Node node = tx.createNode();
-				node.addLabel(Label.label("Coordinates"));
-				node.setProperty("lat", ((double) i / (double) width));
-				node.setProperty("lon", ((double) i / (double) width));
-				nodes.add(node.getElementId());
-				Node node2 = tx.createNode();
-				node2.addLabel(Label.label("Coordinates"));
-				node2.setProperty("lat", ((double) (width - i) / (double) width));
-				node2.setProperty("lon", ((double) i / (double) width));
-				nodes.add(node2.getElementId());
-				tx.commit();
-			}
-		}
-		java.util.Collections.shuffle(nodes, new Random(8));
-		return nodes;
-	}
-
-
-	private static void searchForPos(int numNodes, GraphDatabaseService db) {
-		System.out.println("Searching with spatial.withinDistance");
-		long start = System.currentTimeMillis();
-		try (Transaction tx = db.beginTx()) { // 'points',{longitude:15.0,latitude:60.0},100
-			Result result = tx.execute(
-					"CALL spatial.withinDistance('Coordinates',{longitude:0.5, latitude:0.5},1000.0) yield node");
-			int i = 0;
-			ResourceIterator<Node> thing = result.columnAs("node");
-			while (thing.hasNext()) {
-				assertNotNull(thing.next());
-				i++;
-			}
-			//assertEquals(i, numNodes);
-			tx.commit();
-		}
-		System.out.println("\t" + (System.currentTimeMillis() - start) + "ms");
-
-	}
-
 	private List<String> setup(String name, String index, int width) {
 		long start = System.currentTimeMillis();
 		List<String> nodes = populateSquareTestData(width);
@@ -1484,8 +1393,7 @@ public class RTreeBulkInsertTest {
 		if (layer.getIndex() instanceof RTreeIndex) {
 			getRTreeIndexStats((RTreeIndex) layer.getIndex(), monitor, stats, true, nodes.size());
 		} else if (layer.getIndex() instanceof ExplicitIndexBackedPointIndex) {
-			getExplicitIndexBackedIndexStats((ExplicitIndexBackedPointIndex) layer.getIndex(), stats, true,
-					nodes.size());
+			getExplicitIndexBackedIndexStats((ExplicitIndexBackedPointIndex<?>) layer.getIndex(), stats);
 		}
 		return nodes;
 	}
@@ -1525,10 +1433,8 @@ public class RTreeBulkInsertTest {
 		int matched = monitor.getCaseCounts().get("Geometry Matches");
 		int indexSize = 0;
 		try (Transaction tx = db.beginTx()) {
-			for (Node ignored : index.getAllIndexInternalNodes(tx)) {
-				indexSize++;
-			}
-			tx.commit();
+		    indexSize += StreamSupport.stream(index.getAllIndexInternalNodes(tx).spliterator(), false).count();
+		    tx.commit();
 		}
 		stats.put("Index Size", indexSize);
 		stats.put("Found", matched);
@@ -1561,8 +1467,7 @@ public class RTreeBulkInsertTest {
 		}
 	}
 
-	private static void getExplicitIndexBackedIndexStats(ExplicitIndexBackedPointIndex index, TestStats stats,
-			boolean assertTouches, long countGeometries) {
+	private static void getExplicitIndexBackedIndexStats(ExplicitIndexBackedPointIndex<?> index, TestStats stats) {
 		IndexTestConfig config = stats.config;
 		ExplicitIndexBackedMonitor monitor = index.getMonitor();
 		long touched = monitor.getHits() + monitor.getMisses();
@@ -1581,7 +1486,6 @@ public class RTreeBulkInsertTest {
 
 	private class TimedLogger {
 
-		String title;
 		long count;
 		long gap;
 		long start;
@@ -1592,7 +1496,6 @@ public class RTreeBulkInsertTest {
 		}
 
 		private TimedLogger(String title, long count, long gap) {
-			this.title = title;
 			this.count = count;
 			this.gap = gap;
 			this.start = System.currentTimeMillis();
@@ -1781,10 +1684,6 @@ public class RTreeBulkInsertTest {
 		public void put(String key, Object value) {
 			knownKeys.add(key);
 			data.put(key, value);
-		}
-
-		public void get(String key) {
-			data.get(key);
 		}
 
 		private static String[] headerArray() {
