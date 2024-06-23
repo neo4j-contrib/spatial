@@ -12,16 +12,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - run: echo "The job was automatically triggered by a ${{ github.event_name }} event."
-      - name: Check out repository code
-        uses: actions/checkout@v4
-      - name: Setup Java JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: 17
-          distribution: adopt
-          cache: maven
-      - name: Run Maven build
-        run: ./mvnw --no-transfer-progress clean compile test
+
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-jdk
+      - uses: ./.github/actions/setup-maven-cache
+      - uses: ./.github/actions/run-tests
+
       - name: Publish Unit Test Results
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()

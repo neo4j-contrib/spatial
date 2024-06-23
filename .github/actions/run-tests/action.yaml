@@ -1,0 +1,8 @@
+name: "Run Tests"
+description: "Runs the tests for the project"
+runs:
+  using: "composite"
+  steps:
+    - name: Run Maven build
+      run: ./mvnw --no-transfer-progress clean compile test
+      shell: bash

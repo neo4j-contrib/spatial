@@ -2,7 +2,7 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 		xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/maven-v4_0_0.xsd">
 	<properties>
-		<neo4j.version>5.19.0</neo4j.version>
+		<neo4j.version>5.20.0</neo4j.version>
 		<neo4j.java.version>17</neo4j.java.version>
 		<skinGroupId>org.neo4j.maven.skins</skinGroupId>
 		<skinArtifactId>default-skin</skinArtifactId>
@@ -20,7 +20,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>neo4j-spatial</artifactId>
 	<groupId>org.neo4j</groupId>
-	<version>0.31.0-neo4j-5.19.0</version>
+	<version>5.20.1-SNAPSHOT</version>
 	<name>Neo4j - Spatial Components</name>
 	<description>Spatial utilities and components for Neo4j</description>
 	<url>https://components.neo4j.org/${project.artifactId}/${project.version}</url>
@@ -50,14 +50,6 @@
 						<arg>-ADocumentation.DelimitedFirstField=true</arg>
 						<arg>-ADocumentation.ExportGrouping=PACKAGE</arg>
 					</compilerArgs>
-				</configuration>
-			</plugin>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-gpg-plugin</artifactId>
-				<version>1.6</version>
-				<configuration>
-					<skip>true</skip>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -472,6 +464,54 @@
 	</repositories>
 	<profiles>
 		<profile>
+			<id>release</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-source-plugin</artifactId>
+						<version>3.3.1</version>
+						<executions>
+							<execution>
+								<id>attach-sources</id>
+								<goals>
+									<goal>jar-no-fork</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-gpg-plugin</artifactId>
+						<version>3.2.4</version>
+						<configuration>
+							<bestPractices>true</bestPractices>
+						</configuration>
+						<executions>
+							<execution>
+								<id>sign-artifacts</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>sign</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.sonatype.plugins</groupId>
+						<artifactId>nexus-staging-maven-plugin</artifactId>
+						<version>1.6.13</version>
+						<extensions>true</extensions>
+						<configuration>
+							<serverId>ossrh</serverId>
+							<nexusUrl>https://s01.oss.sonatype.org/</nexusUrl>
+							<autoReleaseAfterClose>true</autoReleaseAfterClose>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
 			<id>neo-docs-build</id>
 			<activation>
 				<activeByDefault>false</activeByDefault>
@@ -687,17 +727,6 @@
 			</plugin>
 		</plugins>
 	</reporting>
-
-	<distributionManagement>
-		<repository>
-			<id>repo</id>
-			<url>https://raw.github.com/neo4j-contrib/m2/master/releases</url>
-		</repository>
-		<snapshotRepository>
-			<id>snapshot-repo</id>
-			<url>https://raw.github.com/neo4j-contrib/m2/master/snapshots</url>
-		</snapshotRepository>
-	</distributionManagement>
 
 </project>
 
