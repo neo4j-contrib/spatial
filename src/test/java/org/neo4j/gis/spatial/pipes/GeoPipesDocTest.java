@@ -1064,7 +1064,9 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 					.forEach(p -> adocs.add(p.getFileName().toString()));
 		}
 		adocs.remove("index.adoc");
-		Files.write(path.resolve("index.adoc"), adocs.stream().map(s -> "include::" + s + "[]")
+		Files.write(path.resolve("index.adoc"), Stream.concat(
+						Stream.of("// DO NOT MODIFY, THIS FILE IS AUTO GENERATED!"),
+						adocs.stream().map(s -> "include::" + s + "[]"))
 				.collect(Collectors.toList()));
 	}
 

@@ -1,3 +1,4 @@
+// DO NOT MODIFY, THIS FILE IS AUTO GENERATED!
 include::affine-transformation.adoc[]
 include::boundary.adoc[]
 include::break-up-all-geometries-into-points-and-make-density-islands.adoc[]

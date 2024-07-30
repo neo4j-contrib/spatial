@@ -49,6 +49,7 @@ public class JavaTestDocsGenerator extends AsciiDocGenerator {
 		Writer fw = getFW(dir, filename);
 		description = replaceSnippets(description);
 		try {
+			line(fw, "// DO NOT MODIFY, THIS FILE IS AUTO GENERATED!");
 			line(fw, "[[" + sectionName.replaceAll("/", "-") + "-" + name.replaceAll("[()]", "") + "]]");
 			String firstChar = title.substring(0, 1).toUpperCase();
 			line(fw, "== " + firstChar + title.substring(1));
