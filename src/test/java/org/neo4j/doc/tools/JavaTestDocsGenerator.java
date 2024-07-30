@@ -39,20 +39,19 @@ public class JavaTestDocsGenerator extends AsciiDocGenerator {
 	}
 
 	public void document(String directory, String sectionName) {
+		if (description == null || description.isEmpty()) {
+			return;
+		}
 		this.setSection(sectionName);
 		String name = title.replace(" ", "-").toLowerCase();
-		File dir = new File(new File(directory), section);
-		String filename = name + ".asciidoc";
+		File dir = new File(new File(directory, section), "generated");
+		String filename = name + ".adoc";
 		Writer fw = getFW(dir, filename);
-		description = replaceSnippets(description, dir, name);
+		description = replaceSnippets(description);
 		try {
-			line(fw, "[[" + sectionName + "-" + name.replaceAll("[()]", "") + "]]");
+			line(fw, "[[" + sectionName.replaceAll("/", "-") + "-" + name.replaceAll("[()]", "") + "]]");
 			String firstChar = title.substring(0, 1).toUpperCase();
-			line(fw, firstChar + title.substring(1));
-			for (int i = 0; i < title.length(); i++) {
-				fw.append("=");
-			}
-			fw.append("\n");
+			line(fw, "== " + firstChar + title.substring(1));
 			line(fw, "");
 			line(fw, description);
 			line(fw, "");
@@ -62,9 +61,5 @@ public class JavaTestDocsGenerator extends AsciiDocGenerator {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-	}
-
-	public void addImageSnippet(String tagName, String imageName, String title) {
-		this.addSnippet(tagName, "\nimage:" + imageName + "[" + title + "]\n");
 	}
 }

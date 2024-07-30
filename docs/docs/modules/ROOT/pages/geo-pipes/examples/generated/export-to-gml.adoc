@@ -1,0 +1,38 @@
+[[examples-export-to-gml]]
+== Export to GML
+
+This pipe exports every geometry as a http://en.wikipedia.org/wiki/Geography_Markup_Language[GML] snippet.
+
+Example:
+
+[source,java,indent=0]
+----
+include::example$GeoPipesDocTest.java[tags=s_export_to_gml]
+----
+
+Output:
+
+[source,xml]
+----
+<gml:Polygon>
+  <gml:outerBoundaryIs>
+    <gml:LinearRing>
+      <gml:coordinates>
+        2.0,3.0 2.0,5.0 6.0,5.0 6.0,3.0 2.0,3.0 
+      </gml:coordinates>
+    </gml:LinearRing>
+  </gml:outerBoundaryIs>
+</gml:Polygon>
+<gml:Polygon>
+  <gml:outerBoundaryIs>
+    <gml:LinearRing>
+      <gml:coordinates>
+        12.0,26.0 12.0,27.0 13.0,27.0 13.0,26.0 12.0,26.0 
+      </gml:coordinates>
+    </gml:LinearRing>
+  </gml:outerBoundaryIs>
+</gml:Polygon>
+
+----
+
+

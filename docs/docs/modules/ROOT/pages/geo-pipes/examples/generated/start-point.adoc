@@ -1,0 +1,17 @@
+[[examples-start-point]]
+== Start Point
+
+The StartPoint pipe finds the starting point of item geometry.
+
+Example:
+
+[source,java,indent=0]
+----
+include::example$GeoPipesDocTest.java[tags=s_start_point]
+----
+
+Output:
+
+image::generated/start_point.png[]
+
+

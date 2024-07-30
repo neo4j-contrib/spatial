@@ -23,9 +23,10 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
 import java.io.Writer;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Logger;
@@ -104,18 +105,6 @@ public abstract class AsciiDocGenerator {
 		fw.append("\n");
 	}
 
-	public static Writer getFW(String dir, String title) {
-		try {
-			File dirs = new File(dir);
-			String name = title.replace(" ", "-")
-					.toLowerCase() + ".asciidoc";
-			return getFW(dirs, name);
-		} catch (Exception e) {
-			e.printStackTrace();
-			throw new RuntimeException(e);
-		}
-	}
-
 	public static Writer getFW(File dir, String filename) {
 		try {
 			if (!dir.exists()) {
@@ -136,85 +125,25 @@ public abstract class AsciiDocGenerator {
 		}
 	}
 
-	public static String dumpToSeparateFile(File dir, String testId,
-			String content) {
-		if (content == null || content.isEmpty()) {
-			throw new IllegalArgumentException("The content can not be empty(" + content + ").");
-		}
-		String filename = testId + ".asciidoc";
-		Writer writer = AsciiDocGenerator.getFW(new File(dir, "includes"), filename);
-		String title = "";
-		char firstChar = content.charAt(0);
-		if (firstChar == '.' || firstChar == '_') {
-			int pos = content.indexOf('\n');
-			if (pos != -1) {
-				title = content.substring(0, pos + 1);
-				content = content.substring(pos + 1);
-			}
-		}
-		try {
-			writer.write(content);
-		} catch (IOException e) {
-			e.printStackTrace();
-		} finally {
-			try {
-				writer.close();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		return title + "include::includes/" + filename + "[]\n";
-	}
-
-	public static String dumpToSeparateFileWithType(File dir, String type,
-			String content) {
-		if (type == null || type.isEmpty()) {
-			throw new IllegalArgumentException(
-					"The type can not be null or empty: [" + type + "]");
-		}
-		String key = dir.getAbsolutePath() + type;
-		Integer counter = counters.get(key);
-		if (counter == null) {
-			counter = 0;
-		}
-		counter++;
-		counters.put(key, counter);
-		String testId = type + "-" + counter;
-		return dumpToSeparateFile(dir, testId, content);
-	}
-
-	public static PrintWriter getPrintWriter(String dir, String title) {
-		return new PrintWriter(getFW(dir, title));
-	}
-
 	public static String getPath(Class<?> source) {
 		return source.getPackage()
 				.getName()
 				.replace(".", "/") + "/" + source.getSimpleName() + ".java";
 	}
 
-	protected String replaceSnippets(String description, File dir, String title) {
-		for (String key : snippets.keySet()) {
-			description = replaceSnippet(description, key, dir, title);
+	protected String replaceSnippets(String description) {
+		for (var entry : snippets.entrySet()) {
+			String snippetString = SNIPPET_MARKER + entry.getKey();
+			if (description.contains(snippetString + "\n")) {
+				description = description.replace(snippetString + "\n", "\n" + entry.getValue());
+			} else {
+				log.severe("Could not find " + snippetString + "\\n in " + description);
+			}
 		}
 		if (description.contains(SNIPPET_MARKER)) {
 			int indexOf = description.indexOf(SNIPPET_MARKER);
 			String snippet = description.substring(indexOf, description.indexOf("\n", indexOf));
 			log.severe("missing snippet [" + snippet + "] in " + description);
-		}
-		return description;
-	}
-
-	private String replaceSnippet(String description, String key, File dir,
-			String title) {
-		String snippetString = SNIPPET_MARKER + key;
-		if (description.contains(snippetString + "\n")) {
-			String include = dumpToSeparateFile(dir, title + "-" + key,
-					snippets.get(key));
-			description = description.replace(snippetString + "\n", include);
-		} else {
-			log.severe("Could not find " + snippetString + "\\n in "
-					+ description);
 		}
 		return description;
 	}
@@ -242,29 +171,25 @@ public abstract class AsciiDocGenerator {
 	 */
 	public void addTestSourceSnippets(Class<?> source, String... tagNames) {
 		for (String tagName : tagNames) {
-			addSnippet(tagName, sourceSnippet(tagName, source, "test-sources"));
+			addSnippet(tagName, sourceSnippet(tagName, source));
 		}
 	}
 
-	/**
-	 * Added one or more source snippets, available from javadoc using
-	 *
-	 * @param source   the class where the snippet is found
-	 * @param tagNames the tag names which should be included
-	 * @@tagName.
-	 */
-	public void addSourceSnippets(Class<?> source, String... tagNames) {
-		for (String tagName : tagNames) {
-			addSnippet(tagName, sourceSnippet(tagName, source, "sources"));
+	private static String sourceSnippet(String tagName, Class<?> source) {
+		// ensure symlink is created
+		Path target = new File("docs/docs/modules/ROOT/examples/" + source.getSimpleName() + ".java").toPath();
+		if (!Files.exists(target)) {
+			String sourcePath = "src/test/java/" + getPath(source);
+			Path relPath = target.getParent().relativize(new File(sourcePath).toPath());
+			try {
+				Files.createSymbolicLink(target, relPath);
+			} catch (IOException e) {
+				throw new RuntimeException(e);
+			}
 		}
-	}
-
-	private static String sourceSnippet(String tagName, Class<?> source,
-			String classifier) {
-		return "[snippet,java]\n" + "----\n"
-				+ "component=${project.artifactId}\n" + "source="
-				+ getPath(source) + "\n" + "classifier=" + classifier + "\n"
-				+ "tag=" + tagName + "\n" + "----\n";
+		return "[source,java,indent=0]\n" + "----\n"
+				+ "include::example$" + source.getSimpleName() + ".java[tags=" + tagName + "]\n"
+				+ "----\n";
 	}
 
 	public void addGithubTestSourceLink(String key, Class<?> source,

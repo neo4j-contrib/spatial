@@ -1,0 +1,17 @@
+[[examples-intersection]]
+== Intersection
+
+The Intersection pipe computes a geometry representing the intersection between item geometry and the given geometry.
+
+Example:
+
+[source,java,indent=0]
+----
+include::example$GeoPipesDocTest.java[tags=s_intersection]
+----
+
+Output:
+
+image::generated/intersection.png[]
+
+

@@ -29,7 +29,13 @@ import java.awt.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.NoSuchElementException;
+import java.util.TreeSet;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.geotools.api.style.Style;
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.data.neo4j.StyledImageExporter;
@@ -37,6 +43,7 @@ import org.geotools.feature.FeatureCollection;
 import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.geotools.referencing.crs.DefaultEngineeringCRS;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -48,6 +55,7 @@ import org.locationtech.jts.geom.util.AffineTransformation;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
 import org.neo4j.annotations.documented.Documented;
+import org.neo4j.doc.tools.JavaTestDocsGenerator;
 import org.neo4j.gis.spatial.AbstractJavaDocTestBase;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.EditableLayerImpl;
@@ -119,39 +127,37 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		assertEquals(1, GeoPipeline.start(tx, osmLayer).windowIntersectionFilter(10, 40, 20, 56.0583531).count());
 	}
 
-	/**
-	 * This pipe is filtering according to a CQL Bounding Box description.
-	 * <p>
-	 * Example:
-	 *
-	 * @@s_filter_by_cql_using_bbox
-	 */
-	@Documented("filter_by_cql_using_bbox")
 	@Test
+	@Title("Filter by cql using bbox")
+	@Documented("""
+			This pipe is filtering according to a CQL Bounding Box description.
+
+			Example:
+			@@s_filter_by_cql_using_bbox
+			""")
 	public void filter_by_cql_using_bbox() throws CQLException {
-		// tag::filter_by_cql_using_bbox[]
+		// tag::s_filter_by_cql_using_bbox[]
 		GeoPipeline cqlFilter = GeoPipeline.start(tx, osmLayer).cqlFilter(tx, "BBOX(the_geom, 10, 40, 20, 56.0583531)");
-		// end::filter_by_cql_using_bbox[]
+		// end::s_filter_by_cql_using_bbox[]
 		assertEquals(1, cqlFilter.count());
 	}
 
-	/**
-	 * This pipe performs a search within a geometry in this example,
-	 * both OSM street geometries should be found in when searching with
-	 * an enclosing rectangle Envelope.
-	 * <p>
-	 * Example:
-	 *
-	 * @@s_search_within_geometry
-	 */
 	@Test
-	@Documented("search_within_geometry")
+	@Title("Search within geometry")
+	@Documented("""
+			This pipe performs a search within a geometry in this example,
+			both OSM street geometries should be found in when searching with
+			an enclosing rectangle Envelope.
+
+			Example:
+			@@s_search_within_geometry
+			""")
 	public void search_within_geometry() throws CQLException {
-		// tag::search_within_geometry[]
+		// tag::s_search_within_geometry[]
 		GeoPipeline pipeline = GeoPipeline
 				.startWithinSearch(tx, osmLayer,
 						osmLayer.getGeometryFactory().toGeometry(new Envelope(10, 20, 50, 60)));
-		// end::search_within_geometry[]
+		// end::s_search_within_geometry[]
 		assertEquals(2, pipeline.count());
 	}
 
@@ -166,21 +172,19 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		assertEquals("Storgatan", flow.getProperties().get("name"));
 	}
 
-	/**
-	 * This filter will apply the provided CQL expression to the different
-	 * geometries and only let the matching ones pass.
-	 * <p>
-	 * Example:
-	 *
-	 * @@s_filter_by_cql_using_complex_cql
-	 */
-	@Documented("filter_by_cql_using_complex_cql")
 	@Test
+	@Title("Filter by cql using complex cql")
+	@Documented("""
+			This pipe is filtering according to a complex CQL description.
+
+			Example:
+			@@s_filter_by_cql_using_complex_cql
+			""")
 	public void filter_by_cql_using_complex_cql() throws CQLException {
-		// tag::filter_by_cql_using_complex_cql[]
+		// tag::s_filter_by_cql_using_complex_cql[]
 		long counter = GeoPipeline.start(tx, osmLayer)
 				.cqlFilter(tx, "highway is not null and geometryType(the_geom) = 'LineString'").count();
-		// end::filter_by_cql_using_complex_cql[]
+		// end::s_filter_by_cql_using_complex_cql[]
 
 		FilterCQL filter = new FilterCQL(tx, osmLayer, "highway is not null and geometryType(the_geom) = 'LineString'");
 		filter.setStarts(GeoPipeline.start(tx, osmLayer));
@@ -192,23 +196,22 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		assertEquals(0, counter);
 	}
 
-	/**
-	 * Affine Transformation
-	 * <p>
-	 * The ApplyAffineTransformation pipe applies an affine transformation to every geometry.
-	 * <p>
-	 * Example:
-	 *
-	 * @@s_affine_transformation Output:
-	 * @@affine_transformation
-	 */
-	@Documented("translate_geometries")
 	@Test
+	@Title("Affine Transformation")
+	@Documented("""
+			This pipe applies an affine transformation to every geometry.
+
+			Example:
+			@@s_affine_transformation
+
+			Output:
+			@@affine_transformation
+			""")
 	public void translate_geometries() {
-		// tag::affine_transformation[]
+		// tag::s_affine_transformation[]
 		GeoPipeline pipeline = GeoPipeline.start(tx, boxesLayer)
 				.applyAffineTransform(AffineTransformation.translationInstance(2, 3));
-		// end::affine_transformation[]
+		// end::s_affine_transformation[]
 		addImageSnippet(boxesLayer, pipeline, getTitle());
 
 		GeoPipeline original = GeoPipeline.start(tx, osmLayer).copyDatabaseRecordProperties(tx).sort(
@@ -261,22 +264,21 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		pipeline.reset();
 	}
 
-	/**
-	 * Buffer
-	 * <p>
-	 * The Buffer pipe applies a buffer to geometries.
-	 * <p>
-	 * Example:
-	 *
-	 * @@s_buffer Output:
-	 * @@buffer
-	 */
-	@Documented("get_buffer")
 	@Test
+	@Title("Buffer")
+	@Documented("""
+			This pipe applies a buffer to geometries.
+
+			Example:
+			@@s_buffer
+
+			Output:
+			@@buffer
+			""")
 	public void get_buffer() {
-		// tag::buffer[]
+		// tag::s_buffer[]
 		GeoPipeline pipeline = GeoPipeline.start(tx, boxesLayer).toBuffer(0.5);
-		// end::buffer[]
+		// end::s_buffer[]
 		addImageSnippet(boxesLayer, pipeline, getTitle());
 
 		pipeline = GeoPipeline.start(tx, boxesLayer).toBuffer(0.1).createWellKnownText().calculateArea().sort("Area");
@@ -286,22 +288,21 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		pipeline.reset();
 	}
 
-	/**
-	 * Centroid
-	 * <p>
-	 * The Centroid pipe calculates geometry centroid.
-	 * <p>
-	 * Example:
-	 *
-	 * @@s_centroid Output:
-	 * @@centroid
-	 */
-	@Documented("get_centroid")
 	@Test
+	@Title("Centroid")
+	@Documented("""
+			This pipe calculates geometry centroid.
+
+			Example:
+			@@s_centroid
+
+			Output:
+			@@centroid
+			""")
 	public void get_centroid() {
-		// tag::centroid[]
+		// tag::s_centroid[]
 		GeoPipeline pipeline = GeoPipeline.start(tx, boxesLayer).toCentroid();
-		// end::centroid[]
+		// end::s_centroid[]
 		addImageSnippet(boxesLayer, pipeline, getTitle(), Constants.GTYPE_POINT);
 
 		pipeline = GeoPipeline.start(tx, boxesLayer).toCentroid().createWellKnownText().copyDatabaseRecordProperties(tx)
@@ -312,47 +313,46 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		pipeline.reset();
 	}
 
-	/**
-	 * This pipe exports every geometry as a
-	 * http://en.wikipedia.org/wiki/Geography_Markup_Language[GML] snippet.
-	 * <p>
-	 * Example:
-	 *
-	 * @@s_export_to_gml Output:
-	 * @@exportgml
-	 */
-	@Documented("export_to_GML")
 	@Test
+	@Title("Export to GML")
+	@Documented("""
+			This pipe exports every geometry as a http://en.wikipedia.org/wiki/Geography_Markup_Language[GML] snippet.
+
+			Example:
+			@@s_export_to_gml
+
+			Output:
+			@@exportgml
+			""")
 	public void export_to_GML() {
-		// tag::export_to_gml[]
+		// tag::s_export_to_gml[]
 		GeoPipeline pipeline = GeoPipeline.start(tx, boxesLayer).createGML();
 		for (GeoPipeFlow flow : pipeline) {
 			System.out.println(flow.getProperties().get("GML"));
 		}
-		// end::export_to_gml[]
-		String result = "";
+		// end::s_export_to_gml[]
+		StringBuilder result = new StringBuilder();
 		for (GeoPipeFlow flow : GeoPipeline.start(tx, boxesLayer).createGML()) {
-			result = result + flow.getProperties().get("GML");
+			result.append(flow.getProperties().get("GML"));
 		}
 		gen.get().addSnippet("exportgml", "[source,xml]\n----\n" + result + "\n----\n");
 	}
 
-	/**
-	 * Convex Hull
-	 * <p>
-	 * The ConvexHull pipe calculates geometry convex hull.
-	 * <p>
-	 * Example:
-	 *
-	 * @@s_convex_hull Output:
-	 * @@convex_hull
-	 */
-	@Documented("get_convex_hull")
 	@Test
+	@Title("Convex Hull")
+	@Documented("""
+			This pipe calculates geometry convex hull.
+
+			Example:
+			@@s_convex_hull
+
+			Output:
+			@@convex_hull
+			""")
 	public void get_convex_hull() {
-		// tag::convex_hull[]
+		// tag::s_convex_hull[]
 		GeoPipeline pipeline = GeoPipeline.start(tx, concaveLayer).toConvexHull();
-		// end::convex_hull[]
+		// end::s_convex_hull[]
 		addImageSnippet(concaveLayer, pipeline, getTitle());
 
 		pipeline = GeoPipeline.start(tx, concaveLayer).toConvexHull().createWellKnownText();
@@ -361,23 +361,22 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		pipeline.reset();
 	}
 
-	/**
-	 * Densify
-	 * <p>
-	 * The Densify pipe inserts extra vertices along the line segments in the geometry.
-	 * The densified geometry contains no line segment which is longer than the given distance tolerance.
-	 * <p>
-	 * Example:
-	 *
-	 * @@s_densify Output:
-	 * @@densify
-	 */
-	@Documented("densify")
 	@Test
+	@Title("Densify")
+	@Documented("""
+			This pipe inserts extra vertices along the line segments in the geometry.
+			The densified geometry contains no line segment which is longer than the given distance tolerance.
+
+			Example:
+			@@s_densify
+
+			Output:
+			@@densify
+			""")
 	public void densify() {
-		// tag::densify[]
+		// tag::s_densify[]
 		GeoPipeline pipeline = GeoPipeline.start(tx, concaveLayer).densify(5).extractPoints();
-		// end::densify[]
+		// end::s_densify[]
 		addImageSnippet(concaveLayer, pipeline, getTitle(), Constants.GTYPE_POINT);
 
 		pipeline = GeoPipeline.start(tx, concaveLayer).toConvexHull().densify(5).createWellKnownText();
@@ -399,25 +398,23 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		pipeline.reset();
 	}
 
-	/**
-	 * Max
-	 * <p>
-	 * The Max pipe computes the maximum value of the specified property and
-	 * discard items with a value less than the maximum.
-	 * <p>
-	 * Example:
-	 *
-	 * @@s_max Output:
-	 * @@max
-	 */
-	@Documented("get_max_area")
 	@Test
+	@Title("Max")
+	@Documented("""
+			The Max pipe computes the maximum value of the specified property and discard items with a value less than the maximum.
+
+			Example:
+			@@s_max
+
+			Output:
+			@@max
+			""")
 	public void get_max_area() {
-		// tag::max[]
+		// tag::s_max[]
 		GeoPipeline pipeline = GeoPipeline.start(tx, boxesLayer)
 				.calculateArea()
 				.getMax("Area");
-		// end::max[]
+		// end::s_max[]
 		addImageSnippet(boxesLayer, pipeline, getTitle());
 
 		pipeline = GeoPipeline.start(tx, boxesLayer).calculateArea().getMax("Area");
@@ -425,116 +422,110 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		pipeline.reset();
 	}
 
-	/**
-	 * The boundary pipe calculates boundary of every geometry in the pipeline.
-	 * <p>
-	 * Example:
-	 *
-	 * @@s_boundary Output:
-	 * @@boundary
-	 */
-	@Documented("boundary")
 	@Test
+	@Title("Boundary")
+	@Documented("""
+			The boundary pipe calculates boundary of every geometry in the pipeline.
+
+			Example:
+			@@s_boundary
+
+			Output:
+			@@boundary
+			""")
 	public void boundary() {
-		// tag::boundary[]
+		// tag::s_boundary[]
 		GeoPipeline pipeline = GeoPipeline.start(tx, boxesLayer).toBoundary();
-		// end::boundary[]
+		// end::s_boundary[]
 		addImageSnippet(boxesLayer, pipeline, getTitle(), Constants.GTYPE_LINESTRING);
 
 		// TODO test?
 	}
 
-	/**
-	 * Difference
-	 * <p>
-	 * The Difference pipe computes a geometry representing the points making
-	 * up item geometry that do not make up the given geometry.
-	 * <p>
-	 * Example:
-	 *
-	 * @@s_difference Output:
-	 * @@difference
-	 */
-	@Documented("difference.")
 	@Test
+	@Title("Difference")
+	@Documented("""
+			The Difference pipe computes a geometry representing the points making up item geometry that do not make up the given geometry.
+
+			Example:
+			@@s_difference
+
+			Output:
+			@@difference
+			""")
 	public void difference() throws Exception {
-		// tag::difference[]
+		// tag::s_difference[]
 		WKTReader reader = new WKTReader(intersectionLayer.getGeometryFactory());
 		Geometry geometry = reader.read("POLYGON ((3 3, 3 5, 7 7, 7 3, 3 3))");
 		GeoPipeline pipeline = GeoPipeline.start(tx, intersectionLayer).difference(geometry);
-		// end::difference[]
+		// end::s_difference[]
 		addImageSnippet(intersectionLayer, pipeline, getTitle());
 
 		// TODO test?
 	}
 
-	/**
-	 * Intersection
-	 * <p>
-	 * The Intersection pipe computes a geometry representing the intersection
-	 * between item geometry and the given geometry.
-	 * <p>
-	 * Example:
-	 *
-	 * @@s_intersection Output:
-	 * @@intersection
-	 */
-	@Documented("intersection")
 	@Test
+	@Title("Intersection")
+	@Documented("""
+			The Intersection pipe computes a geometry representing the intersection between item geometry and the given geometry.
+
+			Example:
+			@@s_intersection
+
+			Output:
+			@@intersection
+			""")
 	public void intersection() throws Exception {
-		// tag::intersection[]
+		// tag::s_intersection[]
 		WKTReader reader = new WKTReader(intersectionLayer.getGeometryFactory());
 		Geometry geometry = reader.read("POLYGON ((3 3, 3 5, 7 7, 7 3, 3 3))");
 		GeoPipeline pipeline = GeoPipeline.start(tx, intersectionLayer).intersect(geometry);
-		// end::intersection[]
+		// end::s_intersection[]
 		addImageSnippet(intersectionLayer, pipeline, getTitle());
 
 		// TODO test?
 	}
 
-	/**
-	 * Union
-	 * <p>
-	 * The Union pipe unites item geometry with a given geometry.
-	 * <p>
-	 * Example:
-	 *
-	 * @@s_union Output:
-	 * @@union
-	 */
-	@Documented("union")
 	@Test
+	@Title("Union")
+	@Documented("""
+			The Union pipe unites item geometry with a given geometry.
+
+			Example:
+			@@s_union
+
+			Output:
+			@@union
+			""")
 	public void union() throws Exception {
-		// tag::union[]
+		// tag::s_union[]
 		WKTReader reader = new WKTReader(intersectionLayer.getGeometryFactory());
 		Geometry geometry = reader.read("POLYGON ((3 3, 3 5, 7 7, 7 3, 3 3))");
 		SearchFilter filter = new SearchIntersectWindow(intersectionLayer, new Envelope(7, 10, 7, 10));
 		GeoPipeline pipeline = GeoPipeline.start(tx, intersectionLayer, filter).union(geometry);
-		// end::union[]
+		// end::s_union[]
 		addImageSnippet(intersectionLayer, pipeline, getTitle());
 
 		// TODO test?
 	}
 
-	/**
-	 * Min
-	 * <p>
-	 * The Min pipe computes the minimum value of the specified property and
-	 * discard items with a value greater than the minimum.
-	 * <p>
-	 * Example:
-	 *
-	 * @@s_min Output:
-	 * @@min
-	 */
-	@Documented("get_min_area")
 	@Test
+	@Title("Min")
+	@Documented("""
+			The Min pipe computes the minimum value of the specified property and discard items with a value greater than the minimum.
+
+			Example:
+			@@s_min
+
+			Output:
+			@@min
+			""")
 	public void get_min_area() {
-		// tag::min[]
+		// tag::s_min[]
 		GeoPipeline pipeline = GeoPipeline.start(tx, boxesLayer)
 				.calculateArea()
 				.getMin("Area");
-		// end::min[]
+		// end::s_min[]
 		addImageSnippet(boxesLayer, pipeline, getTitle());
 
 		pipeline = GeoPipeline.start(tx, boxesLayer).calculateArea().getMin("Area");
@@ -557,26 +548,32 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		assertEquals(24, count);
 	}
 
-	/**
-	 * A more complex Open Street Map example.
-	 * <p>
-	 * This example demostrates the some pipes chained together to make a full
-	 * geoprocessing pipeline.
-	 * <p>
-	 * Example:
-	 *
-	 * @@s_break_up_all_geometries_into_points_and_make_density_islands _Step1_
-	 * @@step1_break_up_all_geometries_into_points_and_make_density_islands _Step2_
-	 * @@step2_break_up_all_geometries_into_points_and_make_density_islands _Step3_
-	 * @@step3_break_up_all_geometries_into_points_and_make_density_islands _Step4_
-	 * @@step4_break_up_all_geometries_into_points_and_make_density_islands _Step5_
-	 * @@step5_break_up_all_geometries_into_points_and_make_density_islands
-	 */
-	@Documented("break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them")
-	@Title("break_up_all_geometries_into_points_and_make_density_islands")
 	@Test
+	@Title("Break up all geometries into points and make density islands")
+	@Documented("""
+			This example demonstrates the some pipes chained together to make a full geoprocessing pipeline.
+
+			Example:
+			@@s_break_up_all_geometries_into_points_and_make_density_islands
+
+			Step 1 - startOsm:
+			@@step1_break_up_all_geometries_into_points_and_make_density_islands
+
+			Step 2 - extractOsmPoints:
+			@@step2_break_up_all_geometries_into_points_and_make_density_islands
+
+			Step 3 - groupByDensityIslands:
+			@@step3_break_up_all_geometries_into_points_and_make_density_islands
+
+			Step 4 - toConvexHull:
+			@@step4_break_up_all_geometries_into_points_and_make_density_islands
+
+			Step 5- toBuffer:
+			@@step5_break_up_all_geometries_into_points_and_make_density_islands
+			""")
+
 	public void break_up_all_geometries_into_points_and_make_density_islands_and_get_the_outer_linear_ring_of_the_density_islands_and_buffer_the_geometry_and_count_them() {
-		// tag::break_up_all_geometries_into_points_and_make_density_islands[]
+		// tag::s_break_up_all_geometries_into_points_and_make_density_islands[]
 		//step1
 		GeoPipeline pipeline = OSMGeoPipeline.startOsm(tx, osmLayer)
 				//step2
@@ -587,7 +584,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 				.toConvexHull()
 				//step5
 				.toBuffer(0.0004);
-		// end::break_up_all_geometries_into_points_and_make_density_islands[]
+		// end::s_break_up_all_geometries_into_points_and_make_density_islands[]
 
 		assertEquals(9, pipeline.count());
 
@@ -606,22 +603,21 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 						.toBuffer(0.0004), "step5_" + getTitle(), Constants.GTYPE_POLYGON);
 	}
 
-	/**
-	 * Extract Points
-	 * <p>
-	 * The Extract Points pipe extracts every point from a geometry.
-	 * <p>
-	 * Example:
-	 *
-	 * @@s_extract_points Output:
-	 * @@extract_points
-	 */
-	@Documented("extract_points")
 	@Test
+	@Title("Extract Points")
+	@Documented("""
+			This pipe extracts every point from a geometry.
+
+			Example:
+			@@s_extract_points
+
+			Output:
+			@@extract_points
+			""")
 	public void extract_points() {
-		// tag::extract_points[]
+		// tag::s_extract_points[]
 		GeoPipeline pipeline = GeoPipeline.start(tx, boxesLayer).extractPoints();
-		// end::extract_points[]
+		// end::s_extract_points[]
 		addImageSnippet(boxesLayer, pipeline, getTitle(), Constants.GTYPE_POINT);
 
 		int count = 0;
@@ -666,24 +662,23 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		pipeline.reset();
 	}
 
-	/**
-	 * Unite All
-	 * <p>
-	 * The Union All pipe unites geometries of every item contained in the pipeline.
-	 * This pipe groups every item in the pipeline in a single item containing the geometry output
-	 * of the union.
-	 * <p>
-	 * Example:
-	 *
-	 * @@s_unite_all Output:
-	 * @@unite_all
-	 */
-	@Documented("unite_all")
 	@Test
+	@Title("Unite All")
+	@Documented("""
+			The Union All pipe unites geometries of every item contained in the pipeline.
+			This pipe groups every item in the pipeline in a single item containing the geometry output
+			of the union.
+
+			Example:
+			@@s_unite_all
+
+			Output:
+			@@unite_all
+			""")
 	public void unite_all() {
-		// tag::unite_all[]
+		// tag::s_unite_all[]
 		GeoPipeline pipeline = GeoPipeline.start(tx, intersectionLayer).unionAll();
-		// end::unite_all[]
+		// end::s_unite_all[]
 		addImageSnippet(intersectionLayer, pipeline, getTitle());
 
 		pipeline = GeoPipeline.start(tx, intersectionLayer)
@@ -700,24 +695,23 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		}
 	}
 
-	/**
-	 * Intersect All
-	 * <p>
-	 * The IntersectAll pipe intersects geometries of every item contained in the pipeline.
-	 * It groups every item in the pipeline in a single item containing the geometry output
-	 * of the intersection.
-	 * <p>
-	 * Example:
-	 *
-	 * @@s_intersect_all Output:
-	 * @@intersect_all
-	 */
-	@Documented("intersect_all")
 	@Test
+	@Title("Intersect All")
+	@Documented("""
+			The Intersect All pipe intersects geometries of every item contained in the pipeline.
+			This pipe groups every item in the pipeline in a single item containing the geometry output
+			of the intersection.
+
+			Example:
+			@@s_intersect_all
+
+			Output:
+			@@intersect_all
+			""")
 	public void intersect_all() {
-		// tag::intersect_all[]
+		// tag::s_intersect_all[]
 		GeoPipeline pipeline = GeoPipeline.start(tx, intersectionLayer).intersectAll();
-		// end::intersect_all[]
+		// end::s_intersect_all[]
 		addImageSnippet(intersectionLayer, pipeline, getTitle());
 
 		pipeline = GeoPipeline.start(tx, intersectionLayer)
@@ -733,46 +727,44 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		}
 	}
 
-	/**
-	 * Intersecting windows
-	 * <p>
-	 * The FilterIntersectWindow pipe finds geometries that intersects a given rectangle.
-	 * This pipeline:
-	 *
-	 * @@s_intersecting_windows will output:
-	 * @@intersecting_windows
-	 */
-	@Documented("intersecting_windows")
 	@Test
+	@Title("Intersecting Windows")
+	@Documented("""
+			The FilterIntersectWindow pipe finds geometries that intersects a given rectangle.
+
+			Example:
+			@@s_intersecting_windows
+
+			Output:
+			@@intersecting_windows
+			""")
 	public void intersecting_windows() {
-		// tag::intersecting_windows[]
+		// tag::s_intersecting_windows[]
 		GeoPipeline pipeline = GeoPipeline
 				.start(tx, boxesLayer)
 				.windowIntersectionFilter(new Envelope(0, 10, 0, 10));
-		// end::intersecting_windows[]
+		// end::s_intersecting_windows[]
 		addImageSnippet(boxesLayer, pipeline, getTitle());
 
 		// TODO test?
 	}
 
-	/**
-	 * Start Point
-	 * <p>
-	 * The StartPoint pipe finds the starting point of item geometry.
-	 * <p>
-	 * Example:
-	 *
-	 * @@s_start_point Output:
-	 * @@start_point
-	 */
-	@Documented("start_point")
 	@Test
+	@Title("Start Point")
+	@Documented("""
+			The StartPoint pipe finds the starting point of item geometry.
+
+			Example:
+			@@s_start_point
+
+			Output:
+			@@start_point""")
 	public void start_point() {
-		// tag::start_point[]
+		// tag::s_start_point[]
 		GeoPipeline pipeline = GeoPipeline
 				.start(tx, linesLayer)
 				.toStartPoint();
-		// end::start_point[]
+		// end::s_start_point[]
 		addImageSnippet(linesLayer, pipeline, getTitle(), Constants.GTYPE_POINT);
 
 		pipeline = GeoPipeline
@@ -784,24 +776,23 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		pipeline.reset();
 	}
 
-	/**
-	 * End Point
-	 * <p>
-	 * The EndPoint pipe finds the ending point of item geometry.
-	 * <p>
-	 * Example:
-	 *
-	 * @@s_end_point Output:
-	 * @@end_point
-	 */
-	@Documented("end_point")
 	@Test
+	@Title("End Point")
+	@Documented("""
+			The EndPoint pipe finds the ending point of item geometry.
+
+			Example:
+			@@s_end_point
+
+			Output:
+			@@end_point
+			""")
 	public void end_point() {
-		// tag::end_point[]
+		// tag::s_end_point[]
 		GeoPipeline pipeline = GeoPipeline
 				.start(tx, linesLayer)
 				.toEndPoint();
-		// end::end_point[]
+		// end::s_end_point[]
 		addImageSnippet(linesLayer, pipeline, getTitle(), Constants.GTYPE_POINT);
 
 		pipeline = GeoPipeline
@@ -813,24 +804,23 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		pipeline.reset();
 	}
 
-	/**
-	 * Envelope
-	 * <p>
-	 * The Envelope pipe computes the minimum bounding box of item geometry.
-	 * <p>
-	 * Example:
-	 *
-	 * @@s_envelope Output:
-	 * @@envelope
-	 */
-	@Documented("envelope")
 	@Test
+	@Title("Envelope")
+	@Documented("""
+			The Envelope pipe computes the minimum bounding box of item geometry.
+
+			Example:
+			@@s_envelope
+
+			Output:
+			@@envelope
+			""")
 	public void envelope() {
-		// tag::envelope[]
+		// tag::s_envelope[]
 		GeoPipeline pipeline = GeoPipeline
 				.start(tx, linesLayer)
 				.toEnvelope();
-		// end::envelope[]
+		// end::s_envelope[]
 		addImageSnippet(linesLayer, pipeline, getTitle(), Constants.GTYPE_POLYGON);
 
 		// TODO test
@@ -879,7 +869,6 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		addImageSnippet(layer, pipeline, imgName, null);
 	}
 
-	@SuppressWarnings({"unchecked", "rawtypes"})
 	private void addOsmImageSnippet(
 			Layer layer,
 			GeoPipeline pipeline,
@@ -903,7 +892,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 			String imgName,
 			Integer geomType,
 			double boundsDelta) {
-		gen.get().addSnippet(imgName, "\nimage::" + imgName + ".png[scaledwidth=\"75%\"]\n");
+		gen.get().addSnippet(imgName, "image::generated/" + imgName + ".png[]\n");
 
 		try {
 			FeatureCollection layerCollection = GeoPipeline.start(tx, layer, new SearchAll()).toFeatureCollection(tx);
@@ -921,7 +910,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 			bounds.expandBy(boundsDelta, boundsDelta);
 
 			StyledImageExporter exporter = new StyledImageExporter(db);
-			exporter.setExportDir("target/docs/images/");
+			exporter.setExportDir("docs/docs/modules/ROOT/images/generated");
 			exporter.saveImage(
 					new FeatureCollection[]{
 							layerCollection,
@@ -1010,7 +999,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		gen.get().setGraph(db);
 		try (Transaction tx = db.beginTx()) {
 			StyledImageExporter exporter = new StyledImageExporter(db);
-			exporter.setExportDir("target/docs/images/");
+			exporter.setExportDir("docs/docs/modules/ROOT/images/generated/layers");
 			exporter.saveImage(GeoPipeline.start(tx, intersectionLayer).toFeatureCollection(tx),
 					StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
 							"intersectionLayer.png"));
@@ -1041,9 +1030,9 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 
 	@AfterEach
 	public void doc() {
-		// gen.get().addSnippet( "graph", AsciidocHelper.createGraphViz( imgName , graphdb(), "graph"+getTitle() ) );
-		gen.get().addTestSourceSnippets(GeoPipesDocTest.class, "s_" + getTitle().toLowerCase());
-		gen.get().document("target/docs", "examples");
+		JavaTestDocsGenerator docsGenerator = gen.get();
+		docsGenerator.addTestSourceSnippets(GeoPipesDocTest.class, "s_" + getTitle().toLowerCase());
+		docsGenerator.document("docs/docs/modules/ROOT/pages/geo-pipes", "examples");
 		if (tx != null) {
 			tx.commit();
 			tx.close();
@@ -1062,6 +1051,21 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 
 		StyledImageExporter exporter = new StyledImageExporter(db);
 		exporter.setExportDir("target/docs/images/");
+	}
+
+	@AfterAll
+	public static void writeIndexAdoc() throws IOException {
+		// write an index.adoc file including all generated snippets
+		var adocs = new TreeSet<>();
+		Path path = Paths.get("docs/docs/modules/ROOT/pages/geo-pipes/examples/generated");
+		try (Stream<Path> paths = Files.walk(path)) {
+			paths.filter(Files::isRegularFile)
+					.filter(p -> p.toString().endsWith(".adoc"))
+					.forEach(p -> adocs.add(p.getFileName().toString()));
+		}
+		adocs.remove("index.adoc");
+		Files.write(path.resolve("index.adoc"), adocs.stream().map(s -> "include::" + s + "[]")
+				.collect(Collectors.toList()));
 	}
 
 	private static GeoPipeFlow print(GeoPipeFlow pipeFlow) {

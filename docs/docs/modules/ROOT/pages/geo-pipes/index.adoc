@@ -1,0 +1,38 @@
+[[spatial-geopipes]]
+= GeoPipes
+
+== Base Layers
+
+These are the different base layers being used for the following examples:
+
+OsmLayer:
+
+image::generated/layers/osmLayer.png[]
+
+IntersectionLayer:
+
+image::generated/layers/intersectionLayer.png[]
+
+LinesLayer:
+
+image::generated/layers/linesLayer.png[]
+
+BoxesLayer:
+
+image::generated/layers/boxesLayer.png[]
+
+ConcaveLayer:
+
+image::generated/layers/concaveLayer.png[]
+
+EqualLayer:
+
+image::generated/layers/equalLayer.png[]
+
+== GeoPipes Examples
+
+Below follows a non-exhaustive lists of interesting GeoPipes that can be chained together to contruct a geoprocessing system in while trying to keep the processing as lazy as possible using iterators through the different steps.
+
+:leveloffset: 1
+include::./examples/generated/index.adoc[]
+

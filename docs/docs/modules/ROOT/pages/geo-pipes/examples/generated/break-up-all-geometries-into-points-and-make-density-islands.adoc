@@ -1,0 +1,33 @@
+[[examples-break-up-all-geometries-into-points-and-make-density-islands]]
+== Break up all geometries into points and make density islands
+
+This example demonstrates the some pipes chained together to make a full geoprocessing pipeline.
+
+Example:
+
+[source,java,indent=0]
+----
+include::example$GeoPipesDocTest.java[tags=s_break_up_all_geometries_into_points_and_make_density_islands]
+----
+
+Step 1 - startOsm:
+
+image::generated/step1_break_up_all_geometries_into_points_and_make_density_islands.png[]
+
+Step 2 - extractOsmPoints:
+
+image::generated/step2_break_up_all_geometries_into_points_and_make_density_islands.png[]
+
+Step 3 - groupByDensityIslands:
+
+image::generated/step3_break_up_all_geometries_into_points_and_make_density_islands.png[]
+
+Step 4 - toConvexHull:
+
+image::generated/step4_break_up_all_geometries_into_points_and_make_density_islands.png[]
+
+Step 5- toBuffer:
+
+image::generated/step5_break_up_all_geometries_into_points_and_make_density_islands.png[]
+
+

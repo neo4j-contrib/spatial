@@ -1,0 +1,19 @@
+{
+	"name": "@neo4j/docs",
+	"version": "1.0.0",
+	"description": "Neo4j Docs builder",
+	"main": "index.js",
+	"scripts": {
+		"start": "node server.js",
+		"build": "npm run build:docs",
+		"build:docs": "antora --fetch --stacktrace docs.yml"
+	},
+	"license": "ISC",
+	"dependencies": {
+		"@antora/cli": "^2.3.4",
+		"@antora/site-generator-default": "^2.3.4"
+	},
+	"devDependencies": {
+		"express": "^4.19.2"
+	}
+}

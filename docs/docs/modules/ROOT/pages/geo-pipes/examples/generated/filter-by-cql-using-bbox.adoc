@@ -1,0 +1,13 @@
+[[examples-filter-by-cql-using-bbox]]
+== Filter by cql using bbox
+
+This pipe is filtering according to a CQL Bounding Box description.
+
+Example:
+
+[source,java,indent=0]
+----
+include::example$GeoPipesDocTest.java[tags=s_filter_by_cql_using_bbox]
+----
+
+

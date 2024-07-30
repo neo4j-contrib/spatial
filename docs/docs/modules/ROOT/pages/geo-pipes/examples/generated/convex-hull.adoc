@@ -1,0 +1,17 @@
+[[examples-convex-hull]]
+== Convex Hull
+
+This pipe calculates geometry convex hull.
+
+Example:
+
+[source,java,indent=0]
+----
+include::example$GeoPipesDocTest.java[tags=s_convex_hull]
+----
+
+Output:
+
+image::generated/convex_hull.png[]
+
+

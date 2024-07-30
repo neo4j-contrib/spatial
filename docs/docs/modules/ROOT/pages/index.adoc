@@ -1,0 +1,10 @@
+= Neo4j Spatial v{docs-version}
+:experimental:
+:sectid:
+:toclevels: 2
+
+* xref:overview/introduction.adoc[]
+* xref:dev/index.adoc[]
+* xref:appendix/index.adoc[]
+
+

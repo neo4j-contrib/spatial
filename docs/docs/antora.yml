@@ -1,0 +1,13 @@
+name: neo4j-spatial
+version: 5.0
+title: Neo4j-Spatial User Guide
+nav:
+  - modules/ROOT/nav.adoc
+
+asciidoc:
+  attributes:
+    docs-version: 5.20
+    copyright: Neo4j Inc.
+    page-product: Neo4j Spatial
+    page-type: Neo4j Spatial Manual
+    page-canonical-root: /labs

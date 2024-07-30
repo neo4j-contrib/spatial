@@ -1,0 +1,17 @@
+[[examples-affine-transformation]]
+== Affine Transformation
+
+This pipe applies an affine transformation to every geometry.
+
+Example:
+
+[source,java,indent=0]
+----
+include::example$GeoPipesDocTest.java[tags=s_affine_transformation]
+----
+
+Output:
+
+image::generated/affine_transformation.png[]
+
+

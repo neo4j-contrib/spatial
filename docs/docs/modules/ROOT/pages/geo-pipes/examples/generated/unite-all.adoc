@@ -1,0 +1,19 @@
+[[examples-unite-all]]
+== Unite All
+
+The Union All pipe unites geometries of every item contained in the pipeline.
+This pipe groups every item in the pipeline in a single item containing the geometry output
+of the union.
+
+Example:
+
+[source,java,indent=0]
+----
+include::example$GeoPipesDocTest.java[tags=s_unite_all]
+----
+
+Output:
+
+image::generated/unite_all.png[]
+
+

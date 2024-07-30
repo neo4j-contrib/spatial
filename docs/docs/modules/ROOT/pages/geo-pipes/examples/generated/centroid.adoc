@@ -1,0 +1,17 @@
+[[examples-centroid]]
+== Centroid
+
+This pipe calculates geometry centroid.
+
+Example:
+
+[source,java,indent=0]
+----
+include::example$GeoPipesDocTest.java[tags=s_centroid]
+----
+
+Output:
+
+image::generated/centroid.png[]
+
+

@@ -1,0 +1,19 @@
+[[examples-intersect-all]]
+== Intersect All
+
+The Intersect All pipe intersects geometries of every item contained in the pipeline.
+This pipe groups every item in the pipeline in a single item containing the geometry output
+of the intersection.
+
+Example:
+
+[source,java,indent=0]
+----
+include::example$GeoPipesDocTest.java[tags=s_intersect_all]
+----
+
+Output:
+
+image::generated/intersect_all.png[]
+
+

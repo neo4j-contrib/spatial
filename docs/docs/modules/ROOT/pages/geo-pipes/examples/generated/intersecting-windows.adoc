@@ -1,0 +1,17 @@
+[[examples-intersecting-windows]]
+== Intersecting Windows
+
+The FilterIntersectWindow pipe finds geometries that intersects a given rectangle.
+
+Example:
+
+[source,java,indent=0]
+----
+include::example$GeoPipesDocTest.java[tags=s_intersecting_windows]
+----
+
+Output:
+
+image::generated/intersecting_windows.png[]
+
+

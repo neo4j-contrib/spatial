@@ -1,0 +1,17 @@
+[[examples-end-point]]
+== End Point
+
+The EndPoint pipe finds the ending point of item geometry.
+
+Example:
+
+[source,java,indent=0]
+----
+include::example$GeoPipesDocTest.java[tags=s_end_point]
+----
+
+Output:
+
+image::generated/end_point.png[]
+
+

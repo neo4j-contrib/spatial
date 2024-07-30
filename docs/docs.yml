@@ -1,0 +1,16 @@
+site:
+  title: Neo4j-Spatial User Guide
+  url: /neo4j-spatial-docs
+content:
+  sources:
+    - url: ../
+      start_path: docs/docs
+      branches: HEAD
+ui:
+  bundle:
+    url: https://static-content.neo4j.com/build/ui-bundle.zip
+    snapshot: true
+asciidoc:
+  attributes:
+    page-theme: docs
+    page-cdn: /_/
