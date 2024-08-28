@@ -1,0 +1,18 @@
+// DO NOT MODIFY, THIS FILE IS AUTO GENERATED!
+[[examples-union]]
+== Union
+
+The Union pipe unites item geometry with a given geometry.
+
+Example:
+
+[source,java,indent=0]
+----
+include::example$GeoPipesDocTest.java[tags=s_union]
+----
+
+Output:
+
+image::generated/union.png[]
+
+

@@ -1,0 +1,18 @@
+// DO NOT MODIFY, THIS FILE IS AUTO GENERATED!
+[[examples-buffer]]
+== Buffer
+
+This pipe applies a buffer to geometries.
+
+Example:
+
+[source,java,indent=0]
+----
+include::example$GeoPipesDocTest.java[tags=s_buffer]
+----
+
+Output:
+
+image::generated/buffer.png[]
+
+

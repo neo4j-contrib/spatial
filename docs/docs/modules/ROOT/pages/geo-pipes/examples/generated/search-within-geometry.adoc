@@ -1,0 +1,16 @@
+// DO NOT MODIFY, THIS FILE IS AUTO GENERATED!
+[[examples-search-within-geometry]]
+== Search within geometry
+
+This pipe performs a search within a geometry in this example,
+both OSM street geometries should be found in when searching with
+an enclosing rectangle Envelope.
+
+Example:
+
+[source,java,indent=0]
+----
+include::example$GeoPipesDocTest.java[tags=s_search_within_geometry]
+----
+
+

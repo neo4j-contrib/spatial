@@ -1,0 +1,18 @@
+// DO NOT MODIFY, THIS FILE IS AUTO GENERATED!
+[[examples-difference]]
+== Difference
+
+The Difference pipe computes a geometry representing the points making up item geometry that do not make up the given geometry.
+
+Example:
+
+[source,java,indent=0]
+----
+include::example$GeoPipesDocTest.java[tags=s_difference]
+----
+
+Output:
+
+image::generated/difference.png[]
+
+

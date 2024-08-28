@@ -25,6 +25,9 @@ jobs:
       - name: Update README.md
         run: sed -i "s|<version>.*</version>|<version>${{ env.VERSION }}</version>|g" README.md
 
+      - name: Update Docs
+        run: 'sed -i "s|docs-version: .*|docs-version: ${{ env.VERSION }}|g" docs/docs/antora.yml'
+
       - name: Commit release POM and Tag
         run: |
           git config --local user.email "action@github.com"
