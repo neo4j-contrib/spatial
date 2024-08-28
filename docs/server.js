@@ -21,5 +21,5 @@
 const express = require('express')
 const app = express()
 app.use(express.static('./build/site'))
-app.get('/', (req, res) => res.redirect('/neo4j-spatial/1.0.0'))
-app.listen(8020, () => console.log('📘 http://localhost:8020'))
+app.get('/', (req, res) => res.redirect('/neo4j-spatial/5'))
+app.listen(8020, () => console.log('http://localhost:8020'))
