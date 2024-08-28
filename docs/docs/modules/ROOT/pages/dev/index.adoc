@@ -1,22 +1,10 @@
 :toclevels: 1
 = Development
-:leveloffset: 1
 
-include::indexing.adoc[]
-
-:leveloffset: 1
-
-include::layers.adoc[]
-
-:leveloffset: 1
-
-include::procedures.adoc[]
-
-:leveloffset: 1
-
-include::querying.adoc[]
-
-:leveloffset: 1
-
-include::examples.adoc[]
+* xref:dev/indexing.adoc[]
+* xref:dev/layers.adoc[]
+* xref:dev/procedures.adoc[]
+* xref:dev/querying.adoc[]
+* xref:dev/examples.adoc[]
+** xref:geo-pipes/index.adoc[]
 
