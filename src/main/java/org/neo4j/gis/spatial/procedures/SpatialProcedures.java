@@ -72,6 +72,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.procs.ProcedureSignature;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.kernel.api.CypherScope;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
@@ -160,11 +161,12 @@ public class SpatialProcedures extends SpatialApiBase {
 		GlobalProcedures procedures = ((GraphDatabaseAPI) db).getDependencyResolver()
 				.resolveDependency(GlobalProcedures.class);
 		Stream.Builder<NameResult> builder = Stream.builder();
-		for (ProcedureSignature proc : procedures.getCurrentView().getAllProcedures()) {
-			if (proc.name().namespace()[0].equals("spatial")) {
-				builder.accept(new NameResult(proc.name().toString(), proc.toString()));
-			}
-		}
+		
+		procedures.getCurrentView().getAllProcedures(CypherScope.CYPHER_5)
+	    .filter(proc -> proc.name().namespace()[0].equals("spatial"))
+	    .map(proc -> new NameResult(proc.name().toString(), proc.toString()))
+	    .forEach(builder::accept);
+
 		return builder.build();
 	}
 
