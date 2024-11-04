@@ -1,0 +1,18 @@
+// DO NOT MODIFY, THIS FILE IS AUTO GENERATED!
+[[examples-max]]
+== Max
+
+The Max pipe computes the maximum value of the specified property and discard items with a value less than the maximum.
+
+Example:
+
+[source,java,indent=0]
+----
+include::example$GeoPipesDocTest.java[tags=s_max]
+----
+
+Output:
+
+image::generated/max.png[]
+
+

@@ -1,0 +1,6 @@
+= Appendix: Integrations
+
+* xref:appendix/udig.adoc[]
+* xref:appendix/geoserver.adoc[]
+* xref:appendix/geoserver2.adoc[]
+

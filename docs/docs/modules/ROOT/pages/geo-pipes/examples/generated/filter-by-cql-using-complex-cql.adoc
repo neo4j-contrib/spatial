@@ -1,0 +1,14 @@
+// DO NOT MODIFY, THIS FILE IS AUTO GENERATED!
+[[examples-filter-by-cql-using-complex-cql]]
+== Filter by cql using complex cql
+
+This pipe is filtering according to a complex CQL description.
+
+Example:
+
+[source,java,indent=0]
+----
+include::example$GeoPipesDocTest.java[tags=s_filter_by_cql_using_complex_cql]
+----
+
+

@@ -1,0 +1,19 @@
+// DO NOT MODIFY, THIS FILE IS AUTO GENERATED!
+[[examples-densify]]
+== Densify
+
+This pipe inserts extra vertices along the line segments in the geometry.
+The densified geometry contains no line segment which is longer than the given distance tolerance.
+
+Example:
+
+[source,java,indent=0]
+----
+include::example$GeoPipesDocTest.java[tags=s_densify]
+----
+
+Output:
+
+image::generated/densify.png[]
+
+
