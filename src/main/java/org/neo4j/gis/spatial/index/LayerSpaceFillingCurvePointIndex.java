@@ -24,6 +24,7 @@ import static org.neo4j.internal.helpers.collection.Iterators.emptyResourceItera
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.api.referencing.cs.CoordinateSystemAxis;
 import org.locationtech.jts.geom.Geometry;
@@ -53,6 +54,7 @@ import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.core.NodeEntity;
 import org.neo4j.kernel.impl.coreapi.internal.CursorIterator;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.token.api.TokenConstants;
 
 public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBackedPointIndex<Long> {
 
@@ -147,7 +149,7 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
 				PropertyIndexQuery query) {
 			Read read = transaction.dataRead();
 
-			if (query.propertyKeyId() == TokenRead.NO_TOKEN || labelId == TokenRead.NO_TOKEN) {
+			if (query.propertyKeyId() == TokenConstants.NO_TOKEN || labelId == TokenConstants.NO_TOKEN) {
 				return emptyResourceIterator();
 			}
 			Iterator<IndexDescriptor> iterator = transaction.schemaRead()
