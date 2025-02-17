@@ -3,12 +3,12 @@
 [![build](https://github.com/neo4j-contrib/spatial/actions/workflows/pr-build.yaml/badge.svg?branch=master)](https://github.com/neo4j-contrib/spatial/actions/workflows/pr-build.yaml)
 
 Neo4j Spatial is a library facilitating the import, storage and querying of spatial data in
-the [Neo4j open source graph database](http://neo4j.org/).
+the [Neo4j open source graph database](https://neo4j.com).
 
-This projects manual is deployed as part of the local build as
-the [Neo4j Spatial Manual](http://neo4j-contrib.github.io/spatial).
+This project's manual is available at the
+[Neo4j Spatial Manual](https://neo4j.com/labs/neo4j-spatial/5/).
 
-![Open Street Map](http://neo4j-contrib.github.io/spatial/0.24-neo4j-3.1/images/one-street.png "Open Street Map")
+![Open Street Map](https://neo4j.com/labs/neo4j-spatial/5/_images/one-street.png "Open Street Map")
 
 ## History
 
@@ -123,7 +123,7 @@ Please report any mistakes as issues, or consider raising a pull-request with an
 
 The key concepts of this library include:
 
-* Allow the user to model geograph data in whatever way they wish, through providing an adapter (
+* Allow the user to model geographic data in whatever way they wish, through providing an adapter (
   extend `GeometryEncoder`).
   Built-in encoders include:
 	* WKT and WKB stored as properties of nodes
@@ -175,7 +175,7 @@ The simplest way to build Neo4j Spatial is by using maven. Just clone the git re
 mvn install
 ~~~
 
-This will download all dependencies, compiled the library, run the tests and install the artifact in your local
+This will download all dependencies, compile the library, run the tests and install the artifact in your local
 repository.
 The spatial plugin will also be created in the `target` directory, and can be copied to your local server using
 instructions on the spatial server plugin below.

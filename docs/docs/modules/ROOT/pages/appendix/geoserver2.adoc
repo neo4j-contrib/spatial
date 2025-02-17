@@ -7,8 +7,7 @@ Neo4j Spatial includes built-in support for a GeoTools data store. This means it
 
 === Installing GeoServer
 
-First of all you need to download and install geoserver from http://geoserver.org/display/GEOS/Download.
-For detailed installation instructions, refer to the official GeoServer documentation at http://docs.geoserver.org/stable/en/user/installation/index.html
+Install the geoserver as described in the http://docs.geoserver.org/stable/en/user/installation/index.html[official GeoServer documentation].
 Here we provide very basic instructions, with factors to consider regarding installing GeoServer with Neo4j Spatial:
 
 * Choose the right version for the version of Neo4j Spatial you are going to use:
@@ -41,7 +40,7 @@ And then re-start Geoserver.
 
 These instructions lead you through getting started with adding some test layers from Neo4j Spatial to the running GeoServer
 
-Login as 'admin' with password 'geoserver', unless you have changed those in the security/users.properties file during installation
+Login as `admin` with password `geoserver`, unless you have changed those in the `security/users.properties` file during installation
 
 
 image::Geoserver-1-logged-in.png[]
