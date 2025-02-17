@@ -27,6 +27,7 @@ import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.referencing.CRS;
 import org.geotools.referencing.ReferencingFactoryFinder;
+import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.SpatialDatabaseException;
 
 /**
@@ -54,8 +55,8 @@ public class GeotoolsAdapter {
 
 	public static Integer getEPSGCode(CoordinateReferenceSystem crs) {
 		try {
-			// TODO: upgrade geotools to avoid Java11 failures on CRS.lookupEpsgCode
-			return (crs == WGS84) ? Integer.valueOf(4326) : (crs == GENERIC_2D) ? null : CRS.lookupEpsgCode(crs, true);
+			return (crs == WGS84) ? Integer.valueOf(Constants.SRID_COORDINATES_2D)
+					: (crs == GENERIC_2D) ? null : CRS.lookupEpsgCode(crs, true);
 		} catch (FactoryException e) {
 			System.err.println("Failed to lookup CRS: " + e.getMessage());
 			return null;

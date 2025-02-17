@@ -161,7 +161,7 @@ public class SpatialProcedures extends SpatialApiBase {
 		GlobalProcedures procedures = ((GraphDatabaseAPI) db).getDependencyResolver()
 				.resolveDependency(GlobalProcedures.class);
 		Stream.Builder<NameResult> builder = Stream.builder();
-		
+
 		procedures.getCurrentView().getAllProcedures(QueryLanguage.CYPHER_5)
 	    .filter(proc -> proc.name().namespace()[0].equals("spatial"))
 	    .map(proc -> new NameResult(proc.name().toString(), proc.toString()))
@@ -213,13 +213,15 @@ public class SpatialProcedures extends SpatialApiBase {
 	public Stream<NodeResult> addSimplePointLayer(
 			@Name("name") String name,
 			@Name(value = "indexType", defaultValue = RTREE_INDEX_NAME) String indexType,
-			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName) {
+			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig
+	) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
 			return streamNode(sdb.createLayer(tx, name, SimplePointEncoder.class, SimplePointLayer.class,
-					SpatialDatabaseService.resolveIndexClass(indexType), null,
-					selectCRS(crsName)).getLayerNode(tx));
+							SpatialDatabaseService.resolveIndexClass(indexType), null, indexConfig, selectCRS(crsName))
+					.getLayerNode(tx));
 		}
 		throw new IllegalArgumentException("Cannot create existing layer: " + name);
 	}
@@ -228,37 +230,44 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Description("Adds a new simple point layer with geohash based index, returns the layer root node")
 	public Stream<NodeResult> addSimplePointLayerGeohash(
 			@Name("name") String name,
-			@Name(value = "crsName", defaultValue = WGS84_CRS_NAME) String crsName) {
+			@Name(value = "crsName", defaultValue = WGS84_CRS_NAME) String crsName,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
 			return streamNode(sdb.createLayer(tx, name, SimplePointEncoder.class, SimplePointLayer.class,
-					LayerGeohashPointIndex.class, null,
-					selectCRS(crsName)).getLayerNode(tx));
+							LayerGeohashPointIndex.class, null, indexConfig, selectCRS(crsName))
+					.getLayerNode(tx));
 		}
 		throw new IllegalArgumentException("Cannot create existing layer: " + name);
 	}
 
 	@Procedure(value = "spatial.addPointLayerZOrder", mode = WRITE)
 	@Description("Adds a new simple point layer with z-order curve based index, returns the layer root node")
-	public Stream<NodeResult> addSimplePointLayerZOrder(@Name("name") String name) {
+	public Stream<NodeResult> addSimplePointLayerZOrder(@Name("name") String name,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
 			return streamNode(sdb.createLayer(tx, name, SimplePointEncoder.class, SimplePointLayer.class,
-					LayerZOrderPointIndex.class, null, DefaultGeographicCRS.WGS84).getLayerNode(tx));
+							LayerZOrderPointIndex.class, null, indexConfig, DefaultGeographicCRS.WGS84)
+					.getLayerNode(tx));
 		}
 		throw new IllegalArgumentException("Cannot create existing layer: " + name);
 	}
 
 	@Procedure(value = "spatial.addPointLayerHilbert", mode = WRITE)
 	@Description("Adds a new simple point layer with hilbert curve based index, returns the layer root node")
-	public Stream<NodeResult> addSimplePointLayerHilbert(@Name("name") String name) {
+	public Stream<NodeResult> addSimplePointLayerHilbert(
+			@Name("name") String name,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig
+	) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
 			return streamNode(sdb.createLayer(tx, name, SimplePointEncoder.class, SimplePointLayer.class,
-					LayerHilbertPointIndex.class, null, DefaultGeographicCRS.WGS84).getLayerNode(tx));
+							LayerHilbertPointIndex.class, null, indexConfig, DefaultGeographicCRS.WGS84)
+					.getLayerNode(tx));
 		}
 		throw new IllegalArgumentException("Cannot create existing layer: " + name);
 	}
@@ -270,15 +279,17 @@ public class SpatialProcedures extends SpatialApiBase {
 			@Name("xProperty") String xProperty,
 			@Name("yProperty") String yProperty,
 			@Name(value = "indexType", defaultValue = RTREE_INDEX_NAME) String indexType,
-			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName) {
+			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
 			if (xProperty != null && yProperty != null) {
 				return streamNode(sdb.createLayer(tx, name, SimplePointEncoder.class, SimplePointLayer.class,
-						SpatialDatabaseService.resolveIndexClass(indexType),
-						SpatialDatabaseService.makeEncoderConfig(xProperty, yProperty),
-						selectCRS(hintCRSName(crsName, yProperty))).getLayerNode(tx));
+								SpatialDatabaseService.resolveIndexClass(indexType),
+								SpatialDatabaseService.makeEncoderConfig(xProperty, yProperty), indexConfig,
+								selectCRS(hintCRSName(crsName, yProperty)))
+						.getLayerNode(tx));
 			}
 			throw new IllegalArgumentException(
 					"Cannot create layer '" + name + "': Missing encoder config values: xProperty[" + xProperty
@@ -293,14 +304,16 @@ public class SpatialProcedures extends SpatialApiBase {
 			@Name("name") String name,
 			@Name("encoderConfig") String encoderConfig,
 			@Name(value = "indexType", defaultValue = RTREE_INDEX_NAME) String indexType,
-			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName) {
+			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
 			if (encoderConfig.indexOf(':') > 0) {
 				return streamNode(sdb.createLayer(tx, name, SimplePointEncoder.class, SimplePointLayer.class,
-						SpatialDatabaseService.resolveIndexClass(indexType), encoderConfig,
-						selectCRS(hintCRSName(crsName, encoderConfig))).getLayerNode(tx));
+								SpatialDatabaseService.resolveIndexClass(indexType), encoderConfig, indexConfig,
+								selectCRS(hintCRSName(crsName, encoderConfig)))
+						.getLayerNode(tx));
 			}
 			throw new IllegalArgumentException(
 					"Cannot create layer '" + name + "': invalid encoder config '" + encoderConfig + "'");
@@ -313,12 +326,14 @@ public class SpatialProcedures extends SpatialApiBase {
 	public Stream<NodeResult> addNativePointLayer(
 			@Name("name") String name,
 			@Name(value = "indexType", defaultValue = RTREE_INDEX_NAME) String indexType,
-			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName) {
+			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
 			return streamNode(sdb.createLayer(tx, name, NativePointEncoder.class, SimplePointLayer.class,
-					SpatialDatabaseService.resolveIndexClass(indexType), null, selectCRS(crsName)).getLayerNode(tx));
+							SpatialDatabaseService.resolveIndexClass(indexType), null, indexConfig, selectCRS(crsName))
+					.getLayerNode(tx));
 		}
 		throw new IllegalArgumentException("Cannot create existing layer: " + name);
 	}
@@ -327,36 +342,43 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Description("Adds a new native point layer with geohash based index, returns the layer root node")
 	public Stream<NodeResult> addNativePointLayerGeohash(
 			@Name("name") String name,
-			@Name(value = "crsName", defaultValue = WGS84_CRS_NAME) String crsName) {
+			@Name(value = "crsName", defaultValue = WGS84_CRS_NAME) String crsName,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
 			return streamNode(sdb.createLayer(tx, name, NativePointEncoder.class, SimplePointLayer.class,
-					LayerGeohashPointIndex.class, null, selectCRS(crsName)).getLayerNode(tx));
+							LayerGeohashPointIndex.class, null, indexConfig, selectCRS(crsName))
+					.getLayerNode(tx));
 		}
 		throw new IllegalArgumentException("Cannot create existing layer: " + name);
 	}
 
 	@Procedure(value = "spatial.addNativePointLayerZOrder", mode = WRITE)
 	@Description("Adds a new native point layer with z-order curve based index, returns the layer root node")
-	public Stream<NodeResult> addNativePointLayerZOrder(@Name("name") String name) {
+	public Stream<NodeResult> addNativePointLayerZOrder(@Name("name") String name,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
 			return streamNode(sdb.createLayer(tx, name, NativePointEncoder.class, SimplePointLayer.class,
-					LayerZOrderPointIndex.class, null, DefaultGeographicCRS.WGS84).getLayerNode(tx));
+							LayerZOrderPointIndex.class, null, indexConfig, DefaultGeographicCRS.WGS84)
+					.getLayerNode(tx));
 		}
 		throw new IllegalArgumentException("Cannot create existing layer: " + name);
 	}
 
 	@Procedure(value = "spatial.addNativePointLayerHilbert", mode = WRITE)
 	@Description("Adds a new native point layer with hilbert curve based index, returns the layer root node")
-	public Stream<NodeResult> addNativePointLayerHilbert(@Name("name") String name) {
+	public Stream<NodeResult> addNativePointLayerHilbert(@Name("name") String name,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig
+	) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
 			return streamNode(sdb.createLayer(tx, name, NativePointEncoder.class, SimplePointLayer.class,
-					LayerHilbertPointIndex.class, null, DefaultGeographicCRS.WGS84).getLayerNode(tx));
+							LayerHilbertPointIndex.class, null, indexConfig, DefaultGeographicCRS.WGS84)
+					.getLayerNode(tx));
 		}
 		throw new IllegalArgumentException("Cannot create existing layer: " + name);
 	}
@@ -368,15 +390,17 @@ public class SpatialProcedures extends SpatialApiBase {
 			@Name("xProperty") String xProperty,
 			@Name("yProperty") String yProperty,
 			@Name(value = "indexType", defaultValue = RTREE_INDEX_NAME) String indexType,
-			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName) {
+			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
 			if (xProperty != null && yProperty != null) {
 				return streamNode(sdb.createLayer(tx, name, NativePointEncoder.class, SimplePointLayer.class,
-						SpatialDatabaseService.resolveIndexClass(indexType),
-						SpatialDatabaseService.makeEncoderConfig(xProperty, yProperty),
-						selectCRS(hintCRSName(crsName, yProperty))).getLayerNode(tx));
+								SpatialDatabaseService.resolveIndexClass(indexType),
+								SpatialDatabaseService.makeEncoderConfig(xProperty, yProperty), indexConfig,
+								selectCRS(hintCRSName(crsName, yProperty)))
+						.getLayerNode(tx));
 			}
 			throw new IllegalArgumentException(
 					"Cannot create layer '" + name + "': Missing encoder config values: xProperty[" + xProperty
@@ -391,14 +415,16 @@ public class SpatialProcedures extends SpatialApiBase {
 			@Name("name") String name,
 			@Name("encoderConfig") String encoderConfig,
 			@Name(value = "indexType", defaultValue = RTREE_INDEX_NAME) String indexType,
-			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName) {
+			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
 			if (encoderConfig.indexOf(':') > 0) {
 				return streamNode(sdb.createLayer(tx, name, NativePointEncoder.class, SimplePointLayer.class,
-						SpatialDatabaseService.resolveIndexClass(indexType), encoderConfig,
-						selectCRS(hintCRSName(crsName, encoderConfig))).getLayerNode(tx));
+								SpatialDatabaseService.resolveIndexClass(indexType), encoderConfig, indexConfig,
+								selectCRS(hintCRSName(crsName, encoderConfig)))
+						.getLayerNode(tx));
 			}
 			throw new IllegalArgumentException(
 					"Cannot create layer '" + name + "': invalid encoder config '" + encoderConfig + "'");
@@ -407,6 +433,7 @@ public class SpatialProcedures extends SpatialApiBase {
 	}
 
 	public static final String UNSET_CRS_NAME = "";
+	public static final String UNSET_INDEX_CONFIG = "";
 	public static final String WGS84_CRS_NAME = "wgs84";
 
 	/**
@@ -439,15 +466,17 @@ public class SpatialProcedures extends SpatialApiBase {
 	public Stream<NodeResult> addLayerWithEncoder(
 			@Name("name") String name,
 			@Name("encoder") String encoderClassName,
-			@Name("encoderConfig") String encoderConfig) {
+			@Name("encoderConfig") String encoderConfig,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
 			Class<? extends GeometryEncoder> encoderClass = encoderClasses.get(encoderClassName);
 			Class<? extends Layer> layerClass = SpatialDatabaseService.suggestLayerClassForEncoder(encoderClass);
 			if (encoderClass != null) {
-				return streamNode(
-						sdb.createLayer(tx, name, encoderClass, layerClass, null, encoderConfig).getLayerNode(tx));
+				return streamNode(sdb
+						.createLayer(tx, name, encoderClass, layerClass, null, encoderConfig, indexConfig)
+						.getLayerNode(tx));
 			}
 			throw new IllegalArgumentException(
 					"Cannot create layer '" + name + "': invalid encoder class '" + encoderClassName + "'");
@@ -460,13 +489,15 @@ public class SpatialProcedures extends SpatialApiBase {
 	public Stream<NodeResult> addLayerOfType(
 			@Name("name") String name,
 			@Name("type") String type,
-			@Name("encoderConfig") String encoderConfig) {
+			@Name("encoderConfig") String encoderConfig,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
 			Map<String, String> knownTypes = SpatialDatabaseService.getRegisteredLayerTypes();
 			if (knownTypes.containsKey(type.toLowerCase())) {
-				return streamNode(sdb.getOrCreateRegisteredTypeLayer(tx, name, type, encoderConfig).getLayerNode(tx));
+				return streamNode(sdb.getOrCreateRegisteredTypeLayer(tx, name, type, encoderConfig, indexConfig)
+						.getLayerNode(tx));
 			}
 			throw new IllegalArgumentException(
 					"Cannot create layer '" + name + "': unknown type '" + type + "' - supported types are "
@@ -486,8 +517,9 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Procedure(value = "spatial.addWKTLayer", mode = WRITE)
 	@Description("Adds a new WKT layer with the given node property to hold the WKT string, returns the layer root node")
 	public Stream<NodeResult> addWKTLayer(@Name("name") String name,
-			@Name("nodePropertyName") String nodePropertyName) {
-		return addLayerOfType(name, "WKT", nodePropertyName);
+			@Name("nodePropertyName") String nodePropertyName,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
+		return addLayerOfType(name, "WKT", nodePropertyName, indexConfig);
 	}
 
 	@Procedure(value = "spatial.layer", mode = WRITE)
@@ -673,7 +705,7 @@ public class SpatialProcedures extends SpatialApiBase {
 		// Delegate creating the layer to the inner thread, so we do not pollute the procedure transaction with anything that might conflict.
 		// Since the procedure transaction starts before, and ends after, all inner transactions.
 		BiFunction<Transaction, String, OSMLayer> layerMaker = (tx, name) -> (OSMLayer) spatial().getOrCreateLayer(tx,
-				name, OSMGeometryEncoder.class, OSMLayer.class);
+				name, OSMGeometryEncoder.class, OSMLayer.class, "");
 		return Stream.of(new CountResult(importOSMToLayer(uri, layerName, layerMaker)));
 	}
 

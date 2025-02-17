@@ -48,7 +48,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
 				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		Geometry geometry;
 		try (Transaction tx = graphDb().beginTx()) {
-			EditableLayer layer = spatial.getOrCreateEditableLayer(tx, "jts");
+			EditableLayer layer = spatial.getOrCreateEditableLayer(tx, "jts", null, null);
 			Coordinate[] coordinates = new Coordinate[]{new Coordinate(0, 0), new Coordinate(0, 1),
 					new Coordinate(1, 1)};
 			geometry = layer.getGeometryFactory().createLineString(coordinates);
@@ -145,7 +145,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
 			OSMDataset.fromLayer(tx, osmLayer); // cache for future usage below
 			GeometryFactory factory = osmLayer.getGeometryFactory();
 			EditableLayerImpl resultsLayer = (EditableLayerImpl) spatial.getOrCreateEditableLayer(tx,
-					"testSnapping_results");
+					"testSnapping_results", null, null);
 			String[] fieldsNames = new String[]{"snap-id", "description", "distance"};
 			resultsLayer.setExtraPropertyNames(fieldsNames, tx);
 			Point point = factory.createPoint(new Coordinate(12.9777, 56.0555));
@@ -158,7 +158,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
 				for (PointResult result : edgeResults) {
 					System.out.println("\t" + result);
 					resultsLayer.add(tx, result.getKey(), fieldsNames,
-							new Object[]{result.getValue().getGeomNode().getId(),
+							new Object[]{result.getValue().getGeomNode().getElementId(),
 									"Snapped point to layer " + layerName + ": " + result.getValue().getGeometry()
 											.toString(),
 									(long) (1000000 * result.getDistance())});

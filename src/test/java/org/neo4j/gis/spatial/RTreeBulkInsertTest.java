@@ -180,7 +180,7 @@ public class RTreeBulkInsertTest {
 		CoordinateReferenceSystem crs = DefaultEngineeringCRS.GENERIC_2D;
 		try (Transaction tx = db.beginTx()) {
 			SpatialDatabaseService sdbs = spatial();
-			EditableLayer layer = sdbs.getOrCreateSimplePointLayer(tx, name, index, xProperty, yProperty);
+			EditableLayer layer = sdbs.getOrCreateSimplePointLayer(tx, name, index, xProperty, yProperty, null);
 			layer.setCoordinateReferenceSystem(tx, crs);
 			tx.commit();
 			return layer;
@@ -1246,7 +1246,7 @@ public class RTreeBulkInsertTest {
 			System.out.println("BulkLoadingTestRun " + j);
 			try (Transaction tx = db.beginTx()) {
 
-				EditableLayer layer = sdbs.getOrCreateSimplePointLayer(tx, "BulkLoader", "rtree", "lon", "lat");
+				EditableLayer layer = sdbs.getOrCreateSimplePointLayer(tx, "BulkLoader", "rtree", "lon", "lat", null);
 				List<Node> coords = new ArrayList<>(N);
 				for (int i = 0; i < N; i++) {
 					Node n = tx.createNode(Label.label("Coordinate"));

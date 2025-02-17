@@ -20,10 +20,22 @@
 
 package org.neo4j.gis.spatial.functions;
 
+import static org.neo4j.gis.spatial.Constants.SRID_COORDINATES_2D;
+import static org.neo4j.gis.spatial.Constants.SRID_COORDINATES_3D;
+
+import java.util.Arrays;
+import java.util.Collection;
+import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.io.ParseException;
+import org.locationtech.jts.io.WKTReader;
+import org.locationtech.jts.io.WKTWriter;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures.GeometryResult;
+import org.neo4j.gis.spatial.utilities.GeoJsonUtils;
 import org.neo4j.gis.spatial.utilities.SpatialApiBase;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.procedure.Description;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.UserFunction;
@@ -54,5 +66,48 @@ public class SpatialFunctions extends SpatialApiBase {
 		return toNeo4jGeometry(null, geometry);
 	}
 
+	@UserFunction("spatial.wktToGeoJson")
+	@Description("Converts a WKT to GeoJson structure")
+	public Object wktToGeoJson(@Name("wkt") String wkt) throws ParseException {
+		if (wkt == null) {
+			return null;
+		}
+		WKTReader wktReader = new WKTReader();
+		Geometry geometry = wktReader.read(wkt);
+		return GeoJsonUtils.toGeoJsonStructure(geometry);
+	}
 
+	@UserFunction("spatial.neo4jGeometryToWkt")
+	@Description("Converts a point or point array to WKT")
+	public String nativeToWkt(@Name("data") Object object) {
+		if (object instanceof Point point) {
+			var coordinate = convertToCoordinate(point);
+			return WKTWriter.toPoint(coordinate);
+		}
+		if (object instanceof Point[] points) {
+			var coordinates = Arrays.stream(points).map(SpatialFunctions::convertToCoordinate)
+					.toArray(Coordinate[]::new);
+			return WKTWriter.toLineString(coordinates);
+		}
+		if (object instanceof Collection<?> points) {
+			var coordinates = points.stream()
+					.filter(Point.class::isInstance)
+					.map(Point.class::cast)
+					.map(SpatialFunctions::convertToCoordinate)
+					.toArray(Coordinate[]::new);
+			return WKTWriter.toLineString(coordinates);
+		}
+		throw new IllegalArgumentException("Unsupported type: " + object.getClass());
+	}
+
+	private static Coordinate convertToCoordinate(Point point) {
+		double[] coordinate = point.getCoordinate().getCoordinate();
+		if (point.getCRS().getCode() == SRID_COORDINATES_3D) {
+			return new Coordinate(coordinate[0], coordinate[1], coordinate[2]);
+		} else if (point.getCRS().getCode() == SRID_COORDINATES_2D) {
+			return new Coordinate(coordinate[0], coordinate[1]);
+		} else {
+			throw new IllegalArgumentException("Unsupported CRS: " + point.getCRS().getCode());
+		}
+	}
 }

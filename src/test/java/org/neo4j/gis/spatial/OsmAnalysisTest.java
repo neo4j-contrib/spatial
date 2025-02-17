@@ -353,7 +353,7 @@ public class OsmAnalysisTest extends TestOSMImportBase {
 				}
 
 				EditableLayerImpl layer = (EditableLayerImpl) spatialService.createLayer(tx, name,
-						WKBGeometryEncoder.class, EditableLayerImpl.class);
+						WKBGeometryEncoder.class, EditableLayerImpl.class, "");
 				layer.setExtraPropertyNames(
 						new String[]{"user_id", "user_name", "year", "month", "dayOfMonth", "weekOfYear"}, tx);
 

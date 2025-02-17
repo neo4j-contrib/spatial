@@ -21,7 +21,6 @@ package org.neo4j.gis.spatial.encoders;
 
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.geom.GeometryFactory;
 import org.neo4j.gis.spatial.AbstractGeometryEncoder;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.graphdb.Entity;
@@ -35,18 +34,9 @@ import org.neo4j.graphdb.Transaction;
 // TODO: Consider switching from Float to Double according to Davide Savazzi
 public class SimplePropertyEncoder extends AbstractGeometryEncoder {
 
-	protected GeometryFactory geometryFactory;
-
-	protected GeometryFactory getGeometryFactory() {
-		if (geometryFactory == null) {
-			geometryFactory = new GeometryFactory();
-		}
-		return geometryFactory;
-	}
-
 	@Override
 	protected void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container) {
-		container.setProperty("gtype", SpatialDatabaseService.convertJtsClassToGeometryType(geometry.getClass()));
+		container.setProperty(PROP_TYPE, SpatialDatabaseService.convertJtsClassToGeometryType(geometry.getClass()));
 		Coordinate[] coords = geometry.getCoordinates();
 		float[] data = new float[coords.length * 2];
 		for (int i = 0; i < coords.length; i++) {

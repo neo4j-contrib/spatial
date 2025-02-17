@@ -68,6 +68,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 
 	public static final String KEY_MAX_NODE_REFERENCES = "maxNodeReferences";
 	public static final String KEY_SHOULD_MERGE_TREES = "shouldMergeTrees";
+	public static final String REFERENCE_RELATIONSHIP_TYPE = "referenceRelationshipType";
 	public static final int MIN_MAX_NODE_REFERENCES = 10;
 	public static final int MAX_MAX_NODE_REFERENCES = 1000000;
 	public static final int DEFAULT_MAX_NODE_REFERENCES = 100;
@@ -78,6 +79,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 	private int maxNodeReferences;
 	private String splitMode = GREENES_SPLIT;
 	private boolean shouldMergeTrees = false;
+	private RelationshipType referenceRelationshipType = RTreeRelationshipTypes.RTREE_REFERENCE;
 
 	private int totalGeometryCount = 0;
 	private boolean countSaved = false;
@@ -107,6 +109,9 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 
 	@Override
 	public void setConfiguration(String jsonConfig) {
+		if (jsonConfig == null || jsonConfig.isBlank()) {
+			return;
+		}
 		JSONObject jsonObject = (JSONObject) JSONValue.parse(jsonConfig);
 		HashMap<String, Object> config = new HashMap<>();
 		for (Object key : jsonObject.keySet()) {
@@ -121,26 +126,28 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		config.put(KEY_SPLIT, this.splitMode);
 		config.put(KEY_MAX_NODE_REFERENCES, this.maxNodeReferences);
 		config.put(KEY_SHOULD_MERGE_TREES, this.shouldMergeTrees);
+		config.put(REFERENCE_RELATIONSHIP_TYPE, this.referenceRelationshipType.name());
 		return JSONObject.toJSONString(config);
 	}
 
 	@Override
 	public void configure(Map<String, Object> config) {
-		for (String key : config.keySet()) {
+		config.forEach((key, rawValue) -> {
 			switch (key) {
 				case KEY_SPLIT:
-					String value = config.get(key).toString();
+					String value = rawValue.toString();
 					switch (value) {
 						case QUADRATIC_SPLIT:
 						case GREENES_SPLIT:
 							splitMode = value;
 							break;
 						default:
-							throw new IllegalArgumentException("No such RTreeIndex value for '" + key + "': " + value);
+							throw new IllegalArgumentException(
+									"No such RTreeIndex value for '" + key + "': " + rawValue);
 					}
 					break;
 				case KEY_MAX_NODE_REFERENCES:
-					int intValue = Integer.parseInt(config.get(key).toString());
+					int intValue = Integer.parseInt(rawValue.toString());
 					if (intValue < MIN_MAX_NODE_REFERENCES) {
 						throw new IllegalArgumentException(
 								"RTreeIndex does not allow " + key + " less than " + MIN_MAX_NODE_REFERENCES);
@@ -152,12 +159,15 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 					this.maxNodeReferences = intValue;
 					break;
 				case KEY_SHOULD_MERGE_TREES:
-					this.shouldMergeTrees = Boolean.parseBoolean(config.get(key).toString());
+					this.shouldMergeTrees = Boolean.parseBoolean(rawValue.toString());
+					break;
+				case REFERENCE_RELATIONSHIP_TYPE:
+					this.referenceRelationshipType = RelationshipType.withName(rawValue.toString());
 					break;
 				default:
 					throw new IllegalArgumentException("No such RTreeIndex configuration key: " + key);
 			}
-		}
+		});
 	}
 
 	@Override
@@ -178,7 +188,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 			parent = chooseSubTree(parent, geomNode);
 		}
 		// bbox enlargement needed
-		if (countChildren(parent, RTreeRelationshipTypes.RTREE_REFERENCE) >= maxNodeReferences) {
+		if (countChildren(parent, referenceRelationshipType) >= maxNodeReferences) {
 			insertInLeaf(parent, geomNode);
 			splitAndAdjustPathBoundingBox(tx, parent);
 		} else if (insertInLeaf(parent, geomNode)) {
@@ -405,7 +415,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 					int newHeight = getHeight(newRootNode, 0);
 					if (newHeight == 1) {
 						monitor.addCase("h_i > l_t (d==1)");
-						try (var relationships = newRootNode.getRelationships(RTreeRelationshipTypes.RTREE_REFERENCE)) {
+						try (var relationships = newRootNode.getRelationships(referenceRelationshipType)) {
 							for (Relationship geom : relationships) {
 								addBelow(tx, child.node, geom.getEndNode());
 								geom.delete();
@@ -616,7 +626,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 
 				// remove the entry
 				final Relationship geometryRtreeReference = geomNode.getSingleRelationship(
-						RTreeRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING);
+						referenceRelationshipType, Direction.INCOMING);
 				if (geometryRtreeReference != null) {
 					geometryRtreeReference.delete();
 				}
@@ -625,11 +635,11 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 				}
 
 				// reorganize the tree if needed
-				if (countChildren(indexNode, RTreeRelationshipTypes.RTREE_REFERENCE) == 0) {
-					indexNode = deleteEmptyTreeNodes(indexNode, RTreeRelationshipTypes.RTREE_REFERENCE);
+				if (countChildren(indexNode, referenceRelationshipType) == 0) {
+					indexNode = deleteEmptyTreeNodes(indexNode, referenceRelationshipType);
 					adjustParentBoundingBox(indexNode, RTreeRelationshipTypes.RTREE_CHILD);
 				} else {
-					adjustParentBoundingBox(indexNode, RTreeRelationshipTypes.RTREE_REFERENCE);
+					adjustParentBoundingBox(indexNode, referenceRelationshipType);
 				}
 
 				adjustPathBoundingBox(indexNode);
@@ -671,7 +681,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 
 				@Override
 				public void onIndexReference(Node geomNode) {
-					geomNode.getSingleRelationship(RTreeRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING).delete();
+					geomNode.getSingleRelationship(referenceRelationshipType, Direction.INCOMING).delete();
 					if (deleteGeomNodes) {
 						deleteNode(geomNode);
 					}
@@ -792,7 +802,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 						Evaluation.EXCLUDE_AND_CONTINUE :
 						Evaluation.EXCLUDE_AND_PRUNE;
 			}
-			if (rel.isType(RTreeRelationshipTypes.RTREE_REFERENCE)) {
+			if (rel.isType(referenceRelationshipType)) {
 				boolean found;
 				if (state.getState() == SearchFilter.EnvelopFilterResult.INCLUDE_ALL) {
 					found = true;
@@ -819,7 +829,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 				.depthFirst()
 				.expand(StandardExpander.DEFAULT, path -> SearchFilter.EnvelopFilterResult.FILTER)
 				.relationships(RTreeRelationshipTypes.RTREE_CHILD, Direction.OUTGOING)
-				.relationships(RTreeRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)
+				.relationships(referenceRelationshipType, Direction.OUTGOING)
 				.evaluator(searchEvaluator);
 		Traverser traverser = td.traverse(getIndexRoot(tx));
 		return new SearchResults(traverser.nodes());
@@ -841,9 +851,9 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 				}
 			}
 		} else // Node is a leaf
-			if (indexNode.hasRelationship(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_REFERENCE)) {
+			if (indexNode.hasRelationship(Direction.OUTGOING, referenceRelationshipType)) {
 				try (var relationships = indexNode.getRelationships(Direction.OUTGOING,
-						RTreeRelationshipTypes.RTREE_REFERENCE)) {
+						referenceRelationshipType)) {
 					for (Relationship rel : relationships) {
 						visitor.onIndexReference(rel.getEndNode());
 					}
@@ -863,7 +873,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 	 * know whether the child is a leaf or an index node.
 	 */
 	private Envelope getChildNodeEnvelope(Node child, RelationshipType relType) {
-		if (relType.name().equals(RTreeRelationshipTypes.RTREE_REFERENCE.name())) {
+		if (relType.name().equals(referenceRelationshipType.name())) {
 			return getLeafNodeEnvelope(child);
 		}
 		return getIndexNodeEnvelope(child);
@@ -893,7 +903,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		return new Envelope(bbox[0], bbox[2], bbox[1], bbox[3]);
 	}
 
-	private static void visitInTx(Transaction tx, SpatialIndexVisitor visitor, String indexNodeId) {
+	private void visitInTx(Transaction tx, SpatialIndexVisitor visitor, String indexNodeId) {
 		Node indexNode = tx.getNodeByElementId(indexNodeId);
 		if (!visitor.needsToVisit(getIndexNodeEnvelope(indexNode))) {
 			return;
@@ -916,9 +926,9 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 				visitInTx(tx, visitor, child);
 			}
 		} else // Node is a leaf
-			if (indexNode.hasRelationship(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_REFERENCE)) {
+			if (indexNode.hasRelationship(Direction.OUTGOING, referenceRelationshipType)) {
 				try (var relationships = indexNode.getRelationships(Direction.OUTGOING,
-						RTreeRelationshipTypes.RTREE_REFERENCE)) {
+						referenceRelationshipType)) {
 					for (Relationship rel : relationships) {
 						visitor.onIndexReference(rel.getEndNode());
 					}
@@ -1068,7 +1078,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 	 * @return is enlargement needed?
 	 */
 	private boolean insertInLeaf(Node indexNode, Node geomRootNode) {
-		return addChild(indexNode, RTreeRelationshipTypes.RTREE_REFERENCE, geomRootNode);
+		return addChild(indexNode, referenceRelationshipType, geomRootNode);
 	}
 
 	private void splitAndAdjustPathBoundingBox(Transaction tx, Node indexNode) {
@@ -1095,14 +1105,14 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 
 	private Node quadraticSplit(Transaction tx, Node indexNode) {
 		if (nodeIsLeaf(indexNode)) {
-			return quadraticSplit(tx, indexNode, RTreeRelationshipTypes.RTREE_REFERENCE);
+			return quadraticSplit(tx, indexNode, referenceRelationshipType);
 		}
 		return quadraticSplit(tx, indexNode, RTreeRelationshipTypes.RTREE_CHILD);
 	}
 
 	private Node greenesSplit(Transaction tx, Node indexNode) {
 		if (nodeIsLeaf(indexNode)) {
-			return greenesSplit(tx, indexNode, RTreeRelationshipTypes.RTREE_REFERENCE);
+			return greenesSplit(tx, indexNode, referenceRelationshipType);
 		}
 		return greenesSplit(tx, indexNode, RTreeRelationshipTypes.RTREE_CHILD);
 	}
@@ -1422,12 +1432,12 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		node.delete();
 	}
 
-	protected static boolean isGeometryNodeIndexed(Node geomNode) {
-		return geomNode.hasRelationship(Direction.INCOMING, RTreeRelationshipTypes.RTREE_REFERENCE);
+	protected boolean isGeometryNodeIndexed(Node geomNode) {
+		return geomNode.hasRelationship(Direction.INCOMING, referenceRelationshipType);
 	}
 
-	protected static Node findLeafContainingGeometryNode(Node geomNode) {
-		return geomNode.getSingleRelationship(RTreeRelationshipTypes.RTREE_REFERENCE, Direction.INCOMING)
+	protected Node findLeafContainingGeometryNode(Node geomNode) {
+		return geomNode.getSingleRelationship(referenceRelationshipType, Direction.INCOMING)
 				.getStartNode();
 	}
 
@@ -1485,7 +1495,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 	 * the objects from one type to another without loading all into memory,
 	 * we need to use this ugly java-magic. Man, I miss Ruby right now!
 	 */
-	private static class IndexNodeToGeometryNodeIterable implements Iterable<Node> {
+	private class IndexNodeToGeometryNodeIterable implements Iterable<Node> {
 
 		private final Iterator<Node> allIndexNodeIterator;
 
@@ -1509,7 +1519,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 				MonoDirectionalTraversalDescription traversal = new MonoDirectionalTraversalDescription();
 				TraversalDescription td = traversal
 						.depthFirst()
-						.relationships(RTreeRelationshipTypes.RTREE_REFERENCE, Direction.OUTGOING)
+						.relationships(referenceRelationshipType, Direction.OUTGOING)
 						.evaluator(Evaluators.excludeStartPosition())
 						.evaluator(Evaluators.toDepth(1));
 				while ((geometryNodeIterator == null || !geometryNodeIterator.hasNext()) &&

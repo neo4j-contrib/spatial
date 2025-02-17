@@ -29,6 +29,7 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.neo4j.gis.spatial.Constants.LABEL_LAYER;
@@ -54,6 +55,7 @@ import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.utilities.ReferenceNodes;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.QueryExecutionException;
 import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.spatial.Geometry;
@@ -141,15 +143,13 @@ public class SpatialProceduresTest extends AbstractApiTest {
 
 	private static Layer makeLayerOfVariousTypes(SpatialDatabaseService spatial, Transaction tx, String name,
 			int index) {
-		switch (index % 3) {
-			case 0:
-				return spatial.getOrCreateSimplePointLayer(tx, name, SpatialDatabaseService.RTREE_INDEX_NAME, "x", "y");
-			case 1:
-				return spatial.getOrCreateNativePointLayer(tx, name, SpatialDatabaseService.RTREE_INDEX_NAME,
-						"location");
-			default:
-				return spatial.getOrCreateDefaultLayer(tx, name);
-		}
+		return switch (index % 3) {
+			case 0 -> spatial.getOrCreateSimplePointLayer(tx, name, SpatialDatabaseService.RTREE_INDEX_NAME, "x", "y",
+					null);
+			case 1 -> spatial.getOrCreateNativePointLayer(tx, name, SpatialDatabaseService.RTREE_INDEX_NAME, "location",
+					null);
+			default -> spatial.getOrCreateDefaultLayer(tx, name, null);
+		};
 	}
 
 	private void makeOldSpatialModel(Transaction tx, String... layers) {
@@ -568,7 +568,7 @@ public class SpatialProceduresTest extends AbstractApiTest {
 					procs.get("spatial.layers"));
 			assertEquals("spatial.layer(name :: STRING) :: (node :: NODE)", procs.get("spatial.layer"));
 			assertEquals(
-					"spatial.addLayer(name :: STRING, type :: STRING, encoderConfig :: STRING) :: (node :: NODE)",
+					"spatial.addLayer(name :: STRING, type :: STRING, encoderConfig :: STRING, indexConfig =  :: STRING) :: (node :: NODE)",
 					procs.get("spatial.addLayer"));
 			assertEquals("spatial.addNode(layerName :: STRING, node :: NODE) :: (node :: NODE)",
 					procs.get("spatial.addNode"));
@@ -866,6 +866,41 @@ public class SpatialProceduresTest extends AbstractApiTest {
 				"RETURN count";
 		testCountQuery("addNodes", query, count, "count", Map.of("count", count));
 		testRemoveNodes("native_poi", count);
+	}
+
+	@Test
+	public void add_node_to_multiple_indexes_in_chunks() {
+		// Playing with this number in both tests leads to rough benchmarking of the addNode/addNodes comparison
+		int count = 100;
+		execute("""
+				UNWIND range(1,$count) as i
+				CREATE (n:Point {
+				    id: i,
+				    point1: point( { latitude: 56.0, longitude: 12.0 } ),
+				    point2: point( { latitude: 57.0, longitude: 13.0 } )
+				})""", Map.of("count", count));
+		execute("CALL spatial.addLayer('point1','NativePoint','point1:point1BB', '{\"referenceRelationshipType\": \"RTREE_P1_TYPE\"}')");
+		execute("CALL spatial.addLayer('point2','NativePoint','point2:point2BB', '{\"referenceRelationshipType\": \"RTREE_P2_TYPE\"}')");
+		db.executeTransactionally("""
+				MATCH (p:Point)
+				WITH (count(p) / 10) AS pages, collect(p) AS nodes
+				UNWIND range(0, pages) AS i CALL {
+				    WITH i, nodes
+				    CALL spatial.addNodes('point1', nodes[(i * 10)..((i + 1) * 10)]) YIELD count
+				    RETURN count AS count
+				} IN TRANSACTIONS OF 1 ROWS
+				RETURN sum(count) AS count
+				""");
+		db.executeTransactionally("""
+				MATCH (p:Point)
+				WITH (count(p) / 10) AS pages, collect(p) AS nodes
+				UNWIND range(0, pages) AS i CALL {
+				    WITH i, nodes
+				    CALL spatial.addNodes('point2', nodes[(i * 10)..((i + 1) * 10)]) YIELD count
+				    RETURN count AS count
+				} IN TRANSACTIONS OF 1 ROWS
+				RETURN sum(count) AS count
+				""");
 	}
 
 	@Test
@@ -1242,6 +1277,56 @@ public class SpatialProceduresTest extends AbstractApiTest {
 	public void find_no_geometries_using_closest_on_empty_layer() {
 		execute("CALL spatial.addLayer('geom','WKT','wkt')");
 		testCallCount(db, "CALL spatial.closest('geom',{lon:15.2, lat:60.1}, 1.0)", null, 0);
+	}
+
+	@Test
+	public void testNativePoints() {
+		execute("CREATE (node:Foo { points: [point({latitude: 5.0, longitude: 4.0}), point({latitude: 6.0, longitude: 5.0})]})");
+		execute("CALL spatial.addLayer('line','NativePoints','points') YIELD node" +
+				" MATCH (n:Foo)" +
+				" WITH collect(n) AS nodes" +
+				" CALL spatial.addNodes('line', nodes) YIELD count RETURN count");
+		testCallCount(db, "CALL spatial.closest('line',{lon:5.1, lat:4.1}, 1.0)", null, 1);
+	}
+
+	@Test
+	public void testNativePoints3D() {
+		execute("CREATE (node:Foo { points: [point({latitude: 5.0, longitude: 4.0, height: 1.0}), point({latitude: 6.0, longitude: 5.0, height: 2.0})]})");
+		Exception exception = assertThrows(QueryExecutionException.class, () -> {
+			execute("CALL spatial.addLayer('line','NativePoints','points:bbox:Cartesian') YIELD node" +
+					" MATCH (n:Foo)" +
+					" WITH collect(n) AS nodes" +
+					" CALL spatial.addNodes('line', nodes) YIELD count RETURN count");
+		});
+
+		assertEquals(
+				"Failed to invoke procedure `spatial.addNodes`: Caused by: java.lang.IllegalStateException: Trying to decode geometry with wrong CRS: layer configured to crs=7203, but geometry has crs=4979",
+				exception.getMessage());
+	}
+
+	@Test
+	public void testNativePointsCartesian() {
+		execute("CREATE (node:Foo { points: [point({x: 5.0, y: 4.0}), point({x: 6.0, y: 5.0})]})");
+		execute("CALL spatial.addLayer('line','NativePoints','points:bbox:Cartesian') YIELD node" +
+				" MATCH (n:Foo)" +
+				" WITH collect(n) AS nodes" +
+				" CALL spatial.addNodes('line', nodes) YIELD count RETURN count");
+		testCallCount(db, "CALL spatial.closest('line',point({x:5.1, y:4.1}), 1.0)", null, 1);
+	}
+
+	@Test
+	public void testNativePointsCartesian3D() {
+		execute("CREATE (node:Foo { points: [point({x: 5.0, y: 4.0, z: 1}), point({x: 6.0, y: 5.0, z: 2})]})");
+		Exception exception = assertThrows(QueryExecutionException.class, () -> {
+			execute("CALL spatial.addLayer('line','NativePoints','points:bbox:Cartesian') YIELD node" +
+					" MATCH (n:Foo)" +
+					" WITH collect(n) AS nodes" +
+					" CALL spatial.addNodes('line', nodes) YIELD count RETURN count");
+		});
+
+		assertEquals(
+				"Failed to invoke procedure `spatial.addNodes`: Caused by: java.lang.IllegalStateException: Trying to decode geometry with wrong CRS: layer configured to crs=7203, but geometry has crs=9157",
+				exception.getMessage());
 	}
 
     /*
