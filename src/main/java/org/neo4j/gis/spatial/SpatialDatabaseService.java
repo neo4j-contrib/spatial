@@ -35,6 +35,7 @@ import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.gis.spatial.encoders.NativePointEncoder;
+import org.neo4j.gis.spatial.encoders.NativePointsEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
@@ -526,6 +527,8 @@ public class SpatialDatabaseService implements Constants {
 				"longitude:latitude"));
 		addRegisteredLayerType(new RegisteredLayerType("NativePoint", NativePointEncoder.class,
 				SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "location"));
+		addRegisteredLayerType(new RegisteredLayerType("NativePoints", NativePointsEncoder.class,
+				EditableLayerImpl.class, DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "geometry"));
 		addRegisteredLayerType(new RegisteredLayerType("NativeGeohash", NativePointEncoder.class,
 				SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerGeohashPointIndex.class, "location"));
 		addRegisteredLayerType(new RegisteredLayerType("NativeZOrder", NativePointEncoder.class,
