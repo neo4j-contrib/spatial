@@ -44,7 +44,6 @@ import org.neo4j.internal.kernel.api.NodeIndexCursor;
 import org.neo4j.internal.kernel.api.NodeValueIndexCursor;
 import org.neo4j.internal.kernel.api.PropertyIndexQuery;
 import org.neo4j.internal.kernel.api.Read;
-import org.neo4j.internal.kernel.api.TokenRead;
 import org.neo4j.internal.schema.IndexDescriptor;
 import org.neo4j.internal.schema.IndexType;
 import org.neo4j.internal.schema.SchemaDescriptors;
@@ -53,6 +52,7 @@ import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.core.NodeEntity;
 import org.neo4j.kernel.impl.coreapi.internal.CursorIterator;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.token.api.TokenConstants;
 
 public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBackedPointIndex<Long> {
 
@@ -147,7 +147,7 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
 				PropertyIndexQuery query) {
 			Read read = transaction.dataRead();
 
-			if (query.propertyKeyId() == TokenRead.NO_TOKEN || labelId == TokenRead.NO_TOKEN) {
+			if (query.propertyKeyId() == TokenConstants.NO_TOKEN || labelId == TokenConstants.NO_TOKEN) {
 				return emptyResourceIterator();
 			}
 			Iterator<IndexDescriptor> iterator = transaction.schemaRead()
