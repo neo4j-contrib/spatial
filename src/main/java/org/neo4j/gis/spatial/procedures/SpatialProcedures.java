@@ -32,7 +32,6 @@ import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.locationtech.jts.geom.Coordinate;
@@ -165,7 +164,7 @@ public class SpatialProcedures extends SpatialApiBase {
 		procedures.getCurrentView().getAllProcedures(QueryLanguage.CYPHER_5)
 	    .filter(proc -> proc.name().namespace()[0].equals("spatial"))
 	    .map(proc -> new NameResult(proc.name().toString(), proc.toString()))
-	    .forEach(builder::accept);
+				.forEach(builder);
 
 		return builder.build();
 	}

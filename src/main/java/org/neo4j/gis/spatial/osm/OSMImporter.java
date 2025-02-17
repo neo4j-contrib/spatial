@@ -531,7 +531,7 @@ public class OSMImporter implements Constants {
 			}
 			if (currentTime - logTime > 1432) {
 				System.out.println(
-						new Date(currentTime) + ": Saving " + type + " " + count + " \t(" + (1000.0 * (float) count
+						new Date(currentTime) + ": Saving " + type + " " + count + " \t(" + (1000.0 * count
 								/ (currentTime - firstLogTime)) + " " + type + "/second)");
 				logTime = currentTime;
 			}

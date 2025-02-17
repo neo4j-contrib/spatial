@@ -189,7 +189,6 @@ public class DynamicLayerConfig implements Layer, Constants {
 		System.out.println(
 				"After property scan of " + search.getNodeCount() + " nodes, we have " + getExtraPropertyNames(
 						tx).length + " known attributes for layer " + getName());
-		// search.describeUsage(System.out);
 	}
 
 	public Node configNode(Transaction tx) {

@@ -1,10 +1,10 @@
 name: "Setups JDK"
-description: "Setups JDK 17"
+description: "Setups JDK 21"
 runs:
   using: "composite"
   steps:
     - name: Setup Java JDK
       uses: actions/setup-java@v4
       with:
-        java-version: 17
+        java-version: 21
         distribution: adopt
