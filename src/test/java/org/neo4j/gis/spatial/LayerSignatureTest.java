@@ -64,19 +64,19 @@ public class LayerSignatureTest extends Neo4jTestCase implements Constants {
 	@Test
 	public void testSimpleWKBLayer() {
 		testLayerSignature("EditableLayer(name='test', encoder=WKBGeometryEncoder(geom='geometry', bbox='bbox'))",
-				tx -> spatial.createWKBLayer(tx, "test"));
+				tx -> spatial.createWKBLayer(tx, "test", null));
 	}
 
 	@Test
 	public void testWKBLayer() {
 		testLayerSignature("EditableLayer(name='test', encoder=WKBGeometryEncoder(geom='wkb', bbox='bbox'))",
-				tx -> spatial.getOrCreateEditableLayer(tx, "test", "wkb", "wkb"));
+				tx -> spatial.getOrCreateEditableLayer(tx, "test", "wkb", "wkb", null));
 	}
 
 	@Test
 	public void testWKTLayer() {
 		testLayerSignature("EditableLayer(name='test', encoder=WKTGeometryEncoder(geom='wkt', bbox='bbox'))",
-				tx -> spatial.getOrCreateEditableLayer(tx, "test", "wkt", "wkt"));
+				tx -> spatial.getOrCreateEditableLayer(tx, "test", "wkt", "wkt", null));
 	}
 
 	private Layer testLayerSignature(String signature, Function<Transaction, Layer> layerMaker) {
@@ -100,7 +100,7 @@ public class LayerSignatureTest extends Neo4jTestCase implements Constants {
 	public void testDynamicLayer() {
 		Layer layer = testLayerSignature(
 				"EditableLayer(name='test', encoder=WKTGeometryEncoder(geom='wkt', bbox='bbox'))",
-				tx -> spatial.getOrCreateEditableLayer(tx, "test", "wkt", "wkt"));
+				tx -> spatial.getOrCreateEditableLayer(tx, "test", "wkt", "wkt", null));
 		inTx(tx -> {
 			DynamicLayer dynamic = spatial.asDynamicLayer(tx, layer);
 			assertEquals("EditableLayer(name='test', encoder=WKTGeometryEncoder(geom='wkt', bbox='bbox'))",
