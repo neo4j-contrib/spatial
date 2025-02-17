@@ -63,7 +63,7 @@ public class NativePointsEncoder extends AbstractGeometryEncoder implements Conf
 				.map(point -> {
 					if (point.getCRS().getCode() != crs.getCode()) {
 						throw new IllegalStateException(
-								"Trying to decode geometry with wrong CRS: layer configured to crs=" + crs
+								"Trying to decode geometry with wrong CRS: layer configured to crs=" + crs.getCode()
 										+ ", but geometry has crs=" + point.getCRS().getCode());
 					}
 					double[] coordinate = point.getCoordinate().getCoordinate();

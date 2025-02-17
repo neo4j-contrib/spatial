@@ -29,6 +29,7 @@ import static org.hamcrest.Matchers.not;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.neo4j.gis.spatial.Constants.LABEL_LAYER;
@@ -54,6 +55,7 @@ import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.utilities.ReferenceNodes;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.QueryExecutionException;
 import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.spatial.Geometry;
@@ -1252,6 +1254,46 @@ public class SpatialProceduresTest extends AbstractApiTest {
 				" WITH collect(n) AS nodes" +
 				" CALL spatial.addNodes('line', nodes) YIELD count RETURN count");
 		testCallCount(db, "CALL spatial.closest('line',{lon:5.1, lat:4.1}, 1.0)", null, 1);
+	}
+
+	@Test
+	public void testNativePoints3D() {
+		execute("CREATE (node:Foo { points: [point({latitude: 5.0, longitude: 4.0, height: 1.0}), point({latitude: 6.0, longitude: 5.0, height: 2.0})]})");
+		Exception exception = assertThrows(QueryExecutionException.class, () -> {
+			execute("CALL spatial.addLayer('line','NativePoints','points:bbox:Cartesian') YIELD node" +
+					" MATCH (n:Foo)" +
+					" WITH collect(n) AS nodes" +
+					" CALL spatial.addNodes('line', nodes) YIELD count RETURN count");
+		});
+
+		assertEquals(
+				"Failed to invoke procedure `spatial.addNodes`: Caused by: java.lang.IllegalStateException: Trying to decode geometry with wrong CRS: layer configured to crs=7203, but geometry has crs=4979",
+				exception.getMessage());
+	}
+
+	@Test
+	public void testNativePointsCartesian() {
+		execute("CREATE (node:Foo { points: [point({x: 5.0, y: 4.0}), point({x: 6.0, y: 5.0})]})");
+		execute("CALL spatial.addLayer('line','NativePoints','points:bbox:Cartesian') YIELD node" +
+				" MATCH (n:Foo)" +
+				" WITH collect(n) AS nodes" +
+				" CALL spatial.addNodes('line', nodes) YIELD count RETURN count");
+		testCallCount(db, "CALL spatial.closest('line',point({x:5.1, y:4.1}), 1.0)", null, 1);
+	}
+
+	@Test
+	public void testNativePointsCartesian3D() {
+		execute("CREATE (node:Foo { points: [point({x: 5.0, y: 4.0, z: 1}), point({x: 6.0, y: 5.0, z: 2})]})");
+		Exception exception = assertThrows(QueryExecutionException.class, () -> {
+			execute("CALL spatial.addLayer('line','NativePoints','points:bbox:Cartesian') YIELD node" +
+					" MATCH (n:Foo)" +
+					" WITH collect(n) AS nodes" +
+					" CALL spatial.addNodes('line', nodes) YIELD count RETURN count");
+		});
+
+		assertEquals(
+				"Failed to invoke procedure `spatial.addNodes`: Caused by: java.lang.IllegalStateException: Trying to decode geometry with wrong CRS: layer configured to crs=7203, but geometry has crs=9157",
+				exception.getMessage());
 	}
 
     /*
