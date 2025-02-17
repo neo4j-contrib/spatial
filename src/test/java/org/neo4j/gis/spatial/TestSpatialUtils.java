@@ -158,7 +158,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
 				for (PointResult result : edgeResults) {
 					System.out.println("\t" + result);
 					resultsLayer.add(tx, result.getKey(), fieldsNames,
-							new Object[]{result.getValue().getGeomNode().getId(),
+							new Object[]{result.getValue().getGeomNode().getElementId(),
 									"Snapped point to layer " + layerName + ": " + result.getValue().getGeometry()
 											.toString(),
 									(long) (1000000 * result.getDistance())});
