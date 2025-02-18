@@ -329,6 +329,7 @@ public class OSMImporter implements Constants {
 					}
 				} // TODO ask charset to user?
 			}
+			layer.finalizeTransaction(tx);
 			tx.commit();
 		} finally {
 			endProgressMonitor();

@@ -220,6 +220,10 @@ public class ShapefileImporter implements Constants {
 				}
 			}
 		}
+		try (Transaction tx = database.beginTx()) {
+			layer.finalizeTransaction(tx);
+			tx.commit();
+		}
 
 		long stopTime = System.currentTimeMillis();
 		log("info | elapsed time in seconds: " + (1.0 * (stopTime - startTime) / 1000));
