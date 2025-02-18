@@ -81,4 +81,9 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 	public String getSignature() {
 		return "Editable" + super.getSignature();
 	}
+
+	@Override
+	public void finalizeTransaction(Transaction tx) {
+		getIndex().finalizeTransaction(tx);
+	}
 }
