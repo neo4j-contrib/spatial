@@ -21,7 +21,6 @@ package org.neo4j.gis.spatial.attributes;
 
 import java.util.HashMap;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Transaction;
 
 public abstract class PropertyMapper {
 
@@ -45,7 +44,7 @@ public abstract class PropertyMapper {
 		return false;
 	}
 
-	protected void save(Transaction tx, Node node) {
+	protected void save(Node node) {
 		node.setProperty("from", this.from);
 		node.setProperty("to", this.to);
 		node.setProperty("type", this.type);

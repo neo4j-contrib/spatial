@@ -229,20 +229,4 @@ public class Neo4jSpatialDataStore extends ContentDataStore implements Constants
 		}
 		return result;
 	}
-
-	private EditableLayer getEditableLayer(String typeName) throws IOException {
-		try (Transaction tx = database.beginTx()) {
-			Layer layer = spatialDatabase.getLayer(tx, typeName);
-			if (layer == null) {
-				throw new IOException("Layer not found: " + typeName);
-			}
-
-			if (!(layer instanceof EditableLayer)) {
-				throw new IOException("Cannot create a FeatureWriter on a read-only layer: " + layer);
-			}
-			tx.commit();
-
-			return (EditableLayer) layer;
-		}
-	}
 }

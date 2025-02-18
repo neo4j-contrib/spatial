@@ -24,11 +24,10 @@ import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
 import org.locationtech.jts.io.WKTWriter;
 import org.neo4j.gis.spatial.encoders.AbstractSinglePropertyEncoder;
-import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.Transaction;
 
-public class WKTGeometryEncoder extends AbstractSinglePropertyEncoder implements Configurable {
+public class WKTGeometryEncoder extends AbstractSinglePropertyEncoder {
 
 	@Override
 	public Geometry decodeGeometry(Entity container) {
