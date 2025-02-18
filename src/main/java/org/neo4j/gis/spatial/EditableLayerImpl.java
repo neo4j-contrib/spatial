@@ -83,7 +83,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 	}
 
 	@Override
-	public void close(Transaction tx) {
-		getIndex().close(tx);
+	public void finalizeTransaction(Transaction tx) {
+		getIndex().finalizeTransaction(tx);
 	}
 }

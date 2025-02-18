@@ -221,7 +221,7 @@ public class ShapefileImporter implements Constants {
 			}
 		}
 		try (Transaction tx = database.beginTx()) {
-			layer.close(tx);
+			layer.finalizeTransaction(tx);
 			tx.commit();
 		}
 

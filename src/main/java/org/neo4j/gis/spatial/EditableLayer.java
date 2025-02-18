@@ -63,5 +63,5 @@ public interface EditableLayer extends Layer {
 	/**
 	 * Do any cleanup or final calculation required by the layer implementation.
 	 */
-	void close(Transaction tx);
+	void finalizeTransaction(Transaction tx);
 }

@@ -48,6 +48,6 @@ public interface SpatialIndexReader {
 
 	void configure(Map<String, Object> config);
 
-	default void close(Transaction tx) {
+	default void finalizeTransaction(Transaction tx) {
 	}
 }

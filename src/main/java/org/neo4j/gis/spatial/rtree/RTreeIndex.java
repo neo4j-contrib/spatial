@@ -1556,7 +1556,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 	}
 
 	@Override
-	public void close(Transaction tx) {
+	public void finalizeTransaction(Transaction tx) {
 		saveCount(tx);
 	}
 }

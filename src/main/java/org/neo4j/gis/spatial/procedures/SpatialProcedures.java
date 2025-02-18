@@ -555,7 +555,7 @@ public class SpatialProcedures extends SpatialApiBase {
 	public Stream<NodeResult> addNodeToLayer(@Name("layerName") String name, @Name("node") Node node) {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
 		Node geomNode = layer.add(tx, node).getGeomNode();
-		layer.close(tx);
+		layer.finalizeTransaction(tx);
 		return streamNode(geomNode);
 	}
 
@@ -564,7 +564,7 @@ public class SpatialProcedures extends SpatialApiBase {
 	public Stream<CountResult> addNodesToLayer(@Name("layerName") String name, @Name("nodes") List<Node> nodes) {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
 		int count = layer.addAll(tx, nodes);
-		layer.close(tx);
+		layer.finalizeTransaction(tx);
 		return Stream.of(new CountResult(count));
 	}
 
@@ -573,7 +573,7 @@ public class SpatialProcedures extends SpatialApiBase {
 	public Stream<NodeResult> addNodeIdToLayer(@Name("layerName") String name, @Name("nodeId") String nodeId) {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
 		Node geomNode = layer.add(tx, tx.getNodeByElementId(nodeId)).getGeomNode();
-		layer.close(tx);
+		layer.finalizeTransaction(tx);
 		return streamNode(geomNode);
 	}
 
@@ -584,7 +584,7 @@ public class SpatialProcedures extends SpatialApiBase {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
 		List<Node> nodes = nodeIds.stream().map(id -> tx.getNodeByElementId(id)).collect(Collectors.toList());
 		int count = layer.addAll(tx, nodes);
-		layer.close(tx);
+		layer.finalizeTransaction(tx);
 		return Stream.of(new CountResult(count));
 	}
 
@@ -593,7 +593,7 @@ public class SpatialProcedures extends SpatialApiBase {
 	public Stream<NodeIdResult> removeNodeFromLayer(@Name("layerName") String name, @Name("node") Node node) {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
 		layer.removeFromIndex(tx, node.getElementId());
-		layer.close(tx);
+		layer.finalizeTransaction(tx);
 		return streamNode(node.getElementId());
 	}
 
@@ -607,7 +607,7 @@ public class SpatialProcedures extends SpatialApiBase {
 			layer.removeFromIndex(tx, node.getElementId());
 		}
 		int after = layer.getIndex().count(tx);
-		layer.close(tx);
+		layer.finalizeTransaction(tx);
 		return Stream.of(new CountResult(before - after));
 	}
 
@@ -616,7 +616,7 @@ public class SpatialProcedures extends SpatialApiBase {
 	public Stream<NodeIdResult> removeNodeFromLayer(@Name("layerName") String name, @Name("nodeId") String nodeId) {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
 		layer.removeFromIndex(tx, nodeId);
-		layer.close(tx);
+		layer.finalizeTransaction(tx);
 		return streamNode(nodeId);
 	}
 
@@ -631,7 +631,7 @@ public class SpatialProcedures extends SpatialApiBase {
 			layer.removeFromIndex(tx, nodeId);
 		}
 		int after = layer.getIndex().count(tx);
-		layer.close(tx);
+		layer.finalizeTransaction(tx);
 		return Stream.of(new CountResult(before - after));
 	}
 
@@ -642,7 +642,7 @@ public class SpatialProcedures extends SpatialApiBase {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
 		WKTReader reader = new WKTReader(layer.getGeometryFactory());
 		Node node = addGeometryWkt(layer, reader, geometryWKT);
-		layer.close(tx);
+		layer.finalizeTransaction(tx);
 		return streamNode(node);
 	}
 
@@ -654,7 +654,7 @@ public class SpatialProcedures extends SpatialApiBase {
 		WKTReader reader = new WKTReader(layer.getGeometryFactory());
 		return geometryWKTs.stream().map(geometryWKT -> addGeometryWkt(layer, reader, geometryWKT))
 				.map(NodeResult::new)
-				.onClose(() -> layer.close(tx));
+				.onClose(() -> layer.finalizeTransaction(tx));
 	}
 
 	private Node addGeometryWkt(EditableLayer layer, WKTReader reader, String geometryWKT) {
@@ -673,7 +673,7 @@ public class SpatialProcedures extends SpatialApiBase {
 			@Name("uri") String uri) throws IOException {
 		EditableLayerImpl layer = getEditableLayerOrThrow(tx, spatial(), name);
 		List<Node> nodes = importShapefileToLayer(uri, layer, 1000);
-		layer.close(tx);
+		layer.finalizeTransaction(tx);
 		return Stream.of(new CountResult(nodes.size()));
 	}
 
