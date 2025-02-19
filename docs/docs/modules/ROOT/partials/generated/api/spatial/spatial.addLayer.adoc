@@ -6,7 +6,8 @@
 label:procedure[]
 
 [.emphasis]
-Adds a new layer with the given type (see spatial().getAllLayerTypes) and configuration, returns the layer root node
+Adds a new layer with the given `type` (see `spatial.layerTypes`) and configuration.
+Returns the layers root node.
 
 == Signature
 
@@ -17,18 +18,18 @@ spatial.addLayer(name :: STRING, type :: STRING, encoderConfig :: STRING, indexC
 
 == Input parameters
 
-[.procedures,opts=header']
+[.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
-|name|STRING|null|
-|type|STRING|null|
-|encoderConfig|STRING|null|
-|indexConfig|STRING|""|
+|name|STRING|null|The name of the new layer
+|type|STRING|null|The type of the new layer. Existing layer types can be queried by `spatial.layer`
+|encoderConfig|STRING|null|The configuration of the encoder that is used by layer to en-/decode the geometry of indexed nodes
+|indexConfig|STRING|""|The configuration of the newly created index
 |===
 
 == Output parameters
 
-[.procedures,opts=header']
+[.procedures,opts=header,cols='1,1,8']
 |===
 |Name|Type|Description
 |node|NODE|

@@ -32,7 +32,6 @@ public interface Constants {
 	String PROP_LAYER = "layer";
 	String PROP_LAYERNODEEXTRAPROPS = "layerprops";
 	String PROP_CRS = "layercrs";
-	String PROP_CREATIONTIME = "ctime";
 	String PROP_GEOMENCODER = "geomencoder";
 	String PROP_INDEX_CLASS = "index_class";
 	String PROP_GEOMENCODER_CONFIG = "geomencoder_config";
@@ -50,7 +49,6 @@ public interface Constants {
 			PROP_LAYER,
 			PROP_LAYERNODEEXTRAPROPS,
 			PROP_CRS,
-			PROP_CREATIONTIME,
 			PROP_TYPE,
 			PROP_WKB,
 			PROP_WKT,
@@ -71,4 +69,11 @@ public interface Constants {
 
 	int SRID_COORDINATES_2D = 4326;
 	int SRID_COORDINATES_3D = 4979;
+
+	String DOC_LAYER_NAME = "The name of the new layer";
+	String DOC_LAYER_TYPE = "The type of the new layer. Existing layer types can be queried by `spatial.layer`";
+	String DOC_ENCODER_CONFIG = "The configuration of the encoder that is used by layer to en-/decode the geometry of indexed nodes";
+	String DOC_INDEX_CONFIG = "The configuration of the newly created index";
+	String DOC_ENCODER_NAME = "The name of the encoder to be used for the new layer";
+
 }

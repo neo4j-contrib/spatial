@@ -6,7 +6,7 @@
 label:procedure[]
 
 [.emphasis]
-Returns the layer root node for the given layer name
+Returns the layer root node for the given layer `name`
 
 == Signature
 
@@ -17,15 +17,15 @@ spatial.layer(name :: STRING) :: (node :: NODE)
 
 == Input parameters
 
-[.procedures,opts=header']
+[.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
-|name|STRING|null|
+|name|STRING|null|the name of the layer
 |===
 
 == Output parameters
 
-[.procedures,opts=header']
+[.procedures,opts=header,cols='1,1,8']
 |===
 |Name|Type|Description
 |node|NODE|

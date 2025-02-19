@@ -6,7 +6,7 @@
 |Qualified Name |Type
 |xref:api/spatial/spatial.addLayer.adoc[spatial.addLayer icon:book[]]
 
-Adds a new layer with the given type (see spatial().getAllLayerTypes) and configuration, returns the layer root node
+Adds a new layer with the given `type` (see `spatial.layerTypes`) and configuration. Returns the layers root node.
 |label:procedure[]
 |xref:api/spatial/spatial.addLayerWithEncoder.adoc[spatial.addLayerWithEncoder icon:book[]]
 
@@ -130,7 +130,7 @@ Returns all geometry nodes that intersect the given geometry (shape, polygon) in
 |label:procedure[]
 |xref:api/spatial/spatial.layer.adoc[spatial.layer icon:book[]]
 
-Returns the layer root node for the given layer name
+Returns the layer root node for the given layer `name`
 |label:procedure[]
 |xref:api/spatial/spatial.layerTypes.adoc[spatial.layerTypes icon:book[]]
 

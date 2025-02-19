@@ -17,7 +17,7 @@ spatial.closest(layerName :: STRING, coordinate :: ANY, distanceInKm :: FLOAT) :
 
 == Input parameters
 
-[.procedures,opts=header']
+[.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
 |layerName|STRING|null|
@@ -27,7 +27,7 @@ spatial.closest(layerName :: STRING, coordinate :: ANY, distanceInKm :: FLOAT) :
 
 == Output parameters
 
-[.procedures,opts=header']
+[.procedures,opts=header,cols='1,1,8']
 |===
 |Name|Type|Description
 |node|NODE|

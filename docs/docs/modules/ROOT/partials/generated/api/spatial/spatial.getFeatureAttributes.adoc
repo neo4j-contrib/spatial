@@ -17,7 +17,7 @@ spatial.getFeatureAttributes(name :: STRING) :: (name :: STRING)
 
 == Input parameters
 
-[.procedures,opts=header']
+[.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
 |name|STRING|null|
@@ -25,7 +25,7 @@ spatial.getFeatureAttributes(name :: STRING) :: (name :: STRING)
 
 == Output parameters
 
-[.procedures,opts=header']
+[.procedures,opts=header,cols='1,1,8']
 |===
 |Name|Type|Description
 |name|STRING|

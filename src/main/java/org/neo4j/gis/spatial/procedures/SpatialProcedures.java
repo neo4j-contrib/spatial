@@ -19,6 +19,11 @@
  */
 package org.neo4j.gis.spatial.procedures;
 
+import static org.neo4j.gis.spatial.Constants.DOC_ENCODER_CONFIG;
+import static org.neo4j.gis.spatial.Constants.DOC_ENCODER_NAME;
+import static org.neo4j.gis.spatial.Constants.DOC_INDEX_CONFIG;
+import static org.neo4j.gis.spatial.Constants.DOC_LAYER_NAME;
+import static org.neo4j.gis.spatial.Constants.DOC_LAYER_TYPE;
 import static org.neo4j.gis.spatial.SpatialDatabaseService.RTREE_INDEX_NAME;
 import static org.neo4j.procedure.Mode.READ;
 import static org.neo4j.procedure.Mode.WRITE;
@@ -463,10 +468,10 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Procedure(value = "spatial.addLayerWithEncoder", mode = WRITE)
 	@Description("Adds a new layer with the given encoder class and configuration, returns the layer root node")
 	public Stream<NodeResult> addLayerWithEncoder(
-			@Name("name") String name,
-			@Name("encoder") String encoderClassName,
-			@Name("encoderConfig") String encoderConfig,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
+			@Name(value = "name", description = DOC_LAYER_NAME) String name,
+			@Name(value = "encoder", description = DOC_ENCODER_NAME) String encoderClassName,
+			@Name(value = "encoderConfig", description = DOC_ENCODER_CONFIG) String encoderConfig,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
@@ -484,12 +489,12 @@ public class SpatialProcedures extends SpatialApiBase {
 	}
 
 	@Procedure(value = "spatial.addLayer", mode = WRITE)
-	@Description("Adds a new layer with the given type (see spatial().getAllLayerTypes) and configuration, returns the layer root node")
+	@Description("Adds a new layer with the given `type` (see `spatial.layerTypes`) and configuration. Returns the layers root node.")
 	public Stream<NodeResult> addLayerOfType(
-			@Name("name") String name,
-			@Name("type") String type,
-			@Name("encoderConfig") String encoderConfig,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
+			@Name(value = "name", description = DOC_LAYER_NAME) String name,
+			@Name(value = "type", description = DOC_LAYER_TYPE) String type,
+			@Name(value = "encoderConfig", description = DOC_ENCODER_CONFIG) String encoderConfig,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
@@ -522,8 +527,8 @@ public class SpatialProcedures extends SpatialApiBase {
 	}
 
 	@Procedure(value = "spatial.layer", mode = WRITE)
-	@Description("Returns the layer root node for the given layer name")
-	public Stream<NodeResult> getLayer(@Name("name") String name) {
+	@Description("Returns the layer root node for the given layer `name`")
+	public Stream<NodeResult> getLayer(@Name(value = "name", description = "the name of the layer") String name) {
 		return streamNode(getLayerOrThrow(tx, spatial(), name).getLayerNode(tx));
 	}
 

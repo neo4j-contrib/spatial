@@ -17,7 +17,7 @@ spatial.addNativePointLayerXY(name :: STRING, xProperty :: STRING, yProperty :: 
 
 == Input parameters
 
-[.procedures,opts=header']
+[.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
 |name|STRING|null|
@@ -30,7 +30,7 @@ spatial.addNativePointLayerXY(name :: STRING, xProperty :: STRING, yProperty :: 
 
 == Output parameters
 
-[.procedures,opts=header']
+[.procedures,opts=header,cols='1,1,8']
 |===
 |Name|Type|Description
 |node|NODE|

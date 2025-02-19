@@ -21,7 +21,7 @@ The key features include:
 
 The easiest way to get started with neo4j-spatial is to grab the `server-plugin-*.jar` from https://github.com/neo4j-contrib/spatial/releases[the latest release], copy it to your `$NEO4J_HOME/plugins` and restart your Neo4j server.
 
-From there you can use all the xref:dev/procedures.adoc[spatial-procedures] in your Cypher queries to add Nodes to the spatial index and perform a number of spatial point, distance and intersection queries.
+From there you can use all the xref:api/index.adoc[spatial procedures and functions] in your Cypher queries to add Nodes to the spatial index and perform a number of spatial point, distance and intersection queries.
 
 .Simple Example
 [source,cypher]

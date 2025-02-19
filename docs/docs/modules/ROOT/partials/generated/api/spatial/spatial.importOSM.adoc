@@ -17,7 +17,7 @@ spatial.importOSM(uri :: STRING) :: (count :: INTEGER)
 
 == Input parameters
 
-[.procedures,opts=header']
+[.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
 |uri|STRING|null|
@@ -25,7 +25,7 @@ spatial.importOSM(uri :: STRING) :: (count :: INTEGER)
 
 == Output parameters
 
-[.procedures,opts=header']
+[.procedures,opts=header,cols='1,1,8']
 |===
 |Name|Type|Description
 |count|INTEGER|

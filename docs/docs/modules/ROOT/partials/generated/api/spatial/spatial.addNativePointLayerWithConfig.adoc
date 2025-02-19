@@ -17,7 +17,7 @@ spatial.addNativePointLayerWithConfig(name :: STRING, encoderConfig :: STRING, i
 
 == Input parameters
 
-[.procedures,opts=header']
+[.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
 |name|STRING|null|
@@ -29,7 +29,7 @@ spatial.addNativePointLayerWithConfig(name :: STRING, encoderConfig :: STRING, i
 
 == Output parameters
 
-[.procedures,opts=header']
+[.procedures,opts=header,cols='1,1,8']
 |===
 |Name|Type|Description
 |node|NODE|

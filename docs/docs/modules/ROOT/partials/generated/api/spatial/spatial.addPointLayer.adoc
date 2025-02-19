@@ -17,7 +17,7 @@ spatial.addPointLayer(name :: STRING, indexType = rtree :: STRING, crsName =  ::
 
 == Input parameters
 
-[.procedures,opts=header']
+[.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
 |name|STRING|null|
@@ -28,7 +28,7 @@ spatial.addPointLayer(name :: STRING, indexType = rtree :: STRING, crsName =  ::
 
 == Output parameters
 
-[.procedures,opts=header']
+[.procedures,opts=header,cols='1,1,8']
 |===
 |Name|Type|Description
 |node|NODE|

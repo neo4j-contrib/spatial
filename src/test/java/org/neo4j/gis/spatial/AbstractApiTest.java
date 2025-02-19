@@ -25,13 +25,19 @@ import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAM
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Nonnull;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.doc.domain.examples.Example;
+import org.neo4j.doc.domain.examples.Examples;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -47,6 +53,7 @@ public abstract class AbstractApiTest {
 
 	private DatabaseManagementService databases;
 	protected GraphDatabaseService db;
+	static Map<String, Examples> examples = new HashMap<>();
 
 	@BeforeEach
 	public void setUp() throws KernelException, IOException {
@@ -117,4 +124,20 @@ public abstract class AbstractApiTest {
 		}
 		return obj;
 	}
+
+
+	protected Example docExample(@Nonnull String signature, @Nonnull String title) {
+		Example example = new Example(db, title);
+		examples.computeIfAbsent(signature, (s) -> new Examples(s, new ArrayList<>()))
+				.examples().add(example);
+		return example;
+	}
+
+	@AfterAll
+	public static void generateDocumentation() throws IOException {
+		for (Examples examples : examples.values()) {
+			examples.writeExamples();
+		}
+	}
+
 }

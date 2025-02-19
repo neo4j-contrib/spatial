@@ -17,7 +17,7 @@ spatial.setFeatureAttributes(name :: STRING, attributeNames :: LIST<STRING>) :: 
 
 == Input parameters
 
-[.procedures,opts=header']
+[.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
 |name|STRING|null|
@@ -26,7 +26,7 @@ spatial.setFeatureAttributes(name :: STRING, attributeNames :: LIST<STRING>) :: 
 
 == Output parameters
 
-[.procedures,opts=header']
+[.procedures,opts=header,cols='1,1,8']
 |===
 |Name|Type|Description
 |node|NODE|

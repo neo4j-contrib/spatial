@@ -17,10 +17,10 @@ spatial.decodeGeometry(layerName :: STRING, node :: NODE) :: ANY
 
 == Input parameters
 
-[.procedures,opts=header']
+[.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
-|layerName|STRING|null|
-|node|NODE|null|
+|layerName|STRING|null|The name of the layer used to select the appropriate geometry encoder for extracting the Neo4j geometry.
+|node|NODE|null|An index node to extract the neo4j geometry from
 |===
 

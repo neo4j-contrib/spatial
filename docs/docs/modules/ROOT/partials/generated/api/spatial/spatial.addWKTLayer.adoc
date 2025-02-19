@@ -17,7 +17,7 @@ spatial.addWKTLayer(name :: STRING, nodePropertyName :: STRING, indexConfig =  :
 
 == Input parameters
 
-[.procedures,opts=header']
+[.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
 |name|STRING|null|
@@ -27,7 +27,7 @@ spatial.addWKTLayer(name :: STRING, nodePropertyName :: STRING, indexConfig =  :
 
 == Output parameters
 
-[.procedures,opts=header']
+[.procedures,opts=header,cols='1,1,8']
 |===
 |Name|Type|Description
 |node|NODE|

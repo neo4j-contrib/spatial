@@ -23,7 +23,7 @@ spatial.asExternalGeometry(geometry :: ANY) :: (geometry :: ANY)
 
 == Input parameters
 
-[.procedures,opts=header']
+[.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
 |geometry|ANY|null|
@@ -31,7 +31,7 @@ spatial.asExternalGeometry(geometry :: ANY) :: (geometry :: ANY)
 
 == Output parameters
 
-[.procedures,opts=header']
+[.procedures,opts=header,cols='1,1,8']
 |===
 |Name|Type|Description
 |geometry|ANY|
