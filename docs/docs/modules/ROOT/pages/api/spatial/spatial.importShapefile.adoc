@@ -1,0 +1,4 @@
+include::partial$generated/api/spatial/spatial.importShapefile.adoc[]
+
+// == Examples
+// TODO add additional content / examples here

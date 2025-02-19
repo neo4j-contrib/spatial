@@ -1,0 +1,5 @@
+[[procedures-and-functions]]
+= Procedures & Functions
+:description: This chapter provides a reference of all the procedures and functions in the spatial library.
+
+include::partial$generated/api/index.adoc[]

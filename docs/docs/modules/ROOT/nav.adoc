@@ -1,4 +1,9 @@
 * xref:overview/introduction.adoc[]
+* xref:api/index.adoc[]
++
+--
+include::partial$generated/api-nav.adoc[]
+--
 
 * xref::dev/index.adoc[]
 ** xref:dev/indexing.adoc[]

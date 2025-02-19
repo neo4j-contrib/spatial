@@ -1,0 +1,4 @@
+include::partial$generated/api/spatial/spatial.addNativePointLayerGeohash.adoc[]
+
+// == Examples
+// TODO add additional content / examples here

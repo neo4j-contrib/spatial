@@ -1,0 +1,4 @@
+include::partial$generated/api/spatial/spatial.layer.adoc[]
+
+// == Examples
+// TODO add additional content / examples here
