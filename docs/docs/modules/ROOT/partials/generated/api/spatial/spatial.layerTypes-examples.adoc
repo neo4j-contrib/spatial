@@ -1,6 +1,5 @@
 === List the available layer types
 
-.Query
 [source,cypher]
 ----
 CALL spatial.layerTypes()

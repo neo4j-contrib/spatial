@@ -19,12 +19,15 @@
  */
 package org.neo4j.gis.spatial.procedures;
 
+import static org.neo4j.gis.spatial.Constants.DOC_CRS;
 import static org.neo4j.gis.spatial.Constants.DOC_ENCODER_CONFIG;
 import static org.neo4j.gis.spatial.Constants.DOC_ENCODER_NAME;
 import static org.neo4j.gis.spatial.Constants.DOC_INDEX_CONFIG;
+import static org.neo4j.gis.spatial.Constants.DOC_INDEX_TYPE;
 import static org.neo4j.gis.spatial.Constants.DOC_LAYER_NAME;
 import static org.neo4j.gis.spatial.Constants.DOC_LAYER_TYPE;
-import static org.neo4j.gis.spatial.SpatialDatabaseService.RTREE_INDEX_NAME;
+import static org.neo4j.gis.spatial.Constants.WGS84_CRS_NAME;
+import static org.neo4j.gis.spatial.SpatialDatabaseService.INDEX_TYPE_RTREE;
 import static org.neo4j.procedure.Mode.READ;
 import static org.neo4j.procedure.Mode.WRITE;
 
@@ -63,6 +66,7 @@ import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePropertyEncoder;
 import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
 import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
+import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.index.LayerZOrderPointIndex;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMImporter;
@@ -216,7 +220,7 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Description("Adds a new simple point layer, returns the layer root node")
 	public Stream<NodeResult> addSimplePointLayer(
 			@Name("name") String name,
-			@Name(value = "indexType", defaultValue = RTREE_INDEX_NAME) String indexType,
+			@Name(value = "indexType", defaultValue = INDEX_TYPE_RTREE) String indexType,
 			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName,
 			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig
 	) {
@@ -282,7 +286,7 @@ public class SpatialProcedures extends SpatialApiBase {
 			@Name("name") String name,
 			@Name("xProperty") String xProperty,
 			@Name("yProperty") String yProperty,
-			@Name(value = "indexType", defaultValue = RTREE_INDEX_NAME) String indexType,
+			@Name(value = "indexType", defaultValue = INDEX_TYPE_RTREE) String indexType,
 			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName,
 			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
 		SpatialDatabaseService sdb = spatial();
@@ -307,7 +311,7 @@ public class SpatialProcedures extends SpatialApiBase {
 	public Stream<NodeResult> addSimplePointLayerWithConfig(
 			@Name("name") String name,
 			@Name("encoderConfig") String encoderConfig,
-			@Name(value = "indexType", defaultValue = RTREE_INDEX_NAME) String indexType,
+			@Name(value = "indexType", defaultValue = INDEX_TYPE_RTREE) String indexType,
 			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName,
 			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
 		SpatialDatabaseService sdb = spatial();
@@ -328,10 +332,10 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Procedure(value = "spatial.addNativePointLayer", mode = WRITE)
 	@Description("Adds a new native point layer, returns the layer root node")
 	public Stream<NodeResult> addNativePointLayer(
-			@Name("name") String name,
-			@Name(value = "indexType", defaultValue = RTREE_INDEX_NAME) String indexType,
-			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
+			@Name(value = "name", description = DOC_LAYER_NAME) String name,
+			@Name(value = "indexType", defaultValue = INDEX_TYPE_RTREE, description = DOC_INDEX_TYPE) String indexType,
+			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME, description = DOC_CRS) String crsName,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
@@ -345,9 +349,9 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Procedure(value = "spatial.addNativePointLayerGeohash", mode = WRITE)
 	@Description("Adds a new native point layer with geohash based index, returns the layer root node")
 	public Stream<NodeResult> addNativePointLayerGeohash(
-			@Name("name") String name,
-			@Name(value = "crsName", defaultValue = WGS84_CRS_NAME) String crsName,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
+			@Name(value = "name", description = DOC_LAYER_NAME) String name,
+			@Name(value = "crsName", defaultValue = WGS84_CRS_NAME, description = DOC_CRS) String crsName,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
@@ -360,8 +364,9 @@ public class SpatialProcedures extends SpatialApiBase {
 
 	@Procedure(value = "spatial.addNativePointLayerZOrder", mode = WRITE)
 	@Description("Adds a new native point layer with z-order curve based index, returns the layer root node")
-	public Stream<NodeResult> addNativePointLayerZOrder(@Name("name") String name,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
+	public Stream<NodeResult> addNativePointLayerZOrder(
+			@Name(value = "name", description = DOC_LAYER_NAME) String name,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
@@ -374,8 +379,9 @@ public class SpatialProcedures extends SpatialApiBase {
 
 	@Procedure(value = "spatial.addNativePointLayerHilbert", mode = WRITE)
 	@Description("Adds a new native point layer with hilbert curve based index, returns the layer root node")
-	public Stream<NodeResult> addNativePointLayerHilbert(@Name("name") String name,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig
+	public Stream<NodeResult> addNativePointLayerHilbert(
+			@Name(value = "name", description = DOC_LAYER_NAME) String name,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig
 	) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
@@ -387,20 +393,21 @@ public class SpatialProcedures extends SpatialApiBase {
 		throw new IllegalArgumentException("Cannot create existing layer: " + name);
 	}
 
-	@Procedure(value = "spatial.addNativePointLayerXY", mode = WRITE)
-	@Description("Adds a new native point layer with the given properties for x and y coordinates, returns the layer root node")
+	@Deprecated
+	@Procedure(value = "spatial.addNativePointLayerXY", mode = WRITE, deprecatedBy = "spatial.addPointLayerXY")
+	@Description("Adds a new point layer with the given properties for x and y coordinates, returns the layer root node")
 	public Stream<NodeResult> addNativePointLayer(
-			@Name("name") String name,
-			@Name("xProperty") String xProperty,
-			@Name("yProperty") String yProperty,
-			@Name(value = "indexType", defaultValue = RTREE_INDEX_NAME) String indexType,
-			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
+			@Name(value = "name", description = DOC_LAYER_NAME) String name,
+			@Name(value = "xProperty", description = "The name of the property with the x coordinate") String xProperty,
+			@Name(value = "yProperty", description = "The name of the property with the y coordinate") String yProperty,
+			@Name(value = "indexType", defaultValue = INDEX_TYPE_RTREE, description = DOC_INDEX_TYPE) String indexType,
+			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME, description = DOC_CRS) String crsName,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
 			if (xProperty != null && yProperty != null) {
-				return streamNode(sdb.createLayer(tx, name, NativePointEncoder.class, SimplePointLayer.class,
+				return streamNode(sdb.createLayer(tx, name, SimplePointEncoder.class, SimplePointLayer.class,
 								SpatialDatabaseService.resolveIndexClass(indexType),
 								SpatialDatabaseService.makeEncoderConfig(xProperty, yProperty), indexConfig,
 								selectCRS(hintCRSName(crsName, yProperty)))
@@ -416,29 +423,31 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Procedure(value = "spatial.addNativePointLayerWithConfig", mode = WRITE)
 	@Description("Adds a new native point layer with the given configuration, returns the layer root node")
 	public Stream<NodeResult> addNativePointLayerWithConfig(
-			@Name("name") String name,
-			@Name("encoderConfig") String encoderConfig,
-			@Name(value = "indexType", defaultValue = RTREE_INDEX_NAME) String indexType,
-			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
+			@Name(value = "name", description = DOC_LAYER_NAME) String name,
+			@Name(value = "encoderConfig", description = DOC_ENCODER_CONFIG) String encoderConfig,
+			@Name(value = "indexType", defaultValue = INDEX_TYPE_RTREE, description = DOC_INDEX_TYPE) String indexType,
+			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME, description = DOC_CRS) String crsName,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig
+	) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
-		if (layer == null) {
-			if (encoderConfig.indexOf(':') > 0) {
-				return streamNode(sdb.createLayer(tx, name, NativePointEncoder.class, SimplePointLayer.class,
-								SpatialDatabaseService.resolveIndexClass(indexType), encoderConfig, indexConfig,
-								selectCRS(hintCRSName(crsName, encoderConfig)))
-						.getLayerNode(tx));
-			}
+		if (layer != null) {
+			throw new IllegalArgumentException("Cannot create existing layer: " + name);
+		}
+		if (encoderConfig.indexOf(':') <= 0) {
 			throw new IllegalArgumentException(
 					"Cannot create layer '" + name + "': invalid encoder config '" + encoderConfig + "'");
 		}
-		throw new IllegalArgumentException("Cannot create existing layer: " + name);
+
+		Class<? extends LayerIndexReader> indexClass = SpatialDatabaseService.resolveIndexClass(indexType);
+		CoordinateReferenceSystem crs = selectCRS(hintCRSName(crsName, encoderConfig));
+		layer = sdb.createLayer(tx, name, NativePointEncoder.class, SimplePointLayer.class, indexClass, encoderConfig,
+				indexConfig, crs);
+		return streamNode(layer.getLayerNode(tx));
 	}
 
 	public static final String UNSET_CRS_NAME = "";
 	public static final String UNSET_INDEX_CONFIG = "";
-	public static final String WGS84_CRS_NAME = "wgs84";
 
 	/**
 	 * Currently this only supports the string 'WGS84', for the convenience of procedure users.
@@ -557,7 +566,9 @@ public class SpatialProcedures extends SpatialApiBase {
 
 	@Procedure(value = "spatial.addNode", mode = WRITE)
 	@Description("Adds the given node to the layer, returns the geometry-node")
-	public Stream<NodeResult> addNodeToLayer(@Name("layerName") String name, @Name("node") Node node) {
+	public Stream<NodeResult> addNodeToLayer(
+			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
+			@Name(value = "node", description = "the node to be added to the index") Node node) {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
 		Node geomNode = layer.add(tx, node).getGeomNode();
 		layer.finalizeTransaction(tx);

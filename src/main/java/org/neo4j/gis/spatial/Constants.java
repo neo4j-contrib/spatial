@@ -70,10 +70,23 @@ public interface Constants {
 	int SRID_COORDINATES_2D = 4326;
 	int SRID_COORDINATES_3D = 4979;
 
-	String DOC_LAYER_NAME = "The name of the new layer";
+	String INDEX_TYPE_RTREE = "rtree";
+	String INDEX_TYPE_GEOHASH = "geohash";
+	String INDEX_TYPE_ZORDER = "zorder";
+	String INDEX_TYPE_HILBERT = "hilbert";
+
+	String WGS84_CRS_NAME = "wgs84";
+
+
+	String DOC_LAYER_NAME = "The name of the layer";
 	String DOC_LAYER_TYPE = "The type of the new layer. Existing layer types can be queried by `spatial.layer`";
 	String DOC_ENCODER_CONFIG = "The configuration of the encoder that is used by layer to en-/decode the geometry of indexed nodes";
 	String DOC_INDEX_CONFIG = "The configuration of the newly created index";
 	String DOC_ENCODER_NAME = "The name of the encoder to be used for the new layer";
+	String DOC_INDEX_TYPE =
+			"The type of the index algorithm to be used, valid values are: `" + INDEX_TYPE_RTREE + "`, `"
+					+ INDEX_TYPE_GEOHASH + "`, `" + INDEX_TYPE_ZORDER + "` or `" + INDEX_TYPE_HILBERT + "`";
+	String DOC_CRS = "The CRS to be used, valid values are: `" + WGS84_CRS_NAME + "`";
+
 
 }

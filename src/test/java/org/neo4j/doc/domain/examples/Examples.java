@@ -51,9 +51,7 @@ public record Examples(String fqname, List<Example> examples) {
 				if (example.title != null) {
 					writer.write("=== " + example.title + "\n\n");
 				}
-				writer.append(example.generateSetupBlock());
-				writer.append(example.generateCypher());
-				writer.append(example.generateResult());
+				writer.append(example.generateCypherBlocks());
 			}
 		}
 

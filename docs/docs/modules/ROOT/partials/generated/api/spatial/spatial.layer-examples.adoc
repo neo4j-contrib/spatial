@@ -7,7 +7,6 @@ Create a WKT layer
 CALL spatial.addWKTLayer('geom','wkt')
 ----
 
-.Query
 [source,cypher]
 ----
 CALL spatial.layer('geom')

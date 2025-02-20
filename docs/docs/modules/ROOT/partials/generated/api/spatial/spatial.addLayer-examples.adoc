@@ -1,7 +1,6 @@
 === Add the same node to multiple layers
 
-Create some nodes
-
+.Create some nodes
 [source,cypher]
 ----
 UNWIND range(1,100) as i
@@ -15,6 +14,7 @@ CREATE (n:Point {
 Create a layer `point1` to index property `point1` of node `Point`.
 Save the bounding box in the property `point1BB` of the `Point` node.
 Associate the node with the index layer via relationship type `RTREE_P1_TYPE`.
+
 
 [source,cypher]
 ----
@@ -30,6 +30,7 @@ CALL spatial.addLayer(
 Create a layer `point2` to index property `point2` of node `Point`.
 Save the bounding box in the property `point2BB` of the `Point` node.
 Associate the node with the index layer via relationship type `RTREE_P2_TYPE`.
+
 
 [source,cypher]
 ----
@@ -57,6 +58,18 @@ RETURN sum(count) AS count
 
 ----
 
+.Result
+[opts="header",cols="1"]
+|===
+|count
+a|
+[source]
+----
+100
+----
+
+|===
+
 Index the nodes in layer `point2` in chunks of 10
 
 [source,cypher]
@@ -64,11 +77,23 @@ Index the nodes in layer `point2` in chunks of 10
 MATCH (p:Point)
 WITH (count(p) / 10) AS pages, collect(p) AS nodes
 UNWIND range(0, pages) AS i CALL {
-    WITH i, nodes
-    CALL spatial.addNodes('point2', nodes[(i * 10)..((i + 1) * 10)]) YIELD count
-    RETURN count AS count
+	WITH i, nodes
+	CALL spatial.addNodes('point2', nodes[(i * 10)..((i + 1) * 10)]) YIELD count
+	RETURN count AS count
 } IN TRANSACTIONS OF 1 ROWS
 RETURN sum(count) AS count
 
 ----
+
+.Result
+[opts="header",cols="1"]
+|===
+|count
+a|
+[source]
+----
+100
+----
+
+|===
 

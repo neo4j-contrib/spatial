@@ -28,9 +28,9 @@ Adds a new native point layer with hilbert curve based index, returns the layer 
 
 Adds a new native point layer with the given configuration, returns the layer root node
 |label:procedure[]
-|xref:api/spatial/spatial.addNativePointLayerXY.adoc[spatial.addNativePointLayerXY icon:book[]]
+|xref:api/spatial/spatial.addNativePointLayerXY.adoc[spatial.addNativePointLayerXY icon:book[]] label:deprecated[]
 
-Adds a new native point layer with the given properties for x and y coordinates, returns the layer root node
+Adds a new point layer with the given properties for x and y coordinates, returns the layer root node
 |label:procedure[]
 |xref:api/spatial/spatial.addNativePointLayerZOrder.adoc[spatial.addNativePointLayerZOrder icon:book[]]
 

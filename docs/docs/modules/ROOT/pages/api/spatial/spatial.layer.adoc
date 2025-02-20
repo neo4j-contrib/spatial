@@ -3,4 +3,3 @@ include::partial$generated/api/spatial/spatial.layer.adoc[]
 == Examples
 
 include::partial$generated/api/spatial/spatial.layer-examples.adoc[]
-

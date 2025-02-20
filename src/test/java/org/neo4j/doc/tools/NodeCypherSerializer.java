@@ -55,7 +55,7 @@ public class NodeCypherSerializer extends JsonSerializer<Node> {
 			Map<String, Object> properties = node.getAllProperties();
 			for (Map.Entry<String, Object> entry : properties.entrySet()) {
 				cypher.append("    ").append(entry.getKey()).append(": ");
-				if (entry.getValue() instanceof String) {
+				if (entry.getValue() instanceof String || entry.getValue() instanceof double[]) {
 					cypher.append(Mapper.MAPPER.writeValueAsString(entry.getValue()));
 				} else {
 					cypher.append(entry.getValue());

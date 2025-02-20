@@ -1,0 +1,62 @@
+=== Create a native point layer
+
+[source,cypher]
+----
+CALL spatial.addNativePointLayerXY('geom','x','y')
+----
+
+.Result
+[opts="header",cols="1"]
+|===
+|node
+a|
+[source]
+----
+(:SpatialLayer {
+    geomencoder: "org.neo4j.gis.spatial.encoders.SimplePointEncoder",
+    geomencoder_config: "x:y",
+    index_class: "org.neo4j.gis.spatial.index.LayerRTreeIndex",
+    layer: "geom",
+    layer_class: "org.neo4j.gis.spatial.SimplePointLayer"
+})
+----
+
+|===
+
+create a node and add it to the index
+
+[source,cypher]
+----
+CREATE (n:Node {id: 42, x: 5.0, y: 4.0}) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node
+----
+
+Find node within distance
+
+[source,cypher]
+----
+CALL spatial.withinDistance('geom',point({latitude:4.1,longitude:5.1}),100)
+----
+
+.Result
+[opts="header",cols="2"]
+|===
+|distance|node
+a|
+[source]
+----
+15.705713907526011
+----
+a|
+[source]
+----
+(:Node {
+    bbox: [5.0,4.0,5.0,4.0],
+    gtype: 1,
+    id: 42,
+    x: 5.0,
+    y: 4.0
+})
+----
+
+|===
+

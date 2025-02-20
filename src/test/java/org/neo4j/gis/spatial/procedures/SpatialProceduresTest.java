@@ -33,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.neo4j.gis.spatial.Constants.LABEL_LAYER;
 import static org.neo4j.gis.spatial.Constants.PROP_GEOMENCODER;
 import static org.neo4j.gis.spatial.Constants.PROP_GEOMENCODER_CONFIG;
@@ -43,10 +44,16 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.neo4j.doc.domain.examples.Example;
+import org.neo4j.doc.domain.examples.ExampleCypher;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gis.spatial.AbstractApiTest;
 import org.neo4j.gis.spatial.Layer;
@@ -146,9 +153,9 @@ public class SpatialProceduresTest extends AbstractApiTest {
 	private static Layer makeLayerOfVariousTypes(SpatialDatabaseService spatial, Transaction tx, String name,
 			int index) {
 		return switch (index % 3) {
-			case 0 -> spatial.getOrCreateSimplePointLayer(tx, name, SpatialDatabaseService.RTREE_INDEX_NAME, "x", "y",
+			case 0 -> spatial.getOrCreateSimplePointLayer(tx, name, SpatialDatabaseService.INDEX_TYPE_RTREE, "x", "y",
 					null);
-			case 1 -> spatial.getOrCreateNativePointLayer(tx, name, SpatialDatabaseService.RTREE_INDEX_NAME, "location",
+			case 1 -> spatial.getOrCreateNativePointLayer(tx, name, SpatialDatabaseService.INDEX_TYPE_RTREE, "location",
 					null);
 			default -> spatial.getOrCreateDefaultLayer(tx, name, null);
 		};
@@ -310,10 +317,12 @@ public class SpatialProceduresTest extends AbstractApiTest {
 
 	@Test
 	public void create_node_decode_to_geometry() {
-		docExample("spatial.decodeGeometry", "Decode a geometry from a node property")
-				.setupCypher("CALL spatial.addWKTLayer('geom','geom')", "Create a WKT layer")
+		Example example = docExample("spatial.decodeGeometry", "Decode a geometry from a node property");
+		example.runCypher("CALL spatial.addWKTLayer('geom','geom')",
+						config -> config.storeResult().setTitle("Create a WKT layer"))
 				.runCypher(
-						"CREATE (n:Node {geom:'POINT(4.0 5.0)'}) RETURN spatial.decodeGeometry('geom',n) AS geometry")
+						"CREATE (n:Node {geom:'POINT(4.0 5.0)'}) RETURN spatial.decodeGeometry('geom',n) AS geometry",
+						config -> config.storeResult().setTitle("Decode a geometry"))
 				.assertSingleResult("geometry", geometry -> {
 					assertInstanceOf(Geometry.class, geometry, "Should be Geometry type");
 				});
@@ -329,6 +338,44 @@ public class SpatialProceduresTest extends AbstractApiTest {
 		double distance = (Double) executeObject("RETURN point.distance($geom, point({y: 6.0, x: 4.0})) as distance",
 				Map.of("geom", geom), "distance");
 		MatcherAssert.assertThat("Expected the cartesian distance of 1.0", distance, closeTo(1.0, 0.00001));
+	}
+
+	@Test
+	public void testAddNativePointLayerWithConfig() {
+		docExample("spatial.addNativePointLayerWithConfig", "Create a native point layer with a configuration")
+				.runCypher("CALL spatial.addNativePointLayerWithConfig('geom','pos:mbr','hilbert')",
+						ExampleCypher::storeResult)
+				.assertSingleResult("node", o -> {
+					Assertions.assertThat(o).isInstanceOf(Node.class);
+					Node node = (Node) o;
+					assertEquals("geom", node.getProperty("layer"));
+					assertEquals("org.neo4j.gis.spatial.encoders.NativePointEncoder", node.getProperty("geomencoder"));
+					assertEquals("org.neo4j.gis.spatial.index.LayerHilbertPointIndex",
+							node.getProperty("index_class"));
+					assertEquals("pos:mbr", node.getProperty("geomencoder_config"));
+				});
+	}
+
+	@Test
+	public void testAddNativePointLayerXY() {
+		docExample("spatial.addNativePointLayerXY", "Create a native point layer")
+				.runCypher("CALL spatial.addNativePointLayerXY('geom','x','y')",
+						ExampleCypher::storeResult)
+				.assertSingleResult("node", o -> {
+					Assertions.assertThat(o).isInstanceOf(Node.class);
+					Node node = (Node) o;
+					assertEquals("geom", node.getProperty("layer"));
+					assertEquals("org.neo4j.gis.spatial.encoders.SimplePointEncoder", node.getProperty("geomencoder"));
+					assertEquals("org.neo4j.gis.spatial.index.LayerRTreeIndex", node.getProperty("index_class"));
+					assertEquals("x:y", node.getProperty("geomencoder_config"));
+				})
+				.runCypher(
+						"CREATE (n:Node {id: 42, x: 5.0, y: 4.0}) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node",
+						config -> config.setComment("create a node and add it to the index"))
+				.runCypher("CALL spatial.withinDistance('geom',point({latitude:4.1,longitude:5.1}),100)",
+						config -> config.storeResult().setComment("Find node within distance"))
+				.assertSingleResult("node", o -> assertEquals(42L, ((Node) o).getProperty("id")));
+
 	}
 
 	@Test
@@ -429,8 +476,9 @@ public class SpatialProceduresTest extends AbstractApiTest {
 
 	@Test
 	public void create_a_simple_pointlayer_using_named_encoder() {
-		docExample("spatial.addLayerWithEncoder", "Create a `SimplePointEncoder`")
-				.runCypher("CALL spatial.addLayerWithEncoder('geom','SimplePointEncoder','')")
+		Example example = docExample("spatial.addLayerWithEncoder", "Create a `SimplePointEncoder`");
+		example.runCypher("CALL spatial.addLayerWithEncoder('geom','SimplePointEncoder','')",
+						ExampleCypher::storeResult)
 				.assertSingleResult("node", o -> {
 					Assertions.assertThat(o).isInstanceOf(Node.class);
 					Node node = (Node) o;
@@ -444,14 +492,14 @@ public class SpatialProceduresTest extends AbstractApiTest {
 
 	@Test
 	public void create_a_simple_pointlayer_using_named_and_configured_encoder() {
-		docExample("spatial.addLayerWithEncoder",
-				"Create a `SimplePointEncoder` with a customized encoder configuration")
-				.runCypher("CALL spatial.addLayerWithEncoder('geom','SimplePointEncoder','x:y:mbr')", null,
-						"""
+		Example example = docExample("spatial.addLayerWithEncoder",
+				"Create a `SimplePointEncoder` with a customized encoder configuration");
+		example.runCypher("CALL spatial.addLayerWithEncoder('geom','SimplePointEncoder','x:y:mbr')",
+						config -> config.storeResult().setComment("""
 								Configures the encoder to use the nodes `x` property instead of `longitude`,
 								the `y` property instead of `latitude` 
 								and the `mbr` property instead of `bbox`.
-								""")
+								"""))
 				.assertSingleResult("node", o -> {
 					Assertions.assertThat(o).isInstanceOf(Node.class);
 					Node node = (Node) o;
@@ -465,8 +513,9 @@ public class SpatialProceduresTest extends AbstractApiTest {
 
 	@Test
 	public void create_a_native_pointlayer_using_named_encoder() {
-		docExample("spatial.addLayerWithEncoder", "Create a `NativePointEncoder`")
-				.runCypher("CALL spatial.addLayerWithEncoder('geom','NativePointEncoder','')")
+		Example example = docExample("spatial.addLayerWithEncoder", "Create a `NativePointEncoder`");
+		example.runCypher("CALL spatial.addLayerWithEncoder('geom','NativePointEncoder','')",
+						ExampleCypher::storeResult)
 				.assertSingleResult("node", o -> {
 					Assertions.assertThat(o).isInstanceOf(Node.class);
 					Node node = (Node) o;
@@ -480,13 +529,13 @@ public class SpatialProceduresTest extends AbstractApiTest {
 
 	@Test
 	public void create_a_native_pointlayer_using_named_and_configured_encoder() {
-		docExample("spatial.addLayerWithEncoder",
-				"Create a `NativePointEncoder` with a customized encoder configuration")
-				.runCypher("CALL spatial.addLayerWithEncoder('geom','NativePointEncoder','pos:mbr')", null,
-						"""
+		Example example = docExample("spatial.addLayerWithEncoder",
+				"Create a `NativePointEncoder` with a customized encoder configuration");
+		example.runCypher("CALL spatial.addLayerWithEncoder('geom','NativePointEncoder','pos:mbr')",
+						config -> config.storeResult().setComment("""
 								Configures the encoder to use the nodes `pos` property instead of `location`
 								and the `mbr` property instead of `bbox`.
-								""")
+								"""))
 				.assertSingleResult("node", o -> {
 					Assertions.assertThat(o).isInstanceOf(Node.class);
 					Node node = (Node) o;
@@ -500,13 +549,13 @@ public class SpatialProceduresTest extends AbstractApiTest {
 
 	@Test
 	public void create_a_native_pointlayer_using_named_and_configured_encoder_with_cartesian() {
-		docExample("spatial.addLayerWithEncoder",
-				"Create a `NativePointEncoder` with a customized encoder configuration using Cartesian coordinates")
-				.runCypher("CALL spatial.addLayerWithEncoder('geom','NativePointEncoder','pos:mbr:Cartesian')", null,
-						"""
+		Example example = docExample("spatial.addLayerWithEncoder",
+				"Create a `NativePointEncoder` with a customized encoder configuration using Cartesian coordinates");
+		example.runCypher("CALL spatial.addLayerWithEncoder('geom','NativePointEncoder','pos:mbr:Cartesian')",
+						config -> config.storeResult().setComment("""
 								Configures the encoder to use the nodes `pos` property instead of `location`,
 								the `mbr` property instead of `bbox` and Cartesian coordinates.
-								""")
+								"""))
 				.assertSingleResult("node", o -> {
 					Assertions.assertThat(o).isInstanceOf(Node.class);
 					Node node = (Node) o;
@@ -616,8 +665,8 @@ public class SpatialProceduresTest extends AbstractApiTest {
 
 	@Test
 	public void list_layer_types() {
-		docExample("spatial.layerTypes", "List the available layer types")
-				.runCypher("CALL spatial.layerTypes()")
+		Example example = docExample("spatial.layerTypes", "List the available layer types");
+		example.runCypher("CALL spatial.layerTypes()", ExampleCypher::storeResult)
 				.assertResult(res -> {
 					Map<String, String> procs = new LinkedHashMap<>();
 					for (Map<String, Object> r : res) {
@@ -678,9 +727,10 @@ public class SpatialProceduresTest extends AbstractApiTest {
 
 	@Test
 	public void find_layer() {
-		docExample("spatial.layer", "Find an existing layer")
-				.setupCypher("CALL spatial.addWKTLayer('geom','wkt')", "Create a WKT layer")
-				.runCypher("CALL spatial.layer('geom')")
+		Example example = docExample("spatial.layer", "Find an existing layer");
+		Example example1 = example.runCypher("CALL spatial.addWKTLayer('geom','wkt')",
+				config -> config.setComment("Create a WKT layer"));
+		example1.runCypher("CALL spatial.layer('geom')", ExampleCypher::storeResult)
 				.assertSingleResult("node", r -> assertEquals("geom", ((Node) r).getProperty("layer")));
 		testCallFails(db, "CALL spatial.layer('badname')", null, "No such layer 'badname'");
 	}
@@ -717,50 +767,46 @@ public class SpatialProceduresTest extends AbstractApiTest {
 				r -> assertEquals(node, r.get("node")));
 	}
 
-	@Test
-	public void add_a_node_to_multiple_different_indexes_for_both_simple_and_native_points() {
-		String[] encoders = new String[]{"Simple", "Native"};
-		String[] indexes = new String[]{"Geohash", "ZOrder", "Hilbert", "RTree"};
-		for (String encoder : encoders) {
-			String procName = (encoder.equalsIgnoreCase("Native")) ? "addNativePointLayer" : "addPointLayer";
-			for (String indexType : indexes) {
-				String layerName = (encoder + indexType).toLowerCase();
-				String query =
-						"CALL spatial." + procName + (indexType.equals("RTree") ? "" : indexType) + "('" + layerName
-								+ "')";
-				execute(query);
-			}
+
+	static Stream<Arguments> provideEncodersAndIndexes() {
+		return Stream.of("Simple", "Native")
+				.flatMap(encoder -> Stream.of("Geohash", "ZOrder", "Hilbert", "RTree")
+						.map(index -> arguments(encoder, index)));
+	}
+
+	@ParameterizedTest
+	@MethodSource("provideEncodersAndIndexes")
+	public void testPointLayer(String encoder, String indexType) {
+		String procName = encoder.equals("Native") ? "spatial.addNativePointLayer" : "spatial.addPointLayer";
+		if (!indexType.equals("RTree")) {
+			procName += indexType;
 		}
+		String layerName = ("my-" + encoder + "-" + indexType + "-layer").toLowerCase();
+
+		Example example = docExample(procName, "Create a layer to index a node");
+		example.runCypher("CALL " + procName + "('" + layerName + "')", ExampleCypher::storeResult)
+				.runCypher("CREATE (n:Node {id: 42, latitude:60.1,longitude:15.2}) SET n.location=point(n) RETURN n",
+						config -> config.setComment("Create a node to index"))
+				.runCypher("MATCH (n:Node) WITH n CALL spatial.addNode('" + layerName + "',n) YIELD node RETURN node",
+						config -> config.storeResult().setComment("Index node").storeResult())
+				.assertSingleResult("node", o -> assertEquals(42L, ((Node) o).getProperty("id")))
+				.runCypher("CALL spatial.withinDistance('" + layerName + "',{lon:15.0,lat:60.0},100)",
+						config -> config.storeResult().setComment("Find node within distance"))
+				.assertSingleResult("node", o -> assertEquals(42L, ((Node) o).getProperty("id")));
+
 		testResult(db, "CALL spatial.layers()", (res) -> {
 			while (res.hasNext()) {
 				Map<String, Object> r = res.next();
-				String encoder =
+				String expectedEncoder =
 						r.get("name").toString().contains("native") ? "NativePointEncoder" : "SimplePointEncoder";
 				MatcherAssert.assertThat("Expect simple:native encoders to appear in simple:native layers",
-						r.get("signature").toString(), containsString(encoder));
+						r.get("signature").toString(), containsString(expectedEncoder));
 			}
 		});
-		testCallCount(db, "CALL spatial.layers()", null, indexes.length * encoders.length);
-		Node node = createNode("CREATE (n:Node {latitude:60.1,longitude:15.2}) SET n.location=point(n) RETURN n", "n");
-		for (String encoder : encoders) {
-			for (String indexType : indexes) {
-				String layerName = (encoder + indexType).toLowerCase();
-				testCall(db, "MATCH (node:Node) RETURN node", r -> assertEquals(node, r.get("node")));
-				testCall(db, "MATCH (n:Node) WITH n CALL spatial.addNode('" + layerName + "',n) YIELD node RETURN node",
-						r -> assertEquals(node, r.get("node")));
-				testCall(db, "CALL spatial.withinDistance('" + layerName + "',{lon:15.0,lat:60.0},100)",
-						r -> assertEquals(node, r.get("node")));
-			}
-		}
-		for (String encoder : encoders) {
-			for (String indexType : indexes) {
-				String layerName = (encoder + indexType).toLowerCase();
-				execute("CALL spatial.removeLayer('" + layerName + "')");
-			}
-		}
+
+		execute("CALL spatial.removeLayer('" + layerName + "')");
 		testCallCount(db, "CALL spatial.layers()", null, 0);
 	}
-
 
 	@Test
 	public void testDistanceNode() {
@@ -921,71 +967,58 @@ public class SpatialProceduresTest extends AbstractApiTest {
 
 	@Test
 	public void add_node_to_multiple_indexes_in_chunks() {
-		docExample("spatial.addLayer", "Add the same node to multiple layers")
-				.setupCypher("""
-						UNWIND range(1,$count) as i
-						CREATE (n:Point {
-						    id: i,
-						    point1: point( { latitude: 56.0, longitude: 12.0 } ),
-						    point2: point( { latitude: 57.0, longitude: 13.0 } )
-						})""", Map.of("count", 100), "Create some nodes")
-				.setupCypher(
-						"""
-								CALL spatial.addLayer(
-									'point1',
-									'NativePoint',
-									'point1:point1BB',
-									'{"referenceRelationshipType": "RTREE_P1_TYPE"}'
-								)
-								""",
-						"""
-								Create a layer `point1` to index property `point1` of node `Point`.
-								Save the bounding box in the property `point1BB` of the `Point` node.
-								Associate the node with the index layer via relationship type `RTREE_P1_TYPE`.
-								"""
+		Example example = docExample("spatial.addLayer", "Add the same node to multiple layers");
+		Example example1 = example.runCypher("""
+				UNWIND range(1,$count) as i
+				CREATE (n:Point {
+				    id: i,
+				    point1: point( { latitude: 56.0, longitude: 12.0 } ),
+				    point2: point( { latitude: 57.0, longitude: 13.0 } )
+				})""", config -> config.setParams(Map.of("count", 100)).setTitle("Create some nodes"));
+		Example example2 = example1.runCypher("""
+				CALL spatial.addLayer(
+					'point1',
+					'NativePoint',
+					'point1:point1BB',
+					'{"referenceRelationshipType": "RTREE_P1_TYPE"}'
 				)
-				.setupCypher(
-						"""
-								CALL spatial.addLayer(
-									'point2',
-									'NativePoint',
-									'point2:point2BB',
-									'{"referenceRelationshipType": "RTREE_P2_TYPE"}'
-								)
-								""",
-						"""
-								Create a layer `point2` to index property `point2` of node `Point`.
-								Save the bounding box in the property `point2BB` of the `Point` node.
-								Associate the node with the index layer via relationship type `RTREE_P2_TYPE`.
-								"""
-
+				""", config1 -> config1.setComment("""
+				Create a layer `point1` to index property `point1` of node `Point`.
+				Save the bounding box in the property `point1BB` of the `Point` node.
+				Associate the node with the index layer via relationship type `RTREE_P1_TYPE`.
+				"""));
+		Example example3 = example2.runCypher("""
+				CALL spatial.addLayer(
+					'point2',
+					'NativePoint',
+					'point2:point2BB',
+					'{"referenceRelationshipType": "RTREE_P2_TYPE"}'
 				)
-				.setupCypher(
-						"""
-								MATCH (p:Point)
-								WITH (count(p) / 10) AS pages, collect(p) AS nodes
-								UNWIND range(0, pages) AS i CALL {
-								    WITH i, nodes
-								    CALL spatial.addNodes('point1', nodes[(i * 10)..((i + 1) * 10)]) YIELD count
-								    RETURN count AS count
-								} IN TRANSACTIONS OF 1 ROWS
-								RETURN sum(count) AS count
-								""",
-						"Index the nodes in layer `point1` in chunks of 10"
-				)
-				.setupCypher(
-						"""
-								MATCH (p:Point)
-								WITH (count(p) / 10) AS pages, collect(p) AS nodes
-								UNWIND range(0, pages) AS i CALL {
-								    WITH i, nodes
-								    CALL spatial.addNodes('point2', nodes[(i * 10)..((i + 1) * 10)]) YIELD count
-								    RETURN count AS count
-								} IN TRANSACTIONS OF 1 ROWS
-								RETURN sum(count) AS count
-								""",
-						"Index the nodes in layer `point2` in chunks of 10"
-				);
+				""", config -> config.setComment("""
+				Create a layer `point2` to index property `point2` of node `Point`.
+				Save the bounding box in the property `point2BB` of the `Point` node.
+				Associate the node with the index layer via relationship type `RTREE_P2_TYPE`.
+				"""));
+		Example example4 = example3.runCypher("""
+				MATCH (p:Point)
+				WITH (count(p) / 10) AS pages, collect(p) AS nodes
+				UNWIND range(0, pages) AS i CALL {
+				    WITH i, nodes
+				    CALL spatial.addNodes('point1', nodes[(i * 10)..((i + 1) * 10)]) YIELD count
+				    RETURN count AS count
+				} IN TRANSACTIONS OF 1 ROWS
+				RETURN sum(count) AS count
+				""", config1 -> config1.storeResult().setComment("Index the nodes in layer `point1` in chunks of 10"));
+		example4.runCypher("""
+				MATCH (p:Point)
+				WITH (count(p) / 10) AS pages, collect(p) AS nodes
+				UNWIND range(0, pages) AS i CALL {
+					WITH i, nodes
+					CALL spatial.addNodes('point2', nodes[(i * 10)..((i + 1) * 10)]) YIELD count
+					RETURN count AS count
+				} IN TRANSACTIONS OF 1 ROWS
+				RETURN sum(count) AS count
+				""", config -> config.storeResult().setComment("Index the nodes in layer `point2` in chunks of 10"));
 	}
 
 	@Test

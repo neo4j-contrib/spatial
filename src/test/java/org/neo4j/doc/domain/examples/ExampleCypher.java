@@ -21,17 +21,78 @@
 package org.neo4j.doc.domain.examples;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
+import org.neo4j.values.storable.Value;
 
 /**
  * The example Cypher query.
- *
- * @param cypher  The Cypher query.
- * @param params  The parameters for the Cypher query.
- * @param comment The comment for the Cypher query.
  */
-public record ExampleCypher(String cypher, Map<String, Object> params, String comment) {
+public class ExampleCypher {
 
+	private final String cypher;
+	private Map<String, Object> params = Collections.emptyMap();
+	private String comment;
+	private String title;
+	private List<Map<String, Object>> result;
+	private boolean storeResult;
+
+	public ExampleCypher(String cypher) {
+		this.cypher = cypher;
+	}
+
+	public String getCypher() {
+		return cypher;
+	}
+
+	public Map<String, Object> getParams() {
+		return params;
+	}
+
+	public ExampleCypher setParams(Map<String, Object> params) {
+		if (params == null) {
+			params = Collections.emptyMap();
+		}
+		this.params = params;
+		return this;
+	}
+
+	public String getComment() {
+		return comment;
+	}
+
+	public ExampleCypher setComment(String comment) {
+		this.comment = comment;
+		return this;
+	}
+
+	public String getTitle() {
+		return title;
+	}
+
+	public ExampleCypher setTitle(String title) {
+		this.title = title;
+		return this;
+	}
+
+	public List<Map<String, Object>> getResult() {
+		return result;
+	}
+
+	public ExampleCypher setResult(List<Map<String, Object>> result) {
+		this.result = result;
+		return this;
+	}
+
+	public boolean isStoreResult() {
+		return storeResult;
+	}
+
+	public ExampleCypher storeResult() {
+		this.storeResult = true;
+		return this;
+	}
 
 	String resolvedCypher() {
 		if (params == null) {
@@ -50,7 +111,7 @@ public record ExampleCypher(String cypher, Map<String, Object> params, String co
 		return result;
 	}
 
-	String generateDoc(String title) {
+	String generateDoc() {
 		String result = "";
 		if (comment != null) {
 			result += comment + "\n\n";
@@ -61,6 +122,45 @@ public record ExampleCypher(String cypher, Map<String, Object> params, String co
 		result += "[source,cypher]\n----\n"
 				+ resolvedCypher() + "\n"
 				+ "----\n\n";
+
+		result += generateResult();
+
 		return result;
+	}
+
+	private String generateResult() {
+		if (!storeResult || result.isEmpty()) {
+			return "";
+		}
+		StringBuilder writer = new StringBuilder();
+		writer.append(".Result\n\n");
+		var columns = result.get(0).keySet();
+
+		writer.append("[opts=\"header\",cols=\"")
+				.append(columns.size())
+				.append("\"]\n|===\n");
+		writer.append("|");
+		writer.append(String.join("|", columns));
+		writer.append("\n");
+
+		for (Map<String, Object> row : result) {
+			for (String column : columns) {
+				Object value = row.get(column);
+				if (value instanceof Value || value instanceof String) {
+					writer.append("|").append(value);
+				} else {
+					try {
+						writer.append("a|\n[source]\n----\n")
+								.append(Mapper.MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(value))
+								.append("\n----\n");
+					} catch (JsonProcessingException e) {
+						throw new RuntimeException(e);
+					}
+				}
+			}
+			writer.append("\n");
+		}
+		writer.append("|===\n\n");
+		return writer.toString();
 	}
 }

@@ -21,7 +21,7 @@ spatial.addLayer(name :: STRING, type :: STRING, encoderConfig :: STRING, indexC
 [.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
-|name|STRING|null|The name of the new layer
+|name|STRING|null|The name of the layer
 |type|STRING|null|The type of the new layer. Existing layer types can be queried by `spatial.layer`
 |encoderConfig|STRING|null|The configuration of the encoder that is used by layer to en-/decode the geometry of indexed nodes
 |indexConfig|STRING|""|The configuration of the newly created index

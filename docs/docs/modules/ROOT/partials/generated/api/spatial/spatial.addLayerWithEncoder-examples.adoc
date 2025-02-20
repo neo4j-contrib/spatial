@@ -1,12 +1,12 @@
 === Create a `NativePointEncoder`
 
-.Query
 [source,cypher]
 ----
 CALL spatial.addLayerWithEncoder('geom','NativePointEncoder','')
 ----
 
 .Result
+
 [opts="header",cols="1"]
 |===
 |node
@@ -28,7 +28,7 @@ a|
 Configures the encoder to use the nodes `pos` property instead of `location`
 and the `mbr` property instead of `bbox`.
 
-.Query
+
 [source,cypher]
 ----
 CALL spatial.addLayerWithEncoder('geom','NativePointEncoder','pos:mbr')
@@ -56,7 +56,6 @@ a|
 
 Configures the encoder to use the nodes `pos` property instead of `location`, the `mbr` property instead of `bbox` and Cartesian coordinates.
 
-.Query
 [source,cypher]
 ----
 CALL spatial.addLayerWithEncoder('geom','NativePointEncoder','pos:mbr:Cartesian')
@@ -82,7 +81,6 @@ a|
 
 === Create a `SimplePointEncoder`
 
-.Query
 [source,cypher]
 ----
 CALL spatial.addLayerWithEncoder('geom','SimplePointEncoder','')
@@ -110,7 +108,6 @@ a|
 Configures the encoder to use the nodes `x` property instead of `longitude`, the `y` property instead of `latitude`
 and the `mbr` property instead of `bbox`.
 
-.Query
 [source,cypher]
 ----
 CALL spatial.addLayerWithEncoder('geom','SimplePointEncoder','x:y:mbr')

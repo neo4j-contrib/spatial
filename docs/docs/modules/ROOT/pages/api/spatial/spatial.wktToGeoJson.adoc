@@ -1,4 +1,5 @@
 include::partial$generated/api/spatial/spatial.wktToGeoJson.adoc[]
 
 // == Examples
-// TODO add additional content / examples here
+// 
+// include::partial$generated/api/spatial/spatial.wktToGeoJson-examples.adoc[]

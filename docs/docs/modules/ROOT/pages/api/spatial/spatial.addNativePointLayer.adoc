@@ -1,4 +1,5 @@
 include::partial$generated/api/spatial/spatial.addNativePointLayer.adoc[]
 
-// == Examples
-// TODO add additional content / examples here
+== Examples
+
+include::partial$generated/api/spatial/spatial.addNativePointLayer-examples.adoc[]
