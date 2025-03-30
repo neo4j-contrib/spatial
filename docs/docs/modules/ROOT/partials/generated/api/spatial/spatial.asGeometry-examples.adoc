@@ -1,0 +1,30 @@
+=== Creates a point geometry
+
+[source,cypher]
+----
+WITH point({latitude: 5.0, longitude: 4.0}) as geom RETURN spatial.asGeometry(geom) AS geometry
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|geometry
+|point({x: 4.0, y: 5.0, crs: 'wgs-84'})
+|===
+
+=== Creates a point geometry from a map
+
+[source,cypher]
+----
+WITH spatial.asGeometry({latitude: 5.0, longitude: 4.0}) AS geometry RETURN geometry
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|geometry
+|point({x: 4.0, y: 5.0, crs: 'cartesian'})
+|===
+

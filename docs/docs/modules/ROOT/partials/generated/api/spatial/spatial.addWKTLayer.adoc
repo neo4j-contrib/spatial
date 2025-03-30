@@ -20,9 +20,12 @@ spatial.addWKTLayer(name :: STRING, nodePropertyName :: STRING, indexConfig =  :
 [.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
-|name|STRING|null|
-|nodePropertyName|STRING|null|
-|indexConfig|STRING|""|
+|name|STRING|null
+a|The name of the layer
+|nodePropertyName|STRING|null
+a|The property from which the WKT will be read
+|indexConfig|STRING|""
+a|The configuration of the newly created index
 |===
 
 == Output parameters

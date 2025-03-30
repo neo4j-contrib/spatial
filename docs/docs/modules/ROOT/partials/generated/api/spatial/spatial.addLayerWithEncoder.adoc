@@ -20,10 +20,14 @@ spatial.addLayerWithEncoder(name :: STRING, encoder :: STRING, encoderConfig :: 
 [.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
-|name|STRING|null|The name of the layer
-|encoder|STRING|null|The name of the encoder to be used for the new layer
-|encoderConfig|STRING|null|The configuration of the encoder that is used by layer to en-/decode the geometry of indexed nodes
-|indexConfig|STRING|""|The configuration of the newly created index
+|name|STRING|null
+a|The name of the layer
+|encoder|STRING|null
+a|The name of the encoder to be used for the new layer
+|encoderConfig|STRING|null
+a|The configuration of the encoder that is used by layer to en-/decode the geometry of indexed nodes
+|indexConfig|STRING|""
+a|The configuration of the newly created index
 |===
 
 == Output parameters

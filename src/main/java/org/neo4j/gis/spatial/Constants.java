@@ -87,6 +87,18 @@ public interface Constants {
 			"The type of the index algorithm to be used, valid values are: `" + INDEX_TYPE_RTREE + "`, `"
 					+ INDEX_TYPE_GEOHASH + "`, `" + INDEX_TYPE_ZORDER + "` or `" + INDEX_TYPE_HILBERT + "`";
 	String DOC_CRS = "The CRS to be used, valid values are: `" + WGS84_CRS_NAME + "`";
+	String DOC_COORDINATE = """
+			A valid value for the coordinate is a:
+			
+			* JTS Coordinate
+			* Neo4j Coordinate
+			* Neo4j Point
+			* Map with keys 'latitude' and 'longitude'
+			* Map with keys 'lat' and 'lon'"
+			* Node or Relationship with properties 'latitude' and 'longitude'
+			* Node or Relationship with properties 'lat' and 'lon'
+			""";
+	String DOC_URI = "The path of the file to import the data from";
 
-
+	String DOC_JTS_GEOMETRY = "A WKT string or a coordinate. " + DOC_COORDINATE;
 }

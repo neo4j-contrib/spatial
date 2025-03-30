@@ -20,8 +20,10 @@ spatial.addNodes.byId(layerName :: STRING, nodeIds :: LIST<STRING>) :: (count ::
 [.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
-|layerName|STRING|null|
-|nodeIds|LIST<STRING>|null|
+|layerName|STRING|null
+a|The name of the layer
+|nodeIds|LIST<STRING>|null
+a|A list of elementIds of the nodes to add
 |===
 
 == Output parameters

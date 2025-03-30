@@ -42,6 +42,7 @@ import static org.neo4j.gis.spatial.Constants.PROP_LAYER_CLASS;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -317,8 +318,9 @@ public class SpatialProceduresTest extends AbstractApiTest {
 
 	@Test
 	public void create_node_decode_to_geometry() {
-		Example example = docExample("spatial.decodeGeometry", "Decode a geometry from a node property");
-		example.runCypher("CALL spatial.addWKTLayer('geom','geom')",
+		docExample("spatial.decodeGeometry", "Decode a geometry from a node property")
+				.additionalSignature("spatial.addWKTLayer")
+				.runCypher("CALL spatial.addWKTLayer('geom','geom')",
 						config -> config.storeResult().setTitle("Create a WKT layer"))
 				.runCypher(
 						"CREATE (n:Node {geom:'POINT(4.0 5.0)'}) RETURN spatial.decodeGeometry('geom',n) AS geometry",
@@ -359,6 +361,8 @@ public class SpatialProceduresTest extends AbstractApiTest {
 	@Test
 	public void testAddNativePointLayerXY() {
 		docExample("spatial.addNativePointLayerXY", "Create a native point layer")
+				.additionalSignature("spatial.withinDistance")
+				.additionalSignature("spatial.addNode")
 				.runCypher("CALL spatial.addNativePointLayerXY('geom','x','y')",
 						ExampleCypher::storeResult)
 				.assertSingleResult("node", o -> {
@@ -386,8 +390,11 @@ public class SpatialProceduresTest extends AbstractApiTest {
 
 	@Test
 	public void create_a_pointlayer_with_config() {
-		testCall(db, "CALL spatial.addPointLayerWithConfig('geom','lon:lat')",
-				(r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
+		docExample("spatial.addPointLayerWithConfig", "Create a point layer with X and Y properties")
+				.runCypher("CALL spatial.addPointLayerWithConfig('geom','lon:lat')", ExampleCypher::storeResult)
+				.assertSingleResult("node", node -> {
+					assertEquals("geom", ((Node) node).getProperty("layer"));
+				});
 	}
 
 	@Test
@@ -600,10 +607,14 @@ public class SpatialProceduresTest extends AbstractApiTest {
 
 	@Test
 	public void add_and_remove_layer() {
-		execute("CALL spatial.addWKTLayer('geom','wkt')");
-		testCallCount(db, "CALL spatial.layers()", null, 1);
-		execute("CALL spatial.removeLayer('geom')");
-		testCallCount(db, "CALL spatial.layers()", null, 0);
+		docExample("spatial.layers", "Add and Remove a layer")
+				.additionalSignature("spatial.removeLayer")
+				.runCypher("CALL spatial.addWKTLayer('geom','wkt')", ExampleCypher::storeResult)
+				.runCypher("CALL spatial.layers()", ExampleCypher::storeResult)
+				.assertResult(res -> Assertions.assertThat(res).hasSize(1))
+				.runCypher("CALL spatial.removeLayer('geom')", ExampleCypher::storeResult)
+				.runCypher("CALL spatial.layers()", ExampleCypher::storeResult)
+				.assertResult(res -> Assertions.assertThat(res).isEmpty());
 	}
 
 	@Test
@@ -628,11 +639,15 @@ public class SpatialProceduresTest extends AbstractApiTest {
 
 	@Test
 	public void get_and_set_feature_attributes() {
-		execute("CALL spatial.addWKTLayer('geom','wkt')");
-		testCallCount(db, "CALL spatial.layers()", null, 1);
-		testCallCount(db, "CALL spatial.getFeatureAttributes('geom')", null, 0);
-		execute("CALL spatial.setFeatureAttributes('geom',['name','type','color'])");
-		testCallCount(db, "CALL spatial.getFeatureAttributes('geom')", null, 3);
+		docExample("spatial.getFeatureAttributes", "Get the feature attributes of a layer")
+				.additionalSignature("spatial.setFeatureAttributes")
+				.runCypher("CALL spatial.addWKTLayer('geom','wkt')", ExampleCypher::storeResult)
+				.runCypher("CALL spatial.getFeatureAttributes('geom')", ExampleCypher::storeResult)
+				.assertResult(res -> Assertions.assertThat(res).hasSize(0))
+				.runCypher("CALL spatial.setFeatureAttributes('geom',['name','type','color'])",
+						ExampleCypher::storeResult)
+				.runCypher("CALL spatial.getFeatureAttributes('geom')", ExampleCypher::storeResult)
+				.assertResult(res -> Assertions.assertThat(res).hasSize(3));
 	}
 
 	@Test
@@ -876,50 +891,42 @@ public class SpatialProceduresTest extends AbstractApiTest {
 
 	@Test
 	public void add_two_nodes_to_the_spatial_layer() {
-		execute("CALL spatial.addPointLayerXY('geom','lon','lat')");
-		String node1;
-		String node2;
-		try (Transaction tx = db.beginTx()) {
-			Result result = tx.execute(
-					"CREATE (n1:Node {lat:60.1,lon:15.2}),(n2:Node {lat:60.1,lon:15.3}) WITH n1,n2 CALL spatial.addNodes('geom',[n1,n2]) YIELD count RETURN n1,n2,count");
-			Map<String, Object> row = result.next();
-			node1 = ((Node) row.get("n1")).getElementId();
-			node2 = ((Node) row.get("n2")).getElementId();
-			long count = (Long) row.get("count");
-			assertEquals(2L, count);
-			result.close();
-			tx.commit();
-		}
-		testResult(db, "CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)", res -> {
-			assertTrue(res.hasNext());
-			assertEquals(node1, ((Node) res.next().get("node")).getElementId());
-			assertTrue(res.hasNext());
-			assertEquals(node2, ((Node) res.next().get("node")).getElementId());
-			assertFalse(res.hasNext());
-		});
-		try (Transaction tx = db.beginTx()) {
-			Node node = (Node) tx.execute("MATCH (node) WHERE elementId(node) = $nodeId RETURN node",
-					Map.of("nodeId", node1)).next().get("node");
-			Result removeResult = tx.execute("CALL spatial.removeNode('geom',$node) YIELD nodeId RETURN nodeId",
-					Map.of("node", node));
-			assertEquals(node1, removeResult.next().get("nodeId"));
-			removeResult.close();
-			tx.commit();
-		}
-		testResult(db, "CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)", res -> {
-			assertTrue(res.hasNext());
-			assertEquals(node2, ((Node) res.next().get("node")).getElementId());
-			assertFalse(res.hasNext());
-		});
-		try (Transaction tx = db.beginTx()) {
-			Result removeResult = tx.execute("CALL spatial.removeNode.byId('geom',$nodeId) YIELD nodeId RETURN nodeId",
-					Map.of("nodeId", node2));
-			assertEquals(node2, removeResult.next().get("nodeId"));
-			removeResult.close();
-			tx.commit();
-		}
-		testResult(db, "CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)",
-				res -> assertFalse(res.hasNext()));
+		docExample("spatial.addPointLayerXY", "Create a point layer with X and Y properties")
+				.additionalSignature("spatial.addNodes")
+				.additionalSignature("spatial.removeNode")
+				.additionalSignature("spatial.removeNode.byId")
+				.runCypher("CALL spatial.addPointLayerXY('geom','lon','lat')")
+				.runCypher(
+						"CREATE (n1:Node {id: 1, lat:60.1,lon:15.2}),(n2:Node {id: 2, lat:60.1,lon:15.3}) WITH n1,n2 CALL spatial.addNodes('geom',[n1,n2]) YIELD count RETURN n1,n2,count",
+						config -> config.storeResult().setComment("Add two nodes to the layer"))
+				.assertSingleResult("n1", o -> assertEquals(60.1, ((Node) o).getProperty("lat")))
+				.assertSingleResult("n2", o -> assertEquals(60.1, ((Node) o).getProperty("lat")))
+				.assertSingleResult("count", o -> assertEquals(2L, o))
+				.runCypher("CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)",
+						config -> config.storeResult().setComment("Find nodes within distance"))
+				.assertResult(res -> {
+					assertEquals(2, res.size());
+					assertEquals(1L, ((Node) res.get(0).get("node")).getProperty("id"));
+					assertEquals(2L, ((Node) res.get(1).get("node")).getProperty("id"));
+				})
+				.runCypher("""
+								MATCH (node) WHERE node.id = 1
+								CALL spatial.removeNode('geom', node) YIELD nodeId
+								RETURN nodeId
+								""",
+						config -> config.setComment("Remove node 1"))
+				.runCypher("CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)",
+						ExampleCypher::storeResult)
+				.assertSingleResult("node", o -> assertEquals(2L, ((Node) o).getProperty("id")))
+				.runCypher("""
+								MATCH (node) WHERE node.id = 2
+								CALL spatial.removeNode.byId('geom', elementId(node)) YIELD nodeId
+								RETURN nodeId
+								""",
+						config -> config.setComment("Remove node 2"))
+				.runCypher("CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)",
+						ExampleCypher::storeResult)
+				.assertResult(res -> Assertions.assertThat(res).isEmpty());
 	}
 
 	@Test
@@ -1074,8 +1081,11 @@ public class SpatialProceduresTest extends AbstractApiTest {
 
 	@Test
 	public void import_shapefile() {
-		testCountQuery("importShapefile", "CALL spatial.importShapefile('shp/highway.shp')", 143, "count", null);
-		testCallCount(db, "CALL spatial.layers()", null, 1);
+		docExample("spatial.importShapefile", "Import a shape-file")
+				.runCypher("CALL spatial.importShapefile('shp/highway.shp')", ExampleCypher::storeResult)
+				.assertSingleResult("count", count -> assertEquals(143L, count))
+				.runCypher("CALL spatial.layers()", ExampleCypher::storeResult)
+				.assertResult(r -> Assertions.assertThat(r).hasSize(1));
 	}
 
 	@Test
@@ -1086,16 +1096,21 @@ public class SpatialProceduresTest extends AbstractApiTest {
 
 	@Test
 	public void import_shapefile_to_layer() {
-		execute("CALL spatial.addWKTLayer('geom','wkt')");
-		testCountQuery("importShapefileToLayer", "CALL spatial.importShapefileToLayer('geom','shp/highway.shp')", 143,
-				"count", null);
-		testCallCount(db, "CALL spatial.layers()", null, 1);
+		docExample("spatial.importShapefileToLayer", "Import a shape-file")
+				.runCypher("CALL spatial.addWKTLayer('geom','wkt')")
+				.runCypher("CALL spatial.importShapefileToLayer('geom', 'shp/highway.shp')", ExampleCypher::storeResult)
+				.assertSingleResult("count", count -> assertEquals(143L, count))
+				.runCypher("CALL spatial.layers()", ExampleCypher::storeResult)
+				.assertResult(r -> Assertions.assertThat(r).hasSize(1));
 	}
 
 	@Test
 	public void import_osm() {
-		testCountQuery("importOSM", "CALL spatial.importOSM('map.osm')", 55, "count", null);
-		testCallCount(db, "CALL spatial.layers()", null, 1);
+		docExample("spatial.importOSM", "Import an OSM file")
+				.runCypher("CALL spatial.importOSM('map.osm')", ExampleCypher::storeResult)
+				.assertSingleResult("count", count -> assertEquals(55L, count))
+				.runCypher("CALL spatial.layers()", ExampleCypher::storeResult)
+				.assertResult(r -> Assertions.assertThat(r).hasSize(1));
 	}
 
 	@Test
@@ -1114,9 +1129,12 @@ public class SpatialProceduresTest extends AbstractApiTest {
 
 	@Test
 	public void import_osm_to_layer() {
-		execute("CALL spatial.addLayer('geom','OSM','')");
-		testCountQuery("importOSMToLayer", "CALL spatial.importOSMToLayer('geom','map.osm')", 55, "count", null);
-		testCallCount(db, "CALL spatial.layers()", null, 1);
+		docExample("spatial.importOSMToLayer", "Import an OSM file")
+				.runCypher("CALL spatial.addLayer('geom','OSM','')")
+				.runCypher("CALL spatial.importOSMToLayer('geom','map.osm')", ExampleCypher::storeResult)
+				.assertSingleResult("count", count -> assertEquals(55L, count))
+				.runCypher("CALL spatial.layers()", ExampleCypher::storeResult)
+				.assertResult(r -> Assertions.assertThat(r).hasSize(1));
 	}
 
 	@Test
@@ -1259,22 +1277,34 @@ public class SpatialProceduresTest extends AbstractApiTest {
 
 	@Test
 	public void find_geometries_in_a_bounding_box() {
-		execute("CALL spatial.addPointLayer('geom')");
-		Node node = createNode(
-				"CREATE (n:Node {latitude:60.1,longitude:15.2}) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node",
-				"node");
-		testCall(db, "CALL spatial.bbox('geom',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})",
-				r -> assertEquals(node, r.get("node")));
+		docExample("spatial.bbox", "Find geometries in a bounding box")
+				.runCypher("CALL spatial.addPointLayer('geom')")
+				.runCypher("""
+						CREATE (n:Node {id: 1, latitude:60.1,longitude:15.2})
+						WITH n CALL spatial.addNode('geom',n) YIELD node
+						RETURN node
+						""")
+				.runCypher("CALL spatial.bbox('geom',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})",
+						c -> c.storeResult().setComment("Find node within bounding box"))
+				.assertSingleResult("node", o -> assertEquals(1L, ((Node) o).getProperty("id")));
 	}
 
 	@Test
 	public void find_geometries_in_a_polygon() {
-		execute("CALL spatial.addPointLayer('geom')");
-		executeWrite(
-				"UNWIND [{name:'a',latitude:60.1,longitude:15.2},{name:'b',latitude:60.3,longitude:15.5}] as point CREATE (n:Node) SET n += point WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node.name as name");
 		String polygon = "POLYGON((15.3 60.2, 15.3 60.4, 15.7 60.4, 15.7 60.2, 15.3 60.2))";
-		testCall(db, "CALL spatial.intersects('geom','" + polygon + "') YIELD node RETURN node.name as name",
-				r -> assertEquals("b", r.get("name")));
+		docExample("spatial.intersects", "Find geometries in a polygon")
+				.runCypher("CALL spatial.addPointLayer('geom')")
+				.runCypher("""
+						UNWIND [ {name:'a',latitude:60.1,longitude:15.2}, {name:'b',latitude:60.3,longitude:15.5} ] as point
+						CREATE (n:Node)
+						SET n += point
+						WITH n
+						CALL spatial.addNode('geom',n) YIELD node
+						RETURN node.name as name
+						""", ExampleCypher::storeResult)
+				.runCypher("CALL spatial.intersects('geom','" + polygon + "') YIELD node\n RETURN node.name as name",
+						ExampleCypher::storeResult)
+				.assertSingleResult("name", name -> assertEquals("b", name));
 	}
 
 	@Test
@@ -1361,18 +1391,25 @@ public class SpatialProceduresTest extends AbstractApiTest {
 	@Test
 	public void find_geometries_close_to_a_point_wkt() {
 		String lineString = "LINESTRING (15.2 60.1, 15.3 60.1)";
-		execute("CALL spatial.addLayer('geom','WKT','wkt')");
-		execute("CALL spatial.addWKT('geom',$wkt)", Map.of("wkt", lineString));
-		testCall(db, "CALL spatial.closest('geom',{lon:15.2, lat:60.1}, 1.0)",
-				r -> assertEquals(lineString, (dump((Node) r.get("node"))).getProperty("wkt")));
+		docExample("spatial.addWKT", "Add a WKT geometry to a layer")
+				.additionalSignature("spatial.addWKTLayer")
+				.runCypher("CALL spatial.addWKTLayer('geom', 'wkt')")
+				.runCypher("CALL spatial.addWKT('geom',$wkt)",
+						c -> c.setParams(Map.of("wkt", lineString)).storeResult())
+				.runCypher("CALL spatial.closest('geom',{lon:15.2, lat:60.1}, 1.0)", ExampleCypher::storeResult)
+				.assertSingleResult("node", node -> assertEquals(lineString, (((Node) node)).getProperty("wkt")));
 	}
 
 	@Test
 	public void find_geometries_close_to_a_point_geohash() {
-		String lineString = "POINT (15.2 60.1)";
-		execute("CALL spatial.addLayer('geom','geohash','lon:lat')");
-		execute("CALL spatial.addWKT('geom',$wkt)", Map.of("wkt", lineString));
-		testCallCount(db, "CALL spatial.closest('geom',{lon:15.2, lat:60.1}, 1.0)", null, 1);
+		var points = List.of("POINT (15.2 60.1)", "POINT (25.2 30.1)");
+		docExample("spatial.addWKTs", "Add multiple WKT geometries to a layer")
+				.additionalSignature("spatial.closest")
+				.runCypher("CALL spatial.addLayer('geom','geohash','lon:lat')")
+				.runCypher("CALL spatial.addWKTs('geom',$wkt)",
+						c -> c.setParams(Map.of("wkt", points)).storeResult())
+				.runCypher("CALL spatial.closest('geom',{lon:15.0, lat:60.0}, 1.0)", ExampleCypher::storeResult)
+				.assertResult(list -> Assertions.assertThat(list).hasSize(1));
 	}
 
 	@Test

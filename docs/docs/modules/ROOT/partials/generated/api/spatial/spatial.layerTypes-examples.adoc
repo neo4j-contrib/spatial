@@ -6,6 +6,7 @@ CALL spatial.layerTypes()
 ----
 
 .Result
+
 [opts="header",cols="2"]
 |===
 |name|signature

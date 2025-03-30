@@ -20,6 +20,7 @@ spatial.removeLayer(name :: STRING)
 [.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
-|name|STRING|null|
+|name|STRING|null
+a|The name of the layer
 |===
 

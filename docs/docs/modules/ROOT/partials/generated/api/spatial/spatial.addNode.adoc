@@ -20,8 +20,10 @@ spatial.addNode(layerName :: STRING, node :: NODE) :: (node :: NODE)
 [.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
-|layerName|STRING|null|The name of the layer
-|node|NODE|null|the node to be added to the index
+|layerName|STRING|null
+a|The name of the layer
+|node|NODE|null
+a|the node to be added to the index
 |===
 
 == Output parameters

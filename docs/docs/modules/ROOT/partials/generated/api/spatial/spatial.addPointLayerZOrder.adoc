@@ -20,8 +20,10 @@ spatial.addPointLayerZOrder(name :: STRING, indexConfig =  :: STRING) :: (node :
 [.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
-|name|STRING|null|
-|indexConfig|STRING|""|
+|name|STRING|null
+a|The name of the layer
+|indexConfig|STRING|""
+a|The configuration of the newly created index
 |===
 
 == Output parameters

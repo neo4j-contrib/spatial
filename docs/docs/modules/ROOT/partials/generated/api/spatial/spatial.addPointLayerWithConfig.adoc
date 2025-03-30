@@ -20,11 +20,16 @@ spatial.addPointLayerWithConfig(name :: STRING, encoderConfig :: STRING, indexTy
 [.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
-|name|STRING|null|
-|encoderConfig|STRING|null|
-|indexType|STRING|"rtree"|
-|crsName|STRING|""|
-|indexConfig|STRING|""|
+|name|STRING|null
+a|The name of the layer
+|encoderConfig|STRING|null
+a|The configuration of the encoder that is used by layer to en-/decode the geometry of indexed nodes
+|indexType|STRING|"rtree"
+a|The type of the index algorithm to be used, valid values are: `rtree`, `geohash`, `zorder` or `hilbert`
+|crsName|STRING|""
+a|The CRS to be used, valid values are: `wgs84`
+|indexConfig|STRING|""
+a|The configuration of the newly created index
 |===
 
 == Output parameters

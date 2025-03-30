@@ -20,8 +20,10 @@ spatial.removeNode.byId(layerName :: STRING, nodeId :: STRING) :: (nodeId :: STR
 [.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
-|layerName|STRING|null|
-|nodeId|STRING|null|
+|layerName|STRING|null
+a|The name of the layer
+|nodeId|STRING|null
+a|The elementId of the node to remove
 |===
 
 == Output parameters

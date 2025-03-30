@@ -1,0 +1,30 @@
+=== Converting a point array to WKT
+
+[source,cypher]
+----
+RETURN spatial.neo4jGeometryToWkt([point({longitude: 1, latitude: 2}), point({longitude: 3, latitude: 4}) ]) as wkt
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|wkt
+|LINESTRING (1 2, 3 4)
+|===
+
+=== Converting a point to WKT
+
+[source,cypher]
+----
+RETURN spatial.neo4jGeometryToWkt(point({longitude: 1, latitude: 2})) as wkt
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|wkt
+|POINT ( 1 2 )
+|===
+

@@ -13,6 +13,7 @@ CALL spatial.layer('geom')
 ----
 
 .Result
+
 [opts="header",cols="1"]
 |===
 |node

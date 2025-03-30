@@ -129,8 +129,11 @@ public class ExampleCypher {
 	}
 
 	private String generateResult() {
-		if (!storeResult || result.isEmpty()) {
+		if (!storeResult) {
 			return "";
+		}
+		if (result.isEmpty()) {
+			return ".Result\n\nNo results\n\n";
 		}
 		StringBuilder writer = new StringBuilder();
 		writer.append(".Result\n\n");

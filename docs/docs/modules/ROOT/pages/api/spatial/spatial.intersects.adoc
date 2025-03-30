@@ -1,5 +1,5 @@
 include::partial$generated/api/spatial/spatial.intersects.adoc[]
 
-// == Examples
-// 
-// include::partial$generated/api/spatial/spatial.intersects-examples.adoc[]
+== Examples
+
+include::partial$generated/api/spatial/spatial.intersects-examples.adoc[]

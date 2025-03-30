@@ -1,0 +1,51 @@
+=== Add a WKT geometry to a layer
+
+[source,cypher]
+----
+CALL spatial.addWKTLayer('geom', 'wkt')
+----
+
+[source,cypher]
+----
+CALL spatial.addWKT('geom',"LINESTRING (15.2 60.1, 15.3 60.1)")
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|node
+a|
+[source]
+----
+( {
+    bbox: [15.2,60.1,15.3,60.1],
+    gtype: 2,
+    wkt: "LINESTRING (15.2 60.1, 15.3 60.1)"
+})
+----
+
+|===
+
+[source,cypher]
+----
+CALL spatial.closest('geom',{lon:15.2, lat:60.1}, 1.0)
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|node
+a|
+[source]
+----
+( {
+    bbox: [15.2,60.1,15.3,60.1],
+    gtype: 2,
+    wkt: "LINESTRING (15.2 60.1, 15.3 60.1)"
+})
+----
+
+|===
+

@@ -19,13 +19,16 @@
  */
 package org.neo4j.gis.spatial.procedures;
 
+import static org.neo4j.gis.spatial.Constants.DOC_COORDINATE;
 import static org.neo4j.gis.spatial.Constants.DOC_CRS;
 import static org.neo4j.gis.spatial.Constants.DOC_ENCODER_CONFIG;
 import static org.neo4j.gis.spatial.Constants.DOC_ENCODER_NAME;
 import static org.neo4j.gis.spatial.Constants.DOC_INDEX_CONFIG;
 import static org.neo4j.gis.spatial.Constants.DOC_INDEX_TYPE;
+import static org.neo4j.gis.spatial.Constants.DOC_JTS_GEOMETRY;
 import static org.neo4j.gis.spatial.Constants.DOC_LAYER_NAME;
 import static org.neo4j.gis.spatial.Constants.DOC_LAYER_TYPE;
+import static org.neo4j.gis.spatial.Constants.DOC_URI;
 import static org.neo4j.gis.spatial.Constants.WGS84_CRS_NAME;
 import static org.neo4j.gis.spatial.SpatialDatabaseService.INDEX_TYPE_RTREE;
 import static org.neo4j.procedure.Mode.READ;
@@ -219,10 +222,10 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Procedure(value = "spatial.addPointLayer", mode = WRITE)
 	@Description("Adds a new simple point layer, returns the layer root node")
 	public Stream<NodeResult> addSimplePointLayer(
-			@Name("name") String name,
-			@Name(value = "indexType", defaultValue = INDEX_TYPE_RTREE) String indexType,
-			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig
+			@Name(value = "name", description = DOC_LAYER_NAME) String name,
+			@Name(value = "indexType", defaultValue = INDEX_TYPE_RTREE, description = DOC_LAYER_TYPE) String indexType,
+			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME, description = DOC_CRS) String crsName,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig
 	) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
@@ -237,9 +240,9 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Procedure(value = "spatial.addPointLayerGeohash", mode = WRITE)
 	@Description("Adds a new simple point layer with geohash based index, returns the layer root node")
 	public Stream<NodeResult> addSimplePointLayerGeohash(
-			@Name("name") String name,
-			@Name(value = "crsName", defaultValue = WGS84_CRS_NAME) String crsName,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
+			@Name(value = "name", description = DOC_LAYER_NAME) String name,
+			@Name(value = "crsName", defaultValue = WGS84_CRS_NAME, description = DOC_CRS) String crsName,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
@@ -252,8 +255,9 @@ public class SpatialProcedures extends SpatialApiBase {
 
 	@Procedure(value = "spatial.addPointLayerZOrder", mode = WRITE)
 	@Description("Adds a new simple point layer with z-order curve based index, returns the layer root node")
-	public Stream<NodeResult> addSimplePointLayerZOrder(@Name("name") String name,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
+	public Stream<NodeResult> addSimplePointLayerZOrder(
+			@Name(value = "name", description = DOC_LAYER_NAME) String name,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
@@ -267,8 +271,8 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Procedure(value = "spatial.addPointLayerHilbert", mode = WRITE)
 	@Description("Adds a new simple point layer with hilbert curve based index, returns the layer root node")
 	public Stream<NodeResult> addSimplePointLayerHilbert(
-			@Name("name") String name,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig
+			@Name(value = "name", description = DOC_LAYER_NAME) String name,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig
 	) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
@@ -283,12 +287,12 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Procedure(value = "spatial.addPointLayerXY", mode = WRITE)
 	@Description("Adds a new simple point layer with the given properties for x and y coordinates, returns the layer root node")
 	public Stream<NodeResult> addSimplePointLayer(
-			@Name("name") String name,
-			@Name("xProperty") String xProperty,
-			@Name("yProperty") String yProperty,
-			@Name(value = "indexType", defaultValue = INDEX_TYPE_RTREE) String indexType,
-			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
+			@Name(value = "name", description = DOC_LAYER_NAME) String name,
+			@Name(value = "xProperty", description = "The property of the node to read the x coordinate from") String xProperty,
+			@Name(value = "yProperty", description = "The property of the node to read the y coordinate from") String yProperty,
+			@Name(value = "indexType", defaultValue = INDEX_TYPE_RTREE, description = DOC_INDEX_TYPE) String indexType,
+			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME, description = DOC_CRS) String crsName,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
@@ -309,11 +313,11 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Procedure(value = "spatial.addPointLayerWithConfig", mode = WRITE)
 	@Description("Adds a new simple point layer with the given configuration, returns the layer root node")
 	public Stream<NodeResult> addSimplePointLayerWithConfig(
-			@Name("name") String name,
-			@Name("encoderConfig") String encoderConfig,
-			@Name(value = "indexType", defaultValue = INDEX_TYPE_RTREE) String indexType,
-			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME) String crsName,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
+			@Name(value = "name", description = DOC_LAYER_NAME) String name,
+			@Name(value = "encoderConfig", description = DOC_ENCODER_CONFIG) String encoderConfig,
+			@Name(value = "indexType", defaultValue = INDEX_TYPE_RTREE, description = DOC_INDEX_TYPE) String indexType,
+			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME, description = DOC_CRS) String crsName,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		Layer layer = sdb.getLayer(tx, name);
 		if (layer == null) {
@@ -529,9 +533,10 @@ public class SpatialProcedures extends SpatialApiBase {
 
 	@Procedure(value = "spatial.addWKTLayer", mode = WRITE)
 	@Description("Adds a new WKT layer with the given node property to hold the WKT string, returns the layer root node")
-	public Stream<NodeResult> addWKTLayer(@Name("name") String name,
-			@Name("nodePropertyName") String nodePropertyName,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG) String indexConfig) {
+	public Stream<NodeResult> addWKTLayer(
+			@Name(value = "name", description = DOC_LAYER_NAME) String name,
+			@Name(value = "nodePropertyName", description = "The property from which the WKT will be read") String nodePropertyName,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig) {
 		return addLayerOfType(name, "WKT", nodePropertyName, indexConfig);
 	}
 
@@ -543,15 +548,16 @@ public class SpatialProcedures extends SpatialApiBase {
 
 	@Procedure(value = "spatial.getFeatureAttributes", mode = WRITE)
 	@Description("Returns feature attributes of the given layer")
-	public Stream<StringResult> getFeatureAttributes(@Name("name") String name) {
+	public Stream<StringResult> getFeatureAttributes(
+			@Name(value = "name", description = DOC_LAYER_NAME) String name) {
 		Layer layer = getLayerOrThrow(tx, spatial(), name);
 		return Arrays.stream(layer.getExtraPropertyNames(tx)).map(StringResult::new);
 	}
 
 	@Procedure(value = "spatial.setFeatureAttributes", mode = WRITE)
 	@Description("Sets the feature attributes of the given layer")
-	public Stream<NodeResult> setFeatureAttributes(@Name("name") String name,
-			@Name("attributeNames") List<String> attributeNames) {
+	public Stream<NodeResult> setFeatureAttributes(@Name(value = "name", description = DOC_LAYER_NAME) String name,
+			@Name(value = "attributeNames", description = "The attributes to set") List<String> attributeNames) {
 		EditableLayerImpl layer = getEditableLayerOrThrow(tx, spatial(), name);
 		layer.setExtraPropertyNames(attributeNames.toArray(new String[0]), tx);
 		return streamNode(layer.getLayerNode(tx));
@@ -559,7 +565,7 @@ public class SpatialProcedures extends SpatialApiBase {
 
 	@Procedure(value = "spatial.removeLayer", mode = WRITE)
 	@Description("Removes the given layer")
-	public void removeLayer(@Name("name") String name) {
+	public void removeLayer(@Name(value = "name", description = DOC_LAYER_NAME) String name) {
 		SpatialDatabaseService sdb = spatial();
 		sdb.deleteLayer(tx, name, new ProgressLoggingListener("Deleting layer '" + name + "'", log, Level.INFO));
 	}
@@ -577,7 +583,9 @@ public class SpatialProcedures extends SpatialApiBase {
 
 	@Procedure(value = "spatial.addNodes", mode = WRITE)
 	@Description("Adds the given nodes list to the layer, returns the count")
-	public Stream<CountResult> addNodesToLayer(@Name("layerName") String name, @Name("nodes") List<Node> nodes) {
+	public Stream<CountResult> addNodesToLayer(
+			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
+			@Name(value = "nodes", description = "the nodes to be added to the index") List<Node> nodes) {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
 		int count = layer.addAll(tx, nodes);
 		layer.finalizeTransaction(tx);
@@ -586,7 +594,9 @@ public class SpatialProcedures extends SpatialApiBase {
 
 	@Procedure(value = "spatial.addNode.byId", mode = WRITE)
 	@Description("Adds the given node to the layer, returns the geometry-node")
-	public Stream<NodeResult> addNodeIdToLayer(@Name("layerName") String name, @Name("nodeId") String nodeId) {
+	public Stream<NodeResult> addNodeIdToLayer(
+			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
+			@Name(value = "nodeId", description = "The elementId of the node to add") String nodeId) {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
 		Node geomNode = layer.add(tx, tx.getNodeByElementId(nodeId)).getGeomNode();
 		layer.finalizeTransaction(tx);
@@ -595,8 +605,9 @@ public class SpatialProcedures extends SpatialApiBase {
 
 	@Procedure(value = "spatial.addNodes.byId", mode = WRITE)
 	@Description("Adds the given nodes list to the layer, returns the count")
-	public Stream<CountResult> addNodeIdsToLayer(@Name("layerName") String name,
-			@Name("nodeIds") List<String> nodeIds) {
+	public Stream<CountResult> addNodeIdsToLayer(
+			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
+			@Name(value = "nodeIds", description = "A list of elementIds of the nodes to add") List<String> nodeIds) {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
 		List<Node> nodes = nodeIds.stream().map(id -> tx.getNodeByElementId(id)).collect(Collectors.toList());
 		int count = layer.addAll(tx, nodes);
@@ -606,7 +617,9 @@ public class SpatialProcedures extends SpatialApiBase {
 
 	@Procedure(value = "spatial.removeNode", mode = WRITE)
 	@Description("Removes the given node from the layer, returns the geometry-node")
-	public Stream<NodeIdResult> removeNodeFromLayer(@Name("layerName") String name, @Name("node") Node node) {
+	public Stream<NodeIdResult> removeNodeFromLayer(
+			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
+			@Name(value = "node", description = "The node to remove from the index") Node node) {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
 		layer.removeFromIndex(tx, node.getElementId());
 		layer.finalizeTransaction(tx);
@@ -615,7 +628,9 @@ public class SpatialProcedures extends SpatialApiBase {
 
 	@Procedure(value = "spatial.removeNodes", mode = WRITE)
 	@Description("Removes the given nodes from the layer, returns the count of nodes removed")
-	public Stream<CountResult> removeNodesFromLayer(@Name("layerName") String name, @Name("nodes") List<Node> nodes) {
+	public Stream<CountResult> removeNodesFromLayer(
+			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
+			@Name(value = "nodes", description = "The nodes to remove from the index") List<Node> nodes) {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
 		//TODO optimize bulk node removal from RTree like we have done for node additions
 		int before = layer.getIndex().count(tx);
@@ -629,7 +644,9 @@ public class SpatialProcedures extends SpatialApiBase {
 
 	@Procedure(value = "spatial.removeNode.byId", mode = WRITE)
 	@Description("Removes the given node from the layer, returns the geometry-node")
-	public Stream<NodeIdResult> removeNodeFromLayer(@Name("layerName") String name, @Name("nodeId") String nodeId) {
+	public Stream<NodeIdResult> removeNodeFromLayer(
+			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
+			@Name(value = "nodeId", description = "The elementId of the node to remove") String nodeId) {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
 		layer.removeFromIndex(tx, nodeId);
 		layer.finalizeTransaction(tx);
@@ -638,8 +655,9 @@ public class SpatialProcedures extends SpatialApiBase {
 
 	@Procedure(value = "spatial.removeNodes.byId", mode = WRITE)
 	@Description("Removes the given nodes from the layer, returns the count of nodes removed")
-	public Stream<CountResult> removeNodeIdsFromLayer(@Name("layerName") String name,
-			@Name("nodeIds") List<String> nodeIds) {
+	public Stream<CountResult> removeNodeIdsFromLayer(
+			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
+			@Name(value = "nodeIds", description = "A list of elementIds of the nodes to remove") List<String> nodeIds) {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
 		//TODO optimize bulk node removal from RTree like we have done for node additions
 		int before = layer.getIndex().count(tx);
@@ -653,8 +671,9 @@ public class SpatialProcedures extends SpatialApiBase {
 
 	@Procedure(value = "spatial.addWKT", mode = WRITE)
 	@Description("Adds the given WKT string to the layer, returns the created geometry node")
-	public Stream<NodeResult> addGeometryWKTToLayer(@Name("layerName") String name,
-			@Name("geometry") String geometryWKT) {
+	public Stream<NodeResult> addGeometryWKTToLayer(
+			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
+			@Name(value = "geometry", description = "A WKT to add to the index") String geometryWKT) {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
 		WKTReader reader = new WKTReader(layer.getGeometryFactory());
 		Node node = addGeometryWkt(layer, reader, geometryWKT);
@@ -664,8 +683,9 @@ public class SpatialProcedures extends SpatialApiBase {
 
 	@Procedure(value = "spatial.addWKTs", mode = WRITE)
 	@Description("Adds the given WKT string list to the layer, returns the created geometry nodes")
-	public Stream<NodeResult> addGeometryWKTsToLayer(@Name("layerName") String name,
-			@Name("geometry") List<String> geometryWKTs) {
+	public Stream<NodeResult> addGeometryWKTsToLayer(
+			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
+			@Name(value = "geometry", description = "A list of WKTs to add to the index") List<String> geometryWKTs) {
 		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
 		WKTReader reader = new WKTReader(layer.getGeometryFactory());
 		return geometryWKTs.stream().map(geometryWKT -> addGeometryWkt(layer, reader, geometryWKT))
@@ -685,8 +705,8 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Procedure(value = "spatial.importShapefileToLayer", mode = WRITE)
 	@Description("Imports the the provided shape-file from URI to the given layer, returns the count of data added")
 	public Stream<CountResult> importShapefile(
-			@Name("layerName") String name,
-			@Name("uri") String uri) throws IOException {
+			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
+			@Name(value = "uri", description = DOC_URI) String uri) throws IOException {
 		EditableLayerImpl layer = getEditableLayerOrThrow(tx, spatial(), name);
 		List<Node> nodes = importShapefileToLayer(uri, layer, 1000);
 		layer.finalizeTransaction(tx);
@@ -696,7 +716,7 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Procedure(value = "spatial.importShapefile", mode = WRITE)
 	@Description("Imports the the provided shape-file from URI to a layer of the same name, returns the count of data added")
 	public Stream<CountResult> importShapefile(
-			@Name("uri") String uri) throws IOException {
+			@Name(value = "uri", description = DOC_URI) String uri) throws IOException {
 		return Stream.of(new CountResult(importShapefileToLayer(uri, null, 1000).size()));
 	}
 
@@ -719,8 +739,9 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Procedure(value = "spatial.importOSMToLayer", mode = WRITE)
 	@Description("Imports the the provided osm-file from URI to a layer, returns the count of data added")
 	public Stream<CountResult> importOSM(
-			@Name("layerName") String layerName,
-			@Name("uri") String uri) throws InterruptedException {
+			@Name(value = "layerName", description = DOC_LAYER_NAME) String layerName,
+			@Name(value = "uri", description = DOC_URI) String uri)
+			throws InterruptedException {
 		// Delegate finding the layer to the inner thread, so we do not pollute the procedure transaction with anything that might conflict.
 		// Since the procedure transaction starts before, and ends after, all inner transactions.
 		BiFunction<Transaction, String, OSMLayer> layerFinder = (tx, name) -> (OSMLayer) getEditableLayerOrThrow(tx,
@@ -731,7 +752,8 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Procedure(value = "spatial.importOSM", mode = WRITE)
 	@Description("Imports the the provided osm-file from URI to a layer of the same name, returns the count of data added")
 	public Stream<CountResult> importOSM(
-			@Name("uri") String uri) throws InterruptedException {
+			@Name(value = "uri", description = DOC_URI) String uri)
+			throws InterruptedException {
 		String layerName = uri.substring(uri.lastIndexOf(File.separator) + 1);
 		assertLayerDoesNotExists(tx, spatial(), layerName);
 		// Delegate creating the layer to the inner thread, so we do not pollute the procedure transaction with anything that might conflict.
@@ -811,11 +833,13 @@ public class SpatialProcedures extends SpatialApiBase {
 	}
 
 	@Procedure(value = "spatial.bbox", mode = READ)
-	@Description("Finds all geometry nodes in the given layer within the lower left and upper right coordinates of a box")
+	@Description(
+			"Finds all geometry nodes in the given layer within the lower left and upper right coordinates of a box. "
+					+ DOC_COORDINATE)
 	public Stream<NodeResult> findGeometriesInBBox(
-			@Name("layerName") String name,
-			@Name("min") Object min,
-			@Name("max") Object max) {
+			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
+			@Name(value = "min", description = "The lower left coordinate") Object min,
+			@Name(value = "max", description = "The upper right coordinate") Object max) {
 		Layer layer = getLayerOrThrow(tx, spatial(), name);
 		// TODO why a SearchWithin and not a SearchIntersectWindow?
 		Envelope envelope = new Envelope(toCoordinate(min), toCoordinate(max));
@@ -827,9 +851,9 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Procedure(value = "spatial.closest", mode = READ)
 	@Description("Finds all geometry nodes in the layer within the distance to the given coordinate")
 	public Stream<NodeResult> findClosestGeometries(
-			@Name("layerName") String name,
-			@Name("coordinate") Object coordinate,
-			@Name("distanceInKm") double distanceInKm) {
+			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
+			@Name(value = "coordinate", description = DOC_COORDINATE) Object coordinate,
+			@Name(value = "distanceInKm", description = "The distance in kilometers within which to search for geometries") double distanceInKm) {
 		Layer layer = getLayerOrThrow(tx, spatial(), name);
 		GeometryFactory factory = layer.getGeometryFactory();
 		Point point = factory.createPoint(toCoordinate(coordinate));
@@ -841,9 +865,9 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Procedure(value = "spatial.withinDistance", mode = READ)
 	@Description("Returns all geometry nodes and their ordered distance in the layer within the distance to the given coordinate")
 	public Stream<NodeDistanceResult> findGeometriesWithinDistance(
-			@Name("layerName") String name,
-			@Name("coordinate") Object coordinate,
-			@Name("distanceInKm") double distanceInKm) {
+			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
+			@Name(value = "coordinate", description = DOC_COORDINATE) Object coordinate,
+			@Name(value = "distanceInKm", description = "The distance in kilometers within which to search for geometries") double distanceInKm) {
 
 		Layer layer = getLayerOrThrow(tx, spatial(), name);
 		return GeoPipeline
@@ -878,8 +902,8 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Procedure(value = "spatial.intersects", mode = READ)
 	@Description("Returns all geometry nodes that intersect the given geometry (shape, polygon) in the layer")
 	public Stream<NodeResult> findGeometriesIntersecting(
-			@Name("layerName") String name,
-			@Name("geometry") Object geometry) {
+			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
+			@Name(value = "geometry", description = DOC_JTS_GEOMETRY) Object geometry) {
 
 		Layer layer = getLayerOrThrow(tx, spatial(), name);
 		return GeoPipeline

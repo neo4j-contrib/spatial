@@ -6,6 +6,7 @@ CALL spatial.addNativePointLayerWithConfig('geom','pos:mbr','hilbert')
 ----
 
 .Result
+
 [opts="header",cols="1"]
 |===
 |node

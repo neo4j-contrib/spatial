@@ -1,5 +1,5 @@
 include::partial$generated/api/spatial/spatial.withinDistance.adoc[]
 
-// == Examples
-// 
-// include::partial$generated/api/spatial/spatial.withinDistance-examples.adoc[]
+== Examples
+
+include::partial$generated/api/spatial/spatial.withinDistance-examples.adoc[]

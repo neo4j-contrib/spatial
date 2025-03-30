@@ -1,5 +1,5 @@
 include::partial$generated/api/spatial/spatial.setFeatureAttributes.adoc[]
 
-// == Examples
-// 
-// include::partial$generated/api/spatial/spatial.setFeatureAttributes-examples.adoc[]
+== Examples
+
+include::partial$generated/api/spatial/spatial.setFeatureAttributes-examples.adoc[]

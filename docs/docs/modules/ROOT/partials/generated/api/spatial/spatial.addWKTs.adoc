@@ -20,8 +20,10 @@ spatial.addWKTs(layerName :: STRING, geometry :: LIST<STRING>) :: (node :: NODE)
 [.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
-|layerName|STRING|null|
-|geometry|LIST<STRING>|null|
+|layerName|STRING|null
+a|The name of the layer
+|geometry|LIST<STRING>|null
+a|A list of WKTs to add to the index
 |===
 
 == Output parameters

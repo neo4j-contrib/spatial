@@ -20,7 +20,8 @@ spatial.layer(name :: STRING) :: (node :: NODE)
 [.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
-|name|STRING|null|the name of the layer
+|name|STRING|null
+a|the name of the layer
 |===
 
 == Output parameters

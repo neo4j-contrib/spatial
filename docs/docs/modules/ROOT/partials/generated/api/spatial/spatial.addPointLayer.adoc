@@ -20,10 +20,14 @@ spatial.addPointLayer(name :: STRING, indexType = rtree :: STRING, crsName =  ::
 [.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
-|name|STRING|null|
-|indexType|STRING|"rtree"|
-|crsName|STRING|""|
-|indexConfig|STRING|""|
+|name|STRING|null
+a|The name of the layer
+|indexType|STRING|"rtree"
+a|The type of the new layer. Existing layer types can be queried by `spatial.layer`
+|crsName|STRING|""
+a|The CRS to be used, valid values are: `wgs84`
+|indexConfig|STRING|""
+a|The configuration of the newly created index
 |===
 
 == Output parameters

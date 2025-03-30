@@ -20,6 +20,7 @@ spatial.wktToGeoJson(wkt :: STRING) :: ANY
 [.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
-|wkt|STRING|null|
+|wkt|STRING|null
+a|A WKT string
 |===
 

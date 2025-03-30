@@ -6,6 +6,7 @@ CALL spatial.addNativePointLayerGeohash('my-native-geohash-layer')
 ----
 
 .Result
+
 [opts="header",cols="1"]
 |===
 |node
@@ -38,6 +39,7 @@ MATCH (n:Node) WITH n CALL spatial.addNode('my-native-geohash-layer',n) YIELD no
 ----
 
 .Result
+
 [opts="header",cols="1"]
 |===
 |node
@@ -65,6 +67,7 @@ CALL spatial.withinDistance('my-native-geohash-layer',{lon:15.0,lat:60.0},100)
 ----
 
 .Result
+
 [opts="header",cols="2"]
 |===
 |distance|node

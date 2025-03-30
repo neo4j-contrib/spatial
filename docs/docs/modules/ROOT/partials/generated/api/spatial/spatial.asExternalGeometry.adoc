@@ -26,7 +26,8 @@ spatial.asExternalGeometry(geometry :: ANY) :: (geometry :: ANY)
 [.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
-|geometry|ANY|null|
+|geometry|ANY|null
+a|
 |===
 
 == Output parameters

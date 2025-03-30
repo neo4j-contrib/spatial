@@ -6,6 +6,7 @@ CALL spatial.addNativePointLayer('my-native-rtree-layer')
 ----
 
 .Result
+
 [opts="header",cols="1"]
 |===
 |node
@@ -37,6 +38,7 @@ MATCH (n:Node) WITH n CALL spatial.addNode('my-native-rtree-layer',n) YIELD node
 ----
 
 .Result
+
 [opts="header",cols="1"]
 |===
 |node
@@ -63,6 +65,7 @@ CALL spatial.withinDistance('my-native-rtree-layer',{lon:15.0,lat:60.0},100)
 ----
 
 .Result
+
 [opts="header",cols="2"]
 |===
 |distance|node

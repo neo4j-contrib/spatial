@@ -23,6 +23,7 @@ package org.neo4j.doc.domain.examples;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.function.Consumer;
 import org.assertj.core.api.Assertions;
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -37,12 +38,15 @@ public class Example {
 
 	private final GraphDatabaseService db;
 	final String title;
+	private final ExamplesRepository examplesRepository;
 	private final List<ExampleCypher> queries = new ArrayList<>();
 	private List<Map<String, Object>> lastResult = null;
 
-	public Example(GraphDatabaseService db, String title) {
+
+	public Example(GraphDatabaseService db, String title, ExamplesRepository examplesRepository) {
 		this.db = db;
 		this.title = title;
+		this.examplesRepository = examplesRepository;
 	}
 
 	public Example runCypher(String cypher) {
@@ -64,7 +68,7 @@ public class Example {
 							entry.setValue(new DocNode(node));
 						}
 					});
-					result.add(next);
+					result.add(new TreeMap<>(next));
 				}
 				return result;
 			});
@@ -84,8 +88,9 @@ public class Example {
 		return this;
 	}
 
-	public void assertResult(Consumer<List<Map<String, Object>>> assertions) {
+	public Example assertResult(Consumer<List<Map<String, Object>>> assertions) {
 		assertions.accept(lastResult);
+		return this;
 	}
 
 	CharSequence generateCypherBlocks() {
@@ -99,4 +104,23 @@ public class Example {
 		return writer.toString();
 	}
 
+	public Example additionalSignature(String signature) {
+		examplesRepository.add(signature, this);
+		return this;
+	}
+
+	public List<Map<String, Object>> getLastResult() {
+		return lastResult;
+	}
+
+	public Map<String, Object> getLastSingleResult() {
+		if (lastResult== null || lastResult.size() != 1){
+			throw new IllegalStateException("Expected a single result, but got " + lastResult);
+		}
+		return lastResult.get(0);
+	}
+
+	public Object getLastSingleResult(String field) {
+		return getLastSingleResult().get(field);
+	}
 }

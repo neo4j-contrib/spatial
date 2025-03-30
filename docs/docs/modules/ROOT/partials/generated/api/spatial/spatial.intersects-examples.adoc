@@ -1,0 +1,41 @@
+=== Find geometries in a polygon
+
+[source,cypher]
+----
+CALL spatial.addPointLayer('geom')
+----
+
+[source,cypher]
+----
+UNWIND [ {name:'a',latitude:60.1,longitude:15.2}, {name:'b',latitude:60.3,longitude:15.5} ] as point
+CREATE (n:Node)
+SET n += point
+WITH n
+CALL spatial.addNode('geom',n) YIELD node
+RETURN node.name as name
+
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|name
+|a
+|b
+|===
+
+[source,cypher]
+----
+CALL spatial.intersects('geom','POLYGON((15.3 60.2, 15.3 60.4, 15.7 60.4, 15.7 60.2, 15.3 60.2))') YIELD node
+ RETURN node.name as name
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|name
+|b
+|===
+

@@ -218,7 +218,7 @@ public class DocGeneratorTest extends AbstractApiTest {
 											}
 										})
 										.orElse("null"))
-								.append("|").append(Optional.ofNullable(input.getDescription()).orElse(""))
+								.append("\na|").append(Optional.ofNullable(input.getDescription()).orElse(""))
 								.append("\n");
 					}
 					writer.append("|===\n\n");

@@ -1,0 +1,41 @@
+=== Find geometries in a bounding box
+
+[source,cypher]
+----
+CALL spatial.addPointLayer('geom')
+----
+
+[source,cypher]
+----
+CREATE (n:Node {id: 1, latitude:60.1,longitude:15.2})
+WITH n CALL spatial.addNode('geom',n) YIELD node
+RETURN node
+
+----
+
+Find node within bounding box
+
+[source,cypher]
+----
+CALL spatial.bbox('geom',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0})
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|node
+a|
+[source]
+----
+(:Node {
+    bbox: [15.2,60.1,15.2,60.1],
+    gtype: 1,
+    id: 1,
+    latitude: 60.1,
+    longitude: 15.2
+})
+----
+
+|===
+

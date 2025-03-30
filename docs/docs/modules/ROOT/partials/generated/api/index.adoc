@@ -94,7 +94,16 @@ Returns a Map object representing the Geometry, to be passed to other procedures
 |label:function[]
 |xref:api/spatial/spatial.bbox.adoc[spatial.bbox icon:book[]]
 
-Finds all geometry nodes in the given layer within the lower left and upper right coordinates of a box
+Finds all geometry nodes in the given layer within the lower left and upper right coordinates of a box. A valid value for the coordinate is a:
+
+* JTS Coordinate
+* Neo4j Coordinate
+* Neo4j Point
+* Map with keys 'latitude' and 'longitude'
+* Map with keys 'lat' and 'lon'"
+* Node or Relationship with properties 'latitude' and 'longitude'
+* Node or Relationship with properties 'lat' and 'lon'
+
 |label:procedure[]
 |xref:api/spatial/spatial.closest.adoc[spatial.closest icon:book[]]
 

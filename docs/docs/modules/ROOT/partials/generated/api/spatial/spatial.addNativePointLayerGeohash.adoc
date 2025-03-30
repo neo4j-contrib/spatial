@@ -20,9 +20,12 @@ spatial.addNativePointLayerGeohash(name :: STRING, crsName = wgs84 :: STRING, in
 [.procedures,opts=header,cols='1,1,1,7']
 |===
 |Name|Type|Default|Description
-|name|STRING|null|The name of the layer
-|crsName|STRING|"wgs84"|The CRS to be used, valid values are: `wgs84`
-|indexConfig|STRING|""|The configuration of the newly created index
+|name|STRING|null
+a|The name of the layer
+|crsName|STRING|"wgs84"
+a|The CRS to be used, valid values are: `wgs84`
+|indexConfig|STRING|""
+a|The configuration of the newly created index
 |===
 
 == Output parameters

@@ -59,6 +59,7 @@ RETURN sum(count) AS count
 ----
 
 .Result
+
 [opts="header",cols="1"]
 |===
 |count
@@ -86,6 +87,7 @@ RETURN sum(count) AS count
 ----
 
 .Result
+
 [opts="header",cols="1"]
 |===
 |count
