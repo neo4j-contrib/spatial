@@ -1,0 +1,5 @@
+include::partial$generated/api/spatial.removeNodes/spatial.removeNodes.byId.adoc[]
+
+// == Examples
+// 
+// include::partial$generated/api/spatial.removeNodes/spatial.removeNodes.byId-examples.adoc[]

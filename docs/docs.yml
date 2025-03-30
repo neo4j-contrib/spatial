@@ -10,7 +10,12 @@ ui:
   bundle:
     url: https://static-content.neo4j.com/build/ui-bundle.zip
     snapshot: true
+urls:
+  html_extension_style: indexify
+
 asciidoc:
+  extensions:
+    - "@neo4j-documentation/macros"
   attributes:
-    page-theme: docs
+    page-theme: labs
     page-cdn: /_/

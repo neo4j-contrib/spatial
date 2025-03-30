@@ -143,6 +143,7 @@ public class SpatialApiBase {
 		return null;
 	}
 
+
 	protected static Coordinate toCoordinate(Object value) {
 		if (value instanceof Coordinate) {
 			return (Coordinate) value;

@@ -1,0 +1,5 @@
+include::partial$generated/api/spatial/spatial.neo4jGeometryToWkt.adoc[]
+
+== Examples
+
+include::partial$generated/api/spatial/spatial.neo4jGeometryToWkt-examples.adoc[]

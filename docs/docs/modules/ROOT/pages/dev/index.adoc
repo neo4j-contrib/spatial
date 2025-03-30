@@ -3,7 +3,6 @@
 
 * xref:dev/indexing.adoc[]
 * xref:dev/layers.adoc[]
-* xref:dev/procedures.adoc[]
 * xref:dev/querying.adoc[]
 * xref:dev/examples.adoc[]
 ** xref:geo-pipes/index.adoc[]

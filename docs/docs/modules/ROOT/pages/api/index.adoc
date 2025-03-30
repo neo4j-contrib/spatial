@@ -1,0 +1,8 @@
+[[procedures-and-functions]]
+= Procedures & Functions
+:description: This chapter provides a reference of all the procedures and functions in the spatial library.
+
+Neo4j Spatial is also packaged as a ZIP file that can be unzipped into the http://neo4j.com[Neo4j Server] `$NEO4J_HOME/plugins` directory.
+After restarting the server, you should be able to use the following *procedure* and *function* calls from the Cypher query language.
+
+include::partial$generated/api/index.adoc[]

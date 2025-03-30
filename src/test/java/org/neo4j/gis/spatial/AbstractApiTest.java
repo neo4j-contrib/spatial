@@ -28,10 +28,14 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Nonnull;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.doc.domain.examples.Example;
+import org.neo4j.doc.domain.examples.ExamplesRepository;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -47,6 +51,7 @@ public abstract class AbstractApiTest {
 
 	private DatabaseManagementService databases;
 	protected GraphDatabaseService db;
+	static ExamplesRepository examples;
 
 	@BeforeEach
 	public void setUp() throws KernelException, IOException {
@@ -57,6 +62,7 @@ public abstract class AbstractApiTest {
 				.impermanent()
 				.build();
 		db = databases.database(DEFAULT_DATABASE_NAME);
+		examples = new ExamplesRepository(db);
 		registerApiProceduresAndFunctions();
 	}
 
@@ -117,4 +123,15 @@ public abstract class AbstractApiTest {
 		}
 		return obj;
 	}
+
+
+	protected Example docExample(@Nonnull String signature, @Nonnull String title) {
+		return examples.docExample(signature, title);
+	}
+
+	@AfterAll
+	public static void generateDocumentation() throws IOException {
+		examples.write();
+	}
+
 }

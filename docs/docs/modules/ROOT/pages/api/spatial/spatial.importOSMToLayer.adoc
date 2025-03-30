@@ -1,0 +1,5 @@
+include::partial$generated/api/spatial/spatial.importOSMToLayer.adoc[]
+
+== Examples
+
+include::partial$generated/api/spatial/spatial.importOSMToLayer-examples.adoc[]

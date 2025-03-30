@@ -1,0 +1,33 @@
+=== Import an OSM file
+
+[source,cypher]
+----
+CALL spatial.importOSM('map.osm')
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|count
+a|
+[source]
+----
+55
+----
+
+|===
+
+[source,cypher]
+----
+CALL spatial.layers()
+----
+
+.Result
+
+[opts="header",cols="2"]
+|===
+|name|signature
+|map.osm|EditableLayer(name='map.osm', encoder=GeometryEncoder(bbox='bbox'))
+|===
+

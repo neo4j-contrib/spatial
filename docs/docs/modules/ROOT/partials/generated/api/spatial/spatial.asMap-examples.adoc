@@ -1,0 +1,23 @@
+=== Creates a point geometry as map
+
+[source,cypher]
+----
+WITH point({latitude: 5.0, longitude: 4.0}) as geom RETURN spatial.asMap(geom) AS geometry
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|geometry
+a|
+[source]
+----
+{
+  "type" : "Point",
+  "coordinate" : [ 4.0, 5.0 ]
+}
+----
+
+|===
+

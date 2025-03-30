@@ -1,9 +1,13 @@
 * xref:overview/introduction.adoc[]
+* xref:api/index.adoc[]
++
+--
+include::partial$generated/api-nav.adoc[]
+--
 
 * xref::dev/index.adoc[]
 ** xref:dev/indexing.adoc[]
 ** xref:dev/layers.adoc[]
-** xref:dev/procedures.adoc[]
 ** xref:dev/querying.adoc[]
 ** xref:dev/examples.adoc[]
 *** xref:geo-pipes/index.adoc[]

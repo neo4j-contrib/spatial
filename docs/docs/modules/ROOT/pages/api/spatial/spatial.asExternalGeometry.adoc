@@ -1,0 +1,5 @@
+include::partial$generated/api/spatial/spatial.asExternalGeometry.adoc[]
+
+// == Examples
+// 
+// include::partial$generated/api/spatial/spatial.asExternalGeometry-examples.adoc[]

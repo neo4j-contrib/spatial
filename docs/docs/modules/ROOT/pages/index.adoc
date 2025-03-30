@@ -4,6 +4,7 @@
 :toclevels: 2
 
 * xref:overview/introduction.adoc[]
+* xref:api/index.adoc[]
 * xref:dev/index.adoc[]
 * xref:appendix/index.adoc[]
 

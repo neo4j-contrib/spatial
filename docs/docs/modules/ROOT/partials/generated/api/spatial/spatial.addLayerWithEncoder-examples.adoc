@@ -1,0 +1,141 @@
+=== Create a `NativePointEncoder`
+
+[source,cypher]
+----
+CALL spatial.addLayerWithEncoder('geom','NativePointEncoder','')
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|node
+a|
+[source]
+----
+(:SpatialLayer {
+    geomencoder: "org.neo4j.gis.spatial.encoders.NativePointEncoder",
+    index_class: "org.neo4j.gis.spatial.index.LayerRTreeIndex",
+    layer: "geom",
+    layer_class: "org.neo4j.gis.spatial.SimplePointLayer"
+})
+----
+
+|===
+
+=== Create a `NativePointEncoder` with a customized encoder configuration
+
+Configures the encoder to use the nodes `pos` property instead of `location`
+and the `mbr` property instead of `bbox`.
+
+
+[source,cypher]
+----
+CALL spatial.addLayerWithEncoder('geom','NativePointEncoder','pos:mbr')
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|node
+a|
+[source]
+----
+(:SpatialLayer {
+    geomencoder: "org.neo4j.gis.spatial.encoders.NativePointEncoder",
+    geomencoder_config: "pos:mbr",
+    index_class: "org.neo4j.gis.spatial.index.LayerRTreeIndex",
+    layer: "geom",
+    layer_class: "org.neo4j.gis.spatial.SimplePointLayer"
+})
+----
+
+|===
+
+=== Create a `NativePointEncoder` with a customized encoder configuration using Cartesian coordinates
+
+Configures the encoder to use the nodes `pos` property instead of `location`,
+the `mbr` property instead of `bbox` and Cartesian coordinates.
+
+
+[source,cypher]
+----
+CALL spatial.addLayerWithEncoder('geom','NativePointEncoder','pos:mbr:Cartesian')
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|node
+a|
+[source]
+----
+(:SpatialLayer {
+    geomencoder: "org.neo4j.gis.spatial.encoders.NativePointEncoder",
+    geomencoder_config: "pos:mbr:Cartesian",
+    index_class: "org.neo4j.gis.spatial.index.LayerRTreeIndex",
+    layer: "geom",
+    layer_class: "org.neo4j.gis.spatial.SimplePointLayer"
+})
+----
+
+|===
+
+=== Create a `SimplePointEncoder`
+
+[source,cypher]
+----
+CALL spatial.addLayerWithEncoder('geom','SimplePointEncoder','')
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|node
+a|
+[source]
+----
+(:SpatialLayer {
+    geomencoder: "org.neo4j.gis.spatial.encoders.SimplePointEncoder",
+    index_class: "org.neo4j.gis.spatial.index.LayerRTreeIndex",
+    layer: "geom",
+    layer_class: "org.neo4j.gis.spatial.SimplePointLayer"
+})
+----
+
+|===
+
+=== Create a `SimplePointEncoder` with a customized encoder configuration
+
+Configures the encoder to use the nodes `x` property instead of `longitude`,
+the `y` property instead of `latitude`
+and the `mbr` property instead of `bbox`.
+
+
+[source,cypher]
+----
+CALL spatial.addLayerWithEncoder('geom','SimplePointEncoder','x:y:mbr')
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|node
+a|
+[source]
+----
+(:SpatialLayer {
+    geomencoder: "org.neo4j.gis.spatial.encoders.SimplePointEncoder",
+    geomencoder_config: "x:y:mbr",
+    index_class: "org.neo4j.gis.spatial.index.LayerRTreeIndex",
+    layer: "geom",
+    layer_class: "org.neo4j.gis.spatial.SimplePointLayer"
+})
+----
+
+|===
+

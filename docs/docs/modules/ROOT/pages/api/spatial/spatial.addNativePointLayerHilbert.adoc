@@ -1,0 +1,5 @@
+include::partial$generated/api/spatial/spatial.addNativePointLayerHilbert.adoc[]
+
+== Examples
+
+include::partial$generated/api/spatial/spatial.addNativePointLayerHilbert-examples.adoc[]

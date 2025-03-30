@@ -1,0 +1,26 @@
+=== List the available layer types
+
+[source,cypher]
+----
+CALL spatial.layerTypes()
+----
+
+.Result
+
+[opts="header",cols="2"]
+|===
+|name|signature
+|simplepoint|RegisteredLayerType(name='SimplePoint', geometryEncoder=SimplePointEncoder, layerClass=SimplePointLayer, index=LayerRTreeIndex, crs='WGS84(DD)', defaultConfig='longitude:latitude')
+|geohash|RegisteredLayerType(name='Geohash', geometryEncoder=SimplePointEncoder, layerClass=SimplePointLayer, index=LayerGeohashPointIndex, crs='WGS84(DD)', defaultConfig='longitude:latitude')
+|zorder|RegisteredLayerType(name='ZOrder', geometryEncoder=SimplePointEncoder, layerClass=SimplePointLayer, index=LayerZOrderPointIndex, crs='WGS84(DD)', defaultConfig='longitude:latitude')
+|hilbert|RegisteredLayerType(name='Hilbert', geometryEncoder=SimplePointEncoder, layerClass=SimplePointLayer, index=LayerHilbertPointIndex, crs='WGS84(DD)', defaultConfig='longitude:latitude')
+|nativepoint|RegisteredLayerType(name='NativePoint', geometryEncoder=NativePointEncoder, layerClass=SimplePointLayer, index=LayerRTreeIndex, crs='WGS84(DD)', defaultConfig='location')
+|nativepoints|RegisteredLayerType(name='NativePoints', geometryEncoder=NativePointsEncoder, layerClass=EditableLayerImpl, index=LayerRTreeIndex, crs='WGS84(DD)', defaultConfig='geometry')
+|nativegeohash|RegisteredLayerType(name='NativeGeohash', geometryEncoder=NativePointEncoder, layerClass=SimplePointLayer, index=LayerGeohashPointIndex, crs='WGS84(DD)', defaultConfig='location')
+|nativezorder|RegisteredLayerType(name='NativeZOrder', geometryEncoder=NativePointEncoder, layerClass=SimplePointLayer, index=LayerZOrderPointIndex, crs='WGS84(DD)', defaultConfig='location')
+|nativehilbert|RegisteredLayerType(name='NativeHilbert', geometryEncoder=NativePointEncoder, layerClass=SimplePointLayer, index=LayerHilbertPointIndex, crs='WGS84(DD)', defaultConfig='location')
+|wkt|RegisteredLayerType(name='WKT', geometryEncoder=WKTGeometryEncoder, layerClass=EditableLayerImpl, index=LayerRTreeIndex, crs='WGS84(DD)', defaultConfig='geometry')
+|wkb|RegisteredLayerType(name='WKB', geometryEncoder=WKBGeometryEncoder, layerClass=EditableLayerImpl, index=LayerRTreeIndex, crs='WGS84(DD)', defaultConfig='geometry')
+|osm|RegisteredLayerType(name='OSM', geometryEncoder=OSMGeometryEncoder, layerClass=OSMLayer, index=LayerRTreeIndex, crs='WGS84(DD)', defaultConfig='geometry')
+|===
+

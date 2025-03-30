@@ -1,0 +1,91 @@
+=== Create a layer to index a node
+
+[source,cypher]
+----
+CALL spatial.addPointLayer('my-simple-rtree-layer')
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|node
+a|
+[source]
+----
+(:SpatialLayer {
+    geomencoder: "org.neo4j.gis.spatial.encoders.SimplePointEncoder",
+    index_class: "org.neo4j.gis.spatial.index.LayerRTreeIndex",
+    layer: "my-simple-rtree-layer",
+    layer_class: "org.neo4j.gis.spatial.SimplePointLayer"
+})
+----
+
+|===
+
+Create a node to index
+
+[source,cypher]
+----
+CREATE (n:Node {id: 42, latitude:60.1,longitude:15.2}) SET n.location=point(n) RETURN n
+----
+
+Index node
+
+[source,cypher]
+----
+MATCH (n:Node) WITH n CALL spatial.addNode('my-simple-rtree-layer',n) YIELD node RETURN node
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|node
+a|
+[source]
+----
+(:Node {
+    bbox: [15.2,60.1,15.2,60.1],
+    gtype: 1,
+    id: 42,
+    latitude: 60.1,
+    location: point({x: 15.2, y: 60.1, crs: 'wgs-84'}),
+    longitude: 15.2
+})
+----
+
+|===
+
+Find node within distance
+
+[source,cypher]
+----
+CALL spatial.withinDistance('my-simple-rtree-layer',{lon:15.0,lat:60.0},100)
+----
+
+.Result
+
+[opts="header",cols="2"]
+|===
+|distance|node
+a|
+[source]
+----
+15.713441434310283
+----
+a|
+[source]
+----
+(:Node {
+    bbox: [15.2,60.1,15.2,60.1],
+    gtype: 1,
+    id: 42,
+    latitude: 60.1,
+    location: point({x: 15.2, y: 60.1, crs: 'wgs-84'}),
+    longitude: 15.2
+})
+----
+
+|===
+
