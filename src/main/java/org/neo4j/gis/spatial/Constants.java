@@ -32,7 +32,6 @@ public interface Constants {
 	String PROP_LAYER = "layer";
 	String PROP_LAYERNODEEXTRAPROPS = "layerprops";
 	String PROP_CRS = "layercrs";
-	String PROP_CREATIONTIME = "ctime";
 	String PROP_GEOMENCODER = "geomencoder";
 	String PROP_INDEX_CLASS = "index_class";
 	String PROP_GEOMENCODER_CONFIG = "geomencoder_config";
@@ -50,7 +49,6 @@ public interface Constants {
 			PROP_LAYER,
 			PROP_LAYERNODEEXTRAPROPS,
 			PROP_CRS,
-			PROP_CREATIONTIME,
 			PROP_TYPE,
 			PROP_WKB,
 			PROP_WKT,
@@ -71,4 +69,36 @@ public interface Constants {
 
 	int SRID_COORDINATES_2D = 4326;
 	int SRID_COORDINATES_3D = 4979;
+
+	String INDEX_TYPE_RTREE = "rtree";
+	String INDEX_TYPE_GEOHASH = "geohash";
+	String INDEX_TYPE_ZORDER = "zorder";
+	String INDEX_TYPE_HILBERT = "hilbert";
+
+	String WGS84_CRS_NAME = "wgs84";
+
+
+	String DOC_LAYER_NAME = "The name of the layer";
+	String DOC_LAYER_TYPE = "The type of the new layer. Existing layer types can be queried by `spatial.layer`";
+	String DOC_ENCODER_CONFIG = "The configuration of the encoder that is used by layer to en-/decode the geometry of indexed nodes";
+	String DOC_INDEX_CONFIG = "The configuration of the newly created index";
+	String DOC_ENCODER_NAME = "The name of the encoder to be used for the new layer";
+	String DOC_INDEX_TYPE =
+			"The type of the index algorithm to be used, valid values are: `" + INDEX_TYPE_RTREE + "`, `"
+					+ INDEX_TYPE_GEOHASH + "`, `" + INDEX_TYPE_ZORDER + "` or `" + INDEX_TYPE_HILBERT + "`";
+	String DOC_CRS = "The CRS to be used, valid values are: `" + WGS84_CRS_NAME + "`";
+	String DOC_COORDINATE = """
+			A valid value for the coordinate is a:
+			
+			* JTS Coordinate
+			* Neo4j Coordinate
+			* Neo4j Point
+			* Map with keys 'latitude' and 'longitude'
+			* Map with keys 'lat' and 'lon'"
+			* Node or Relationship with properties 'latitude' and 'longitude'
+			* Node or Relationship with properties 'lat' and 'lon'
+			""";
+	String DOC_URI = "The path of the file to import the data from";
+
+	String DOC_JTS_GEOMETRY = "A WKT string or a coordinate. " + DOC_COORDINATE;
 }

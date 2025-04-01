@@ -1,0 +1,5 @@
+include::partial$generated/api/spatial/spatial.addPointLayerGeohash.adoc[]
+
+== Examples
+
+include::partial$generated/api/spatial/spatial.addPointLayerGeohash-examples.adoc[]

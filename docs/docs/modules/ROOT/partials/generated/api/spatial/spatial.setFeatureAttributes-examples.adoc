@@ -1,0 +1,75 @@
+=== Get the feature attributes of a layer
+
+[source,cypher]
+----
+CALL spatial.addWKTLayer('geom','wkt')
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|node
+a|
+[source]
+----
+(:SpatialLayer {
+    geomencoder: "org.neo4j.gis.spatial.WKTGeometryEncoder",
+    geomencoder_config: "wkt",
+    index_class: "org.neo4j.gis.spatial.index.LayerRTreeIndex",
+    layer: "geom",
+    layer_class: "org.neo4j.gis.spatial.EditableLayerImpl"
+})
+----
+
+|===
+
+[source,cypher]
+----
+CALL spatial.getFeatureAttributes('geom')
+----
+
+.Result
+
+No results
+
+[source,cypher]
+----
+CALL spatial.setFeatureAttributes('geom',['name','type','color'])
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|node
+a|
+[source]
+----
+(:SpatialLayer {
+    geomencoder: "org.neo4j.gis.spatial.WKTGeometryEncoder",
+    geomencoder_config: "wkt",
+    index_class: "org.neo4j.gis.spatial.index.LayerRTreeIndex",
+    layer: "geom",
+    layer_class: "org.neo4j.gis.spatial.EditableLayerImpl",
+    layerprops: ["name","type","color"]
+})
+----
+
+|===
+
+[source,cypher]
+----
+CALL spatial.getFeatureAttributes('geom')
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|name
+|name
+|type
+|color
+|===
+

@@ -61,9 +61,6 @@ import org.neo4j.graphdb.Transaction;
  */
 public class SpatialDatabaseService implements Constants {
 
-	public static final String RTREE_INDEX_NAME = "rtree";
-	public static final String GEOHASH_INDEX_NAME = "geohash";
-
 	public final IndexManager indexManager;
 
 	public SpatialDatabaseService(IndexManager indexManager) {
@@ -209,10 +206,10 @@ public class SpatialDatabaseService implements Constants {
 			return LayerRTreeIndex.class;
 		}
 		return switch (index.toLowerCase()) {
-			case RTREE_INDEX_NAME -> LayerRTreeIndex.class;
-			case GEOHASH_INDEX_NAME -> LayerGeohashPointIndex.class;
-			case "zorder" -> LayerZOrderPointIndex.class;
-			case "hilbert" -> LayerHilbertPointIndex.class;
+			case INDEX_TYPE_RTREE -> LayerRTreeIndex.class;
+			case INDEX_TYPE_GEOHASH -> LayerGeohashPointIndex.class;
+			case INDEX_TYPE_ZORDER -> LayerZOrderPointIndex.class;
+			case INDEX_TYPE_HILBERT -> LayerHilbertPointIndex.class;
 			default -> throw new IllegalArgumentException("Unknown index: " + index);
 		};
 	}

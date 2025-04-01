@@ -1,0 +1,5 @@
+include::partial$generated/api/spatial/spatial.addNode.adoc[]
+
+== Examples
+
+include::partial$generated/api/spatial/spatial.addNode-examples.adoc[]

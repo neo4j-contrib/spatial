@@ -1,0 +1,5 @@
+include::partial$generated/api/spatial/spatial.addWKTs.adoc[]
+
+== Examples
+
+include::partial$generated/api/spatial/spatial.addWKTs-examples.adoc[]

@@ -1,0 +1,33 @@
+=== Import a shape-file
+
+[source,cypher]
+----
+CALL spatial.importShapefile('shp/highway.shp')
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|count
+a|
+[source]
+----
+143
+----
+
+|===
+
+[source,cypher]
+----
+CALL spatial.layers()
+----
+
+.Result
+
+[opts="header",cols="2"]
+|===
+|name|signature
+|highway|EditableLayer(name='highway', encoder=WKBGeometryEncoder(geom='geometry', bbox='bbox'))
+|===
+

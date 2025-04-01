@@ -1,0 +1,5 @@
+include::partial$generated/api/spatial/spatial.importShapefile.adoc[]
+
+== Examples
+
+include::partial$generated/api/spatial/spatial.importShapefile-examples.adoc[]

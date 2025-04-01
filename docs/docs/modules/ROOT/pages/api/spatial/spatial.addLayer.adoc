@@ -1,0 +1,5 @@
+include::partial$generated/api/spatial/spatial.addLayer.adoc[]
+
+== Examples
+
+include::partial$generated/api/spatial/spatial.addLayer-examples.adoc[]

@@ -1,0 +1,239 @@
+=== 1. Converts a WKT POINT
+
+[source,cypher]
+----
+RETURN spatial.wktToGeoJson('POINT (30 10)') as json
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|json
+a|
+[source]
+----
+{
+  "coordinates" : [ 30.0, 10.0 ],
+  "type" : "Point"
+}
+----
+
+|===
+
+=== 2. Converts a WKT LINESTRING
+
+[source,cypher]
+----
+RETURN spatial.wktToGeoJson('LINESTRING (30 10, 10 30, 40 40)') as json
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|json
+a|
+[source]
+----
+{
+  "coordinates" : [ [ 30.0, 10.0 ], [ 10.0, 30.0 ], [ 40.0, 40.0 ] ],
+  "type" : "LineString"
+}
+----
+
+|===
+
+=== 3. Converts a WKT POLYGON
+
+[source,cypher]
+----
+RETURN spatial.wktToGeoJson('POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))') as json
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|json
+a|
+[source]
+----
+{
+  "coordinates" : [ [ [ 30.0, 10.0 ], [ 40.0, 40.0 ], [ 20.0, 40.0 ], [ 10.0, 20.0 ], [ 30.0, 10.0 ] ] ],
+  "type" : "Polygon"
+}
+----
+
+|===
+
+=== 4. Converts a WKT POLYGON with a hole
+
+[source,cypher]
+----
+RETURN spatial.wktToGeoJson('POLYGON ((35 10, 45 45, 15 40, 10 20, 35 10), (20 30, 35 35, 30 20, 20 30))') as json
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|json
+a|
+[source]
+----
+{
+  "coordinates" : [ [ [ 35.0, 10.0 ], [ 45.0, 45.0 ], [ 15.0, 40.0 ], [ 10.0, 20.0 ], [ 35.0, 10.0 ] ], [ [ 20.0, 30.0 ], [ 35.0, 35.0 ], [ 30.0, 20.0 ], [ 20.0, 30.0 ] ] ],
+  "type" : "Polygon"
+}
+----
+
+|===
+
+=== 5a. Converts a WKT MULTIPOINT
+
+[source,cypher]
+----
+RETURN spatial.wktToGeoJson('MULTIPOINT ((10 40), (40 30), (20 20), (30 10))') as json
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|json
+a|
+[source]
+----
+{
+  "coordinates" : [ [ 10.0, 40.0 ], [ 40.0, 30.0 ], [ 20.0, 20.0 ], [ 30.0, 10.0 ] ],
+  "type" : "MultiPoint"
+}
+----
+
+|===
+
+=== 5b. Converts a WKT MULTIPOINT
+
+[source,cypher]
+----
+RETURN spatial.wktToGeoJson('MULTIPOINT (10 40, 40 30, 20 20, 30 10)') as json
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|json
+a|
+[source]
+----
+{
+  "coordinates" : [ [ 10.0, 40.0 ], [ 40.0, 30.0 ], [ 20.0, 20.0 ], [ 30.0, 10.0 ] ],
+  "type" : "MultiPoint"
+}
+----
+
+|===
+
+=== 6. Converts a WKT MULTILINESTRING
+
+[source,cypher]
+----
+RETURN spatial.wktToGeoJson('MULTILINESTRING ((10 10, 20 20, 10 40), (40 40, 30 30, 40 20, 30 10))') as json
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|json
+a|
+[source]
+----
+{
+  "coordinates" : [ [ [ 10.0, 10.0 ], [ 20.0, 20.0 ], [ 10.0, 40.0 ] ], [ [ 40.0, 40.0 ], [ 30.0, 30.0 ], [ 40.0, 20.0 ], [ 30.0, 10.0 ] ] ],
+  "type" : "MultiLineString"
+}
+----
+
+|===
+
+=== 7a. Converts a WKT MULTIPOLYGON
+
+[source,cypher]
+----
+RETURN spatial.wktToGeoJson('MULTIPOLYGON (((30 20, 45 40, 10 40, 30 20)), ((15 5, 40 10, 10 20, 5 10, 15 5)))') as json
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|json
+a|
+[source]
+----
+{
+  "coordinates" : [ [ [ [ 30.0, 20.0 ], [ 45.0, 40.0 ], [ 10.0, 40.0 ], [ 30.0, 20.0 ] ] ], [ [ [ 15.0, 5.0 ], [ 40.0, 10.0 ], [ 10.0, 20.0 ], [ 5.0, 10.0 ], [ 15.0, 5.0 ] ] ] ],
+  "type" : "MultiPolygon"
+}
+----
+
+|===
+
+=== 7b. Converts a WKT MULTIPOLYGON
+
+[source,cypher]
+----
+RETURN spatial.wktToGeoJson('MULTIPOLYGON (((40 40, 20 45, 45 30, 40 40)), ((20 35, 10 30, 10 10, 30 5, 45 20, 20 35), (30 20, 20 15, 20 25, 30 20)))') as json
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|json
+a|
+[source]
+----
+{
+  "coordinates" : [ [ [ [ 40.0, 40.0 ], [ 20.0, 45.0 ], [ 45.0, 30.0 ], [ 40.0, 40.0 ] ] ], [ [ [ 20.0, 35.0 ], [ 10.0, 30.0 ], [ 10.0, 10.0 ], [ 30.0, 5.0 ], [ 45.0, 20.0 ], [ 20.0, 35.0 ] ], [ [ 30.0, 20.0 ], [ 20.0, 15.0 ], [ 20.0, 25.0 ], [ 30.0, 20.0 ] ] ] ],
+  "type" : "MultiPolygon"
+}
+----
+
+|===
+
+=== 8. FConverts a WKT GEOMETRYCOLLECTION
+
+[source,cypher]
+----
+RETURN spatial.wktToGeoJson('GEOMETRYCOLLECTION (POINT (40 10), LINESTRING (10 10, 20 20, 10 40), POLYGON ((40 40, 20 45, 45 30, 40 40)))') as json
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|json
+a|
+[source]
+----
+{
+  "type" : "GeometryCollection",
+  "geometries" : [ {
+    "coordinates" : [ 40.0, 10.0 ],
+    "type" : "Point"
+  }, {
+    "coordinates" : [ [ 10.0, 10.0 ], [ 20.0, 20.0 ], [ 10.0, 40.0 ] ],
+    "type" : "LineString"
+  }, {
+    "coordinates" : [ [ [ 40.0, 40.0 ], [ 20.0, 45.0 ], [ 45.0, 30.0 ], [ 40.0, 40.0 ] ] ],
+    "type" : "Polygon"
+  } ]
+}
+----
+
+|===
+

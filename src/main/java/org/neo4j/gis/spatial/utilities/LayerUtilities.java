@@ -80,7 +80,6 @@ public class LayerUtilities implements Constants {
 			Node layerNode = tx.createNode();
 			layerNode.addLabel(LABEL_LAYER);
 			layerNode.setProperty(PROP_LAYER, name);
-			layerNode.setProperty(PROP_CREATIONTIME, System.currentTimeMillis());
 			layerNode.setProperty(PROP_GEOMENCODER, geometryEncoderClass.getCanonicalName());
 			layerNode.setProperty(PROP_INDEX_CLASS, indexClass.getCanonicalName());
 			layerNode.setProperty(PROP_LAYER_CLASS, layerClass.getCanonicalName());

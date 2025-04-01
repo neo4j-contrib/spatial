@@ -1,0 +1,155 @@
+=== Create a point layer with X and Y properties
+
+[source,cypher]
+----
+CALL spatial.addPointLayerXY('geom','lon','lat')
+----
+
+Add two nodes to the layer
+
+[source,cypher]
+----
+CREATE (n1:Node {id: 1, lat:60.1,lon:15.2}),(n2:Node {id: 2, lat:60.1,lon:15.3}) WITH n1,n2 CALL spatial.addNodes('geom',[n1,n2]) YIELD count RETURN n1,n2,count
+----
+
+.Result
+
+[opts="header",cols="3"]
+|===
+|count|n1|n2
+a|
+[source]
+----
+2
+----
+a|
+[source]
+----
+(:Node {
+    bbox: [15.2,60.1,15.2,60.1],
+    gtype: 1,
+    id: 1,
+    lat: 60.1,
+    lon: 15.2
+})
+----
+a|
+[source]
+----
+(:Node {
+    bbox: [15.3,60.1,15.3,60.1],
+    gtype: 1,
+    id: 2,
+    lat: 60.1,
+    lon: 15.3
+})
+----
+
+|===
+
+Find nodes within distance
+
+[source,cypher]
+----
+CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)
+----
+
+.Result
+
+[opts="header",cols="2"]
+|===
+|distance|node
+a|
+[source]
+----
+15.713441434310283
+----
+a|
+[source]
+----
+(:Node {
+    bbox: [15.2,60.1,15.2,60.1],
+    gtype: 1,
+    id: 1,
+    lat: 60.1,
+    lon: 15.2
+})
+----
+
+a|
+[source]
+----
+20.024944023694385
+----
+a|
+[source]
+----
+(:Node {
+    bbox: [15.3,60.1,15.3,60.1],
+    gtype: 1,
+    id: 2,
+    lat: 60.1,
+    lon: 15.3
+})
+----
+
+|===
+
+Remove node 1
+
+[source,cypher]
+----
+MATCH (node) WHERE node.id = 1
+CALL spatial.removeNode('geom', node) YIELD nodeId
+RETURN nodeId
+
+----
+
+[source,cypher]
+----
+CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)
+----
+
+.Result
+
+[opts="header",cols="2"]
+|===
+|distance|node
+a|
+[source]
+----
+20.024944023694385
+----
+a|
+[source]
+----
+(:Node {
+    bbox: [15.3,60.1,15.3,60.1],
+    gtype: 1,
+    id: 2,
+    lat: 60.1,
+    lon: 15.3
+})
+----
+
+|===
+
+Remove node 2
+
+[source,cypher]
+----
+MATCH (node) WHERE node.id = 2
+CALL spatial.removeNode.byId('geom', elementId(node)) YIELD nodeId
+RETURN nodeId
+
+----
+
+[source,cypher]
+----
+CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)
+----
+
+.Result
+
+No results
+

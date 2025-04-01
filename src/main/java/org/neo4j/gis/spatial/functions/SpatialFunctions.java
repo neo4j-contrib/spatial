@@ -45,8 +45,8 @@ public class SpatialFunctions extends SpatialApiBase {
 	@UserFunction("spatial.decodeGeometry")
 	@Description("Returns a geometry of a layer node as the Neo4j geometry type, to be passed to other procedures or returned to a client")
 	public Object decodeGeometry(
-			@Name("layerName") String name,
-			@Name("node") Node node) {
+			@Name(value = "layerName", description = "The name of the layer used to select the appropriate geometry encoder for extracting the Neo4j geometry.") String name,
+			@Name(value = "node", description = "An index node to extract the neo4j geometry from") Node node) {
 
 		Layer layer = getLayerOrThrow(tx, spatial(), name);
 		GeometryResult result = new GeometryResult(
@@ -56,19 +56,21 @@ public class SpatialFunctions extends SpatialApiBase {
 
 	@UserFunction("spatial.asMap")
 	@Description("Returns a Map object representing the Geometry, to be passed to other procedures or returned to a client")
-	public Object asMap(@Name("object") Object geometry) {
+	public Object asMap(
+			@Name(value = "object", description = "The geometry to convert") Object geometry) {
 		return toGeometryMap(geometry);
 	}
 
 	@UserFunction("spatial.asGeometry")
 	@Description("Returns a geometry object as the Neo4j geometry type, to be passed to other functions or procedures or returned to a client")
-	public Object asGeometry(@Name("geometry") Object geometry) {
+	public Object asGeometry(
+			@Name(value = "geometry", description = "The geometry to convert") Object geometry) {
 		return toNeo4jGeometry(null, geometry);
 	}
 
 	@UserFunction("spatial.wktToGeoJson")
 	@Description("Converts a WKT to GeoJson structure")
-	public Object wktToGeoJson(@Name("wkt") String wkt) throws ParseException {
+	public Object wktToGeoJson(@Name(value = "wkt", description = "A WKT string") String wkt) throws ParseException {
 		if (wkt == null) {
 			return null;
 		}
@@ -79,7 +81,7 @@ public class SpatialFunctions extends SpatialApiBase {
 
 	@UserFunction("spatial.neo4jGeometryToWkt")
 	@Description("Converts a point or point array to WKT")
-	public String nativeToWkt(@Name("data") Object object) {
+	public String nativeToWkt(@Name(value = "data", description = "The geometry to convert") Object object) {
 		if (object instanceof Point point) {
 			var coordinate = convertToCoordinate(point);
 			return WKTWriter.toPoint(coordinate);
