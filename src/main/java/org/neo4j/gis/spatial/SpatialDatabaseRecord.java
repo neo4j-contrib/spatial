@@ -71,6 +71,7 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 	 * @deprecated This method is of questionable value, since it is better to
 	 * query the geometry object directly, outside the result
 	 */
+	@Deprecated
 	public int getType() {
 		//TODO: Get the type from the geometryEncoder
 		return SpatialDatabaseService.convertJtsClassToGeometryType(getGeometry().getClass());

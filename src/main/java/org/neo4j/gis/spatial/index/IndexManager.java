@@ -248,11 +248,9 @@ public class IndexManager {
 	private class IndexRemover implements Runnable {
 
 		private final IndexDefinition index;
-		private Exception e;
 
 		private IndexRemover(IndexDefinition index) {
 			this.index = index;
-			this.e = null;
 		}
 
 		@Override
@@ -266,8 +264,7 @@ public class IndexManager {
 					}
 					tx.commit();
 				}
-			} catch (Exception e) {
-				this.e = e;
+			} catch (Exception ignored) {
 			}
 		}
 	}

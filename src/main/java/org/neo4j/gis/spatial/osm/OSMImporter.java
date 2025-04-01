@@ -505,7 +505,7 @@ public class OSMImporter implements Constants {
 					LogCounter found = nodeFindStats.get(type);
 					double rate = 0.0f;
 					if (found.totalTime > 0) {
-						rate = (1000.0 * (float) found.count / (float) found.totalTime);
+						rate = (1000.0 * found.count / found.totalTime);
 					}
 					System.out.println("\t" + type + ": \t" + found.count
 							+ "/" + (found.totalTime / 1000)
@@ -532,8 +532,8 @@ public class OSMImporter implements Constants {
 			}
 			if (currentTime - logTime > 1432) {
 				System.out.println(
-						new Date(currentTime) + ": Saving " + type + " " + count + " \t(" + (1000.0 * (float) count
-								/ (float) (currentTime - firstLogTime)) + " " + type + "/second)");
+						new Date(currentTime) + ": Saving " + type + " " + count + " \t(" + (1000.0 * count
+								/ (currentTime - firstLogTime)) + " " + type + "/second)");
 				logTime = currentTime;
 			}
 		}

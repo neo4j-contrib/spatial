@@ -20,7 +20,6 @@
 package org.neo4j.gis.spatial;
 
 import java.io.File;
-import java.io.PrintStream;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -169,12 +168,6 @@ public class DynamicLayerConfig implements Layer, Constants {
 		public int getNodeCount() {
 			return nodeCount;
 		}
-
-		public void describeUsage(PrintStream out) {
-			for (String name : names.keySet()) {
-				out.println(name + "\t" + names.get(name));
-			}
-		}
 	}
 
 	/**
@@ -196,7 +189,6 @@ public class DynamicLayerConfig implements Layer, Constants {
 		System.out.println(
 				"After property scan of " + search.getNodeCount() + " nodes, we have " + getExtraPropertyNames(
 						tx).length + " known attributes for layer " + getName());
-		// search.describeUsage(System.out);
 	}
 
 	public Node configNode(Transaction tx) {

@@ -173,11 +173,12 @@ public class SpatialProcedures extends SpatialApiBase {
 		GlobalProcedures procedures = ((GraphDatabaseAPI) db).getDependencyResolver()
 				.resolveDependency(GlobalProcedures.class);
 		Stream.Builder<NameResult> builder = Stream.builder();
-		procedures.getCurrentView().getAllProcedures(QueryLanguage.CYPHER_5).forEach(proc -> {
-			if (proc.name().namespace()[0].equals("spatial")) {
-				builder.accept(new NameResult(proc.name().toString(), proc.toString()));
-			}
-		});
+
+		procedures.getCurrentView().getAllProcedures(QueryLanguage.CYPHER_5)
+	    .filter(proc -> proc.name().namespace()[0].equals("spatial"))
+	    .map(proc -> new NameResult(proc.name().toString(), proc.toString()))
+				.forEach(builder);
+
 		return builder.build();
 	}
 

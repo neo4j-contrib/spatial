@@ -24,6 +24,7 @@ import static org.neo4j.internal.helpers.collection.Iterators.emptyResourceItera
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.api.referencing.cs.CoordinateSystemAxis;
 import org.locationtech.jts.geom.Geometry;
