@@ -20,19 +20,17 @@
 
 package org.neo4j.doc.domain.examples;
 
+import com.fasterxml.jackson.databind.MapperFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.neo4j.doc.tools.NodeCypherSerializer;
 import org.neo4j.graphdb.Node;
 
 public class Mapper {
 
-	public static ObjectMapper MAPPER = new ObjectMapper();
-
-	static {
-		SimpleModule module = new SimpleModule();
-		module.addSerializer(Node.class, new NodeCypherSerializer());
-		MAPPER.registerModule(module);
-	}
-
+	public static ObjectMapper MAPPER = JsonMapper.builder()
+			.configure(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY, true)
+			.addModule(new SimpleModule().addSerializer(Node.class, new NodeCypherSerializer()))
+			.build();
 }
