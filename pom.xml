@@ -345,11 +345,6 @@
 	</dependencyManagement>
 	<repositories>
 		<repository>
-			<id>java.net</id>
-			<name>Java.net repo</name>
-			<url>https://maven.java.net/service/local/repositories/releases/content/</url>
-		</repository>
-		<repository>
 			<id>osgeo</id>
 			<name>OSGeo Release Repository</name>
 			<url>https://repo.osgeo.org/repository/release/</url>
