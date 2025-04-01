@@ -25,6 +25,7 @@ import com.fasterxml.jackson.databind.JsonSerializer;
 import com.fasterxml.jackson.databind.SerializerProvider;
 import java.io.IOException;
 import java.util.Map;
+import java.util.TreeMap;
 import org.neo4j.doc.domain.examples.Mapper;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
@@ -52,7 +53,7 @@ public class NodeCypherSerializer extends JsonSerializer<Node> {
 			cypher.append(" {\n");
 
 			// Append properties
-			Map<String, Object> properties = node.getAllProperties();
+			Map<String, Object> properties = new TreeMap<>(node.getAllProperties());
 			for (Map.Entry<String, Object> entry : properties.entrySet()) {
 				cypher.append("    ").append(entry.getKey()).append(": ");
 				if (entry.getValue() instanceof String

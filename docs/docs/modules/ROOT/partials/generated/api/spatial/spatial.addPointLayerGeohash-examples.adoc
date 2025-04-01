@@ -48,7 +48,7 @@ a|
 ----
 (:SpatialIndex_geohash_my-simple-geohash-layer:Node {
     _spatialindex_geohash_my-simple-geohash-layer: "1110001001100110011110101101011110001011101011010001000100011101",
-    bbox: [15.2,60.1,15.2,60.1],
+    bbox: [ 15.2, 60.1, 15.2, 60.1 ],
     gtype: 1,
     id: 42,
     latitude: 60.1,
@@ -81,7 +81,7 @@ a|
 ----
 (:SpatialIndex_geohash_my-simple-geohash-layer:Node {
     _spatialindex_geohash_my-simple-geohash-layer: "1110001001100110011110101101011110001011101011010001000100011101",
-    bbox: [15.2,60.1,15.2,60.1],
+    bbox: [ 15.2, 60.1, 15.2, 60.1 ],
     gtype: 1,
     id: 42,
     latitude: 60.1,
