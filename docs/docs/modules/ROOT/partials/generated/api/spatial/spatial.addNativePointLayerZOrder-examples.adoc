@@ -48,7 +48,7 @@ a|
 ----
 (:SpatialIndex_zorder_my-native-zorder-layer:Node {
     _spatialindex_zorder_my-native-zorder-layer: 4771024,
-    bbox: [15.2,60.1,15.2,60.1],
+    bbox: [ 15.2, 60.1, 15.2, 60.1 ],
     gtype: 1,
     id: 42,
     latitude: 60.1,
@@ -81,7 +81,7 @@ a|
 ----
 (:SpatialIndex_zorder_my-native-zorder-layer:Node {
     _spatialindex_zorder_my-native-zorder-layer: 4771024,
-    bbox: [15.2,60.1,15.2,60.1],
+    bbox: [ 15.2, 60.1, 15.2, 60.1 ],
     gtype: 1,
     id: 42,
     latitude: 60.1,

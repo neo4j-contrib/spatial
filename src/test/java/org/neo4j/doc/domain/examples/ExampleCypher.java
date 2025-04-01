@@ -154,7 +154,7 @@ public class ExampleCypher {
 				} else {
 					try {
 						writer.append("a|\n[source]\n----\n")
-								.append(Mapper.MAPPER.writerWithDefaultPrettyPrinter().writeValueAsString(value))
+								.append(Mapper.MAPPER.writeValueAsString(value))
 								.append("\n----\n");
 					} catch (JsonProcessingException e) {
 						throw new RuntimeException(e);

@@ -48,7 +48,7 @@ a|
 ----
 (:SpatialIndex_hilbert_my-simple-hilbert-layer:Node {
     _spatialindex_hilbert_my-simple-hilbert-layer: 9664325,
-    bbox: [15.2,60.1,15.2,60.1],
+    bbox: [ 15.2, 60.1, 15.2, 60.1 ],
     gtype: 1,
     id: 42,
     latitude: 60.1,
@@ -81,7 +81,7 @@ a|
 ----
 (:SpatialIndex_hilbert_my-simple-hilbert-layer:Node {
     _spatialindex_hilbert_my-simple-hilbert-layer: 9664325,
-    bbox: [15.2,60.1,15.2,60.1],
+    bbox: [ 15.2, 60.1, 15.2, 60.1 ],
     gtype: 1,
     id: 42,
     latitude: 60.1,
