@@ -5,119 +5,31 @@
 Neo4j Spatial is a library facilitating the import, storage and querying of spatial data in
 the [Neo4j open source graph database](http://neo4j.org/).
 
-This projects manual is deployed as part of the local build as
-the [Neo4j Spatial Manual](http://neo4j-contrib.github.io/spatial).
+This project's manual is deployed to the [Neo4j Labs page](https://neo4j.com/labs/neo4j-spatial/5/).
+## Versioning
 
-![Open Street Map](http://neo4j-contrib.github.io/spatial/0.24-neo4j-3.1/images/one-street.png "Open Street Map")
+Since version 5.19.0, the versioning of Neo4j Spatial is aligned with the versioning of Neo4j itself.
+This means that Neo4j Spatial 5.19.0 is build against Neo4j 5.19, and so on.
 
-## History
+## Installation
 
-This library began as a collaborative vision between Neo-Technology
-and [Craig Taverner](https://github.com/craigtaverner) in early 2010.
-The bulk of the initial work was done by [Davide Savazzi](https://github.com/svzdvd) as part of his 2010 Google Summer
-of Code (GSoC) project
-with Craig as mentor, as a project within the OSGeo GSoC program.
-In 2011 and 2012 two further GSoC projects contributed, the last of which saw Davide return as mentor.
+1. Copy the desired neo4j-spatial-x.x.x-server-plugin.jar from the [release page](https://github.com/neo4j-contrib/spatial/releases) to your neo4j plugin directory.
+2. set up your database with the following configuration in your `neo4j.conf` file:
 
-The original vision for the library was a comprehensive suite of GIS capabilities somewhat inspired by PostGIS,
-while remaining aligned with the graph-nature of the underlying Neo4j database.
-To achieve this lofty goal the JTS and GeoTools libraries were used, giving a large suite of capabilities very early on.
+    ```
+    dbms.security.procedures.unrestricted=spatial.*
+    ```
 
-However, back in 2010 Neo4j was an embedded database with deployments that saw a low level of concurrent operation.
-However, for many years now, Neo4j has been primarily deployed in high concurrent server environments.
-Over the years there have been various efforts to make the library more appropriate for use in these environments:
+   NOTE: If you're concerned about the security risks of unrestricted access, we recommend reviewing the code to assess
+   the level of risk for your use case. For example, the method 
+   [`IndexAccessMode.withIndexCreate`](/src/main/java/org/neo4j/gis/spatial/index/IndexManager.java#L42) grants index
+   creation capabilities within the security model. This allows users without index creation privileges to generate the
+   required spatial support indexes. This behavior was not intentionally designed to bypass security but was necessary
+   due to Neo4j’s security model, where procedures with WRITE mode are not permitted to create indexes.
+   As a result, this adjustment was required even in the Community Edition of Neo4j.
 
-* REST API (early Neo4j 1.x servers had no Cypher)
-* IndexProvider mechanism (used during Neo4j 1.x and 2.x server, and removed for Neo4j 3.0)
-* 0.23: Addition of Cypher procedures for Neo4j 3.0
-* 0.24: Addition of a high performance bulk importer to the in-graph RTree index
-* 0.25: Addition of GeoHash indexes for point layers
-* 0.26: Support for native Neo4j point types
-* 0.27: Major port to Neo4j 4.x which deprecated many of the Neo4j API's the library depended on
-* 0.29: Port to Neo4j 5.13
-
-However, despite all these improvements, the core of the library only exposes the rich capabilities of JTS and GeoTools
-if used in an embedded environment.
-The large effort required to port the library to Neo4j 4.0 resulted in many backwards incompatibilities and
-highlighted the need for a new approach to spatial libraries for Neo4j.
-
-## Neo4j 4.x Support
-
-This library was originally written in 2010 when Neo4j was still releasing early 1.x versions.
-This means it made use of internal Java API's that were deprecated over the years, some as early as Neo4j 2.x.
-When Neo4j 4.0 was released, many deprecated APIs were entirely removed.
-And the transaction API was changed in a fundamental way.
-This has meant that the spatial library needed a major refactoring to work with Neo4j 4.x:
-
-* The library previously depended on nested transactions. This allowed code that was called
-  within a transaction (like procedures) to be the same as code that was not (Java API).
-  The removal of this support required that all internal API's needed to include parameters
-  for the current transaction, and only the specific surface designed for embedded use not have that.
-* The library made use of Lucene based explicit indexes in many places.
-  The removal of support for explicit indexes required completely new solutions in several places:
-	* The `OSMImporter` will instead now use normal Neo4j schema indexes (introduced in 2.0).
-	  However, these can only be created in separate index transactions.
-	  Due to the new transaction model this requires stopping the import transaction,
-	  starting an index transaction, and then restarting the import transaction.
-	  All of this is incompatible with procedures, which already have an incoming, non-stoppable transaction.
-	  The solution to this second problem was to run the actual import in another thread.
-	  This has the additional benefit of retaining the original batch-processing capabilities.
-	  The negative consequence of this it that it requires modifying the security model of the procedure context.
-	* The `ExplicitIndexBackedPointIndex` has been modified to instead use a schema index.
-	  This required similar tricks to those employed in the `OSMImporter` described above.
-* Neo4j 4.0 runs only in Java 11, and until recently GeoTools did not support newer Java versions.
-  It was therefor necessary to upgrade the GeoTools libraries to version 24.2.
-  This in turn required a re-write of the Neo4jDataStore interface since the older API had
-  long been deprecated, and was entirely unavailable in newer versions.
-* Neo4j 4.1 was slightly stricter in regard to passing nodes as parameters, requiring the nodes
-  objects to have been created in the current transaction.
-  To work around this we added `.byId` versions of the `spatial.addNode` and `spatial.removeNode` procedures.
-  We also changed the `spatial.removeNode` procedures to return `nodeId` instead of `node`.
-* The change to Neo4j 4.2 was more subtle. Mostly only internal API's around the use of `Path` instead of `File`.
-  One change that could be noticed was the `IndexManager.IndexAccessMode` class.
-  In the 0.27.0 and 0.27.1 versions we used `OverridenAccessMode` to take the users existing access mode
-  and simply add on the rights to create tokens and indexes. In 0.27.2 we instead use `RestrictedAccessMode`
-  to restrict the users access right to the built in `AccessModel.Static.SCHEMA` and then boost to enable
-  index and token writes. The difference is subtle and should only be possible to notice in Enterprise Edition.
-* 0.28.0 tackles the ability to import multiple OSM files. The initial solution for Neo4j 4.x made use
-  of schema indexes keyed by the label and property. However, that means that all OSM imports would share
-  the same index. If they are completely disjointed data sets, this would not matter. But if you import
-  overlapping OSM files or different versions of the same file, a mangled partial merger would result.
-  0.28.0 solves this by using different indexes, and keeping all imports completely separate.
-  The more complex problems of importing newer versions, and stitching together overlapping areas, are not
-  yet solved.
-* Neo4j 4.3 has an issue with leaking RelationshipTraversalCursor, and we needed to do some workarounds to
-  avoid this issue, usually by exhausting the iterator, which can have a higher performance cost in some cases.
-  Version 0.28.1 includes this fix.
-
-Consequences of the port to Neo4j 4.x:
-
-* The large number of changes mean that the 0.27.x versions should be considered very alpha.
-* Many API's have changed and client code might need to be adapted to take the changes into account.
-* The new DataStore API is entirely untested in GeoServer, besides the existing unit and integration tests.
-* The need to manage threads and create schema indexes results in the procedures requiring
-  unrestricted access to internal API's of Neo4j.
-
-This last point means that you need to set the following in your `neo4j.conf` file:
-
-```
-dbms.security.procedures.unrestricted=spatial.*
-```
-
-If you are concerned about the security implications of unrestricted access, my best advice is to review
-the code and decide for yourself the level of risk you face. See, for example, the
-method `IndexAccessMode.withIndexCreate`,
-which adds index create capabilities to the security model.
-This means that users without index creation privileges will be able to create the necessary spatial support indexes
-described above.
-This code was not written because we wanted to allow for that case, it was written because in the Neo4j security model,
-procedures that can write data (mode=`WRITE`) are not allowed to create indexes.
-So this security-fix was required even in the Community Edition of Neo4j.
-
----
-
-The rest of the README might have information that is no longer accurate for the current version of this library.
-Please report any mistakes as issues, or consider raising a pull-request with an appropriate fix.
+3. Restart your Neo4j server.
+4. Run `CALL spatial.procedures` in the Neo4j browser to see the available spatial procedures.
 
 ## Concept Overview
 
@@ -178,7 +90,7 @@ mvn install
 This will download all dependencies, compiled the library, run the tests and install the artifact in your local
 repository.
 The spatial plugin will also be created in the `target` directory, and can be copied to your local server using
-instructions on the spatial server plugin below.
+instructions from the [installation section](#installation).
 
 ## Layers and GeometryEncoders ##
 
@@ -377,72 +289,8 @@ at http://oss.infoscience.co.jp/neo4j/wiki.neo4j.org/content/Neo4j_Spatial_in_uD
 
 ## Using the Neo4j Spatial Server plugin ##
 
-The Neo4j Spatial Plugin is available for inclusion in the server version of Neo4j 2.x, Neo4j 3.x and Neo4j 4.x.
-
-* Using GeoTools 9.0 (for GeoServer 2.3.2):
-	* [v0.12 for Neo4j 2.0.4](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.12-neo4j-2.0.4/neo4j-spatial-0.12-neo4j-2.0.4-server-plugin.zip?raw=true)
-	* [v0.13 for Neo4j 2.1.8](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.13-neo4j-2.1.8/neo4j-spatial-0.13-neo4j-2.1.8-server-plugin.zip?raw=true)
-	* [v0.14 for Neo4j 2.2.7](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.14-neo4j-2.2.7/neo4j-spatial-0.14-neo4j-2.2.7-server-plugin.zip?raw=true)
-	* [v0.15.2 for Neo4j 2.3.4](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.15.2-neo4j-2.3.4/neo4j-spatial-0.15.2-neo4j-2.3.4-server-plugin.zip?raw=true)
-	* [v0.19 for Neo4j 3.0.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.19-neo4j-3.0.3/neo4j-spatial-0.19-neo4j-3.0.3-server-plugin.jar?raw=true)
-* Using GeoTools 14.4 (for GeoServer 2.8.4):
-	* [v0.25.1 for Neo4j 3.0.8](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.25.1-neo4j-3.0.8/neo4j-spatial-0.25.1-neo4j-3.0.8-server-plugin.jar?raw=true)
-	* [v0.25.3 for Neo4j 3.1.4](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.25.3-neo4j-3.1.4/neo4j-spatial-0.25.3-neo4j-3.1.4-server-plugin.jar?raw=true)
-	* [v0.25.4 for Neo4j 3.2.8](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.25.4-neo4j-3.2.8/neo4j-spatial-0.25.4-neo4j-3.2.8-server-plugin.jar?raw=true)
-	* [v0.25.5 for Neo4j 3.3.5](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.25.5-neo4j-3.3.5/neo4j-spatial-0.25.5-neo4j-3.3.5-server-plugin.jar?raw=true)
-	* [v0.26.2 for Neo4j 3.4.12](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.26.2-neo4j-3.4.12/neo4j-spatial-0.26.2-neo4j-3.4.12-server-plugin.jar?raw=true)
-	* [v0.26.2 for Neo4j 3.5.2](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.26.2-neo4j-3.5.2/neo4j-spatial-0.26.2-neo4j-3.5.2-server-plugin.jar?raw=true)
-* Using GeoTools 24.2 (for GeoServer 2.18.x):
-	* [v0.27.0 for Neo4j 4.0.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.27.0-neo4j-4.0.3/neo4j-spatial-0.27.0-neo4j-4.0.3-server-plugin.jar?raw=true)
-	* [v0.27.1 for Neo4j 4.1.7](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.27.1-neo4j-4.1.7/neo4j-spatial-0.27.1-neo4j-4.1.7-server-plugin.jar?raw=true)
-	* [v0.27.2 for Neo4j 4.2.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.27.2-neo4j-4.2.3/neo4j-spatial-0.27.2-neo4j-4.2.3-server-plugin.jar?raw=true)
-	* [v0.28.0 for Neo4j 4.2.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.28.0-neo4j-4.2.3/neo4j-spatial-0.28.0-neo4j-4.2.3-server-plugin.jar?raw=true)
-	* [v0.28.1 for Neo4j 4.3.10](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.28.1-neo4j-4.3.10/neo4j-spatial-0.28.1-neo4j-4.3.10-server-plugin.jar?raw=true)
-	* [v0.28.1 for Neo4j 4.4.3](https://github.com/neo4j-contrib/m2/blob/master/releases/org/neo4j/neo4j-spatial/0.30.0-neo4j-5.13.0/neo4j-spatial-0.30.0-neo4j-5.13.0-server-plugin.jar?raw=true)
-
-For versions up to 0.15-neo4j-2.3.4:
-
-~~~bash
-    #install the plugin
-    unzip neo4j-spatial-XXXX-server-plugin.zip -d $NEO4J_HOME/plugins
-    
-    #start the server
-    $NEO4J_HOME/bin/neo4j start
-
-    #list REST API (edit to correct password)
-    curl -u neo4j:neo4j http://localhost:7474/db/data/
-~~~
-
-For versions for neo4j 3.0 and later:
-
-~~~bash
-    #install the plugin
-    cp neo4j-spatial-XXXX-server-plugin.jar $NEO4J_HOME/plugins/
-    
-    #start the server
-    $NEO4J_HOME/bin/neo4j start
-
-    #list REST API (edit to correct password)
-    curl -u neo4j:neo4j http://localhost:7474/db/data/
-
-    #list spatial procedures (edit to correct password)
-    curl -u neo4j:neo4j -H "Content-Type: application/json" -X POST -d '{"query":"CALL spatial.procedures"}' http://localhost:7474/db/data/cypher
-~~~
-
 The server plugin provides access to the internal spatial capabilities using three APIs:
 
-* A REST API for creating layers and adding nodes or geometries to layers.
-	* For usage information
-	  see [Neo4j Spatial Manual REST](http://neo4j-contrib.github.io/spatial/#spatial-server-plugin)
-	* Note that this API provides only limited access to Spatial, with no access the GeoPipes or import utilities
-	* This API was entirely removed when support for Neo4j 4.0 was added (version 0.27)
-* An IndexProvider API (2.x only) for Cypher access using START node=node:geom({query})
-	* It is only possible to add nodes and query for nodes, and the resulting graph structure is not compatible with any
-	  other spatial API (not compatible with Java API, REST or Procedures), so if you use this approach, do not blend it
-	  with the other approaches.
-	* There is some brief documentation
-	  at [Finding geometries within distance using cypher](http://neo4j-contrib.github.io/spatial/#rest-api-find-geometries-within--distance-using-cypher)
-	* This API was removed for 3.0 releases, and so is only available for Neo4j 2.x
 * Procedures for much more comprehensive access to spatial from Cypher
 	* Documentation is not yet available, but you can list the available procedures within Neo4j using the
 	  query `CALL spatial.procedures`
@@ -467,46 +315,6 @@ git clone https://github.com/neo4j-contrib/spatial/spatial.git
 cd spatial
 mvn clean package
 ~~~
-
-### Building Neo4j Spatial Documentation ###
-
-Add your GitHub credentials in your `~/.m2/settings.xml`
-
-~~~xml
-<settings>
-	<servers>
-		<server>
-			<id>github</id>
-			<username>xxx@xxx.xx</username>
-			<password>secret</password>
-		</server>
-	</servers>
-</settings>
-~~~
-
-To build and deploy:
-
-~~~bash
-git clone https://github.com/neo4j/spatial.git
-cd spatial
-mvn clean install site -Pneo-docs-build  
-~~~
-
-## Using Neo4j spatial in your Java project with Maven ##
-
-Add the following repositories and dependency to your project's pom.xml:
-
-~~~xml
-<dependency>
-	<groupId>org.neo4j</groupId>
-	<artifactId>neo4j-spatial</artifactId>
-	<version>5.26.0</version>
-</dependency>
-~~~
-
-The version specified on the last version line can be changed to match the version you wish to work with (based on the
-version of Neo4j itself you are using). To see which versions are available see the list
-at [Neo4j Spatial Releases](https://github.com/neo4j-contrib/m2/tree/master/releases/org/neo4j/neo4j-spatial).
 
 ## Running Neo4j spatial code from the command-line ##
 
