@@ -75,3 +75,14 @@ jobs:
           files: "target/*.jar"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
           release-id: ${{ steps.create_release.outputs.id }}
+
+  trigger_publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Trigger Developer Event
+        uses: peter-evans/repository-dispatch@main
+        with:
+          token: ${{ secrets.BUILD_ACCESS_TOKEN }}
+          repository: neo4j-documentation/docs-refresh
+          event-type: labs
