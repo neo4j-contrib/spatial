@@ -52,7 +52,7 @@ a|
     index_class: "org.neo4j.gis.spatial.index.LayerRTreeIndex",
     layer: "geom",
     layer_class: "org.neo4j.gis.spatial.EditableLayerImpl",
-    layerprops: ["name","type","color"]
+    layerprops: [ "name", "type", "color" ]
 })
 ----
 
