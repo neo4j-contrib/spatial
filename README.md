@@ -13,7 +13,7 @@ This means that Neo4j Spatial 5.19.0 is build against Neo4j 5.19, and so on.
 
 ## Installation
 
-1. Copy the desired neo4j-spatial-x.x.x-server-plugin.jar from the [release page](https://github.com/neo4j-contrib/spatial/releases) to your neo4j plugin directory.
+1. Copy the desired neo4j-spatial-server-plugin-x.x.x-with-dependencies.jar from the [release page](https://github.com/neo4j-contrib/spatial/releases) to your neo4j plugin directory.
 2. set up your database with the following configuration in your `neo4j.conf` file:
 
     ```
@@ -188,11 +188,11 @@ RETURN node.name AS name
 ~~~
 
 For further Java examples, refer to the test code in the
-[LayersTest](src/test/java/org/neo4j/gis/spatial/LayersTest.java) and
-the [TestSpatial](src/test/java/org/neo4j/gis/spatial/TestSpatial.java) classes.
+[LayersTest](server-plugin/src/test/java/org/neo4j/gis/spatial/LayersTest.java) and
+the [TestSpatial](server-plugin/src/test/java/org/neo4j/gis/spatial/TestSpatial.java) classes.
 
 For further Procedures examples, refer to the code in
-the [SpatialProceduresTest](src/test/java/org/neo4j/gis/spatial/procedures/SpatialProceduresTest.java)
+the [SpatialProceduresTest](server-plugin/src/test/java/org/neo4j/gis/spatial/procedures/SpatialProceduresTest.java)
 class.
 
 ## Neo4j Spatial Geoserver Plugin ##
@@ -305,7 +305,7 @@ The Java API (the original API for Neo4j Spatial) still remains, however, the mo
 and therefor we recommend that if you need to access Neo4j server remotely, and want deeper access to Spatial functions,
 consider writing your own Procedures. The Neo4j 3.0 documentation provides some good information on how to do this,
 and you can also refer to
-the [Neo4j Spatial procedures source code](src/main/java/org/neo4j/gis/spatial/procedures/SpatialProcedures.java)
+the [Neo4j Spatial procedures source code](server-plugin/src/main/java/org/neo4j/gis/spatial/procedures/SpatialProcedures.java)
 for examples.
 
 ## Building Neo4j spatial ##
