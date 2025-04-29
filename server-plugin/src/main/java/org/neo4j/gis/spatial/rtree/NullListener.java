@@ -23,7 +23,7 @@ package org.neo4j.gis.spatial.rtree;
 /**
  * This listener ignores all notifications of progress. It is useful when progress is not necessary.
  */
-public class NullListener implements Listener {
+public class NullListener implements ProgressListener {
 
 	// Public methods
 

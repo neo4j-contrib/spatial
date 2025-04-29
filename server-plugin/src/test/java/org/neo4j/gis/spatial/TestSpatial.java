@@ -30,9 +30,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.gis.spatial.filter.SearchIntersect;
-import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.index.IndexManager;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
@@ -293,11 +291,11 @@ public class TestSpatial extends Neo4jTestCase {
 
 				SearchIntersect searchQuery = new SearchIntersect(layer,
 						layer.getGeometryFactory().toGeometry(Utilities.fromNeo4jToJts(bbox)));
-				SearchRecords results = index.search(tx, searchQuery);
+				Iterable<WritableSpatialRecord> results = index.search(tx, searchQuery);
 
 				int count = 0;
 				int ri = 0;
-				for (SpatialDatabaseRecord r : results) {
+				for (WritableSpatialRecord r : results) {
 					count++;
 					if (ri++ < 10) {
 						StringBuilder props = new StringBuilder();
@@ -309,7 +307,7 @@ public class TestSpatial extends Neo4jTestCase {
 						}
 
 						System.out.println(
-								"\tRTreeIndex result[" + ri + "]: " + r.getNodeId() + ":" + r.getType() + " - " + r
+								"\tRTreeIndex result[" + ri + "]: " + r.getId() + ":" + r.getGeometry().getGeometryType() + " - " + r
 										+ ": PROPS[" + props + "]");
 					} else if (ri == 10) {
 						System.out.println("\t.. and " + (count - ri) + " more ..");
@@ -336,7 +334,7 @@ public class TestSpatial extends Neo4jTestCase {
 						}
 					} else {
 						System.err.println(
-								"\tNo name or id in RTreeIndex result: " + r.getNodeId() + ":" + r.getType() + " - "
+								"\tNo name or id in RTreeIndex result: " + r.getId() + ":" + r.getGeometry().getGeometryType() + " - "
 										+ r);
 					}
 				}

@@ -53,8 +53,8 @@ import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.rtree.Envelope;
-import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.NullListener;
+import org.neo4j.gis.spatial.rtree.ProgressListener;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -100,7 +100,7 @@ public class OSMImporter implements Constants {
 	private final StatsManager stats = new StatsManager();
 	private String osm_dataset = null;
 	private long missingChangesets = 0;
-	private final Listener monitor;
+	private final ProgressListener monitor;
 	private final org.locationtech.jts.geom.Envelope filterEnvelope;
 	private SecurityContext securityContext = SecurityContext.AUTH_DISABLED;
 
@@ -209,11 +209,11 @@ public class OSMImporter implements Constants {
 		this(layerName, null);
 	}
 
-	public OSMImporter(String layerName, Listener monitor) {
+	public OSMImporter(String layerName, ProgressListener monitor) {
 		this(layerName, null, null);
 	}
 
-	public OSMImporter(String layerName, Listener monitor, org.locationtech.jts.geom.Envelope filterEnvelope) {
+	public OSMImporter(String layerName, ProgressListener monitor, org.locationtech.jts.geom.Envelope filterEnvelope) {
 		this.layerName = layerName;
 		if (monitor == null) {
 			monitor = new NullListener();

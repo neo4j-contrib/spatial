@@ -64,16 +64,14 @@ import org.neo4j.gis.spatial.index.ExplicitIndexBackedPointIndex;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
 import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.index.LayerZOrderPointIndex;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.RTreeImageExporter;
 import org.neo4j.gis.spatial.rtree.RTreeIndex;
-import org.neo4j.gis.spatial.rtree.RTreeMonitor;
+import org.neo4j.gis.spatial.rtree.RTreeListener;
 import org.neo4j.gis.spatial.rtree.RTreeRelationshipTypes;
-import org.neo4j.gis.spatial.rtree.TreeMonitor;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
@@ -204,8 +202,8 @@ public class RTreeBulkInsertTest {
 			tx.commit();
 		}
 //        java.util.Collections.shuffle( nodes,new Random( 1 ) );
-		TreeMonitor monitor = new RTreeMonitor();
-		layer.getIndex().addMonitor(monitor);
+		TreeListener treeListener = new RTreeListener();
+		layer.getIndex().addTreeListener(treeListener);
 		long start = System.currentTimeMillis();
 
 		List<String> list1 = nodes.subList(0, nodes.size() / 2 + 8);
@@ -819,14 +817,14 @@ public class RTreeBulkInsertTest {
 	 * Private methods used by the above tests
 	 */
 
-	class TreePrintingMonitor extends RTreeMonitor {
+	class PrintingTreeListener extends RTreeListener {
 
 		private final RTreeImageExporter imageExporter;
 		private final String splitMode;
 		private final String insertMode;
 		private final HashMap<String, Integer> called = new HashMap<>();
 
-		TreePrintingMonitor(RTreeImageExporter imageExporter, String insertMode, String splitMode) {
+		PrintingTreeListener(RTreeImageExporter imageExporter, String insertMode, String splitMode) {
 			this.imageExporter = imageExporter;
 			this.splitMode = splitMode;
 			this.insertMode = insertMode;
@@ -840,9 +838,11 @@ public class RTreeBulkInsertTest {
 		}
 
 		@Override
-		public void addNbrRebuilt(RTreeIndex rtree, Transaction tx) {
-			super.addNbrRebuilt(rtree, tx);
-			printRTreeImage("rebuilt", rtree.getIndexRoot(tx), new ArrayList<>());
+		public void addNbrRebuilt(SpatialIndexWriter index, Transaction tx) {
+			super.addNbrRebuilt(index, tx);
+			if (index instanceof RTreeIndex rtree) {
+				printRTreeImage("rebuilt", rtree.getIndexRoot(tx), new ArrayList<>());
+			}
 		}
 
 		@Override
@@ -852,7 +852,7 @@ public class RTreeBulkInsertTest {
 		}
 
 		@Override
-		public void beforeMergeTree(Node indexNode, List<RTreeIndex.NodeWithEnvelope> right) {
+		public void beforeMergeTree(Node indexNode, List<NodeWithEnvelope> right) {
 			super.beforeMergeTree(indexNode, right);
 
 			printRTreeImage("before-merge", indexNode,
@@ -902,8 +902,8 @@ public class RTreeBulkInsertTest {
 			TestStats stats = indexMaker.initStats(blockSize);
 			EditableLayer layer = setupLayer(indexMaker);
 			List<String> nodes = indexMaker.nodes();
-			TreeMonitor monitor = new RTreeMonitor();
-			layer.getIndex().addMonitor(monitor);
+			TreeListener treeListener = new RTreeListener();
+			layer.getIndex().addTreeListener(treeListener);
 			TimedLogger log = indexMaker.initLogger();
 			IndexTestConfig config = indexMaker.getConfig();
 			long start = System.currentTimeMillis();
@@ -915,14 +915,14 @@ public class RTreeBulkInsertTest {
 					}
 					tx.commit();
 				}
-				log.log("Splits: " + monitor.getNbrSplit(), (long) (i + 1) * blockSize);
+				log.log("Splits: " + treeListener.getNbrSplit(), (long) (i + 1) * blockSize);
 			}
 			System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + config.totalCount
 					+ " nodes to RTree in bulk");
 			stats.setInsertTime(start);
-			stats.put("Insert Splits", monitor.getNbrSplit());
+			stats.put("Insert Splits", treeListener.getNbrSplit());
 
-			queryRTree(layer, monitor, stats);
+			queryRTree(layer, treeListener, stats);
 			indexMaker.verifyStructure();
 		}
 	}
@@ -954,8 +954,8 @@ public class RTreeBulkInsertTest {
 			tx.commit();
 		}
 
-		TreeMonitor monitor = new TreePrintingMonitor(imageExporter, "single", splitMode);
-		layer.getIndex().addMonitor(monitor);
+		TreeListener treeListener = new PrintingTreeListener(imageExporter, "single", splitMode);
+		layer.getIndex().addTreeListener(treeListener);
 		TimedLogger log = indexMaker.initLogger();
 		long start = System.currentTimeMillis();
 		int prevBlock = 0;
@@ -969,7 +969,7 @@ public class RTreeBulkInsertTest {
 				}
 				tx.commit();
 			}
-			log.log("Splits: " + monitor.getNbrSplit(), currBlock);
+			log.log("Splits: " + treeListener.getNbrSplit(), currBlock);
 			try (Transaction tx = db.beginTx()) {
 				imageExporter.saveRTreeLayers(tx, new File("rtree-single-" + splitMode + "/rtree-" + i + ".png"), 7);
 				tx.commit();
@@ -982,13 +982,13 @@ public class RTreeBulkInsertTest {
 		System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + config.totalCount
 				+ " nodes to RTree in bulk");
 		stats.setInsertTime(start);
-		stats.put("Insert Splits", monitor.getNbrSplit());
+		stats.put("Insert Splits", treeListener.getNbrSplit());
 
-		monitor.reset();
-		List<Node> found = queryRTree(layer, monitor, stats, false);
+		treeListener.reset();
+		List<Node> found = queryRTree(layer, treeListener, stats, false);
 		verifyTreeStructure(layer, splitMode, stats);
 		try (Transaction tx = db.beginTx()) {
-			imageExporter.saveRTreeLayers(tx, new File("rtree-single-" + splitMode + "/rtree.png"), 7, monitor, found,
+			imageExporter.saveRTreeLayers(tx, new File("rtree-single-" + splitMode + "/rtree.png"), 7, treeListener, found,
 					config.searchMin, config.searchMax);
 			tx.commit();
 		}
@@ -1011,8 +1011,8 @@ public class RTreeBulkInsertTest {
 			TestStats stats = indexMaker.initStats(blockSize);
 			EditableLayer layer = setupLayer(indexMaker);
 			List<String> nodes = indexMaker.nodes();
-			RTreeMonitor monitor = new RTreeMonitor();
-			layer.getIndex().addMonitor(monitor);
+			RTreeListener treeListener = new RTreeListener();
+			layer.getIndex().addTreeListener(treeListener);
 			TimedLogger log = indexMaker.initLogger();
 			long start = System.currentTimeMillis();
 			for (int i = 0; i < indexMaker.getConfig().totalCount / blockSize; i++) {
@@ -1023,17 +1023,17 @@ public class RTreeBulkInsertTest {
 					tx.commit();
 				}
 				log.log(startIndexing,
-						"Rebuilt: " + monitor.getNbrRebuilt() + ", Splits: " + monitor.getNbrSplit() + ", Cases "
-								+ monitor.getCaseCounts(), (long) (i + 1) * blockSize);
+						"Rebuilt: " + treeListener.getNbrRebuilt() + ", Splits: " + treeListener.getNbrSplit() + ", Cases "
+								+ treeListener.getCaseCounts(), (long) (i + 1) * blockSize);
 			}
 			System.out.println(
 					"Took " + (System.currentTimeMillis() - start) + "ms to add " + indexMaker.getConfig().totalCount
 							+ " nodes to RTree in bulk");
 			stats.setInsertTime(start);
-			stats.put("Insert Splits", monitor.getNbrSplit());
+			stats.put("Insert Splits", treeListener.getNbrSplit());
 
-			monitor.reset();
-			queryRTree(layer, monitor, stats);
+			treeListener.reset();
+			queryRTree(layer, treeListener, stats);
 			indexMaker.verifyStructure();
 //        debugIndexTree((RTreeIndex) layer.getIndex());
 		}
@@ -1065,8 +1065,8 @@ public class RTreeBulkInsertTest {
 			tx.commit();
 		}
 
-		TreeMonitor monitor = new TreePrintingMonitor(imageExporter, "bulk", splitMode);
-		layer.getIndex().addMonitor(monitor);
+		TreeListener treeListener = new PrintingTreeListener(imageExporter, "bulk", splitMode);
+		layer.getIndex().addTreeListener(treeListener);
 		TimedLogger log = indexMaker.initLogger();
 		long start = System.currentTimeMillis();
 		for (int i = 0; i < config.totalCount / blockSize; i++) {
@@ -1077,8 +1077,8 @@ public class RTreeBulkInsertTest {
 				tx.commit();
 			}
 			log.log(startIndexing,
-					"Rebuilt: " + monitor.getNbrRebuilt() + ", Splits: " + monitor.getNbrSplit() + ", Cases "
-							+ monitor.getCaseCounts(), (long) (i + 1) * blockSize);
+					"Rebuilt: " + treeListener.getNbrRebuilt() + ", Splits: " + treeListener.getNbrSplit() + ", Cases "
+							+ treeListener.getCaseCounts(), (long) (i + 1) * blockSize);
 			try (Transaction tx = db.beginTx()) {
 				imageExporter.saveRTreeLayers(tx, new File("rtree-bulk-" + splitMode + "/rtree-" + i + ".png"), 7);
 				tx.commit();
@@ -1087,13 +1087,13 @@ public class RTreeBulkInsertTest {
 		System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + config.totalCount
 				+ " nodes to RTree in bulk");
 		stats.setInsertTime(start);
-		stats.put("Insert Splits", monitor.getNbrSplit());
+		stats.put("Insert Splits", treeListener.getNbrSplit());
 
-		monitor.reset();
-		List<Node> found = queryRTree(layer, monitor, stats, false);
+		treeListener.reset();
+		List<Node> found = queryRTree(layer, treeListener, stats, false);
 		indexMaker.verifyStructure();
 		try (Transaction tx = db.beginTx()) {
-			imageExporter.saveRTreeLayers(tx, new File("rtree-bulk-" + splitMode + "/rtree.png"), 7, monitor, found,
+			imageExporter.saveRTreeLayers(tx, new File("rtree-bulk-" + splitMode + "/rtree.png"), 7, treeListener, found,
 					config.searchMin, config.searchMax);
 			tx.commit();
 		}
@@ -1379,7 +1379,7 @@ public class RTreeBulkInsertTest {
 		return new double[]{nodesArea - rootArea, nodesArea / rootArea};
 	}
 
-	private List<Node> queryRTree(Layer layer, TreeMonitor monitor, TestStats stats, boolean assertTouches) {
+	private List<Node> queryRTree(Layer layer, TreeListener monitor, TestStats stats, boolean assertTouches) {
 		List<Node> nodes = queryIndex(layer, stats);
 		if (layer.getIndex() instanceof RTreeIndex) {
 			getRTreeIndexStats((RTreeIndex) layer.getIndex(), monitor, stats, assertTouches, nodes.size());
@@ -1387,7 +1387,7 @@ public class RTreeBulkInsertTest {
 		return nodes;
 	}
 
-	private List<Node> queryRTree(Layer layer, TreeMonitor monitor, TestStats stats) {
+	private List<Node> queryRTree(Layer layer, TreeListener monitor, TestStats stats) {
 		List<Node> nodes = queryIndex(layer, stats);
 		if (layer.getIndex() instanceof RTreeIndex) {
 			getRTreeIndexStats((RTreeIndex) layer.getIndex(), monitor, stats, true, nodes.size());
@@ -1423,7 +1423,7 @@ public class RTreeBulkInsertTest {
 		return nodes;
 	}
 
-	private void getRTreeIndexStats(RTreeIndex index, TreeMonitor monitor, TestStats stats, boolean assertTouches,
+	private void getRTreeIndexStats(RTreeIndex index, TreeListener monitor, TestStats stats, boolean assertTouches,
 			long countGeometries) {
 		IndexTestConfig config = stats.config;
 		int indexTouched = monitor.getCaseCounts().get("Index Does NOT Match");
@@ -1432,8 +1432,8 @@ public class RTreeBulkInsertTest {
 		int matched = monitor.getCaseCounts().get("Geometry Matches");
 		int indexSize = 0;
 		try (Transaction tx = db.beginTx()) {
-		    indexSize += StreamSupport.stream(index.getAllIndexInternalNodes(tx).spliterator(), false).count();
-		    tx.commit();
+			indexSize += StreamSupport.stream(index.getAllIndexInternalNodes(tx).spliterator(), false).count();
+			tx.commit();
 		}
 		stats.put("Index Size", indexSize);
 		stats.put("Found", matched);

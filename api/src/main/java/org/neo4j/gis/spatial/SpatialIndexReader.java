@@ -17,20 +17,36 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.index;
+package org.neo4j.gis.spatial;
 
-import org.neo4j.gis.spatial.rtree.SpatialIndexVisitor;
+import java.util.Map;
+import org.neo4j.gis.spatial.rtree.Envelope;
+import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
+import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
+import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
-/**
- * Spatial Indexes based on tree structures can implement the following methods common to maintaining and searching tree
- * structures.
- */
-public interface LayerTreeIndexReader extends LayerIndexReader {
+public interface SpatialIndexReader {
 
-	Node getIndexRoot(Transaction tx);
+	EnvelopeDecoder getEnvelopeDecoder();
 
-	void visit(Transaction tx, SpatialIndexVisitor visitor, Node indexNode);
+	boolean isEmpty(Transaction tx);
 
+	int count(Transaction tx);
+
+	Envelope getBoundingBox(Transaction tx);
+
+	boolean isNodeIndexed(Transaction tx, String nodeId);
+
+	Iterable<Node> getAllIndexedNodes(Transaction tx);
+
+	SearchResults searchIndex(Transaction tx, SearchFilter filter);
+
+	void addTreeListener(TreeListener treeListener);
+
+	void configure(Map<String, Object> config);
+
+	default void finalizeTransaction(Transaction tx) {
+	}
 }

@@ -21,6 +21,7 @@ package org.neo4j.gis.spatial.index;
 
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.Layer;
+import org.neo4j.gis.spatial.LayerTreeIndexReader;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.gis.spatial.rtree.SpatialIndexVisitor;

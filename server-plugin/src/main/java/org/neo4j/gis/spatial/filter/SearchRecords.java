@@ -23,10 +23,11 @@ import java.util.Iterator;
 import javax.annotation.Nonnull;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
+import org.neo4j.gis.spatial.WritableSpatialRecord;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.graphdb.Node;
 
-public class SearchRecords implements Iterable<SpatialDatabaseRecord>, Iterator<SpatialDatabaseRecord> {
+public class SearchRecords implements Iterable<WritableSpatialRecord>, Iterator<WritableSpatialRecord> {
 
 	private final SearchResults results;
 	private final Iterator<Node> nodeIterator;
@@ -40,7 +41,7 @@ public class SearchRecords implements Iterable<SpatialDatabaseRecord>, Iterator<
 
 	@Override
 	@Nonnull
-	public Iterator<SpatialDatabaseRecord> iterator() {
+	public Iterator<WritableSpatialRecord> iterator() {
 		return this;
 	}
 
@@ -50,7 +51,7 @@ public class SearchRecords implements Iterable<SpatialDatabaseRecord>, Iterator<
 	}
 
 	@Override
-	public SpatialDatabaseRecord next() {
+	public WritableSpatialRecord next() {
 		return new SpatialDatabaseRecord(layer, nodeIterator.next());
 	}
 

@@ -28,7 +28,7 @@ import org.neo4j.logging.Log;
  * This listener logs percentage progress to the specified PrintStream or Logger based on a timer,
  * never logging more frequently than the specified number of ms.
  */
-public class ProgressLoggingListener implements Listener {
+public class ProgressLoggingListener implements ProgressListener {
 
 	private final ProgressLog out;
 	private final String name;

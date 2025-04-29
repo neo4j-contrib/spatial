@@ -19,6 +19,8 @@
  */
 package org.neo4j.gis.spatial.index;
 
+import org.neo4j.gis.spatial.LayerIndexReader;
+
 public class LayerRTreeSimplePointIndexTest extends SimplePointIndexTestBase {
 
 	@Override

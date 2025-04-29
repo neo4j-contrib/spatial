@@ -67,7 +67,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		try (Transaction tx = graphDb().beginTx()) {
 			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName);
 			// finds geometries around point
-			List<SpatialDatabaseRecord> results = GeoPipeline
+			List<WritableSpatialRecord> results = GeoPipeline
 					.startNearestNeighborLatLonSearch(tx, layer, new Coordinate(15.3, 56.2), 1.0)
 					.toSpatialDatabaseRecordList();
 
@@ -96,7 +96,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 			// finds geometries that contain the given geometry
 			Geometry geometry = layer.getGeometryFactory()
 					.toGeometry(new org.locationtech.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0));
-			List<SpatialDatabaseRecord> results = GeoPipeline.startContainSearch(tx, layer, geometry)
+			List<WritableSpatialRecord> results = GeoPipeline.startContainSearch(tx, layer, geometry)
 					.toSpatialDatabaseRecordList();
 
 			// should not be contained
@@ -126,7 +126,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 			// finds geometries that contain the given geometry
 			Geometry geometry = layer.getGeometryFactory()
 					.toGeometry(new org.locationtech.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0));
-			List<SpatialDatabaseRecord> results = GeoPipeline.startContainSearch(tx, layer, geometry)
+			List<WritableSpatialRecord> results = GeoPipeline.startContainSearch(tx, layer, geometry)
 					.toSpatialDatabaseRecordList();
 
 			// should not be contained
@@ -279,7 +279,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		saveLayerAsImage(layerNameB, 700, 70);
 		saveLayerAsImage(layerNameC, 700, 70);
 
-		List<SpatialDatabaseRecord> results = new ArrayList<>();
+		List<WritableSpatialRecord> results = new ArrayList<>();
 		inTx(tx -> {
 			Layer layerA = spatial.getLayer(tx, layerNameA);
 			Layer layerB = spatial.getLayer(tx, layerNameB);
@@ -291,9 +291,9 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 			double[] centreB = bboxB.centre();
 			double[] centreC = bboxC.centre();
 
-			List<SpatialDatabaseRecord> resultsA;
-			List<SpatialDatabaseRecord> resultsB;
-			List<SpatialDatabaseRecord> resultsC;
+			List<WritableSpatialRecord> resultsA;
+			List<WritableSpatialRecord> resultsB;
+			List<WritableSpatialRecord> resultsC;
 			resultsA = GeoPipeline.startNearestNeighborLatLonSearch(tx, layerA,
 					new Coordinate(centreA[0] + 0.1, centreA[1]), 10.0).toSpatialDatabaseRecordList();
 			resultsB = GeoPipeline.startNearestNeighborLatLonSearch(tx, layerB,
@@ -354,7 +354,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 			Envelope bbox = layer.getIndex().getBoundingBox(tx);
 			double[] centre = bbox.centre();
 
-			List<SpatialDatabaseRecord> results = GeoPipeline
+			List<WritableSpatialRecord> results = GeoPipeline
 					.startNearestNeighborLatLonSearch(tx, layer, new Coordinate(centre[0], centre[1]), 10.0)
 					.toSpatialDatabaseRecordList();
 			saveResultsAsImage(results, "temporary-results-layer-" + layer.getName(), 150, 150);

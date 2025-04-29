@@ -28,7 +28,7 @@ import org.neo4j.gis.spatial.attributes.PropertyMapper;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
-public class SpatialDatabaseRecord implements Constants, SpatialRecord {
+public class SpatialDatabaseRecord implements Constants, WritableSpatialRecord {
 
 	private Node geomNode;
 	private Geometry geometry;
@@ -56,6 +56,7 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 	 * If the geomNode is to be used in a different transaction than the one in which it was created, we must call this
 	 * first
 	 */
+	@Override
 	public void refreshGeomNode(Transaction tx) {
 		geomNode = tx.getNodeByElementId(geomNode.getElementId());
 	}
@@ -146,6 +147,7 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 		return layer.getGeometryEncoder().getAttribute(geomNode, name);
 	}
 
+	@Override
 	public void setProperty(String name, Object value) {
 		checkIsNotReservedProperty(name);
 		geomNode.setProperty(name, value);

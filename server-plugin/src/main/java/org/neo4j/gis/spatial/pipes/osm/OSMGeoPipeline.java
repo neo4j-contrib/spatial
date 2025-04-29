@@ -20,7 +20,7 @@
 package org.neo4j.gis.spatial.pipes.osm;
 
 import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.filter.SearchRecords;
+import org.neo4j.gis.spatial.WritableSpatialRecord;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.pipes.impl.FilterPipe;
@@ -36,9 +36,9 @@ public class OSMGeoPipeline extends GeoPipeline {
 		super(layer);
 	}
 
-	public static OSMGeoPipeline startOsm(Transaction tx, Layer layer, final SearchRecords records) {
+	public static OSMGeoPipeline startOsm(Transaction tx, Layer layer, final Iterable<WritableSpatialRecord> records) {
 		OSMGeoPipeline pipeline = new OSMGeoPipeline(layer);
-		return (OSMGeoPipeline) pipeline.add(createStartPipe(records));
+		return (OSMGeoPipeline) pipeline.add(createStartPipe(records.iterator()));
 	}
 
 	public static OSMGeoPipeline startOsm(Transaction tx, Layer layer, SearchFilter searchFilter) {

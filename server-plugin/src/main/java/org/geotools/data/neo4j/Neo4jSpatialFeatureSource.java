@@ -31,8 +31,8 @@ import org.geotools.data.store.ContentFeatureSource;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.Utilities;
+import org.neo4j.gis.spatial.WritableSpatialRecord;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
@@ -50,11 +50,11 @@ public class Neo4jSpatialFeatureSource extends ContentFeatureSource {
 	private final Layer layer;
 	private final SimpleFeatureType featureType;
 	private final SimpleFeatureBuilder builder;
-	private final Iterable<SpatialDatabaseRecord> results;
+	private final Iterable<WritableSpatialRecord> results;
 	private final String[] extraPropertyNames;
 
 	public Neo4jSpatialFeatureSource(ContentEntry contentEntry, GraphDatabaseService database, Layer layer,
-			SimpleFeatureType featureType, Iterable<SpatialDatabaseRecord> results, String[] extraPropertyNames) {
+			SimpleFeatureType featureType, Iterable<WritableSpatialRecord> results, String[] extraPropertyNames) {
 		super(contentEntry, Query.ALL);
 		this.database = database;
 		this.layer = layer;
@@ -99,9 +99,9 @@ public class Neo4jSpatialFeatureSource extends ContentFeatureSource {
 
 	public class Reader implements FeatureReader<SimpleFeatureType, SimpleFeature> {
 
-		private final Iterator<SpatialDatabaseRecord> results;
+		private final Iterator<WritableSpatialRecord> results;
 
-		Reader(Iterator<SpatialDatabaseRecord> results) {
+		Reader(Iterator<WritableSpatialRecord> results) {
 			this.results = results;
 		}
 
@@ -117,7 +117,7 @@ public class Neo4jSpatialFeatureSource extends ContentFeatureSource {
 			}
 
 			try (Transaction tx = database.beginTx()) {
-				SpatialDatabaseRecord record = results.next();
+				WritableSpatialRecord record = results.next();
 				if (record == null) {
 					return null;
 				}

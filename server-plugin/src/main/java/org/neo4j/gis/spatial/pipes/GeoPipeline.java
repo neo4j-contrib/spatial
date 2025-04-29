@@ -37,11 +37,10 @@ import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.util.AffineTransformation;
 import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialRecord;
 import org.neo4j.gis.spatial.SpatialTopologyUtils;
+import org.neo4j.gis.spatial.WritableSpatialRecord;
 import org.neo4j.gis.spatial.filter.SearchIntersectWindow;
-import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.pipes.filtering.FilterCQL;
 import org.neo4j.gis.spatial.pipes.filtering.FilterContain;
 import org.neo4j.gis.spatial.pipes.filtering.FilterCover;
@@ -118,11 +117,11 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 		this.layer = layer;
 	}
 
-	protected static IdentityPipe<GeoPipeFlow> createStartPipe(List<SpatialDatabaseRecord> records) {
+	protected static IdentityPipe<GeoPipeFlow> createStartPipe(List<WritableSpatialRecord> records) {
 		return createStartPipe(records.iterator());
 	}
 
-	protected static IdentityPipe<GeoPipeFlow> createStartPipe(final Iterator<SpatialDatabaseRecord> records) {
+	protected static IdentityPipe<GeoPipeFlow> createStartPipe(final Iterator<WritableSpatialRecord> records) {
 		final Iterator<GeoPipeFlow> start = new Iterator<>() {
 			@Override
 			public boolean hasNext() {
@@ -149,7 +148,7 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 	/**
 	 * Start a new pipeline with an iterator of SpatialDatabaseRecords
 	 */
-	public static GeoPipeline start(Layer layer, Iterator<SpatialDatabaseRecord> records) {
+	public static GeoPipeline start(Layer layer, Iterator<WritableSpatialRecord> records) {
 		GeoPipeline pipeline = new GeoPipeline(layer);
 		return pipeline.add(createStartPipe(records));
 	}
@@ -157,7 +156,7 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 	/**
 	 * Start a new pipeline with a list of SpatialDatabaseRecords
 	 */
-	public static GeoPipeline start(Layer layer, List<SpatialDatabaseRecord> records) {
+	public static GeoPipeline start(Layer layer, List<WritableSpatialRecord> records) {
 		GeoPipeline pipeline = new GeoPipeline(layer);
 		return pipeline.add(createStartPipe(records));
 	}
@@ -165,9 +164,9 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 	/**
 	 * Start a new pipeline that will iterate through a SearchRecords
 	 */
-	public static GeoPipeline start(Layer layer, SearchRecords records) {
+	public static GeoPipeline start(Layer layer, Iterable<WritableSpatialRecord> records) {
 		GeoPipeline pipeline = new GeoPipeline(layer);
-		return pipeline.add(createStartPipe(records));
+		return pipeline.add(createStartPipe(records.iterator()));
 	}
 
 	/**
@@ -930,9 +929,9 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 	 * Warning: GeoPipeline doesn't modify SpatialDatabaseRecords thus the geometries contained aren't those
 	 * transformed by the pipeline but the original ones.
 	 */
-	public List<SpatialDatabaseRecord> toSpatialDatabaseRecordList() {
+	public List<WritableSpatialRecord> toSpatialDatabaseRecordList() {
 
-		List<SpatialDatabaseRecord> result = new ArrayList<>();
+		List<WritableSpatialRecord> result = new ArrayList<>();
 
 		while (true) {
 			try {

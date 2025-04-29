@@ -20,7 +20,7 @@
 package org.neo4j.gis.spatial;
 
 import java.io.PrintStream;
-import org.neo4j.gis.spatial.rtree.Listener;
+import org.neo4j.gis.spatial.rtree.ProgressListener;
 
 
 /**
@@ -28,7 +28,7 @@ import org.neo4j.gis.spatial.rtree.Listener;
  *
  * @author Craig Taverner
  */
-public class ConsoleListener implements Listener {
+public class ConsoleListener implements ProgressListener {
 
 	private final PrintStream out;
 	private int total = 0;

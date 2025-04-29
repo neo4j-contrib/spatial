@@ -112,7 +112,7 @@ public class TestOSMImportBase extends Neo4jTestCase {
 
 	private static void runWithinSearch(Transaction tx, OSMLayer layer, Geometry searchArea, boolean willHaveResult) {
 		long start = System.currentTimeMillis();
-		List<SpatialDatabaseRecord> results = OSMGeoPipeline.startWithinSearch(tx, layer, searchArea)
+		List<WritableSpatialRecord> results = OSMGeoPipeline.startWithinSearch(tx, layer, searchArea)
 				.toSpatialDatabaseRecordList();
 		long time = System.currentTimeMillis() - start;
 		System.out.println(

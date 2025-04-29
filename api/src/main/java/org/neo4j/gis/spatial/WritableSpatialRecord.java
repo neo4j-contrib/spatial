@@ -17,19 +17,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.index;
 
-import org.neo4j.gis.spatial.LayerIndexReader;
+package org.neo4j.gis.spatial;
 
-public class LayerRTreeNativePointIndexTest extends NativePointIndexTestBase {
+import org.neo4j.graphdb.Transaction;
 
-	@Override
-	protected Class<? extends LayerIndexReader> getIndexClass() {
-		return LayerRTreeIndex.class;
-	}
+public interface WritableSpatialRecord extends SpatialRecord{
 
-	@Override
-	protected LayerIndexReader makeIndex() {
-		return new LayerRTreeIndex();
-	}
+	void refreshGeomNode(Transaction tx);
+
+	void setProperty(String name, Object value);
 }

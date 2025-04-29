@@ -21,8 +21,8 @@ package org.neo4j.gis.spatial.indexfilter;
 
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
-import org.neo4j.gis.spatial.filter.SearchRecords;
-import org.neo4j.gis.spatial.index.LayerTreeIndexReader;
+import org.neo4j.gis.spatial.LayerTreeIndexReader;
+import org.neo4j.gis.spatial.WritableSpatialRecord;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.SpatialIndexRecordCounter;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
@@ -173,7 +173,7 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 	}
 
 	@Override
-	public SearchRecords search(Transaction tx, SearchFilter filter) {
+	public Iterable<WritableSpatialRecord> search(Transaction tx, SearchFilter filter) {
 		return index.search(tx, wrapSearchFilter(filter));
 	}
 }

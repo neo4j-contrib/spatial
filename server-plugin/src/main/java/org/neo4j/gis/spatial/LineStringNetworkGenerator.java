@@ -74,7 +74,7 @@ public class LineStringNetworkGenerator {
 		}
 	}
 
-	protected void add(Transaction tx, LineString line, SpatialDatabaseRecord edge) {
+	protected void add(Transaction tx, LineString line, WritableSpatialRecord edge) {
 		if (edge == null) {
 			edge = edgesLayer.add(tx, line);
 		}
@@ -91,10 +91,11 @@ public class LineStringNetworkGenerator {
 			edgePoint = edgePoint.buffer(buffer);
 		}
 
-		Iterator<SpatialDatabaseRecord> results = pointsLayer.getIndex()
-				.search(tx, new SearchIntersect(pointsLayer, edgePoint));
+		Iterator<WritableSpatialRecord> results = pointsLayer.getIndex()
+				.search(tx, new SearchIntersect(pointsLayer, edgePoint))
+				.iterator();
 		if (!results.hasNext()) {
-			SpatialDatabaseRecord point = pointsLayer.add(tx, edgePoint);
+			WritableSpatialRecord point = pointsLayer.add(tx, edgePoint);
 			edge.createRelationshipTo(point.getGeomNode(), SpatialRelationshipTypes.NETWORK);
 		} else {
 			while (results.hasNext()) {

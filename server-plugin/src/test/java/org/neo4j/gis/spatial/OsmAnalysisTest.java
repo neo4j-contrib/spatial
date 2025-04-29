@@ -44,7 +44,6 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.locationtech.jts.geom.Coordinate;
-import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMImporter;
@@ -232,7 +231,7 @@ public class OsmAnalysisTest extends TestOSMImportBase {
 				if (!checkedOne) {
 					int i = 0;
 					System.out.println("Checking layer '" + layerToExport + "' in detail");
-					SearchRecords records = layerToExport.getIndex().search(tx, new SearchAll());
+					Iterable<WritableSpatialRecord> records = layerToExport.getIndex().search(tx, new SearchAll());
 					for (SpatialRecord record : records) {
 						System.out.println("Got record " + i + ": " + record);
 						for (String name : record.getPropertyNames(tx)) {

@@ -28,12 +28,10 @@ import org.geotools.filter.text.cql2.CQLException;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
 import org.neo4j.gis.spatial.index.IndexManager;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
-import org.neo4j.gis.spatial.index.LayerTreeIndexReader;
 import org.neo4j.gis.spatial.indexfilter.CQLIndexReader;
 import org.neo4j.gis.spatial.indexfilter.DynamicIndexReader;
 import org.neo4j.gis.spatial.rtree.Envelope;
-import org.neo4j.gis.spatial.rtree.Listener;
+import org.neo4j.gis.spatial.rtree.ProgressListener;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -103,7 +101,7 @@ public class DynamicLayerConfig implements Layer, Constants {
 	}
 
 	@Override
-	public void delete(Transaction tx, Listener monitor) {
+	public void delete(Transaction tx, ProgressListener monitor) {
 		throw new SpatialDatabaseException("Cannot delete dynamic layers, delete the base layer instead");
 	}
 

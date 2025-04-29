@@ -25,15 +25,15 @@ import java.util.List;
 import java.util.Map;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialRecord;
+import org.neo4j.gis.spatial.WritableSpatialRecord;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
 public class GeoPipeFlow implements SpatialRecord {
 
 	private final String id;
-	private final List<SpatialDatabaseRecord> records = new ArrayList<>();
+	private final List<WritableSpatialRecord> records = new ArrayList<>();
 	private Geometry geometry;
 	private Envelope geometryEnvelope;
 	private final Map<String, Object> properties = new HashMap<>();
@@ -42,13 +42,13 @@ public class GeoPipeFlow implements SpatialRecord {
 		this.id = id;
 	}
 
-	public GeoPipeFlow(SpatialDatabaseRecord record) {
-		this.id = record.getNodeId();
+	public GeoPipeFlow(WritableSpatialRecord record) {
+		this.id = record.getId();
 		this.records.add(record);
 		this.geometry = record.getGeometry();
 	}
 
-	public SpatialDatabaseRecord getRecord() {
+	public WritableSpatialRecord getRecord() {
 		return records.get(0);
 	}
 
@@ -61,7 +61,7 @@ public class GeoPipeFlow implements SpatialRecord {
 		return records.size();
 	}
 
-	public List<SpatialDatabaseRecord> getRecords() {
+	public List<WritableSpatialRecord> getRecords() {
 		return records;
 	}
 

@@ -43,8 +43,8 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.gis.spatial.index.IndexManager;
-import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.NullListener;
+import org.neo4j.gis.spatial.rtree.ProgressListener;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -55,13 +55,13 @@ public class ShapefileImporter implements Constants {
 
 	private final int commitInterval;
 	private final boolean maintainGeometryOrder;
-	private final Listener monitor;
+	private final ProgressListener monitor;
 	private final GraphDatabaseService database;
 	private final SpatialDatabaseService spatialDatabase;
 	private Envelope filterEnvelope;
 
-	public ShapefileImporter(GraphDatabaseService database, Listener monitor, int commitInterval,
-			boolean maintainGeometryOrder) {
+	public ShapefileImporter(GraphDatabaseService database, ProgressListener monitor, int commitInterval,
+                             boolean maintainGeometryOrder) {
 		this.maintainGeometryOrder = maintainGeometryOrder;
 		if (commitInterval < 1) {
 			throw new IllegalArgumentException("commitInterval must be > 0");
@@ -77,11 +77,11 @@ public class ShapefileImporter implements Constants {
 		this.monitor = monitor;
 	}
 
-	public ShapefileImporter(GraphDatabaseService database, Listener monitor, int commitInterval) {
+	public ShapefileImporter(GraphDatabaseService database, ProgressListener monitor, int commitInterval) {
 		this(database, monitor, commitInterval, false);
 	}
 
-	public ShapefileImporter(GraphDatabaseService database, Listener monitor) {
+	public ShapefileImporter(GraphDatabaseService database, ProgressListener monitor) {
 		this(database, monitor, 1000, false);
 	}
 

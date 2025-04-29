@@ -21,38 +21,53 @@
 package org.neo4j.gis.spatial.rtree;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.neo4j.gis.spatial.SpatialIndexWriter;
+import org.neo4j.gis.spatial.TreeListener;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
-public class EmptyMonitor implements TreeMonitor {
+public class RTreeListener implements TreeListener {
+
+	private int nbrSplit;
+	private int height;
+	private int nbrRebuilt;
+	private final HashMap<String, Integer> cases = new HashMap<>();
+	private final ArrayList<ArrayList<Node>> matchedTreeNodes = new ArrayList<>();
+
+	public RTreeListener() {
+		reset();
+	}
 
 	@Override
 	public void setHeight(int height) {
+		this.height = height;
 	}
 
 	@Override
 	public int getHeight() {
-		return -1;
+		return height;
 	}
 
 	@Override
-	public void addNbrRebuilt(RTreeIndex rtree, Transaction tx) {
+	public void addNbrRebuilt(SpatialIndexWriter rtree, Transaction tx) {
+		nbrRebuilt++;
 	}
 
 	@Override
 	public int getNbrRebuilt() {
-		return -1;
+		return nbrRebuilt;
 	}
 
 	@Override
 	public void addSplit(Node indexNode) {
-
+		nbrSplit++;
 	}
 
 	@Override
-	public void beforeMergeTree(Node indexNode, List<RTreeIndex.NodeWithEnvelope> right) {
+	public void beforeMergeTree(Node indexNode, List<NodeWithEnvelope> right) {
 
 	}
 
@@ -63,31 +78,49 @@ public class EmptyMonitor implements TreeMonitor {
 
 	@Override
 	public int getNbrSplit() {
-		return -1;
+		return nbrSplit;
 	}
 
 	@Override
 	public void addCase(String key) {
-
+		Integer n = cases.get(key);
+		if (n != null) {
+			n++;
+		} else {
+			n = 1;
+		}
+		cases.put(key, n);
 	}
 
 	@Override
 	public Map<String, Integer> getCaseCounts() {
-		return null;
+		return cases;
 	}
 
 	@Override
 	public void reset() {
-
+		cases.clear();
+		height = 0;
+		nbrRebuilt = 0;
+		nbrSplit = 0;
+		matchedTreeNodes.clear();
 	}
 
 	@Override
 	public void matchedTreeNode(int level, Node node) {
+		ensureMatchedTreeNodeLevel(level);
+		matchedTreeNodes.get(level).add(node);
+	}
 
+	private void ensureMatchedTreeNodeLevel(int level) {
+		while (matchedTreeNodes.size() <= level) {
+			matchedTreeNodes.add(new ArrayList<>());
+		}
 	}
 
 	@Override
 	public List<Node> getMatchedTreeNodes(int level) {
-		return new ArrayList<>();
+		ensureMatchedTreeNodeLevel(level);
+		return new ArrayList<>(matchedTreeNodes.get(level));
 	}
 }

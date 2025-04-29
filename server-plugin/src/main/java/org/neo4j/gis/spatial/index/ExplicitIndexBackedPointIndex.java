@@ -24,11 +24,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import org.neo4j.gis.spatial.Layer;
+import org.neo4j.gis.spatial.LayerIndexReader;
+import org.neo4j.gis.spatial.SpatialIndexWriter;
+import org.neo4j.gis.spatial.TreeListener;
+import org.neo4j.gis.spatial.WritableSpatialRecord;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
-import org.neo4j.gis.spatial.rtree.Listener;
-import org.neo4j.gis.spatial.rtree.TreeMonitor;
+import org.neo4j.gis.spatial.rtree.ProgressListener;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.graphdb.Label;
@@ -75,7 +78,7 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
 	}
 
 	@Override
-	public SearchRecords search(Transaction tx, SearchFilter filter) {
+	public Iterable<WritableSpatialRecord> search(Transaction tx, SearchFilter filter) {
 		return new SearchRecords(layer, searchIndex(tx, filter));
 	}
 
@@ -116,7 +119,7 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
 	}
 
 	@Override
-	public void removeAll(Transaction tx, boolean deleteGeomNodes, Listener monitor) {
+	public void removeAll(Transaction tx, boolean deleteGeomNodes, ProgressListener monitor) {
 		if (deleteGeomNodes) {
 			for (Node node : getAllIndexedNodes(tx)) {
 				remove(tx, node.getElementId(), true, true);
@@ -126,7 +129,7 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
 	}
 
 	@Override
-	public void clear(Transaction tx, Listener monitor) {
+	public void clear(Transaction tx, ProgressListener monitor) {
 		removeAll(tx, false, monitor);
 	}
 
@@ -221,7 +224,7 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
 	}
 
 	@Override
-	public void addMonitor(TreeMonitor monitor) {
+	public void addTreeListener(TreeListener treeListener) {
 
 	}
 

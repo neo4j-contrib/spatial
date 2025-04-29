@@ -45,10 +45,9 @@ import org.locationtech.jts.geom.Envelope;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.EditableLayer;
 import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.Utilities;
-import org.neo4j.gis.spatial.filter.SearchRecords;
+import org.neo4j.gis.spatial.WritableSpatialRecord;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.rtree.filter.SearchAll;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -161,14 +160,14 @@ public class Neo4jSpatialDataStore extends ContentDataStore implements Constants
 	@Override
 	protected ContentFeatureSource createFeatureSource(ContentEntry contentEntry) throws IOException {
 		Layer layer;
-		ArrayList<SpatialDatabaseRecord> records = new ArrayList<>();
+		ArrayList<WritableSpatialRecord> records = new ArrayList<>();
 		String[] extraPropertyNames;
 		try (Transaction tx = database.beginTx()) {
 			layer = spatialDatabase.getLayer(tx, contentEntry.getTypeName());
-			SearchRecords results = layer.getIndex().search(tx, new SearchAll());
+			Iterable<WritableSpatialRecord> results = layer.getIndex().search(tx, new SearchAll());
 			// We need to pull all records during this transaction, so that later readers do not have a transaction violation
 			// TODO: See if there is a more memory efficient way of doing this, perhaps create a transaction at read time in the reader?
-			for (SpatialDatabaseRecord record : results) {
+			for (WritableSpatialRecord record : results) {
 				records.add(record);
 			}
 			extraPropertyNames = layer.getExtraPropertyNames(tx);

@@ -167,7 +167,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
 					PointResult closest = edgeResults.get(0);
 					Point closestPoint = closest.getKey();
 
-					SpatialDatabaseRecord wayRecord = closest.getValue();
+					WritableSpatialRecord wayRecord = closest.getValue();
 					OSMDataset.Way way = ((OSMDataset) osmLayer.getDataset()).getWayFrom(wayRecord.getGeomNode());
 					OSMDataset.WayPoint wayPoint = way.getPointAt(closestPoint.getCoordinate());
 					// TODO: presumably we meant to assert something here?

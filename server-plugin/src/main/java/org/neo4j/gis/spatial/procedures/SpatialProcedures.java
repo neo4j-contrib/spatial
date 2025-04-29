@@ -38,9 +38,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.Charset;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ServiceLoader;
+import java.util.TreeMap;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -57,19 +58,15 @@ import org.neo4j.gis.spatial.EditableLayer;
 import org.neo4j.gis.spatial.EditableLayerImpl;
 import org.neo4j.gis.spatial.GeometryEncoder;
 import org.neo4j.gis.spatial.Layer;
+import org.neo4j.gis.spatial.LayerIndexReader;
 import org.neo4j.gis.spatial.ShapefileImporter;
 import org.neo4j.gis.spatial.SimplePointLayer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.SpatialTopologyUtils;
-import org.neo4j.gis.spatial.WKBGeometryEncoder;
-import org.neo4j.gis.spatial.WKTGeometryEncoder;
 import org.neo4j.gis.spatial.encoders.NativePointEncoder;
-import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
-import org.neo4j.gis.spatial.encoders.SimplePropertyEncoder;
 import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
 import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.index.LayerZOrderPointIndex;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMImporter;
@@ -148,23 +145,13 @@ public class SpatialProcedures extends SpatialApiBase {
 		}
 	}
 
-	private static final Map<String, Class<? extends GeometryEncoder>> encoderClasses = new HashMap<>();
+	private static final Map<String, Class<? extends GeometryEncoder>> encoderClasses = new TreeMap<>();
 
 	static {
-		populateEncoderClasses();
-	}
-
-	private static void populateEncoderClasses() {
-		encoderClasses.clear();
-		// TODO: Make this auto-find classes that implement GeometryEncoder
-		for (Class<? extends GeometryEncoder> cls : Arrays.asList(
-				SimplePointEncoder.class, OSMGeometryEncoder.class, SimplePropertyEncoder.class,
-				WKTGeometryEncoder.class, WKBGeometryEncoder.class, SimpleGraphEncoder.class,
-				NativePointEncoder.class
-		)) {
-			String name = cls.getSimpleName();
-			encoderClasses.put(name, cls);
-		}
+		ServiceLoader.load(GeometryEncoder.class).forEach(encoder -> {
+			String name = encoder.getClass().getSimpleName();
+			encoderClasses.put(name, encoder.getClass());
+		});
 	}
 
 	@Procedure("spatial.procedures")
@@ -175,8 +162,8 @@ public class SpatialProcedures extends SpatialApiBase {
 		Stream.Builder<NameResult> builder = Stream.builder();
 
 		procedures.getCurrentView().getAllProcedures(QueryLanguage.CYPHER_5)
-	    .filter(proc -> proc.name().namespace()[0].equals("spatial"))
-	    .map(proc -> new NameResult(proc.name().toString(), proc.toString()))
+				.filter(proc -> proc.name().namespace()[0].equals("spatial"))
+				.map(proc -> new NameResult(proc.name().toString(), proc.toString()))
 				.forEach(builder);
 
 		return builder.build();

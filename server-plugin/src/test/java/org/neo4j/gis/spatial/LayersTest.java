@@ -46,7 +46,6 @@ import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePropertyEncoder;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMLayer;
@@ -133,14 +132,14 @@ public class LayersTest {
 		});
 		inTx(tx -> {
 			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName);
-			SpatialDatabaseRecord record = layer.add(tx,
+			WritableSpatialRecord record = layer.add(tx,
 					layer.getGeometryFactory().createPoint(new Coordinate(15.3, 56.2)));
 			assertNotNull(record);
 		});
 		// finds geometries that contain the given geometry
 		try (Transaction tx = graphDb.beginTx()) {
 			Layer layer = spatial.getLayer(tx, layerName);
-			List<SpatialDatabaseRecord> results = GeoPipeline
+			List<WritableSpatialRecord> results = GeoPipeline
 					.startContainSearch(tx, layer,
 							layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)))
 					.toSpatialDatabaseRecordList();
@@ -183,11 +182,11 @@ public class LayersTest {
 		});
 		inTx(tx -> {
 			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName);
-			SpatialDatabaseRecord record = layer.add(tx,
+			WritableSpatialRecord record = layer.add(tx,
 					layer.getGeometryFactory().createPoint(new Coordinate(15.3, 56.2)));
 			assertNotNull(record);
 			// try to remove the geometry
-			layer.delete(tx, record.getNodeId());
+			layer.delete(tx, record.getId());
 		});
 	}
 
@@ -202,7 +201,7 @@ public class LayersTest {
 		});
 		inTx(tx -> {
 			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName);
-			SpatialDatabaseRecord record = layer.add(tx,
+			WritableSpatialRecord record = layer.add(tx,
 					layer.getGeometryFactory().createPoint(new Coordinate(15.3, 56.2)));
 			assertNotNull(record);
 		});
@@ -211,7 +210,7 @@ public class LayersTest {
 			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName);
 
 			// finds geometries that contain the given geometry
-			List<SpatialDatabaseRecord> results = GeoPipeline
+			List<WritableSpatialRecord> results = GeoPipeline
 					.startContainSearch(tx, layer,
 							layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)))
 					.toSpatialDatabaseRecordList();
@@ -317,10 +316,10 @@ public class LayersTest {
 		return layerName;
 	}
 
-	private static void printResults(Layer layer, List<SpatialDatabaseRecord> results) {
+	private static void printResults(Layer layer, List<WritableSpatialRecord> results) {
 		System.out.println("\tTesting layer '" + layer.getName() + "' (class " + layer.getClass() + "), found results: "
 				+ results.size());
-		for (SpatialDatabaseRecord r : results) {
+		for (WritableSpatialRecord r : results) {
 			System.out.println("\t\tGeometry: " + r);
 		}
 	}

@@ -21,7 +21,6 @@ package org.neo4j.gis.spatial;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import org.geotools.geometry.jts.ReferencedEnvelope;
@@ -48,13 +47,13 @@ public class SpatialTopologyUtils {
 	 * Inner class associating points and resulting geometry records to
 	 * facilitate the result set returned.
 	 */
-	public static class PointResult implements Map.Entry<Point, SpatialDatabaseRecord>, Comparable<PointResult> {
+	public static class PointResult implements Map.Entry<Point, WritableSpatialRecord>, Comparable<PointResult> {
 
 		private final Point point;
-		private SpatialDatabaseRecord record;
+		private WritableSpatialRecord record;
 		private final double distance;
 
-		private PointResult(Point point, SpatialDatabaseRecord record, double distance) {
+		private PointResult(Point point, WritableSpatialRecord record, double distance) {
 			this.point = point;
 			this.record = record;
 			this.distance = distance;
@@ -66,7 +65,7 @@ public class SpatialTopologyUtils {
 		}
 
 		@Override
-		public SpatialDatabaseRecord getValue() {
+		public WritableSpatialRecord getValue() {
 			return record;
 		}
 
@@ -75,7 +74,7 @@ public class SpatialTopologyUtils {
 		}
 
 		@Override
-		public SpatialDatabaseRecord setValue(SpatialDatabaseRecord value) {
+		public WritableSpatialRecord setValue(WritableSpatialRecord value) {
 			return this.record = value;
 		}
 
@@ -119,9 +118,7 @@ public class SpatialTopologyUtils {
 	public static List<PointResult> findClosestEdges(Transaction tx, Point point, Layer layer, Geometry filter) {
 		ArrayList<PointResult> results = new ArrayList<>();
 
-		Iterator<SpatialDatabaseRecord> records = layer.getIndex().search(tx, new SearchIntersect(layer, filter));
-		while (records.hasNext()) {
-			SpatialDatabaseRecord record = records.next();
+		for (WritableSpatialRecord record : layer.getIndex().search(tx, new SearchIntersect(layer, filter))) {
 			Geometry geom = record.getGeometry();
 			if (geom instanceof LineString) {
 				LocationIndexedLine line = new LocationIndexedLine(geom);

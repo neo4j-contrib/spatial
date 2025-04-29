@@ -39,7 +39,6 @@ import org.locationtech.jts.geom.Geometry;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.gis.spatial.index.IndexManager;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMDataset.Way;
 import org.neo4j.gis.spatial.osm.OSMDataset.WayPoint;
@@ -166,7 +165,7 @@ public class TestsForDocs {
 			System.out.println("Have " + spatialIndex.count(tx) + " geometries in " + spatialIndex.getBoundingBox(tx));
 
 			Envelope bbox = new Envelope(12.94, 12.96, 56.04, 56.06);
-			List<SpatialDatabaseRecord> results = GeoPipeline
+			List<WritableSpatialRecord> results = GeoPipeline
 					.startIntersectWindowSearch(tx, layer, bbox)
 					.toSpatialDatabaseRecordList();
 
@@ -220,7 +219,7 @@ public class TestsForDocs {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
 		Envelope bbox = new Envelope(12.94, 12.96, 56.04, 56.06);
-		List<SpatialDatabaseRecord> results;
+		List<WritableSpatialRecord> results;
 		try (Transaction tx = database.beginTx()) {
 			Layer layer = spatial.getLayer(tx, "map.osm");
 			LayerIndexReader spatialIndex = layer.getIndex();
@@ -240,7 +239,7 @@ public class TestsForDocs {
 		doGeometryTestsOnResults(bbox, results);
 	}
 
-	private static void doGeometryTestsOnResults(Envelope bbox, List<SpatialDatabaseRecord> results) {
+	private static void doGeometryTestsOnResults(Envelope bbox, List<WritableSpatialRecord> results) {
 		System.out.println("Found " + results.size() + " geometries in " + bbox);
 		Geometry geometry = results.get(0).getGeometry();
 		System.out.println("First geometry is " + geometry);

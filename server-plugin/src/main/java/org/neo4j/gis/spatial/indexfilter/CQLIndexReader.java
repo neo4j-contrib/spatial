@@ -25,10 +25,10 @@ import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.filter.text.ecql.ECQL;
 import org.neo4j.gis.spatial.Layer;
+import org.neo4j.gis.spatial.LayerTreeIndexReader;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.Utilities;
-import org.neo4j.gis.spatial.filter.SearchRecords;
-import org.neo4j.gis.spatial.index.LayerTreeIndexReader;
+import org.neo4j.gis.spatial.WritableSpatialRecord;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.SpatialIndexRecordCounter;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
@@ -129,7 +129,7 @@ public class CQLIndexReader extends LayerIndexReaderWrapper {
 	}
 
 	@Override
-	public SearchRecords search(Transaction tx, SearchFilter filter) {
+	public Iterable<WritableSpatialRecord> search(Transaction tx, SearchFilter filter) {
 		return index.search(tx, wrapSearchFilter(filter));
 	}
 }

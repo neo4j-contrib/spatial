@@ -26,7 +26,7 @@ import static org.mockito.Mockito.verify;
 import java.io.PrintStream;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
-import org.neo4j.gis.spatial.rtree.Listener;
+import org.neo4j.gis.spatial.rtree.ProgressListener;
 import org.neo4j.gis.spatial.rtree.ProgressLoggingListener;
 
 public class ProgressLoggingListenerTest {
@@ -52,16 +52,16 @@ public class ProgressLoggingListenerTest {
 		// When running maven-surefire System.out is replaced with a PrintStream that mockito cannot spy on, so we need to wrap it here
 		PrintStream wrapped = new PrintStream(System.out);
 		PrintStream out = spy(wrapped);
-		Listener listener = new ProgressLoggingListener("test", out).setTimeWait(timeWait);
-		listener.begin(unitsOfWork);
+		ProgressListener progressListener = new ProgressLoggingListener("test", out).setTimeWait(timeWait);
+		progressListener.begin(unitsOfWork);
 		for (int step = 0; step < unitsOfWork; step++) {
-			listener.worked(1);
+			progressListener.worked(1);
 			try {
 				Thread.sleep(throttle);
 			} catch (InterruptedException e) {
 			}
 		}
-		listener.done();
+		progressListener.done();
 		verify(out).println("Starting test");
 		//noinspection RedundantStringFormatCall
 		verify(out).println(String.format("%.2f (10/10) - Completed test", 100f));

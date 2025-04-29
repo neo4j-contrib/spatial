@@ -32,8 +32,10 @@ import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
+import org.neo4j.gis.spatial.SpatialIndexWriter;
+import org.neo4j.gis.spatial.TreeListener;
+import org.neo4j.gis.spatial.TreeListener.NodeWithEnvelope;
 import org.neo4j.gis.spatial.encoders.Configurable;
-import org.neo4j.gis.spatial.index.SpatialIndexWriter;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.graphdb.Direction;
@@ -73,7 +75,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 	public static final int MAX_MAX_NODE_REFERENCES = 1000000;
 	public static final int DEFAULT_MAX_NODE_REFERENCES = 100;
 
-	private TreeMonitor monitor;
+	private TreeListener monitor;
 	private String rootNodeId;
 	private EnvelopeDecoder envelopeDecoder;
 	private int maxNodeReferences;
@@ -85,15 +87,15 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 	private boolean countSaved = false;
 
 	@Override
-	public void addMonitor(TreeMonitor monitor) {
-		this.monitor = monitor;
+	public void addTreeListener(TreeListener treeListener) {
+		this.monitor = treeListener;
 	}
 
 	public void init(Transaction tx, Node layerNode, EnvelopeDecoder envelopeDecoder, int maxNodeReferences) {
 		this.rootNodeId = layerNode.getElementId();
 		this.envelopeDecoder = envelopeDecoder;
 		this.maxNodeReferences = maxNodeReferences;
-		monitor = new EmptyMonitor();
+		monitor = new EmptyTreeListener();
 		if (envelopeDecoder == null) {
 			throw new NullPointerException("envelopeDecoder is NULL");
 		}
@@ -250,32 +252,13 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 			countSaved = false;
 			totalGeometryCount = totalGeometryCount + (geomNodes.size() - outliers.size());
 			for (NodeWithEnvelope n : outliers) {
-				add(tx, n.node);
+				add(tx, n.getNode());
 			}
 		}
 	}
 
 	private List<NodeWithEnvelope> decodeGeometryNodeEnvelopes(List<Node> nodes) {
 		return nodes.stream().map(GeometryNodeWithEnvelope::new).collect(Collectors.toList());
-	}
-
-	public static class NodeWithEnvelope {
-
-		public final Envelope envelope;
-		Node node;
-
-		public NodeWithEnvelope(Node node, Envelope envelope) {
-			this.node = node;
-			this.envelope = envelope;
-		}
-
-		/**
-		 * Ensure this node is valid in the specified transaction
-		 */
-		public NodeWithEnvelope refresh(Transaction tx) {
-			this.node = tx.getNodeByElementId(this.node.getElementId());
-			return this;
-		}
 	}
 
 	public class GeometryNodeWithEnvelope extends NodeWithEnvelope {
@@ -326,7 +309,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		}
 		List<NodeWithEnvelope> result = new ArrayList<>(rootChildren.size() * 5);
 		for (NodeWithEnvelope child : rootChildren) {
-			result.addAll(getIndexChildren(child.node, depth - 1));
+			result.addAll(getIndexChildren(child.getNode(), depth - 1));
 		}
 		return result;
 	}
@@ -380,7 +363,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 			if (expectedHeight < currentRTreeHeight) {
 				monitor.addCase("h_i < l_t ");
 				//if the height is smaller than that recursively sort and split.
-				outliers.addAll(bulkInsertion(tx, child.node, rootNodeHeight - 1, cluster, loadingFactor));
+				outliers.addAll(bulkInsertion(tx, child.getNode(), rootNodeHeight - 1, cluster, loadingFactor));
 			} //if constructed tree is the correct size insert it here.
 			else //Do not create underfull nodes, instead use the add logic, except we know the root not to add them too.
 				//this handles the case where the number of nodes in a cluster is small.
@@ -391,7 +374,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 						// but does tend to limit overlap more than adding to the child exclusively.
 
 						for (NodeWithEnvelope n : cluster) {
-							addBelow(tx, rootNode, n.node);
+							addBelow(tx, rootNode, n.getNode());
 						}
 					} else {
 						monitor.addCase("h_i == l_t && big cluster");
@@ -402,11 +385,11 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 									getIndexNodeEnvelope(newRootNode));
 							List<NodeWithEnvelope> insert = new ArrayList<>(
 									Collections.singletonList(nodeWithEnvelope));
-							monitor.beforeMergeTree(child.node, insert);
+							monitor.beforeMergeTree(child.getNode(), insert);
 							mergeTwoSubtrees(tx, child, insert);
-							monitor.afterMergeTree(child.node);
+							monitor.afterMergeTree(child.getNode());
 						} else {
-							insertIndexNodeOnParent(tx, child.node, newRootNode);
+							insertIndexNodeOnParent(tx, child.getNode(), newRootNode);
 						}
 					}
 				} else {
@@ -417,7 +400,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 						monitor.addCase("h_i > l_t (d==1)");
 						try (var relationships = newRootNode.getRelationships(referenceRelationshipType)) {
 							for (Relationship geom : relationships) {
-								addBelow(tx, child.node, geom.getEndNode());
+								addBelow(tx, child.getNode(), geom.getEndNode());
 								geom.delete();
 							}
 						}
@@ -426,17 +409,17 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 						int insertDepth = newHeight - (currentRTreeHeight);
 						List<NodeWithEnvelope> childrenToBeInserted = getIndexChildren(newRootNode, insertDepth);
 						for (NodeWithEnvelope n : childrenToBeInserted) {
-							Relationship relationship = n.node.getSingleRelationship(RTreeRelationshipTypes.RTREE_CHILD,
+							Relationship relationship = n.getNode().getSingleRelationship(RTreeRelationshipTypes.RTREE_CHILD,
 									Direction.INCOMING);
 							relationship.delete();
 							if (!shouldMergeTrees) {
-								insertIndexNodeOnParent(tx, child.node, n.node);
+								insertIndexNodeOnParent(tx, child.getNode(), n.getNode());
 							}
 						}
 						if (shouldMergeTrees) {
-							monitor.beforeMergeTree(child.node, childrenToBeInserted);
+							monitor.beforeMergeTree(child.getNode(), childrenToBeInserted);
 							mergeTwoSubtrees(tx, child, childrenToBeInserted);
-							monitor.afterMergeTree(child.node);
+							monitor.afterMergeTree(child.getNode());
 						}
 					}
 					// todo wouldn't it be better for this temporary tree to only live in memory?
@@ -461,14 +444,14 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		}
 
 		boolean contains(NodeWithEnvelope entry) {
-			return left.node.equals(entry.node) || right.node.equals(entry.node);
+			return left.getNode().equals(entry.getNode()) || right.getNode().equals(entry.getNode());
 		}
 	}
 
 	protected void mergeTwoSubtrees(Transaction tx, NodeWithEnvelope parent, List<NodeWithEnvelope> right) {
 		ArrayList<NodeTuple> pairs = new ArrayList<>();
 		HashSet<NodeWithEnvelope> disconnectedChildren = new HashSet<>();
-		List<NodeWithEnvelope> left = getIndexChildren(parent.node);
+		List<NodeWithEnvelope> left = getIndexChildren(parent.getNode());
 		for (NodeWithEnvelope leftNode : left) {
 			for (NodeWithEnvelope rightNode : right) {
 				NodeTuple pair = new NodeTuple(leftNode, rightNode);
@@ -482,11 +465,11 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 			NodeTuple pair = pairs.remove(pairs.size() - 1);
 			Envelope merged = new Envelope(pair.left.envelope);
 			merged.expandToInclude(pair.right.envelope);
-			NodeWithEnvelope newNode = new NodeWithEnvelope(pair.left.node, merged);
-			setIndexNodeEnvelope(newNode.node, newNode.envelope);
-			List<NodeWithEnvelope> rightChildren = getIndexChildren(pair.right.node);
+			NodeWithEnvelope newNode = new NodeWithEnvelope(pair.left.getNode(), merged);
+			setIndexNodeEnvelope(newNode.getNode(), newNode.envelope);
+			List<NodeWithEnvelope> rightChildren = getIndexChildren(pair.right.getNode());
 			pairs.removeIf(t -> t.contains(pair.left) || t.contains(pair.right));
-			try (var relationships = pair.right.node.getRelationships()) {
+			try (var relationships = pair.right.getNode().getRelationships()) {
 				for (Relationship rel : relationships) {
 					rel.delete();
 				}
@@ -496,18 +479,18 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		}
 
 		right.removeIf(disconnectedChildren::contains);
-		disconnectedChildren.forEach(t -> t.node.delete());
+		disconnectedChildren.forEach(t -> t.getNode().delete());
 
 		for (NodeWithEnvelope n : right) {
-			n.node.getSingleRelationship(RTreeRelationshipTypes.RTREE_CHILD, Direction.INCOMING);
-			parent.node.createRelationshipTo(n.node, RTreeRelationshipTypes.RTREE_CHILD);
+			n.getNode().getSingleRelationship(RTreeRelationshipTypes.RTREE_CHILD, Direction.INCOMING);
+			parent.getNode().createRelationshipTo(n.getNode(), RTreeRelationshipTypes.RTREE_CHILD);
 			parent.envelope.expandToInclude(n.envelope);
 		}
-		setIndexNodeEnvelope(parent.node, parent.envelope);
-		if (countChildren(parent.node, RTreeRelationshipTypes.RTREE_CHILD) > maxNodeReferences) {
-			splitAndAdjustPathBoundingBox(tx, parent.node);
+		setIndexNodeEnvelope(parent.getNode(), parent.envelope);
+		if (countChildren(parent.getNode(), RTreeRelationshipTypes.RTREE_CHILD) > maxNodeReferences) {
+			splitAndAdjustPathBoundingBox(tx, parent.getNode());
 		} else {
-			adjustPathBoundingBox(parent.node);
+			adjustPathBoundingBox(parent.getNode());
 		}
 	}
 
@@ -558,7 +541,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 			// We have few enough nodes to add them directly to the current index node
 			boolean expandRootNodeBoundingBox = false;
 			for (NodeWithEnvelope n : nodes) {
-				expandRootNodeBoundingBox |= insertInLeaf(indexNode, n.node);
+				expandRootNodeBoundingBox |= insertInLeaf(indexNode, n.getNode());
 			}
 			if (expandRootNodeBoundingBox) {
 				adjustPathBoundingBox(indexNode);
@@ -577,7 +560,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 				if (partition.size() > 1) {
 					partition(tx, newIndexNode, partition, depth + 1, loadingFactor);
 				} else {
-					addBelow(tx, newIndexNode, partition.get(0).node);
+					addBelow(tx, newIndexNode, partition.get(0).getNode());
 				}
 				insertIndexNodeOnParent(tx, indexNode, newIndexNode);
 			}
@@ -669,7 +652,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 	}
 
 	private void detachGeometryNodes(Transaction tx, final boolean deleteGeomNodes, Node indexRoot,
-			final Listener monitor) {
+			final ProgressListener monitor) {
 		monitor.begin(count(tx));
 		try {
 			// delete all geometry nodes
@@ -695,7 +678,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 	}
 
 	@Override
-	public void removeAll(Transaction tx, final boolean deleteGeomNodes, final Listener monitor) {
+	public void removeAll(Transaction tx, final boolean deleteGeomNodes, final ProgressListener monitor) {
 		Node indexRoot = getIndexRoot(tx);
 
 		detachGeometryNodes(tx, deleteGeomNodes, indexRoot, monitor);
@@ -718,7 +701,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 	}
 
 	@Override
-	public void clear(Transaction tx, final Listener monitor) {
+	public void clear(Transaction tx, final ProgressListener monitor) {
 		removeAll(tx, false, new NullListener());
 		initIndexRoot(tx);
 		initIndexMetadata(tx);
@@ -1264,13 +1247,13 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		// reset bounding box and add new children
 		indexNode.removeProperty(INDEX_PROP_BBOX);
 		for (NodeWithEnvelope entry : group1) {
-			addChild(indexNode, relationshipType, entry.node);
+			addChild(indexNode, relationshipType, entry.getNode());
 		}
 
 		// create new node from split
 		Node newIndexNode = tx.createNode();
 		for (NodeWithEnvelope entry : group2) {
-			addChild(newIndexNode, relationshipType, entry.node);
+			addChild(newIndexNode, relationshipType, entry.getNode());
 		}
 
 		return newIndexNode;

@@ -20,12 +20,9 @@
 package org.neo4j.gis.spatial;
 
 import java.util.Map;
-import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.index.IndexManager;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
-import org.neo4j.gis.spatial.rtree.TreeMonitor;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.graphdb.Node;
@@ -118,7 +115,7 @@ public class SpatialIndexPerformanceProxy implements LayerIndexReader {
 	}
 
 	@Override
-	public void addMonitor(TreeMonitor monitor) {
+	public void addTreeListener(TreeListener treeListener) {
 
 	}
 
@@ -128,9 +125,9 @@ public class SpatialIndexPerformanceProxy implements LayerIndexReader {
 	}
 
 	@Override
-	public SearchRecords search(Transaction tx, SearchFilter filter) {
+	public Iterable<WritableSpatialRecord> search(Transaction tx, SearchFilter filter) {
 		long start = System.currentTimeMillis();
-		SearchRecords results = spatialIndex.search(tx, filter);
+		Iterable<WritableSpatialRecord> results = spatialIndex.search(tx, filter);
 		long stop = System.currentTimeMillis();
 		System.out.println("# exec time(executeSearch(" + filter + ")): " + (stop - start) + "ms");
 		return results;

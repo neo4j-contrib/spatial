@@ -17,19 +17,24 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.rtree;
+package org.neo4j.gis.spatial;
+
+import java.util.List;
+import org.neo4j.gis.spatial.rtree.ProgressListener;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Transaction;
 
 
-/**
- * Classes that implement this interface will be notified of units of work done,
- * and can therefor be used for progress bars or console logging or similar activities.
- */
-public interface Listener {
+public interface SpatialIndexWriter extends SpatialIndexReader {
 
-	void begin(int unitsOfWork);
+	void add(Transaction tx, Node geomNode);
 
-	void worked(int workedSinceLastNotification);
+	void add(Transaction tx, List<Node> geomNodes);
 
-	void done();
+	void remove(Transaction tx, String geomNodeId, boolean deleteGeomNode, boolean throwExceptionIfNotFound);
+
+	void removeAll(Transaction tx, boolean deleteGeomNodes, ProgressListener monitor);
+
+	void clear(Transaction tx, ProgressListener monitor);
 
 }

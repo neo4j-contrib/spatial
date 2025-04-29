@@ -49,7 +49,7 @@ public class TestRemove extends Neo4jTestCase {
 			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName);
 			GeometryFactory geomFactory = layer.getGeometryFactory();
 			for (int i = 0; i < ids.length; i++) {
-				ids[i] = layer.add(tx, geomFactory.createPoint(new Coordinate(i, i))).getNodeId();
+				ids[i] = layer.add(tx, geomFactory.createPoint(new Coordinate(i, i))).getId();
 			}
 			tx.commit();
 		}

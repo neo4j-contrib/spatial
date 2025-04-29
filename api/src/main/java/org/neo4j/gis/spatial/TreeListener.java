@@ -18,27 +18,28 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.neo4j.gis.spatial.rtree;
+package org.neo4j.gis.spatial;
 
 
 import java.util.List;
 import java.util.Map;
+import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
-public interface TreeMonitor {
+public interface TreeListener {
 
 	void setHeight(int height);
 
 	int getHeight();
 
-	void addNbrRebuilt(RTreeIndex rtree, Transaction tx);
+	void addNbrRebuilt(SpatialIndexWriter rtree, Transaction tx);
 
 	int getNbrRebuilt();
 
 	void addSplit(Node indexNode);
 
-	void beforeMergeTree(Node indexNode, List<RTreeIndex.NodeWithEnvelope> right);
+	void beforeMergeTree(Node indexNode, List<NodeWithEnvelope> right);
 
 	void afterMergeTree(Node indexNode);
 
@@ -53,4 +54,27 @@ public interface TreeMonitor {
 	void matchedTreeNode(int level, Node node);
 
 	List<Node> getMatchedTreeNodes(int level);
+
+	class NodeWithEnvelope {
+
+		public final Envelope envelope;
+		private Node node;
+
+		public NodeWithEnvelope(Node node, Envelope envelope) {
+			this.node = node;
+			this.envelope = envelope;
+		}
+
+		/**
+		 * Ensure this node is valid in the specified transaction
+		 */
+		public NodeWithEnvelope refresh(Transaction tx) {
+			this.node = tx.getNodeByElementId(this.node.getElementId());
+			return this;
+		}
+
+		public Node getNode() {
+			return node;
+		}
+	}
 }

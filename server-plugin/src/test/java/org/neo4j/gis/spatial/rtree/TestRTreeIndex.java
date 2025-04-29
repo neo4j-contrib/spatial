@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial.rtree;
 
+import org.neo4j.gis.spatial.TreeListener;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -30,21 +31,21 @@ public class TestRTreeIndex extends RTreeIndex {
 		init(tx, tx.createNode(), new SimplePointEncoder(), DEFAULT_MAX_NODE_REFERENCES);
 	}
 
-	public static RTreeIndex.NodeWithEnvelope makeChildIndexNode(Transaction tx, NodeWithEnvelope parent,
-			Envelope bbox) {
+	public static TreeListener.NodeWithEnvelope makeChildIndexNode(Transaction tx, TreeListener.NodeWithEnvelope parent,
+                                                                  Envelope bbox) {
 		Node indexNode = tx.createNode();
 		setIndexNodeEnvelope(indexNode, bbox);
-		parent.node.createRelationshipTo(indexNode, RTreeRelationshipTypes.RTREE_CHILD);
-		expandParentBoundingBoxAfterNewChild(parent.node,
+		parent.getNode().createRelationshipTo(indexNode, RTreeRelationshipTypes.RTREE_CHILD);
+		expandParentBoundingBoxAfterNewChild(parent.getNode(),
 				new double[]{bbox.getMinX(), bbox.getMinY(), bbox.getMaxX(), bbox.getMaxY()});
-		return new NodeWithEnvelope(indexNode, bbox);
+		return new TreeListener.NodeWithEnvelope(indexNode, bbox);
 	}
 
-	public static void setIndexNodeEnvelope(NodeWithEnvelope indexNode) {
-		setIndexNodeEnvelope(indexNode.node, indexNode.envelope);
+	public static void setIndexNodeEnvelope(TreeListener.NodeWithEnvelope indexNode) {
+		setIndexNodeEnvelope(indexNode.getNode(), indexNode.envelope);
 	}
 
-	public void mergeTwoTrees(Transaction tx, NodeWithEnvelope left, NodeWithEnvelope right) {
-		super.mergeTwoSubtrees(tx, left, getIndexChildren(right.node));
+	public void mergeTwoTrees(Transaction tx, TreeListener.NodeWithEnvelope left, TreeListener.NodeWithEnvelope right) {
+		super.mergeTwoSubtrees(tx, left, getIndexChildren(right.getNode()));
 	}
 }

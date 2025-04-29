@@ -24,8 +24,7 @@ import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
 import org.neo4j.gis.spatial.index.IndexManager;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
-import org.neo4j.gis.spatial.rtree.Listener;
+import org.neo4j.gis.spatial.rtree.ProgressListener;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
@@ -63,7 +62,7 @@ public interface Layer {
 	 * @param geomNode the node containing the geometry to be added to the layer
 	 * @return SpatialDatabaseRecord representation of the geometry added to the database
 	 */
-	SpatialDatabaseRecord add(Transaction tx, Node geomNode);
+	SpatialRecord add(Transaction tx, Node geomNode);
 
 	/**
 	 * This method adds existing geometries to the layer for indexing in bulk. After this method is called the geometry
@@ -89,7 +88,7 @@ public interface Layer {
 	 * Others are simply views onto other more complex data models and deleting the geometry nodes
 	 * might imply damage to the model. Keep this in mind when coding implementations of the Layer.
 	 */
-	void delete(Transaction tx, Listener monitor);
+	void delete(Transaction tx, ProgressListener monitor);
 
 	/**
 	 * Every layer is defined by a unique name. Uniqueness is not enforced, but lack of uniqueness

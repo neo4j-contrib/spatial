@@ -40,12 +40,11 @@ import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
 import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.gis.spatial.index.LayerZOrderPointIndex;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMLayer;
-import org.neo4j.gis.spatial.rtree.Listener;
+import org.neo4j.gis.spatial.rtree.ProgressListener;
 import org.neo4j.gis.spatial.utilities.LayerUtilities;
 import org.neo4j.gis.spatial.utilities.ReferenceNodes;
 import org.neo4j.graphdb.Direction;
@@ -184,7 +183,7 @@ public class SpatialDatabaseService implements Constants {
 	}
 
 	public EditableLayer getOrCreateEditableLayer(Transaction tx, String name, String format, String propertyNameConfig,
-			String indexConfig) {
+                                                  String indexConfig) {
 		Class<? extends GeometryEncoder> geClass = WKBGeometryEncoder.class;
 		if (format != null && format.toUpperCase().startsWith("WKT")) {
 			geClass = WKTGeometryEncoder.class;
@@ -395,7 +394,7 @@ public class SpatialDatabaseService implements Constants {
 		return layer;
 	}
 
-	public void deleteLayer(Transaction tx, String name, Listener monitor) {
+	public void deleteLayer(Transaction tx, String name, ProgressListener monitor) {
 		Layer layer = getLayer(tx, name);
 		if (layer == null) {
 			throw new SpatialDatabaseException("Layer " + name + " does not exist");
@@ -474,9 +473,9 @@ public class SpatialDatabaseService implements Constants {
 	 * @param results   collection of SpatialDatabaseRecords to add to new layer
 	 * @return new Layer with copy of all geometries
 	 */
-	public Layer createResultsLayer(Transaction tx, String layerName, List<SpatialDatabaseRecord> results) {
+	public Layer createResultsLayer(Transaction tx, String layerName, List<WritableSpatialRecord> results) {
 		EditableLayer layer = (EditableLayer) createWKBLayer(tx, layerName, "");
-		for (SpatialDatabaseRecord record : results) {
+		for (WritableSpatialRecord record : results) {
 			layer.add(tx, record.getGeometry());
 		}
 		return layer;
