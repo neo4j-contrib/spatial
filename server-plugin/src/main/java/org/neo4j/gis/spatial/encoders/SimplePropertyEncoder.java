@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial.encoders;
 
+import java.util.Set;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.AbstractGeometryEncoder;
@@ -34,6 +35,8 @@ import org.neo4j.graphdb.Transaction;
 // TODO: Consider switching from Float to Double according to Davide Savazzi
 public class SimplePropertyEncoder extends AbstractGeometryEncoder {
 
+	private static final String PROPERTY_DATA = "data";
+
 	@Override
 	protected void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container) {
 		container.setProperty(PROP_TYPE, SpatialDatabaseService.convertJtsClassToGeometryType(geometry.getClass()));
@@ -44,16 +47,21 @@ public class SimplePropertyEncoder extends AbstractGeometryEncoder {
 			data[i * 2 + 1] = (float) coords[i].y;
 		}
 
-		container.setProperty("data", data);
+		container.setProperty(PROPERTY_DATA, data);
 	}
 
 	@Override
 	public Geometry decodeGeometry(Entity container) {
-		float[] data = (float[]) container.getProperty("data");
+		float[] data = (float[]) container.getProperty(PROPERTY_DATA);
 		Coordinate[] coordinates = new Coordinate[data.length / 2];
 		for (int i = 0; i < data.length / 2; i++) {
 			coordinates[i] = new Coordinate(data[2 * i], data[2 * i + 1]);
 		}
 		return getGeometryFactory().createLineString(coordinates);
+	}
+
+	@Override
+	public Set<String> getEncoderProperties() {
+		return Set.of(bboxProperty, PROPERTY_DATA, PROP_TYPE);
 	}
 }

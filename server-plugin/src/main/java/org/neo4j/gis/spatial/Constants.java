@@ -30,6 +30,7 @@ public interface Constants {
 
 	String PROP_BBOX = "bbox";
 	String PROP_LAYER = "layer";
+	String PROP_PREFIX_EXTRA_PROP_V2 = "extraProp.";
 	String PROP_LAYERNODEEXTRAPROPS = "layerprops";
 	String PROP_CRS = "layercrs";
 	String PROP_GEOMENCODER = "geomencoder";

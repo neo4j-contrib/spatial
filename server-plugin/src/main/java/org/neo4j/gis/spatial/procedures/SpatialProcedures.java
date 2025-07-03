@@ -126,7 +126,7 @@ public class SpatialProcedures extends SpatialApiBase {
 
 	}
 
-	public record StringResult(String name) {
+	public record FeatureAttributeResult(String name, String className) {
 
 	}
 
@@ -175,8 +175,8 @@ public class SpatialProcedures extends SpatialApiBase {
 		Stream.Builder<NameResult> builder = Stream.builder();
 
 		procedures.getCurrentView().getAllProcedures(QueryLanguage.CYPHER_5)
-	    .filter(proc -> proc.name().namespace()[0].equals("spatial"))
-	    .map(proc -> new NameResult(proc.name().toString(), proc.toString()))
+				.filter(proc -> proc.name().namespace()[0].equals("spatial"))
+				.map(proc -> new NameResult(proc.name().toString(), proc.toString()))
 				.forEach(builder);
 
 		return builder.build();
@@ -549,13 +549,19 @@ public class SpatialProcedures extends SpatialApiBase {
 
 	@Procedure(value = "spatial.getFeatureAttributes", mode = WRITE)
 	@Description("Returns feature attributes of the given layer")
-	public Stream<StringResult> getFeatureAttributes(
+	public Stream<FeatureAttributeResult> getFeatureAttributes(
 			@Name(value = "name", description = DOC_LAYER_NAME) String name) {
 		Layer layer = getLayerOrThrow(tx, spatial(), name);
-		return Arrays.stream(layer.getExtraPropertyNames(tx)).map(StringResult::new);
+		return layer.getExtraProperties(tx)
+				.entrySet()
+				.stream()
+				.map(entry -> new FeatureAttributeResult(entry.getKey(), entry.getValue().getName()));
 	}
 
-	@Procedure(value = "spatial.setFeatureAttributes", mode = WRITE)
+	@Procedure(
+			value = "spatial.setFeatureAttributes", mode = WRITE,
+			deprecatedBy = "feature attributes are now automatically discovered when a new node is added to the index"
+	)
 	@Description("Sets the feature attributes of the given layer")
 	public Stream<NodeResult> setFeatureAttributes(@Name(value = "name", description = DOC_LAYER_NAME) String name,
 			@Name(value = "attributeNames", description = "The attributes to set") List<String> attributeNames) {

@@ -169,7 +169,7 @@ Removes the given node from the layer, returns the geometry-node
 
 Removes the given nodes from the layer, returns the count of nodes removed
 |label:procedure[]
-|xref:api/spatial/spatial.setFeatureAttributes.adoc[spatial.setFeatureAttributes icon:book[]]
+|xref:api/spatial/spatial.setFeatureAttributes.adoc[spatial.setFeatureAttributes icon:book[]] label:deprecated[]
 
 Sets the feature attributes of the given layer
 |label:procedure[]

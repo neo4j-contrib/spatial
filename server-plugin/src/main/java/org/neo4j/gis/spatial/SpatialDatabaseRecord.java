@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.attributes.PropertyMapper;
@@ -108,27 +109,15 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 	}
 
 	@Override
-	public String[] getPropertyNames(Transaction tx) {
-		return layer.getExtraPropertyNames(tx);
-	}
-
-	public Object[] getPropertyValues(Transaction tx) {
-		String[] names = getPropertyNames(tx);
-		if (names == null) {
-			return null;
-		}
-		Object[] values = new Object[names.length];
-		for (int i = 0; i < names.length; i++) {
-			values[i] = getProperty(tx, names[i]);
-		}
-		return values;
+	public Set<String> getPropertyNames(Transaction tx) {
+		return layer.getExtraProperties(tx).keySet();
 	}
 
 	@Override
 	public Map<String, Object> getProperties(Transaction tx) {
 		Map<String, Object> result = new HashMap<>();
 
-		String[] names = getPropertyNames(tx);
+		Set<String> names = getPropertyNames(tx);
 		for (String name : names) {
 			result.put(name, getProperty(tx, name));
 		}
