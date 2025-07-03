@@ -79,17 +79,12 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
 		return new SearchRecords(layer, searchIndex(tx, filter));
 	}
 
-	@Override
-	public void add(Transaction tx, Node geomNode) {
-		index.add(geomNode, getIndexValueFor(tx, geomNode));
-	}
-
 	protected abstract E getIndexValueFor(Transaction tx, Node geomNode);
 
 	@Override
 	public void add(Transaction tx, List<Node> geomNodes) {
 		for (Node node : geomNodes) {
-			add(tx, node);
+			index.add(node, getIndexValueFor(tx, node));
 		}
 	}
 

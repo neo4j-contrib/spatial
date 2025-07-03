@@ -27,7 +27,9 @@ import org.neo4j.graphdb.Transaction;
 
 public interface SpatialIndexWriter extends SpatialIndexReader {
 
-	void add(Transaction tx, Node geomNode);
+	default void add(Transaction tx, Node geomNode) {
+		add(tx, List.of(geomNode));
+	}
 
 	void add(Transaction tx, List<Node> geomNodes);
 

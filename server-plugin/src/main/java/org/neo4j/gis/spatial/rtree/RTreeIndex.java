@@ -25,8 +25,10 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
@@ -170,15 +172,6 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		});
 	}
 
-	@Override
-	public void add(Transaction tx, Node geomNode) {
-		// initialize the search with root
-		Node parent = getIndexRoot(tx);
-		addBelow(tx, parent, geomNode);
-		countSaved = false;
-		totalGeometryCount++;
-	}
-
 	/**
 	 * This method will add the node somewhere below the parent.
 	 */
@@ -229,29 +222,34 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 	 */
 	@Override
 	public void add(Transaction tx, List<Node> geomNodes) {
+		Node indexRoot = getIndexRoot(tx);
 
 		//If the insertion is large relative to the size of the tree, simply rebuild the whole tree.
-		if (geomNodes.size() > totalGeometryCount * 0.4) {
-			List<Node> nodesToAdd = new ArrayList<>(geomNodes.size() + totalGeometryCount);
-			for (Node n : getAllIndexedNodes(tx)) {
-				nodesToAdd.add(n);
-			}
-			nodesToAdd.addAll(geomNodes);
-			detachGeometryNodes(tx, false, getIndexRoot(tx), new NullListener());
-			deleteTreeBelow(getIndexRoot(tx));
-			buildRtreeFromScratch(tx, getIndexRoot(tx), decodeGeometryNodeEnvelopes(nodesToAdd), 0.7);
+		if (totalGeometryCount > 0
+				&& geomNodes.size() > 1
+				&& geomNodes.size() > totalGeometryCount * 0.4
+		) {
+			Set<Node> uniqueNodes
+					= new LinkedHashSet<>(geomNodes.size() + totalGeometryCount);
+			getAllIndexedNodes(tx).forEach(uniqueNodes::add);
+			uniqueNodes.addAll(geomNodes);
+
+			List<Node> nodesToAdd = new ArrayList<>(uniqueNodes);
+			detachGeometryNodes(tx, false, indexRoot, new NullListener());
+			deleteTreeBelow(indexRoot);
+			buildRtreeFromScratch(tx, indexRoot, decodeGeometryNodeEnvelopes(nodesToAdd), 0.7);
 			countSaved = false;
 			totalGeometryCount = nodesToAdd.size();
 			monitor.addNbrRebuilt(this, tx);
 		} else {
 
-			List<NodeWithEnvelope> outliers = bulkInsertion(tx, getIndexRoot(tx), getHeight(getIndexRoot(tx), 0),
+			List<NodeWithEnvelope> outliers = bulkInsertion(tx, indexRoot, getHeight(indexRoot, 0),
 					decodeGeometryNodeEnvelopes(geomNodes), 0.7);
-			countSaved = false;
-			totalGeometryCount = totalGeometryCount + (geomNodes.size() - outliers.size());
 			for (NodeWithEnvelope n : outliers) {
-				add(tx, n.node);
+				addBelow(tx, indexRoot, n.node);
 			}
+			totalGeometryCount += geomNodes.size();
+			countSaved = false;
 		}
 	}
 
@@ -499,7 +497,11 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		disconnectedChildren.forEach(t -> t.node.delete());
 
 		for (NodeWithEnvelope n : right) {
-			n.node.getSingleRelationship(RTreeRelationshipTypes.RTREE_CHILD, Direction.INCOMING);
+			Relationship previousParent = n.node.getSingleRelationship(RTreeRelationshipTypes.RTREE_CHILD,
+					Direction.INCOMING);
+			if (previousParent != null) {
+				previousParent.delete();
+			}
 			parent.node.createRelationshipTo(n.node, RTreeRelationshipTypes.RTREE_CHILD);
 			parent.envelope.expandToInclude(n.envelope);
 		}
@@ -681,7 +683,13 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 
 				@Override
 				public void onIndexReference(Node geomNode) {
-					geomNode.getSingleRelationship(referenceRelationshipType, Direction.INCOMING).delete();
+					try (var relationships = geomNode.getRelationships(Direction.INCOMING, referenceRelationshipType)) {
+						for (Relationship rel : relationships) {
+							if (rel.getStartNode().equals(indexRoot)) {
+								rel.delete();
+							}
+						}
+					}
 					if (deleteGeomNodes) {
 						deleteNode(geomNode);
 					}
