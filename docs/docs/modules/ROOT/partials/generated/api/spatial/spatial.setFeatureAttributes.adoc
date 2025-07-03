@@ -11,7 +11,7 @@ Sets the feature attributes of the given layer
 [WARNING]
 ====
 
-This procedure is deprecated by: feature attributes are now aut discovered when a new node is edded to the index
+This procedure is deprecated by: feature attributes are now automatically discovered when a new node is added to the index
 ====
 
 == Signature
