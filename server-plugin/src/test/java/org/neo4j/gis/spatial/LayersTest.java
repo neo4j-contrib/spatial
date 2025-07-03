@@ -189,6 +189,7 @@ public class LayersTest {
 			assertNotNull(record);
 			// try to remove the geometry
 			layer.delete(tx, record.getNodeId());
+			layer.finalizeTransaction(tx);
 		});
 	}
 

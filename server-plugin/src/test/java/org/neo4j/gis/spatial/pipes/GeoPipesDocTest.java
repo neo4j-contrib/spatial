@@ -977,6 +977,12 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 			reader = new WKTReader(intersectionLayer.getGeometryFactory());
 			linesLayer.add(tx, reader.read("LINESTRING (12 26, 15 27, 18 32, 20 38, 23 34)"));
 
+			boxesLayer.finalizeTransaction(tx);
+			concaveLayer.finalizeTransaction(tx);
+			intersectionLayer.finalizeTransaction(tx);
+			equalLayer.finalizeTransaction(tx);
+			linesLayer.finalizeTransaction(tx);
+
 			tx.commit();
 		}
 	}

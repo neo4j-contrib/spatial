@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial.pipes;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -106,7 +107,7 @@ public class GeoPipeFlow implements SpatialRecord {
 
 	@Override
 	public Set<String> getPropertyNames(Transaction tx) {
-		return properties.keySet();
+		return Collections.unmodifiableSet(properties.keySet());
 	}
 
 	@Override

@@ -126,7 +126,7 @@ public class SpatialProcedures extends SpatialApiBase {
 
 	}
 
-	public record FeatureAttribute(String name, String className) {
+	public record FeatureAttributeResult(String name, String className) {
 
 	}
 
@@ -511,18 +511,18 @@ public class SpatialProcedures extends SpatialApiBase {
 
 	@Procedure(value = "spatial.getFeatureAttributes", mode = READ)
 	@Description("Returns feature attributes of the given layer")
-	public Stream<FeatureAttribute> getFeatureAttributes(
+	public Stream<FeatureAttributeResult> getFeatureAttributes(
 			@Name(value = "name", description = DOC_LAYER_NAME) String name) {
 		Layer layer = getLayerOrThrow(tx, spatial(), name, true);
 		return layer.getExtraProperties(tx)
 				.entrySet()
 				.stream()
-				.map(entry -> new FeatureAttribute(entry.getKey(), entry.getValue().getName()));
+				.map(entry -> new FeatureAttributeResult(entry.getKey(), entry.getValue().getName()));
 	}
 
 	@Procedure(
 			value = "spatial.setFeatureAttributes", mode = WRITE,
-			deprecatedBy = "feature attributes are now aut discovered when a new node is edded to the index"
+			deprecatedBy = "feature attributes are now automatically discovered when a new node is added to the index"
 	)
 	@Description("Sets the feature attributes of the given layer")
 	public Stream<NodeResult> setFeatureAttributes(@Name(value = "name", description = DOC_LAYER_NAME) String name,

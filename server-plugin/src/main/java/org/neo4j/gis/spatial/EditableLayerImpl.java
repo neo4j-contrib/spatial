@@ -44,6 +44,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 
 	protected SpatialIndexWriter indexWriter;
 	private final Map<String, Class<?>> seenProperties = new HashMap<>();
+	private Set<String> encoderProps;
 
 	@Override
 	public void initialize(Transaction tx, IndexManager indexManager, String name, Node layerNode, boolean readOnly) {
@@ -53,6 +54,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 		} else {
 			throw new SpatialDatabaseException("Index writer could not be initialized");
 		}
+		encoderProps = getGeometryEncoder().getEncoderProperties();
 	}
 
 	/**
@@ -109,12 +111,17 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 	}
 
 	protected void memorizeNodeMeta(Node node) {
-		node.getAllProperties().forEach((name, value) -> seenProperties.compute(name, (s, aClass) -> {
-			if (aClass == null && value != null) {
-				return value.getClass();
+		node.getAllProperties().forEach((name, value) -> {
+			if (encoderProps.contains(name)) {
+				return;
 			}
-			return aClass;
-		}));
+			seenProperties.compute(name, (s, aClass) -> {
+				if (aClass == null && value != null) {
+					return value.getClass();
+				}
+				return aClass;
+			});
+		});
 	}
 
 	@Override
@@ -160,10 +167,6 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 		getGeometryEncoder().encodeGeometry(tx, geom, geomNode);
 
 		return geomNode;
-	}
-
-	public void setExtraPropertyNames(String[] names, Transaction tx) {
-		getLayerNode(tx).setProperty(PROP_LAYERNODEEXTRAPROPS, names);
 	}
 
 	void mergeExtraPropertyNames(Transaction tx, Set<String> names) {
@@ -233,20 +236,14 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 
 	private void saveAttributeMeta(Transaction tx) {
 		var node = getLayerNode(tx);
-		var encoderProps = getGeometryEncoder().getEncoderProperties();
-		var extraAttributes = new HashSet<String>();
 		seenProperties.forEach((s, aClass) -> {
 			var key = PROP_PREFIX_EXTRA_PROP_V2 + s;
-			if (encoderProps.contains(s)) {
-				// ignore attributes used by the encoder itself
-				return;
-			}
-			extraAttributes.add(s);
 			if (node.hasProperty(key)) {
 				return;
 			}
 			node.setProperty(key, aClass == null ? null : aClass.getName());
 		});
-		mergeExtraPropertyNames(tx, extraAttributes);
+		mergeExtraPropertyNames(tx, seenProperties.keySet());
 	}
+
 }
