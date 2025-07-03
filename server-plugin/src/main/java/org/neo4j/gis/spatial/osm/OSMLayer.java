@@ -96,6 +96,7 @@ public class OSMLayer extends DynamicLayer {
 				if (verifyGeom) {
 					getGeometryEncoder().decodeGeometry(geomNode);
 				}
+				memorizeNodeMeta(geomNode);
 				indexWriter.add(tx, geomNode);
 			} catch (Exception e) {
 				System.err.println(

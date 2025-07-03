@@ -20,11 +20,9 @@
 package org.geotools.data.neo4j;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import org.geotools.api.feature.simple.SimpleFeature;
 import org.geotools.api.feature.simple.SimpleFeatureType;
 import org.geotools.api.feature.type.AttributeDescriptor;
@@ -53,11 +51,11 @@ public class Neo4jFeatureBuilder {
 
 	private static final String FEATURE_PROP_GEOM = "the_geom";
 	private final SimpleFeatureBuilder builder;
-	private final List<String> extraPropertyNames;
+	private final Map<String, Class<?>> extraProperties;
 
-	public Neo4jFeatureBuilder(SimpleFeatureType sft, List<String> extraPropertyNames) {
+	public Neo4jFeatureBuilder(SimpleFeatureType sft, Map<String, Class<?>> extraProperties) {
 		this.builder = new SimpleFeatureBuilder(sft);
-		this.extraPropertyNames = extraPropertyNames;
+		this.extraProperties = extraProperties == null ? Collections.emptyMap() : extraProperties;
 	}
 
 	/**
@@ -65,18 +63,15 @@ public class Neo4jFeatureBuilder {
 	 * builder
 	 */
 	public static Neo4jFeatureBuilder fromLayer(Transaction tx, Layer layer) {
-		return new Neo4jFeatureBuilder(getTypeFromLayer(tx, layer), Arrays.asList(layer.getExtraPropertyNames(tx)));
+		return new Neo4jFeatureBuilder(getTypeFromLayer(tx, layer), layer.getExtraProperties(tx));
 	}
 
 	public SimpleFeature buildFeature(String id, Geometry geometry, Map<String, Object> properties) {
 		builder.reset();
 		builder.set(FEATURE_PROP_GEOM, geometry);
-		if (extraPropertyNames != null) {
-			for (String name : extraPropertyNames) {
-				builder.set(name, properties.get(name));
-			}
+		for (String name : extraProperties.keySet()) {
+			builder.set(name, properties.get(name));
 		}
-
 		return builder.buildFeature(id);
 	}
 
@@ -86,12 +81,12 @@ public class Neo4jFeatureBuilder {
 
 	public static SimpleFeatureType getTypeFromLayer(Transaction tx, Layer layer) {
 		return getType(layer.getName(), layer.getGeometryType(tx), layer.getCoordinateReferenceSystem(tx),
-				layer.getExtraPropertyNames(tx));
+				layer.getExtraProperties(tx));
 	}
 
 	public static SimpleFeatureType getType(String name, Integer geometryTypeId, CoordinateReferenceSystem crs,
-			String[] extraPropertyNames) {
-		List<AttributeDescriptor> types = readAttributes(geometryTypeId, crs, extraPropertyNames);
+			Map<String, Class<?>> extraProperties) {
+		List<AttributeDescriptor> types = readAttributes(geometryTypeId, crs, extraProperties);
 
 		// find Geometry type
 		SimpleFeatureType parent = null;
@@ -121,7 +116,7 @@ public class Neo4jFeatureBuilder {
 	}
 
 	private static List<AttributeDescriptor> readAttributes(Integer geometryTypeId, CoordinateReferenceSystem crs,
-			String[] extraPropertyNames) {
+			Map<String, Class<?>> extraProperties) {
 		Class<? extends Geometry> geometryClass = SpatialDatabaseService.convertGeometryTypeToJtsClass(geometryTypeId);
 
 		AttributeTypeBuilder build = new AttributeTypeBuilder();
@@ -135,21 +130,13 @@ public class Neo4jFeatureBuilder {
 		List<AttributeDescriptor> attributes = new ArrayList<>();
 		attributes.add(build.buildDescriptor(BasicFeatureTypes.GEOMETRY_ATTRIBUTE_NAME, geometryType));
 
-		if (extraPropertyNames != null) {
-			Set<String> usedNames = new HashSet<>();
+		if (extraProperties != null) {
 			// record names in case of duplicates
-			usedNames.add(BasicFeatureTypes.GEOMETRY_ATTRIBUTE_NAME);
-
-			for (String propertyName : extraPropertyNames) {
-				if (!usedNames.contains(propertyName)) {
-					usedNames.add(propertyName);
-
-					build.setNillable(true);
-					build.setBinding(String.class);
-
-					attributes.add(build.buildDescriptor(propertyName));
-				}
-			}
+			extraProperties.forEach((propertyName, aClass) -> {
+				build.setNillable(true);
+				build.setBinding(aClass);
+				attributes.add(build.buildDescriptor(propertyName));
+			});
 		}
 
 		return attributes;

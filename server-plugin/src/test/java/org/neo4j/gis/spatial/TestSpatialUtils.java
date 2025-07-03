@@ -148,8 +148,6 @@ public class TestSpatialUtils extends Neo4jTestCase {
 			GeometryFactory factory = osmLayer.getGeometryFactory();
 			EditableLayerImpl resultsLayer = (EditableLayerImpl) spatial.getOrCreateEditableLayer(tx,
 					"testSnapping_results", null, null, false);
-			String[] fieldsNames = new String[]{"snap-id", "description", "distance"};
-			resultsLayer.setExtraPropertyNames(fieldsNames, tx);
 			Point point = factory.createPoint(new Coordinate(12.9777, 56.0555));
 			resultsLayer.add(tx, point,
 					Map.of("snap-id", 0L, "description", "Point to snap", "distance", 0L)

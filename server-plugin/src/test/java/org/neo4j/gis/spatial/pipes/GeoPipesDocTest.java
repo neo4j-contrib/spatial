@@ -132,7 +132,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	@Title("Filter by cql using bbox")
 	@Documented("""
 			This pipe is filtering according to a CQL Bounding Box description.
-
+			
 			Example:
 			@@s_filter_by_cql_using_bbox
 			""")
@@ -149,7 +149,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 			This pipe performs a search within a geometry in this example,
 			both OSM street geometries should be found in when searching with
 			an enclosing rectangle Envelope.
-
+			
 			Example:
 			@@s_search_within_geometry
 			""")
@@ -177,7 +177,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	@Title("Filter by cql using complex cql")
 	@Documented("""
 			This pipe is filtering according to a complex CQL description.
-
+			
 			Example:
 			@@s_filter_by_cql_using_complex_cql
 			""")
@@ -201,10 +201,10 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	@Title("Affine Transformation")
 	@Documented("""
 			This pipe applies an affine transformation to every geometry.
-
+			
 			Example:
 			@@s_affine_transformation
-
+			
 			Output:
 			@@affine_transformation
 			""")
@@ -269,10 +269,10 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	@Title("Buffer")
 	@Documented("""
 			This pipe applies a buffer to geometries.
-
+			
 			Example:
 			@@s_buffer
-
+			
 			Output:
 			@@buffer
 			""")
@@ -293,10 +293,10 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	@Title("Centroid")
 	@Documented("""
 			This pipe calculates geometry centroid.
-
+			
 			Example:
 			@@s_centroid
-
+			
 			Output:
 			@@centroid
 			""")
@@ -318,10 +318,10 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	@Title("Export to GML")
 	@Documented("""
 			This pipe exports every geometry as a http://en.wikipedia.org/wiki/Geography_Markup_Language[GML] snippet.
-
+			
 			Example:
 			@@s_export_to_gml
-
+			
 			Output:
 			@@exportgml
 			""")
@@ -343,10 +343,10 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	@Title("Convex Hull")
 	@Documented("""
 			This pipe calculates geometry convex hull.
-
+			
 			Example:
 			@@s_convex_hull
-
+			
 			Output:
 			@@convex_hull
 			""")
@@ -367,10 +367,10 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	@Documented("""
 			This pipe inserts extra vertices along the line segments in the geometry.
 			The densified geometry contains no line segment which is longer than the given distance tolerance.
-
+			
 			Example:
 			@@s_densify
-
+			
 			Output:
 			@@densify
 			""")
@@ -403,10 +403,10 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	@Title("Max")
 	@Documented("""
 			The Max pipe computes the maximum value of the specified property and discard items with a value less than the maximum.
-
+			
 			Example:
 			@@s_max
-
+			
 			Output:
 			@@max
 			""")
@@ -427,10 +427,10 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	@Title("Boundary")
 	@Documented("""
 			The boundary pipe calculates boundary of every geometry in the pipeline.
-
+			
 			Example:
 			@@s_boundary
-
+			
 			Output:
 			@@boundary
 			""")
@@ -447,10 +447,10 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	@Title("Difference")
 	@Documented("""
 			The Difference pipe computes a geometry representing the points making up item geometry that do not make up the given geometry.
-
+			
 			Example:
 			@@s_difference
-
+			
 			Output:
 			@@difference
 			""")
@@ -469,10 +469,10 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	@Title("Intersection")
 	@Documented("""
 			The Intersection pipe computes a geometry representing the intersection between item geometry and the given geometry.
-
+			
 			Example:
 			@@s_intersection
-
+			
 			Output:
 			@@intersection
 			""")
@@ -491,10 +491,10 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	@Title("Union")
 	@Documented("""
 			The Union pipe unites item geometry with a given geometry.
-
+			
 			Example:
 			@@s_union
-
+			
 			Output:
 			@@union
 			""")
@@ -514,10 +514,10 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	@Title("Min")
 	@Documented("""
 			The Min pipe computes the minimum value of the specified property and discard items with a value greater than the minimum.
-
+			
 			Example:
 			@@s_min
-
+			
 			Output:
 			@@min
 			""")
@@ -553,22 +553,22 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	@Title("Break up all geometries into points and make density islands")
 	@Documented("""
 			This example demonstrates the some pipes chained together to make a full geoprocessing pipeline.
-
+			
 			Example:
 			@@s_break_up_all_geometries_into_points_and_make_density_islands
-
+			
 			Step 1 - startOsm:
 			@@step1_break_up_all_geometries_into_points_and_make_density_islands
-
+			
 			Step 2 - extractOsmPoints:
 			@@step2_break_up_all_geometries_into_points_and_make_density_islands
-
+			
 			Step 3 - groupByDensityIslands:
 			@@step3_break_up_all_geometries_into_points_and_make_density_islands
-
+			
 			Step 4 - toConvexHull:
 			@@step4_break_up_all_geometries_into_points_and_make_density_islands
-
+			
 			Step 5- toBuffer:
 			@@step5_break_up_all_geometries_into_points_and_make_density_islands
 			""")
@@ -608,10 +608,10 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	@Title("Extract Points")
 	@Documented("""
 			This pipe extracts every point from a geometry.
-
+			
 			Example:
 			@@s_extract_points
-
+			
 			Output:
 			@@extract_points
 			""")
@@ -669,10 +669,10 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 			The Union All pipe unites geometries of every item contained in the pipeline.
 			This pipe groups every item in the pipeline in a single item containing the geometry output
 			of the union.
-
+			
 			Example:
 			@@s_unite_all
-
+			
 			Output:
 			@@unite_all
 			""")
@@ -702,10 +702,10 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 			The Intersect All pipe intersects geometries of every item contained in the pipeline.
 			This pipe groups every item in the pipeline in a single item containing the geometry output
 			of the intersection.
-
+			
 			Example:
 			@@s_intersect_all
-
+			
 			Output:
 			@@intersect_all
 			""")
@@ -732,10 +732,10 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	@Title("Intersecting Windows")
 	@Documented("""
 			The FilterIntersectWindow pipe finds geometries that intersects a given rectangle.
-
+			
 			Example:
 			@@s_intersecting_windows
-
+			
 			Output:
 			@@intersecting_windows
 			""")
@@ -754,10 +754,10 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	@Title("Start Point")
 	@Documented("""
 			The StartPoint pipe finds the starting point of item geometry.
-
+			
 			Example:
 			@@s_start_point
-
+			
 			Output:
 			@@start_point""")
 	public void start_point() {
@@ -781,10 +781,10 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	@Title("End Point")
 	@Documented("""
 			The EndPoint pipe finds the ending point of item geometry.
-
+			
 			Example:
 			@@s_end_point
-
+			
 			Output:
 			@@end_point
 			""")
@@ -809,10 +809,10 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	@Title("Envelope")
 	@Documented("""
 			The Envelope pipe computes the minimum bounding box of item geometry.
-
+			
 			Example:
 			@@s_envelope
-
+			
 			Output:
 			@@envelope
 			""")
@@ -903,7 +903,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 			} else {
 				pipelineCollection = pipeline.toFeatureCollection(tx,
 						Neo4jFeatureBuilder.getType(layer.getName(), geomType, layer.getCoordinateReferenceSystem(tx),
-								layer.getExtraPropertyNames(tx)));
+								layer.getExtraProperties(tx)));
 			}
 
 			ReferencedEnvelope bounds = layerCollection.getBounds();
@@ -937,7 +937,6 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 			osmLayer = spatial.getLayer(tx, "two-street.osm", false);
 
 			boxesLayer = (EditableLayerImpl) spatial.getOrCreateEditableLayer(tx, "boxes", null, null, false);
-			boxesLayer.setExtraPropertyNames(new String[]{"name"}, tx);
 			boxesLayer.setCoordinateReferenceSystem(tx, DefaultEngineeringCRS.GENERIC_2D);
 			WKTReader reader = new WKTReader(boxesLayer.getGeometryFactory());
 			boxesLayer.add(tx,
@@ -961,18 +960,17 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 			intersectionLayer.add(tx, reader.read("POLYGON ((2 2, 2 6, 6 6, 6 2, 2 2))"));
 
 			equalLayer = (EditableLayerImpl) spatial.getOrCreateEditableLayer(tx, "equal", null, null, false);
-			equalLayer.setExtraPropertyNames(new String[]{"id", "name"}, tx);
 			equalLayer.setCoordinateReferenceSystem(tx, DefaultEngineeringCRS.GENERIC_2D);
 			reader = new WKTReader(intersectionLayer.getGeometryFactory());
 			equalLayer.add(tx, reader.read("POLYGON ((0 0, 0 5, 5 5, 5 0, 0 0))"),
-					Map.of("id", 1,"name", "equal" ));
+					Map.of("id", 1, "name", "equal"));
 			equalLayer.add(tx, reader.read("POLYGON ((0 0, 0.1 5, 5 5, 5 0, 0 0))"),
-					Map.of("id", 2,"name", "tolerance" ));
+					Map.of("id", 2, "name", "tolerance"));
 			equalLayer.add(tx, reader.read("POLYGON ((0 5, 5 5, 5 0, 0 0, 0 5))"),
-					Map.of("id", 3,"name", "different order" ));
+					Map.of("id", 3, "name", "different order"));
 			equalLayer.add(tx,
 					reader.read("POLYGON ((0 0, 0 2, 0 4, 0 5, 5 5, 5 3, 5 2, 5 0, 0 0))"),
-					Map.of("id", 4,"name", "topo equal" ));
+					Map.of("id", 4, "name", "topo equal"));
 
 			linesLayer = (EditableLayerImpl) spatial.getOrCreateEditableLayer(tx, "lines", null, null, false);
 			linesLayer.setCoordinateReferenceSystem(tx, DefaultEngineeringCRS.GENERIC_2D);

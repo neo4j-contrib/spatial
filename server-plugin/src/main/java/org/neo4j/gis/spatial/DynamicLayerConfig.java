@@ -22,6 +22,8 @@ package org.neo4j.gis.spatial;
 import java.io.File;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.TreeMap;
+import javax.annotation.Nonnull;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.filter.text.cql2.CQLException;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -101,12 +103,17 @@ public class DynamicLayerConfig implements Layer, Constants {
 		return parent.getDataset();
 	}
 
+	@Nonnull
 	@Override
-	public String[] getExtraPropertyNames(Transaction tx) {
+	public Map<String, Class<?>> getExtraProperties(Transaction tx) {
 		if (propertyNames != null && propertyNames.length > 0) {
-			return propertyNames;
+			var result = new TreeMap<String, Class<?>>();
+			for (String propertyName : propertyNames) {
+				result.put(propertyName, String.class);
+			}
+			return result;
 		}
-		return parent.getExtraPropertyNames(tx);
+		return parent.getExtraProperties(tx);
 	}
 
 	private static class PropertyUsageSearch implements SearchFilter {
@@ -163,7 +170,7 @@ public class DynamicLayerConfig implements Layer, Constants {
 			System.out.println("Restricted property names already exists - will be overwritten");
 		}
 		System.out.println(
-				"Before property scan we have " + getExtraPropertyNames(tx).length + " known attributes for layer "
+				"Before property scan we have " + getExtraProperties(tx).size() + " known attributes for layer "
 						+ getName());
 
 		PropertyUsageSearch search = new PropertyUsageSearch(this);
@@ -171,8 +178,8 @@ public class DynamicLayerConfig implements Layer, Constants {
 		setExtraPropertyNames(tx, search.getNames());
 
 		System.out.println(
-				"After property scan of " + search.getNodeCount() + " nodes, we have " + getExtraPropertyNames(
-						tx).length + " known attributes for layer " + getName());
+				"After property scan of " + search.getNodeCount() + " nodes, we have " + getExtraProperties(
+						tx).size() + " known attributes for layer " + getName());
 	}
 
 	public Node configNode(Transaction tx) {

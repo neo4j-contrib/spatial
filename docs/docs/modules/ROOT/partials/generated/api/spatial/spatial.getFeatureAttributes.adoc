@@ -12,7 +12,7 @@ Returns feature attributes of the given layer
 
 [source]
 ----
-spatial.getFeatureAttributes(name :: STRING) :: (name :: STRING)
+spatial.getFeatureAttributes(name :: STRING) :: (name :: STRING, className :: STRING)
 ----
 
 == Input parameters
@@ -30,5 +30,6 @@ a|The name of the layer
 |===
 |Name|Type|Description
 |name|STRING|
+|className|STRING|
 |===
 

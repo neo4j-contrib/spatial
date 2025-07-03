@@ -19,6 +19,8 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.util.Map;
+import javax.annotation.Nonnull;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
@@ -91,7 +93,8 @@ public interface Layer {
 	 * @param tx the transaction
 	 * @return String array of all attribute names
 	 */
-	String[] getExtraPropertyNames(Transaction tx);
+	@Nonnull
+	Map<String, Class<?>> getExtraProperties(Transaction tx);
 
 	/**
 	 * The layer conforms with the Geotools pattern of only allowing a single geometry per layer.

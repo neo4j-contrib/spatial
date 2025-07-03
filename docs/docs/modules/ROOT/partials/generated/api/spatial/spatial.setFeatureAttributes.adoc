@@ -3,10 +3,16 @@
 
 :description: This section contains reference documentation for the spatial.setFeatureAttributes procedure.
 
-label:procedure[]
+label:procedure[] label:deprecated[]
 
 [.emphasis]
 Sets the feature attributes of the given layer
+
+[WARNING]
+====
+
+This procedure is deprecated by: feature attributes are now aut discovered when a new node is edded to the index
+====
 
 == Signature
 

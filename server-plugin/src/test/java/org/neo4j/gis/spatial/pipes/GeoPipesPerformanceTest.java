@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial.pipes;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
@@ -104,7 +105,7 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 		try (Transaction tx = graphDb().beginTx()) {
 			Layer layer = spatial.getLayer(tx, "GeoPipesPerformanceTest", true);
 			// String[] keys = {"id","name","address","city","state","zip"};
-			String[] keys = {"id", "name"};
+			Set<String> keys = Set.of("id", "name");
 			Coordinate loc = new Coordinate(15.0, 15.0);
 			GeoPipeline flowList = GeoPipeline.startNearestNeighborLatLonSearch(tx, layer, loc, records)
 					.copyDatabaseRecordProperties(tx, keys);
@@ -151,7 +152,7 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 		try (Transaction tx = graphDb().beginTx()) {
 			Layer layer = spatial.getLayer(tx, "GeoPipesPerformanceTest", true);
 			// String[] keys = {"id","name","address","city","state","zip"};
-			String[] keys = {"id", "name"};
+			Set<String> keys = Set.of("id", "name");
 			Coordinate loc = new Coordinate(15.0, 15.0);
 			ArrayList<TimeRecord> totals = new ArrayList<TimeRecord>();
 			long prevTime = System.currentTimeMillis();

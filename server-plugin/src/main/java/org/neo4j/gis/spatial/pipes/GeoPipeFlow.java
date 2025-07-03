@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
@@ -104,8 +105,8 @@ public class GeoPipeFlow implements SpatialRecord {
 	}
 
 	@Override
-	public String[] getPropertyNames(Transaction tx) {
-		return properties.keySet().toArray(new String[]{});
+	public Set<String> getPropertyNames(Transaction tx) {
+		return properties.keySet();
 	}
 
 	@Override

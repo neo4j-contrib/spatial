@@ -29,6 +29,7 @@ import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -226,8 +227,8 @@ public class RTreeImageExporter {
 
 	private MemoryFeatureCollection makeEnvelopeFeatures(List<Envelope> envelopes) {
 		SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("Polygon", Constants.GTYPE_POLYGON, crs,
-				new String[]{});
-		Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, new ArrayList<>());
+				Collections.emptyMap());
+		Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, Collections.emptyMap());
 		MemoryFeatureCollection features = new MemoryFeatureCollection(featureType);
 		for (Envelope envelope : envelopes) {
 
@@ -246,8 +247,8 @@ public class RTreeImageExporter {
 
 	private MemoryFeatureCollection makeEnvelopeFeatures(Coordinate min, Coordinate max) {
 		SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("Polygon", Constants.GTYPE_POLYGON, crs,
-				new String[]{});
-		Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, new ArrayList<>());
+				Collections.emptyMap());
+		Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, Collections.emptyMap());
 		MemoryFeatureCollection features = new MemoryFeatureCollection(featureType);
 		Coordinate[] coordinates = new Coordinate[]{
 				new Coordinate(min.x, min.y),
@@ -263,8 +264,8 @@ public class RTreeImageExporter {
 
 	private MemoryFeatureCollection makeIndexNodeFeatures(List<RTreeIndex.NodeWithEnvelope> nodes) {
 		SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("Polygon", Constants.GTYPE_POLYGON, crs,
-				new String[]{});
-		Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, new ArrayList<>());
+				Collections.emptyMap());
+		Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, Collections.emptyMap());
 		MemoryFeatureCollection features = new MemoryFeatureCollection(featureType);
 		for (RTreeIndex.NodeWithEnvelope node : nodes) {
 			Envelope envelope = node.envelope;
@@ -282,7 +283,7 @@ public class RTreeImageExporter {
 	}
 
 	private MemoryFeatureCollection makeGeometryNodeFeatures(List<Node> nodes, SimpleFeatureType featureType) {
-		Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, new ArrayList<>());
+		Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, Collections.emptyMap());
 		MemoryFeatureCollection features = new MemoryFeatureCollection(featureType);
 		for (Node node : nodes) {
 			Geometry geometry = geometryEncoder.decodeGeometry(node);
