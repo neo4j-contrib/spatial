@@ -21,7 +21,6 @@ package org.neo4j.gis.spatial;
 
 import java.io.File;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.filter.text.cql2.CQLException;
@@ -88,18 +87,6 @@ public class DynamicLayerConfig implements Layer, Constants {
 
 	public String getQuery() {
 		return query;
-	}
-
-	@Override
-	public SpatialDatabaseRecord add(Transaction tx, Node geomNode) {
-		throw new SpatialDatabaseException(
-				"Cannot add nodes to dynamic layers, add the node to the base layer instead");
-	}
-
-	@Override
-	public int addAll(Transaction tx, List<Node> geomNodes) {
-		throw new SpatialDatabaseException(
-				"Cannot add nodes to dynamic layers, add the node to the base layer instead");
 	}
 
 	@Override

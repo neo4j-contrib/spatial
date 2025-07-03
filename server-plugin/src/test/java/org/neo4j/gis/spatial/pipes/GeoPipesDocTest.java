@@ -32,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.TreeSet;
 import java.util.stream.Collectors;
@@ -941,10 +942,10 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 			WKTReader reader = new WKTReader(boxesLayer.getGeometryFactory());
 			boxesLayer.add(tx,
 					reader.read("POLYGON ((12 26, 12 27, 13 27, 13 26, 12 26))"),
-					new String[]{"name"}, new Object[]{"A"});
+					Map.of("name", "A"));
 			boxesLayer.add(tx,
 					reader.read("POLYGON ((2 3, 2 5, 6 5, 6 3, 2 3))"),
-					new String[]{"name"}, new Object[]{"B"});
+					Map.of("name", "B"));
 
 			concaveLayer = (EditableLayerImpl) spatial.getOrCreateEditableLayer(tx, "concave", null, null);
 			concaveLayer.setCoordinateReferenceSystem(tx, DefaultEngineeringCRS.GENERIC_2D);
@@ -963,15 +964,14 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 			equalLayer.setCoordinateReferenceSystem(tx, DefaultEngineeringCRS.GENERIC_2D);
 			reader = new WKTReader(intersectionLayer.getGeometryFactory());
 			equalLayer.add(tx, reader.read("POLYGON ((0 0, 0 5, 5 5, 5 0, 0 0))"),
-					new String[]{"id", "name"}, new Object[]{1, "equal"});
+					Map.of("id", 1,"name", "equal" ));
 			equalLayer.add(tx, reader.read("POLYGON ((0 0, 0.1 5, 5 5, 5 0, 0 0))"),
-					new String[]{"id", "name"}, new Object[]{2, "tolerance"});
+					Map.of("id", 2,"name", "tolerance" ));
 			equalLayer.add(tx, reader.read("POLYGON ((0 5, 5 5, 5 0, 0 0, 0 5))"),
-					new String[]{"id", "name"}, new Object[]{3,
-							"different order"});
+					Map.of("id", 3,"name", "different order" ));
 			equalLayer.add(tx,
 					reader.read("POLYGON ((0 0, 0 2, 0 4, 0 5, 5 5, 5 3, 5 2, 5 0, 0 0))"),
-					new String[]{"id", "name"}, new Object[]{4, "topo equal"});
+					Map.of("id", 4,"name", "topo equal" ));
 
 			linesLayer = (EditableLayerImpl) spatial.getOrCreateEditableLayer(tx, "lines", null, null);
 			linesLayer.setCoordinateReferenceSystem(tx, DefaultEngineeringCRS.GENERIC_2D);

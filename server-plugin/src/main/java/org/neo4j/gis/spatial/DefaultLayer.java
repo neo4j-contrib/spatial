@@ -22,7 +22,6 @@ package org.neo4j.gis.spatial;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
@@ -70,33 +69,6 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 	@Override
 	public String getSignature() {
 		return "Layer(name='" + getName() + "', encoder=" + getGeometryEncoder().getSignature() + ")";
-	}
-
-	/**
-	 * Add the geometry encoded in the given Node. This causes the geometry to appear in the index.
-	 */
-	@Override
-	public SpatialDatabaseRecord add(Transaction tx, Node geomNode) {
-		Geometry geometry = getGeometryEncoder().decodeGeometry(geomNode);
-
-		// add BBOX to Node if it's missing
-		getGeometryEncoder().ensureIndexable(geometry, geomNode);
-
-		indexWriter.add(tx, geomNode);
-		return new SpatialDatabaseRecord(this, geomNode, geometry);
-	}
-
-	@Override
-	public int addAll(Transaction tx, List<Node> geomNodes) {
-		GeometryEncoder geometryEncoder = getGeometryEncoder();
-
-		for (Node geomNode : geomNodes) {
-			Geometry geometry = geometryEncoder.decodeGeometry(geomNode);
-			// add BBOX to Node if it's missing
-			geometryEncoder.encodeGeometry(tx, geometry, geomNode);
-		}
-		indexWriter.add(tx, geomNodes);
-		return geomNodes.size();
 	}
 
 	@Override

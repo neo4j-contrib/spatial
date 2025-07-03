@@ -21,6 +21,7 @@ package org.neo4j.gis.spatial;
 
 import static org.neo4j.gis.spatial.utilities.TraverserFactory.createTraverserInBackwardsCompatibleWay;
 
+import java.util.Map;
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
@@ -51,8 +52,8 @@ public class OrderedEditableLayer extends EditableLayerImpl {
 	}
 
 	@Override
-	protected Node addGeomNode(Transaction tx, Geometry geom, String[] fieldsName, Object[] fields) {
-		Node geomNode = super.addGeomNode(tx, geom, fieldsName, fields);
+	protected Node addGeomNode(Transaction tx, Geometry geom, Map<String, Object> properties) {
+		Node geomNode = super.addGeomNode(tx, geom, properties);
 		Node layerNode = getLayerNode(tx);
 		if (previousGeomNode == null) {
 			TraversalDescription traversalDescription = new MonoDirectionalTraversalDescription()

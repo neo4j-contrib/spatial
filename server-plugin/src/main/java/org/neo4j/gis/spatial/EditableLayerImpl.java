@@ -19,6 +19,8 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.util.List;
+import java.util.Map;
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -26,19 +28,46 @@ import org.neo4j.graphdb.Transaction;
 public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 
 	/**
+	 * Add the geometry encoded in the given Node. This causes the geometry to appear in the index.
+	 */
+	@Override
+	public SpatialDatabaseRecord add(Transaction tx, Node geomNode) {
+		Geometry geometry = getGeometryEncoder().decodeGeometry(geomNode);
+
+		// add BBOX to Node if it's missing
+		getGeometryEncoder().ensureIndexable(geometry, geomNode);
+
+		indexWriter.add(tx, geomNode);
+		return new SpatialDatabaseRecord(this, geomNode, geometry);
+	}
+
+	@Override
+	public int addAll(Transaction tx, List<Node> geomNodes) {
+		GeometryEncoder geometryEncoder = getGeometryEncoder();
+
+		for (Node geomNode : geomNodes) {
+			Geometry geometry = geometryEncoder.decodeGeometry(geomNode);
+			// add BBOX to Node if it's missing
+			geometryEncoder.encodeGeometry(tx, geometry, geomNode);
+		}
+		indexWriter.add(tx, geomNodes);
+		return geomNodes.size();
+	}
+
+	/**
 	 * Add a geometry to this layer.
 	 */
 	@Override
 	public SpatialDatabaseRecord add(Transaction tx, Geometry geometry) {
-		return add(tx, geometry, null, null);
+		return add(tx, geometry, null);
 	}
 
 	/**
 	 * Add a geometry to this layer, including properties.
 	 */
 	@Override
-	public SpatialDatabaseRecord add(Transaction tx, Geometry geometry, String[] fieldsName, Object[] fields) {
-		Node geomNode = addGeomNode(tx, geometry, fieldsName, fields);
+	public SpatialDatabaseRecord add(Transaction tx, Geometry geometry, Map<String, Object> properties) {
+		Node geomNode = addGeomNode(tx, geometry, properties);
 		indexWriter.add(tx, geomNode);
 		return new SpatialDatabaseRecord(this, geomNode, geometry);
 	}
@@ -62,15 +91,10 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 		indexWriter.remove(tx, geomNodeId, deleteGeomNode, false);
 	}
 
-	protected Node addGeomNode(Transaction tx, Geometry geom, String[] fieldsName, Object[] fields) {
+	protected Node addGeomNode(Transaction tx, Geometry geom, Map<String, Object> properties) {
 		Node geomNode = tx.createNode();
-		// other properties
-		if (fieldsName != null) {
-			for (int i = 0; i < fieldsName.length; i++) {
-				if (fieldsName[i] != null && fields[i] != null) {
-					geomNode.setProperty(fieldsName[i], fields[i]);
-				}
-			}
+		if (properties != null) {
+			properties.forEach(geomNode::setProperty);
 		}
 		getGeometryEncoder().encodeGeometry(tx, geom, geomNode);
 

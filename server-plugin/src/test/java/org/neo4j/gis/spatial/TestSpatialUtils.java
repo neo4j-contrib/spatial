@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
@@ -149,7 +150,9 @@ public class TestSpatialUtils extends Neo4jTestCase {
 			String[] fieldsNames = new String[]{"snap-id", "description", "distance"};
 			resultsLayer.setExtraPropertyNames(fieldsNames, tx);
 			Point point = factory.createPoint(new Coordinate(12.9777, 56.0555));
-			resultsLayer.add(tx, point, fieldsNames, new Object[]{0L, "Point to snap", 0L});
+			resultsLayer.add(tx, point,
+					Map.of("snap-id", 0L, "description", "Point to snap", "distance", 0L)
+			);
 			for (String layerName : new String[]{"railway", "highway-residential"}) {
 				Layer layer = osmLayer.getLayer(tx, layerName);
 				assertNotNull(layer, "Missing layer: " + layerName);
@@ -157,13 +160,14 @@ public class TestSpatialUtils extends Neo4jTestCase {
 				List<PointResult> edgeResults = SpatialTopologyUtils.findClosestEdges(tx, point, layer);
 				for (PointResult result : edgeResults) {
 					System.out.println("\t" + result);
-					resultsLayer.add(tx, result.getKey(), fieldsNames,
-							new Object[]{result.getValue().getGeomNode().getElementId(),
+					resultsLayer.add(tx, result.getKey(),
+							Map.of("snap-id", result.getValue().getGeomNode().getElementId(),
+									"description",
 									"Snapped point to layer " + layerName + ": " + result.getValue().getGeometry()
 											.toString(),
-									(long) (1000000 * result.getDistance())});
+									"distance", (long) (1000000 * result.getDistance())));
 				}
-				if (edgeResults.size() > 0) {
+				if (!edgeResults.isEmpty()) {
 					PointResult closest = edgeResults.get(0);
 					Point closestPoint = closest.getKey();
 
