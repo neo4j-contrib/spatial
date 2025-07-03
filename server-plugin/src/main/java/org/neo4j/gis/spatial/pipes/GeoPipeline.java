@@ -20,11 +20,11 @@
 package org.neo4j.gis.spatial.pipes;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import org.geotools.api.feature.simple.SimpleFeature;
 import org.geotools.api.feature.simple.SimpleFeatureType;
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
@@ -371,7 +371,7 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 	/**
 	 * @see CopyDatabaseRecordProperties
 	 */
-	public GeoPipeline copyDatabaseRecordProperties(Transaction tx, String[] keys) {
+	public GeoPipeline copyDatabaseRecordProperties(Transaction tx, Set<String> keys) {
 		return addPipe(new CopyDatabaseRecordProperties(tx, keys));
 	}
 
@@ -884,8 +884,7 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 		final Iterator<GeoPipeFlow> recordsIterator = records.iterator();
 		final ReferencedEnvelope refBounds = new ReferencedEnvelope(bounds, layer.getCoordinateReferenceSystem(tx));
 
-		final Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType,
-				Arrays.asList(layer.getExtraPropertyNames(tx)));
+		final Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, layer.getExtraProperties(tx));
 		return new AbstractFeatureCollection(featureType) {
 			@Override
 			public int size() {

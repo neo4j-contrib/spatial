@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.util.Set;
 import org.apache.commons.lang3.ArrayUtils;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -125,6 +126,11 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 	@Override
 	public String getSignature() {
 		return "GeometryEncoder(bbox='" + bboxProperty + "')";
+	}
+
+	@Override
+	public Set<String> getEncoderProperties() {
+		return Set.of(bboxProperty);
 	}
 
 	// Attributes

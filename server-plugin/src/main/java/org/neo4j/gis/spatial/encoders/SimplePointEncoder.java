@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial.encoders;
 
+import java.util.Set;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.AbstractGeometryEncoder;
@@ -78,5 +79,10 @@ public class SimplePointEncoder extends AbstractGeometryEncoder implements Confi
 	@Override
 	public String getSignature() {
 		return "SimplePointEncoder(x='" + xProperty + "', y='" + yProperty + "', bbox='" + bboxProperty + "')";
+	}
+
+	@Override
+	public Set<String> getEncoderProperties() {
+		return Set.of(bboxProperty, xProperty, yProperty, PROP_TYPE);
 	}
 }

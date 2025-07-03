@@ -149,8 +149,6 @@ public class ShapefileImporter implements Constants {
 					}
 
 					layer.setGeometryType(tx, geometryType);
-
-					layer.mergeExtraPropertyNames(tx, fieldsName);
 					tx.commit();
 				}
 

@@ -28,6 +28,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Set;
 import org.locationtech.jts.algorithm.ConvexHull;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
@@ -50,6 +51,9 @@ import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 
 public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 
+	private static final String PROPERTY_VERTICES = "vertices";
+	private static final String PROPERTY_LAT = "lat";
+	private static final String PROPERTY_LON = "lon";
 	private static int decodedCount = 0;
 	private static int overrunCount = 0;
 	private static int nodeId = 0;
@@ -144,14 +148,14 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	@Override
 	public Envelope decodeEnvelope(Entity container) {
 		Node geomNode = testIsNode(container);
-		double[] bbox = (double[]) geomNode.getProperty(PROP_BBOX);
+		double[] bbox = (double[]) geomNode.getProperty(bboxProperty);
 		// double xmin, double xmax, double ymin, double ymax
 		return new Envelope(bbox[0], bbox[1], bbox[2], bbox[3]);
 	}
 
 	@Override
 	public void encodeEnvelope(Envelope mbb, Entity container) {
-		container.setProperty(PROP_BBOX, new double[]{mbb.getMinX(), mbb.getMaxX(), mbb.getMinY(), mbb.getMaxY()});
+		container.setProperty(bboxProperty, new double[]{mbb.getMinX(), mbb.getMaxX(), mbb.getMinY(), mbb.getMaxY()});
 	}
 
 	public static Node getOSMNodeFromGeometryNode(Node geomNode) {
@@ -206,11 +210,12 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 			GeometryFactory geomFactory = layer.getGeometryFactory();
 			Node osmNode = getOSMNodeFromGeometryNode(geomNode);
 			if (osmNode.hasProperty("node_osm_id")) {
-				return geomFactory.createPoint(new Coordinate((Double) osmNode.getProperty("lon", 0.0), (Double) osmNode
-						.getProperty("lat", 0.0)));
+				return geomFactory.createPoint(
+						new Coordinate((Double) osmNode.getProperty(PROPERTY_LON, 0.0), (Double) osmNode
+								.getProperty(PROPERTY_LAT, 0.0)));
 			}
 			if (osmNode.hasProperty("way_osm_id")) {
-				int vertices = (Integer) geomNode.getProperty("vertices");
+				int vertices = (Integer) geomNode.getProperty(PROPERTY_VERTICES);
 				int gtype = (Integer) geomNode.getProperty(PROP_TYPE);
 				return decodeGeometryFromWay(osmNode, gtype, vertices, geomFactory);
 			}
@@ -335,7 +340,8 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 				overrunCount++;
 				break;
 			}
-			coordinates.add(new Coordinate((Double) node.getProperty("lon"), (Double) node.getProperty("lat")));
+			coordinates.add(
+					new Coordinate((Double) node.getProperty(PROPERTY_LON), (Double) node.getProperty(PROPERTY_LAT)));
 		}
 		decodedCount++;
 		if (overrun) {
@@ -402,7 +408,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 			default:
 				throw new SpatialDatabaseException("Unsupported geometry: " + geometry.getClass());
 		}
-		geomNode.setProperty("vertices", vertices);
+		geomNode.setProperty(PROPERTY_VERTICES, vertices);
 	}
 
 	private Node makeOSMNode(Transaction tx, Geometry geometry, Node geomNode) {
@@ -417,8 +423,8 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 		Node node = tx.createNode();
 		// TODO: Generate a valid osm id
 		node.setProperty(OSMId.NODE.toString(), nodeId);
-		node.setProperty("lat", coordinate.y);
-		node.setProperty("lon", coordinate.x);
+		node.setProperty(PROPERTY_LAT, coordinate.y);
+		node.setProperty(PROPERTY_LON, coordinate.x);
 		node.setProperty("timestamp", getTimestamp());
 		// TODO: Add other common properties, like changeset, uid, user, version
 		return node;
@@ -559,5 +565,10 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 		public String toString() {
 			return name;
 		}
+	}
+
+	@Override
+	public Set<String> getEncoderProperties() {
+		return Set.of(bboxProperty, PROPERTY_VERTICES, PROPERTY_LAT, PROPERTY_LON, PROP_TYPE);
 	}
 }
