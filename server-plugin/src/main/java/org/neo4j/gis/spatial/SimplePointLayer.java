@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial;
 
 import java.util.List;
+import java.util.Map;
 import org.locationtech.jts.geom.Coordinate;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
@@ -31,19 +32,19 @@ public class SimplePointLayer extends EditableLayerImpl {
 	public static final int LIMIT_RESULTS = 100;
 
 	public SpatialDatabaseRecord add(Transaction tx, Coordinate coordinate) {
-		return add(tx, coordinate, null, null);
+		return add(tx, coordinate, null);
 	}
 
-	public SpatialDatabaseRecord add(Transaction tx, Coordinate coordinate, String[] fieldsName, Object[] fields) {
-		return add(tx, getGeometryFactory().createPoint(coordinate), fieldsName, fields);
+	public SpatialDatabaseRecord add(Transaction tx, Coordinate coordinate, Map<String, Object> properties) {
+		return add(tx, getGeometryFactory().createPoint(coordinate), properties);
 	}
 
 	public SpatialDatabaseRecord add(Transaction tx, double x, double y) {
-		return add(tx, new Coordinate(x, y), null, null);
+		return add(tx, new Coordinate(x, y), null);
 	}
 
-	public SpatialDatabaseRecord add(Transaction tx, double x, double y, String[] fieldsName, Object[] fields) {
-		return add(tx, new Coordinate(x, y), fieldsName, fields);
+	public SpatialDatabaseRecord add(Transaction tx, double x, double y, Map<String, Object> properties) {
+		return add(tx, new Coordinate(x, y), properties);
 	}
 
 	public static Integer getGeometryType() {

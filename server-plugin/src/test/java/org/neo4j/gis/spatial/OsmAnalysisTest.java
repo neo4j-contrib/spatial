@@ -384,11 +384,14 @@ public class OsmAnalysisTest extends TestOSMImportBase {
 								l.add(tx, l.getGeometryFactory().createPoint(
 												new Coordinate((Double) changedNode.getProperty("lon"), (Double) changedNode
 														.getProperty("lat"))),
-										new String[]{"user_id", "user_name", "year", "month",
-												"dayOfMonth", "weekOfYear"},
-										new Object[]{user.internalId, user.name, c.get(Calendar.YEAR),
-												c.get(Calendar.MONTH),
-												c.get(Calendar.DAY_OF_MONTH), c.get(Calendar.WEEK_OF_YEAR)});
+										Map.of(
+												"user_id", user.internalId,
+												"user_name", user.name,
+												"year", c.get(Calendar.YEAR),
+												"month", c.get(Calendar.MONTH),
+												"dayOfMonth", c.get(Calendar.DAY_OF_MONTH),
+												"weekOfYear", c.get(Calendar.WEEK_OF_YEAR)
+										));
 							}
 						}
 					}

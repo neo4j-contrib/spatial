@@ -204,7 +204,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 
 		Coordinate[] coords = makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt", testOrigin);
 		inTx(tx -> {
-			Layer layer = spatial.getLayer(tx, layerName);
+			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName);
 			for (Coordinate coordinate : coords) {
 				Node n = tx.createNode();
 				n.setProperty("x", coordinate.x);
@@ -226,7 +226,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 
 		Coordinate[] coords = makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt", testOrigin);
 		inTx(tx -> {
-			Layer layer = spatial.getLayer(tx, layerName);
+			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName);
 			for (Coordinate coordinate : coords) {
 				Node n = tx.createNode();
 				n.setProperty("x", coordinate.x);
@@ -257,9 +257,9 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 
 		Coordinate[] coords = makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt", testOrigin);
 		try (Transaction tx = db.beginTx()) {
-			Layer layerA = spatial.getLayer(tx, layerNameA);
-			Layer layerB = spatial.getLayer(tx, layerNameB);
-			Layer layerC = spatial.getLayer(tx, layerNameC);
+			EditableLayer layerA = (EditableLayer) spatial.getLayer(tx, layerNameA);
+			EditableLayer layerB = (EditableLayer) spatial.getLayer(tx, layerNameB);
+			EditableLayer layerC = (EditableLayer) spatial.getLayer(tx, layerNameC);
 			for (Coordinate coordinate : coords) {
 				Node n = tx.createNode();
 				n.setProperty("xa", coordinate.x);

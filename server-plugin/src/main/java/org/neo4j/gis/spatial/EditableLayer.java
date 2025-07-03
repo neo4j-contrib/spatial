@@ -19,8 +19,12 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.util.List;
+import java.util.Map;
+import javax.annotation.Nullable;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.locationtech.jts.geom.Geometry;
+import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
 /**
@@ -34,15 +38,34 @@ import org.neo4j.graphdb.Transaction;
 public interface EditableLayer extends Layer {
 
 	/**
+	 * This method adds existing geometries to the layer for indexing. After this method is called the geometry should
+	 * be searchable.
+	 *
+	 * @param geomNode the node containing the geometry to be added to the layer
+	 * @return SpatialDatabaseRecord representation of the geometry added to the database
+	 */
+	SpatialDatabaseRecord add(Transaction tx, Node geomNode);
+
+	/**
+	 * This method adds existing geometries to the layer for indexing in bulk. After this method is called the geometry
+	 * should be searchable.
+	 *
+	 * @param geomNodes the nodes containing the geometries to be added to the layer
+	 * @return the number of geometries added to the database
+	 */
+	int addAll(Transaction tx, List<Node> geomNodes);
+
+	/**
 	 * Add a new geometry to the layer. This will add the geometry to the index.
 	 */
 	SpatialDatabaseRecord add(Transaction tx, Geometry geometry);
 
 	/**
 	 * Add a new geometry to the layer. This will add the geometry to the index.
+	 *
+	 * @param properties the properties to attach to the newly created node
 	 */
-	//TODO: Rather use a HashMap of properties
-	SpatialDatabaseRecord add(Transaction tx, Geometry geometry, String[] fieldsName, Object[] fields);
+	SpatialDatabaseRecord add(Transaction tx, Geometry geometry, @Nullable Map<String, Object> properties);
 
 	/**
 	 * Delete the geometry identified by the passed node id. This might be as simple as deleting the

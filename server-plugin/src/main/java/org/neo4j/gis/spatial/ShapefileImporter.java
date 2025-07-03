@@ -24,8 +24,8 @@ import java.io.IOException;
 import java.nio.charset.Charset;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
@@ -158,8 +158,6 @@ public class ShapefileImporter implements Constants {
 				try {
 					Record record;
 					Geometry geometry;
-					Object[] values;
-					ArrayList<Object> fields = new ArrayList<>();
 					int recordCounter = 0;
 					int filterCounter = 0;
 					while (shpReader.hasNext() && dbfReader.hasNext()) {
@@ -171,29 +169,30 @@ public class ShapefileImporter implements Constants {
 									recordCounter++;
 									committedSinceLastNotification++;
 									try {
-										fields.clear();
 										geometry = (Geometry) record.shape();
 										if (filterEnvelope == null || filterEnvelope.intersects(
 												geometry.getEnvelopeInternal())) {
-											values = dbfReader.readEntry();
+											Object[] values = dbfReader.readEntry();
 
-											//convert Date to String
-											//necessary because Neo4j doesn't support Date properties on nodes
-											for (int k = 0; k < fieldsName.length - 1; k++) {
-												if (values[k] instanceof Date aux) {
-													values[k] = aux.toString();
+											var properties = new HashMap<String, Object>();
+											for (int k = 0; k < fieldsName.length; k++) {
+												String field = fieldsName[k];
+												Object value = k == 0 ? recordCounter : values[k - 1];
+												if (value instanceof Date aux) {
+													//convert Date to String
+													//necessary because Neo4j doesn't support Date properties on nodes
+													value = aux.toString();
 												}
+												properties.put(field, value);
 											}
 
-											fields.add(recordCounter);
-											Collections.addAll(fields, values);
 											if (geometry.isEmpty()) {
 												log("warn | found empty geometry in record " + recordCounter);
 											} else {
 												// TODO check geometry.isValid()
 												// ?
 												SpatialDatabaseRecord spatial_record = layer.add(tx, geometry,
-														fieldsName, fields.toArray(values));
+														properties);
 												added.add(spatial_record.getGeomNode());
 											}
 										} else {

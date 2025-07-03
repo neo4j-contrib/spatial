@@ -19,7 +19,6 @@
  */
 package org.neo4j.gis.spatial;
 
-import java.util.List;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
@@ -55,24 +54,6 @@ public interface Layer {
 	 * @return the SpatialIndexReader used to perform searches on the data in the layer
 	 */
 	LayerIndexReader getIndex();
-
-	/**
-	 * This method adds existing geometries to the layer for indexing. After this method is called the geometry should
-	 * be searchable.
-	 *
-	 * @param geomNode the node containing the geometry to be added to the layer
-	 * @return SpatialDatabaseRecord representation of the geometry added to the database
-	 */
-	SpatialDatabaseRecord add(Transaction tx, Node geomNode);
-
-	/**
-	 * This method adds existing geometries to the layer for indexing in bulk. After this method is called the geometry
-	 * should be searchable.
-	 *
-	 * @param geomNodes the nodes containing the geometries to be added to the layer
-	 * @return the number of geometries added to the database
-	 */
-	int addAll(Transaction tx, List<Node> geomNodes);
 
 	GeometryFactory getGeometryFactory();
 
