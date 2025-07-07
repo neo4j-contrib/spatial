@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial.encoders;
 
+import java.util.Set;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateList;
 import org.locationtech.jts.geom.Geometry;
@@ -40,6 +41,10 @@ import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 // TODO: Consider generalizing this code and making a general linked list geometry store available in the library
 public class SimpleGraphEncoder extends AbstractGeometryEncoder {
 
+	private static final String PROPERTY_X_COORD = "x";
+	private static final String PROPERTY_Y_COORD = "y";
+	private static final String PROPERTY_Z_COORD = "z";
+
 	protected enum SimpleRelationshipTypes implements RelationshipType {
 		FIRST, NEXT
 	}
@@ -58,9 +63,9 @@ public class SimpleGraphEncoder extends AbstractGeometryEncoder {
 		Node prev = null;
 		for (Coordinate coord : geometry.getCoordinates()) {
 			Node point = tx.createNode();
-			point.setProperty("x", coord.x);
-			point.setProperty("y", coord.y);
-			point.setProperty("z", coord.z);
+			point.setProperty(PROPERTY_X_COORD, coord.x);
+			point.setProperty(PROPERTY_Y_COORD, coord.y);
+			point.setProperty(PROPERTY_Z_COORD, coord.z);
 			if (prev == null) {
 				node.createRelationshipTo(point, SimpleRelationshipTypes.FIRST);
 			} else {
@@ -79,9 +84,18 @@ public class SimpleGraphEncoder extends AbstractGeometryEncoder {
 				.relationships(SimpleRelationshipTypes.NEXT, Direction.OUTGOING).breadthFirst()
 				.evaluator(Evaluators.excludeStartPosition());
 		for (Node point : td.traverse(node).nodes()) {
-			coordinates.add(new Coordinate((Double) point.getProperty("x"), (Double) point.getProperty("y"),
-					(Double) point.getProperty("z")), false);
+			coordinates.add(new Coordinate(
+							(Double) point.getProperty(PROPERTY_X_COORD),
+							(Double) point.getProperty(PROPERTY_Y_COORD),
+							(Double) point.getProperty(PROPERTY_Z_COORD)),
+					false
+			);
 		}
 		return getGeometryFactory().createLineString(coordinates.toCoordinateArray());
+	}
+
+	@Override
+	public Set<String> getEncoderProperties() {
+		return Set.of(bboxProperty, PROPERTY_X_COORD, PROPERTY_Y_COORD, PROPERTY_Z_COORD, PROP_TYPE);
 	}
 }

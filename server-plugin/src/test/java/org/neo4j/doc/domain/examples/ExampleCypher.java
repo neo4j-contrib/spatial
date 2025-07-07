@@ -24,6 +24,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeSet;
 import org.neo4j.values.storable.Value;
 
 /**
@@ -137,7 +138,7 @@ public class ExampleCypher {
 		}
 		StringBuilder writer = new StringBuilder();
 		writer.append(".Result\n\n");
-		var columns = result.get(0).keySet();
+		var columns = new TreeSet<>(result.get(0).keySet());
 
 		writer.append("[opts=\"header\",cols=\"")
 				.append(columns.size())

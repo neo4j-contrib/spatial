@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
+import java.util.Set;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.graphdb.Transaction;
@@ -32,7 +33,7 @@ import org.neo4j.graphdb.Transaction;
  */
 public class CopyDatabaseRecordProperties extends AbstractGeoPipe {
 
-	private final String[] keys;
+	private final Set<String> keys;
 	private final Transaction tx;
 
 	public CopyDatabaseRecordProperties(Transaction tx) {
@@ -42,17 +43,17 @@ public class CopyDatabaseRecordProperties extends AbstractGeoPipe {
 
 	public CopyDatabaseRecordProperties(Transaction tx, String key) {
 		this.tx = tx;
-		this.keys = new String[]{key};
+		this.keys = Set.of(key);
 	}
 
-	public CopyDatabaseRecordProperties(Transaction tx, String[] keys) {
+	public CopyDatabaseRecordProperties(Transaction tx, Set<String> keys) {
 		this.tx = tx;
 		this.keys = keys;
 	}
 
 	@Override
 	protected GeoPipeFlow process(GeoPipeFlow flow) {
-		String[] names = keys != null ? keys : flow.getRecord().getPropertyNames(tx);
+		Set<String> names = keys != null ? keys : flow.getRecord().getPropertyNames(tx);
 		for (String name : names) {
 			flow.getProperties().put(name, flow.getRecord().getProperty(tx, name));
 		}

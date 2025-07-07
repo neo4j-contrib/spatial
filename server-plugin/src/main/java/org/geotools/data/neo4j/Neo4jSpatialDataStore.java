@@ -162,7 +162,7 @@ public class Neo4jSpatialDataStore extends ContentDataStore implements Constants
 	protected ContentFeatureSource createFeatureSource(ContentEntry contentEntry) throws IOException {
 		Layer layer;
 		ArrayList<SpatialDatabaseRecord> records = new ArrayList<>();
-		String[] extraPropertyNames;
+		Map<String, Class<?>> extraProperties;
 		try (Transaction tx = database.beginTx()) {
 			layer = spatialDatabase.getLayer(tx, contentEntry.getTypeName(), false);
 			SearchRecords results = layer.getIndex().search(tx, new SearchAll());
@@ -171,11 +171,11 @@ public class Neo4jSpatialDataStore extends ContentDataStore implements Constants
 			for (SpatialDatabaseRecord record : results) {
 				records.add(record);
 			}
-			extraPropertyNames = layer.getExtraPropertyNames(tx);
+			extraProperties = layer.getExtraProperties(tx);
 			tx.commit();
 		}
 		Neo4jSpatialFeatureSource source = new Neo4jSpatialFeatureSource(contentEntry, database, layer,
-				buildFeatureType(contentEntry.getTypeName()), records, extraPropertyNames);
+				buildFeatureType(contentEntry.getTypeName()), records, extraProperties.keySet());
 		if (layer instanceof EditableLayer) {
 			return new Neo4jSpatialFeatureStore(contentEntry, database, (EditableLayer) layer, source);
 		}

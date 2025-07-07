@@ -21,6 +21,7 @@ package org.geotools.data.neo4j;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import org.geotools.api.data.FeatureReader;
 import org.geotools.api.data.Query;
 import org.geotools.api.feature.simple.SimpleFeature;
@@ -51,10 +52,10 @@ public class Neo4jSpatialFeatureSource extends ContentFeatureSource {
 	private final SimpleFeatureType featureType;
 	private final SimpleFeatureBuilder builder;
 	private final Iterable<SpatialDatabaseRecord> results;
-	private final String[] extraPropertyNames;
+	private final Set<String> extraPropertyNames;
 
 	public Neo4jSpatialFeatureSource(ContentEntry contentEntry, GraphDatabaseService database, Layer layer,
-			SimpleFeatureType featureType, Iterable<SpatialDatabaseRecord> results, String[] extraPropertyNames) {
+			SimpleFeatureType featureType, Iterable<SpatialDatabaseRecord> results, Set<String> extraPropertyNames) {
 		super(contentEntry, Query.ALL);
 		this.database = database;
 		this.layer = layer;

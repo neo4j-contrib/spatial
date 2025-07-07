@@ -65,11 +65,11 @@ CALL spatial.getFeatureAttributes('geom')
 
 .Result
 
-[opts="header",cols="1"]
+[opts="header",cols="2"]
 |===
-|name
-|name
-|type
-|color
+|className|name
+|java.lang.String|color
+|java.lang.String|name
+|java.lang.String|type
 |===
 

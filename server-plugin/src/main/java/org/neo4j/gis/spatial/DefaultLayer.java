@@ -25,10 +25,13 @@ import static org.neo4j.gis.spatial.Constants.PROP_GEOMENCODER_CONFIG;
 import static org.neo4j.gis.spatial.Constants.PROP_INDEX_CLASS;
 import static org.neo4j.gis.spatial.Constants.PROP_INDEX_CONFIG;
 import static org.neo4j.gis.spatial.Constants.PROP_LAYERNODEEXTRAPROPS;
+import static org.neo4j.gis.spatial.Constants.PROP_PREFIX_EXTRA_PROP_V2;
 import static org.neo4j.gis.spatial.Constants.PROP_TYPE;
 
 import java.util.Collections;
 import java.util.Iterator;
+import java.util.Map;
+import java.util.TreeMap;
 import javax.annotation.Nonnull;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.locationtech.jts.geom.Geometry;
@@ -69,6 +72,8 @@ public class DefaultLayer implements Layer, SpatialDataset {
 
 	/**
 	 * The constructor is protected because we should not construct this class
+	 * directly but use the factory methods to create Layers based on
+	 * configurations
 	 * directly but use the factory methods to create Layers based on configurations
 	 */
 	protected DefaultLayer() {
@@ -178,16 +183,35 @@ public class DefaultLayer implements Layer, SpatialDataset {
 		return geomTypeSearch.firstFoundType;
 	}
 
+	@Nonnull
 	@Override
-	public String[] getExtraPropertyNames(Transaction tx) {
+	public Map<String, Class<?>> getExtraProperties(Transaction tx) {
 		Node layerNode = getLayerNode(tx);
-		String[] extraPropertyNames;
+		var extraProps = new TreeMap<String, Class<?>>();
+		layerNode.getAllProperties().forEach((name, o) -> {
+			if (!name.startsWith(PROP_PREFIX_EXTRA_PROP_V2)) {
+				return;
+			}
+			Class<?> clazz = String.class;
+			if (o instanceof String className) {
+				try {
+					clazz = Class.forName(className);
+				} catch (ClassNotFoundException ignore) {
+				}
+			}
+
+			var key = name.substring(PROP_PREFIX_EXTRA_PROP_V2.length());
+			extraProps.put(key, clazz);
+		});
 		if (layerNode.hasProperty(PROP_LAYERNODEEXTRAPROPS)) {
-			extraPropertyNames = (String[]) layerNode.getProperty(PROP_LAYERNODEEXTRAPROPS);
-		} else {
-			extraPropertyNames = new String[]{};
+			Object legacyProps = layerNode.getProperty(PROP_LAYERNODEEXTRAPROPS);
+			if (legacyProps instanceof String[] props) {
+				for (String s : props) {
+					extraProps.putIfAbsent(s, String.class);
+				}
+			}
 		}
-		return extraPropertyNames;
+		return extraProps;
 	}
 
 	/**

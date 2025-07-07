@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial.encoders;
 
+import java.util.Set;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.Point;
@@ -92,5 +93,10 @@ public class NativePointEncoder extends AbstractGeometryEncoder implements Confi
 	public String getSignature() {
 		return "NativePointEncoder(geometry='" + locationProperty + "', bbox='" + bboxProperty + "', crs="
 				+ crs.getCode() + ")";
+	}
+
+	@Override
+	public Set<String> getEncoderProperties() {
+		return Set.of(bboxProperty, locationProperty, PROP_TYPE);
 	}
 }

@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collections;
 import org.geotools.api.feature.simple.SimpleFeatureType;
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.junit.jupiter.api.AfterEach;
@@ -57,7 +58,7 @@ public class RTreeTests {
 		}
 		if (exportImages) {
 			SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("test", Constants.GTYPE_POINT, null,
-					new String[]{});
+					Collections.emptyMap());
 			imageExporter = new RTreeImageExporter(new GeometryFactory(), new SimplePointEncoder(), null, featureType,
 					rtree);
 			try (Transaction tx = db.beginTx()) {

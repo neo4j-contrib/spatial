@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.util.Set;
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
 import org.neo4j.graphdb.Entity;
@@ -100,4 +101,10 @@ public interface GeometryEncoder extends EnvelopeDecoder {
 	 * @return descriptive signature of encoder, type and configuration
 	 */
 	String getSignature();
+
+	/**
+	 *
+	 * @return the properties used by the encoder
+	 */
+	Set<String> getEncoderProperties();
 }
