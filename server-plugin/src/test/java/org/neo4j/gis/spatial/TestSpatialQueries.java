@@ -53,7 +53,7 @@ public class TestSpatialQueries extends Neo4jTestCase {
 		Geometry longLineString;
 		Geometry point;
 		try (Transaction tx = graphDb().beginTx()) {
-			EditableLayer layer = spatial.getOrCreateEditableLayer(tx, layerName, "WKT", null);
+			EditableLayer layer = spatial.getOrCreateEditableLayer(tx, layerName, "WKT", null, false);
 			WKTReader wkt = new WKTReader(layer.getGeometryFactory());
 			shortLineString = wkt.read("LINESTRING(16.3493032 48.199882,16.3479487 48.1997337)");
 			longLineString = wkt.read(
@@ -61,6 +61,7 @@ public class TestSpatialQueries extends Neo4jTestCase {
 			point = wkt.read("POINT(16.348243 48.199678)");
 			layer.add(tx, shortLineString);
 			layer.add(tx, longLineString);
+			layer.finalizeTransaction(tx);
 			tx.commit();
 		}
 
@@ -84,7 +85,7 @@ public class TestSpatialQueries extends Neo4jTestCase {
 		System.out.println("Searching for geometries close to " + point);
 		GeoPipeline pipeline;
 		try (Transaction tx = graphDb().beginTx()) {
-			Layer layer = spatial.getLayer(tx, layerName);
+			Layer layer = spatial.getLayer(tx, layerName, true);
 			pipeline = GeoPipeline.startNearestNeighborSearch(tx, layer, point.getCoordinate(), 100)
 					.sort("Distance")
 					.getMin("Distance");
@@ -97,7 +98,7 @@ public class TestSpatialQueries extends Neo4jTestCase {
 
 		// Repeat with an envelope
 		try (Transaction tx = graphDb().beginTx()) {
-			Layer layer = spatial.getLayer(tx, layerName);
+			Layer layer = spatial.getLayer(tx, layerName, true);
 			Envelope env = new Envelope(point.getCoordinate().x, point.getCoordinate().x, point.getCoordinate().y,
 					point.getCoordinate().y);
 			env.expandToInclude(shortLineString.getEnvelopeInternal());
@@ -115,7 +116,7 @@ public class TestSpatialQueries extends Neo4jTestCase {
 
 		// Repeat with a buffer big enough to work
 		try (Transaction tx = graphDb().beginTx()) {
-			Layer layer = spatial.getLayer(tx, layerName);
+			Layer layer = spatial.getLayer(tx, layerName, true);
 			double buffer = 0.0001;
 			pipeline = GeoPipeline.startNearestNeighborSearch(tx, layer, point.getCoordinate(), buffer)
 					.sort("Distance")
@@ -142,7 +143,7 @@ public class TestSpatialQueries extends Neo4jTestCase {
 
 		// Repeat with the new limit API
 		try (Transaction tx = graphDb().beginTx()) {
-			Layer layer = spatial.getLayer(tx, layerName);
+			Layer layer = spatial.getLayer(tx, layerName, true);
 			int limit = 10;
 			pipeline = GeoPipeline.startNearestNeighborSearch(tx, layer, point.getCoordinate(), limit)
 					.sort("Distance")

@@ -51,7 +51,7 @@ public class LayerIndexReaderWrapper implements LayerIndexReader {
 	}
 
 	@Override
-	public void init(Transaction tx, IndexManager indexManager, Layer layer) {
+	public void init(Transaction tx, IndexManager indexManager, Layer layer, boolean readOnly) {
 		if (layer != getLayer()) {
 			throw new IllegalArgumentException("Cannot change layer associated with this index");
 		}

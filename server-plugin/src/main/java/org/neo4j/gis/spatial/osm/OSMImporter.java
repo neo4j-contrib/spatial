@@ -250,7 +250,7 @@ public class OSMImporter implements Constants {
 		OSMDataset dataset;
 		try (Transaction tx = beginTx(database)) {
 			layer = (OSMLayer) spatialDatabase.getOrCreateLayer(tx, layerName, OSMGeometryEncoder.class,
-					OSMLayer.class, null);
+					OSMLayer.class, null, false);
 			dataset = OSMDataset.withDatasetId(tx, layer, osm_dataset);
 			tx.commit();
 		}

@@ -61,6 +61,7 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 				SpatialDatabaseRecord record = layer.add(tx, x, y);
 				record.getGeomNode().setProperty("name", name);
 			}
+			layer.finalizeTransaction(tx);
 			tx.commit();
 			System.out.println("Finished writing " + records + " point records to database");
 		} catch (Exception e) {
@@ -101,7 +102,7 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		try (Transaction tx = graphDb().beginTx()) {
-			Layer layer = spatial.getLayer(tx, "GeoPipesPerformanceTest");
+			Layer layer = spatial.getLayer(tx, "GeoPipesPerformanceTest", true);
 			// String[] keys = {"id","name","address","city","state","zip"};
 			String[] keys = {"id", "name"};
 			Coordinate loc = new Coordinate(15.0, 15.0);
@@ -148,7 +149,7 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		try (Transaction tx = graphDb().beginTx()) {
-			Layer layer = spatial.getLayer(tx, "GeoPipesPerformanceTest");
+			Layer layer = spatial.getLayer(tx, "GeoPipesPerformanceTest", true);
 			// String[] keys = {"id","name","address","city","state","zip"};
 			String[] keys = {"id", "name"};
 			Coordinate loc = new Coordinate(15.0, 15.0);

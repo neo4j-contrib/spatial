@@ -19,10 +19,16 @@
  */
 package org.neo4j.gis.spatial;
 
+import static org.neo4j.gis.spatial.Constants.PROP_CRS;
+import static org.neo4j.gis.spatial.Constants.PROP_GEOMENCODER;
+import static org.neo4j.gis.spatial.Constants.PROP_GEOMENCODER_CONFIG;
+import static org.neo4j.gis.spatial.Constants.PROP_INDEX_CLASS;
+import static org.neo4j.gis.spatial.Constants.PROP_INDEX_CONFIG;
+import static org.neo4j.gis.spatial.Constants.PROP_LAYERNODEEXTRAPROPS;
+import static org.neo4j.gis.spatial.Constants.PROP_TYPE;
+
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Set;
 import javax.annotation.Nonnull;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.locationtech.jts.geom.Geometry;
@@ -33,148 +39,47 @@ import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
-import org.neo4j.gis.spatial.index.SpatialIndexWriter;
 import org.neo4j.gis.spatial.rtree.Envelope;
-import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.utilities.GeotoolsAdapter;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
 /**
- * Instances of Layer provide the ability for developers to add/remove and edit
- * geometries associated with a single dataset (or layer). This includes support
- * for several storage mechanisms, like in-node (geometries in properties) and
- * sub-graph (geometries describe by the graph). A Layer can be associated with
- * a dataset. In cases where the dataset contains only one layer, the layer
+ * Instances of Layer provide the ability for developers to query geometries associated with a single dataset (or
+ * layer).
+ * A Layer can be associated with a dataset. In cases where the dataset contains only one layer, the layer
  * itself is the dataset.
  * <p>
- * You should not construct the DefaultLayer directly, but use the factory methods
+ * You should not construct the DefaultLayer directly but use the factory methods
  * on the SpatialDatabaseService for correct initialization.
  */
-public class DefaultLayer implements Constants, Layer, SpatialDataset {
+public class DefaultLayer implements Layer, SpatialDataset {
+
+	protected String layerNodeId = null;
 
 	// Public methods
-
-	@Override
-	public String getName() {
-		return name;
-	}
-
-	@Override
-	public LayerIndexReader getIndex() {
-		return indexReader;
-	}
-
-	@Override
-	public String getSignature() {
-		return "Layer(name='" + getName() + "', encoder=" + getGeometryEncoder().getSignature() + ")";
-	}
-
-	@Override
-	public GeometryFactory getGeometryFactory() {
-		return geometryFactory;
-	}
-
-	public void setCoordinateReferenceSystem(Transaction tx, CoordinateReferenceSystem crs) {
-		Node layerNode = getLayerNode(tx);
-		layerNode.setProperty(PROP_CRS, crs.toWKT());
-	}
-
-	@Override
-	public CoordinateReferenceSystem getCoordinateReferenceSystem(Transaction tx) {
-		Node layerNode = getLayerNode(tx);
-		if (layerNode.hasProperty(PROP_CRS)) {
-			return GeotoolsAdapter.getCRS((String) layerNode.getProperty(PROP_CRS));
-		}
-		return null;
-	}
-
-	public void setGeometryType(Transaction tx, int geometryType) {
-		Node layerNode = getLayerNode(tx);
-		if (geometryType < GTYPE_POINT || geometryType > GTYPE_MULTIPOLYGON) {
-			throw new IllegalArgumentException("Unknown geometry type: " + geometryType);
-		}
-
-		layerNode.setProperty(PROP_TYPE, geometryType);
-	}
-
-	@Override
-	public Integer getGeometryType(Transaction tx) {
-		Node layerNode = getLayerNode(tx);
-		if (layerNode.hasProperty(PROP_TYPE)) {
-			return (Integer) layerNode.getProperty(PROP_TYPE);
-		}
-		GuessGeometryTypeSearch geomTypeSearch = new GuessGeometryTypeSearch();
-		indexReader.searchIndex(tx, geomTypeSearch).count();
-
-		// returns null for an empty layer!
-		return geomTypeSearch.firstFoundType;
-	}
-
-	private static class GuessGeometryTypeSearch implements SearchFilter {
-
-		Integer firstFoundType;
-
-		@Override
-		public boolean needsToVisit(Envelope indexNodeEnvelope) {
-			return firstFoundType == null;
-		}
-
-		@Override
-		public boolean geometryMatches(Transaction tx, Node geomNode) {
-			if (firstFoundType == null) {
-				firstFoundType = (Integer) geomNode.getProperty(PROP_TYPE);
-			}
-
-			return false;
-		}
-	}
-
-	@Override
-	public String[] getExtraPropertyNames(Transaction tx) {
-		Node layerNode = getLayerNode(tx);
-		String[] extraPropertyNames;
-		if (layerNode.hasProperty(PROP_LAYERNODEEXTRAPROPS)) {
-			extraPropertyNames = (String[]) layerNode.getProperty(PROP_LAYERNODEEXTRAPROPS);
-		} else {
-			extraPropertyNames = new String[]{};
-		}
-		return extraPropertyNames;
-	}
-
-	public void setExtraPropertyNames(String[] names, Transaction tx) {
-		getLayerNode(tx).setProperty(PROP_LAYERNODEEXTRAPROPS, names);
-	}
-
-	void mergeExtraPropertyNames(Transaction tx, String[] names) {
-		Node layerNode = getLayerNode(tx);
-		if (layerNode.hasProperty(PROP_LAYERNODEEXTRAPROPS)) {
-			String[] actualNames = (String[]) layerNode.getProperty(PROP_LAYERNODEEXTRAPROPS);
-
-			Set<String> mergedNames = new HashSet<>();
-			Collections.addAll(mergedNames, names);
-			Collections.addAll(mergedNames, actualNames);
-
-			layerNode.setProperty(PROP_LAYERNODEEXTRAPROPS, mergedNames.toArray(new String[0]));
-		} else {
-			layerNode.setProperty(PROP_LAYERNODEEXTRAPROPS, names);
-		}
-	}
+	protected LayerIndexReader indexReader;
+	private PropertyMappingManager propertyMappingManager;
+	//private SpatialDatabaseService spatialDatabase;
+	private String name;
+	private GeometryEncoder geometryEncoder;
+	private GeometryFactory geometryFactory;
+	private boolean readOnly;
 
 	/**
 	 * The constructor is protected because we should not construct this class
-	 * directly, but use the factory methods to create Layers based on
-	 * configurations
+	 * directly but use the factory methods to create Layers based on configurations
 	 */
 	protected DefaultLayer() {
 	}
 
 	@Override
-	public void initialize(Transaction tx, IndexManager indexManager, String name, Node layerNode) {
+	public void initialize(Transaction tx, IndexManager indexManager, String name, Node layerNode, boolean readOnly) {
 		//this.spatialDatabase = spatialDatabase;
 		this.name = name;
 		this.layerNodeId = layerNode.getElementId();
+		this.readOnly = readOnly;
 
 		this.geometryFactory = new GeometryFactory();
 		CoordinateReferenceSystem crs = getCoordinateReferenceSystem(tx);
@@ -211,7 +116,6 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 			try {
 				Object index = Class.forName(indexClass).getDeclaredConstructor().newInstance();
 				this.indexReader = (LayerIndexReader) index;
-				this.indexWriter = (SpatialIndexWriter) index;
 			} catch (Exception e) {
 				throw new SpatialDatabaseException(e);
 			}
@@ -222,11 +126,68 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 				}
 			}
 		} else {
-			LayerRTreeIndex index = new LayerRTreeIndex();
-			this.indexReader = index;
-			this.indexWriter = index;
+			this.indexReader = new LayerRTreeIndex();
 		}
-		this.indexReader.init(tx, indexManager, this);
+		this.indexReader.init(tx, indexManager, this, readOnly);
+	}
+
+	@Override
+	public String getName() {
+		return name;
+	}
+
+	@Override
+	public LayerIndexReader getIndex() {
+		return indexReader;
+	}
+
+	@Override
+	public String getSignature() {
+		return "Layer(name='" + getName() + "', encoder=" + getGeometryEncoder().getSignature() + ")";
+	}
+
+	@Override
+	public boolean isReadOnly() {
+		return readOnly;
+	}
+
+	@Override
+	public GeometryFactory getGeometryFactory() {
+		return geometryFactory;
+	}
+
+	@Override
+	public CoordinateReferenceSystem getCoordinateReferenceSystem(Transaction tx) {
+		Node layerNode = getLayerNode(tx);
+		if (layerNode.hasProperty(PROP_CRS)) {
+			return GeotoolsAdapter.getCRS((String) layerNode.getProperty(PROP_CRS));
+		}
+		return null;
+	}
+
+	@Override
+	public Integer getGeometryType(Transaction tx) {
+		Node layerNode = getLayerNode(tx);
+		if (layerNode.hasProperty(PROP_TYPE)) {
+			return (Integer) layerNode.getProperty(PROP_TYPE);
+		}
+		GuessGeometryTypeSearch geomTypeSearch = new GuessGeometryTypeSearch();
+		indexReader.searchIndex(tx, geomTypeSearch).count();
+
+		// returns null for an empty layer!
+		return geomTypeSearch.firstFoundType;
+	}
+
+	@Override
+	public String[] getExtraPropertyNames(Transaction tx) {
+		Node layerNode = getLayerNode(tx);
+		String[] extraPropertyNames;
+		if (layerNode.hasProperty(PROP_LAYERNODEEXTRAPROPS)) {
+			extraPropertyNames = (String[]) layerNode.getProperty(PROP_LAYERNODEEXTRAPROPS);
+		} else {
+			extraPropertyNames = new String[]{};
+		}
+		return extraPropertyNames;
 	}
 
 	/**
@@ -237,33 +198,6 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 	public Node getLayerNode(Transaction tx) {
 		return tx.getNodeByElementId(layerNodeId);
 	}
-
-	/**
-	 * Delete Layer
-	 */
-	@Override
-	public void delete(Transaction tx, Listener monitor) {
-		indexWriter.removeAll(tx, true, monitor);
-		Node layerNode = getLayerNode(tx);
-		layerNode.delete();
-		layerNodeId = null;
-	}
-
-	// Private methods
-
-//    protected GraphDatabaseService getDatabase() {
-//        return spatialDatabase.getDatabase();
-//    }
-
-	// Attributes
-
-	//private SpatialDatabaseService spatialDatabase;
-	private String name;
-	protected String layerNodeId = null;
-	private GeometryEncoder geometryEncoder;
-	private GeometryFactory geometryFactory;
-	protected LayerIndexReader indexReader;
-	protected SpatialIndexWriter indexWriter;
 
 	@Override
 	public SpatialDataset getDataset() {
@@ -289,45 +223,6 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 	@Override
 	public Iterable<? extends Geometry> getAllGeometries(Transaction tx) {
 		return new NodeToGeometryIterable(getAllGeometryNodes(tx));
-	}
-
-	/**
-	 * In order to wrap one iterable or iterator in another that converts the objects from one type
-	 * to another without loading all into memory, we need to use this ugly java-magic. Man, I miss
-	 * Ruby right now!
-	 */
-	private class NodeToGeometryIterable implements Iterable<Geometry> {
-
-		private final Iterator<Node> allGeometryNodeIterator;
-
-		private class GeometryIterator implements Iterator<Geometry> {
-
-			@Override
-			public boolean hasNext() {
-				return NodeToGeometryIterable.this.allGeometryNodeIterator.hasNext();
-			}
-
-			@Override
-			public Geometry next() {
-				return geometryEncoder.decodeGeometry(NodeToGeometryIterable.this.allGeometryNodeIterator.next());
-			}
-
-			@Override
-			public void remove() {
-			}
-
-		}
-
-		NodeToGeometryIterable(Iterable<Node> allGeometryNodes) {
-			this.allGeometryNodeIterator = allGeometryNodes.iterator();
-		}
-
-		@Override
-		@Nonnull
-		public Iterator<Geometry> iterator() {
-			return new GeometryIterator();
-		}
-
 	}
 
 	/**
@@ -364,14 +259,70 @@ public class DefaultLayer implements Constants, Layer, SpatialDataset {
 		return null;
 	}
 
-	private PropertyMappingManager propertyMappingManager;
-
 	@Override
 	public PropertyMappingManager getPropertyMappingManager() {
 		if (propertyMappingManager == null) {
 			propertyMappingManager = new PropertyMappingManager(this);
 		}
 		return propertyMappingManager;
+	}
+
+	private static class GuessGeometryTypeSearch implements SearchFilter {
+
+		Integer firstFoundType;
+
+		@Override
+		public boolean needsToVisit(Envelope indexNodeEnvelope) {
+			return firstFoundType == null;
+		}
+
+		@Override
+		public boolean geometryMatches(Transaction tx, Node geomNode) {
+			if (firstFoundType == null) {
+				firstFoundType = (Integer) geomNode.getProperty(PROP_TYPE);
+			}
+
+			return false;
+		}
+	}
+
+	/**
+	 * In order to wrap one iterable or iterator in another that converts the objects from one type
+	 * to another without loading all into memory, we need to use this ugly java-magic. Man, I miss
+	 * Ruby right now!
+	 */
+	private class NodeToGeometryIterable implements Iterable<Geometry> {
+
+		private final Iterator<Node> allGeometryNodeIterator;
+
+		NodeToGeometryIterable(Iterable<Node> allGeometryNodes) {
+			this.allGeometryNodeIterator = allGeometryNodes.iterator();
+		}
+
+		@Override
+		@Nonnull
+		public Iterator<Geometry> iterator() {
+			return new GeometryIterator();
+		}
+
+		private class GeometryIterator implements Iterator<Geometry> {
+
+			@Override
+			public boolean hasNext() {
+				return NodeToGeometryIterable.this.allGeometryNodeIterator.hasNext();
+			}
+
+			@Override
+			public Geometry next() {
+				return geometryEncoder.decodeGeometry(NodeToGeometryIterable.this.allGeometryNodeIterator.next());
+			}
+
+			@Override
+			public void remove() {
+			}
+
+		}
+
 	}
 
 }

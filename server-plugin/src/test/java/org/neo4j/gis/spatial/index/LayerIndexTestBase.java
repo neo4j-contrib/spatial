@@ -87,7 +87,7 @@ public abstract class LayerIndexTestBase {
 		Layer layer = mockLayer();
 		LayerIndexReader index = makeIndex();
 		try (Transaction tx = graph.beginTx()) {
-			index.init(tx, spatial.indexManager, layer);
+			index.init(tx, spatial.indexManager, layer, false);
 			tx.commit();
 		}
 		when(layer.getIndex()).thenReturn(index);
@@ -144,8 +144,8 @@ public abstract class LayerIndexTestBase {
 		LayerIndexReader index = layer.getIndex();
 		try (Transaction tx = graph.beginTx()) {
 			assertThat("Should find the same index", index.getLayer().getName(),
-					equalTo(spatial.getLayer(tx, "test").getName()));
-			assertThat("Index should be of right type", spatial.getLayer(tx, "test").getIndex().getClass(),
+					equalTo(spatial.getLayer(tx, "test", true).getName()));
+			assertThat("Index should be of right type", spatial.getLayer(tx, "test", true).getIndex().getClass(),
 					equalTo(getIndexClass()));
 		}
 	}
@@ -156,13 +156,13 @@ public abstract class LayerIndexTestBase {
 		LayerIndexReader index = layer.getIndex();
 		try (Transaction tx = graph.beginTx()) {
 			assertThat("Should find the same index", index.getLayer().getName(),
-					equalTo(spatial.getLayer(tx, "test").getName()));
-			assertThat("Index should be of right type", spatial.getLayer(tx, "test").getIndex().getClass(),
+					equalTo(spatial.getLayer(tx, "test", true).getName()));
+			assertThat("Index should be of right type", spatial.getLayer(tx, "test", true).getIndex().getClass(),
 					equalTo(getIndexClass()));
 		}
 		try (Transaction tx = graph.beginTx()) {
-			layer.delete(tx, new NullListener());
-			layer = spatial.getLayer(tx, "test");
+			((SimplePointLayer)layer).delete(tx, new NullListener());
+			layer = spatial.getLayer(tx, "test", true);
 			tx.commit();
 		}
 		assertThat("Expected no layer to be found", layer, is(nullValue()));
@@ -170,7 +170,8 @@ public abstract class LayerIndexTestBase {
 
 	private SimplePointLayer makeTestPointLayer() {
 		try (Transaction tx = graph.beginTx()) {
-			SimplePointLayer layer = spatial.createPointLayer(tx, "test", getIndexClass(), getEncoderClass(), null);
+			SimplePointLayer layer = spatial.createPointLayer(tx, "test", getIndexClass(), getEncoderClass(), null
+			);
 			tx.commit();
 			return layer;
 		}

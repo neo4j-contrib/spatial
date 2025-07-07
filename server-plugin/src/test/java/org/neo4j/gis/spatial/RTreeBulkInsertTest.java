@@ -179,7 +179,8 @@ public class RTreeBulkInsertTest {
 		CoordinateReferenceSystem crs = DefaultEngineeringCRS.GENERIC_2D;
 		try (Transaction tx = db.beginTx()) {
 			SpatialDatabaseService sdbs = spatial();
-			EditableLayer layer = sdbs.getOrCreateSimplePointLayer(tx, name, index, xProperty, yProperty, null);
+			EditableLayer layer = sdbs.getOrCreateSimplePointLayer(tx, name, index, xProperty, yProperty, null,
+					false);
 			layer.setCoordinateReferenceSystem(tx, crs);
 			tx.commit();
 			return layer;
@@ -312,7 +313,7 @@ public class RTreeBulkInsertTest {
 		@Override
 		public EditableLayer setupLayer(Transaction tx) {
 			this.nodes = setup(name, "geohash", config.width);
-			this.layer = (EditableLayer) spatial().getLayer(tx, "Coordinates");
+			this.layer = (EditableLayer) spatial().getLayer(tx, "Coordinates", false);
 			return layer;
 		}
 
@@ -361,7 +362,7 @@ public class RTreeBulkInsertTest {
 		@Override
 		public EditableLayer setupLayer(Transaction tx) {
 			this.nodes = setup(name, "zorder", config.width);
-			this.layer = (EditableLayer) spatial().getLayer(tx, "Coordinates");
+			this.layer = (EditableLayer) spatial().getLayer(tx, "Coordinates", false);
 			return layer;
 		}
 
@@ -410,7 +411,7 @@ public class RTreeBulkInsertTest {
 		@Override
 		public EditableLayer setupLayer(Transaction tx) {
 			this.nodes = setup(name, "hilbert", config.width);
-			this.layer = (EditableLayer) spatial().getLayer(tx, "Coordinates");
+			this.layer = (EditableLayer) spatial().getLayer(tx, "Coordinates", false);
 			return layer;
 		}
 
@@ -473,7 +474,7 @@ public class RTreeBulkInsertTest {
 		@Override
 		public EditableLayer setupLayer(Transaction tx) {
 			this.nodes = setup(name, "rtree", config.width);
-			this.layer = (EditableLayer) spatial.getLayer(tx, name);
+			this.layer = (EditableLayer) spatial.getLayer(tx, name, false);
 			layer.getIndex().configure(Map.of(
 					RTreeIndex.KEY_SPLIT, splitMode,
 					RTreeIndex.KEY_MAX_NODE_REFERENCES, maxNodeReferences,
@@ -1201,7 +1202,7 @@ public class RTreeBulkInsertTest {
 			try (Transaction tx = db.beginTx()) {
 
 				RTreeIndex rtree = new RTreeIndex();
-				rtree.init(tx, tx.createNode(), encoder, DEFAULT_MAX_NODE_REFERENCES);
+				rtree.init(tx, tx.createNode(), encoder, DEFAULT_MAX_NODE_REFERENCES, true);
 				List<Node> coords = new ArrayList<>(i);
 				for (int j = 0; j < i; j++) {
 					Node n = tx.createNode(Label.label("Coordinate"));
@@ -1245,7 +1246,8 @@ public class RTreeBulkInsertTest {
 			System.out.println("BulkLoadingTestRun " + j);
 			try (Transaction tx = db.beginTx()) {
 
-				EditableLayer layer = sdbs.getOrCreateSimplePointLayer(tx, "BulkLoader", "rtree", "lon", "lat", null);
+				EditableLayer layer = sdbs.getOrCreateSimplePointLayer(tx, "BulkLoader", "rtree", "lon", "lat", null,
+						false);
 				List<Node> coords = new ArrayList<>(N);
 				for (int i = 0; i < N; i++) {
 					Node n = tx.createNode(Label.label("Coordinate"));
@@ -1282,7 +1284,7 @@ public class RTreeBulkInsertTest {
 		}
 
 		try (Transaction tx = db.beginTx()) {
-			Layer layer = sdbs.getLayer(tx, "BulkLoader");
+			Layer layer = sdbs.getLayer(tx, "BulkLoader", false);
 			RTreeIndex rtree = (RTreeIndex) layer.getIndex();
 
 			Node root = rtree.getIndexRoot(tx);

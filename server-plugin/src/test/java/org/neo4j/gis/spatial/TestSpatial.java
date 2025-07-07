@@ -207,7 +207,7 @@ public class TestSpatial extends Neo4jTestCase {
 		try (Transaction tx = graphDb().beginTx()) {
 			SpatialDatabaseService spatial = new SpatialDatabaseService(
 					new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
-			Layer layer = spatial.getLayer(tx, layerName);
+			Layer layer = spatial.getLayer(tx, layerName, true);
 			if (layer != null && layer.getIndex() != null) {
 				count = layer.getIndex().count(tx);
 			}
@@ -263,7 +263,7 @@ public class TestSpatial extends Neo4jTestCase {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		try (Transaction tx = graphDb().beginTx()) {
-			Layer layer = spatial.getLayer(tx, layerName);
+			Layer layer = spatial.getLayer(tx, layerName, true);
 			if (layer == null || layer.getIndex() == null || layer.getIndex().count(tx) < 1) {
 				fail("Layer not loaded: " + layerName);
 			}

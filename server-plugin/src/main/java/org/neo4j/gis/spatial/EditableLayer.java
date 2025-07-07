@@ -24,6 +24,7 @@ import java.util.Map;
 import javax.annotation.Nullable;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.locationtech.jts.geom.Geometry;
+import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
@@ -66,6 +67,16 @@ public interface EditableLayer extends Layer {
 	 * @param properties the properties to attach to the newly created node
 	 */
 	SpatialDatabaseRecord add(Transaction tx, Geometry geometry, @Nullable Map<String, Object> properties);
+
+	/**
+	 * Delete the entire layer, including the index. The specific layer implementation will decide
+	 * if this method should delete also the geometry nodes indexed by this layer. Some
+	 * implementations have data that only has meaning within a layer, and so will be deleted.
+	 * Others are simply views onto other more complex data models and deleting the geometry nodes
+	 * might imply damage to the model. Keep this in mind when coding implementations of the Layer.
+	 */
+	void delete(Transaction tx, Listener monitor);
+
 
 	/**
 	 * Delete the geometry identified by the passed node id. This might be as simple as deleting the

@@ -61,7 +61,7 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexRead
 	protected abstract String indexTypeName();
 
 	@Override
-	public void init(Transaction tx, IndexManager indexManager, Layer layer) {
+	public void init(Transaction tx, IndexManager indexManager, Layer layer, boolean readOnly) {
 		this.layer = layer;
 		String indexName = "_SpatialIndex_" + indexTypeName() + "_" + layer.getName();
 		Label label = Label.label("SpatialIndex_" + indexTypeName() + "_" + layer.getName());

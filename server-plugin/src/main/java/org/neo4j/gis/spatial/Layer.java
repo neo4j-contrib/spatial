@@ -24,7 +24,6 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.index.LayerIndexReader;
-import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
@@ -45,7 +44,7 @@ public interface Layer {
 	 * this method. The layer implementation can store the passed parameters for later use
 	 * satisfying the prupose of the layer API (see other Layer methods).
 	 */
-	void initialize(Transaction tx, IndexManager indexManager, String name, Node layerNode);
+	void initialize(Transaction tx, IndexManager indexManager, String name, Node layerNode, boolean readOnly);
 
 	/**
 	 * Every layer using a specific implementation of the SpatialIndexReader and SpatialIndexWriter
@@ -62,15 +61,6 @@ public interface Layer {
 	 * relationships (sub-graph) or both to describe the contents of the layer
 	 */
 	Node getLayerNode(Transaction tx);
-
-	/**
-	 * Delete the entire layer, including the index. The specific layer implementation will decide
-	 * if this method should delete also the geometry nodes indexed by this layer. Some
-	 * implementations have data that only has meaning within a layer, and so will be deleted.
-	 * Others are simply views onto other more complex data models and deleting the geometry nodes
-	 * might imply damage to the model. Keep this in mind when coding implementations of the Layer.
-	 */
-	void delete(Transaction tx, Listener monitor);
 
 	/**
 	 * Every layer is defined by a unique name. Uniqueness is not enforced, but lack of uniqueness
@@ -137,4 +127,12 @@ public interface Layer {
 	 * @return descriptive signature of layer, name, type and encoder
 	 */
 	String getSignature();
+
+	boolean isReadOnly();
+
+	default void checkWritable() {
+		if (isReadOnly()) {
+			throw new IllegalStateException("Layer is read only");
+		}
+	}
 }

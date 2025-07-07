@@ -41,11 +41,11 @@ import org.neo4j.graphdb.Transaction;
 public class FakeIndex implements LayerIndexReader, Constants {
 
 	public FakeIndex(Layer layer, IndexManager indexManager) {
-		init(null, indexManager, layer);
+		init(null, indexManager, layer, true);
 	}
 
 	@Override
-	public void init(Transaction ignored, IndexManager indexManager, Layer layer) {
+	public void init(Transaction ignored, IndexManager indexManager, Layer layer, boolean readOnly) {
 		this.layer = layer;
 	}
 

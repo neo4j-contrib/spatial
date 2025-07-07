@@ -88,7 +88,7 @@ public class LayersTest {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
-			Layer layer = spatial.getLayer(tx, layerName);
+			Layer layer = spatial.getLayer(tx, layerName, true);
 			assertNull(layer);
 		});
 		inTx(tx -> {
@@ -98,7 +98,7 @@ public class LayersTest {
 		});
 		inTx(tx -> spatial.deleteLayer(tx, layerName,
 				new ProgressLoggingListener("deleting layer '" + layerName + "'", System.out)));
-		inTx(tx -> assertNull(spatial.getLayer(tx, layerName)));
+		inTx(tx -> assertNull(spatial.getLayer(tx, layerName, true)));
 	}
 
 	@Test
@@ -132,14 +132,15 @@ public class LayersTest {
 			assertNotNull(layer);
 		});
 		inTx(tx -> {
-			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName);
+			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, false);
 			SpatialDatabaseRecord record = layer.add(tx,
 					layer.getGeometryFactory().createPoint(new Coordinate(15.3, 56.2)));
+			layer.finalizeTransaction(tx);
 			assertNotNull(record);
 		});
 		// finds geometries that contain the given geometry
 		try (Transaction tx = graphDb.beginTx()) {
-			Layer layer = spatial.getLayer(tx, layerName);
+			Layer layer = spatial.getLayer(tx, layerName, true);
 			List<SpatialDatabaseRecord> results = GeoPipeline
 					.startContainSearch(tx, layer,
 							layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)))
@@ -158,7 +159,7 @@ public class LayersTest {
 		}
 		inTx(tx -> spatial.deleteLayer(tx, layerName,
 				new ProgressLoggingListener("deleting layer '" + layerName + "'", System.out)));
-		inTx(tx -> assertNull(spatial.getLayer(tx, layerName)));
+		inTx(tx -> assertNull(spatial.getLayer(tx, layerName, true)));
 		IndexManager.waitForDeletions();
 	}
 
@@ -182,7 +183,7 @@ public class LayersTest {
 			assertNotNull(layer);
 		});
 		inTx(tx -> {
-			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName);
+			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, false);
 			SpatialDatabaseRecord record = layer.add(tx,
 					layer.getGeometryFactory().createPoint(new Coordinate(15.3, 56.2)));
 			assertNotNull(record);
@@ -197,18 +198,19 @@ public class LayersTest {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
-			EditableLayer layer = spatial.getOrCreateEditableLayer(tx, layerName, null, null);
+			EditableLayer layer = spatial.getOrCreateEditableLayer(tx, layerName, null, null, true);
 			assertNotNull(layer);
 		});
 		inTx(tx -> {
-			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName);
+			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, false);
 			SpatialDatabaseRecord record = layer.add(tx,
 					layer.getGeometryFactory().createPoint(new Coordinate(15.3, 56.2)));
 			assertNotNull(record);
+			layer.finalizeTransaction(tx);
 		});
 
 		try (Transaction tx = graphDb.beginTx()) {
-			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName);
+			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, true);
 
 			// finds geometries that contain the given geometry
 			List<SpatialDatabaseRecord> results = GeoPipeline
@@ -234,7 +236,7 @@ public class LayersTest {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
-			EditableLayer layer = spatial.getOrCreateEditableLayer(tx, "roads", null, null);
+			EditableLayer layer = spatial.getOrCreateEditableLayer(tx, "roads", null, null, true);
 			Coordinate crossing_bygg_forstadsgatan = new Coordinate(13.0171471, 55.6074148);
 			Coordinate[] waypoints_forstadsgatan = {new Coordinate(13.0201511, 55.6066846),
 					crossing_bygg_forstadsgatan};
@@ -277,7 +279,7 @@ public class LayersTest {
 			assertInstanceOf(EditableLayer.class, layer, "Should be an editable layer");
 		});
 		inTx(tx -> {
-			Layer layer = spatial.getLayer(tx, layerName);
+			Layer layer = spatial.getLayer(tx, layerName, false);
 			assertNotNull(layer);
 			assertInstanceOf(EditableLayer.class, layer, "Should be an editable layer");
 			EditableLayer editableLayer = (EditableLayer) layer;
@@ -297,12 +299,13 @@ public class LayersTest {
 			coordinates.add(new Coordinate(14.2, 56.1), false);
 			coordinates.add(new Coordinate(14.0, 56.0), false);
 			editableLayer.add(tx, layer.getGeometryFactory().createLineString(coordinates.toCoordinateArray()));
+			editableLayer.finalizeTransaction(tx);
 		});
 
 		// TODO this test is not complete
 
 		try (Transaction tx = graphDb.beginTx()) {
-			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName);
+			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, true);
 			printResults(layer, GeoPipeline
 					.startIntersectSearch(tx, layer,
 							layer.getGeometryFactory().toGeometry(new Envelope(13.2, 14.1, 56.1, 56.2)))
@@ -350,12 +353,12 @@ public class LayersTest {
 //        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath.getCanonicalPath());
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
-		inTx(tx -> spatial.getOrCreateSimplePointLayer(tx, "Coordinates", "rtree", "lat", "lon", null));
+		inTx(tx -> spatial.getOrCreateSimplePointLayer(tx, "Coordinates", "rtree", "lat", "lon", null, true));
 
 		Random rand = new Random();
 
 		try (Transaction tx = graphDb.beginTx()) {
-			SimplePointLayer layer = (SimplePointLayer) spatial.getLayer(tx, "Coordinates");
+			SimplePointLayer layer = (SimplePointLayer) spatial.getLayer(tx, "Coordinates", false);
 			List<Node> coordinateNodes = new ArrayList<>();
 			for (int i = 0; i < 1000; i++) {
 				Node node = tx.createNode();

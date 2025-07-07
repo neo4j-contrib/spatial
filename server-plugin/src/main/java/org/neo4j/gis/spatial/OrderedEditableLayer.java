@@ -53,6 +53,7 @@ public class OrderedEditableLayer extends EditableLayerImpl {
 
 	@Override
 	protected Node addGeomNode(Transaction tx, Geometry geom, Map<String, Object> properties) {
+		checkWritable();
 		Node geomNode = super.addGeomNode(tx, geom, properties);
 		Node layerNode = getLayerNode(tx);
 		if (previousGeomNode == null) {

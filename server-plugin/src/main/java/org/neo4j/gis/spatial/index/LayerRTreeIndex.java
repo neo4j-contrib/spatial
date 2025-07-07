@@ -40,12 +40,8 @@ public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader,
 	private Layer layer;
 
 	@Override
-	public void init(Transaction tx, IndexManager indexManager, Layer layer) {
-		init(tx, layer, 100);
-	}
-
-	public void init(Transaction tx, Layer layer, int maxNodeReferences) {
-		super.init(tx, layer.getLayerNode(tx), layer.getGeometryEncoder(), maxNodeReferences);
+	public void init(Transaction tx, IndexManager indexManager, Layer layer, boolean readOnly) {
+		super.init(tx, layer.getLayerNode(tx), layer.getGeometryEncoder(), 100, readOnly);
 		this.layer = layer;
 	}
 
