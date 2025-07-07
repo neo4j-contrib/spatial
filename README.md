@@ -22,7 +22,7 @@ This means that Neo4j Spatial 5.19.0 is build against Neo4j 5.19, and so on.
 
    NOTE: If you're concerned about the security risks of unrestricted access, we recommend reviewing the code to assess
    the level of risk for your use case. For example, the method 
-   [`IndexAccessMode.withIndexCreate`](/src/main/java/org/neo4j/gis/spatial/index/IndexManager.java#L42) grants index
+   [`IndexAccessMode.withIndexCreate`](/server-plugin/src/main/java/org/neo4j/gis/spatial/index/IndexManager.java#L42) grants index
    creation capabilities within the security model. This allows users without index creation privileges to generate the
    required spatial support indexes. This behavior was not intentionally designed to bypass security but was necessary
    due to Neo4j’s security model, where procedures with WRITE mode are not permitted to create indexes.
