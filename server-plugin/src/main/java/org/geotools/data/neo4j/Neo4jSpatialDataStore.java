@@ -61,7 +61,6 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
  */
 public class Neo4jSpatialDataStore extends ContentDataStore implements Constants {
 
-	private List<Name> typeNames;
 	private final Map<String, SimpleFeatureType> simpleFeatureTypeIndex = Collections.synchronizedMap(new HashMap<>());
 	private final Map<String, CoordinateReferenceSystem> crsIndex = Collections.synchronizedMap(new HashMap<>());
 	private final Map<String, Style> styleIndex = Collections.synchronizedMap(new HashMap<>());
@@ -69,6 +68,7 @@ public class Neo4jSpatialDataStore extends ContentDataStore implements Constants
 	private final Map<String, SimpleFeatureSource> featureSourceIndex = Collections.synchronizedMap(new HashMap<>());
 	private final GraphDatabaseService database;
 	private final SpatialDatabaseService spatialDatabase;
+	private List<Name> typeNames;
 
 	public Neo4jSpatialDataStore(GraphDatabaseService database) {
 		this.database = database;
@@ -91,7 +91,7 @@ public class Neo4jSpatialDataStore extends ContentDataStore implements Constants
 				for (String allTypeName : allTypeNames) {
 					// discard empty layers
 					System.out.print("loading layer " + allTypeName);
-					Layer layer = spatialDatabase.getLayer(tx, allTypeName);
+					Layer layer = spatialDatabase.getLayer(tx, allTypeName, true);
 					if (!layer.getIndex().isEmpty(tx)) {
 						notEmptyTypes.add(new NameImpl(allTypeName));
 					}
@@ -111,7 +111,7 @@ public class Neo4jSpatialDataStore extends ContentDataStore implements Constants
 		SimpleFeatureType result = simpleFeatureTypeIndex.get(typeName);
 		if (result == null) {
 			try (Transaction tx = database.beginTx()) {
-				Layer layer = spatialDatabase.getLayer(tx, typeName);
+				Layer layer = spatialDatabase.getLayer(tx, typeName, true);
 				if (layer == null) {
 					throw new IOException("Layer not found: " + typeName);
 				}
@@ -129,7 +129,7 @@ public class Neo4jSpatialDataStore extends ContentDataStore implements Constants
 		ReferencedEnvelope result = boundsIndex.get(typeName);
 		if (result == null) {
 			try (Transaction tx = database.beginTx()) {
-				Layer layer = spatialDatabase.getLayer(tx, typeName);
+				Layer layer = spatialDatabase.getLayer(tx, typeName, true);
 				if (layer != null) {
 					Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox(tx));
 					result = new ReferencedEnvelope(bbox, getCRS(tx, layer));
@@ -164,7 +164,7 @@ public class Neo4jSpatialDataStore extends ContentDataStore implements Constants
 		ArrayList<SpatialDatabaseRecord> records = new ArrayList<>();
 		String[] extraPropertyNames;
 		try (Transaction tx = database.beginTx()) {
-			layer = spatialDatabase.getLayer(tx, contentEntry.getTypeName());
+			layer = spatialDatabase.getLayer(tx, contentEntry.getTypeName(), false);
 			SearchRecords results = layer.getIndex().search(tx, new SearchAll());
 			// We need to pull all records during this transaction, so that later readers do not have a transaction violation
 			// TODO: See if there is a more memory efficient way of doing this, perhaps create a transaction at read time in the reader?
@@ -194,7 +194,7 @@ public class Neo4jSpatialDataStore extends ContentDataStore implements Constants
 
 	private Object getLayerStyle(String typeName) {
 		try (Transaction tx = database.beginTx()) {
-			Layer layer = spatialDatabase.getLayer(tx, typeName);
+			Layer layer = spatialDatabase.getLayer(tx, typeName, true);
 			tx.commit();
 			if (layer == null) {
 				return null;

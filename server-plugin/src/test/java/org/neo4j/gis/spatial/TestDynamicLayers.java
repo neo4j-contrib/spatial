@@ -73,7 +73,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		try (Transaction tx = graphDb().beginTx()) {
 			SpatialDatabaseService spatial = new SpatialDatabaseService(
 					new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
-			DynamicLayer shpLayer = spatial.asDynamicLayer(tx, spatial.getLayer(tx, shpFile));
+			DynamicLayer shpLayer = spatial.asDynamicLayer(tx, spatial.getLayer(tx, shpFile, false));
 			layers.add(shpLayer.addLayerConfig(tx, "CQL0-highway", GTYPE_GEOMETRY, "highway is not null"));
 			layers.add(shpLayer.addLayerConfig(tx, "CQL1-highway", GTYPE_POINT,
 					"geometryType(the_geom) = 'MultiLineString'"));
@@ -131,7 +131,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		try (Transaction tx = graphDb().beginTx()) {
 			SpatialDatabaseService spatial = new SpatialDatabaseService(
 					new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
-			OSMLayer osmLayer = (OSMLayer) spatial.getLayer(tx, osmFile);
+			OSMLayer osmLayer = (OSMLayer) spatial.getLayer(tx, osmFile, false);
 			LinearRing ring = osmLayer.getGeometryFactory().createLinearRing(
 					new Coordinate[]{new Coordinate(bbox.getMinX(), bbox.getMinY()),
 							new Coordinate(bbox.getMinX(), bbox.getMaxY()),
@@ -288,7 +288,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		Layer layer;
 		try (Transaction tx = graphDb().beginTx()) {
-			layer = spatial.getLayer(tx, layerName);
+			layer = spatial.getLayer(tx, layerName, true);
 		}
 		assertNotNull(layer.getIndex(), "Layer index should not be null");
 		Envelope bbox;

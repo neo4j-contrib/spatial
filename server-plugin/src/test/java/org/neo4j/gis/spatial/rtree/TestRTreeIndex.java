@@ -27,10 +27,10 @@ public class TestRTreeIndex extends RTreeIndex {
 
 	// TODO: Rather pass tx into init after construction (bad pattern to pass tx to constructor, as if it will be saved)
 	public TestRTreeIndex(Transaction tx) {
-		init(tx, tx.createNode(), new SimplePointEncoder(), DEFAULT_MAX_NODE_REFERENCES);
+		init(tx, tx.createNode(), new SimplePointEncoder(), DEFAULT_MAX_NODE_REFERENCES, false);
 	}
 
-	public static RTreeIndex.NodeWithEnvelope makeChildIndexNode(Transaction tx, NodeWithEnvelope parent,
+	public RTreeIndex.NodeWithEnvelope makeChildIndexNode(Transaction tx, NodeWithEnvelope parent,
 			Envelope bbox) {
 		Node indexNode = tx.createNode();
 		setIndexNodeEnvelope(indexNode, bbox);
@@ -40,7 +40,7 @@ public class TestRTreeIndex extends RTreeIndex {
 		return new NodeWithEnvelope(indexNode, bbox);
 	}
 
-	public static void setIndexNodeEnvelope(NodeWithEnvelope indexNode) {
+	public void setIndexNodeEnvelope(NodeWithEnvelope indexNode) {
 		setIndexNodeEnvelope(indexNode.node, indexNode.envelope);
 	}
 

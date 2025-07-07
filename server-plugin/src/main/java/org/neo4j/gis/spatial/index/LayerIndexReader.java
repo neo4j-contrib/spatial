@@ -33,7 +33,7 @@ public interface LayerIndexReader extends SpatialIndexReader {
 	 * @param indexManager for setting up index files on disk
 	 * @param layer        object containing and controlling this index
 	 */
-	void init(Transaction tx, IndexManager indexManager, Layer layer);
+	void init(Transaction tx, IndexManager indexManager, Layer layer, boolean readOnly);
 
 	Layer getLayer();
 

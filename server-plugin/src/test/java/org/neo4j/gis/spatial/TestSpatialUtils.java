@@ -49,18 +49,19 @@ public class TestSpatialUtils extends Neo4jTestCase {
 				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		Geometry geometry;
 		try (Transaction tx = graphDb().beginTx()) {
-			EditableLayer layer = spatial.getOrCreateEditableLayer(tx, "jts", null, null);
+			EditableLayer layer = spatial.getOrCreateEditableLayer(tx, "jts", null, null, false);
 			Coordinate[] coordinates = new Coordinate[]{new Coordinate(0, 0), new Coordinate(0, 1),
 					new Coordinate(1, 1)};
 			geometry = layer.getGeometryFactory().createLineString(coordinates);
 			layer.add(tx, geometry);
 			debugLRS(geometry);
+			layer.finalizeTransaction(tx);
 			tx.commit();
 		}
 
 		try (Transaction tx = graphDb().beginTx()) {
 			double delta = 0.0001;
-			Layer layer = spatial.getLayer(tx, "jts");
+			Layer layer = spatial.getLayer(tx, "jts", true);
 			// Now test the new API in the topology utils
 			Point point = SpatialTopologyUtils.locatePoint(layer, geometry, 1.5, 0.5);
 			assertEquals(0.5, point.getX(), delta, "X location incorrect");
@@ -126,7 +127,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		try (Transaction tx = graphDb().beginTx()) {
-			OSMLayer osmLayer = (OSMLayer) spatial.getLayer(tx, osm);
+			OSMLayer osmLayer = (OSMLayer) spatial.getLayer(tx, osm, false);
 			osmLayer.addSimpleDynamicLayer(tx, "highway", "primary");
 			osmLayer.addSimpleDynamicLayer(tx, "highway", "secondary");
 			osmLayer.addSimpleDynamicLayer(tx, "highway", "tertiary");
@@ -142,11 +143,11 @@ public class TestSpatialUtils extends Neo4jTestCase {
 
 		// Now test snapping to a layer
 		try (Transaction tx = graphDb().beginTx()) {
-			OSMLayer osmLayer = (OSMLayer) spatial.getLayer(tx, osm);
+			OSMLayer osmLayer = (OSMLayer) spatial.getLayer(tx, osm, true);
 			OSMDataset.fromLayer(tx, osmLayer); // cache for future usage below
 			GeometryFactory factory = osmLayer.getGeometryFactory();
 			EditableLayerImpl resultsLayer = (EditableLayerImpl) spatial.getOrCreateEditableLayer(tx,
-					"testSnapping_results", null, null);
+					"testSnapping_results", null, null, false);
 			String[] fieldsNames = new String[]{"snap-id", "description", "distance"};
 			resultsLayer.setExtraPropertyNames(fieldsNames, tx);
 			Point point = factory.createPoint(new Coordinate(12.9777, 56.0555));

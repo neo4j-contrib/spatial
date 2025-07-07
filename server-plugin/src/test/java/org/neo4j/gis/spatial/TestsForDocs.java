@@ -90,7 +90,7 @@ public class TestsForDocs {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
 		try (Transaction tx = graphDb.beginTx()) {
-			Layer layer = spatial.getLayer(tx, layerName);
+			Layer layer = spatial.getLayer(tx, layerName, true);
 			if (layer.getIndex().count(tx) < 1) {
 				System.out.println("Warning: index count zero: " + layer.getName());
 			}
@@ -102,7 +102,7 @@ public class TestsForDocs {
 		SimpleFeatureCollection features = store.getFeatureSource(layerName).getFeatures();
 		System.out.println("Layer '" + layerName + "' has " + features.size() + " features");
 		try (Transaction tx = graphDb.beginTx()) {
-			Layer layer = spatial.getLayer(tx, layerName);
+			Layer layer = spatial.getLayer(tx, layerName, true);
 			assertEquals(layer.getIndex().count(tx), features.size(),
 					"FeatureCollection.size for layer '" + layer.getName() + "' not the same as index count");
 			if (layer instanceof OSMLayer) {
@@ -161,7 +161,7 @@ public class TestsForDocs {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
 		try (Transaction tx = database.beginTx()) {
-			Layer layer = spatial.getLayer(tx, "map.osm");
+			Layer layer = spatial.getLayer(tx, "map.osm", true);
 			LayerIndexReader spatialIndex = layer.getIndex();
 			System.out.println("Have " + spatialIndex.count(tx) + " geometries in " + spatialIndex.getBoundingBox(tx));
 
@@ -201,9 +201,10 @@ public class TestsForDocs {
 				new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
 		String wayLayerName;
 		try (Transaction tx = database.beginTx()) {
-			OSMLayer layer = (OSMLayer) spatial.getLayer(tx, "map.osm");
+			OSMLayer layer = (OSMLayer) spatial.getLayer(tx, "map.osm", false);
 			DynamicLayerConfig wayLayer = layer.addSimpleDynamicLayer(tx, Constants.GTYPE_LINESTRING);
 			wayLayerName = wayLayer.getName();
+			layer.finalizeTransaction(tx);
 			tx.commit();
 		}
 		ShapefileExporter shpExporter = new ShapefileExporter(database);
@@ -222,7 +223,7 @@ public class TestsForDocs {
 		Envelope bbox = new Envelope(12.94, 12.96, 56.04, 56.06);
 		List<SpatialDatabaseRecord> results;
 		try (Transaction tx = database.beginTx()) {
-			Layer layer = spatial.getLayer(tx, "map.osm");
+			Layer layer = spatial.getLayer(tx, "map.osm", true);
 			LayerIndexReader spatialIndex = layer.getIndex();
 			System.out.println("Have " + spatialIndex.count(tx) + " geometries in " + spatialIndex.getBoundingBox(tx));
 

@@ -19,6 +19,8 @@
  */
 package org.neo4j.gis.spatial;
 
+import static org.neo4j.gis.spatial.Constants.GTYPE_GEOMETRY;
+
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -60,7 +62,7 @@ public class DynamicLayer extends EditableLayerImpl {
 			try (var relationships = getLayerNode(tx).getRelationships(Direction.OUTGOING,
 					SpatialRelationshipTypes.LAYER_CONFIG)) {
 				for (Relationship rel : relationships) {
-					DynamicLayerConfig config = new DynamicLayerConfig(this, rel.getEndNode());
+					DynamicLayerConfig config = new DynamicLayerConfig(this, rel.getEndNode(), isReadOnly());
 					layers.put(config.getName(), config);
 				}
 			}
@@ -69,6 +71,7 @@ public class DynamicLayer extends EditableLayerImpl {
 	}
 
 	protected boolean removeLayerConfig(Transaction tx, String name) {
+		checkWritable();
 		Layer layer = getLayerMap(tx).get(name);
 		if (layer instanceof DynamicLayerConfig) {
 			synchronized (this) {
@@ -161,6 +164,7 @@ public class DynamicLayer extends EditableLayerImpl {
 			return null;
 		}
 		synchronized (this) {
+			checkWritable();
 			DynamicLayerConfig config = new DynamicLayerConfig(tx, this, name, type, query);
 			layers = null;    // force recalculation of layers cache
 			return config;

@@ -19,6 +19,8 @@
  */
 package org.neo4j.gis.spatial;
 
+import static org.neo4j.gis.spatial.Constants.GTYPE_POINT;
+
 import java.util.List;
 import java.util.Map;
 import org.locationtech.jts.geom.Coordinate;

@@ -65,7 +65,7 @@ public class OSMLayerToShapefileExporter {
 					new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
 			OSMLayer layer;
 			try (Transaction tx = db.beginTx()) {
-				layer = (OSMLayer) spatial.getLayer(tx, osmdataset);
+				layer = (OSMLayer) spatial.getLayer(tx, osmdataset, false);
 			}
 			if (layer != null) {
 				ShapefileExporter exporter = new ShapefileExporter(db);

@@ -121,7 +121,7 @@ public class OsmAnalysisTest extends TestOSMImportBase {
 				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		boolean alreadyImported;
 		try (Transaction tx = graphDb().beginTx()) {
-			alreadyImported = spatial.getLayer(tx, osm) != null;
+			alreadyImported = spatial.getLayer(tx, osm, true) != null;
 			tx.commit();
 		}
 		if (!alreadyImported) {
@@ -139,7 +139,7 @@ public class OsmAnalysisTest extends TestOSMImportBase {
 		long latestTimestamp = 0L;
 		long firstTimestamp = Long.MAX_VALUE;
 		try (Transaction tx = graphDb().beginTx()) {
-			OSMLayer layer = (OSMLayer) spatial.getLayer(tx, osm);
+			OSMLayer layer = (OSMLayer) spatial.getLayer(tx, osm, true);
 			OSMDataset dataset = OSMDataset.fromLayer(tx, layer);
 
 			for (Node cNode : dataset.getAllChangesetNodes(tx)) {
@@ -164,7 +164,7 @@ public class OsmAnalysisTest extends TestOSMImportBase {
 		}
 		SortedSet<User> topTen = getTopTen(userIndex);
 		try (Transaction tx = graphDb().beginTx()) {
-			OSMLayer layer = (OSMLayer) spatial.getLayer(tx, osm);
+			OSMLayer layer = (OSMLayer) spatial.getLayer(tx, osm, false);
 			Date latest = new Date(latestTimestamp);
 			Calendar time = Calendar.getInstance();
 			time.setTime(latest);

@@ -32,7 +32,6 @@ import org.neo4j.gis.spatial.index.LayerTreeIndexReader;
 import org.neo4j.gis.spatial.indexfilter.CQLIndexReader;
 import org.neo4j.gis.spatial.indexfilter.DynamicIndexReader;
 import org.neo4j.gis.spatial.rtree.Envelope;
-import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -45,17 +44,19 @@ public class DynamicLayerConfig implements Layer, Constants {
 	private final String query;
 	protected final String configNodeId;
 	private String[] propertyNames;
+	private boolean readOnly;
 
 	/**
 	 * Construct the layer config instance on existing config information in the database.
 	 */
-	public DynamicLayerConfig(DynamicLayer parent, Node configNode) {
+	public DynamicLayerConfig(DynamicLayer parent, Node configNode, boolean readOnly) {
 		this.parent = parent;
 		this.name = (String) configNode.getProperty(PROP_LAYER);
 		this.geometryType = (Integer) configNode.getProperty(PROP_TYPE);
 		this.query = (String) configNode.getProperty(PROP_QUERY);
 		this.configNodeId = configNode.getElementId();
 		this.propertyNames = (String[]) configNode.getProperty("propertyNames", null);
+		this.readOnly = readOnly;
 	}
 
 	/**
@@ -69,6 +70,7 @@ public class DynamicLayerConfig implements Layer, Constants {
 	 */
 	public DynamicLayerConfig(Transaction tx, DynamicLayer parent, String name, int geometryType, String query) {
 		this.parent = parent;
+		this.readOnly = false;
 		Node node = tx.createNode();
 		node.setProperty(PROP_LAYER, name);
 		node.setProperty(PROP_TYPE, geometryType);
@@ -87,11 +89,6 @@ public class DynamicLayerConfig implements Layer, Constants {
 
 	public String getQuery() {
 		return query;
-	}
-
-	@Override
-	public void delete(Transaction tx, Listener monitor) {
-		throw new SpatialDatabaseException("Cannot delete dynamic layers, delete the base layer instead");
 	}
 
 	@Override
@@ -183,6 +180,7 @@ public class DynamicLayerConfig implements Layer, Constants {
 	}
 
 	public void setExtraPropertyNames(Transaction tx, String[] names) {
+		checkWritable();
 		configNode(tx).setProperty("propertyNames", names);
 		propertyNames = names;
 	}
@@ -229,7 +227,7 @@ public class DynamicLayerConfig implements Layer, Constants {
 	}
 
 	@Override
-	public void initialize(Transaction tx, IndexManager indexManager, String name, Node layerNode) {
+	public void initialize(Transaction tx, IndexManager indexManager, String name, Node layerNode, boolean readOnly) {
 		throw new SpatialDatabaseException(
 				"Cannot initialize the layer config, initialize only the dynamic layer node");
 	}
@@ -279,5 +277,10 @@ public class DynamicLayerConfig implements Layer, Constants {
 		Map<String, String> config = getConfig();
 		return "DynamicLayer(name='" + getName() + "', config={layer='" + config.get("layer") + "', query=\""
 				+ config.get("query") + "\"})";
+	}
+
+	@Override
+	public boolean isReadOnly() {
+		return readOnly;
 	}
 }

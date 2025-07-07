@@ -191,8 +191,9 @@ public class SpatialApiBase {
 		return toMap(toNeo4jGeometry(null, geometry));
 	}
 
-	protected static Layer getLayerOrThrow(Transaction tx, SpatialDatabaseService spatial, String name) {
-		EditableLayer layer = (EditableLayer) spatial.getLayer(tx, name);
+	protected static Layer getLayerOrThrow(Transaction tx, SpatialDatabaseService spatial, String name,
+			boolean readOnly) {
+		EditableLayer layer = (EditableLayer) spatial.getLayer(tx, name, readOnly);
 		if (layer != null) {
 			return layer;
 		}

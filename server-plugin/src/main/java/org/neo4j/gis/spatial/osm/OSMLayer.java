@@ -19,12 +19,15 @@
  */
 package org.neo4j.gis.spatial.osm;
 
+import static org.neo4j.gis.spatial.Constants.GTYPE_GEOMETRY;
+import static org.neo4j.gis.spatial.Constants.GTYPE_LINESTRING;
+import static org.neo4j.gis.spatial.Constants.PROP_TYPE;
+
 import java.io.File;
 import java.util.HashMap;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.json.simple.JSONObject;
-import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.DynamicLayer;
 import org.neo4j.gis.spatial.DynamicLayerConfig;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
@@ -84,6 +87,7 @@ public class OSMLayer extends DynamicLayer {
 	}
 
 	public Node addWay(Transaction tx, Node way, boolean verifyGeom) {
+		checkWritable();
 		Relationship geomRel = way.getSingleRelationship(OSMRelation.GEOM, Direction.OUTGOING);
 		if (geomRel != null) {
 			Node geomNode = geomRel.getEndNode();
@@ -190,7 +194,7 @@ public class OSMLayer extends DynamicLayer {
 	 * @param value value to match on way tags
 	 */
 	public DynamicLayerConfig addSimpleDynamicLayer(Transaction tx, String key, String value) {
-		return addSimpleDynamicLayer(tx, key, value, Constants.GTYPE_LINESTRING);
+		return addSimpleDynamicLayer(tx, key, value, GTYPE_LINESTRING);
 	}
 
 	/**

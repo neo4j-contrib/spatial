@@ -65,7 +65,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		}
 
 		try (Transaction tx = graphDb().beginTx()) {
-			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName);
+			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, true);
 			// finds geometries around point
 			List<SpatialDatabaseRecord> results = GeoPipeline
 					.startNearestNeighborLatLonSearch(tx, layer, new Coordinate(15.3, 56.2), 1.0)
@@ -88,11 +88,12 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 			assertNotNull(layer);
 			SpatialRecord record = layer.add(tx, layer.getGeometryFactory().createPoint(new Coordinate(15.3, 56.2)));
 			assertNotNull(record);
+			layer.finalizeTransaction(tx);
 			tx.commit();
 		}
 
 		try (Transaction tx = graphDb().beginTx()) {
-			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName);
+			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, true);
 			// finds geometries that contain the given geometry
 			Geometry geometry = layer.getGeometryFactory()
 					.toGeometry(new org.locationtech.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0));
@@ -119,10 +120,11 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 			assertNotNull(layer);
 			SpatialRecord record = layer.add(tx, layer.getGeometryFactory().createPoint(new Coordinate(15.3, 56.2)));
 			assertNotNull(record);
+			layer.finalizeTransaction(tx);
 		});
 
 		try (Transaction tx = graphDb().beginTx()) {
-			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName);
+			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, true);
 			// finds geometries that contain the given geometry
 			Geometry geometry = layer.getGeometryFactory()
 					.toGeometry(new org.locationtech.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0));
@@ -152,11 +154,12 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 				SpatialRecord record = layer.add(tx, coordinate);
 				assertNotNull(record);
 			}
+			layer.finalizeTransaction(tx);
 		});
 		saveLayerAsImage(layerName, 700, 70);
 
 		try (Transaction tx = graphDb().beginTx()) {
-			SimplePointLayer layer = (SimplePointLayer) spatial.getLayer(tx, layerName);
+			SimplePointLayer layer = (SimplePointLayer) spatial.getLayer(tx, layerName, true);
 			Envelope bbox = layer.getIndex().getBoundingBox(tx);
 			double[] centre = bbox.centre();
 
@@ -204,13 +207,14 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 
 		Coordinate[] coords = makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt", testOrigin);
 		inTx(tx -> {
-			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName);
+			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, false);
 			for (Coordinate coordinate : coords) {
 				Node n = tx.createNode();
 				n.setProperty("x", coordinate.x);
 				n.setProperty("y", coordinate.y);
 				layer.add(tx, n);
 			}
+			layer.finalizeTransaction(tx);
 		});
 		saveLayerAsImage(layerName, 700, 70);
 		assertIndexCountSameAs(layerName, coords.length);
@@ -226,7 +230,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 
 		Coordinate[] coords = makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt", testOrigin);
 		inTx(tx -> {
-			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName);
+			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, false);
 			for (Coordinate coordinate : coords) {
 				Node n = tx.createNode();
 				n.setProperty("x", coordinate.x);
@@ -234,6 +238,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 				n.setProperty("position", new Neo4jPoint(coordinate, crs));
 				layer.add(tx, n);
 			}
+			layer.finalizeTransaction(tx);
 		});
 		saveLayerAsImage(layerName, 700, 70);
 		assertIndexCountSameAs(layerName, coords.length);
@@ -257,9 +262,9 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 
 		Coordinate[] coords = makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt", testOrigin);
 		try (Transaction tx = db.beginTx()) {
-			EditableLayer layerA = (EditableLayer) spatial.getLayer(tx, layerNameA);
-			EditableLayer layerB = (EditableLayer) spatial.getLayer(tx, layerNameB);
-			EditableLayer layerC = (EditableLayer) spatial.getLayer(tx, layerNameC);
+			EditableLayer layerA = (EditableLayer) spatial.getLayer(tx, layerNameA, false);
+			EditableLayer layerB = (EditableLayer) spatial.getLayer(tx, layerNameB, false);
+			EditableLayer layerC = (EditableLayer) spatial.getLayer(tx, layerNameC, false);
 			for (Coordinate coordinate : coords) {
 				Node n = tx.createNode();
 				n.setProperty("xa", coordinate.x);
@@ -273,6 +278,9 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 				layerB.add(tx, n);
 				layerC.add(tx, n);
 			}
+			layerA.finalizeTransaction(tx);
+			layerB.finalizeTransaction(tx);
+			layerC.finalizeTransaction(tx);
 			tx.commit();
 		}
 		saveLayerAsImage(layerNameA, 700, 70);
@@ -281,9 +289,9 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 
 		List<SpatialDatabaseRecord> results = new ArrayList<>();
 		inTx(tx -> {
-			Layer layerA = spatial.getLayer(tx, layerNameA);
-			Layer layerB = spatial.getLayer(tx, layerNameB);
-			Layer layerC = spatial.getLayer(tx, layerNameC);
+			Layer layerA = spatial.getLayer(tx, layerNameA, true);
+			Layer layerB = spatial.getLayer(tx, layerNameB, true);
+			Layer layerC = spatial.getLayer(tx, layerNameC, true);
 			Envelope bboxA = layerA.getIndex().getBoundingBox(tx);
 			Envelope bboxB = layerB.getIndex().getBoundingBox(tx);
 			Envelope bboxC = layerC.getIndex().getBoundingBox(tx);
@@ -345,12 +353,13 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 				SpatialRecord record = layer.add(tx, point);
 				assertNotNull(record);
 			}
+			layer.finalizeTransaction(tx);
 		});
 
 		saveLayerAsImage(layerName, 300, 300);
 
 		inTx(tx -> {
-			Layer layer = spatial.getLayer(tx, layerName);
+			Layer layer = spatial.getLayer(tx, layerName, true);
 			Envelope bbox = layer.getIndex().getBoundingBox(tx);
 			double[] centre = bbox.centre();
 
@@ -400,6 +409,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 			for (SpatialRecord record : results) {
 				tmpLayer.add(tx, record.getGeometry());
 			}
+			tmpLayer.finalizeTransaction(tx);
 		});
 		try {
 			imageExporter.saveLayerImage(layerName);
@@ -451,7 +461,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		try (Transaction tx = graphDb().beginTx()) {
-			int indexCount = spatial.getLayer(tx, layerName).getIndex().count(tx);
+			int indexCount = spatial.getLayer(tx, layerName, true).getIndex().count(tx);
 			assertEquals(count, indexCount);
 			tx.commit();
 		}

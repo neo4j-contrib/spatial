@@ -103,7 +103,7 @@ public class ShapefileImporter implements Constants {
 		EditableLayerImpl layer;
 		try (Transaction tx = database.beginTx()) {
 			layer = (EditableLayerImpl) spatialDatabase.getOrCreateLayer(tx, layerName, WKBGeometryEncoder.class,
-					layerClass, null);
+					layerClass, null, false);
 			tx.commit();
 		}
 		return importFile(dataset, layer, charset);

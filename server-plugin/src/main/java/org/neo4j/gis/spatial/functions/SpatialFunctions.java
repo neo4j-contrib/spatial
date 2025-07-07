@@ -48,7 +48,7 @@ public class SpatialFunctions extends SpatialApiBase {
 			@Name(value = "layerName", description = "The name of the layer used to select the appropriate geometry encoder for extracting the Neo4j geometry.") String name,
 			@Name(value = "node", description = "An index node to extract the neo4j geometry from") Node node) {
 
-		Layer layer = getLayerOrThrow(tx, spatial(), name);
+		Layer layer = getLayerOrThrow(tx, spatial(), name, true);
 		GeometryResult result = new GeometryResult(
 				toNeo4jGeometry(layer, layer.getGeometryEncoder().decodeGeometry(node)));
 		return result.geometry;

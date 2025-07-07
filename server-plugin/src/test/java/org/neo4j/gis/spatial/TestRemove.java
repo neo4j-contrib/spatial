@@ -46,21 +46,23 @@ public class TestRemove extends Neo4jTestCase {
 		String[] ids = new String[rtreeMaxNodeReferences + 1];
 
 		try (Transaction tx = graphDb().beginTx()) {
-			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName);
+			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, false);
 			GeometryFactory geomFactory = layer.getGeometryFactory();
 			for (int i = 0; i < ids.length; i++) {
 				ids[i] = layer.add(tx, geomFactory.createPoint(new Coordinate(i, i))).getNodeId();
 			}
+			layer.finalizeTransaction(tx);
 			tx.commit();
 		}
 
 		Neo4jTestUtils.debugIndexTree(graphDb(), layerName);
 
 		try (Transaction tx = graphDb().beginTx()) {
-			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName);
+			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, false);
 			for (String id : ids) {
 				layer.delete(tx, id);
 			}
+			layer.finalizeTransaction(tx);
 			tx.commit();
 		}
 

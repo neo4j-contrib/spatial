@@ -230,7 +230,7 @@ public class TestIntersectsPathQueries {
 						System.out.println("\t" + name);
 					}
 					//OSMLayer layer = (OSMLayer) spatial.getOrCreateLayer(layerName, OSMGeometryEncoder.class, OSMLayer.class);
-					Layer layer = spatial.getLayer(tx, layerName);
+					Layer layer = spatial.getLayer(tx, layerName, true);
 					assertNotNull(layer.getIndex(), "Layer index should not be null");
 					assertNotNull(layer.getIndex().getBoundingBox(tx), "Layer index envelope should not be null");
 					Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox(tx));
@@ -268,7 +268,7 @@ public class TestIntersectsPathQueries {
 								+ coordinates.get(coordinates.size() - 1));
 				performance = new Performance("search points");
 				try (Transaction tx = graphDb.beginTx()) {
-					Layer layer = spatial.getLayer(tx, layerName);
+					Layer layer = spatial.getLayer(tx, layerName, true);
 					for (Coordinate coordinate : coordinates) {
 						List<Node> res = GeoPipeline.startNearestNeighborLatLonSearch(tx, layer, coordinate,
 										distanceInKm)
@@ -307,7 +307,7 @@ public class TestIntersectsPathQueries {
 					System.out.println("Searching for geometries near Geometry: " + gname);
 					performance = new Performance(gname);
 					try (Transaction tx = graphDb.beginTx()) {
-						Layer layer = spatial.getLayer(tx, layerName);
+						Layer layer = spatial.getLayer(tx, layerName, true);
 						List<Node> res = runSearch(GeoPipeline.startIntersectSearch(tx, layer, geometry), true);
 						performance.stop(res);
 						performances.put(performance.name, performance);

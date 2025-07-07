@@ -101,7 +101,8 @@ public class SpatialProceduresTest extends AbstractApiTest {
 			});
 			fail("Expected an exception containing '" + error + "', but no exception was thrown");
 		} catch (Exception e) {
-			assertTrue(e.getMessage().contains(error));
+			Assertions.assertThat(e.getMessage())
+					.contains(error);
 		}
 	}
 
@@ -155,10 +156,10 @@ public class SpatialProceduresTest extends AbstractApiTest {
 			int index) {
 		return switch (index % 3) {
 			case 0 -> spatial.getOrCreateSimplePointLayer(tx, name, SpatialDatabaseService.INDEX_TYPE_RTREE, "x", "y",
-					null);
+					null, false);
 			case 1 -> spatial.getOrCreateNativePointLayer(tx, name, SpatialDatabaseService.INDEX_TYPE_RTREE, "location",
-					null);
-			default -> spatial.getOrCreateDefaultLayer(tx, name, null);
+					null, false);
+			default -> spatial.getOrCreateDefaultLayer(tx, name, null, false);
 		};
 	}
 
@@ -405,7 +406,7 @@ public class SpatialProceduresTest extends AbstractApiTest {
 					(r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
 			fail("Expected exception to be thrown");
 		} catch (Exception e) {
-			assertTrue(e.getMessage().contains("Cannot create existing layer"));
+			Assertions.assertThat(e.getMessage()).contains("Layer already exists: 'geom'");
 		}
 	}
 
@@ -417,7 +418,7 @@ public class SpatialProceduresTest extends AbstractApiTest {
 					(r) -> assertEquals("geom", (dump((Node) r.get("node"))).getProperty("layer")));
 			fail("Expected exception to be thrown");
 		} catch (Exception e) {
-			assertTrue(e.getMessage().contains("Cannot create existing layer"));
+			Assertions.assertThat(e.getMessage()).contains("Layer already exists: 'geom'");
 		}
 	}
 
