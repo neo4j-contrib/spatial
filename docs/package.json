@@ -13,10 +13,10 @@
 	"dependencies": {
 		"@antora/cli": "^3.1.10",
 		"@neo4j-documentation/macros": "^1.0.4",
-		"@antora/site-generator-default": "^3.1.9"
+		"@antora/site-generator-default": "^3.1.10"
 	},
 	"devDependencies": {
-		"express": "^4.21.1",
+		"express": "^4.21.2",
 		"npm-watch": "^0.13.0"
 	},
 	"watch": {
