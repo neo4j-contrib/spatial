@@ -19,17 +19,12 @@
  */
 package org.geotools.data.neo4j;
 
-import java.util.Iterator;
-import java.util.NoSuchElementException;
 import java.util.Set;
-import org.geotools.api.data.FeatureReader;
 import org.geotools.api.data.Query;
-import org.geotools.api.feature.simple.SimpleFeature;
 import org.geotools.api.feature.simple.SimpleFeatureType;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.data.store.ContentEntry;
 import org.geotools.data.store.ContentFeatureSource;
-import org.geotools.feature.simple.SimpleFeatureBuilder;
 import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
@@ -50,7 +45,6 @@ public class Neo4jSpatialFeatureSource extends ContentFeatureSource {
 	private final GraphDatabaseService database;
 	private final Layer layer;
 	private final SimpleFeatureType featureType;
-	private final SimpleFeatureBuilder builder;
 	private final Iterable<SpatialDatabaseRecord> results;
 	private final Set<String> extraPropertyNames;
 
@@ -61,7 +55,6 @@ public class Neo4jSpatialFeatureSource extends ContentFeatureSource {
 		this.layer = layer;
 		this.extraPropertyNames = extraPropertyNames;
 		this.featureType = featureType;
-		this.builder = new SimpleFeatureBuilder(featureType);
 		this.results = results;
 	}
 
@@ -89,8 +82,13 @@ public class Neo4jSpatialFeatureSource extends ContentFeatureSource {
 	}
 
 	@Override
-	protected FeatureReader<SimpleFeatureType, SimpleFeature> getReaderInternal(Query query) {
-		return new Reader(results.iterator());
+	protected Neo4jSpatialFeatureReader getReaderInternal(Query query) {
+		return new Neo4jSpatialFeatureReader(
+				database,
+				featureType,
+				extraPropertyNames,
+				results.iterator()
+		);
 	}
 
 	@Override
@@ -98,64 +96,4 @@ public class Neo4jSpatialFeatureSource extends ContentFeatureSource {
 		return featureType;
 	}
 
-	public class Reader implements FeatureReader<SimpleFeatureType, SimpleFeature> {
-
-		private final Iterator<SpatialDatabaseRecord> results;
-
-		Reader(Iterator<SpatialDatabaseRecord> results) {
-			this.results = results;
-		}
-
-		@Override
-		public SimpleFeatureType getFeatureType() {
-			return Neo4jSpatialFeatureSource.this.buildFeatureType();
-		}
-
-		@Override
-		public SimpleFeature next() throws IllegalArgumentException, NoSuchElementException {
-			if (results == null) {
-				return null;
-			}
-
-			try (Transaction tx = database.beginTx()) {
-				SpatialDatabaseRecord record = results.next();
-				if (record == null) {
-					return null;
-				}
-
-				record.refreshGeomNode(tx);
-
-				builder.reset();
-
-				builder.set(FEATURE_PROP_GEOM, record.getGeometry());
-
-				if (extraPropertyNames != null) {
-					for (String extraPropertyName : extraPropertyNames) {
-						if (record.hasProperty(tx, extraPropertyName)) {
-							builder.set(extraPropertyName, record.getProperty(tx, extraPropertyName));
-						}
-					}
-				}
-				tx.commit();
-
-				return builder.buildFeature(record.getId());
-			}
-		}
-
-		@Override
-		public boolean hasNext() {
-			if (results == null) {
-				return false;
-			}
-			try (Transaction tx = database.beginTx()) {
-				boolean ans = results.hasNext();
-				tx.commit();
-				return ans;
-			}
-		}
-
-		@Override
-		public void close() {
-		}
-	}
 }

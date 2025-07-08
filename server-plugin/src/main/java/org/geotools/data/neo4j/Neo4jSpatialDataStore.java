@@ -19,28 +19,20 @@
  */
 package org.geotools.data.neo4j;
 
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
-import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.geotools.api.data.SimpleFeatureSource;
 import org.geotools.api.feature.simple.SimpleFeatureType;
 import org.geotools.api.feature.type.Name;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
-import org.geotools.api.style.Style;
-import org.geotools.api.style.StyleFactory;
 import org.geotools.data.store.ContentDataStore;
 import org.geotools.data.store.ContentEntry;
 import org.geotools.data.store.ContentFeatureSource;
 import org.geotools.feature.NameImpl;
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.geotools.styling.StyleFactoryImpl;
-import org.geotools.xml.styling.SLDParser;
 import org.locationtech.jts.geom.Envelope;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.EditableLayer;
@@ -63,9 +55,7 @@ public class Neo4jSpatialDataStore extends ContentDataStore implements Constants
 
 	private final Map<String, SimpleFeatureType> simpleFeatureTypeIndex = Collections.synchronizedMap(new HashMap<>());
 	private final Map<String, CoordinateReferenceSystem> crsIndex = Collections.synchronizedMap(new HashMap<>());
-	private final Map<String, Style> styleIndex = Collections.synchronizedMap(new HashMap<>());
 	private final Map<String, ReferencedEnvelope> boundsIndex = Collections.synchronizedMap(new HashMap<>());
-	private final Map<String, SimpleFeatureSource> featureSourceIndex = Collections.synchronizedMap(new HashMap<>());
 	private final GraphDatabaseService database;
 	private final SpatialDatabaseService spatialDatabase;
 	private List<Name> typeNames;
@@ -141,21 +131,8 @@ public class Neo4jSpatialDataStore extends ContentDataStore implements Constants
 		return result;
 	}
 
-	public SpatialDatabaseService getSpatialDatabaseService() {
-		return spatialDatabase;
-	}
-
 	public Transaction beginTx() {
 		return database.beginTx();
-	}
-
-	public void clearCache() {
-		typeNames = null;
-		simpleFeatureTypeIndex.clear();
-		crsIndex.clear();
-		styleIndex.clear();
-		boundsIndex.clear();
-		featureSourceIndex.clear();
 	}
 
 	@Override
@@ -189,44 +166,6 @@ public class Neo4jSpatialDataStore extends ContentDataStore implements Constants
 			crsIndex.put(layer.getName(), result);
 		}
 
-		return result;
-	}
-
-	private Object getLayerStyle(String typeName) {
-		try (Transaction tx = database.beginTx()) {
-			Layer layer = spatialDatabase.getLayer(tx, typeName, true);
-			tx.commit();
-			if (layer == null) {
-				return null;
-			}
-			return layer.getStyle();
-		}
-	}
-
-	public Style getStyle(String typeName) {
-		Style result = styleIndex.get(typeName);
-		if (result == null) {
-			Object obj = getLayerStyle(typeName);
-			if (obj instanceof Style) {
-				result = (Style) obj;
-			} else if (obj instanceof File || obj instanceof String) {
-				StyleFactory styleFactory = new StyleFactoryImpl();
-				SLDParser parser = new SLDParser(styleFactory);
-				try {
-					if (obj instanceof File) {
-						parser.setInput(new FileReader((File) obj));
-					} else {
-						parser.setInput(new StringReader(obj.toString()));
-					}
-					Style[] styles = parser.readXML();
-					result = styles[0];
-				} catch (Exception e) {
-					System.err.println("Error loading style '" + obj + "': " + e.getMessage());
-					e.printStackTrace(System.err);
-				}
-			}
-			styleIndex.put(typeName, result);
-		}
 		return result;
 	}
 }
