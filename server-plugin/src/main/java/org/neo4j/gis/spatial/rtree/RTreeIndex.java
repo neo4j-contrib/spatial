@@ -584,6 +584,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 
 			//recurse on each partition
 			for (List<NodeWithEnvelope> partition : partitions) {
+				System.out.println("partition = " + partition);
 				Node newIndexNode = tx.createNode();
 				if (partition.size() > 1) {
 					partition(tx, newIndexNode, partition, depth + 1, loadingFactor);
