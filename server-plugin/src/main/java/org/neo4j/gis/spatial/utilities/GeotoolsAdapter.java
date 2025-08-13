@@ -40,7 +40,7 @@ public class GeotoolsAdapter {
 	public static CoordinateReferenceSystem getCRS(String crsText) {
 		// TODO: upgrade geotools to get around bug with java11 support
 		try {
-			if (crsText.startsWith("GEOGCS[\"WGS84(DD)\"")) {
+			if (crsText.equals("WGS84(DD)") || crsText.startsWith("GEOGCS[\"WGS84(DD)\"")) {
 				return WGS84;
 			}
 			if (crsText.startsWith("LOCAL_CS[\"Generic cartesian 2D\"")) {

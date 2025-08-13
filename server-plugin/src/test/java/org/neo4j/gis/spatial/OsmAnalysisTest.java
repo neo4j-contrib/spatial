@@ -19,6 +19,8 @@
  */
 package org.neo4j.gis.spatial;
 
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
+
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -65,7 +67,6 @@ public class OsmAnalysisTest extends TestOSMImportBase {
 	public static final boolean usePoints = true;
 
 	private static Stream<Arguments> parameters() {
-		deleteBaseDir();
 		String[] smallModels = new String[]{"one-street.osm", "two-street.osm"};
 		//String[] mediumModels = new String[]{"map.osm", "map2.osm"};
 		String[] largeModels = new String[]{"cyprus.osm", "croatia.osm", "denmark.osm"};
@@ -201,7 +202,7 @@ public class OsmAnalysisTest extends TestOSMImportBase {
 			tx.commit();
 		}
 
-		StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
+		StyledImageExporter imageExporter = new StyledImageExporter(driver, DEFAULT_DATABASE_NAME);
 		String exportDir = "target/export/" + osm + "/analysis";
 		imageExporter.setExportDir(exportDir);
 		imageExporter.setZoom(2.0);
@@ -272,7 +273,7 @@ public class OsmAnalysisTest extends TestOSMImportBase {
 			tx.commit();
 		}
 
-		StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
+		StyledImageExporter imageExporter = new StyledImageExporter(driver, DEFAULT_DATABASE_NAME);
 		String exportDir = "target/export/" + osm + "/analysis";
 		imageExporter.setExportDir(exportDir);
 		imageExporter.setZoom(2.0);

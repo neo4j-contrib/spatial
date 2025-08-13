@@ -19,6 +19,8 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.ArrayUtils;
 import org.locationtech.jts.geom.Geometry;
@@ -131,6 +133,20 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder, Consta
 	@Override
 	public Set<String> getEncoderProperties() {
 		return Set.of(bboxProperty);
+	}
+
+	@Override
+	public boolean hasComplexAttributes() {
+		return false;
+	}
+
+	@Override
+	public Map<String, ?> getAttributes(Transaction tx, Node geomNode) {
+		Set<String> extraProperties = layer.getExtraProperties(tx).keySet();
+		if (extraProperties.isEmpty()) {
+			return Collections.emptyMap();
+		}
+		return geomNode.getProperties(extraProperties.toArray(new String[0]));
 	}
 
 	// Attributes

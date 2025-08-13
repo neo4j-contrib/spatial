@@ -32,6 +32,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.TreeSet;
@@ -56,24 +57,31 @@ import org.locationtech.jts.geom.util.AffineTransformation;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
 import org.neo4j.annotations.documented.Documented;
+import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.doc.tools.JavaTestDocsGenerator;
+import org.neo4j.driver.AuthTokens;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.GraphDatabase;
 import org.neo4j.gis.spatial.AbstractJavaDocTestBase;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.EditableLayerImpl;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.filter.SearchIntersectWindow;
+import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.pipes.filtering.FilterCQL;
 import org.neo4j.gis.spatial.pipes.osm.OSMGeoPipeline;
+import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.gis.spatial.rtree.filter.SearchAll;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.harness.Neo4j;
+import org.neo4j.harness.Neo4jBuilders;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestData.Title;
-import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
 public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 
@@ -84,6 +92,8 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	private static EditableLayerImpl equalLayer;
 	private static EditableLayerImpl linesLayer;
 	private Transaction tx;
+	private static Neo4j neo4j;
+	private static Driver driver;
 
 	@Test
 	public void find_all() {
@@ -902,15 +912,20 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 				pipelineCollection = pipeline.toFeatureCollection(tx);
 			} else {
 				pipelineCollection = pipeline.toFeatureCollection(tx,
-						Neo4jFeatureBuilder.getType(layer.getName(), geomType, layer.getCoordinateReferenceSystem(tx),
-								layer.getExtraProperties(tx)));
+						Neo4jFeatureBuilder.getType(
+								layer.getName(),
+								geomType,
+								layer.getCoordinateReferenceSystem(tx),
+								layer.getGeometryEncoder().hasComplexAttributes(),
+								layer.getExtraProperties(tx))
+				);
 			}
 
 			ReferencedEnvelope bounds = layerCollection.getBounds();
 			bounds.expandToInclude(pipelineCollection.getBounds());
 			bounds.expandBy(boundsDelta, boundsDelta);
 
-			StyledImageExporter exporter = new StyledImageExporter(db);
+			StyledImageExporter exporter = new StyledImageExporter(driver, DEFAULT_DATABASE_NAME);
 			exporter.setExportDir("../docs/docs/modules/ROOT/images/generated");
 			exporter.saveImage(
 					new FeatureCollection[]{
@@ -1003,7 +1018,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	public void setUp() {
 		gen.get().setGraph(db);
 		try (Transaction tx = db.beginTx()) {
-			StyledImageExporter exporter = new StyledImageExporter(db);
+			StyledImageExporter exporter = new StyledImageExporter(driver, DEFAULT_DATABASE_NAME);
 			exporter.setExportDir("../docs/docs/modules/ROOT/images/generated/layers");
 			exporter.saveImage(GeoPipeline.start(tx, intersectionLayer).toFeatureCollection(tx),
 					StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
@@ -1046,7 +1061,14 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 
 	@BeforeAll
 	public static void init() {
-		databases = new TestDatabaseManagementServiceBuilder(new File("target/docs").toPath()).impermanent().build();
+		neo4j = Neo4jBuilders
+				.newInProcessBuilder(Path.of("target/docs"))
+				.withConfig(GraphDatabaseSettings.procedure_unrestricted, List.of("spatial.*"))
+				.withProcedure(SpatialProcedures.class)
+				.withFunction(SpatialFunctions.class)
+				.build();
+		driver = GraphDatabase.driver(neo4j.boltURI().toString(), AuthTokens.basic("neo4j", ""));
+		databases = neo4j.databaseManagementService();
 		db = databases.database(DEFAULT_DATABASE_NAME);
 		try {
 			load();
@@ -1054,8 +1076,14 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 			e.printStackTrace();
 		}
 
-		StyledImageExporter exporter = new StyledImageExporter(db);
+		StyledImageExporter exporter = new StyledImageExporter(driver, DEFAULT_DATABASE_NAME);
 		exporter.setExportDir("target/docs/images/");
+	}
+
+	@AfterAll
+	public static void close() {
+		driver.close();
+		neo4j.close();
 	}
 
 	@AfterAll

@@ -1,0 +1,94 @@
+=== Extracts attributes from a WKT layer node
+
+[source,cypher]
+----
+CALL spatial.addLayer('wkt_attr_layer', 'WKT', '') YIELD node
+WITH node
+CREATE (n:Geometry {geometry: 'POINT (30 10)', name: 'test_wkt_point', category: 'marker', id: 42})
+WITH n
+CALL spatial.addNode('wkt_attr_layer', n) YIELD node as added_node
+WITH n
+RETURN spatial.extractAttributes('wkt_attr_layer', n) as attributes
+
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|attributes
+a|
+[source]
+----
+{
+  "name" : "test_wkt_point",
+  "category" : "marker",
+  "id" : 42
+}
+----
+
+|===
+
+=== Extracts attributes from a layer node
+
+[source,cypher]
+----
+CALL spatial.addPointLayer('attr_layer') YIELD node
+WITH node
+CREATE (n:Point {longitude: 10.0, latitude: 20.0, name: 'test_point', type: 'landmark', elevation: 100})
+WITH n
+CALL spatial.addNode('attr_layer', n) YIELD node as added_node
+WITH n
+RETURN spatial.extractAttributes('attr_layer', n) as attributes
+
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|attributes
+a|
+[source]
+----
+{
+  "name" : "test_point",
+  "elevation" : 100,
+  "type" : "landmark"
+}
+----
+
+|===
+
+=== Using both functions together
+
+[source,cypher]
+----
+CALL spatial.addPointLayer('combined_layer') YIELD node
+WITH node
+CREATE (n:Point {longitude: 5.5, latitude: 45.5, city: 'TestCity', population: 50000})
+WITH n
+CALL spatial.addNode('combined_layer', n) YIELD node as added_node
+WITH n
+RETURN
+	spatial.decodeGeometry('combined_layer', n) as geometry,
+	spatial.extractAttributes('combined_layer', n) as attributes
+
+----
+
+.Result
+
+[opts="header",cols="2"]
+|===
+|attributes|geometry
+a|
+[source]
+----
+{
+  "city" : "TestCity",
+  "population" : 50000
+}
+----
+|point({x: 5.5, y: 45.5, crs: 'cartesian'})
+|===
+

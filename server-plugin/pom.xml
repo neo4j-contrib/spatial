@@ -181,6 +181,23 @@
 			<version>${neo4j.version}</version>
 			<scope>test</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.assertj</groupId>
+			<artifactId>assertj-core</artifactId>
+			<version>3.27.3</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.neo4j</groupId>
+			<artifactId>neo4j-cypher-dsl</artifactId>
+			<version>2024.7.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.neo4j.test</groupId>
+			<artifactId>neo4j-harness</artifactId>
+			<version>${neo4j.version}</version>
+			<scope>test</scope>
+		</dependency>
 	</dependencies>
 
 

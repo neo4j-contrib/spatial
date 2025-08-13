@@ -21,40 +21,39 @@
 package org.geotools.data.neo4j;
 
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.logging.Logger;
 import org.geotools.api.data.FeatureWriter;
+import org.geotools.api.feature.GeometryAttribute;
 import org.geotools.api.feature.simple.SimpleFeature;
 import org.geotools.api.feature.simple.SimpleFeatureType;
-import org.geotools.data.store.ContentFeatureSource;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
-import org.geotools.geometry.jts.ReferencedEnvelope;
 import org.locationtech.jts.geom.Geometry;
-import org.neo4j.gis.spatial.EditableLayer;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Transaction;
+import org.neo4j.cypherdsl.core.Cypher;
+import org.neo4j.cypherdsl.core.ExposesReturning;
+import org.neo4j.cypherdsl.core.ExposesWith;
+import org.neo4j.cypherdsl.core.Parameter;
 
-class Neo4jSpatialFeatureWriter implements FeatureWriter<SimpleFeatureType, SimpleFeature> {
+public class Neo4jSpatialFeatureWriter implements FeatureWriter<SimpleFeatureType, SimpleFeature> {
 
 	private static final Logger LOGGER = org.geotools.util.logging.Logging.getLogger(Neo4jSpatialFeatureWriter.class);
 
-
-	private final GraphDatabaseService database;
-	private final EditableLayer layer;
-	private final ContentFeatureSource featureSource;
-	private SimpleFeature live;    // current for FeatureWriter
-	private SimpleFeature current; // copy of live returned to user
-	private boolean closed;
+	private final Neo4jSpatialDataStore dataStore;
+	private final Neo4jSpatialFeatureStore featureStore;
 	private final Neo4jSpatialFeatureReader reader;
 
+	private SimpleFeature live; // copy of live returned to user
+	private SimpleFeature current;
+
+	private boolean closed;
+
 	public Neo4jSpatialFeatureWriter(
-			ContentFeatureSource featureSource,
-			GraphDatabaseService database,
-			EditableLayer layer,
+			Neo4jSpatialDataStore dataStore,
+			Neo4jSpatialFeatureStore featureStore,
 			Neo4jSpatialFeatureReader reader
 	) {
-		this.featureSource = featureSource;
-		this.database = database;
-		this.layer = layer;
+		this.dataStore = dataStore;
+		this.featureStore = featureStore;
 		this.reader = reader;
 	}
 
@@ -97,12 +96,17 @@ class Neo4jSpatialFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
 		if (live != null) {
 			LOGGER.fine("Removing " + live);
 
-			try (Transaction tx = database.beginTx()) {
-				layer.delete(tx, live.getID());
-				tx.commit();
-			}
-
-			featureSource.getState().fireFeatureRemoved(featureSource, live);
+			Parameter<String> layerName = Cypher.parameter("layerName", current.getType().getTypeName());
+			var exitingNode = Cypher.anyNode("exitingNode");
+			dataStore.executeQuery(Cypher
+							.match(exitingNode)
+							.where(Cypher.elementId(exitingNode).isEqualTo(Cypher.parameter("nodeToDelete", current.getID())))
+							.call("spatial.removeNode")
+							.withArgs(layerName, exitingNode.asExpression())
+							.yield(Cypher.anyNode("nodeId"))
+							.with(exitingNode)
+							.delete(exitingNode).build(),
+					featureStore.getTransaction());
 		}
 
 		live = null;
@@ -124,27 +128,56 @@ class Neo4jSpatialFeatureWriter implements FeatureWriter<SimpleFeatureType, Simp
 		if (live != null) {
 			if (!live.equals(current)) {
 				LOGGER.fine("Updating " + current);
-				try (Transaction tx = database.beginTx()) {
-					layer.update(tx, current.getID(), (Geometry) current.getDefaultGeometry());
-					tx.commit();
-				}
-
-				featureSource.getState()
-						.fireFeatureUpdated(featureSource, live, new ReferencedEnvelope(current.getBounds()));
-
+				writeCurrent(true);
 			}
 		} else {
 			LOGGER.fine("Inserting " + current);
-			try (Transaction tx = database.beginTx()) {
-				layer.add(tx, (Geometry) current.getDefaultGeometry());
-				tx.commit();
-			}
-
-			featureSource.getState().fireFeatureAdded(featureSource, current);
+			writeCurrent(false);
 		}
 
 		live = null;
 		current = null;
+	}
+
+	private void writeCurrent(boolean updateExiting) {
+		Geometry geometry = (Geometry) current.getDefaultGeometry();
+
+		var node = Cypher.anyNode("node").as("node");
+
+		// extract additional attributes
+		GeometryAttribute defaultGeometryProperty = current.getDefaultGeometryProperty();
+		var extraAttributes = new HashMap<String, Object>();
+		current.getProperties().forEach(property -> {
+			if (property.getName().equals(defaultGeometryProperty.getName())) {
+				return;
+			}
+			extraAttributes.put(property.getName().getLocalPart(), property.getValue());
+		});
+
+		Parameter<String> layerName = Cypher.parameter("layerName", current.getType().getTypeName());
+
+		ExposesWith updateCall;
+		if (updateExiting) {
+			var exitingNode = Cypher.anyNode("exitingNode");
+			Parameter<String> nodeToUpdate = Cypher.parameter("nodeToUpdate", current.getID());
+			updateCall = Cypher
+					.match(exitingNode)
+					.where(Cypher.elementId(exitingNode).isEqualTo(nodeToUpdate))
+					.call("spatial.updateWKT")
+					.withArgs(layerName, exitingNode.asExpression(), Cypher.parameter("geometry", geometry.toText()))
+					.yield(node);
+		} else {
+			updateCall = Cypher
+					.call("spatial.addWKT")
+					.withArgs(layerName, Cypher.parameter("geometry", geometry.toText()))
+					.yield(node);
+		}
+
+		var result = extraAttributes.isEmpty() ? (ExposesReturning) updateCall : updateCall.with(node)
+				.mutate(node, Cypher.parameter("attributes", extraAttributes));
+
+		var statement = result.returning(node).build();
+		dataStore.executeQuery(statement, featureStore.getTransaction());
 	}
 
 	@Override

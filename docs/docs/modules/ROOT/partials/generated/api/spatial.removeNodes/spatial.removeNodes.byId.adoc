@@ -3,10 +3,16 @@
 
 :description: This section contains reference documentation for the spatial.removeNodes.byId procedure.
 
-label:procedure[]
+label:procedure[] label:deprecated[]
 
 [.emphasis]
 Removes the given nodes from the layer, returns the count of nodes removed
+
+[WARNING]
+====
+
+This procedure is deprecated by: spatial.removeNodes
+====
 
 == Signature
 

@@ -25,19 +25,15 @@ import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAM
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import org.geotools.api.data.DataStore;
 import org.geotools.data.neo4j.Neo4jSpatialDataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
-import org.neo4j.dbms.api.DatabaseManagementService;
-import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.osm.OSMDataset;
@@ -60,36 +56,24 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
  * on infrastructure in the Neo4jTestCase that is unlikely to be relevant to the
  * users own coding experience.
  */
-public class TestsForDocs {
-
-	private DatabaseManagementService databases;
-	private GraphDatabaseService graphDb;
+public class TestsForDocs extends Neo4jTestCase {
 
 	@BeforeEach
-	public void setUp() throws Exception {
-		this.databases = new DatabaseManagementServiceBuilder(Path.of("target", "docs-db")).build();
-		this.graphDb = databases.database(DEFAULT_DATABASE_NAME);
-		try (Transaction tx = this.graphDb.beginTx()) {
+	public void setUp() {
+		try (Transaction tx = graphDb().beginTx()) {
 			tx.getAllRelationships().forEach(Relationship::delete);
 			tx.commit();
 		}
-		try (Transaction tx = this.graphDb.beginTx()) {
+		try (Transaction tx = graphDb().beginTx()) {
 			tx.getAllNodes().forEach(Node::delete);
 			tx.commit();
 		}
 	}
 
-	@AfterEach
-	public void tearDown() {
-		this.databases.shutdown();
-		this.databases = null;
-		this.graphDb = null;
-	}
-
 	private void checkIndexAndFeatureCount(String layerName) throws IOException {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
-		try (Transaction tx = graphDb.beginTx()) {
+				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+		try (Transaction tx = graphDb().beginTx()) {
 			Layer layer = spatial.getLayer(tx, layerName, true);
 			if (layer.getIndex().count(tx) < 1) {
 				System.out.println("Warning: index count zero: " + layer.getName());
@@ -98,10 +82,10 @@ public class TestsForDocs {
 					"Layer '" + layer.getName() + "' has " + layer.getIndex().count(tx) + " entries in the index");
 			tx.commit();
 		}
-		DataStore store = new Neo4jSpatialDataStore(graphDb);
+		DataStore store = new Neo4jSpatialDataStore(driver, DEFAULT_DATABASE_NAME);
 		SimpleFeatureCollection features = store.getFeatureSource(layerName).getFeatures();
 		System.out.println("Layer '" + layerName + "' has " + features.size() + " features");
-		try (Transaction tx = graphDb.beginTx()) {
+		try (Transaction tx = graphDb().beginTx()) {
 			Layer layer = spatial.getLayer(tx, layerName, true);
 			assertEquals(layer.getIndex().count(tx), features.size(),
 					"FeatureCollection.size for layer '" + layer.getName() + "' not the same as index count");
@@ -155,11 +139,11 @@ public class TestsForDocs {
 	@Test
 	public void testImportOSM() throws Exception {
 		System.out.println("\n=== Simple test map.osm ===");
-		importMapOSM(graphDb);
-		GraphDatabaseService database = graphDb;
+		importMapOSM(graphDb());
+		GraphDatabaseService database = graphDb();
 		// START SNIPPET: searchBBox tag::searchBBox[]
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
+				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		try (Transaction tx = database.beginTx()) {
 			Layer layer = spatial.getLayer(tx, "map.osm", true);
 			LayerIndexReader spatialIndex = layer.getIndex();
@@ -181,7 +165,7 @@ public class TestsForDocs {
 	@Test
 	public void testImportShapefile() throws Exception {
 		System.out.println("\n=== Test Import Shapefile ===");
-		GraphDatabaseService database = graphDb;
+		GraphDatabaseService database = graphDb();
 
 		// START SNIPPET: importShapefile tag::importShapefile[]
 		ShapefileImporter importer = new ShapefileImporter(database);
@@ -194,11 +178,11 @@ public class TestsForDocs {
 	@Test
 	public void testExportShapefileFromOSM() throws Exception {
 		System.out.println("\n=== Test import map.osm, create DynamicLayer and export shapefile ===");
-		importMapOSM(graphDb);
-		GraphDatabaseService database = graphDb;
+		importMapOSM(graphDb());
+		GraphDatabaseService database = graphDb();
 		// START SNIPPET: exportShapefileFromOSM tag::exportShapefileFromOSM[]
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
+				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		String wayLayerName;
 		try (Transaction tx = database.beginTx()) {
 			OSMLayer layer = (OSMLayer) spatial.getLayer(tx, "map.osm", false);
@@ -207,7 +191,7 @@ public class TestsForDocs {
 			layer.finalizeTransaction(tx);
 			tx.commit();
 		}
-		ShapefileExporter shpExporter = new ShapefileExporter(database);
+		ShapefileExporter shpExporter = new ShapefileExporter(driver, DEFAULT_DATABASE_NAME);
 		shpExporter.exportLayer(wayLayerName);
 		// END SNIPPET: exportShapefileFromOSM end::exportShapefileFromOSM[]
 	}
@@ -215,11 +199,11 @@ public class TestsForDocs {
 	@Test
 	public void testExportShapefileFromQuery() throws Exception {
 		System.out.println("\n=== Test import map.osm, create DynamicLayer and export shapefile ===");
-		importMapOSM(graphDb);
-		GraphDatabaseService database = graphDb;
+		importMapOSM(graphDb());
+		GraphDatabaseService database = graphDb();
 		// START SNIPPET: exportShapefileFromQuery tag::exportShapefileFromQuery[]
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
+				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		Envelope bbox = new Envelope(12.94, 12.96, 56.04, 56.06);
 		List<SpatialDatabaseRecord> results;
 		try (Transaction tx = database.beginTx()) {
@@ -235,7 +219,7 @@ public class TestsForDocs {
 			tx.commit();
 
 		}
-		ShapefileExporter shpExporter = new ShapefileExporter(database);
+		ShapefileExporter shpExporter = new ShapefileExporter(driver, DEFAULT_DATABASE_NAME);
 		shpExporter.exportLayer("results");
 		// END SNIPPET: exportShapefileFromQuery end::exportShapefileFromQuery[]
 		doGeometryTestsOnResults(bbox, results);

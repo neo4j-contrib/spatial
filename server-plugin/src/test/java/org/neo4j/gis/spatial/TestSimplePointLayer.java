@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -380,9 +381,9 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 	}
 
 	private void saveLayerAsImage(String layerName, int width, int height) {
-		ShapefileExporter shpExporter = new ShapefileExporter(graphDb());
+		ShapefileExporter shpExporter = new ShapefileExporter(driver, DEFAULT_DATABASE_NAME);
 		shpExporter.setExportDir("target/export/SimplePointTests");
-		StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
+		StyledImageExporter imageExporter = new StyledImageExporter(driver, DEFAULT_DATABASE_NAME);
 		imageExporter.setExportDir("target/export/SimplePointTests");
 		imageExporter.setZoom(0.9);
 		imageExporter.setSize(width, height);
@@ -396,9 +397,9 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 	}
 
 	private void saveResultsAsImage(List<? extends SpatialRecord> results, String layerName, int width, int height) {
-		ShapefileExporter shpExporter = new ShapefileExporter(graphDb());
+		ShapefileExporter shpExporter = new ShapefileExporter(driver, DEFAULT_DATABASE_NAME);
 		shpExporter.setExportDir("target/export/SimplePointTests");
-		StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
+		StyledImageExporter imageExporter = new StyledImageExporter(driver, DEFAULT_DATABASE_NAME);
 		imageExporter.setExportDir("target/export/SimplePointTests");
 		imageExporter.setZoom(0.9);
 		imageExporter.setSize(width, height);

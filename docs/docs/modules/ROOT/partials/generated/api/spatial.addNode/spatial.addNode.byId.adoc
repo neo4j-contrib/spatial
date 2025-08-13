@@ -3,10 +3,16 @@
 
 :description: This section contains reference documentation for the spatial.addNode.byId procedure.
 
-label:procedure[]
+label:procedure[] label:deprecated[]
 
 [.emphasis]
 Adds the given node to the layer, returns the geometry-node
+
+[WARNING]
+====
+
+This procedure is deprecated by: spatial.addNode
+====
 
 == Signature
 

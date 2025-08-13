@@ -36,7 +36,6 @@ public class LayerSignatureTest extends Neo4jTestCase implements Constants {
 
 	@BeforeEach
 	public void setup() throws Exception {
-		super.setUp();
 		spatial = new SpatialDatabaseService(
 				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 	}

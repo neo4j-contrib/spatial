@@ -571,4 +571,22 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	public Set<String> getEncoderProperties() {
 		return Set.of(bboxProperty, PROPERTY_VERTICES, PROPERTY_LAT, PROPERTY_LON, PROP_TYPE);
 	}
+
+	@Override
+	public boolean hasComplexAttributes() {
+		return true;
+	}
+
+	@Override
+	public Map<String, ?> getAttributes(Transaction tx, Node geomNode) {
+		CombinedAttributes properties = getProperties(geomNode);
+		Set<String> props = layer.getExtraProperties(tx).keySet();
+		Map<String, Object> result = new HashMap<>();
+		for (String prop : props) {
+			if (properties.hasProperty(prop)) {
+				result.put(prop, properties.getProperty(prop));
+			}
+		}
+		return result;
+	}
 }

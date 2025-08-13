@@ -20,50 +20,86 @@
 package org.geotools.data.neo4j;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
+import org.geotools.api.data.Query;
 import org.geotools.api.feature.simple.SimpleFeatureType;
 import org.geotools.api.feature.type.Name;
-import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.data.store.ContentDataStore;
 import org.geotools.data.store.ContentEntry;
-import org.geotools.data.store.ContentFeatureSource;
 import org.geotools.feature.NameImpl;
-import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.locationtech.jts.geom.Envelope;
+import org.locationtech.jts.geom.Geometry;
+import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.Point;
+import org.neo4j.cypherdsl.core.Cypher;
+import org.neo4j.cypherdsl.core.Statement;
+import org.neo4j.cypherdsl.core.renderer.Configuration;
+import org.neo4j.cypherdsl.core.renderer.Dialect;
+import org.neo4j.cypherdsl.core.renderer.Renderer;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.Record;
+import org.neo4j.driver.Session;
+import org.neo4j.driver.SessionConfig;
+import org.neo4j.driver.Value;
 import org.neo4j.gis.spatial.Constants;
-import org.neo4j.gis.spatial.EditableLayer;
-import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
-import org.neo4j.gis.spatial.SpatialDatabaseService;
-import org.neo4j.gis.spatial.Utilities;
-import org.neo4j.gis.spatial.filter.SearchRecords;
-import org.neo4j.gis.spatial.index.IndexManager;
-import org.neo4j.gis.spatial.rtree.filter.SearchAll;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Transaction;
-import org.neo4j.internal.kernel.api.security.SecurityContext;
-import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.gis.spatial.utilities.GeotoolsAdapter;
 
 /**
  * Geotools DataStore implementation.
  */
 public class Neo4jSpatialDataStore extends ContentDataStore implements Constants {
 
-	private final Map<String, SimpleFeatureType> simpleFeatureTypeIndex = Collections.synchronizedMap(new HashMap<>());
-	private final Map<String, CoordinateReferenceSystem> crsIndex = Collections.synchronizedMap(new HashMap<>());
-	private final Map<String, ReferencedEnvelope> boundsIndex = Collections.synchronizedMap(new HashMap<>());
-	private final GraphDatabaseService database;
-	private final SpatialDatabaseService spatialDatabase;
-	private List<Name> typeNames;
+	private static final Renderer cypherRenderer = Renderer.getRenderer(
+			Configuration.newConfig()
+					.withDialect(Dialect.NEO4J_5_26)
+					.build()
+	);
 
-	public Neo4jSpatialDataStore(GraphDatabaseService database) {
-		this.database = database;
-		this.spatialDatabase = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) database, SecurityContext.AUTH_DISABLED));
+	private final Driver driver;
+	private final SessionConfig sessionConfig;
+
+	private final Map<String, SimpleFeatureType> simpleFeatureTypeCache = Collections.synchronizedMap(new HashMap<>());
+
+	public Neo4jSpatialDataStore(Driver driver, String database) {
+		this.driver = driver;
+		this.sessionConfig = SessionConfig.forDatabase(database);
+	}
+
+	public Session getSession(org.geotools.api.data.Transaction t) {
+		if (t == org.geotools.api.data.Transaction.AUTO_COMMIT) {
+			return driver.session(sessionConfig);
+		} else {
+			Neo4jTransactionState state = (Neo4jTransactionState) t.getState(this);
+			if (state == null) {
+				Session session = driver.session(sessionConfig);
+				state = new Neo4jTransactionState(session);
+				t.putState(this, state);
+				state.setTransaction(t);
+			}
+			return state.getSession();
+		}
+	}
+
+	public Stream<org.neo4j.driver.Record> executeQuery(Statement statement, org.geotools.api.data.Transaction tx) {
+		return executeQuery(cypherRenderer.render(statement), statement.getCatalog().getParameters(), tx);
+	}
+
+	public Stream<Record> executeQuery(String cypher, Map<String, Object> parameters,
+			org.geotools.api.data.Transaction tx) {
+		Session session = getSession(tx);
+
+		if (tx == org.geotools.api.data.Transaction.AUTO_COMMIT) {
+			return session.run(cypher, parameters)
+					.stream()
+					.onClose(session::close);
+		} else {
+			Neo4jTransactionState state = (Neo4jTransactionState) tx.getState(this);
+			org.neo4j.driver.Transaction neo4jTx = state.getNeo4jTransaction();
+			return neo4jTx.run(cypher, parameters).stream();
+		}
 	}
 
 	/**
@@ -74,98 +110,64 @@ public class Neo4jSpatialDataStore extends ContentDataStore implements Constants
 	 */
 	@Override
 	protected List<Name> createTypeNames() {
-		if (typeNames == null) {
-			try (Transaction tx = database.beginTx()) {
-				List<Name> notEmptyTypes = new ArrayList<>();
-				String[] allTypeNames = spatialDatabase.getLayerNames(tx);
-				for (String allTypeName : allTypeNames) {
-					// discard empty layers
-					System.out.print("loading layer " + allTypeName);
-					Layer layer = spatialDatabase.getLayer(tx, allTypeName, true);
-					if (!layer.getIndex().isEmpty(tx)) {
-						notEmptyTypes.add(new NameImpl(allTypeName));
-					}
-				}
-				typeNames = notEmptyTypes;
-				tx.commit();
-			}
-		}
-		return typeNames;
+		Statement statement = Cypher.call("spatial.layers").build();
+		var result = executeQuery(statement, org.geotools.api.data.Transaction.AUTO_COMMIT);
+		return result.<Name>map(record -> {
+					String layerName = record.get("name").asString();
+					return new NameImpl(layerName);
+				})
+				.toList();
 	}
 
 	/**
 	 * Return FeatureType of the given Layer.
 	 * FeatureTypes are cached in memory.
 	 */
-	public SimpleFeatureType buildFeatureType(String typeName) throws IOException {
-		SimpleFeatureType result = simpleFeatureTypeIndex.get(typeName);
-		if (result == null) {
-			try (Transaction tx = database.beginTx()) {
-				Layer layer = spatialDatabase.getLayer(tx, typeName, true);
-				if (layer == null) {
-					throw new IOException("Layer not found: " + typeName);
-				}
+	public SimpleFeatureType buildFeatureType(String layerName) throws IOException {
+		return simpleFeatureTypeCache.computeIfAbsent(layerName, s -> {
 
-				result = Neo4jFeatureBuilder.getTypeFromLayer(tx, layer);
-				simpleFeatureTypeIndex.put(typeName, result);
-				tx.commit();
+			Statement statement = Cypher.call("spatial.layerMeta")
+					.withArgs(Cypher.parameter("layerName", layerName))
+					.build();
+
+			var result = executeQuery(statement, org.geotools.api.data.Transaction.AUTO_COMMIT).findFirst()
+					.orElseThrow();
+
+			String geometryType = result.get("geometryType").asString();
+			Class<? extends Geometry> geometryTypeClass;
+			try {
+				//noinspection unchecked
+				geometryTypeClass = (Class<? extends Geometry>) Class.forName(geometryType);
+			} catch (ClassNotFoundException e) {
+				throw new IllegalStateException("Unable to load geometry type " + geometryType, e);
 			}
-		}
 
-		return result;
-	}
-
-	public ReferencedEnvelope getBounds(String typeName) {
-		ReferencedEnvelope result = boundsIndex.get(typeName);
-		if (result == null) {
-			try (Transaction tx = database.beginTx()) {
-				Layer layer = spatialDatabase.getLayer(tx, typeName, true);
-				if (layer != null) {
-					Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox(tx));
-					result = new ReferencedEnvelope(bbox, getCRS(tx, layer));
-					boundsIndex.put(typeName, result);
+			boolean hasComplexAttributes = result.get("hasComplexAttributes").asBoolean();
+			Value crsString = result.get("crs");
+			var crs = crsString.isNull() ? null : GeotoolsAdapter.getCRS(crsString.asString());
+			var extraProperties = result.get("extraAttributes").asMap(value -> {
+				String className = value.asString();
+				if (className.equals("org.neo4j.values.storable.PointValue")) {
+					return Point.class;
 				}
-				tx.commit();
-			}
-		}
-		return result;
-	}
-
-	public Transaction beginTx() {
-		return database.beginTx();
+				if (className.equals("[org.neo4j.values.storable.PointValue;")) {
+					return LineString.class;
+				}
+				try {
+					return Class.forName(className);
+				} catch (ClassNotFoundException e) {
+					getLogger().warning("Class not found: " + className + ", falling back to java.lang.String");
+					return String.class;
+				}
+			});
+			return Neo4jFeatureBuilder.getType(layerName, geometryTypeClass, crs, hasComplexAttributes,
+					extraProperties);
+		});
 	}
 
 	@Override
-	protected ContentFeatureSource createFeatureSource(ContentEntry contentEntry) throws IOException {
-		Layer layer;
-		ArrayList<SpatialDatabaseRecord> records = new ArrayList<>();
-		Map<String, Class<?>> extraProperties;
-		try (Transaction tx = database.beginTx()) {
-			layer = spatialDatabase.getLayer(tx, contentEntry.getTypeName(), false);
-			SearchRecords results = layer.getIndex().search(tx, new SearchAll());
-			// We need to pull all records during this transaction, so that later readers do not have a transaction violation
-			// TODO: See if there is a more memory efficient way of doing this, perhaps create a transaction at read time in the reader?
-			for (SpatialDatabaseRecord record : results) {
-				records.add(record);
-			}
-			extraProperties = layer.getExtraProperties(tx);
-			tx.commit();
-		}
-		Neo4jSpatialFeatureSource source = new Neo4jSpatialFeatureSource(contentEntry, database, layer,
-				buildFeatureType(contentEntry.getTypeName()), records, extraProperties.keySet());
-		if (layer instanceof EditableLayer) {
-			return new Neo4jSpatialFeatureStore(contentEntry, database, (EditableLayer) layer, source);
-		}
-		return source;
-	}
-
-	private CoordinateReferenceSystem getCRS(Transaction tx, Layer layer) {
-		CoordinateReferenceSystem result = crsIndex.get(layer.getName());
-		if (result == null) {
-			result = layer.getCoordinateReferenceSystem(tx);
-			crsIndex.put(layer.getName(), result);
-		}
-
-		return result;
+	protected Neo4jSpatialFeatureStore createFeatureSource(ContentEntry contentEntry) throws IOException {
+		var featureType = buildFeatureType(contentEntry.getTypeName());
+		return new Neo4jSpatialFeatureStore(this, featureType, contentEntry, Query.ALL);
 	}
 }

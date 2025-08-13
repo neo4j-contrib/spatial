@@ -1,0 +1,22 @@
+=== Converting a layer node to WKT
+
+[source,cypher]
+----
+CALL spatial.addPointLayer('wkt_layer') YIELD node
+WITH node
+CREATE (n:Point {longitude: 10.0, latitude: 20.0})
+WITH n
+CALL spatial.addNode('wkt_layer', n) YIELD node as added_node
+WITH n
+RETURN spatial.nodeAsWKT('wkt_layer', n) as wkt
+
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|wkt
+|POINT (10 20)
+|===
+

@@ -1,0 +1,73 @@
+=== Get the bounding box of a layer
+
+[source,cypher]
+----
+CALL spatial.addPointLayer('bbox_layer', 'rtree', 'wgs84') YIELD node
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|node
+a|
+[source]
+----
+(:SpatialLayer {
+    geomencoder: "org.neo4j.gis.spatial.encoders.SimplePointEncoder",
+    index_class: "org.neo4j.gis.spatial.index.LayerRTreeIndex",
+    layer: "bbox_layer",
+    layer_class: "org.neo4j.gis.spatial.SimplePointLayer",
+    layercrs: "GEOGCS[\"WGS84(DD)\", \n  DATUM[\"WGS84\", \n    SPHEROID[\"WGS84\", 6378137.0, 298.257223563]], \n  PRIMEM[\"Greenwich\", 0.0], \n  UNIT[\"degree\", 0.017453292519943295], \n  AXIS[\"Geodetic longitude\", EAST], \n  AXIS[\"Geodetic latitude\", NORTH], \n  AUTHORITY[\"EPSG\",\"4326\"]]"
+})
+----
+
+|===
+
+Add points at opposite corners
+
+[source,cypher]
+----
+CREATE (n1:Point {latitude: 60.0, longitude: 15.0, name: 'southwest'})
+CREATE (n2:Point {latitude: 61.0, longitude: 16.0, name: 'northeast'})
+WITH n1, n2
+CALL spatial.addNode('bbox_layer', n1) YIELD node as added1
+WITH n2, added1
+CALL spatial.addNode('bbox_layer', n2) YIELD node as added2
+RETURN added1, added2
+
+----
+
+[source,cypher]
+----
+CALL spatial.getLayerBoundingBox('bbox_layer') YIELD minX, minY, maxX, maxY, crs
+----
+
+.Result
+
+[opts="header",cols="5"]
+|===
+|crs|maxX|maxY|minX|minY
+|WGS84(DD)a|
+[source]
+----
+16.0
+----
+a|
+[source]
+----
+61.0
+----
+a|
+[source]
+----
+15.0
+----
+a|
+[source]
+----
+60.0
+----
+
+|===
+

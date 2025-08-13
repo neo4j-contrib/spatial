@@ -1,0 +1,53 @@
+=== Find geometries using CQL
+
+[source,cypher]
+----
+CALL spatial.addWKTLayer('geom','wkt') YIELD node
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|node
+a|
+[source]
+----
+(:SpatialLayer {
+    geomencoder: "org.neo4j.gis.spatial.WKTGeometryEncoder",
+    geomencoder_config: "wkt",
+    index_class: "org.neo4j.gis.spatial.index.LayerRTreeIndex",
+    layer: "geom",
+    layer_class: "org.neo4j.gis.spatial.EditableLayerImpl"
+})
+----
+
+|===
+
+Create and add nodes with different coordinates
+
+[source,cypher]
+----
+CREATE (n1:Node {wkt: 'POINT(15.2 60.1)', name: 'point1'})
+CREATE (n2:Node {wkt: 'POINT(25.2 30.1)', name: 'point2'})
+WITH n1, n2
+CALL spatial.addNode('geom', n1) YIELD node as added1
+WITH n2, added1
+CALL spatial.addNode('geom', n2) YIELD node as added2
+RETURN added1, added2
+
+----
+
+[source,cypher]
+----
+CALL spatial.cql('geom', 'name = \'point1\'') YIELD node RETURN node.name as name
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|name
+|point1
+|===
+

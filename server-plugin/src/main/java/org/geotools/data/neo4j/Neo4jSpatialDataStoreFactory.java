@@ -19,33 +19,35 @@
  */
 package org.geotools.data.neo4j;
 
-import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
+import static org.geotools.api.data.Parameter.IS_PASSWORD;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.Map;
-import org.geotools.api.data.DataStore;
-import org.geotools.api.data.DataStoreFactorySpi;
+import org.geotools.api.data.DataAccessFactory;
 import org.geotools.util.KVP;
-import org.neo4j.dbms.api.DatabaseManagementService;
-import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
-import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.driver.AuthTokens;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.GraphDatabase;
 
 /**
- * DataStoreFactorySpi implementation. It needs an "url" parameter containing a
- * path of a Neo4j neostore-id file.
+ * DataAccessFactory implementation for Neo4j with a driver-based connection.
  */
-public class Neo4jSpatialDataStoreFactory implements DataStoreFactorySpi {
-
-	// TODO: This should change to Neo4j 4.x directory layout and possible multiple databases
-	/**
-	 * url to the neostore-id file.
-	 */
-	public static final Param DIRECTORY = new Param("The directory path of the Neo4j database: ", File.class,
-			"db", true);
+public class Neo4jSpatialDataStoreFactory implements DataAccessFactory {
 
 	public static final Param DBTYPE = new Param("dbtype", String.class,
-			"must be 'neo4j'", true, "neo4j", new KVP(Param.LEVEL, "program"));
+			"must be 'neo4j-driver'", true, "neo4j-driver", new KVP(Param.LEVEL, "program"));
+
+	public static final Param URI = new Param("uri", String.class,
+			"URI for the Neo4j server", true, "bolt://localhost:7687");
+
+	public static final Param DATABASE = new Param("database", String.class,
+			"Neo4j database name", false, "neo4j");
+
+	public static final Param USERNAME = new Param("username", String.class,
+			"Username for Neo4j authentication", true, "neo4j");
+
+	public static final Param PASSWORD = new Param("password", String.class,
+			"Password for Neo4j authentication", true, null, Map.of(IS_PASSWORD, true));
 
 	/**
 	 * Creates a new instance of Neo4jSpatialDataStoreFactory
@@ -55,31 +57,26 @@ public class Neo4jSpatialDataStoreFactory implements DataStoreFactorySpi {
 
 	@Override
 	public boolean canProcess(Map params) {
-		String type = (String) params.get("dbtype");
-		if (type != null) {
-			return type.equalsIgnoreCase("neo4j");
-		}
-		return false;
+		String type = (String) params.get(DBTYPE.key);
+		return DBTYPE.sample.equals(type);
 	}
 
 	@Override
-	public DataStore createDataStore(Map<String, ?> params) throws IOException {
+	public Neo4jSpatialDataStore createDataStore(Map<String, ?> params) throws IOException {
 
 		if (!canProcess(params)) {
-			throw new IOException("The parameters map isn't correct!!");
+			throw new IOException("The parameters map isn't correct");
 		}
 
-		File neodir = (File) DIRECTORY.lookUp(params);
+		String uri = (String) URI.lookUp(params);
+		String username = (String) USERNAME.lookUp(params);
+		String password = (String) PASSWORD.lookUp(params);
+		String database = params.containsKey(DATABASE.key) ?
+				(String) DATABASE.lookUp(params) : "neo4j";
 
-		DatabaseManagementService databases = new DatabaseManagementServiceBuilder(neodir.toPath()).build();
-		GraphDatabaseService db = databases.database(DEFAULT_DATABASE_NAME);
+		Driver driver = GraphDatabase.driver(uri, AuthTokens.basic(username, password));
 
-		return new Neo4jSpatialDataStore(db);
-	}
-
-	@Override
-	public DataStore createNewDataStore(Map params) {
-		throw new UnsupportedOperationException("Neo4j Spatial cannot create a new database!");
+		return new Neo4jSpatialDataStore(driver, database);
 	}
 
 	@Override
@@ -89,7 +86,7 @@ public class Neo4jSpatialDataStoreFactory implements DataStoreFactorySpi {
 
 	@Override
 	public String getDescription() {
-		return "A datasource backed by a Neo4j Spatial database";
+		return "A datasource connecting a neo4j server that has the neo4j-spatial plugin installed";
 	}
 
 	@Override
@@ -99,7 +96,7 @@ public class Neo4jSpatialDataStoreFactory implements DataStoreFactorySpi {
 
 	@Override
 	public Param[] getParametersInfo() {
-		return new Param[]{DBTYPE, DIRECTORY};
+		return new Param[]{DBTYPE, URI, DATABASE, USERNAME, PASSWORD};
 	}
 
 }

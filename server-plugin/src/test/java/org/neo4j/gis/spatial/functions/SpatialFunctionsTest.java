@@ -35,6 +35,7 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.doc.domain.examples.ExampleCypher;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gis.spatial.AbstractApiTest;
+import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.graphdb.spatial.Geometry;
 
 public class SpatialFunctionsTest extends AbstractApiTest {
@@ -42,6 +43,7 @@ public class SpatialFunctionsTest extends AbstractApiTest {
 	@Override
 	protected void registerApiProceduresAndFunctions() throws KernelException {
 		registerProceduresAndFunctions(SpatialFunctions.class);
+		registerProceduresAndFunctions(SpatialProcedures.class);
 	}
 
 	@Test
@@ -367,6 +369,98 @@ public class SpatialFunctionsTest extends AbstractApiTest {
 						ExampleCypher::storeResult)
 				.assertSingleResult("wkt", wkt -> {
 					assertThat(wkt, equalTo("LINESTRING (1 2, 3 4)"));
+				});
+	}
+
+	@Test
+	public void testExtractAttributes() {
+		docExample("spatial.extractAttributes", "Extracts attributes from a layer node")
+				.runCypher("""
+						CALL spatial.addPointLayer('attr_layer') YIELD node
+						WITH node
+						CREATE (n:Point {longitude: 10.0, latitude: 20.0, name: 'test_point', type: 'landmark', elevation: 100})
+						WITH n
+						CALL spatial.addNode('attr_layer', n) YIELD node as added_node
+						WITH n
+						RETURN spatial.extractAttributes('attr_layer', n) as attributes
+						""",
+						ExampleCypher::storeResult)
+				.assertSingleResult("attributes", attributes -> {
+					Assertions.assertThat(attributes)
+							.asInstanceOf(InstanceOfAssertFactories.MAP)
+							.containsKeys("name", "type", "elevation")
+							.containsEntry("name", "test_point")
+							.containsEntry("type", "landmark")
+							.containsEntry("elevation", 100L);
+				});
+	}
+
+	@Test
+	public void testExtractAttributesWithWKT() {
+		docExample("spatial.extractAttributes", "Extracts attributes from a WKT layer node")
+				.runCypher("""
+						CALL spatial.addLayer('wkt_attr_layer', 'WKT', '') YIELD node
+						WITH node
+						CREATE (n:Geometry {geometry: 'POINT (30 10)', name: 'test_wkt_point', category: 'marker', id: 42})
+						WITH n
+						CALL spatial.addNode('wkt_attr_layer', n) YIELD node as added_node
+						WITH n
+						RETURN spatial.extractAttributes('wkt_attr_layer', n) as attributes
+						""",
+						ExampleCypher::storeResult)
+				.assertSingleResult("attributes", attributes -> {
+					Assertions.assertThat(attributes)
+							.asInstanceOf(InstanceOfAssertFactories.MAP)
+							.containsKeys("name", "category", "id")
+							.containsEntry("name", "test_wkt_point")
+							.containsEntry("category", "marker")
+							.containsEntry("id", 42L);
+				});
+	}
+
+	@Test
+	public void testDecodeGeometryAndExtractAttributesTogether() {
+		docExample("spatial.decodeGeometry", "Using both functions together")
+				.additionalSignature("spatial.extractAttributes")
+				.runCypher("""
+						CALL spatial.addPointLayer('combined_layer') YIELD node
+						WITH node
+						CREATE (n:Point {longitude: 5.5, latitude: 45.5, city: 'TestCity', population: 50000})
+						WITH n
+						CALL spatial.addNode('combined_layer', n) YIELD node as added_node
+						WITH n
+						RETURN 
+							spatial.decodeGeometry('combined_layer', n) as geometry,
+							spatial.extractAttributes('combined_layer', n) as attributes
+						""",
+						ExampleCypher::storeResult)
+				.assertSingleResult("geometry", geometry -> {
+					assertInstanceOf(Geometry.class, geometry, "Should be Geometry type");
+				})
+				.assertSingleResult("attributes", attributes -> {
+					Assertions.assertThat(attributes)
+							.asInstanceOf(InstanceOfAssertFactories.MAP)
+							.containsKeys("city", "population")
+							.containsEntry("city", "TestCity")
+							.containsEntry("population", 50000L);
+				});
+	}
+
+	@Test
+	public void testNodeAsWKT() {
+		docExample("spatial.nodeAsWKT", "Converting a layer node to WKT")
+				.runCypher("""
+						CALL spatial.addPointLayer('wkt_layer') YIELD node
+						WITH node
+						CREATE (n:Point {longitude: 10.0, latitude: 20.0})
+						WITH n
+						CALL spatial.addNode('wkt_layer', n) YIELD node as added_node
+						WITH n
+						RETURN spatial.nodeAsWKT('wkt_layer', n) as wkt
+						""",
+						ExampleCypher::storeResult)
+				.assertSingleResult("wkt", wkt -> {
+					assertThat(wkt, equalTo("POINT (10 20)"));
 				});
 	}
 }

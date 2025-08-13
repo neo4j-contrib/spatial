@@ -19,23 +19,6 @@
  */
 package org.neo4j.gis.spatial.osm;
 
-import java.io.File;
-import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import org.neo4j.dbms.api.DatabaseManagementService;
-import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
-import org.neo4j.gis.spatial.Constants;
-import org.neo4j.gis.spatial.ShapefileExporter;
-import org.neo4j.gis.spatial.SpatialDatabaseService;
-import org.neo4j.gis.spatial.index.IndexManager;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Transaction;
-import org.neo4j.internal.kernel.api.security.SecurityContext;
-import org.neo4j.kernel.internal.GraphDatabaseAPI;
-
 public class OSMLayerToShapefileExporter {
 
 	/**
@@ -49,57 +32,58 @@ public class OSMLayerToShapefileExporter {
 	 *             specifications.
 	 */
 	public static void main(String[] args) {
-		if (args.length < 5) {
-			System.out.println("Usage: osmtoshp neo4jHome database exportdir osmdataset layerspec <..layerspecs..>");
-			System.out.println(
-					"\tNote: 'database' can only be something other than 'neo4j' in Neo4j Enterprise Edition.");
-		} else {
-			String homeDir = args[0];
-			String database = args[1];
-			String exportDir = args[2];
-			String osmdataset = args[3];
-			List<String> layerspecs = new ArrayList<>(Arrays.asList(args).subList(4, args.length));
-			DatabaseManagementService databases = new DatabaseManagementServiceBuilder(Path.of(homeDir)).build();
-			GraphDatabaseService db = databases.database(database);
-			SpatialDatabaseService spatial = new SpatialDatabaseService(
-					new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
-			OSMLayer layer;
-			try (Transaction tx = db.beginTx()) {
-				layer = (OSMLayer) spatial.getLayer(tx, osmdataset, false);
-			}
-			if (layer != null) {
-				ShapefileExporter exporter = new ShapefileExporter(db);
-				exporter.setExportDir(args[1] + File.separator + layer.getName());
-				for (String layerspec : layerspecs) {
-					String[] fields = layerspec.split("[.\\-]");
-					HashMap<String, String> tags = new HashMap<>();
-					String key = fields[0];
-					String name = key;
-					if (fields.length > 1) {
-						String value = fields[1];
-						name = key + "-" + value;
-						tags.put(key, value);
-					}
-
-					try (Transaction tx = db.beginTx()) {
-						if (layer.getLayerNames(tx).contains(name)) {
-							System.out.println("Exporting previously existing layer: " + name);
-						} else {
-							System.out.println("Creating and exporting new layer: " + name);
-							layer.addDynamicLayerOnWayTags(tx, name, Constants.GTYPE_LINESTRING, tags);
-						}
-						exporter.exportLayer(name);
-						tx.commit();
-					} catch (Exception e) {
-						System.err.println("Failed to export dynamic layer " + name + ": " + e);
-						e.printStackTrace(System.err);
-					}
-				}
-			} else {
-				System.err.println("No such layer: " + args[2]);
-			}
-			databases.shutdown();
-		}
+		// TODO if we need this, then uncomment and fix
+//		if (args.length < 6) {
+//			System.out.println("Usage: osmtoshp <bolturi> <database> <user> <password> <osmdataset> <layerspec> <layerspecs..>");
+//		} else {
+//			String bolturi = args[0];
+//			String database = args[1];
+//			String user = args[2];
+//			String password = args[3];
+//			String osmdataset = args[4];
+//			List<String> layerspecs = new ArrayList<>(Arrays.asList(args).subList(5, args.length));
+//			DatabaseManagementService databases = new DatabaseManagementServiceBuilder(Path.of(homeDir)).build();
+//			GraphDatabaseService db = databases.database(database);
+//			SpatialDatabaseService spatial = new SpatialDatabaseService(
+//					new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
+//			OSMLayer layer;
+//			try (Transaction tx = db.beginTx()) {
+//				layer = (OSMLayer) spatial.getLayer(tx, osmdataset, false);
+//			}
+//			if (layer != null) {
+//				var driver = GraphDatabase.driver(bolturi, AuthTokens.basic(user,password));
+//				ShapefileExporter exporter = new ShapefileExporter(driver, database);
+//				exporter.setExportDir(args[1] + File.separator + layer.getName());
+//				for (String layerspec : layerspecs) {
+//					String[] fields = layerspec.split("[.\\-]");
+//					HashMap<String, String> tags = new HashMap<>();
+//					String key = fields[0];
+//					String name = key;
+//					if (fields.length > 1) {
+//						String value = fields[1];
+//						name = key + "-" + value;
+//						tags.put(key, value);
+//					}
+//
+//					try (Transaction tx = db.beginTx()) {
+//						if (layer.getLayerNames(tx).contains(name)) {
+//							System.out.println("Exporting previously existing layer: " + name);
+//						} else {
+//							System.out.println("Creating and exporting new layer: " + name);
+//							layer.addDynamicLayerOnWayTags(tx, name, Constants.GTYPE_LINESTRING, tags);
+//						}
+//						exporter.exportLayer(name);
+//						tx.commit();
+//					} catch (Exception e) {
+//						System.err.println("Failed to export dynamic layer " + name + ": " + e);
+//						e.printStackTrace(System.err);
+//					}
+//				}
+//			} else {
+//				System.err.println("No such layer: " + osmdataset);
+//			}
+//			databases.shutdown();
+//		}
 	}
 
 }

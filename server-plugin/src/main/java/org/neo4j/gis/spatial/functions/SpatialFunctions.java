@@ -25,6 +25,7 @@ import static org.neo4j.gis.spatial.Constants.SRID_COORDINATES_3D;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Map;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.io.ParseException;
@@ -46,12 +47,33 @@ public class SpatialFunctions extends SpatialApiBase {
 	@Description("Returns a geometry of a layer node as the Neo4j geometry type, to be passed to other procedures or returned to a client")
 	public Object decodeGeometry(
 			@Name(value = "layerName", description = "The name of the layer used to select the appropriate geometry encoder for extracting the Neo4j geometry.") String name,
-			@Name(value = "node", description = "An index node to extract the neo4j geometry from") Node node) {
+			@Name(value = "node", description = "An indexed node to extract the neo4j geometry from") Node node) {
 
 		Layer layer = getLayerOrThrow(tx, spatial(), name, true);
 		GeometryResult result = new GeometryResult(
 				toNeo4jGeometry(layer, layer.getGeometryEncoder().decodeGeometry(node)));
 		return result.geometry;
+	}
+
+	@UserFunction("spatial.nodeAsWKT")
+	@Description("Returns a geometry of a layer node as WKT")
+	public String nodeAsWKT(
+			@Name(value = "layerName", description = "The name of the layer is used to select the appropriate geometry encoder for extracting the WKT.") String name,
+			@Name(value = "node", description = "An indexed node to extract the WKT from") Node node) {
+
+		Layer layer = getLayerOrThrow(tx, spatial(), name, true);
+		var geometry = layer.getGeometryEncoder().decodeGeometry(node);
+		return geometry.toText();
+	}
+
+	@UserFunction("spatial.extractAttributes")
+	@Description("Returns attributes of the node")
+	public Map<String, ?> extractAttributes(
+			@Name(value = "layerName", description = "The name of the layer is used to select the appropriate geometry encoder for extracting attributes.") String name,
+			@Name(value = "node", description = "An indexed node to extract the Attributes from") Node node) {
+
+		Layer layer = getLayerOrThrow(tx, spatial(), name, true);
+		return layer.getGeometryEncoder().getAttributes(tx, node);
 	}
 
 	@UserFunction("spatial.asMap")

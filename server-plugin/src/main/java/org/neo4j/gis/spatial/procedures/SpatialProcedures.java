@@ -29,6 +29,7 @@ import static org.neo4j.gis.spatial.Constants.DOC_JTS_GEOMETRY;
 import static org.neo4j.gis.spatial.Constants.DOC_LAYER_NAME;
 import static org.neo4j.gis.spatial.Constants.DOC_LAYER_TYPE;
 import static org.neo4j.gis.spatial.Constants.DOC_URI;
+import static org.neo4j.gis.spatial.Constants.PROP_CRS;
 import static org.neo4j.gis.spatial.Constants.WGS84_CRS_NAME;
 import static org.neo4j.gis.spatial.SpatialDatabaseService.INDEX_TYPE_RTREE;
 import static org.neo4j.procedure.Mode.READ;
@@ -133,6 +134,32 @@ public class SpatialProcedures extends SpatialApiBase {
 	public record NodeDistanceResult(Node node, double distance) {
 
 	}
+
+	public record BoundingBoxResult(
+			double minX,
+			double minY,
+			double maxX,
+			double maxY,
+			@Description("The CRS in geotools format, e.g. WGS84(DD)")
+			String crs) {
+
+	}
+
+	public record LayerMetaResult(
+			@Description("The name of the layer")
+			String name,
+			@Description("The class name of the jts geometry, e.g. org.locationtech.jts.geom.Point")
+			String geometryType,
+			@Description("The CRS in geotools format, e.g. WGS84(DD)")
+			String crs,
+			@Description("If true the feature-attributes are complex (defined by the encoder) and must be read form the node via `spatial.extractAttributes`")
+			boolean hasComplexAttributes,
+			@Description("Additional attributes of the Layer")
+			Map<String, String> extraAttributes
+	) {
+
+	}
+
 
 	public static class GeometryResult {
 
@@ -505,8 +532,34 @@ public class SpatialProcedures extends SpatialApiBase {
 
 	@Procedure(value = "spatial.layer", mode = READ)
 	@Description("Returns the layer root node for the given layer `name`")
-	public Stream<NodeResult> getLayer(@Name(value = "name", description = "the name of the layer") String name) {
+	public Stream<NodeResult> getLayer(@Name(value = "name", description = DOC_LAYER_NAME) String name) {
 		return streamNode(getLayerOrThrow(tx, spatial(), name, true).getLayerNode(tx));
+	}
+
+	@Procedure(value = "spatial.layerMeta", mode = READ)
+	@Description("Returns the layer details for the given layer `name`")
+	public Stream<LayerMetaResult> getLayerMeta(@Name(value = "name", description = DOC_LAYER_NAME) String name) {
+		var layer = getLayerOrThrow(tx, spatial(), name, true);
+		var layerNode = layer.getLayerNode(tx);
+		var crs = layerNode.hasProperty(PROP_CRS) ? (String) layerNode.getProperty(PROP_CRS) : null;
+		var geometryTypeId = layer.getGeometryType(tx);
+		String geometryType = null;
+		if (geometryTypeId != null) {
+			var geometryClass = SpatialDatabaseService.convertGeometryTypeToJtsClass(geometryTypeId);
+			geometryType = geometryClass.getName();
+		}
+		var extraProperties = new HashMap<String, String>();
+		layer.getExtraProperties(tx).forEach((s, aClass) -> extraProperties.put(s, aClass.getName()));
+		return Stream.of(
+				new LayerMetaResult(
+						name,
+						geometryType,
+						crs,
+						layer.getGeometryEncoder().hasComplexAttributes(),
+						extraProperties
+
+				)
+		);
 	}
 
 	@Procedure(value = "spatial.getFeatureAttributes", mode = READ)
@@ -518,6 +571,30 @@ public class SpatialProcedures extends SpatialApiBase {
 				.entrySet()
 				.stream()
 				.map(entry -> new FeatureAttributeResult(entry.getKey(), entry.getValue().getName()));
+	}
+
+	@Procedure(value = "spatial.getFeatureCount", mode = READ)
+	@Description("Returns the number of features in the layer")
+	public Stream<CountResult> getLayerCount(
+			@Name(value = "name", description = DOC_LAYER_NAME) String name) {
+		Layer layer = getLayerOrThrow(tx, spatial(), name, true);
+		int count = layer.getIndex().count(tx);
+		return Stream.of(new CountResult(count));
+	}
+
+	@Procedure(value = "spatial.getLayerBoundingBox", mode = READ)
+	@Description("Returns the bounding box of the layer")
+	public Stream<BoundingBoxResult> getLayerBoundingBox(
+			@Name(value = "name", description = DOC_LAYER_NAME) String name
+	) {
+		Layer layer = getLayerOrThrow(tx, spatial(), name, true);
+		org.neo4j.gis.spatial.rtree.Envelope envelope = layer.getIndex().getBoundingBox(tx);
+		CoordinateReferenceSystem crs = layer.getCoordinateReferenceSystem(tx);
+		String crsName = crs != null ? crs.getName().toString() : null;
+		return Stream.of(new BoundingBoxResult(
+				envelope.getMinX(), envelope.getMinY(),
+				envelope.getMaxX(), envelope.getMaxY(),
+				crsName));
 	}
 
 	@Procedure(
@@ -561,7 +638,8 @@ public class SpatialProcedures extends SpatialApiBase {
 		return Stream.of(new CountResult(count));
 	}
 
-	@Procedure(value = "spatial.addNode.byId", mode = WRITE)
+	@Deprecated
+	@Procedure(value = "spatial.addNode.byId", mode = WRITE, deprecatedBy = "spatial.addNode")
 	@Description("Adds the given node to the layer, returns the geometry-node")
 	public Stream<NodeResult> addNodeIdToLayer(
 			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
@@ -572,7 +650,8 @@ public class SpatialProcedures extends SpatialApiBase {
 		return streamNode(geomNode);
 	}
 
-	@Procedure(value = "spatial.addNodes.byId", mode = WRITE)
+	@Deprecated
+	@Procedure(value = "spatial.addNodes.byId", mode = WRITE, deprecatedBy = "spatial.addNodes")
 	@Description("Adds the given nodes list to the layer, returns the count")
 	public Stream<CountResult> addNodeIdsToLayer(
 			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
@@ -611,7 +690,8 @@ public class SpatialProcedures extends SpatialApiBase {
 		return Stream.of(new CountResult(before - after));
 	}
 
-	@Procedure(value = "spatial.removeNode.byId", mode = WRITE)
+	@Deprecated
+	@Procedure(value = "spatial.removeNode.byId", mode = WRITE, deprecatedBy = "spatial.removeNode")
 	@Description("Removes the given node from the layer, returns the geometry-node")
 	public Stream<NodeIdResult> removeNodeFromLayer(
 			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
@@ -622,7 +702,8 @@ public class SpatialProcedures extends SpatialApiBase {
 		return streamNode(nodeId);
 	}
 
-	@Procedure(value = "spatial.removeNodes.byId", mode = WRITE)
+	@Deprecated
+	@Procedure(value = "spatial.removeNodes.byId", mode = WRITE, deprecatedBy = "spatial.removeNodes")
 	@Description("Removes the given nodes from the layer, returns the count of nodes removed")
 	public Stream<CountResult> removeNodeIdsFromLayer(
 			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
@@ -647,6 +728,24 @@ public class SpatialProcedures extends SpatialApiBase {
 		WKTReader reader = new WKTReader(layer.getGeometryFactory());
 		Node node = addGeometryWkt(layer, reader, geometryWKT);
 		layer.finalizeTransaction(tx);
+		return streamNode(node);
+	}
+
+	@Procedure(value = "spatial.updateWKT", mode = WRITE)
+	@Description("Updates a node with the geometry defined by the given WKT, returns the node")
+	public Stream<NodeResult> addGeometryWKTToLayer(
+			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
+			@Name(value = "node", description = "The indexed node to update") Node node,
+			@Name(value = "geometry", description = "The WKT to set on the given node") String geometryWKT) {
+		EditableLayer layer = getEditableLayerOrThrow(tx, spatial(), name);
+		WKTReader reader = new WKTReader(layer.getGeometryFactory());
+		try {
+			Geometry geometry = reader.read(geometryWKT);
+			layer.update(tx, node.getElementId(), geometry);
+			streamNode(node);
+		} catch (ParseException e) {
+			throw new RuntimeException("Error parsing geometry: " + geometryWKT, e);
+		}		layer.finalizeTransaction(tx);
 		return streamNode(node);
 	}
 
@@ -814,6 +913,18 @@ public class SpatialProcedures extends SpatialApiBase {
 		Envelope envelope = new Envelope(toCoordinate(min), toCoordinate(max));
 		return GeoPipeline
 				.startWithinSearch(tx, layer, layer.getGeometryFactory().toGeometry(envelope))
+				.stream().map(GeoPipeFlow::getGeomNode).map(NodeResult::new);
+	}
+
+	@Procedure(value = "spatial.cql", mode = READ)
+	@Description("Finds all geometry nodes in the given layer that matches the given CQL")
+	public Stream<NodeResult> findGeometriesByCQL(
+			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
+			@Name(value = "ecql", description = "The [ECQL](https://docs.geoserver.org/latest/en/user/filter/ecql_reference.html) to find / filter nodes of the layer") String ecql
+	) {
+		Layer layer = getLayerOrThrow(tx, spatial(), name, true);
+		return GeoPipeline
+				.startECQL(tx, layer, ecql)
 				.stream().map(GeoPipeFlow::getGeomNode).map(NodeResult::new);
 	}
 

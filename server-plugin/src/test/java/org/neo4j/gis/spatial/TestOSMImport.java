@@ -38,7 +38,6 @@ public class TestOSMImport extends TestOSMImportBase {
 	public static final String spatialTestMode = System.getProperty("spatial.test.mode");
 
 	private static final Stream<Arguments> parameters() {
-		deleteBaseDir();
 		String[] smallModels = new String[]{"one-street.osm", "two-street.osm"};
 //		String[] mediumModels = new String[] { "map.osm", "map2.osm" };
 		String[] mediumModels = new String[]{"map.osm"};
