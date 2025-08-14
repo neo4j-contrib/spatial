@@ -39,10 +39,14 @@ public class ShapefileExporter {
 	File exportDir;
 
 	public ShapefileExporter(Driver driver, String database) {
-		neo4jDataStore = new Neo4jSpatialDataStore(driver, database);
+		this(new Neo4jSpatialDataStore(driver, database));
 		exportDir = null;
 	}
 
+	public ShapefileExporter(Neo4jSpatialDataStore dataStore) {
+		neo4jDataStore = dataStore;
+		exportDir = null;
+	}
 	public void setExportDir(String dir) {
 		exportDir = (dir == null || dir.isEmpty()) ? null : (new File(dir)).getAbsoluteFile();
 	}

@@ -246,7 +246,7 @@ public class RTreeImageExporter {
 	}
 
 	private MemoryFeatureCollection makeEnvelopeFeatures(Coordinate min, Coordinate max) {
-		SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("Polygon", Constants.GTYPE_POLYGON, crs,false,
+		SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("Polygon", Constants.GTYPE_POLYGON, crs, false,
 				Collections.emptyMap());
 		Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, Collections.emptyMap());
 		MemoryFeatureCollection features = new MemoryFeatureCollection(featureType);
@@ -263,7 +263,7 @@ public class RTreeImageExporter {
 	}
 
 	private MemoryFeatureCollection makeIndexNodeFeatures(List<RTreeIndex.NodeWithEnvelope> nodes) {
-		SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("Polygon", Constants.GTYPE_POLYGON, crs,false,
+		SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("Polygon", Constants.GTYPE_POLYGON, crs, false,
 				Collections.emptyMap());
 		Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, Collections.emptyMap());
 		MemoryFeatureCollection features = new MemoryFeatureCollection(featureType);

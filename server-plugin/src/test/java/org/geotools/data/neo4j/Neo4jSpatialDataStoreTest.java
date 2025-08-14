@@ -20,6 +20,7 @@
 
 package org.geotools.data.neo4j;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.hasItem;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
@@ -28,6 +29,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Set;
+import org.assertj.core.api.Assertions;
 import org.geotools.api.data.ResourceInfo;
 import org.geotools.api.data.SimpleFeatureSource;
 import org.geotools.api.feature.simple.SimpleFeature;
@@ -39,9 +41,14 @@ import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.driver.AuthTokens;
+import org.neo4j.driver.GraphDatabase;
+import org.neo4j.driver.exceptions.ClientException;
 import org.neo4j.gis.spatial.ConsoleListener;
 import org.neo4j.gis.spatial.Neo4jTestCase;
 import org.neo4j.gis.spatial.osm.OSMImporter;
+import org.neo4j.harness.Neo4jBuilder;
+import org.neo4j.harness.Neo4jBuilders;
 
 public class Neo4jSpatialDataStoreTest extends Neo4jTestCase {
 
@@ -55,31 +62,24 @@ public class Neo4jSpatialDataStoreTest extends Neo4jTestCase {
 		importer.reIndex(graphDb());
 	}
 
-//	@Test
-//	public void shouldOpenDataStore() {
-//		Neo4jSpatialDataStore store = new Neo4jSpatialDataStore(driver, DEFAULT_DATABASE_NAME);
-//		ReferencedEnvelope bounds = store.getBounds("map");
-//		MatcherAssert.assertThat(bounds, equalTo(new ReferencedEnvelope(12.7856667, 13.2873561, 55.9254241, 56.2179056,
-//				DefaultGeographicCRS.WGS84)));
-//	}
-//
-//	@Test
-//	public void shouldOpenDataStoreOnNonSpatialDatabase() {
-//		DatabaseManagementService otherDatabases = null;
-//		try {
-//			otherDatabases = new TestDatabaseManagementServiceBuilder(Path.of("target", "other-db")).impermanent()
-//					.build();
-//			GraphDatabaseService otherGraph = otherDatabases.database(DEFAULT_DATABASE_NAME);
-//			Neo4jSpatialDataStore store = new Neo4jSpatialDataStore(otherGraph);
-//			ReferencedEnvelope bounds = store.getBounds("map");
-//			// TODO: rather should throw a descriptive exception
-//			MatcherAssert.assertThat(bounds, equalTo(null));
-//		} finally {
-//			if (otherDatabases != null) {
-//				otherDatabases.shutdown();
-//			}
-//		}
-//	}
+
+	@Test
+	public void shouldFailOnNonSpatialDatabase() throws IOException {
+		Neo4jBuilder neo4jBuilder = Neo4jBuilders
+				.newInProcessBuilder();
+		try (
+				var neo4jWithoutSpatial = neo4jBuilder.build();
+				var driver = GraphDatabase.driver(neo4jWithoutSpatial.boltURI().toString(),
+						AuthTokens.basic("neo4j", ""));
+		) {
+			Neo4jSpatialDataStore store = new Neo4jSpatialDataStore(driver, DEFAULT_DATABASE_NAME);
+			var exception = Assertions.catchThrowable(store::getTypeNames);
+			assertThat(exception)
+					.isInstanceOf(ClientException.class)
+					.hasMessageContaining(
+							"There is no procedure with the name `spatial.layers` registered for this database instance.");
+		}
+	}
 
 	@Test
 	public void shouldBeAbleToListLayers() throws IOException {

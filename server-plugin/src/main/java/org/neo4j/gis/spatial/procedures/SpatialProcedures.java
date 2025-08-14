@@ -745,7 +745,9 @@ public class SpatialProcedures extends SpatialApiBase {
 			streamNode(node);
 		} catch (ParseException e) {
 			throw new RuntimeException("Error parsing geometry: " + geometryWKT, e);
-		}		layer.finalizeTransaction(tx);
+		} finally {
+			layer.finalizeTransaction(tx);
+		}
 		return streamNode(node);
 	}
 
