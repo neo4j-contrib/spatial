@@ -39,11 +39,11 @@ public class PropertyMappingManager {
 		this.layer = layer;
 	}
 
-	private LinkedHashMap<String, PropertyMapper> getPropertyMappers(Transaction tx) {
+	private Map<String, PropertyMapper> getPropertyMappers(Transaction tx) {
 		if (propertyMappers == null) {
 			propertyMappers = new LinkedHashMap<>();
 			for (PropertyMapper mapper : loadMappers(tx).values()) {
-				addPropertyMapper(tx, mapper);
+				propertyMappers.put(mapper.to(), mapper);
 			}
 		}
 		return propertyMappers;
@@ -84,17 +84,14 @@ public class PropertyMappingManager {
 		}
 	}
 
-	private void addPropertyMapper(Transaction tx, PropertyMapper mapper) {
-		getPropertyMappers(tx).put(mapper.to(), mapper);
-		save(tx);
-	}
-
 	public PropertyMapper getPropertyMapper(Transaction tx, String to) {
 		return getPropertyMappers(tx).get(to);
 	}
 
 	public void addPropertyMapper(Transaction tx, String from, String to, String type, String params) {
-		addPropertyMapper(tx, PropertyMapper.fromParams(from, to, type, params));
+		PropertyMapper mapper = PropertyMapper.fromParams(from, to, type, params);
+		getPropertyMappers(tx).put(mapper.to(), mapper);
+		save(tx);
 	}
 
 }

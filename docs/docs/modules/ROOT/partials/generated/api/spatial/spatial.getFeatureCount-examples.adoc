@@ -1,0 +1,232 @@
+=== Count features in different layer types
+
+Create a point layer
+
+[source,cypher]
+----
+CALL spatial.addPointLayer('count_layer')
+----
+
+Count features in empty layer
+
+[source,cypher]
+----
+CALL spatial.getFeatureCount('count_layer') YIELD count
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|count
+a|
+[source]
+----
+0
+----
+
+|===
+
+Add one node to the layer
+
+[source,cypher]
+----
+CREATE (n:Node {latitude: 60.1, longitude: 15.2, name: 'first'})
+WITH n
+CALL spatial.addNode('count_layer', n) YIELD node
+RETURN node
+
+----
+
+Count after adding one feature
+
+[source,cypher]
+----
+CALL spatial.getFeatureCount('count_layer') YIELD count
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|count
+a|
+[source]
+----
+1
+----
+
+|===
+
+Add multiple nodes at once
+
+[source,cypher]
+----
+UNWIND range(1,3) as i
+CREATE (n:Node {id: i, latitude: (60.0 + i * 0.1), longitude: (15.0 + i * 0.1)})
+WITH collect(n) as nodes
+CALL spatial.addNodes('count_layer', nodes) YIELD count
+RETURN count
+
+----
+
+Count after adding multiple features
+
+[source,cypher]
+----
+CALL spatial.getFeatureCount('count_layer') YIELD count
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|count
+a|
+[source]
+----
+4
+----
+
+|===
+
+Create a WKT layer
+
+[source,cypher]
+----
+CALL spatial.addWKTLayer('wkt_layer', 'wkt')
+----
+
+Count features in empty WKT layer
+
+[source,cypher]
+----
+CALL spatial.getFeatureCount('wkt_layer') YIELD count
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|count
+a|
+[source]
+----
+0
+----
+
+|===
+
+Add a WKT point
+
+[source,cypher]
+----
+CALL spatial.addWKT('wkt_layer', 'POINT(15.2 60.1)') YIELD node RETURN node
+----
+
+Add a WKT linestring
+
+[source,cypher]
+----
+CALL spatial.addWKT('wkt_layer', 'LINESTRING (15.2 60.1, 15.3 60.1)') YIELD node RETURN node
+----
+
+Count features in WKT layer
+
+[source,cypher]
+----
+CALL spatial.getFeatureCount('wkt_layer') YIELD count
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|count
+a|
+[source]
+----
+2
+----
+
+|===
+
+=== Get the number of features in a layer
+
+[source,cypher]
+----
+CALL spatial.addPointLayer('count_layer') YIELD node
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|node
+a|
+[source]
+----
+(:SpatialLayer {
+    geomencoder: "org.neo4j.gis.spatial.encoders.SimplePointEncoder",
+    index_class: "org.neo4j.gis.spatial.index.LayerRTreeIndex",
+    layer: "count_layer",
+    layer_class: "org.neo4j.gis.spatial.SimplePointLayer"
+})
+----
+
+|===
+
+Get count of empty layer
+
+[source,cypher]
+----
+CALL spatial.getFeatureCount('count_layer') YIELD count
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|count
+a|
+[source]
+----
+0
+----
+
+|===
+
+Add two points to the layer
+
+[source,cypher]
+----
+CREATE (n1:Point {latitude: 60.1, longitude: 15.2, name: 'point1'})
+CREATE (n2:Point {latitude: 60.3, longitude: 15.5, name: 'point2'})
+WITH n1, n2
+CALL spatial.addNode('count_layer', n1) YIELD node as added1
+WITH n2, added1
+CALL spatial.addNode('count_layer', n2) YIELD node as added2
+RETURN added1, added2
+
+----
+
+Get count after adding points
+
+[source,cypher]
+----
+CALL spatial.getFeatureCount('count_layer') YIELD count
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|count
+a|
+[source]
+----
+2
+----
+
+|===
+

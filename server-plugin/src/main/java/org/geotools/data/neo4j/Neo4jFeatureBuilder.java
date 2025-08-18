@@ -50,6 +50,7 @@ import org.neo4j.graphdb.Transaction;
 public class Neo4jFeatureBuilder {
 
 	private static final String FEATURE_PROP_GEOM = "the_geom";
+	public static final String HAS_COMPLEX_ATTRIBUTES = "hasComplexAttributes";
 	private final SimpleFeatureBuilder builder;
 	private final Map<String, Class<?>> extraProperties;
 
@@ -80,13 +81,33 @@ public class Neo4jFeatureBuilder {
 	}
 
 	public static SimpleFeatureType getTypeFromLayer(Transaction tx, Layer layer) {
-		return getType(layer.getName(), layer.getGeometryType(tx), layer.getCoordinateReferenceSystem(tx),
+		return getType(
+				layer.getName(),
+				layer.getGeometryType(tx),
+				layer.getCoordinateReferenceSystem(tx),
+				layer.getGeometryEncoder().hasComplexAttributes(),
 				layer.getExtraProperties(tx));
 	}
 
-	public static SimpleFeatureType getType(String name, Integer geometryTypeId, CoordinateReferenceSystem crs,
-			Map<String, Class<?>> extraProperties) {
-		List<AttributeDescriptor> types = readAttributes(geometryTypeId, crs, extraProperties);
+	public static SimpleFeatureType getType(
+			String name,
+			Integer geometryTypeId,
+			CoordinateReferenceSystem crs,
+			boolean hasComplexAttributes,
+			Map<String, Class<?>> extraProperties
+	) {
+		Class<? extends Geometry> geometryClass = SpatialDatabaseService.convertGeometryTypeToJtsClass(geometryTypeId);
+		return getType(name, geometryClass, crs, hasComplexAttributes, extraProperties);
+	}
+
+	public static SimpleFeatureType getType(
+			String name,
+			Class<? extends Geometry> geometryClass,
+			CoordinateReferenceSystem crs,
+			boolean hasComplexAttributes,
+			Map<String, Class<?>> extraProperties
+	) {
+		List<AttributeDescriptor> types = readAttributes(geometryClass, crs, extraProperties);
 
 		// find Geometry type
 		SimpleFeatureType parent = null;
@@ -112,13 +133,16 @@ public class Neo4jFeatureBuilder {
 			builder.setSuperType(parent);
 		}
 
-		return builder.buildFeatureType();
+		SimpleFeatureType simpleFeatureType = builder.buildFeatureType();
+		simpleFeatureType.getUserData().put(HAS_COMPLEX_ATTRIBUTES, hasComplexAttributes);
+		return simpleFeatureType;
 	}
 
-	private static List<AttributeDescriptor> readAttributes(Integer geometryTypeId, CoordinateReferenceSystem crs,
-			Map<String, Class<?>> extraProperties) {
-		Class<? extends Geometry> geometryClass = SpatialDatabaseService.convertGeometryTypeToJtsClass(geometryTypeId);
-
+	private static List<AttributeDescriptor> readAttributes(
+			Class<? extends Geometry> geometryClass,
+			CoordinateReferenceSystem crs,
+			Map<String, Class<?>> extraProperties
+	) {
 		AttributeTypeBuilder build = new AttributeTypeBuilder();
 		build.setName(Classes.getShortName(geometryClass));
 		build.setNillable(true);

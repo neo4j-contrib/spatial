@@ -29,11 +29,10 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.Collections;
 import javax.imageio.ImageIO;
 import org.geotools.api.data.DataStore;
-import org.geotools.api.data.SimpleFeatureSource;
+import org.geotools.api.data.SimpleFeatureStore;
 import org.geotools.api.feature.simple.SimpleFeature;
 import org.geotools.api.feature.simple.SimpleFeatureType;
 import org.geotools.api.feature.type.FeatureType;
@@ -49,6 +48,7 @@ import org.geotools.api.style.Rule;
 import org.geotools.api.style.Stroke;
 import org.geotools.api.style.Style;
 import org.geotools.api.style.StyleFactory;
+import org.geotools.data.DefaultTransaction;
 import org.geotools.factory.CommonFactoryFinder;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.filter.text.cql2.CQLException;
@@ -65,15 +65,15 @@ import org.locationtech.jts.geom.MultiPoint;
 import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
-import org.neo4j.dbms.api.DatabaseManagementService;
-import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
+import org.neo4j.driver.AuthTokens;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.GraphDatabase;
 import org.neo4j.gis.spatial.SpatialTopologyUtils;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Transaction;
 
 public class StyledImageExporter {
 
-	private final GraphDatabaseService db;
+	private final Driver driver;
+	private final String database;
 	private File exportDir;
 	double zoom = 1.0;
 	final double[] offset = new double[]{0, 0};
@@ -82,8 +82,9 @@ public class StyledImageExporter {
 	static final StyleFactory styleFactory = CommonFactoryFinder.getStyleFactory(null);
 	static final FilterFactory filterFactory = CommonFactoryFinder.getFilterFactory(null);
 
-	public StyledImageExporter(GraphDatabaseService db) {
-		this.db = db;
+	public StyledImageExporter(Driver driver, String database) {
+		this.driver = driver;
+		this.database = database;
 	}
 
 	public void setExportDir(String dir) {
@@ -200,8 +201,10 @@ public class StyledImageExporter {
 
 	public void saveLayerImage(String[] layerNames, String sldFile, File imagefile, ReferencedEnvelope bounds)
 			throws IOException {
-		DataStore store = new Neo4jSpatialDataStore(db);
-		try (Transaction tx = db.beginTx()) {
+		DataStore store = new Neo4jSpatialDataStore(driver, database);
+
+		try (org.geotools.api.data.Transaction transaction = new DefaultTransaction("saveLayerImage")) {
+
 			// debugStore(store, layerNames);
 			StringBuilder names = new StringBuilder();
 			for (String name : layerNames) {
@@ -216,7 +219,8 @@ public class StyledImageExporter {
 
 			MapContent mapContent = new MapContent();
 			for (int i = 0; i < layerNames.length; i++) {
-				SimpleFeatureSource featureSource = store.getFeatureSource(layerNames[i]);
+				SimpleFeatureStore featureSource = (SimpleFeatureStore) store.getFeatureSource(layerNames[i]);
+				featureSource.setTransaction(transaction);
 				Style featureStyle = style;
 				if (featureStyle == null) {
 					featureStyle = getStyle(i);
@@ -230,7 +234,7 @@ public class StyledImageExporter {
 									.getType() + "': " + featureStyle);
 				}
 
-				mapContent.addLayer(new org.geotools.map.FeatureLayer(featureSource, featureStyle));
+				mapContent.addLayer(new FeatureLayer(featureSource, featureStyle));
 
 				if (bounds == null) {
 					bounds = featureSource.getBounds();
@@ -240,7 +244,7 @@ public class StyledImageExporter {
 			}
 
 			saveMapContentToImageFile(mapContent, imagefile, bounds);
-			tx.commit();
+			transaction.commit();
 		}
 	}
 
@@ -447,34 +451,27 @@ public class StyledImageExporter {
 		return style;
 	}
 
-	public static void main(String[] args) {
-		if (args.length < 4) {
+	public static void main(String[] args) throws IOException {
+		if (args.length < 6) {
 			System.err.println(
-					"Too few arguments. Provide: 'homeDir', 'database' 'exportdir' 'stylefile' zoom layer <layers..>");
-			System.err.println(
-					"\tNote: 'database' can only be something other than 'neo4j' in Neo4j Enterprise Edition.");
+					"Too few arguments. Provide: <uri> <database> <user> <password> <exportdir> <stylefile> <zoom layer> <layers..>");
 			System.exit(1);
 		}
-		String homeDir = args[0];
+		String uri = args[0];
 		String database = args[1];
-		String exportdir = args[2];
-		String stylefile = args[3];
-		double zoom = Double.parseDouble(args[4]);
-		DatabaseManagementService databases = new DatabaseManagementServiceBuilder(Path.of(homeDir)).build();
-		GraphDatabaseService db = databases.database(database);
-		try {
-			StyledImageExporter imageExporter = new StyledImageExporter(db);
-			imageExporter.setExportDir(exportdir);
-			imageExporter.setZoom(zoom);
-			imageExporter.setSize(800, 600);
-			for (int i = 4; i < args.length; i++) {
-				imageExporter.saveLayerImage(args[i], stylefile);
-			}
+		String user = args[2];
+		String password = args[3];
+		String exportdir = args[4];
+		String stylefile = args[5];
+		double zoom = Double.parseDouble(args[6]);
+		var driver = GraphDatabase.driver(uri, AuthTokens.basic(user,password));
 
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		} finally {
-			databases.shutdown();
+		StyledImageExporter imageExporter = new StyledImageExporter(driver, database);
+		imageExporter.setExportDir(exportdir);
+		imageExporter.setZoom(zoom);
+		imageExporter.setSize(800, 600);
+		for (int i = 6; i < args.length; i++) {
+			imageExporter.saveLayerImage(args[i], stylefile);
 		}
 	}
 }

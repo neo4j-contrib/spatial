@@ -21,27 +21,27 @@ package org.neo4j.gis.spatial;
 
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
-import java.io.File;
-import java.io.IOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.driver.AuthTokens;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.GraphDatabase;
+import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.config.Setting;
-import org.neo4j.io.fs.EphemeralFileSystemAbstraction;
-import org.neo4j.io.fs.FileUtils;
-import org.neo4j.kernel.api.procedure.GlobalProcedures;
-import org.neo4j.kernel.internal.GraphDatabaseAPI;
-import org.neo4j.test.TestDatabaseManagementServiceBuilder;
+import org.neo4j.harness.Neo4j;
+import org.neo4j.harness.Neo4jBuilder;
+import org.neo4j.harness.Neo4jBuilders;
 
 /**
  * Base class for the meta model tests.
@@ -49,6 +49,7 @@ import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 public abstract class Neo4jTestCase {
 
 	static final Map<Setting<?>, Object> NORMAL_CONFIG = new HashMap<>();
+	static final List<Thread> closeThreads = new ArrayList<>();
 
 	static {
 		//NORMAL_CONFIG.put( GraphDatabaseSettings.nodestore_mapped_memory_size.name(), "50M" );
@@ -71,112 +72,54 @@ public abstract class Neo4jTestCase {
 		LARGE_CONFIG.put(GraphDatabaseSettings.pagecache_memory, 100000000L);
 	}
 
-	private static final File basePath = new File("target/var");
-	private static final Path dbPath = new File(basePath, "neo4j-db").toPath();
 	private DatabaseManagementService databases;
 	private GraphDatabaseService graphDb;
-
-	private long storePrefix;
-
-	@BeforeEach
-	public void setUp() throws Exception {
-		updateStorePrefix();
-		setUp(true);
-	}
-
-	private void updateStorePrefix() {
-		storePrefix++;
-	}
+	private Neo4j neo4j;
+	protected Driver driver;
 
 	/**
 	 * Configurable options for text cases, with or without deleting the previous database, and with
 	 * or without using the BatchInserter for higher creation speeds. Note that tests that need to
 	 * delete nodes or use transactions should not use the BatchInserter.
 	 */
-	protected void setUp(boolean deleteDb) throws Exception {
-		shutdownDatabase(deleteDb);
-		Map<Setting<?>, Object> config = NORMAL_CONFIG;
+	@SuppressWarnings("unchecked")
+	@BeforeEach
+	void setUpDatabase() throws Exception {
+		Neo4jBuilder neo4jBuilder = Neo4jBuilders
+				.newInProcessBuilder(getDbPath())
+				.withConfig(GraphDatabaseSettings.procedure_unrestricted, List.of("spatial.*"))
+				.withProcedure(SpatialProcedures.class)
+				.withFunction(SpatialFunctions.class);
+
 		String largeMode = System.getProperty("spatial.test.large");
 		if (largeMode != null && largeMode.equalsIgnoreCase("true")) {
-			config = LARGE_CONFIG;
+			LARGE_CONFIG.forEach((setting, o) -> neo4jBuilder.withConfig((Setting<Object>) setting, o));
+		} else {
+			NORMAL_CONFIG.forEach((setting, o) -> neo4jBuilder.withConfig((Setting<Object>) setting, o));
 		}
-		databases = new TestDatabaseManagementServiceBuilder(getDbPath()).setConfig(config).build();
-		graphDb = databases.database(DEFAULT_DATABASE_NAME);
-		((GraphDatabaseAPI) graphDb).getDependencyResolver().resolveDependency(GlobalProcedures.class)
-				.registerProcedure(SpatialProcedures.class);
-	}
 
-	/**
-	 * For test cases that want to control their own database access, we should
-	 * shutdown the current one.
-	 */
-	private void shutdownDatabase(boolean deleteDb) {
-		beforeShutdown();
-		if (graphDb != null) {
-			databases.shutdown();
-			databases = null;
-			graphDb = null;
-		}
-		if (deleteDb) {
-			deleteDatabase();
-		}
-	}
-
-	private static EphemeralFileSystemAbstraction fileSystem;
-
-	@BeforeAll
-	static void beforeAll() throws IOException {
-		fileSystem = new EphemeralFileSystemAbstraction();
-		fileSystem.mkdirs(new File("target").toPath());
+		neo4j = neo4jBuilder.build();
+		driver = GraphDatabase.driver(neo4j.boltURI().toString(), AuthTokens.basic("neo4j", ""));
 	}
 
 	@AfterAll
-	static void afterAll() throws IOException {
-		fileSystem.close();
+	static void afterAll() throws InterruptedException {
+		for (Thread closeThread : closeThreads) {
+			closeThread.join();
+		}
 	}
 
 	@AfterEach
 	public void tearDown() {
-		shutdownDatabase(true);
+		driver.close();
+		// defer cleanup so the test can run faster
+		Thread closeThread = new Thread(() -> neo4j.close());
+		closeThread.start();
+		closeThreads.add(closeThread);
 	}
 
-	private void beforeShutdown() {
-	}
-
-	static Path getNeoPath() {
-		return dbPath.toAbsolutePath();
-	}
-
-	Path getDbPath() {
-		return dbPath.toAbsolutePath().resolve("test-" + storePrefix);
-	}
-
-	private static void deleteDatabase() {
-		try {
-			FileUtils.deleteDirectory(getNeoPath());
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-	}
-
-	static void deleteBaseDir() {
-		deleteFileOrDirectory(basePath);
-	}
-
-	private static void deleteFileOrDirectory(File file) {
-		if (!file.exists()) {
-			return;
-		}
-
-		if (file.isDirectory()) {
-			for (File child : Objects.requireNonNull(file.listFiles())) {
-				deleteFileOrDirectory(child);
-			}
-		} else {
-			//noinspection ResultOfMethodCallIgnored
-			file.delete();
-		}
+	static Path getDbPath() {
+		return Path.of("target", "neo4j-db");
 	}
 
 	void printDatabaseStats() {
@@ -184,6 +127,6 @@ public abstract class Neo4jTestCase {
 	}
 
 	protected GraphDatabaseService graphDb() {
-		return graphDb;
+		return neo4j.databaseManagementService().database(DEFAULT_DATABASE_NAME);
 	}
 }

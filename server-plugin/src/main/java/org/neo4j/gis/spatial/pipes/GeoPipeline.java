@@ -40,6 +40,7 @@ import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialRecord;
 import org.neo4j.gis.spatial.SpatialTopologyUtils;
+import org.neo4j.gis.spatial.filter.SearchCQL;
 import org.neo4j.gis.spatial.filter.SearchIntersectWindow;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.pipes.filtering.FilterCQL;
@@ -182,6 +183,13 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 	 */
 	public static GeoPipeline start(final Transaction tx, Layer layer) {
 		return start(tx, layer, new SearchAll());
+	}
+
+	/**
+	 * Start a new pipeline that will iterate
+	 */
+	public static GeoPipeline startECQL(final Transaction tx, Layer layer, String ecql) {
+		return start(tx, layer, new SearchCQL(tx, layer, ecql));
 	}
 
 	/**

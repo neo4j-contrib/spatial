@@ -23,6 +23,6 @@ spatial.decodeGeometry(layerName :: STRING, node :: NODE) :: ANY
 |layerName|STRING|null
 a|The name of the layer used to select the appropriate geometry encoder for extracting the Neo4j geometry.
 |node|NODE|null
-a|An index node to extract the neo4j geometry from
+a|An indexed node to extract the neo4j geometry from
 |===
 

@@ -19,6 +19,8 @@
  */
 package org.neo4j.gis.spatial;
 
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -31,6 +33,7 @@ import org.geotools.data.simple.SimpleFeatureCollection;
 import org.junit.jupiter.api.Assertions;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
+import org.neo4j.driver.Driver;
 import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMDataset.Way;
@@ -60,7 +63,7 @@ public class TestOSMImportBase extends Neo4jTestCase {
 		return osmFile.getPath();
 	}
 
-	protected static void checkOSMLayer(GraphDatabaseService db, String layerName) throws IOException {
+	protected static void checkOSMLayer(Driver driver, GraphDatabaseService db, String layerName) throws IOException {
 		int indexCount;
 		try (Transaction tx = db.beginTx()) {
 			SpatialDatabaseService spatial = new SpatialDatabaseService(
@@ -78,7 +81,7 @@ public class TestOSMImportBase extends Neo4jTestCase {
 			checkOSMSearch(tx, layer);
 			tx.commit();
 		}
-		checkFeatureCount(db, indexCount, layerName);
+		checkFeatureCount(driver, indexCount, layerName);
 	}
 
 	public static void checkOSMSearch(Transaction tx, OSMLayer layer) {
@@ -138,8 +141,8 @@ public class TestOSMImportBase extends Neo4jTestCase {
 		return layer.getIndex().count(tx);
 	}
 
-	public static void checkFeatureCount(GraphDatabaseService db, int indexCount, String layerName) throws IOException {
-		DataStore store = new Neo4jSpatialDataStore(db);
+	public static void checkFeatureCount(Driver driver, int indexCount, String layerName) throws IOException {
+		DataStore store = new Neo4jSpatialDataStore(driver, DEFAULT_DATABASE_NAME);
 		SimpleFeatureCollection features = store.getFeatureSource(layerName).getFeatures();
 		int featuresSize = features.size();
 		System.out.println("Layer '" + layerName + "' has " + featuresSize + " features");
@@ -274,7 +277,7 @@ public class TestOSMImportBase extends Neo4jTestCase {
 		}
 		printDatabaseStats();
 		loadTestOsmData(osm, osmPath, includePoints);
-		checkOSMLayer(graphDb(), osm);
+		checkOSMLayer(driver, graphDb(), osm);
 		printDatabaseStats();
 	}
 

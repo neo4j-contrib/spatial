@@ -21,7 +21,7 @@ spatial.layer(name :: STRING) :: (node :: NODE)
 |===
 |Name|Type|Default|Description
 |name|STRING|null
-a|the name of the layer
+a|The name of the layer
 |===
 
 == Output parameters

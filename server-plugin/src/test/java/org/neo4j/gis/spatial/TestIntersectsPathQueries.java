@@ -56,7 +56,7 @@ import org.neo4j.graphdb.config.Setting;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
-public class TestIntersectsPathQueries {
+public class TestIntersectsPathQueries extends Neo4jTestCase {
 
 	/**
 	 * This test case is designed to capture the conditions described in the bug
@@ -120,7 +120,7 @@ public class TestIntersectsPathQueries {
 		return filterEnvelope;
 	}
 
-	private static void importOSMDatabase(String osmPath, String dbRoot, String dbName, String layerName)
+	private void importOSMDatabase(String osmPath, String dbRoot, String dbName, String layerName)
 			throws InterruptedException {
 		// TODO: Port to batch inserter in `github.com/neo4j-contrib/osm` project
 		OSMImporter importer = new OSMImporter(layerName, new ConsoleListener(), makeFilterEnvelope());
@@ -143,7 +143,7 @@ public class TestIntersectsPathQueries {
 		withDatabase(dbRoot, dbName, Neo4jTestCase.LARGE_CONFIG, graphDb -> {
 			importer.reIndex(graphDb, 10000, false);
 			try {
-				TestOSMImport.checkOSMLayer(graphDb, layerName);
+				TestOSMImport.checkOSMLayer(driver, graphDb, layerName);
 				return null;
 			} catch (Exception e) {
 				return e;
@@ -210,7 +210,7 @@ public class TestIntersectsPathQueries {
 	}
 
 	@SuppressWarnings("SameParameterValue")
-	private static void runTestPointSetGeoptimaIntersection(String tracePath, String dbRoot, String dbName,
+	private void runTestPointSetGeoptimaIntersection(String tracePath, String dbRoot, String dbName,
 			String layerName, boolean testMultiPoint) {
 		withDatabase(dbRoot, dbName, Neo4jTestCase.NORMAL_CONFIG, graphDb -> {
 			SpatialDatabaseService spatial = new SpatialDatabaseService(
@@ -238,7 +238,7 @@ public class TestIntersectsPathQueries {
 					indexCount = TestOSMImport.checkIndexCount(tx, layer);
 					tx.commit();
 				}
-				TestOSMImport.checkFeatureCount(graphDb, indexCount, layerName);
+				TestOSMImport.checkFeatureCount(driver, indexCount, layerName);
 
 				HashMap<String, Performance> performances = new LinkedHashMap<>();
 

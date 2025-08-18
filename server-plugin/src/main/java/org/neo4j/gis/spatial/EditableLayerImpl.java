@@ -44,7 +44,6 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 
 	protected SpatialIndexWriter indexWriter;
 	private final Map<String, Class<?>> seenProperties = new HashMap<>();
-	private Set<String> encoderProps;
 
 	@Override
 	public void initialize(Transaction tx, IndexManager indexManager, String name, Node layerNode, boolean readOnly) {
@@ -54,7 +53,6 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 		} else {
 			throw new SpatialDatabaseException("Index writer could not be initialized");
 		}
-		encoderProps = getGeometryEncoder().getEncoderProperties();
 	}
 
 	/**
@@ -111,17 +109,12 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 	}
 
 	protected void memorizeNodeMeta(Node node) {
-		node.getAllProperties().forEach((name, value) -> {
-			if (encoderProps.contains(name)) {
-				return;
+		node.getAllProperties().forEach((name, value) -> seenProperties.compute(name, (s, aClass) -> {
+			if (aClass == null && value != null) {
+				return value.getClass();
 			}
-			seenProperties.compute(name, (s, aClass) -> {
-				if (aClass == null && value != null) {
-					return value.getClass();
-				}
-				return aClass;
-			});
-		});
+			return aClass;
+		}));
 	}
 
 	@Override
@@ -209,23 +202,6 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 		getLayerNode(tx).setProperty(PROP_LAYERNODEEXTRAPROPS, names);
 	}
 
-	void mergeExtraPropertyNames(Transaction tx, String[] names) {
-		checkWritable();
-		Node layerNode = getLayerNode(tx);
-		if (layerNode.hasProperty(PROP_LAYERNODEEXTRAPROPS)) {
-			String[] actualNames = (String[]) layerNode.getProperty(PROP_LAYERNODEEXTRAPROPS);
-
-			Set<String> mergedNames = new HashSet<>();
-			Collections.addAll(mergedNames, names);
-			Collections.addAll(mergedNames, actualNames);
-
-			layerNode.setProperty(PROP_LAYERNODEEXTRAPROPS, mergedNames.toArray(new String[0]));
-		} else {
-			layerNode.setProperty(PROP_LAYERNODEEXTRAPROPS, names);
-		}
-	}
-
-
 	@Override
 	public void finalizeTransaction(Transaction tx) {
 		if (!isReadOnly()) {
@@ -236,14 +212,17 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 
 	private void saveAttributeMeta(Transaction tx) {
 		var node = getLayerNode(tx);
-		seenProperties.forEach((s, aClass) -> {
+		Set<String> encoderProps = getGeometryEncoder().getEncoderProperties();
+		Map<String, Class<?>> props = new HashMap<>(seenProperties);
+		props.keySet().removeAll(encoderProps);
+		props.forEach((s, aClass) -> {
 			var key = PROP_PREFIX_EXTRA_PROP_V2 + s;
 			if (node.hasProperty(key)) {
 				return;
 			}
 			node.setProperty(key, aClass == null ? null : aClass.getName());
 		});
-		mergeExtraPropertyNames(tx, seenProperties.keySet());
+		mergeExtraPropertyNames(tx, props.keySet());
 	}
 
 }

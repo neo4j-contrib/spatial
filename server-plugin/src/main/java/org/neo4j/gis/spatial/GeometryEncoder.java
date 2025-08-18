@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.util.Map;
 import java.util.Set;
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
@@ -107,4 +108,9 @@ public interface GeometryEncoder extends EnvelopeDecoder {
 	 * @return the properties used by the encoder
 	 */
 	Set<String> getEncoderProperties();
+
+
+	boolean hasComplexAttributes();
+
+	Map<String, ?> getAttributes(Transaction tx, Node geomNode);
 }

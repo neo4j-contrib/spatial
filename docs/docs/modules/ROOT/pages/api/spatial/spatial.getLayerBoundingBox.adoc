@@ -1,0 +1,5 @@
+include::partial$generated/api/spatial/spatial.getLayerBoundingBox.adoc[]
+
+== Examples
+
+include::partial$generated/api/spatial/spatial.getLayerBoundingBox-examples.adoc[]

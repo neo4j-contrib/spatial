@@ -33,7 +33,6 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
-import org.neo4j.gis.spatial.EditableLayer;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.encoders.neo4j.Neo4jCRS;
@@ -193,7 +192,7 @@ public class SpatialApiBase {
 
 	protected static Layer getLayerOrThrow(Transaction tx, SpatialDatabaseService spatial, String name,
 			boolean readOnly) {
-		EditableLayer layer = (EditableLayer) spatial.getLayer(tx, name, readOnly);
+		Layer layer = spatial.getLayer(tx, name, readOnly);
 		if (layer != null) {
 			return layer;
 		}

@@ -88,9 +88,7 @@ public class TestSpatial extends Neo4jTestCase {
 	private final String spatialTestMode = System.getProperty("spatial.test.mode");
 
 	@BeforeEach
-	public void setUp() throws Exception {
-		super.setUp();
-
+	public void setUp() {
 		// TODO: Rather load this from a configuration file, properties file or JRuby test code
 
 		Envelope bbox = new Envelope(12.9, 12.99, 56.05, 56.07); // covers half of Billesholm

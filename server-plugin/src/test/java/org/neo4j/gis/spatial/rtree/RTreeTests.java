@@ -57,7 +57,7 @@ public class RTreeTests {
 			tx.commit();
 		}
 		if (exportImages) {
-			SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("test", Constants.GTYPE_POINT, null,
+			SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("test", Constants.GTYPE_POINT, null, false,
 					Collections.emptyMap());
 			imageExporter = new RTreeImageExporter(new GeometryFactory(), new SimplePointEncoder(), null, featureType,
 					rtree);

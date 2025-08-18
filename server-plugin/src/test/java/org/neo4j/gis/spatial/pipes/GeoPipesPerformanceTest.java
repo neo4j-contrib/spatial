@@ -43,7 +43,6 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 
 	@BeforeEach
 	public void setUp() throws Exception {
-		super.setUp(true);
 		loadSamplePointData();
 	}
 

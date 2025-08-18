@@ -1,0 +1,69 @@
+=== Get metadata about a layer
+
+[source,cypher]
+----
+CALL spatial.addPointLayer('meta_layer', 'rtree', 'wgs84') YIELD node
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|node
+a|
+[source]
+----
+(:SpatialLayer {
+    geomencoder: "org.neo4j.gis.spatial.encoders.SimplePointEncoder",
+    index_class: "org.neo4j.gis.spatial.index.LayerRTreeIndex",
+    layer: "meta_layer",
+    layer_class: "org.neo4j.gis.spatial.SimplePointLayer",
+    layercrs: "GEOGCS[\"WGS84(DD)\", \n  DATUM[\"WGS84\", \n    SPHEROID[\"WGS84\", 6378137.0, 298.257223563]], \n  PRIMEM[\"Greenwich\", 0.0], \n  UNIT[\"degree\", 0.017453292519943295], \n  AXIS[\"Geodetic longitude\", EAST], \n  AXIS[\"Geodetic latitude\", NORTH], \n  AUTHORITY[\"EPSG\",\"4326\"]]"
+})
+----
+
+|===
+
+Add points at opposite corners
+
+[source,cypher]
+----
+CREATE (n1:Point {latitude: 60.0, longitude: 15.0, name: 'southwest'})
+WITH n1
+CALL spatial.addNode('meta_layer', n1) YIELD node
+RETURN node
+
+----
+
+[source,cypher]
+----
+CALL spatial.layerMeta('meta_layer') YIELD name, geometryType, crs, hasComplexAttributes, extraAttributes
+----
+
+.Result
+
+[opts="header",cols="5"]
+|===
+|crs|extraAttributes|geometryType|hasComplexAttributes|name
+|GEOGCS["WGS84(DD)", 
+  DATUM["WGS84", 
+    SPHEROID["WGS84", 6378137.0, 298.257223563]], 
+  PRIMEM["Greenwich", 0.0], 
+  UNIT["degree", 0.017453292519943295], 
+  AXIS["Geodetic longitude", EAST], 
+  AXIS["Geodetic latitude", NORTH], 
+  AUTHORITY["EPSG","4326"]]a|
+[source]
+----
+{
+  "name" : "java.lang.String"
+}
+----
+|org.locationtech.jts.geom.Pointa|
+[source]
+----
+false
+----
+|meta_layer
+|===
+

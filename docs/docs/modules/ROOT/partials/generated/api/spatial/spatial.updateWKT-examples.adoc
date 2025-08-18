@@ -1,0 +1,72 @@
+=== Update a node's WKT geometry
+
+[source,cypher]
+----
+CALL spatial.addWKTLayer('update_layer', 'wkt') YIELD node
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|node
+a|
+[source]
+----
+(:SpatialLayer {
+    geomencoder: "org.neo4j.gis.spatial.WKTGeometryEncoder",
+    geomencoder_config: "wkt",
+    index_class: "org.neo4j.gis.spatial.index.LayerRTreeIndex",
+    layer: "update_layer",
+    layer_class: "org.neo4j.gis.spatial.EditableLayerImpl"
+})
+----
+
+|===
+
+Create and add a node with initial WKT
+
+[source,cypher]
+----
+CREATE (n:Node {wkt: 'POINT(15.2 60.1)', name: 'updatable_point'})
+WITH n
+CALL spatial.addNode('update_layer', n) YIELD node as added_node
+RETURN n, added_node
+
+----
+
+Update the node's WKT geometry
+
+[source,cypher]
+----
+MATCH (n:Node {name: 'updatable_point'})
+CALL spatial.updateWKT('update_layer', n, 'POINT(25.5 65.5)') YIELD node
+RETURN node.wkt as wkt
+
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|wkt
+|POINT (25.5 65.5)
+|===
+
+Verify the updated geometry is indexed correctly
+
+[source,cypher]
+----
+CALL spatial.withinDistance('update_layer', {longitude: 25.5, latitude: 65.5}, 1) YIELD node
+RETURN node.name as name
+
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|name
+|updatable_point
+|===
+

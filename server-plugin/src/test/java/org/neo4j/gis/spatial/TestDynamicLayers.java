@@ -21,6 +21,7 @@ package org.neo4j.gis.spatial;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 import java.io.File;
 import java.io.IOException;
@@ -97,7 +98,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 
 			// Now export the layers to files
 			// First prepare the SHP and PNG exporters
-			StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
+			StyledImageExporter imageExporter = new StyledImageExporter(driver, DEFAULT_DATABASE_NAME);
 			imageExporter.setExportDir("target/export/" + shpFile);
 			imageExporter.setZoom(3.0);
 			imageExporter.setOffset(-0.05, -0.05);
@@ -184,9 +185,9 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		}
 		// Now export the layers to files
 		// First prepare the SHP and PNG exporters
-		ShapefileExporter shpExporter = new ShapefileExporter(graphDb());
+		ShapefileExporter shpExporter = new ShapefileExporter(driver, DEFAULT_DATABASE_NAME);
 		shpExporter.setExportDir("target/export/" + osmFile);
-		StyledImageExporter imageExporter = new StyledImageExporter(graphDb());
+		StyledImageExporter imageExporter = new StyledImageExporter(driver, DEFAULT_DATABASE_NAME);
 		imageExporter.setExportDir("target/export/" + osmFile);
 		imageExporter.setZoom(3.0);
 		imageExporter.setOffset(-0.05, -0.05);
@@ -258,7 +259,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 					"Layer '" + layer.getName() + "' has " + layer.getIndex().count(tx) + " entries in the index");
 			tx.commit();
 		}
-		DataStore store = new Neo4jSpatialDataStore(graphDb());
+		DataStore store = new Neo4jSpatialDataStore(driver, DEFAULT_DATABASE_NAME);
 		try (Transaction tx = graphDb().beginTx()) {
 			SimpleFeatureCollection features = store.getFeatureSource(layer.getName()).getFeatures();
 			System.out.println("Layer '" + layer.getName() + "' has " + features.size() + " features");

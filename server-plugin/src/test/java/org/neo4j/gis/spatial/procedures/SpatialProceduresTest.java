@@ -1485,96 +1485,152 @@ public class SpatialProceduresTest extends AbstractApiTest {
 				exception.getMessage());
 	}
 
-    /*
+	@Test
+	public void testCQLQuery() {
+		docExample("spatial.cql", "Find geometries using CQL")
+				.runCypher("CALL spatial.addWKTLayer('geom','wkt') YIELD node", ExampleCypher::storeResult)
+				.runCypher("""
+						CREATE (n1:Node {wkt: 'POINT(15.2 60.1)', name: 'point1'})
+						CREATE (n2:Node {wkt: 'POINT(25.2 30.1)', name: 'point2'})
+						WITH n1, n2
+						CALL spatial.addNode('geom', n1) YIELD node as added1
+						WITH n2, added1
+						CALL spatial.addNode('geom', n2) YIELD node as added2
+						RETURN added1, added2
+						""", config -> config.setComment("Create and add nodes with different coordinates"))
+				.runCypher("CALL spatial.cql('geom', 'name = \\'point1\\'') YIELD node RETURN node.name as name",
+						ExampleCypher::storeResult)
+				.assertSingleResult("name", name -> assertEquals("point1", name));
+	}
 
-    @Test
-    @Documented("update_a_WKT_geometry_in_a_layer")
-    public void update_a_WKT_geometry_in_a_layer() {
-        data.get();
-        String geom = "geom";
-        String response = post(Status.OK, "{\"layer\":\"" + geom + "\", \"format\":\"WKT\",\"nodePropertyName\":\"wkt\"}", ENDPOINT + "/graphdb/addEditableLayer");
-        String wkt = "LINESTRING (15.2 60.1, 15.3 60.1)";
-        String wkt2 = "LINESTRING (16.2 60.1, 15.3 60.1)";
-        response = post(Status.OK, "{\"layer\":\"" + geom + "\", \"geometry\":\"" + wkt + "\"}", ENDPOINT + "/graphdb/addGeometryWKTToLayer");
-        String self = (String) ((JSONObject) ((JSONArray) new JSONParser().parse(response)).get(0)).get("self");
-        String geomId = self.substring(self.lastIndexOf("/") + 1);
-        response = post(Status.OK, "{\"layer\":\"" + geom + "\", \"geometry\":\"" + wkt2 + "\",\"geometryNodeId\":" + geomId + "}", ENDPOINT + "/graphdb/updateGeometryFromWKT");
+	@Test
+	public void testGetFeatureCount() {
+		docExample("spatial.getFeatureCount", "Get the number of features in a layer")
+				.runCypher("CALL spatial.addPointLayer('count_layer') YIELD node", ExampleCypher::storeResult)
+				.runCypher("CALL spatial.getFeatureCount('count_layer') YIELD count",
+						config -> config.storeResult().setComment("Get count of empty layer"))
+				.assertSingleResult("count", count -> assertEquals(0L, count))
+				.runCypher("""
+						CREATE (n1:Point {latitude: 60.1, longitude: 15.2, name: 'point1'})
+						CREATE (n2:Point {latitude: 60.3, longitude: 15.5, name: 'point2'})
+						WITH n1, n2
+						CALL spatial.addNode('count_layer', n1) YIELD node as added1
+						WITH n2, added1
+						CALL spatial.addNode('count_layer', n2) YIELD node as added2
+						RETURN added1, added2
+						""", config -> config.setComment("Add two points to the layer"))
+				.runCypher("CALL spatial.getFeatureCount('count_layer') YIELD count",
+						config -> config.storeResult().setComment("Get count after adding points"))
+				.assertSingleResult("count", count -> assertEquals(2L, count));
+	}
 
-        assertTrue(response.contains(wkt2));
-        assertTrue(response.contains("http://localhost:" + PORT + "/db/data/node/" + geomId));
+	@Test
+	public void testGetLayerBoundingBox() {
+		docExample("spatial.getLayerBoundingBox", "Get the bounding box of a layer")
+				.runCypher("CALL spatial.addPointLayer('bbox_layer', 'rtree', 'wgs84') YIELD node", ExampleCypher::storeResult)
+				.runCypher("""
+						CREATE (n1:Point {latitude: 60.0, longitude: 15.0, name: 'southwest'})
+						CREATE (n2:Point {latitude: 61.0, longitude: 16.0, name: 'northeast'})
+						WITH n1, n2
+						CALL spatial.addNode('bbox_layer', n1) YIELD node as added1
+						WITH n2, added1
+						CALL spatial.addNode('bbox_layer', n2) YIELD node as added2
+						RETURN added1, added2
+						""", config -> config.setComment("Add points at opposite corners"))
+				.runCypher("CALL spatial.getLayerBoundingBox('bbox_layer') YIELD minX, minY, maxX, maxY, crs",
+						ExampleCypher::storeResult)
+				.assertSingleResult("minX", minX -> assertThat((Double) minX, closeTo(15.0, 0.0001)))
+				.assertSingleResult("minY", minY -> assertThat((Double) minY, closeTo(60.0, 0.0001)))
+				.assertSingleResult("maxX", maxX -> assertThat((Double) maxX, closeTo(16.0, 0.0001)))
+				.assertSingleResult("maxY", maxY -> assertThat((Double) maxY, closeTo(61.0, 0.0001)))
+				.assertSingleResult("crs", crs -> assertEquals("WGS84(DD)", crs));
+	}
 
-    }
+	@Test
+	public void testLayerMeta() {
+		docExample("spatial.layerMeta", "Get metadata about a layer")
+				.runCypher("CALL spatial.addPointLayer('meta_layer', 'rtree', 'wgs84') YIELD node", ExampleCypher::storeResult)
+				.runCypher("""
+						CREATE (n1:Point {latitude: 60.0, longitude: 15.0, name: 'southwest'})
+						WITH n1
+						CALL spatial.addNode('meta_layer', n1) YIELD node
+						RETURN node
+						""", config -> config.setComment("Add points at opposite corners"))
+				.runCypher("CALL spatial.layerMeta('meta_layer') YIELD name, geometryType, crs, hasComplexAttributes, extraAttributes",
+						ExampleCypher::storeResult)
+				.assertSingleResult("name", name -> assertEquals("meta_layer", name))
+				.assertSingleResult("geometryType", geomType -> assertEquals("org.locationtech.jts.geom.Point", geomType))
+				.assertSingleResult("crs", crs -> Assertions.assertThat((String)crs).contains("WGS84(DD)"))
+				.assertSingleResult("hasComplexAttributes", hasComplex -> assertFalse((Boolean) hasComplex));
+	}
 
-    @Test
-    public void find_geometries_within__distance() {
-        data.get();
-        String response = post(Status.OK, "{\"layer\":\"geom\", \"lat\":\"lat\", \"lon\":\"lon\"}", ENDPOINT + "/graphdb/addSimplePointLayer");
-        response = post(Status.CREATED, "{\"name\":\"geom\", \"config\":{\"provider\":\"spatial\", \"geometry_type\":\"point\",\"lat\":\"lat\",\"lon\":\"lon\"}}", "http://localhost:" + PORT + "/db/data/index/node/");
-        response = post(Status.CREATED, "{\"lat\":60.1, \"lon\":15.2}", "http://localhost:" + PORT + "/db/data/node");
-        int nodeId = getNodeId(response);
-        response = post(Status.OK, "{\"layer\":\"geom\", \"node\":\"http://localhost:" + PORT + "/db/data/node/" + nodeId + "\"}", ENDPOINT + "/graphdb/addNodeToLayer");
-        response = post(Status.OK, "{\"layer\":\"geom\", \"pointX\":15.0,\"pointY\":60.0,\"distanceInKm\":100}", ENDPOINT + "/graphdb/findGeometriesWithinDistance");
-        assertTrue(response.contains("60.1"));
-    }
+	@Test
+	public void testUpdateWKT() {
+		docExample("spatial.updateWKT", "Update a node's WKT geometry")
+				.runCypher("CALL spatial.addWKTLayer('update_layer', 'wkt') YIELD node", ExampleCypher::storeResult)
+				.runCypher("""
+						CREATE (n:Node {wkt: 'POINT(15.2 60.1)', name: 'updatable_point'})
+						WITH n
+						CALL spatial.addNode('update_layer', n) YIELD node as added_node
+						RETURN n, added_node
+						""", config -> config.setComment("Create and add a node with initial WKT"))
+				.runCypher("""
+						MATCH (n:Node {name: 'updatable_point'})
+						CALL spatial.updateWKT('update_layer', n, 'POINT(25.5 65.5)') YIELD node
+						RETURN node.wkt as wkt
+						""",
+						config -> config.storeResult().setComment("Update the node's WKT geometry"))
+				.assertSingleResult("wkt", wkt -> assertEquals("POINT (25.5 65.5)", wkt))
+				.runCypher("""
+						CALL spatial.withinDistance('update_layer', {longitude: 25.5, latitude: 65.5}, 1) YIELD node
+						RETURN node.name as name
+						""",
+						config -> config.storeResult().setComment("Verify the updated geometry is indexed correctly"))
+				.assertSingleResult("name", name -> assertEquals("updatable_point", name));
+	}
 
+	@Test
+	public void test_spatial_getFeatureCount() {
+		docExample("spatial.getFeatureCount", "Count features in different layer types")
+				.runCypher("CALL spatial.addPointLayer('count_layer')",
+						config -> config.setComment("Create a point layer"))
+				.runCypher("CALL spatial.getFeatureCount('count_layer') YIELD count",
+						config -> config.storeResult().setComment("Count features in empty layer"))
+				.assertSingleResult("count", count -> assertEquals(0L, count))
+				.runCypher("""
+						CREATE (n:Node {latitude: 60.1, longitude: 15.2, name: 'first'})
+						WITH n
+						CALL spatial.addNode('count_layer', n) YIELD node
+						RETURN node
+						""", config -> config.setComment("Add one node to the layer"))
+				.runCypher("CALL spatial.getFeatureCount('count_layer') YIELD count",
+						config -> config.storeResult().setComment("Count after adding one feature"))
+				.assertSingleResult("count", count -> assertEquals(1L, count))
+				.runCypher("""
+						UNWIND range(1,3) as i
+						CREATE (n:Node {id: i, latitude: (60.0 + i * 0.1), longitude: (15.0 + i * 0.1)})
+						WITH collect(n) as nodes
+						CALL spatial.addNodes('count_layer', nodes) YIELD count
+						RETURN count
+						""", config -> config.setComment("Add multiple nodes at once"))
+				.runCypher("CALL spatial.getFeatureCount('count_layer') YIELD count",
+						config -> config.storeResult().setComment("Count after adding multiple features"))
+				.assertSingleResult("count", count -> assertEquals(4L, count))
+				.runCypher("CALL spatial.addWKTLayer('wkt_layer', 'wkt')",
+						config -> config.setComment("Create a WKT layer"))
+				.runCypher("CALL spatial.getFeatureCount('wkt_layer') YIELD count",
+						config -> config.storeResult().setComment("Count features in empty WKT layer"))
+				.assertSingleResult("count", count -> assertEquals(0L, count))
+				.runCypher("CALL spatial.addWKT('wkt_layer', 'POINT(15.2 60.1)') YIELD node RETURN node",
+						config -> config.setComment("Add a WKT point"))
+				.runCypher("CALL spatial.addWKT('wkt_layer', 'LINESTRING (15.2 60.1, 15.3 60.1)') YIELD node RETURN node",
+						config -> config.setComment("Add a WKT linestring"))
+				.runCypher("CALL spatial.getFeatureCount('wkt_layer') YIELD count",
+						config -> config.storeResult().setComment("Count features in WKT layer"))
+				.assertSingleResult("count", count -> assertEquals(2L, count));
 
-    @Test
-    @Documented("add_a_wkt_node_to_the_spatial_index")
-    public void add_a_wkt_node_to_the_spatial_index() {
-        data.get();
-        String response = post(Status.OK, "{\"layer\":\"geom\", \"lat\":\"lat\", \"lon\":\"lon\"}", ENDPOINT + "/graphdb/addSimplePointLayer");
-        //response = post(Status.CREATED,"{\"name\":\"geom_wkt\", \"config\":{\"provider\":\"spatial\", \"wkt\":\"wkt\"}}", "http://localhost:"+PORT+"/db/data/index/node/");
-        response = post(Status.OK, "{\"layer\":\"geom_wkt\", \"format\":\"WKT\",\"nodePropertyName\":\"wkt\"}", ENDPOINT + "/graphdb/addEditableLayer");
-        response = post(Status.CREATED, "{\"wkt\":\"POINT(15.2 60.1)\"}", "http://localhost:" + PORT + "/db/data/node");
-        int nodeId = getNodeId(response);
-        response = post(Status.OK, "{\"layer\":\"geom_wkt\", \"node\":\"http://localhost:" + PORT + "/db/data/node/" + nodeId + "\"}", ENDPOINT + "/graphdb/addNodeToLayer");
-        assertTrue(findNodeInBox("geom_wkt", 15.0, 15.3, 60.0, 61.0).contains("60.1"));
-        //update the node
-        response = put(Status.NO_CONTENT, "{\"wkt\":\"POINT(31 61)\"}", "http://localhost:" + PORT + "/db/data/node/" + nodeId + "/properties");
-        response = post(Status.OK, "{\"layer\":\"geom_wkt\", \"node\":\"http://localhost:" + PORT + "/db/data/node/" + nodeId + "\"}", ENDPOINT + "/graphdb/addNodeToLayer");
-//        assertFalse(findNodeInBox("geom_wkt", 15.0, 15.3, 60.0, 61.0).contains("60.1"));
-        assertTrue(findNodeInBox("geom_wkt", 30, 32, 60.0, 62.0).contains("31"));
-
-
-    }
-
-    @Test
-    @Documented("Find geometries in a bounding box.")
-    public void find_geometries_in_a_bounding_box_using_cypher() {
-        data.get();
-        String response = post(Status.OK, "{\"layer\":\"geom\", \"lat\":\"lat\", \"lon\":\"lon\"}", ENDPOINT + "/graphdb/addSimplePointLayer");
-        response = post(Status.CREATED, "{\"name\":\"geom\", \"config\":{\"provider\":\"spatial\", \"geometry_type\":\"point\",\"lat\":\"lat\",\"lon\":\"lon\"}}", "http://localhost:" + PORT + "/db/data/index/node/");
-        response = post(Status.CREATED, "{\"lat\":60.1, \"lon\":15.2}", "http://localhost:" + PORT + "/db/data/node");
-        int nodeId = getNodeId(response);
-        // add domain-node via index, so that the geometry companion is created and added to the layer
-        response = post(Status.CREATED, "{\"value\":\"dummy\",\"key\":\"dummy\", \"uri\":\"http://localhost:" + PORT + "/db/data/node/" + nodeId + "\"}", "http://localhost:" + PORT + "/db/data/index/node/geom");
-
-        response = post(Status.OK, "{\"query\":\"start node = node:geom(\'bbox:[15.0,15.3,60.0,60.2]\') return node\"}", "http://localhost:" + PORT + "/db/data/cypher");
-
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode node = mapper.readTree(response).get("data").get(0).get(0).get("data");
-        assertEquals(15.2, node.get("lon").getDoubleValue());
-        assertEquals(60.1, node.get("lat").getDoubleValue());
-    }
-
-    @Test
-    @Documented("find_geometries_within__distance_using_cypher")
-    public void find_geometries_within__distance_using_cypher() {
-        data.get();
-        String response = post(Status.OK, "{\"layer\":\"geom\", \"lat\":\"lat\", \"lon\":\"lon\"}", ENDPOINT + "/graphdb/addSimplePointLayer");
-        response = post(Status.CREATED, "{\"name\":\"geom\", \"config\":{\"provider\":\"spatial\", \"geometry_type\":\"point\",\"lat\":\"lat\",\"lon\":\"lon\"}}", "http://localhost:" + PORT + "/db/data/index/node/");
-        response = post(Status.CREATED, "{\"lat\":60.1, \"lon\":15.2}", "http://localhost:" + PORT + "/db/data/node");
-        int nodeId = getNodeId(response);
-
-        // add domain-node via index, so that the geometry companion is created and added to the layer
-        response = post(Status.CREATED, "{\"value\":\"dummy\",\"key\":\"dummy\", \"uri\":\"http://localhost:" + PORT + "/db/data/node/" + nodeId + "\"}", "http://localhost:" + PORT + "/db/data/index/node/geom");
-        response = post(Status.OK, "{\"query\":\"start node = node:geom(\'withinDistance:[60.0,15.0, 100.0]\') return node\"}", "http://localhost:" + PORT + "/db/data/cypher");
-
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode node = mapper.readTree(response).get("data").get(0).get(0).get("data");
-        assertEquals(15.2, node.get("lon").getDoubleValue());
-        assertEquals(60.1, node.get("lat").getDoubleValue());
-    }
-
-    */
+		// Test error for non-existent layer
+		testCallFails(db, "CALL spatial.getFeatureCount('non_existent_layer')", null,
+				"No such layer 'non_existent_layer'");
+	}
 }

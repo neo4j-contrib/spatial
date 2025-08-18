@@ -20,85 +20,65 @@
 package org.neo4j.gis.spatial.osm;
 
 import java.io.File;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import org.neo4j.dbms.api.DatabaseManagementService;
-import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
-import org.neo4j.gis.spatial.Constants;
+import org.geotools.data.neo4j.Neo4jSpatialDataStore;
+import org.neo4j.driver.AuthTokens;
+import org.neo4j.driver.GraphDatabase;
 import org.neo4j.gis.spatial.ShapefileExporter;
-import org.neo4j.gis.spatial.SpatialDatabaseService;
-import org.neo4j.gis.spatial.index.IndexManager;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Transaction;
-import org.neo4j.internal.kernel.api.security.SecurityContext;
-import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 public class OSMLayerToShapefileExporter {
 
 	/**
-	 * This method allows for a console, command-line application for loading
-	 * accessing an existing database containing an existing OSM model, and
-	 * exporting one or more dynamic layers to shapefiles. The layer
-	 * specifications are key-value pairs (dot separated). If the value is left
-	 * out, all values are accepted (test for existance of key only).
+	 * The entry point of the application. This method is responsible for exporting specific OpenStreetMap (OSM) layers
+	 * from a Neo4j spatial database into Shapefiles. It establishes a connection to the Neo4j database, validates
+	 * the existence of the required dataset, and handles the export of specified layers.
 	 *
-	 * @param args , the database directory, OSM dataset and layer
-	 *             specifications.
+	 * @param args the command-line arguments for the application:
+	 *             args[0] - The Bolt URI for connecting to the Neo4j database.
+	 *             args[1] - The name of the database within Neo4j to connect to.
+	 *             args[2] - The username for authenticating with the Neo4j database.
+	 *             args[3] - The password for authenticating with the Neo4j database.
+	 *             args[4] - The name of the OSM dataset layer to be exported.
+	 *             args[5..n] - Specifications for the layers to export, in the format <key>.<value> or <key>.
+	 * @throws Exception if an error occurs during the execution of the method.
 	 */
-	public static void main(String[] args) {
-		if (args.length < 5) {
-			System.out.println("Usage: osmtoshp neo4jHome database exportdir osmdataset layerspec <..layerspecs..>");
-			System.out.println(
-					"\tNote: 'database' can only be something other than 'neo4j' in Neo4j Enterprise Edition.");
+	public static void main(String[] args) throws Exception {
+		if (args.length < 6) {
+			System.out.println("Usage: osmtoshp <bolturi> <database> <user> <password> <osmdataset> <layerspecs..>");
 		} else {
-			String homeDir = args[0];
+			String bolturi = args[0];
 			String database = args[1];
-			String exportDir = args[2];
-			String osmdataset = args[3];
-			List<String> layerspecs = new ArrayList<>(Arrays.asList(args).subList(4, args.length));
-			DatabaseManagementService databases = new DatabaseManagementServiceBuilder(Path.of(homeDir)).build();
-			GraphDatabaseService db = databases.database(database);
-			SpatialDatabaseService spatial = new SpatialDatabaseService(
-					new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
-			OSMLayer layer;
-			try (Transaction tx = db.beginTx()) {
-				layer = (OSMLayer) spatial.getLayer(tx, osmdataset, false);
-			}
-			if (layer != null) {
-				ShapefileExporter exporter = new ShapefileExporter(db);
-				exporter.setExportDir(args[1] + File.separator + layer.getName());
-				for (String layerspec : layerspecs) {
-					String[] fields = layerspec.split("[.\\-]");
-					HashMap<String, String> tags = new HashMap<>();
-					String key = fields[0];
-					String name = key;
-					if (fields.length > 1) {
-						String value = fields[1];
-						name = key + "-" + value;
-						tags.put(key, value);
-					}
+			String user = args[2];
+			String password = args[3];
+			String osmdataset = args[4];
+			List<String> layerspecs = new ArrayList<>(Arrays.asList(args).subList(5, args.length));
 
-					try (Transaction tx = db.beginTx()) {
-						if (layer.getLayerNames(tx).contains(name)) {
-							System.out.println("Exporting previously existing layer: " + name);
-						} else {
-							System.out.println("Creating and exporting new layer: " + name);
-							layer.addDynamicLayerOnWayTags(tx, name, Constants.GTYPE_LINESTRING, tags);
-						}
-						exporter.exportLayer(name);
-						tx.commit();
-					} catch (Exception e) {
-						System.err.println("Failed to export dynamic layer " + name + ": " + e);
-						e.printStackTrace(System.err);
-					}
-				}
-			} else {
-				System.err.println("No such layer: " + args[2]);
+			var driver = GraphDatabase.driver(bolturi, AuthTokens.basic(user, password));
+			var dataStore = new Neo4jSpatialDataStore(driver, database);
+
+			var layers = Arrays.asList(dataStore.getTypeNames());
+			if (!layers.contains(osmdataset)) {
+				System.out.println("No layer " + osmdataset + " found for database " + database);
+				return;
 			}
-			databases.shutdown();
+			ShapefileExporter exporter = new ShapefileExporter(dataStore);
+			exporter.setExportDir(args[1] + File.separator + osmdataset);
+			for (String layerspec : layerspecs) {
+				String[] fields = layerspec.split("[.\\-]");
+				String key = fields[0];
+				String name = key;
+				if (fields.length > 1) {
+					String value = fields[1];
+					name = key + "-" + value;
+				}
+
+				if (layers.contains(name)) {
+					System.out.println("Exporting existing layer: " + name);
+					exporter.exportLayer(name);
+				}
+			}
 		}
 	}
 

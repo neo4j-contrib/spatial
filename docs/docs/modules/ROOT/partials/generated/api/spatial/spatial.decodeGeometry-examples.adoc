@@ -39,3 +39,35 @@ CREATE (n:Node {geom:'POINT(4.0 5.0)'}) RETURN spatial.decodeGeometry('geom',n) 
 |point({x: 4.0, y: 5.0, crs: 'cartesian'})
 |===
 
+=== Using both functions together
+
+[source,cypher]
+----
+CALL spatial.addPointLayer('combined_layer') YIELD node
+WITH node
+CREATE (n:Point {longitude: 5.5, latitude: 45.5, city: 'TestCity', population: 50000})
+WITH n
+CALL spatial.addNode('combined_layer', n) YIELD node as added_node
+WITH n
+RETURN
+	spatial.decodeGeometry('combined_layer', n) as geometry,
+	spatial.extractAttributes('combined_layer', n) as attributes
+
+----
+
+.Result
+
+[opts="header",cols="2"]
+|===
+|attributes|geometry
+a|
+[source]
+----
+{
+  "city" : "TestCity",
+  "population" : 50000
+}
+----
+|point({x: 5.5, y: 45.5, crs: 'cartesian'})
+|===
+

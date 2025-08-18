@@ -19,21 +19,17 @@
  */
 package org.geotools.data.neo4j;
 
-import java.io.IOException;
-import java.util.logging.Logger;
-import org.geotools.api.data.FeatureReader;
-import org.geotools.api.data.FeatureWriter;
 import org.geotools.api.data.Query;
-import org.geotools.api.feature.simple.SimpleFeature;
 import org.geotools.api.feature.simple.SimpleFeatureType;
+import org.geotools.api.filter.Filter;
 import org.geotools.data.store.ContentEntry;
 import org.geotools.data.store.ContentFeatureStore;
-import org.geotools.feature.simple.SimpleFeatureBuilder;
+import org.geotools.filter.text.cql2.CQL;
 import org.geotools.geometry.jts.ReferencedEnvelope;
-import org.locationtech.jts.geom.Geometry;
-import org.neo4j.gis.spatial.EditableLayer;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Transaction;
+import org.neo4j.cypherdsl.core.Cypher;
+import org.neo4j.cypherdsl.core.Statement;
+import org.neo4j.driver.Value;
+import org.neo4j.gis.spatial.utilities.GeotoolsAdapter;
 
 /**
  * FeatureWriter implementation. Instances of this class are created by
@@ -41,44 +37,91 @@ import org.neo4j.graphdb.Transaction;
  */
 public class Neo4jSpatialFeatureStore extends ContentFeatureStore {
 
-	private final GraphDatabaseService database;
+	private final Neo4jSpatialDataStore dataStore;
 	private final SimpleFeatureType featureType;
-	private final Neo4jSpatialFeatureSource reader;
-	private final EditableLayer layer;
 
-	private static final Logger LOGGER = org.geotools.util.logging.Logging.getLogger("org.neo4j.gis.spatial");
-
-	protected Neo4jSpatialFeatureStore(ContentEntry contentEntry, GraphDatabaseService database, EditableLayer layer,
-			Neo4jSpatialFeatureSource reader) {
-		super(contentEntry, Query.ALL);
-		this.database = database;
-		this.reader = reader;
-		this.layer = layer;
-		this.featureType = reader.buildFeatureType();
-	}
-
-	public SimpleFeatureType getFeatureType() {
-		return featureType;
+	protected Neo4jSpatialFeatureStore(
+			Neo4jSpatialDataStore dataStore,
+			SimpleFeatureType featureType,
+			ContentEntry entry,
+			Query query
+	) {
+		super(entry, query);
+		this.dataStore = dataStore;
+		this.featureType = featureType;
 	}
 
 	@Override
-	protected FeatureWriter<SimpleFeatureType, SimpleFeature> getWriterInternal(Query query, int flags) {
-		return new Writer(reader.getReaderInternal(query));
+	protected boolean canTransact() {
+		return true;
 	}
 
 	@Override
 	protected ReferencedEnvelope getBoundsInternal(Query query) {
-		return reader.getBoundsInternal(query);
+		var cql = getCQLFromQuery(query);
+
+		Statement statement;
+		if ("INCLUDE".equals(cql)) {
+			statement = Cypher.call("spatial.getLayerBoundingBox")
+					.withArgs(Cypher.parameter("layer", getLayerName(query)))
+					.build();
+		} else {
+			throw new IllegalStateException("Determine BBOX with filter is not yet implemented for " + cql);
+		}
+
+		return dataStore.executeQuery(statement, transaction)
+				.map(record -> {
+					Value crs = record.get("crs");
+					return new ReferencedEnvelope(
+							record.get("minX").asDouble(),
+							record.get("maxX").asDouble(),
+							record.get("minY").asDouble(),
+							record.get("maxY").asDouble(),
+							crs.isNull() ? featureType.getCoordinateReferenceSystem()
+									: GeotoolsAdapter.getCRS(crs.asString()));
+				})
+				.findFirst()
+				.orElseThrow();
+
 	}
 
 	@Override
 	protected int getCountInternal(Query query) {
-		return reader.getCountInternal(query);
+		var cql = getCQLFromQuery(query);
+
+		var node = Cypher.name("node");
+		Statement statement;
+		if ("INCLUDE".equals(cql)) {
+			statement = Cypher.call("spatial.getFeatureCount")
+					.withArgs(
+							Cypher.parameter("layer", getLayerName(query))
+					)
+					.build();
+		} else {
+			statement = Cypher.call("spatial.cql")
+					.withArgs(
+							Cypher.parameter("layer", getLayerName(query)),
+							Cypher.parameter("cql", CQL.toCQL(query.getFilter()))
+					)
+					.yield(node)
+					.returning(Cypher.count(node).as("count"))
+					.build();
+		}
+
+		return dataStore.executeQuery(statement, transaction)
+				.mapToInt(record -> record.get("count").asInt())
+				.findFirst()
+				.orElseThrow();
 	}
 
 	@Override
-	protected FeatureReader<SimpleFeatureType, SimpleFeature> getReaderInternal(Query query) {
-		return reader.getReaderInternal(query);
+	protected Neo4jSpatialFeatureWriter getWriterInternal(Query query, int flags) {
+		return new Neo4jSpatialFeatureWriter(dataStore, this, getReaderInternal(query));
+	}
+
+	@Override
+	protected Neo4jSpatialFeatureReader getReaderInternal(Query query) {
+		return new Neo4jSpatialFeatureReader(dataStore, featureType, transaction, query);
 	}
 
 	@Override
@@ -86,118 +129,16 @@ public class Neo4jSpatialFeatureStore extends ContentFeatureStore {
 		return featureType;
 	}
 
-	class Writer implements FeatureWriter<SimpleFeatureType, SimpleFeature> {
-
-		private SimpleFeature live;    // current for FeatureWriter
-		private SimpleFeature current; // copy of live returned to user
-		private boolean closed;
-		private final FeatureReader<SimpleFeatureType, SimpleFeature> reader;
-
-		public Writer(FeatureReader<SimpleFeatureType, SimpleFeature> reader) {
-			this.reader = reader;
+	private String getLayerName(Query query) {
+		String layerName = query.getTypeName();
+		if (layerName == null) {
+			layerName = featureType.getTypeName();
 		}
+		return layerName;
+	}
 
-		@Override
-		public SimpleFeatureType getFeatureType() {
-			return reader.getFeatureType();
-		}
-
-		@Override
-		public SimpleFeature next() throws IOException {
-			if (closed) {
-				throw new IOException("FeatureWriter has been closed");
-			}
-
-			SimpleFeatureType featureType = getFeatureType();
-
-			if (hasNext()) {
-				live = reader.next();
-				current = SimpleFeatureBuilder.copy(live);
-				LOGGER.finer("Calling next on writer");
-			} else {
-				// new content
-				live = null;
-				current = SimpleFeatureBuilder.template(featureType, null);
-			}
-
-			return current;
-		}
-
-		@Override
-		public void remove() throws IOException {
-			if (closed) {
-				throw new IOException("FeatureWriter has been closed");
-			}
-
-			if (current == null) {
-				throw new IOException("No feature available to remove");
-			}
-
-			if (live != null) {
-				LOGGER.fine("Removing " + live);
-
-				try (Transaction tx = database.beginTx()) {
-					layer.delete(tx, live.getID());
-					tx.commit();
-				}
-
-				Neo4jSpatialFeatureStore.this.getState().fireFeatureRemoved(Neo4jSpatialFeatureStore.this, live);
-			}
-
-			live = null;
-			current = null;
-		}
-
-		@Override
-		public void write() throws IOException {
-			if (closed) {
-				throw new IOException("FeatureWriter has been closed");
-			}
-
-			if (current == null) {
-				throw new IOException("No feature available to write");
-			}
-
-			LOGGER.fine("Write called, live is " + live + " and cur is " + current);
-
-			if (live != null) {
-				if (!live.equals(current)) {
-					LOGGER.fine("Updating " + current);
-					try (Transaction tx = database.beginTx()) {
-						layer.update(tx, current.getID(), (Geometry) current.getDefaultGeometry());
-						tx.commit();
-					}
-
-					Neo4jSpatialFeatureStore.this.getState().fireFeatureUpdated(
-							Neo4jSpatialFeatureStore.this, live,
-							new ReferencedEnvelope(current.getBounds()));
-
-				}
-			} else {
-				LOGGER.fine("Inserting " + current);
-				try (Transaction tx = database.beginTx()) {
-					layer.add(tx, (Geometry) current.getDefaultGeometry());
-					tx.commit();
-				}
-
-				Neo4jSpatialFeatureStore.this.getState().fireFeatureAdded(Neo4jSpatialFeatureStore.this, current);
-			}
-
-			live = null;
-			current = null;
-		}
-
-		@Override
-		public boolean hasNext() throws IOException {
-			if (closed) {
-				throw new IOException("Feature writer is closed");
-			}
-			return reader != null && reader.hasNext();
-		}
-
-		@Override
-		public void close() throws IOException {
-			reader.close();
-		}
+	private static String getCQLFromQuery(Query query) {
+		var filter = query.getFilter() == null ? Filter.INCLUDE : query.getFilter();
+		return CQL.toCQL(filter);
 	}
 }

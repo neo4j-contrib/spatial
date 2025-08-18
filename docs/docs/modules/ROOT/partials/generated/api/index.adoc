@@ -109,13 +109,29 @@ Finds all geometry nodes in the given layer within the lower left and upper righ
 
 Finds all geometry nodes in the layer within the distance to the given coordinate
 |label:procedure[]
+|xref:api/spatial/spatial.cql.adoc[spatial.cql icon:book[]]
+
+Finds all geometry nodes in the given layer that matches the given CQL
+|label:procedure[]
 |xref:api/spatial/spatial.decodeGeometry.adoc[spatial.decodeGeometry icon:book[]]
 
 Returns a geometry of a layer node as the Neo4j geometry type, to be passed to other procedures or returned to a client
 |label:function[]
+|xref:api/spatial/spatial.extractAttributes.adoc[spatial.extractAttributes icon:book[]]
+
+Returns attributes of the node
+|label:function[]
 |xref:api/spatial/spatial.getFeatureAttributes.adoc[spatial.getFeatureAttributes icon:book[]]
 
 Returns feature attributes of the given layer
+|label:procedure[]
+|xref:api/spatial/spatial.getFeatureCount.adoc[spatial.getFeatureCount icon:book[]]
+
+Returns the number of features in the layer
+|label:procedure[]
+|xref:api/spatial/spatial.getLayerBoundingBox.adoc[spatial.getLayerBoundingBox icon:book[]]
+
+Returns the bounding box of the layer
 |label:procedure[]
 |xref:api/spatial/spatial.importOSM.adoc[spatial.importOSM icon:book[]]
 
@@ -141,6 +157,10 @@ Returns all geometry nodes that intersect the given geometry (shape, polygon) in
 
 Returns the layer root node for the given layer `name`
 |label:procedure[]
+|xref:api/spatial/spatial.layerMeta.adoc[spatial.layerMeta icon:book[]]
+
+Returns the layer details for the given layer `name`
+|label:procedure[]
 |xref:api/spatial/spatial.layerTypes.adoc[spatial.layerTypes icon:book[]]
 
 Returns the different registered layer types
@@ -152,6 +172,10 @@ Returns name, and details for all layers
 |xref:api/spatial/spatial.neo4jGeometryToWkt.adoc[spatial.neo4jGeometryToWkt icon:book[]]
 
 Converts a point or point array to WKT
+|label:function[]
+|xref:api/spatial/spatial.nodeAsWKT.adoc[spatial.nodeAsWKT icon:book[]]
+
+Returns a geometry of a layer node as WKT
 |label:function[]
 |xref:api/spatial/spatial.procedures.adoc[spatial.procedures icon:book[]]
 
@@ -173,6 +197,10 @@ Removes the given nodes from the layer, returns the count of nodes removed
 
 Sets the feature attributes of the given layer
 |label:procedure[]
+|xref:api/spatial/spatial.updateWKT.adoc[spatial.updateWKT icon:book[]]
+
+Updates a node with the geometry defined by the given WKT, returns the node
+|label:procedure[]
 |xref:api/spatial/spatial.upgrade.adoc[spatial.upgrade icon:book[]]
 
 Upgrades an older spatial data model and returns a list of layers upgraded
@@ -192,7 +220,7 @@ Converts a WKT to GeoJson structure
 [.procedures,opts=header,cols='5a,1a']
 |===
 |Qualified Name |Type
-|xref:api/spatial.addNode/spatial.addNode.byId.adoc[spatial.addNode.byId icon:book[]]
+|xref:api/spatial.addNode/spatial.addNode.byId.adoc[spatial.addNode.byId icon:book[]] label:deprecated[]
 
 Adds the given node to the layer, returns the geometry-node
 |label:procedure[]
@@ -203,7 +231,7 @@ Adds the given node to the layer, returns the geometry-node
 [.procedures,opts=header,cols='5a,1a']
 |===
 |Qualified Name |Type
-|xref:api/spatial.addNodes/spatial.addNodes.byId.adoc[spatial.addNodes.byId icon:book[]]
+|xref:api/spatial.addNodes/spatial.addNodes.byId.adoc[spatial.addNodes.byId icon:book[]] label:deprecated[]
 
 Adds the given nodes list to the layer, returns the count
 |label:procedure[]
@@ -214,7 +242,7 @@ Adds the given nodes list to the layer, returns the count
 [.procedures,opts=header,cols='5a,1a']
 |===
 |Qualified Name |Type
-|xref:api/spatial.removeNode/spatial.removeNode.byId.adoc[spatial.removeNode.byId icon:book[]]
+|xref:api/spatial.removeNode/spatial.removeNode.byId.adoc[spatial.removeNode.byId icon:book[]] label:deprecated[]
 
 Removes the given node from the layer, returns the geometry-node
 |label:procedure[]
@@ -225,7 +253,7 @@ Removes the given node from the layer, returns the geometry-node
 [.procedures,opts=header,cols='5a,1a']
 |===
 |Qualified Name |Type
-|xref:api/spatial.removeNodes/spatial.removeNodes.byId.adoc[spatial.removeNodes.byId icon:book[]]
+|xref:api/spatial.removeNodes/spatial.removeNodes.byId.adoc[spatial.removeNodes.byId icon:book[]] label:deprecated[]
 
 Removes the given nodes from the layer, returns the count of nodes removed
 |label:procedure[]

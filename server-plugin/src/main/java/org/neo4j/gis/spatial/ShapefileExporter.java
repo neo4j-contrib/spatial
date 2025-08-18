@@ -31,19 +31,22 @@ import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.data.neo4j.Neo4jSpatialDataStore;
 import org.geotools.data.shapefile.ShapefileDataStore;
 import org.geotools.data.shapefile.ShapefileDataStoreFactory;
-import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Transaction;
+import org.neo4j.driver.Driver;
 
 public class ShapefileExporter {
 
 	final Neo4jSpatialDataStore neo4jDataStore;
 	File exportDir;
 
-	public ShapefileExporter(GraphDatabaseService db) {
-		neo4jDataStore = new Neo4jSpatialDataStore(db);
+	public ShapefileExporter(Driver driver, String database) {
+		this(new Neo4jSpatialDataStore(driver, database));
 		exportDir = null;
 	}
 
+	public ShapefileExporter(Neo4jSpatialDataStore dataStore) {
+		neo4jDataStore = dataStore;
+		exportDir = null;
+	}
 	public void setExportDir(String dir) {
 		exportDir = (dir == null || dir.isEmpty()) ? null : (new File(dir)).getAbsoluteFile();
 	}
@@ -80,18 +83,16 @@ public class ShapefileExporter {
 		create.put("charset", "UTF-8");
 		ShapefileDataStore shpDataStore = (ShapefileDataStore) factory.createNewDataStore(create);
 		CoordinateReferenceSystem crs;
-		try (Transaction tx = neo4jDataStore.beginTx()) {
-			SimpleFeatureType featureType = neo4jDataStore.getSchema(layerName);
-			GeometryDescriptor geometryType = featureType.getGeometryDescriptor();
-			crs = geometryType.getCoordinateReferenceSystem();
-			// crs = neo4jDataStore.getFeatureSource(layerName).getInfo().getCRS();
+		SimpleFeatureType featureType = neo4jDataStore.getSchema(layerName);
+		GeometryDescriptor geometryType = featureType.getGeometryDescriptor();
+		crs = geometryType.getCoordinateReferenceSystem();
+		// crs = neo4jDataStore.getFeatureSource(layerName).getInfo().getCRS();
 
-			shpDataStore.createSchema(featureType);
-			if (shpDataStore.getFeatureSource() instanceof SimpleFeatureStore store) {
-				store.addFeatures(neo4jDataStore.getFeatureSource(layerName).getFeatures());
-			}
-			tx.commit();
+		shpDataStore.createSchema(featureType);
+		if (shpDataStore.getFeatureSource() instanceof SimpleFeatureStore store) {
+			store.addFeatures(neo4jDataStore.getFeatureSource(layerName).getFeatures());
 		}
+
 		if (crs != null) {
 			shpDataStore.forceSchemaCRS(crs);
 		}
