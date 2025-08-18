@@ -67,11 +67,14 @@ final class Neo4jTransactionState implements State {
 	}
 
 	public void close() {
-		if (neo4jTransaction != null) {
-			neo4jTransaction.close();
+		try {
+			if (neo4jTransaction != null) {
+				neo4jTransaction.close();
+			}
+			session.close();
+		} finally {
+			closed = true;
 		}
-		session.close();
-		closed = true;
 	}
 
 	public Session getSession() {
