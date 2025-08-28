@@ -40,7 +40,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.geotools.api.style.Style;
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
-import org.geotools.data.neo4j.StyledImageExporter;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.geometry.jts.ReferencedEnvelope;
@@ -81,6 +80,8 @@ import org.neo4j.harness.Neo4j;
 import org.neo4j.harness.Neo4jBuilders;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.spatial.cli.tools.StyledImageExporter;
+import org.neo4j.spatial.geotools.common.utilities.RenderingUtils;
 import org.neo4j.test.TestData.Title;
 
 public class GeoPipesDocTest extends AbstractJavaDocTestBase {
@@ -1021,25 +1022,25 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 			StyledImageExporter exporter = new StyledImageExporter(driver, DEFAULT_DATABASE_NAME);
 			exporter.setExportDir("../docs/docs/modules/ROOT/images/generated/layers");
 			exporter.saveImage(GeoPipeline.start(tx, intersectionLayer).toFeatureCollection(tx),
-					StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
+					RenderingUtils.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
 							"intersectionLayer.png"));
 
 			exporter.saveImage(GeoPipeline.start(tx, boxesLayer).toFeatureCollection(tx),
-					StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
+					RenderingUtils.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
 							"boxesLayer.png"));
 
 			exporter.saveImage(GeoPipeline.start(tx, concaveLayer).toFeatureCollection(tx),
-					StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
+					RenderingUtils.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
 							"concaveLayer.png"));
 
 			exporter.saveImage(GeoPipeline.start(tx, equalLayer).toFeatureCollection(tx),
-					StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
+					RenderingUtils.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
 							"equalLayer.png"));
 			exporter.saveImage(GeoPipeline.start(tx, linesLayer).toFeatureCollection(tx),
-					StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
+					RenderingUtils.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
 							"linesLayer.png"));
 			exporter.saveImage(GeoPipeline.start(tx, osmLayer).toFeatureCollection(tx),
-					StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
+					RenderingUtils.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
 							"osmLayer.png"));
 			tx.commit();
 		} catch (IOException e) {

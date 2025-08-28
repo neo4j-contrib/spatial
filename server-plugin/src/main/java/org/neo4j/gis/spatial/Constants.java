@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial;
 
 import org.neo4j.graphdb.Label;
+import org.neo4j.spatial.geotools.common.utilities.GeotoolsAdapter;
 
 /**
  * @author Davide Savazzi
@@ -68,8 +69,8 @@ public interface Constants {
 	int GTYPE_MULTILINESTRING = 5;
 	int GTYPE_MULTIPOLYGON = 6;
 
-	int SRID_COORDINATES_2D = 4326;
-	int SRID_COORDINATES_3D = 4979;
+	int SRID_COORDINATES_2D = GeotoolsAdapter.SRID_COORDINATES_2D;
+	int SRID_COORDINATES_3D = GeotoolsAdapter.SRID_COORDINATES_3D;
 
 	String INDEX_TYPE_RTREE = "rtree";
 	String INDEX_TYPE_GEOHASH = "geohash";

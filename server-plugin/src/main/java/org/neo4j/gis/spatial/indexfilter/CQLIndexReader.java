@@ -21,12 +21,12 @@ package org.neo4j.gis.spatial.indexfilter;
 
 import org.geotools.api.feature.simple.SimpleFeature;
 import org.geotools.api.filter.Filter;
-import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.filter.text.ecql.ECQL;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.Utilities;
+import org.neo4j.gis.spatial.feature.Neo4jServerFeatureBuilder;
 import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.index.LayerTreeIndexReader;
 import org.neo4j.gis.spatial.rtree.Envelope;
@@ -95,7 +95,7 @@ public class CQLIndexReader extends LayerIndexReaderWrapper {
 
 	private boolean queryLeafNode(Transaction tx, Node indexNode) {
 		SpatialDatabaseRecord dbRecord = new SpatialDatabaseRecord(layer, indexNode);
-		Neo4jFeatureBuilder builder = Neo4jFeatureBuilder.fromLayer(tx, layer);
+		Neo4jServerFeatureBuilder builder = Neo4jServerFeatureBuilder.fromLayer(tx, layer);
 		SimpleFeature feature = builder.buildFeature(tx, dbRecord);
 		return filter.evaluate(feature);
 	}

@@ -30,7 +30,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-import org.geotools.data.neo4j.StyledImageExporter;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateList;
@@ -48,6 +47,8 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.spatial.cli.tools.ShapefileExporter;
+import org.neo4j.spatial.cli.tools.StyledImageExporter;
 import org.opentest4j.AssertionFailedError;
 
 public class TestSimplePointLayer extends Neo4jTestCase {

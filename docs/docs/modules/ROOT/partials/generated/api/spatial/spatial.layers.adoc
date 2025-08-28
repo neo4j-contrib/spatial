@@ -12,8 +12,17 @@ Returns name, and details for all layers
 
 [source]
 ----
-spatial.layers() :: (name :: STRING, signature :: STRING)
+spatial.layers(notEmpty = false :: BOOLEAN) :: (name :: STRING, signature :: STRING)
 ----
+
+== Input parameters
+
+[.procedures,opts=header,cols='1,1,1,7']
+|===
+|Name|Type|Default|Description
+|notEmpty|BOOLEAN|false
+a|Only returns layers that are not empty
+|===
 
 == Output parameters
 

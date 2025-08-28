@@ -29,8 +29,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import org.geotools.api.data.DataSourceException;
 import org.geotools.api.data.DataStore;
-import org.geotools.data.neo4j.Neo4jSpatialDataStore;
-import org.geotools.data.neo4j.StyledImageExporter;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
@@ -44,6 +42,7 @@ import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.spatial.cli.tools.StyledImageExporter;
 
 public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 

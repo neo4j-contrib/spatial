@@ -4,7 +4,7 @@
 	<properties>
 		<neo4j.version>2025.07.1</neo4j.version>
 		<java.version>21</java.version>
-		<geotools.version>32.2</geotools.version>
+		<geotools.version>33.2</geotools.version>
 		<spatial.test.osm.version>20100819</spatial.test.osm.version>
 		<spatial.test.shp.version>20100819</spatial.test.shp.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -17,7 +17,7 @@
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>neo4j-spatial</artifactId>
 	<groupId>org.neo4j</groupId>
-	<version>2025.8-SNAPSHOT</version>
+	<version>2025.07.1-SNAPSHOT</version>
 	<name>Neo4j - Spatial Components</name>
 	<description>Spatial utilities and components for Neo4j</description>
 	<url>https://neo4j.com/labs/neo4j-spatial/5/</url>
@@ -25,7 +25,10 @@
 	<packaging>pom</packaging>
 
 	<modules>
+		<module>geotools-common</module>
 		<module>server-plugin</module>
+		<module>geotools-plugin</module>
+		<module>cli-tools</module>
 	</modules>
 
 	<scm>

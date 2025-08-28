@@ -20,13 +20,13 @@
 package org.neo4j.gis.spatial.filter;
 
 import org.geotools.api.feature.simple.SimpleFeature;
-import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.filter.text.ecql.ECQL;
 import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.Utilities;
+import org.neo4j.gis.spatial.feature.Neo4jServerFeatureBuilder;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.graphdb.Node;
@@ -38,21 +38,21 @@ import org.neo4j.graphdb.Transaction;
  */
 public class SearchCQL implements SearchFilter {
 
-	private final Neo4jFeatureBuilder featureBuilder;
+	private final Neo4jServerFeatureBuilder featureBuilder;
 	private final Layer layer;
 	private final org.geotools.api.filter.Filter filter;
 	private final Envelope filterEnvelope;
 
 	public SearchCQL(Transaction tx, Layer layer, org.geotools.api.filter.Filter filter) {
 		this.layer = layer;
-		this.featureBuilder = Neo4jFeatureBuilder.fromLayer(tx, layer);
+		this.featureBuilder = Neo4jServerFeatureBuilder.fromLayer(tx, layer);
 		this.filter = filter;
 		this.filterEnvelope = Utilities.extractEnvelopeFromFilter(filter);
 	}
 
 	public SearchCQL(Transaction tx, Layer layer, String cql) {
 		this.layer = layer;
-		this.featureBuilder = Neo4jFeatureBuilder.fromLayer(tx, layer);
+		this.featureBuilder = Neo4jServerFeatureBuilder.fromLayer(tx, layer);
 		try {
 			this.filter = ECQL.toFilter(cql);
 			this.filterEnvelope = Utilities.extractEnvelopeFromFilter(filter);

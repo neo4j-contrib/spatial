@@ -44,9 +44,9 @@ import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
-import org.neo4j.gis.spatial.utilities.GeotoolsAdapter;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.geotools.common.utilities.GeotoolsAdapter;
 
 /**
  * Instances of Layer provide the ability for developers to query geometries associated with a single dataset (or
