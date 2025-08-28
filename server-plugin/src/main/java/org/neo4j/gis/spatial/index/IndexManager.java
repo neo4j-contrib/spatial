@@ -32,6 +32,8 @@ import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.api.security.RestrictedAccessMode;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
+import static org.neo4j.internal.kernel.api.security.StaticAccessMode.SCHEMA;
+
 public class IndexManager {
 
 	private final GraphDatabaseAPI db;
@@ -44,7 +46,7 @@ public class IndexManager {
 		}
 
 		private IndexAccessMode(SecurityContext securityContext) {
-			super(securityContext.mode(), Static.SCHEMA);
+			super(securityContext.mode(), SCHEMA);
 		}
 
 		@Override
