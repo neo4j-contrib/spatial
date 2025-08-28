@@ -97,7 +97,7 @@ Tests require significant memory. The project is configured for:
 │   └── src/test/java/     # Test suite
 ├── .github/workflows/     # GitHub Actions CI/CD
 ├── docs/                  # Documentation (Antora-based)
-└── utils/                 # Utility scripts (Ruby, shell)
+└── utils/                 # Utility scripts (Ruby, shell) for visualization/analysis
 ```
 
 ### Key Source Packages
@@ -172,12 +172,12 @@ The CI pipeline (`.github/workflows/pr-build.yaml`) runs:
 
 **Command-line utilities:**
 ```bash
-# OSM import example
+# OSM import example (uses test data files in server-plugin/)
 ./mvnw dependency:copy-dependencies
-java -cp target/classes:target/dependency/* org.neo4j.gis.spatial.osm.OSMImporter osm-db two-street.osm
+java -cp target/classes:target/dependency/* org.neo4j.gis.spatial.osm.OSMImporter osm-db server-plugin/two-street.osm
 
 # Using Maven exec
-./mvnw exec:java -Dexec.mainClass=org.neo4j.gis.spatial.osm.OSMImporter -Dexec.args="osm-db two-street.osm"
+./mvnw exec:java -Dexec.mainClass=org.neo4j.gis.spatial.osm.OSMImporter -Dexec.args="osm-db server-plugin/sample.osm"
 ```
 
 ### Validation Steps
