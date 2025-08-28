@@ -262,7 +262,7 @@ mvn jetty:run
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-spatial</artifactId>
-			<version>5.26.0</version>
+			<version>2025.07</version>
 		</dependency>
 	</dependencies>
 </profile>
