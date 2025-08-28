@@ -28,6 +28,7 @@ import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.internal.kernel.api.security.PermissionState;
 import org.neo4j.internal.kernel.api.security.PrivilegeAction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
+import org.neo4j.internal.kernel.api.security.StaticAccessMode;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.api.security.RestrictedAccessMode;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
@@ -44,7 +45,7 @@ public class IndexManager {
 		}
 
 		private IndexAccessMode(SecurityContext securityContext) {
-			super(securityContext.mode(), Static.SCHEMA);
+			super(securityContext.mode(), StaticAccessMode.SCHEMA);
 		}
 
 		@Override
