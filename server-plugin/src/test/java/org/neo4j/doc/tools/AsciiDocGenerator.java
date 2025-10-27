@@ -120,7 +120,6 @@ public abstract class AsciiDocGenerator {
 			}
 			return new OutputStreamWriter(new FileOutputStream(out, false), StandardCharsets.UTF_8);
 		} catch (Exception e) {
-			e.printStackTrace();
 			throw new RuntimeException(e);
 		}
 	}
@@ -177,7 +176,8 @@ public abstract class AsciiDocGenerator {
 
 	private static String sourceSnippet(String tagName, Class<?> source) {
 		// ensure symlink is created
-		Path target = new File("../docs/docs/modules/ROOT/examples/" + source.getSimpleName() + ".java").toPath().toAbsolutePath().normalize();
+		Path target = new File("../docs/docs/modules/ROOT/examples/" + source.getSimpleName() + ".java").toPath()
+				.toAbsolutePath().normalize();
 		if (!Files.exists(target)) {
 			String sourcePath = "src/test/java/" + getPath(source);
 			Path relPath = target.getParent().relativize(new File(sourcePath).toPath().toAbsolutePath());

@@ -68,14 +68,9 @@ public class TestReadOnlyTransactions {
 	}
 
 	@AfterEach
-	public void tearDown() {
+	public void tearDown() throws IOException {
 		databases.shutdown();
-		try {
-			FileUtils.deleteDirectory(basePath);
-		} catch (IOException e) {
-			System.out.println("Failed to delete database: " + e);
-			e.printStackTrace();
-		}
+		FileUtils.deleteDirectory(basePath);
 	}
 
 	private void buildDataModel() {

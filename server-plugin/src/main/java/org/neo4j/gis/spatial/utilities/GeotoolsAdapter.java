@@ -23,6 +23,8 @@ package org.neo4j.gis.spatial.utilities;
 import static org.geotools.referencing.crs.DefaultEngineeringCRS.GENERIC_2D;
 import static org.geotools.referencing.crs.DefaultGeographicCRS.WGS84;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.geotools.api.referencing.FactoryException;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.referencing.CRS;
@@ -37,6 +39,8 @@ import org.neo4j.gis.spatial.SpatialDatabaseException;
  */
 public class GeotoolsAdapter {
 
+	private static final Logger LOGGER = Logger.getLogger(GeotoolsAdapter.class.getName());
+
 	public static CoordinateReferenceSystem getCRS(String crsText) {
 		// TODO: upgrade geotools to get around bug with java11 support
 		try {
@@ -46,7 +50,7 @@ public class GeotoolsAdapter {
 			if (crsText.startsWith("LOCAL_CS[\"Generic cartesian 2D\"")) {
 				return GENERIC_2D;
 			}
-			System.out.println("Attempting to use geotools to lookup CRS - might fail with Java11: " + crsText);
+			LOGGER.log(Level.INFO, "Attempting to use geotools to lookup CRS - might fail with Java11: {0}", crsText);
 			return ReferencingFactoryFinder.getCRSFactory(null).createFromWKT(crsText);
 		} catch (FactoryException e) {
 			throw new SpatialDatabaseException(e);
@@ -58,7 +62,7 @@ public class GeotoolsAdapter {
 			return (crs == WGS84) ? Integer.valueOf(Constants.SRID_COORDINATES_2D)
 					: (crs == GENERIC_2D) ? null : CRS.lookupEpsgCode(crs, true);
 		} catch (FactoryException e) {
-			System.err.println("Failed to lookup CRS: " + e.getMessage());
+			LOGGER.log(Level.WARNING, "Failed to lookup CRS: {0}", e.getMessage());
 			return null;
 		}
 	}

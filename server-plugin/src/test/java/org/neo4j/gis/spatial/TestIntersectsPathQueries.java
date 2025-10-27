@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.function.Function;
+import java.util.logging.Logger;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Envelope;
@@ -57,6 +58,8 @@ import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 public class TestIntersectsPathQueries extends Neo4jTestCase {
+
+	private static final Logger LOGGER = Logger.getLogger(TestIntersectsPathQueries.class.getName());
 
 	/**
 	 * This test case is designed to capture the conditions described in the bug
@@ -102,7 +105,7 @@ public class TestIntersectsPathQueries extends Neo4jTestCase {
 
 	private static void importShapefileDatabase(String shpPath, String dbRoot, String dbName, String layerName) {
 		withDatabase(dbRoot, dbName, Neo4jTestCase.LARGE_CONFIG, graphDb -> {
-			ShapefileImporter importer = new ShapefileImporter(graphDb, new ConsoleListener(), 10000, true);
+			ShapefileImporter importer = new ShapefileImporter(graphDb, new LogListener(LOGGER), 10000, true);
 			importer.setFilterEnvelope(makeFilterEnvelope());
 			try {
 				importer.importFile(shpPath, layerName, StandardCharsets.UTF_8);
@@ -123,7 +126,7 @@ public class TestIntersectsPathQueries extends Neo4jTestCase {
 	private void importOSMDatabase(String osmPath, String dbRoot, String dbName, String layerName)
 			throws InterruptedException {
 		// TODO: Port to batch inserter in `github.com/neo4j-contrib/osm` project
-		OSMImporter importer = new OSMImporter(layerName, new ConsoleListener(), makeFilterEnvelope());
+		OSMImporter importer = new OSMImporter(layerName, new LogListener(LOGGER), makeFilterEnvelope());
 		withDatabase(dbRoot, dbName, Neo4jTestCase.LARGE_CONFIG, graphDb -> {
 			try {
 				importer.importFile(graphDb, osmPath, 10000);

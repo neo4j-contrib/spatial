@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javax.imageio.ImageIO;
 import org.geotools.api.feature.simple.SimpleFeatureType;
@@ -54,6 +55,8 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
 public class RTreeImageExporter {
+
+	private static final Logger LOGGER = Logger.getLogger(RTreeImageExporter.class.getName());
 
 	private final CoordinateReferenceSystem crs;
 	private File exportDir;
@@ -150,7 +153,7 @@ public class RTreeImageExporter {
 		drawGeometryNodes(mapContent, allIndexedNodes, Color.LIGHT_GRAY);
 		for (int level = 0; level < Math.min(indexHeight, levels); level++) {
 			ArrayList<RTreeIndex.NodeWithEnvelope> layer = layers.get(indexHeight - level - 1);
-			System.out.println("Drawing index level " + level + " of " + layer.size() + " nodes");
+			LOGGER.fine("Drawing index level " + level + " of " + layer.size() + " nodes");
 			drawIndexNodes(level, mapContent, layer, colors[level % colors.length]);
 			drawIndexNodes(2 + level * 2, mapContent, indexMatches.get(level), Color.MAGENTA);
 		}
@@ -179,7 +182,7 @@ public class RTreeImageExporter {
 		mapContent.dispose();
 
 		imagefile = checkFile(imagefile);
-		System.out.println("Writing image to disk: " + imagefile);
+		LOGGER.info("Writing image to disk: " + imagefile);
 		ImageIO.write(image, "png", imagefile);
 	}
 
@@ -190,7 +193,7 @@ public class RTreeImageExporter {
 		file = file.getAbsoluteFile();
 		file.getParentFile().mkdirs();
 		if (file.exists()) {
-			System.out.println("Deleting previous index image file: " + file);
+			LOGGER.info("Deleting previous index image file: " + file);
 			file.delete();
 		}
 		return file;

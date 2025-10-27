@@ -22,6 +22,8 @@ package org.neo4j.doc.tools;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.visualization.graphviz.AsciiDocStyle;
@@ -30,6 +32,8 @@ import org.neo4j.visualization.graphviz.GraphvizWriter;
 import org.neo4j.walk.Walker;
 
 public class SpatialGraphVizHelper extends org.neo4j.visualization.asciidoc.AsciidocHelper {
+
+	private static final Logger LOGGER = Logger.getLogger(SpatialGraphVizHelper.class.getName());
 
 	private static final String ILLEGAL_STRINGS = "[:\\(\\)\t;&/\\\\]";
 
@@ -49,7 +53,7 @@ public class SpatialGraphVizHelper extends org.neo4j.visualization.asciidoc.Asci
 			try {
 				writer.emit(out, Walker.fullGraph(graph));
 			} catch (IOException e) {
-				e.printStackTrace();
+				LOGGER.log(Level.WARNING, "", e);
 			}
 
 			String safeTitle = title.replaceAll(ILLEGAL_STRINGS, "");
@@ -70,7 +74,7 @@ public class SpatialGraphVizHelper extends org.neo4j.visualization.asciidoc.Asci
 							colorSet, graphAttrs
 					).get() + "\n" +
 					"----\n";
-			System.out.println(result);
+			LOGGER.fine(result);
 			return result;
 		}
 	}

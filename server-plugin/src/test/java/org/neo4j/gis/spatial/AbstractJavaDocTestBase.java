@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.io.IOException;
 import java.util.Map;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -64,14 +65,14 @@ public abstract class AbstractJavaDocTestBase implements GraphHolder {
 	}
 
 	@BeforeEach
-	public void setUp() {
+	public void setUp() throws IOException {
 		GraphDatabaseService graphdb = this.graphdb();
 		GraphDatabaseServiceCleaner.cleanDatabaseContent(graphdb);
 		this.gen.get().setGraph(graphdb);
 	}
 
 	@AfterEach
-	public void doc() {
+	public void doc() throws IOException {
 		this.gen.get().document("target/docs/dev", "examples");
 	}
 }

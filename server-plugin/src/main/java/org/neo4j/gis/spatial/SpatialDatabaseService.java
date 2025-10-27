@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.referencing.crs.AbstractCRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
@@ -61,6 +62,7 @@ import org.neo4j.graphdb.Transaction;
  */
 public class SpatialDatabaseService implements Constants {
 
+	private static final Logger LOGGER = Logger.getLogger(SpatialDatabaseService.class.getName());
 	private static final Map<String, RegisteredLayerType> registeredLayerTypes = new LinkedHashMap<>();
 
 	static {
@@ -146,7 +148,7 @@ public class SpatialDatabaseService implements Constants {
 			//noinspection unchecked
 			return convertJtsClassToGeometryType((Class<? extends Geometry>) aClass);
 		} catch (ClassNotFoundException e) {
-			System.err.println("Unrecognized geometry '" + geometryName + "': " + e);
+			LOGGER.warning("Unrecognized geometry '" + geometryName + "': " + e);
 			return GTYPE_GEOMETRY;
 		}
 	}
@@ -452,7 +454,7 @@ public class SpatialDatabaseService implements Constants {
 				((Configurable) encoder).setConfiguration(encoderConfig);
 				layer.getLayerNode(tx).setProperty(PROP_GEOMENCODER_CONFIG, encoderConfig);
 			} else {
-				System.out.println(
+				LOGGER.warning(
 						"Warning: encoder configuration '" + encoderConfig + "' passed to non-configurable encoder: "
 								+ geometryEncoderClass);
 			}
@@ -463,9 +465,8 @@ public class SpatialDatabaseService implements Constants {
 				((Configurable) index).setConfiguration(indexConfig);
 				layer.getLayerNode(tx).setProperty(PROP_INDEX_CONFIG, indexConfig);
 			} else {
-				System.out.println(
-						"Warning: index configuration '" + indexConfig + "' passed to non-configurable index: "
-								+ indexClass);
+				LOGGER.warning("Warning: index configuration '" + indexConfig + "' passed to non-configurable index: "
+						+ indexClass);
 			}
 		}
 		if (crs != null && layer instanceof EditableLayer) {

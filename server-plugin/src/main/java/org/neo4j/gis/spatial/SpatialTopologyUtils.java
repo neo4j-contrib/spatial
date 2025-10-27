@@ -251,7 +251,6 @@ public class SpatialTopologyUtils {
 				double span = scaled.getSpan(i);
 				double delta = (span - span * zoomFactor) / 2.0;
 				double shift = span * offsetFactor[i];
-//				System.out.println("Have offset["+i+"]: "+shift);
 				min[i] += shift + delta;
 				max[i] += shift - delta;
 			}
@@ -271,7 +270,6 @@ public class SpatialTopologyUtils {
 			double[] max = new double[]{scaled.getMaxX(), scaled.getMaxY()};
 			for (int i = 0; i < 2; i++) {
 				double shift = offset[i];
-//				System.out.println("Have offset["+i+"]: "+shift);
 				double span = (i == 0) ? scaled.getWidth() : scaled.getHeight();
 				double delta = (span - span * zoomFactor) / 2.0;
 				min[i] += shift + delta;

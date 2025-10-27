@@ -29,6 +29,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
@@ -61,6 +62,8 @@ import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
  * Queries to the index also need to be explicit.
  */
 public class RTreeIndex implements SpatialIndexWriter, Configurable {
+
+	private static final Logger LOGGER = Logger.getLogger(RTreeIndex.class.getName());
 
 	public static final String INDEX_PROP_BBOX = "bbox";
 
@@ -1439,7 +1442,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		return e.getArea();
 	}
 
-	private  void deleteTreeBelow(Node rootNode) {
+	private void deleteTreeBelow(Node rootNode) {
 		try (var relationships = rootNode.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD)) {
 			for (Relationship relationship : relationships) {
 				deleteRecursivelySubtree(relationship.getEndNode(), relationship);
@@ -1459,7 +1462,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		}
 		try (var relationships = node.getRelationships()) {
 			for (Relationship rel : relationships) {
-				System.out.println("Unexpected relationship found on " + node + ": " + rel.toString());
+				LOGGER.info("Unexpected relationship found on " + node + ": " + rel.toString());
 				rel.delete();
 			}
 		}

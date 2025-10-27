@@ -24,6 +24,7 @@ import java.io.Serializable;
 import java.net.URL;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.logging.Logger;
 import org.geotools.api.data.SimpleFeatureStore;
 import org.geotools.api.feature.simple.SimpleFeatureType;
 import org.geotools.api.feature.type.GeometryDescriptor;
@@ -35,6 +36,7 @@ import org.neo4j.driver.Driver;
 
 public class ShapefileExporter {
 
+	private static final Logger LOGGER = Logger.getLogger(ShapefileExporter.class.getName());
 	final Neo4jSpatialDataStore neo4jDataStore;
 	File exportDir;
 
@@ -47,6 +49,7 @@ public class ShapefileExporter {
 		neo4jDataStore = dataStore;
 		exportDir = null;
 	}
+
 	public void setExportDir(String dir) {
 		exportDir = (dir == null || dir.isEmpty()) ? null : (new File(dir)).getAbsoluteFile();
 	}
@@ -67,7 +70,7 @@ public class ShapefileExporter {
 		file = file.getAbsoluteFile();
 		file.getParentFile().mkdirs();
 		if (file.exists()) {
-			System.out.println("Deleting previous file: " + file);
+			LOGGER.info("Deleting previous file: " + file);
 			file.delete();
 		}
 		return file;

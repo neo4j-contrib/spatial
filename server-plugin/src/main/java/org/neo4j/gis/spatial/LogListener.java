@@ -19,27 +19,17 @@
  */
 package org.neo4j.gis.spatial;
 
-import java.io.PrintStream;
+import java.util.logging.Logger;
 import org.neo4j.gis.spatial.rtree.Listener;
 
+public class LogListener implements Listener {
 
-/**
- * This listener simply logs progress to System.out.
- *
- * @author Craig Taverner
- */
-public class ConsoleListener implements Listener {
-
-	private final PrintStream out;
+	private final Logger logger;
 	private int total = 0;
 	private int current = 0;
 
-	public ConsoleListener() {
-		this(System.out);
-	}
-
-	public ConsoleListener(PrintStream out) {
-		this.out = out;
+	public LogListener(Logger logger) {
+		this.logger = logger;
 	}
 
 	@Override
@@ -52,12 +42,12 @@ public class ConsoleListener implements Listener {
 	public void worked(int workedSinceLastNotification) {
 		current += workedSinceLastNotification;
 		if (total < 1) {
-			out.println("Completed " + current);
+			logger.info("Completed " + current);
 		} else if (total == 100) {
-			out.println(current + "%: completed");
+			logger.info(current + "%: completed");
 		} else {
 			int perc = (int) (100.0 * current / total);
-			out.println(perc + "%: completed " + current + " / " + total);
+			logger.fine(perc + "%: completed " + current + " / " + total);
 		}
 	}
 

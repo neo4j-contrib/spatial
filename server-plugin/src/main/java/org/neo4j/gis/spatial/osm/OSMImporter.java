@@ -26,7 +26,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.PrintStream;
 import java.nio.charset.Charset;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -42,6 +41,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.xml.bind.DatatypeConverter;
 import javax.xml.stream.XMLStreamException;
@@ -75,6 +77,8 @@ import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 public class OSMImporter implements Constants {
+
+	private static final Logger LOGGER = Logger.getLogger(OSMImporter.class.getName());
 
 	public static final DefaultEllipsoid WGS84 = DefaultEllipsoid.WGS84;
 	public static final Label LABEL_DATASET = Label.label("OSMDataset");
@@ -177,11 +181,9 @@ public class OSMImporter implements Constants {
 		}
 
 		void printTagStats() {
-			System.out.println("Tag statistics for " + tagStats.size() + " types:");
-			for (String key : tagStats.keySet()) {
-				TagStats stats = tagStats.get(key);
-				System.out.println("\t" + key + ": " + stats);
-			}
+			LOGGER.fine("Tag statistics for " + tagStats.size() + " types:\n" +
+					tagStats.entrySet().stream().map(e -> "\t" + e.getKey() + ": " + e.getValue())
+							.collect(Collectors.joining("\n")));
 		}
 
 		void addGeomStats(Node geomNode) {
@@ -195,11 +197,14 @@ public class OSMImporter implements Constants {
 		}
 
 		void dumpGeomStats() {
-			System.out.println("Geometry statistics for " + geomStats.size() + " geometry types:");
+			StringBuilder sb = new StringBuilder();
+			sb.append("Geometry statistics for ").append(geomStats.size()).append(" geometry types:\n");
 			for (Integer key : geomStats.keySet()) {
 				Integer count = geomStats.get(key);
-				System.out.println("\t" + SpatialDatabaseService.convertGeometryTypeToName(key) + ": " + count);
+				sb.append("\t").append(SpatialDatabaseService.convertGeometryTypeToName(key)).append(": ").append(count)
+						.append("\n");
 			}
+			LOGGER.info(sb.toString());
 			geomStats.clear();
 		}
 
@@ -296,12 +301,12 @@ public class OSMImporter implements Constants {
 							}
 						}
 						if (badProxies > 0) {
-							System.out.println("Unexpected dangling proxies for way: " + way);
+							LOGGER.info("Unexpected dangling proxies for way: " + way);
 							if (way.hasProperty(PROP_WAY_ID)) {
-								System.out.println("\tWay:   " + way.getProperty(PROP_WAY_ID));
+								LOGGER.info("\tWay:   " + way.getProperty(PROP_WAY_ID));
 							}
-							System.out.println("\tBad Proxies:  " + badProxies);
-							System.out.println("\tGood Proxies: " + goodProxies);
+							LOGGER.info("\tBad Proxies:  " + badProxies);
+							LOGGER.info("\tGood Proxies: " + goodProxies);
 						}
 					}
 					if (++count % commitInterval == 0) {
@@ -336,7 +341,7 @@ public class OSMImporter implements Constants {
 			tx.close();
 		}
 
-		if (verboseLog) {
+		if (LOGGER.isLoggable(Level.FINER)) {
 			long stopTime = System.currentTimeMillis();
 			log("info | Re-indexing elapsed time in seconds: " + (1.0 * (stopTime - startTime) / 1000.0));
 			stats.dumpGeomStats();
@@ -466,7 +471,7 @@ public class OSMImporter implements Constants {
 
 		void logMissingUser(Map<String, Object> nodeProps) {
 			if (missingUserCount++ < 10) {
-				System.err.println("Missing user or uid: " + nodeProps.toString());
+				LOGGER.warning("Missing user or uid: " + nodeProps.toString());
 			}
 		}
 
@@ -498,20 +503,22 @@ public class OSMImporter implements Constants {
 				if (currentTime > 0) {
 					duration = (int) ((currentTime - firstFindTime) / 1000);
 				}
-				System.out.println(new Date(currentTime) + ": Found "
-						+ foundOSMNodes + " nodes during "
-						+ duration + "s way creation: ");
+				StringBuilder sb = new StringBuilder();
+				sb.append(new Date(currentTime)).append(": Found ")
+						.append(foundOSMNodes).append(" nodes during ")
+						.append(duration).append("s way creation: \n");
 				for (String type : nodeFindStats.keySet()) {
 					LogCounter found = nodeFindStats.get(type);
 					double rate = 0.0f;
 					if (found.totalTime > 0) {
 						rate = (1000.0 * found.count / found.totalTime);
 					}
-					System.out.println("\t" + type + ": \t" + found.count
-							+ "/" + (found.totalTime / 1000)
-							+ "s" + " \t(" + rate
-							+ " nodes/second)");
+					sb.append("\t").append(type).append(": \t")
+							.append(found.count).append("/")
+							.append((found.totalTime / 1000)).append("s")
+							.append(" \t(").append(rate).append(" nodes/second)\n");
 				}
+				LOGGER.info(sb.toString());
 				findTime = currentTime;
 			}
 		}
@@ -531,7 +538,7 @@ public class OSMImporter implements Constants {
 				logTime = currentTime;
 			}
 			if (currentTime - logTime > 1432) {
-				System.out.println(
+				LOGGER.info(
 						new Date(currentTime) + ": Saving " + type + " " + count + " \t(" + (1000.0 * count
 								/ (currentTime - firstLogTime)) + " " + type + "/second)");
 				logTime = currentTime;
@@ -543,7 +550,7 @@ public class OSMImporter implements Constants {
 			for (String type : new String[]{"node", "way", "relation"}) {
 				Integer count = stats.get(type);
 				if (count != null) {
-					System.out.println("Loaded " + count + " " + type + "s");
+					LOGGER.info("Loaded " + count + " " + type + "s");
 				}
 			}
 		}
@@ -631,7 +638,7 @@ public class OSMImporter implements Constants {
 			String node_osm_id = nodeProperties.get(idName).toString();
 			for (long idValue : idValues) {
 				if (node_osm_id.equals(Long.toString(idValue))) {
-					System.out.println("Debug node: " + node_osm_id);
+					LOGGER.fine("Debug node: " + node_osm_id);
 				}
 			}
 		}
@@ -775,7 +782,7 @@ public class OSMImporter implements Constants {
 						double[] location = new double[]{(Double) nodeProps.get("lon"), (Double) nodeProps.get("lat")};
 						metaGeom.expandToIncludePoint(location);
 					} else if (memberType.equals("nodes")) {
-						System.err.println("Unexpected 'nodes' member type");
+						LOGGER.warning("Unexpected 'nodes' member type");
 					} else {
 						updateGeometryMetaDataFromMember(member, metaGeom, nodeProps);
 					}
@@ -790,7 +797,7 @@ public class OSMImporter implements Constants {
 					createRelationship(relation, member, OSMRelation.MEMBER, relProps);
 					prevMember = member;
 				} else {
-					System.err.println("Cannot process invalid relation member: " + memberProps);
+					LOGGER.warning("Cannot process invalid relation member: " + memberProps);
 				}
 			}
 			if (metaGeom.isValid()) {
@@ -911,7 +918,7 @@ public class OSMImporter implements Constants {
 			this.securityContext = securityContext;
 			this.txInterval = txInterval;
 			if (this.txInterval < 100) {
-				System.err.println("Warning: Unusually short txInterval, expect bad insert performance");
+				LOGGER.warning("Unusually short txInterval, expect bad insert performance");
 			}
 			this.layerHash = md5Hash(osmImporter.layerName);
 			checkTx(null); // Opens transaction for future writes
@@ -990,24 +997,24 @@ public class OSMImporter implements Constants {
 
 		@Override
 		protected void startWays() {
-			System.out.println("About to create node index");
+			LOGGER.info("About to create node index");
 			nodeIndex = createIndex(LABEL_NODE, PROP_NODE_ID);
-			System.out.println("About to populate node index");
+			LOGGER.info("About to populate node index");
 			// TODO: Should we use another TX?
 			tx.schema().awaitIndexOnline(nodeIndex, 1, TimeUnit.MINUTES);  // could be a large index
-			System.out.println("Finished populating node index");
+			LOGGER.info("Finished populating node index");
 		}
 
 		@Override
 		protected void startRelations() {
-			System.out.println("About to create way and relation indexes");
+			LOGGER.info("About to create way and relation indexes");
 			wayIndex = createIndex(LABEL_WAY, PROP_WAY_ID);
 			relationIndex = createIndex(LABEL_RELATION, PROP_RELATION_ID);
-			System.out.println("About to populate way and relation indexes");
+			LOGGER.info("About to populate way and relation indexes");
 			// TODO: Should we use another TX?
 			tx.schema().awaitIndexOnline(wayIndex, 1, TimeUnit.MINUTES);
 			tx.schema().awaitIndexOnline(nodeIndex, 1, TimeUnit.MINUTES);
-			System.out.println("Finished populating way and relation indexes");
+			LOGGER.info("Finished populating way and relation indexes");
 		}
 
 		@Override
@@ -1043,7 +1050,7 @@ public class OSMImporter implements Constants {
 					index = indexTx.schema().indexFor(hashed).on(propertyKey).withName(indexName).create();
 					indexTx.commit();
 				}
-				System.out.println("Created index " + index.getName());
+				LOGGER.info("Created index " + index.getName());
 				beginTx();
 			}
 			return index;
@@ -1517,7 +1524,7 @@ public class OSMImporter implements Constants {
 			this.osm_dataset = osmWriter.getDatasetId();
 			this.missingChangesets = osmWriter.missingChangesets;
 		}
-		if (verboseLog) {
+		if (LOGGER.isLoggable(Level.FINE)) {
 			describeTimes(startTime, times);
 			osmWriter.describeMissing();
 			osmWriter.describeLoaded();
@@ -1616,52 +1623,34 @@ public class OSMImporter implements Constants {
 		return WGS84.orthodromicDistance(lonA, latA, lonB, latB);
 	}
 
-	private void log(PrintStream out, String message) {
-		if (logContext != null) {
-			message = logContext + "[" + contextLine + "]: " + message;
-		}
-		out.println(message);
-	}
-
 	private void log(String message) {
-		if (verboseLog) {
-			log(System.out, message);
-		}
+		LOGGER.finer(message);
 	}
 
 	private void debug(String message) {
-		if (debugLog) {
-			log(System.out, message);
-		}
+		LOGGER.fine(message);
 	}
 
 	private void error(String message) {
-		log(System.err, message);
+		if (logContext != null) {
+			message = logContext + "[" + contextLine + "]: " + message;
+		}
+		LOGGER.severe(message);
 	}
 
 	private void error(String message, Exception e) {
-		log(System.err, message);
-		e.printStackTrace(System.err);
+		if (logContext != null) {
+			message = logContext + "[" + contextLine + "]: " + message;
+		}
+		LOGGER.log(Level.SEVERE, message, e);
 	}
 
 	private String logContext = null;
 	private int contextLine = 0;
-	private boolean debugLog = false;
-	private boolean verboseLog = true;
 
 	// "2008-06-11T12:36:28Z"
 	private final DateFormat timestampFormat = new SimpleDateFormat(
 			"yyyy-MM-dd'T'HH:mm:ss'Z'");
-
-	public void setDebug(boolean verbose) {
-		this.debugLog = verbose;
-		this.verboseLog |= verbose;
-	}
-
-	public void setVerbose(boolean verbose) {
-		this.verboseLog = verbose;
-		this.debugLog &= verbose;
-	}
 
 	private void setLogContext(String context) {
 		logContext = context;
@@ -1680,15 +1669,14 @@ public class OSMImporter implements Constants {
 	 */
 	public static void main(String[] args) {
 		if (args.length < 2) {
-			System.out.println("Usage: osmimporter databasedir osmfile <..osmfiles..>");
+			LOGGER.info("Usage: osmimporter databasedir osmfile <..osmfiles..>");
 		} else {
 			OSMImportManager importer = new OSMImportManager(args[0]);
 			for (int i = 1; i < args.length; i++) {
 				try {
 					importer.loadTestOsmData(args[i], 5000);
 				} catch (Exception e) {
-					System.err.println("Error importing OSM file '" + args[i] + "': " + e);
-					e.printStackTrace();
+					LOGGER.log(Level.WARNING, "Error importing OSM file '" + args[i] + "'", e);
 				} finally {
 					importer.shutdown();
 				}
@@ -1719,16 +1707,15 @@ public class OSMImporter implements Constants {
 		}
 
 		private void loadTestOsmData(String layerName, int commitInterval) throws Exception {
-			System.out.println("\n=== Loading layer " + layerName + " from " + layerName + " ===\n");
+			LOGGER.info("\n=== Loading layer " + layerName + " from " + layerName + " ===\n");
 			long start = System.currentTimeMillis();
 			OSMImporter importer = new OSMImporter(layerName);
 			prepareDatabase(true);
 			importer.importFile(graphDb, layerName, false, commitInterval);
 			importer.reIndex(graphDb, commitInterval);
 			shutdown();
-			System.out.println(
-					"=== Completed loading " + layerName + " in " + (System.currentTimeMillis() - start) / 1000.0
-							+ " seconds ===");
+			LOGGER.info("=== Completed loading " + layerName + " in " + (System.currentTimeMillis() - start) / 1000.0
+					+ " seconds ===");
 		}
 
 		private DatabaseLayout prepareLayout(boolean delete) throws IOException {

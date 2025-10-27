@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.Set;
+import java.util.logging.Logger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
@@ -38,6 +39,8 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 public class GeoPipesPerformanceTest extends Neo4jTestCase {
 
+	private static final Logger LOGGER = Logger.getLogger(GeoPipesPerformanceTest.class.getName());
+
 	private final int records = 10000;
 	private final int chunkSize = records / 10;
 
@@ -51,21 +54,19 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 			SpatialDatabaseService spatial = new SpatialDatabaseService(
 					new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 			SimplePointLayer layer = spatial.createSimplePointLayer(tx, "GeoPipesPerformanceTest");
-			System.out.println("Creating database of " + records + " point records");
+			LOGGER.info("Creating database of " + records + " point records");
 			for (int i = 0; i < records; i++) {
 				double x = 10.0 + Math.random() * 10.0;
 				double y = 10.0 + Math.random() * 10.0;
 				String name = "Fake Geometry " + i;
-				// System.out.println("Creating point '" + name +
-				// "' at location x:" + x + " y:" + y);
 				SpatialDatabaseRecord record = layer.add(tx, x, y);
 				record.getGeomNode().setProperty("name", name);
 			}
 			layer.finalizeTransaction(tx);
 			tx.commit();
-			System.out.println("Finished writing " + records + " point records to database");
+			LOGGER.info("Finished writing " + records + " point records to database");
 		} catch (Exception e) {
-			System.err.println("Error initializing database: " + e);
+			LOGGER.warning("Error initializing database: " + e);
 		}
 	}
 
@@ -114,8 +115,6 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 			long prevChunk = 0;
 			while (flowList.hasNext()) {
 				GeoPipeFlow geoPipeFlow = flowList.next();
-				// System.out.println("Result: " + geoPipeFlow.countRecords() +
-				// " records");
 				int chunk = i / chunkSize;
 				if (chunk != prevChunk) {
 					long time = System.currentTimeMillis();
@@ -130,11 +129,11 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 			}
 			int total = 0;
 			int count = 0;
-			System.out.println("Measured " + totals.size() + " groups of reads of up to " + chunkSize + " records");
+			LOGGER.info("Measured " + totals.size() + " groups of reads of up to " + chunkSize + " records");
 			for (TimeRecord rec : totals) {
 				total += rec.time;
 				count += rec.count;
-				System.out.println("\t" + rec);
+				LOGGER.info("\t" + rec);
 				float average = (float) rec.time / (float) rec.count;
 				assertTrue(rec.average() < 2 * average, "Expected record average of " + rec.average()
 						+ " to not be substantially larger than running average "
@@ -166,8 +165,6 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 				int count = 0;
 				while (flowList.hasNext()) {
 					GeoPipeFlow geoPipeFlow = flowList.next();
-					// System.out.println("Result: " + geoPipeFlow.countRecords() +
-					// " records");
 					count++;
 				}
 				flowList.reset();
@@ -177,11 +174,11 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 			}
 			int total = 0;
 			int count = 0;
-			System.out.println("Measured " + totals.size() + " groups of reads of up to " + chunkSize + " records");
+			LOGGER.info("Measured " + totals.size() + " groups of reads of up to " + chunkSize + " records");
 			for (TimeRecord rec : totals) {
 				total += rec.time;
 				count += rec.count;
-				System.out.println("\t" + rec);
+				LOGGER.info("\t" + rec);
 				float average = (float) rec.time / (float) rec.count;
 				// assertTrue("Expected record average of " + rec.average() +
 				// " to not be substantially larger than running average "

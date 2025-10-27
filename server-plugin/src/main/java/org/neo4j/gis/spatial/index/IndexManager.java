@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial.index;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.schema.IndexDefinition;
@@ -34,6 +35,8 @@ import org.neo4j.kernel.impl.api.security.RestrictedAccessMode;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 public class IndexManager {
+
+	private static final Logger LOGGER = Logger.getLogger(IndexManager.class.getName());
 
 	private final GraphDatabaseAPI db;
 	private final SecurityContext securityContext;
@@ -123,7 +126,7 @@ public class IndexManager {
 		String name = "IndexRemover(" + index.getName() + ")";
 		Thread exists = findThread(name);
 		if (exists != null) {
-			System.out.println("Already have thread: " + exists.getName());
+			LOGGER.info("Already have thread: " + exists.getName());
 		} else {
 			IndexRemover indexRemover = new IndexRemover(index);
 			Thread indexRemoverThread = new Thread(indexRemover, name);
@@ -151,7 +154,7 @@ public class IndexManager {
 		ThreadGroup rootGroup = Thread.currentThread().getThreadGroup();
 		Thread found = findThread(rootGroup, prefix);
 		if (found != null) {
-			System.out.println("Found thread in current group[" + rootGroup.getName() + "}: " + prefix);
+			LOGGER.fine("Found thread in current group[" + rootGroup.getName() + "]: " + prefix);
 			return found;
 		}
 		ThreadGroup parentGroup;
@@ -160,7 +163,7 @@ public class IndexManager {
 		}
 		found = findThread(rootGroup, prefix);
 		if (found != null) {
-			System.out.println("Found thread in root group[" + rootGroup.getName() + "}: " + prefix);
+			LOGGER.fine("Found thread in root group[" + rootGroup.getName() + "]: " + prefix);
 			return found;
 		}
 		return null;

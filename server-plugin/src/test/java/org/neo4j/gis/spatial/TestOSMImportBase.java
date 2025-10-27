@@ -27,6 +27,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.logging.Logger;
 import org.geotools.api.data.DataStore;
 import org.geotools.data.neo4j.Neo4jSpatialDataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
@@ -51,6 +52,8 @@ import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 public class TestOSMImportBase extends Neo4jTestCase {
+
+	private static final Logger LOGGER = Logger.getLogger(TestOSMImportBase.class.getName());
 
 	protected static String checkOSMFile(String osm) {
 		File osmFile = new File(osm);
@@ -286,7 +289,7 @@ public class TestOSMImportBase extends Neo4jTestCase {
 				includePoints);
 		long start = System.currentTimeMillis();
 		// tag::importOsm[] START SNIPPET: importOsm
-		OSMImporter importer = new OSMImporter(layerName, new ConsoleListener());
+		OSMImporter importer = new OSMImporter(layerName, new LogListener(LOGGER));
 		importer.setCharset(StandardCharsets.UTF_8);
 		importer.importFile(graphDb(), osmPath, includePoints, 5000);
 		// end::importOsm[] END SNIPPET: importOsm

@@ -45,6 +45,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.logging.Logger;
 import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
 import org.hamcrest.MatcherAssert;
@@ -76,6 +77,8 @@ import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 public class SpatialProceduresTest extends AbstractApiTest {
+
+	private static final Logger LOGGER = Logger.getLogger(SpatialProceduresTest.class.getName());
 
 	@Override
 	protected void registerApiProceduresAndFunctions() throws KernelException {
@@ -308,7 +311,7 @@ public class SpatialProceduresTest extends AbstractApiTest {
 		double distance = (Double) executeObject(
 				"WITH point({latitude: 5.0, longitude: 4.0}) as geometry RETURN point.distance(geometry, point({latitude: 5.0, longitude: 4.0})) as distance",
 				"distance");
-		System.out.println(distance);
+		Assertions.assertThat(distance).describedAs("distance").isEqualTo(0.0);
 	}
 
 	@Test
@@ -660,7 +663,7 @@ public class SpatialProceduresTest extends AbstractApiTest {
 				procs.put(r.get("name").toString(), r.get("signature").toString());
 			}
 			for (String key : procs.keySet()) {
-				System.out.println(key + ": " + procs.get(key));
+				LOGGER.fine(key + ": " + procs.get(key));
 			}
 			assertEquals("spatial.procedures() :: (name :: STRING, signature :: STRING)",
 					procs.get("spatial.procedures"));
@@ -1215,7 +1218,7 @@ public class SpatialProceduresTest extends AbstractApiTest {
 						double distance = (Double) r.get("distance");
 						Node osmNode = (Node) r.get("osmNode");
 						@SuppressWarnings("rawtypes") Map<String, Object> props = (Map) r.get("props");
-						System.out.println(
+						LOGGER.fine(
 								"(node[" + node.getElementId() + "])<-[:GEOM {distance:" + distance + "}]-(osmNode["
 										+ osmNode.getElementId() + "] " + props + ") ");
 						assertThat("Node should have either way_osm_id or node_osm_id", props,
@@ -1233,7 +1236,7 @@ public class SpatialProceduresTest extends AbstractApiTest {
 						Node node = (Node) r.get("node");
 						double distance = (Double) r.get("distance");
 						Object geometry = r.get("geometry");
-						System.out.println(node.toString() + " at " + distance + ": " + geometry);
+						LOGGER.fine(node.toString() + " at " + distance + ": " + geometry);
 						if (geometry instanceof Point) {
 							assertThat("Point has 2D coordinates",
 									((Point) geometry).getCoordinate().getCoordinate().length, equalTo(2));
@@ -1263,7 +1266,7 @@ public class SpatialProceduresTest extends AbstractApiTest {
 			assertFalse(res.hasNext(), "Expected a single result");
 			assertEquals(count, c, "Expected count of " + count + " nodes but got " + c);
 		});
-		System.out.println(name + " query took " + (System.currentTimeMillis() - start) + "ms - " + params);
+		LOGGER.fine(name + " query took " + (System.currentTimeMillis() - start) + "ms - " + params);
 	}
 
 	@Test
@@ -1375,8 +1378,7 @@ public class SpatialProceduresTest extends AbstractApiTest {
 	}
 
 	private static Node dump(Node n) {
-		System.out.printf("id %s props %s%n", n.getElementId(), n.getAllProperties());
-		System.out.flush();
+		LOGGER.fine("id " + n.getElementId() + " props " + n.getAllProperties());
 		return n;
 	}
 
@@ -1527,7 +1529,8 @@ public class SpatialProceduresTest extends AbstractApiTest {
 	@Test
 	public void testGetLayerBoundingBox() {
 		docExample("spatial.getLayerBoundingBox", "Get the bounding box of a layer")
-				.runCypher("CALL spatial.addPointLayer('bbox_layer', 'rtree', 'wgs84') YIELD node", ExampleCypher::storeResult)
+				.runCypher("CALL spatial.addPointLayer('bbox_layer', 'rtree', 'wgs84') YIELD node",
+						ExampleCypher::storeResult)
 				.runCypher("""
 						CREATE (n1:Point {latitude: 60.0, longitude: 15.0, name: 'southwest'})
 						CREATE (n2:Point {latitude: 61.0, longitude: 16.0, name: 'northeast'})
@@ -1549,18 +1552,21 @@ public class SpatialProceduresTest extends AbstractApiTest {
 	@Test
 	public void testLayerMeta() {
 		docExample("spatial.layerMeta", "Get metadata about a layer")
-				.runCypher("CALL spatial.addPointLayer('meta_layer', 'rtree', 'wgs84') YIELD node", ExampleCypher::storeResult)
+				.runCypher("CALL spatial.addPointLayer('meta_layer', 'rtree', 'wgs84') YIELD node",
+						ExampleCypher::storeResult)
 				.runCypher("""
 						CREATE (n1:Point {latitude: 60.0, longitude: 15.0, name: 'southwest'})
 						WITH n1
 						CALL spatial.addNode('meta_layer', n1) YIELD node
 						RETURN node
 						""", config -> config.setComment("Add points at opposite corners"))
-				.runCypher("CALL spatial.layerMeta('meta_layer') YIELD name, geometryType, crs, hasComplexAttributes, extraAttributes",
+				.runCypher(
+						"CALL spatial.layerMeta('meta_layer') YIELD name, geometryType, crs, hasComplexAttributes, extraAttributes",
 						ExampleCypher::storeResult)
 				.assertSingleResult("name", name -> assertEquals("meta_layer", name))
-				.assertSingleResult("geometryType", geomType -> assertEquals("org.locationtech.jts.geom.Point", geomType))
-				.assertSingleResult("crs", crs -> Assertions.assertThat((String)crs).contains("WGS84(DD)"))
+				.assertSingleResult("geometryType",
+						geomType -> assertEquals("org.locationtech.jts.geom.Point", geomType))
+				.assertSingleResult("crs", crs -> Assertions.assertThat((String) crs).contains("WGS84(DD)"))
 				.assertSingleResult("hasComplexAttributes", hasComplex -> assertFalse((Boolean) hasComplex));
 	}
 
@@ -1575,16 +1581,16 @@ public class SpatialProceduresTest extends AbstractApiTest {
 						RETURN n, added_node
 						""", config -> config.setComment("Create and add a node with initial WKT"))
 				.runCypher("""
-						MATCH (n:Node {name: 'updatable_point'})
-						CALL spatial.updateWKT('update_layer', n, 'POINT(25.5 65.5)') YIELD node
-						RETURN node.wkt as wkt
-						""",
+								MATCH (n:Node {name: 'updatable_point'})
+								CALL spatial.updateWKT('update_layer', n, 'POINT(25.5 65.5)') YIELD node
+								RETURN node.wkt as wkt
+								""",
 						config -> config.storeResult().setComment("Update the node's WKT geometry"))
 				.assertSingleResult("wkt", wkt -> assertEquals("POINT (25.5 65.5)", wkt))
 				.runCypher("""
-						CALL spatial.withinDistance('update_layer', {longitude: 25.5, latitude: 65.5}, 1) YIELD node
-						RETURN node.name as name
-						""",
+								CALL spatial.withinDistance('update_layer', {longitude: 25.5, latitude: 65.5}, 1) YIELD node
+								RETURN node.name as name
+								""",
 						config -> config.storeResult().setComment("Verify the updated geometry is indexed correctly"))
 				.assertSingleResult("name", name -> assertEquals("updatable_point", name));
 	}
@@ -1623,7 +1629,8 @@ public class SpatialProceduresTest extends AbstractApiTest {
 				.assertSingleResult("count", count -> assertEquals(0L, count))
 				.runCypher("CALL spatial.addWKT('wkt_layer', 'POINT(15.2 60.1)') YIELD node RETURN node",
 						config -> config.setComment("Add a WKT point"))
-				.runCypher("CALL spatial.addWKT('wkt_layer', 'LINESTRING (15.2 60.1, 15.3 60.1)') YIELD node RETURN node",
+				.runCypher(
+						"CALL spatial.addWKT('wkt_layer', 'LINESTRING (15.2 60.1, 15.3 60.1)') YIELD node RETURN node",
 						config -> config.setComment("Add a WKT linestring"))
 				.runCypher("CALL spatial.getFeatureCount('wkt_layer') YIELD count",
 						config -> config.storeResult().setComment("Count features in WKT layer"))
