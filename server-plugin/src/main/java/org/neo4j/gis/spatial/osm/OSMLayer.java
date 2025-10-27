@@ -25,6 +25,8 @@ import static org.neo4j.gis.spatial.Constants.PROP_TYPE;
 
 import java.io.File;
 import java.util.HashMap;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.json.simple.JSONObject;
@@ -44,6 +46,8 @@ import org.neo4j.graphdb.Transaction;
  * Only one is primary, the layer containing all ways. Other layers are dynamic.
  */
 public class OSMLayer extends DynamicLayer {
+
+	private static final Logger LOGGER = Logger.getLogger(OSMLayer.class.getName());
 
 	private OSMDataset osmDataset;
 
@@ -72,8 +76,7 @@ public class OSMLayer extends DynamicLayer {
 		try {
 			return DefaultGeographicCRS.WGS84;
 		} catch (Exception e) {
-			System.err.println("Failed to decode WGS84 CRS: " + e.getMessage());
-			e.printStackTrace(System.err);
+			LOGGER.log(Level.WARNING, "Failed to decode WGS84 CRS: ", e);
 			return null;
 		}
 	}
@@ -99,17 +102,16 @@ public class OSMLayer extends DynamicLayer {
 				memorizeNodeMeta(geomNode);
 				indexWriter.add(tx, geomNode);
 			} catch (Exception e) {
-				System.err.println(
+				LOGGER.warning(
 						"Failed geometry test on node " + geomNode.getProperty("name", geomNode.toString()) + ": "
 								+ e.getMessage());
 				for (String key : geomNode.getPropertyKeys()) {
-					System.err.println("\t" + key + ": " + geomNode.getProperty(key));
+					LOGGER.warning("\t" + key + ": " + geomNode.getProperty(key));
 				}
-				System.err.println("For way node " + way);
+				LOGGER.warning("For way node " + way);
 				for (String key : way.getPropertyKeys()) {
-					System.err.println("\t" + key + ": " + way.getProperty(key));
+					LOGGER.warning("\t" + key + ": " + way.getProperty(key));
 				}
-				// e.printStackTrace(System.err);
 			}
 			return geomNode;
 		}
@@ -179,7 +181,7 @@ public class OSMLayer extends DynamicLayer {
 			properties.put(PROP_TYPE, type);
 			query.put("properties", properties);
 		}
-		System.out.println("Created dynamic layer query: " + query.toJSONString());
+		LOGGER.fine("Created dynamic layer query: " + query.toJSONString());
 		return addLayerConfig(tx, name, type, query.toJSONString());
 	}
 

@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.List;
+import java.util.logging.Logger;
 import org.geotools.api.data.DataStore;
 import org.geotools.data.neo4j.Neo4jSpatialDataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
@@ -58,6 +59,8 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
  */
 public class TestsForDocs extends Neo4jTestCase {
 
+	private static final Logger LOGGER = Logger.getLogger(TestsForDocs.class.getName());
+
 	@BeforeEach
 	public void setUp() {
 		try (Transaction tx = graphDb().beginTx()) {
@@ -76,15 +79,15 @@ public class TestsForDocs extends Neo4jTestCase {
 		try (Transaction tx = graphDb().beginTx()) {
 			Layer layer = spatial.getLayer(tx, layerName, true);
 			if (layer.getIndex().count(tx) < 1) {
-				System.out.println("Warning: index count zero: " + layer.getName());
+				LOGGER.fine("Warning: index count zero: " + layer.getName());
 			}
-			System.out.println(
+			LOGGER.fine(
 					"Layer '" + layer.getName() + "' has " + layer.getIndex().count(tx) + " entries in the index");
 			tx.commit();
 		}
 		DataStore store = new Neo4jSpatialDataStore(driver, DEFAULT_DATABASE_NAME);
 		SimpleFeatureCollection features = store.getFeatureSource(layerName).getFeatures();
-		System.out.println("Layer '" + layerName + "' has " + features.size() + " features");
+		LOGGER.fine("Layer '" + layerName + "' has " + features.size() + " features");
 		try (Transaction tx = graphDb().beginTx()) {
 			Layer layer = spatial.getLayer(tx, layerName, true);
 			assertEquals(layer.getIndex().count(tx), features.size(),
@@ -103,7 +106,7 @@ public class TestsForDocs extends Neo4jTestCase {
 		OSMDataset osm = OSMDataset.fromLayer(tx, layer);
 		Node wayNode = osm.getAllWayNodes(tx).iterator().next();
 		Way way = osm.getWayFrom(wayNode);
-		System.out.println("Got first way " + way);
+		LOGGER.fine("Got first way " + way);
 		for (WayPoint n : way.getWayPoints()) {
 			Way w = n.getWay();
 			String wayId = w.getNode().getElementId();
@@ -116,9 +119,9 @@ public class TestsForDocs extends Neo4jTestCase {
 				mostCount = waysFound.get(wayId);
 			}
 		}
-		System.out.println("Found " + waysFound.size() + " ways overlapping '" + way + "'");
+		LOGGER.fine("Found " + waysFound.size() + " ways overlapping '" + way + "'");
 		for (String wayId : waysFound.keySet()) {
-			System.out.println("\t" + wayId + ":\t" + waysFound.get(wayId) + (wayId.equals(way.getNode().getElementId())
+			LOGGER.fine("\t" + wayId + ":\t" + waysFound.get(wayId) + (wayId.equals(way.getNode().getElementId())
 					? "\t(original way)" : ""));
 		}
 		assertTrue(way.equals(osm.getWayFromId(tx, mostCommon)), "Start way should be most found way");
@@ -138,7 +141,7 @@ public class TestsForDocs extends Neo4jTestCase {
 	 */
 	@Test
 	public void testImportOSM() throws Exception {
-		System.out.println("\n=== Simple test map.osm ===");
+		LOGGER.fine("\n=== Simple test map.osm ===");
 		importMapOSM(graphDb());
 		GraphDatabaseService database = graphDb();
 		// START SNIPPET: searchBBox tag::searchBBox[]
@@ -147,7 +150,7 @@ public class TestsForDocs extends Neo4jTestCase {
 		try (Transaction tx = database.beginTx()) {
 			Layer layer = spatial.getLayer(tx, "map.osm", true);
 			LayerIndexReader spatialIndex = layer.getIndex();
-			System.out.println("Have " + spatialIndex.count(tx) + " geometries in " + spatialIndex.getBoundingBox(tx));
+			LOGGER.fine("Have " + spatialIndex.count(tx) + " geometries in " + spatialIndex.getBoundingBox(tx));
 
 			Envelope bbox = new Envelope(12.94, 12.96, 56.04, 56.06);
 			List<SpatialDatabaseRecord> results = GeoPipeline
@@ -164,7 +167,7 @@ public class TestsForDocs extends Neo4jTestCase {
 
 	@Test
 	public void testImportShapefile() throws Exception {
-		System.out.println("\n=== Test Import Shapefile ===");
+		LOGGER.fine("\n=== Test Import Shapefile ===");
 		GraphDatabaseService database = graphDb();
 
 		// START SNIPPET: importShapefile tag::importShapefile[]
@@ -177,7 +180,7 @@ public class TestsForDocs extends Neo4jTestCase {
 
 	@Test
 	public void testExportShapefileFromOSM() throws Exception {
-		System.out.println("\n=== Test import map.osm, create DynamicLayer and export shapefile ===");
+		LOGGER.fine("\n=== Test import map.osm, create DynamicLayer and export shapefile ===");
 		importMapOSM(graphDb());
 		GraphDatabaseService database = graphDb();
 		// START SNIPPET: exportShapefileFromOSM tag::exportShapefileFromOSM[]
@@ -198,7 +201,7 @@ public class TestsForDocs extends Neo4jTestCase {
 
 	@Test
 	public void testExportShapefileFromQuery() throws Exception {
-		System.out.println("\n=== Test import map.osm, create DynamicLayer and export shapefile ===");
+		LOGGER.fine("\n=== Test import map.osm, create DynamicLayer and export shapefile ===");
 		importMapOSM(graphDb());
 		GraphDatabaseService database = graphDb();
 		// START SNIPPET: exportShapefileFromQuery tag::exportShapefileFromQuery[]
@@ -209,7 +212,7 @@ public class TestsForDocs extends Neo4jTestCase {
 		try (Transaction tx = database.beginTx()) {
 			Layer layer = spatial.getLayer(tx, "map.osm", true);
 			LayerIndexReader spatialIndex = layer.getIndex();
-			System.out.println("Have " + spatialIndex.count(tx) + " geometries in " + spatialIndex.getBoundingBox(tx));
+			LOGGER.fine("Have " + spatialIndex.count(tx) + " geometries in " + spatialIndex.getBoundingBox(tx));
 
 			results = GeoPipeline
 					.startIntersectWindowSearch(tx, layer, bbox)
@@ -226,9 +229,9 @@ public class TestsForDocs extends Neo4jTestCase {
 	}
 
 	private static void doGeometryTestsOnResults(Envelope bbox, List<SpatialDatabaseRecord> results) {
-		System.out.println("Found " + results.size() + " geometries in " + bbox);
+		LOGGER.fine("Found " + results.size() + " geometries in " + bbox);
 		Geometry geometry = results.get(0).getGeometry();
-		System.out.println("First geometry is " + geometry);
+		LOGGER.fine("First geometry is " + geometry);
 		geometry.buffer(2);
 	}
 

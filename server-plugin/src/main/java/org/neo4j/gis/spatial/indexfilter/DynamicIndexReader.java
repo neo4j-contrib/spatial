@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial.indexfilter;
 
+import java.util.logging.Logger;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.neo4j.gis.spatial.filter.SearchRecords;
@@ -60,6 +61,8 @@ import org.neo4j.graphdb.Transaction;
  * residential street.
  */
 public class DynamicIndexReader extends LayerIndexReaderWrapper {
+
+	private static final Logger LOGGER = Logger.getLogger(DynamicIndexReader.class.getName());
 
 	private final JSONObject query;
 
@@ -126,7 +129,7 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 	private static boolean queryNodeProperties(Node node, JSONObject properties) {
 		if (properties != null) {
 			if (properties.containsKey("geometry")) {
-				System.out.println("Unexpected 'geometry' in query string");
+				LOGGER.fine("Unexpected 'geometry' in query string");
 				properties.remove("geometry");
 			}
 

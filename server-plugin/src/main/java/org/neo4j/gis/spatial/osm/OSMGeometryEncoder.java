@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Logger;
 import org.locationtech.jts.algorithm.ConvexHull;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
@@ -50,6 +51,8 @@ import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 
 public class OSMGeometryEncoder extends AbstractGeometryEncoder {
+
+	private static final Logger LOGGER = Logger.getLogger(OSMGeometryEncoder.class.getName());
 
 	private static final String PROPERTY_VERTICES = "vertices";
 	private static final String PROPERTY_LAT = "lat";
@@ -345,17 +348,17 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 		}
 		decodedCount++;
 		if (overrun) {
-			System.out.println(
+			LOGGER.info(
 					"Overran expected number of way nodes: " + wayNode + " (" + overrunCount + "/" + decodedCount
 							+ ")");
 		}
 		if (coordinates.size() != vertices) {
 			if (vertexMistmaches++ < 10) {
-				System.err.println(
+				LOGGER.warning(
 						"Mismatching vertices size for " + SpatialDatabaseService.convertGeometryTypeToName(gtype) + ":"
 								+ wayNode + ": " + coordinates.size() + " != " + vertices);
 			} else if (vertexMistmaches % 100 == 0) {
-				System.err.println("Mismatching vertices found " + vertexMistmaches + " times");
+				LOGGER.warning("Mismatching vertices found " + vertexMistmaches + " times");
 			}
 		}
 		return switch (coordinates.size()) {
@@ -494,9 +497,9 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 				}
 			} catch (NullPointerException e) {
 				if (missingTags++ < 10) {
-					System.err.println("Geometry has no related tags node: " + geomNode);
+					LOGGER.warning("Geometry has no related tags node: " + geomNode);
 				} else if (missingTags % 100 == 0) {
-					System.err.println("Geometries without tags found " + missingTags + " times");
+					LOGGER.warning("Geometries without tags found " + missingTags + " times");
 				}
 				properties = new NullProperties();
 			}

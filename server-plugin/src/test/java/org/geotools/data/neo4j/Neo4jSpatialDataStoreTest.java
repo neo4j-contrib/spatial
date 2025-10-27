@@ -29,6 +29,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.logging.Logger;
 import org.assertj.core.api.Assertions;
 import org.geotools.api.data.ResourceInfo;
 import org.geotools.api.data.SimpleFeatureSource;
@@ -44,7 +45,7 @@ import org.junit.jupiter.api.Test;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.GraphDatabase;
 import org.neo4j.driver.exceptions.ClientException;
-import org.neo4j.gis.spatial.ConsoleListener;
+import org.neo4j.gis.spatial.LogListener;
 import org.neo4j.gis.spatial.Neo4jTestCase;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.harness.Neo4jBuilder;
@@ -52,12 +53,13 @@ import org.neo4j.harness.Neo4jBuilders;
 
 public class Neo4jSpatialDataStoreTest extends Neo4jTestCase {
 
+	private static final Logger LOGGER = Logger.getLogger(Neo4jSpatialDataStoreTest.class.getName());
+
 
 	@BeforeEach
 	public void setup() throws Exception {
-		OSMImporter importer = new OSMImporter("map", new ConsoleListener());
+		OSMImporter importer = new OSMImporter("map", new LogListener(LOGGER));
 		importer.setCharset(StandardCharsets.UTF_8);
-		importer.setVerbose(false);
 		importer.importFile(graphDb(), "map.osm");
 		importer.reIndex(graphDb());
 	}

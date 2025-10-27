@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.logging.Logger;
 import org.geotools.api.feature.simple.SimpleFeatureType;
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.junit.jupiter.api.AfterEach;
@@ -41,6 +42,8 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
 public class RTreeTests {
+
+	private static final Logger LOGGER = Logger.getLogger(RTreeTests.class.getName());
 
 	private static final boolean exportImages = false;    // TODO: This can be enabled once we port to newer GeoTools that works with Java11
 	private DatabaseManagementService databases;
@@ -85,7 +88,7 @@ public class RTreeTests {
 			rootRight = createSimpleRTree(0.19, 0.99, 5);
 			tx.commit();
 		}
-		System.out.println("Created two trees");
+		LOGGER.fine("Created two trees");
 		if (exportImages) {
 			try (Transaction tx = db.beginTx()) {
 				imageExporter.saveRTreeLayers(tx, new File("target/rtree-test/rtree-left.png"), rootLeft.node, 7);
@@ -97,7 +100,7 @@ public class RTreeTests {
 			rtree.mergeTwoTrees(tx, rootLeft.refresh(tx), rootRight.refresh(tx));
 			tx.commit();
 		}
-		System.out.println("Merged two trees");
+		LOGGER.info("Merged two trees");
 		if (exportImages) {
 			try (Transaction tx = db.beginTx()) {
 				imageExporter.saveRTreeLayers(tx, new File("target/rtree-test/rtree-merged.png"), rootLeft.node, 7);

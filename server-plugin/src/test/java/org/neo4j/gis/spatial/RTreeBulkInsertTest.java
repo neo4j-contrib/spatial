@@ -41,6 +41,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
@@ -822,6 +824,8 @@ public class RTreeBulkInsertTest {
 
 	class TreePrintingMonitor extends RTreeMonitor {
 
+		private static final Logger LOGGER = Logger.getLogger(TreePrintingMonitor.class.getName());
+
 		private final RTreeImageExporter imageExporter;
 		private final String splitMode;
 		private final String insertMode;
@@ -878,8 +882,7 @@ public class RTreeBulkInsertTest {
 				called.put(context, count + 1);
 				tx.commit();
 			} catch (IOException e) {
-				System.out.println("Failed to print RTree to disk: " + e.getMessage());
-				e.printStackTrace();
+				LOGGER.log(Level.WARNING, "Failed to print RTree to disk: " + e);
 			}
 		}
 	}
@@ -1148,7 +1151,6 @@ public class RTreeBulkInsertTest {
 					"CALL spatial.withinDistance('Coordinates',{longitude:0.5, latitude:0.5},1000.0) yield node\n" +
 							"RETURN COUNT(node) as count";
 			Result result = tx.execute(cypher);
-//           System.out.println(result.columns().toString());
 			Object obj = result.columnAs("count").next();
 			assertInstanceOf(Long.class, obj);
 			assertEquals((long) ((Long) obj), numNodes);
@@ -1163,7 +1165,6 @@ public class RTreeBulkInsertTest {
 					"MATCH (n)-[:RTREE_CHILD*]->(m)-[:RTREE_REFERENCE]->(p)\n" +
 					"RETURN COUNT(p) as count";
 			Result result = tx.execute(cypher);
-//           System.out.println(result.columns().toString());
 			Object obj = result.columnAs("count").next();
 			assertInstanceOf(Long.class, obj);
 			assertEquals((long) ((Long) obj), numNodes);
@@ -1434,8 +1435,8 @@ public class RTreeBulkInsertTest {
 		int matched = monitor.getCaseCounts().get("Geometry Matches");
 		int indexSize = 0;
 		try (Transaction tx = db.beginTx()) {
-		    indexSize += StreamSupport.stream(index.getAllIndexInternalNodes(tx).spliterator(), false).count();
-		    tx.commit();
+			indexSize += StreamSupport.stream(index.getAllIndexInternalNodes(tx).spliterator(), false).count();
+			tx.commit();
 		}
 		stats.put("Index Size", indexSize);
 		stats.put("Found", matched);

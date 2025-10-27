@@ -85,9 +85,12 @@ public class SpatialFunctionsTest extends AbstractApiTest {
 	@Test
 	public void create_point_geometry_and_distance() {
 		double distance = (double) executeObject(
-				"WITH point({latitude: 5.0, longitude: 4.0}) as geom WITH spatial.asGeometry(geom) AS geometry RETURN point.distance(geometry, point({latitude: 5.0, longitude: 4.0})) as distance",
+				"""
+						WITH point({latitude: 5.0, longitude: 4.0}) as geom
+						WITH spatial.asGeometry(geom) AS geometry
+						RETURN point.distance(geometry, point({latitude: 5.0, longitude: 4.0})) as distance""",
 				"distance");
-		System.out.println(distance);
+		Assertions.assertThat(distance).as("distance").isEqualTo(0.0);
 	}
 
 	@Test
@@ -376,14 +379,14 @@ public class SpatialFunctionsTest extends AbstractApiTest {
 	public void testExtractAttributes() {
 		docExample("spatial.extractAttributes", "Extracts attributes from a layer node")
 				.runCypher("""
-						CALL spatial.addPointLayer('attr_layer') YIELD node
-						WITH node
-						CREATE (n:Point {longitude: 10.0, latitude: 20.0, name: 'test_point', type: 'landmark', elevation: 100})
-						WITH n
-						CALL spatial.addNode('attr_layer', n) YIELD node as added_node
-						WITH n
-						RETURN spatial.extractAttributes('attr_layer', n) as attributes
-						""",
+								CALL spatial.addPointLayer('attr_layer') YIELD node
+								WITH node
+								CREATE (n:Point {longitude: 10.0, latitude: 20.0, name: 'test_point', type: 'landmark', elevation: 100})
+								WITH n
+								CALL spatial.addNode('attr_layer', n) YIELD node as added_node
+								WITH n
+								RETURN spatial.extractAttributes('attr_layer', n) as attributes
+								""",
 						ExampleCypher::storeResult)
 				.assertSingleResult("attributes", attributes -> {
 					Assertions.assertThat(attributes)
@@ -399,14 +402,14 @@ public class SpatialFunctionsTest extends AbstractApiTest {
 	public void testExtractAttributesWithWKT() {
 		docExample("spatial.extractAttributes", "Extracts attributes from a WKT layer node")
 				.runCypher("""
-						CALL spatial.addLayer('wkt_attr_layer', 'WKT', '') YIELD node
-						WITH node
-						CREATE (n:Geometry {geometry: 'POINT (30 10)', name: 'test_wkt_point', category: 'marker', id: 42})
-						WITH n
-						CALL spatial.addNode('wkt_attr_layer', n) YIELD node as added_node
-						WITH n
-						RETURN spatial.extractAttributes('wkt_attr_layer', n) as attributes
-						""",
+								CALL spatial.addLayer('wkt_attr_layer', 'WKT', '') YIELD node
+								WITH node
+								CREATE (n:Geometry {geometry: 'POINT (30 10)', name: 'test_wkt_point', category: 'marker', id: 42})
+								WITH n
+								CALL spatial.addNode('wkt_attr_layer', n) YIELD node as added_node
+								WITH n
+								RETURN spatial.extractAttributes('wkt_attr_layer', n) as attributes
+								""",
 						ExampleCypher::storeResult)
 				.assertSingleResult("attributes", attributes -> {
 					Assertions.assertThat(attributes)
@@ -423,16 +426,16 @@ public class SpatialFunctionsTest extends AbstractApiTest {
 		docExample("spatial.decodeGeometry", "Using both functions together")
 				.additionalSignature("spatial.extractAttributes")
 				.runCypher("""
-						CALL spatial.addPointLayer('combined_layer') YIELD node
-						WITH node
-						CREATE (n:Point {longitude: 5.5, latitude: 45.5, city: 'TestCity', population: 50000})
-						WITH n
-						CALL spatial.addNode('combined_layer', n) YIELD node as added_node
-						WITH n
-						RETURN 
-							spatial.decodeGeometry('combined_layer', n) as geometry,
-							spatial.extractAttributes('combined_layer', n) as attributes
-						""",
+								CALL spatial.addPointLayer('combined_layer') YIELD node
+								WITH node
+								CREATE (n:Point {longitude: 5.5, latitude: 45.5, city: 'TestCity', population: 50000})
+								WITH n
+								CALL spatial.addNode('combined_layer', n) YIELD node as added_node
+								WITH n
+								RETURN 
+									spatial.decodeGeometry('combined_layer', n) as geometry,
+									spatial.extractAttributes('combined_layer', n) as attributes
+								""",
 						ExampleCypher::storeResult)
 				.assertSingleResult("geometry", geometry -> {
 					assertInstanceOf(Geometry.class, geometry, "Should be Geometry type");
@@ -450,14 +453,14 @@ public class SpatialFunctionsTest extends AbstractApiTest {
 	public void testNodeAsWKT() {
 		docExample("spatial.nodeAsWKT", "Converting a layer node to WKT")
 				.runCypher("""
-						CALL spatial.addPointLayer('wkt_layer') YIELD node
-						WITH node
-						CREATE (n:Point {longitude: 10.0, latitude: 20.0})
-						WITH n
-						CALL spatial.addNode('wkt_layer', n) YIELD node as added_node
-						WITH n
-						RETURN spatial.nodeAsWKT('wkt_layer', n) as wkt
-						""",
+								CALL spatial.addPointLayer('wkt_layer') YIELD node
+								WITH node
+								CREATE (n:Point {longitude: 10.0, latitude: 20.0})
+								WITH n
+								CALL spatial.addNode('wkt_layer', n) YIELD node as added_node
+								WITH n
+								RETURN spatial.nodeAsWKT('wkt_layer', n) as wkt
+								""",
 						ExampleCypher::storeResult)
 				.assertSingleResult("wkt", wkt -> {
 					assertThat(wkt, equalTo("POINT (10 20)"));

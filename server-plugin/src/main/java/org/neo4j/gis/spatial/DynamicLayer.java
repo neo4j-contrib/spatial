@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.filter.text.ecql.ECQL;
 import org.neo4j.graphdb.Direction;
@@ -53,6 +54,7 @@ import org.neo4j.graphdb.Transaction;
  */
 public class DynamicLayer extends EditableLayerImpl {
 
+	private static final Logger LOGGER = Logger.getLogger(DynamicLayer.class.getName());
 	private LinkedHashMap<String, Layer> layers;
 
 	private synchronized Map<String, Layer> getLayerMap(Transaction tx) {
@@ -84,10 +86,10 @@ public class DynamicLayer extends EditableLayerImpl {
 			}
 		}
 		if (layer == null) {
-			System.out.println("Dynamic layer not found: " + name);
+			LOGGER.info("Dynamic layer not found: " + name);
 			return false;
 		}
-		System.out.println("Layer is not dynamic and cannot be deleted: " + name);
+		LOGGER.warning("Layer is not dynamic and cannot be deleted: " + name);
 		return false;
 	}
 
@@ -155,12 +157,12 @@ public class DynamicLayer extends EditableLayerImpl {
 		if (layer != null) {
 			if (layer instanceof DynamicLayerConfig config) {
 				if (config.getGeometryType(tx) != type || !config.getQuery().equals(query)) {
-					System.err.println("Existing LayerConfig with different geometry type or query: " + config);
+					LOGGER.warning("Existing LayerConfig with different geometry type or query: " + config);
 					return null;
 				}
 				return config;
 			}
-			System.err.println("Existing Layer has same name as requested LayerConfig: " + layer.getName());
+			LOGGER.warning("Existing Layer has same name as requested LayerConfig: " + layer.getName());
 			return null;
 		}
 		synchronized (this) {
@@ -192,10 +194,10 @@ public class DynamicLayer extends EditableLayerImpl {
 				}
 				return config;
 			}
-			System.err.println("Existing Layer has same name as requested LayerConfig: " + layer.getName());
+			LOGGER.warning("Existing Layer has same name as requested LayerConfig: " + layer.getName());
 			return null;
 		}
-		System.err.println("No such layer: " + name);
+		LOGGER.warning("No such layer: " + name);
 		return null;
 	}
 

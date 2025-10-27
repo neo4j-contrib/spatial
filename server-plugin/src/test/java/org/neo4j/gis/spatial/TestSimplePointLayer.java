@@ -391,7 +391,6 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 			imageExporter.saveLayerImage(layerName);
 			shpExporter.exportLayer(layerName);
 		} catch (Exception e) {
-			e.printStackTrace();
 			throw new AssertionFailedError("Failed to save layer '" + layerName + "' as image: " + e.getMessage());
 		}
 	}

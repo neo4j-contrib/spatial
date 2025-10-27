@@ -22,6 +22,8 @@ package org.neo4j.gis.spatial.osm;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.Objects;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Envelope;
@@ -43,6 +45,7 @@ import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 
 public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
 
+	private static final Logger LOGGER = Logger.getLogger(OSMDataset.class.getName());
 	private final OSMLayer layer;
 	private final String datasetNodeId;
 	private Iterator<Node> wayNodeIterator;
@@ -86,15 +89,6 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
 		return new OSMDataset(layer, datasetNodeId);
 	}
 
-	public Iterable<Node> getAllUserNodes(Transaction tx) {
-		TraversalDescription td = new MonoDirectionalTraversalDescription()
-				.depthFirst()
-				.relationships(OSMRelation.USERS, Direction.OUTGOING)
-				.relationships(OSMRelation.OSM_USER, Direction.OUTGOING)
-				.evaluator(Evaluators.includeWhereLastRelationshipTypeIs(OSMRelation.OSM_USER));
-		return td.traverse(tx.getNodeByElementId(datasetNodeId)).nodes();
-	}
-
 	public Iterable<Node> getAllChangesetNodes(Transaction tx) {
 		TraversalDescription td = new MonoDirectionalTraversalDescription()
 				.depthFirst()
@@ -114,17 +108,6 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
 		return td.traverse(tx.getNodeByElementId(datasetNodeId)).nodes();
 	}
 
-	public Iterable<Node> getAllPointNodes(Transaction tx) {
-		TraversalDescription td = new MonoDirectionalTraversalDescription()
-				.depthFirst()
-				.relationships(OSMRelation.WAYS, Direction.OUTGOING)
-				.relationships(OSMRelation.NEXT, Direction.OUTGOING)
-				.relationships(OSMRelation.FIRST_NODE, Direction.OUTGOING)
-				.relationships(OSMRelation.NODE, Direction.OUTGOING)
-				.evaluator(Evaluators.includeWhereLastRelationshipTypeIs(OSMRelation.NODE));
-		return td.traverse(tx.getNodeByElementId(datasetNodeId)).nodes();
-	}
-
 	public static Iterable<Node> getWayNodes(Node way) {
 		TraversalDescription td = new MonoDirectionalTraversalDescription()
 				.depthFirst()
@@ -140,7 +123,7 @@ public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
 		try {
 			return way.getSingleRelationship(OSMRelation.CHANGESET, Direction.OUTGOING).getEndNode();
 		} catch (Exception e) {
-			System.out.println("Node has no changeset: " + e.getMessage());
+			LOGGER.log(Level.FINE, "Node has no changeset", e);
 			return null;
 		}
 	}

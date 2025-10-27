@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.TreeSet;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.geotools.api.style.Style;
@@ -84,6 +85,8 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.test.TestData.Title;
 
 public class GeoPipesDocTest extends AbstractJavaDocTestBase {
+
+	private static final Logger LOGGER = Logger.getLogger(GeoPipesDocTest.class.getName());
 
 	private static Layer osmLayer;
 	private static EditableLayerImpl boxesLayer;
@@ -339,7 +342,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		// tag::s_export_to_gml[]
 		GeoPipeline pipeline = GeoPipeline.start(tx, boxesLayer).createGML();
 		for (GeoPipeFlow flow : pipeline) {
-			System.out.println(flow.getProperties().get("GML"));
+			LOGGER.fine("" + flow.getProperties().get("GML"));
 		}
 		// end::s_export_to_gml[]
 		StringBuilder result = new StringBuilder();
@@ -939,7 +942,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 					new File(imgName + ".png"),
 					bounds);
 		} catch (IOException e) {
-			e.printStackTrace();
+			throw new RuntimeException(e);
 		}
 	}
 
@@ -1006,7 +1009,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	private static void loadTestOsmData(String layerName, int commitInterval)
 			throws Exception {
 		String osmPath = "./" + layerName;
-		System.out.println("\n=== Loading layer " + layerName + " from "
+		LOGGER.info("\n=== Loading layer " + layerName + " from "
 				+ osmPath + " ===");
 		OSMImporter importer = new OSMImporter(layerName);
 		importer.setCharset(StandardCharsets.UTF_8);
@@ -1015,7 +1018,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	}
 
 	@BeforeEach
-	public void setUp() {
+	public void setUp() throws IOException {
 		gen.get().setGraph(db);
 		try (Transaction tx = db.beginTx()) {
 			StyledImageExporter exporter = new StyledImageExporter(driver, DEFAULT_DATABASE_NAME);
@@ -1042,14 +1045,12 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 					StyledImageExporter.createDefaultStyle(Color.BLUE, Color.CYAN), new File(
 							"osmLayer.png"));
 			tx.commit();
-		} catch (IOException e) {
-			e.printStackTrace();
 		}
 		tx = db.beginTx();
 	}
 
 	@AfterEach
-	public void doc() {
+	public void doc() throws IOException {
 		JavaTestDocsGenerator docsGenerator = gen.get();
 		docsGenerator.addTestSourceSnippets(GeoPipesDocTest.class, "s_" + getTitle().toLowerCase());
 		docsGenerator.document("../docs/docs/modules/ROOT/pages/geo-pipes", "examples");
@@ -1060,7 +1061,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	}
 
 	@BeforeAll
-	public static void init() {
+	public static void init() throws Exception {
 		neo4j = Neo4jBuilders
 				.newInProcessBuilder(Path.of("target/docs"))
 				.withConfig(GraphDatabaseSettings.procedure_unrestricted, List.of("spatial.*"))
@@ -1070,12 +1071,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		driver = GraphDatabase.driver(neo4j.boltURI().toString(), AuthTokens.basic("neo4j", ""));
 		databases = neo4j.databaseManagementService();
 		db = databases.database(DEFAULT_DATABASE_NAME);
-		try {
-			load();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-
+		load();
 		StyledImageExporter exporter = new StyledImageExporter(driver, DEFAULT_DATABASE_NAME);
 		exporter.setExportDir("target/docs/images/");
 	}
@@ -1101,14 +1097,5 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 						Stream.of("// DO NOT MODIFY, THIS FILE IS AUTO GENERATED!"),
 						adocs.stream().map(s -> "include::" + s + "[]"))
 				.collect(Collectors.toList()));
-	}
-
-	private static GeoPipeFlow print(GeoPipeFlow pipeFlow) {
-		System.out.println("GeoPipeFlow:");
-		for (String key : pipeFlow.getProperties().keySet()) {
-			System.out.println(key + "=" + pipeFlow.getProperties().get(key));
-		}
-		System.out.println("-");
-		return pipeFlow;
 	}
 }

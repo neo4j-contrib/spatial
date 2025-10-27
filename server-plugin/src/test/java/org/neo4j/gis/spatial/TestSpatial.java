@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.logging.Logger;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -79,6 +80,8 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
  * </p>
  */
 public class TestSpatial extends Neo4jTestCase {
+
+	private static final Logger LOGGER = Logger.getLogger(TestSpatial.class.getName());
 
 	private final ArrayList<String> layers = new ArrayList<>();
 	private final HashMap<String, Envelope> layerTestEnvelope = new HashMap<>();
@@ -216,7 +219,7 @@ public class TestSpatial extends Neo4jTestCase {
 
 	private void testImport(String layerName) throws Exception {
 		long start = System.currentTimeMillis();
-		System.out.println("\n===========\n=========== Import Test: " + layerName + "\n===========");
+		LOGGER.fine("\n===========\n=========== Import Test: " + layerName + "\n===========");
 		if (countLayerIndex(layerName) < 1) {
 			switch (layerTestFormats.get(layerName)) {
 				case SHP:
@@ -233,13 +236,13 @@ public class TestSpatial extends Neo4jTestCase {
 			fail("Layer already present: " + layerName);
 		}
 
-		System.out.println("Total time for load: " + 1.0 * (System.currentTimeMillis() - start) / 1000.0 + "s");
+		LOGGER.fine("Total time for load: " + 1.0 * (System.currentTimeMillis() - start) / 1000.0 + "s");
 	}
 
 	private void loadTestShpData(String layerName) throws IOException {
 		String SHP_DIR = "target/shp";
 		String shpPath = SHP_DIR + File.separator + layerName;
-		System.out.println("\n=== Loading layer " + layerName + " from " + shpPath + " ===");
+		LOGGER.fine("\n=== Loading layer " + layerName + " from " + shpPath + " ===");
 		ShapefileImporter importer = new ShapefileImporter(graphDb(), new NullListener(), 1000, true);
 		importer.importFile(shpPath, layerName, StandardCharsets.UTF_8);
 	}
@@ -247,7 +250,7 @@ public class TestSpatial extends Neo4jTestCase {
 	private void loadTestOsmData(String layerName) throws Exception {
 		String OSM_DIR = "target/osm";
 		String osmPath = OSM_DIR + File.separator + layerName;
-		System.out.println("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
+		LOGGER.fine("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
 		OSMImporter importer = new OSMImporter(layerName);
 		importer.setCharset(StandardCharsets.UTF_8);
 		importer.importFile(graphDb(), osmPath);
@@ -255,7 +258,7 @@ public class TestSpatial extends Neo4jTestCase {
 	}
 
 	private void testSpatialIndex(String layerName) {
-		System.out.println("\n=== Spatial Index Test: " + layerName + " ===");
+		LOGGER.fine("\n=== Spatial Index Test: " + layerName + " ===");
 		long start = System.currentTimeMillis();
 
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
@@ -270,19 +273,19 @@ public class TestSpatial extends Neo4jTestCase {
 			LayerIndexReader fakeIndex = new SpatialIndexPerformanceProxy(new FakeIndex(layer, spatial.indexManager));
 			LayerIndexReader rtreeIndex = new SpatialIndexPerformanceProxy(layer.getIndex());
 
-			System.out.println("RTreeIndex bounds: " + rtreeIndex.getBoundingBox(tx));
-			System.out.println("FakeIndex bounds: " + fakeIndex.getBoundingBox(tx));
+			LOGGER.fine("RTreeIndex bounds: " + rtreeIndex.getBoundingBox(tx));
+			LOGGER.fine("FakeIndex bounds: " + fakeIndex.getBoundingBox(tx));
 			assertEnvelopeEquals(fakeIndex.getBoundingBox(tx), rtreeIndex.getBoundingBox(tx));
 
-			System.out.println("RTreeIndex count: " + rtreeIndex.count(tx));
+			LOGGER.fine("RTreeIndex count: " + rtreeIndex.count(tx));
 			Assertions.assertEquals(fakeIndex.count(tx), rtreeIndex.count(tx));
 
 			Envelope bbox = layerTestEnvelope.get(layerName);
 
-			System.out.println(
+			LOGGER.fine(
 					"Displaying test geometries for layer '" + layerName + "' including expected search results");
 			for (TestGeometry testData : layerTestGeometries.get(layerName)) {
-				System.out.println("\tGeometry: " + testData + " " + (testData.inOrIntersects(bbox) ? "is" : "is NOT")
+				LOGGER.fine("\tGeometry: " + testData + " " + (testData.inOrIntersects(bbox) ? "is" : "is NOT")
 						+ " inside search region");
 			}
 
@@ -306,11 +309,11 @@ public class TestSpatial extends Neo4jTestCase {
 							props.append(prop).append(": ").append(r.getProperty(tx, prop));
 						}
 
-						System.out.println(
+						LOGGER.fine(
 								"\tRTreeIndex result[" + ri + "]: " + r.getNodeId() + ":" + r.getType() + " - " + r
 										+ ": PROPS[" + props + "]");
 					} else if (ri == 10) {
-						System.out.println("\t.. and " + (count - ri) + " more ..");
+						LOGGER.fine("\t.. and " + (count - ri) + " more ..");
 					}
 
 					addGeomStats(r.getGeomNode());
@@ -325,15 +328,13 @@ public class TestSpatial extends Neo4jTestCase {
 						for (TestGeometry testData : layerTestGeometries.get(layerName)) {
 							if ((name != null && name.length() > 0 && testData.name.equals(name))
 									|| (testData.id.equals(id))) {
-								System.out.println(
+								LOGGER.fine(
 										"\tFound match in test data: test[" + testData + "] == result[" + r + "]");
 								foundData.add(testData);
-							} /* else if(name != null && name.length()>0 && name.startsWith(testData.name.substring(0,1))) {
-                                System.out.println("\tOnly first character matched: test[" + testData + "] == result[" + r + "]");
-                            } */
+							}
 						}
 					} else {
-						System.err.println(
+						LOGGER.warning(
 								"\tNo name or id in RTreeIndex result: " + r.getNodeId() + ":" + r.getType() + " - "
 										+ r);
 					}
@@ -341,30 +342,30 @@ public class TestSpatial extends Neo4jTestCase {
 
 				dumpGeomStats();
 
-				System.out.println("Found " + foundData.size() + " test datasets in region[" + bbox + "]");
+				LOGGER.fine("Found " + foundData.size() + " test datasets in region[" + bbox + "]");
 				for (TestGeometry testData : foundData) {
-					System.out.println("\t" + testData + ": " + testData.bounds);
+					LOGGER.fine("\t" + testData + ": " + testData.bounds);
 				}
 
-				System.out.println(
+				LOGGER.fine(
 						"Verifying results for " + layerTestGeometries.size() + " test datasets in region[" + bbox
 								+ "]");
 				for (TestGeometry testData : layerTestGeometries.get(layerName)) {
-					System.out.println("\ttesting " + testData + ": " + testData.bounds);
+					LOGGER.fine("\ttesting " + testData + ": " + testData.bounds);
 					if (testData.inOrIntersects(bbox) && !foundData.contains(testData)) {
 						String error =
 								"Incorrect test result: test[" + testData + "] not found by search inside region["
 										+ bbox + "]";
 						for (TestGeometry data : foundData) {
-							System.out.println(data);
+							LOGGER.fine(data.toString());
 						}
-						System.out.println(error);
+						LOGGER.fine(error);
 						fail(error);
 					}
 				}
 			}
 
-			System.out.println(
+			LOGGER.fine(
 					"Total time for index test: " + 1.0 * (System.currentTimeMillis() - start) / 1000.0 + "s");
 			tx.commit();
 		}
@@ -391,10 +392,10 @@ public class TestSpatial extends Neo4jTestCase {
 	}
 
 	private void dumpGeomStats() {
-		System.out.println("Geometry statistics for " + geomStats.size() + " geometry types:");
+		LOGGER.fine("Geometry statistics for " + geomStats.size() + " geometry types:");
 		for (Integer key : geomStats.keySet()) {
 			Integer count = geomStats.get(key);
-			System.out.println("\t" + SpatialDatabaseService.convertGeometryTypeToName(key) + ": " + count);
+			LOGGER.fine("\t" + SpatialDatabaseService.convertGeometryTypeToName(key) + ": " + count);
 		}
 		geomStats.clear();
 	}

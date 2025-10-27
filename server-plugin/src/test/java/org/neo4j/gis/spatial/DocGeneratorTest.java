@@ -137,7 +137,8 @@ public class DocGeneratorTest extends AbstractApiTest {
 			if (!Files.exists(customizedFile)) {
 				Files.createDirectories(customizedFile.getParent());
 				String commented = Files.exists(
-						Path.of("../docs/docs/modules/ROOT/partials/generated/api", namespace, fqname + "-examples.adoc"))
+						Path.of("../docs/docs/modules/ROOT/partials/generated/api", namespace,
+								fqname + "-examples.adoc"))
 						? "" : "// ";
 				Files.writeString(customizedFile,
 						"include::partial$generated/api/" + namespace + "/" + fqname + ".adoc[]\n\n"

@@ -23,13 +23,13 @@ import static java.awt.RenderingHints.KEY_ANTIALIASING;
 import static java.awt.RenderingHints.KEY_TEXT_ANTIALIASING;
 import static java.awt.RenderingHints.VALUE_ANTIALIAS_ON;
 import static java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_ON;
-import static java.util.Arrays.asList;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.imageio.ImageIO;
 import org.geotools.api.data.DataStore;
 import org.geotools.api.data.SimpleFeatureStore;
@@ -72,6 +72,7 @@ import org.neo4j.gis.spatial.SpatialTopologyUtils;
 
 public class StyledImageExporter {
 
+	private static final Logger LOGGER = Logger.getLogger(StyledImageExporter.class.getName());
 	private final Driver driver;
 	private final String database;
 	private File exportDir;
@@ -130,18 +131,10 @@ public class StyledImageExporter {
 		file = file.getAbsoluteFile();
 		file.getParentFile().mkdirs();
 		if (file.exists()) {
-			System.out.println("Deleting previous file: " + file);
+			LOGGER.info("Deleting previous file: " + file);
 			file.delete();
 		}
 		return file;
-	}
-
-	@SuppressWarnings({"unused"})
-	private static void debugStore(DataStore store, String[] layerNames) throws IOException {
-		for (String layerName : layerNames) {
-			System.out.println(asList(store.getTypeNames()));
-			System.out.println(Collections.singletonList(store.getSchema(layerName).getAttributeDescriptors()));
-		}
 	}
 
 	public void saveLayerImage(String[] layerNames) throws IOException {
@@ -213,7 +206,7 @@ public class StyledImageExporter {
 				}
 				names.append(name);
 			}
-			System.out.println("Exporting layers '" + names + "' to styled image " + imagefile.getPath());
+			LOGGER.info("Exporting layers '" + names + "' to styled image " + imagefile.getPath());
 
 			Style style = getStyleFromSLDFile(sldFile);
 
@@ -229,8 +222,8 @@ public class StyledImageExporter {
 				if (featureStyle == null) {
 					featureStyle = createStyleFromGeometry(featureSource.getSchema(), Color.BLUE,
 							Color.CYAN);
-					System.out.println(
-							"Created style from geometry '" + featureSource.getSchema().getGeometryDescriptor()
+					LOGGER.info("Created style from geometry '" +
+							featureSource.getSchema().getGeometryDescriptor()
 									.getType() + "': " + featureStyle);
 				}
 
@@ -253,7 +246,7 @@ public class StyledImageExporter {
 		if (sldFile != null) {
 			style = createStyleFromSLD(sldFile);
 			if (style != null) {
-				System.out.println("Created style from sldFile '" + sldFile + "': " + style);
+				LOGGER.info("Created style from sldFile '" + sldFile + "': " + style);
 			}
 		}
 		return style;
@@ -293,7 +286,7 @@ public class StyledImageExporter {
 			Style[] style = stylereader.readXML();
 			return style[0];
 		} catch (Exception e) {
-			System.err.println("Failed to read style from '" + sldFile + "': " + e.getMessage());
+			LOGGER.warning("Failed to read style from '" + sldFile + "': " + e.getMessage());
 		}
 		return null;
 	}
@@ -332,7 +325,6 @@ public class StyledImageExporter {
 		style.featureTypeStyles().addAll(createPolygonStyle(strokeColor, fillColor).featureTypeStyles());
 		style.featureTypeStyles().addAll(createLineStyle(strokeColor).featureTypeStyles());
 		style.featureTypeStyles().addAll(createPointStyle(strokeColor, fillColor).featureTypeStyles());
-//        System.out.println("Created Geometry Style: "+style);
 		return style;
 	}
 
@@ -370,14 +362,12 @@ public class StyledImageExporter {
 		try {
 			rule.setFilter(ECQL.toFilter("geometryType(the_geom)='Polygon' or geometryType(the_geom)='MultiPoligon'"));
 		} catch (CQLException e) {
-			// TODO
-			e.printStackTrace();
+			LOGGER.log(Level.WARNING, "", e);
 		}
 
 		FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(rule);
 		Style style = styleFactory.createStyle();
 		style.featureTypeStyles().add(fts);
-//        System.out.println("Created Polygon Style: " + style);
 
 		return style;
 	}
@@ -402,14 +392,12 @@ public class StyledImageExporter {
 			rule.setFilter(ECQL.toFilter(
 					"geometryType(the_geom)='LineString' or geometryType(the_geom)='LinearRing' or geometryType(the_geom)='MultiLineString'"));
 		} catch (CQLException e) {
-			// TODO
-			e.printStackTrace();
+			LOGGER.log(Level.WARNING, "", e);
 		}
 
 		FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(rule);
 		Style style = styleFactory.createStyle();
 		style.featureTypeStyles().add(fts);
-//        System.out.println("Created Line Style: "+style);
 
 		return style;
 	}
@@ -439,21 +427,19 @@ public class StyledImageExporter {
 		try {
 			rule.setFilter(ECQL.toFilter("geometryType(the_geom)='Point' or geometryType(the_geom)='MultiPoint'"));
 		} catch (CQLException e) {
-			// TODO
-			e.printStackTrace();
+			LOGGER.log(Level.WARNING, "", e);
 		}
 
 		FeatureTypeStyle fts = styleFactory.createFeatureTypeStyle(rule);
 		Style style = styleFactory.createStyle();
 		style.featureTypeStyles().add(fts);
-//        System.out.println("Created Point Style: " + style);
 
 		return style;
 	}
 
 	public static void main(String[] args) throws IOException {
 		if (args.length < 6) {
-			System.err.println(
+			LOGGER.warning(
 					"Too few arguments. Provide: <uri> <database> <user> <password> <exportdir> <stylefile> <zoom layer> <layers..>");
 			System.exit(1);
 		}
@@ -464,7 +450,7 @@ public class StyledImageExporter {
 		String exportdir = args[4];
 		String stylefile = args[5];
 		double zoom = Double.parseDouble(args[6]);
-		var driver = GraphDatabase.driver(uri, AuthTokens.basic(user,password));
+		var driver = GraphDatabase.driver(uri, AuthTokens.basic(user, password));
 
 		StyledImageExporter imageExporter = new StyledImageExporter(driver, database);
 		imageExporter.setExportDir(exportdir);

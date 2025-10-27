@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.function.Consumer;
+import java.util.logging.Logger;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateList;
@@ -56,6 +57,7 @@ import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 
 public class LayersTest extends Neo4jTestCase {
+	private static final Logger LOGGER = Logger.getLogger(LayersTest.class.getName());
 
 	@Test
 	public void testBasicLayerOperations() {
@@ -72,7 +74,7 @@ public class LayersTest extends Neo4jTestCase {
 			assertThat("Should be a default layer", layer instanceof DefaultLayer);
 		});
 		inTx(tx -> spatial.deleteLayer(tx, layerName,
-				new ProgressLoggingListener("deleting layer '" + layerName + "'", System.out)));
+				new ProgressLoggingListener("deleting layer '" + layerName + "'", LOGGER)));
 		inTx(tx -> assertNull(spatial.getLayer(tx, layerName, true)));
 	}
 
@@ -133,7 +135,7 @@ public class LayersTest extends Neo4jTestCase {
 			tx.commit();
 		}
 		inTx(tx -> spatial.deleteLayer(tx, layerName,
-				new ProgressLoggingListener("deleting layer '" + layerName + "'", System.out)));
+				new ProgressLoggingListener("deleting layer '" + layerName + "'", LOGGER)));
 		inTx(tx -> assertNull(spatial.getLayer(tx, layerName, true)));
 		IndexManager.waitForDeletions();
 	}
@@ -366,7 +368,6 @@ public class LayersTest extends Neo4jTestCase {
 					"MATCH (n)-[:RTREE_CHILD]->(m)-[:RTREE_REFERENCE]->(p)\n" +
 					"RETURN count(p)";
 			Result result = tx.execute(cypher);
-//           System.out.println(result.columns().toString());
 			Object obj = result.columnAs("count(p)").next();
 			assertInstanceOf(Long.class, obj);
 			assertEquals(1000L, (long) ((Long) obj));

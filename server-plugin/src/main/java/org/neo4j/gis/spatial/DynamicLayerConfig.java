@@ -23,6 +23,7 @@ import java.io.File;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.filter.text.cql2.CQLException;
@@ -40,6 +41,7 @@ import org.neo4j.graphdb.Transaction;
 
 public class DynamicLayerConfig implements Layer, Constants {
 
+	private static final Logger LOGGER = Logger.getLogger(DynamicLayerConfig.class.getName());
 	private final DynamicLayer parent;
 	private final String name;
 	private final int geometryType;
@@ -167,19 +169,18 @@ public class DynamicLayerConfig implements Layer, Constants {
 	 */
 	public void restrictLayerProperties(Transaction tx) {
 		if (propertyNames != null && propertyNames.length > 0) {
-			System.out.println("Restricted property names already exists - will be overwritten");
+			LOGGER.fine("Restricted property names already exists - will be overwritten");
 		}
-		System.out.println(
-				"Before property scan we have " + getExtraProperties(tx).size() + " known attributes for layer "
-						+ getName());
+		LOGGER.fine("Before property scan we have " + getExtraProperties(tx).size() + " known attributes for layer "
+				+ getName());
 
 		PropertyUsageSearch search = new PropertyUsageSearch(this);
 		getIndex().searchIndex(tx, search).count();
 		setExtraPropertyNames(tx, search.getNames());
 
-		System.out.println(
-				"After property scan of " + search.getNodeCount() + " nodes, we have " + getExtraProperties(
-						tx).size() + " known attributes for layer " + getName());
+		LOGGER.fine(
+				"After property scan of " + search.getNodeCount() + " nodes, we have " + getExtraProperties(tx).size()
+						+ " known attributes for layer " + getName());
 	}
 
 	public Node configNode(Transaction tx) {

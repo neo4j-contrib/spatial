@@ -38,7 +38,7 @@ public class JavaTestDocsGenerator extends AsciiDocGenerator {
 		super(title, "docs");
 	}
 
-	public void document(String directory, String sectionName) {
+	public void document(String directory, String sectionName) throws IOException {
 		if (description == null || description.isEmpty()) {
 			return;
 		}
@@ -48,19 +48,15 @@ public class JavaTestDocsGenerator extends AsciiDocGenerator {
 		String filename = name + ".adoc";
 		Writer fw = getFW(dir, filename);
 		description = replaceSnippets(description);
-		try {
-			line(fw, "// DO NOT MODIFY, THIS FILE IS AUTO GENERATED!");
-			line(fw, "[[" + sectionName.replaceAll("/", "-") + "-" + name.replaceAll("[()]", "") + "]]");
-			String firstChar = title.substring(0, 1).toUpperCase();
-			line(fw, "== " + firstChar + title.substring(1));
-			line(fw, "");
-			line(fw, description);
-			line(fw, "");
-			fw.flush();
-			fw.close();
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		line(fw, "// DO NOT MODIFY, THIS FILE IS AUTO GENERATED!");
+		line(fw, "[[" + sectionName.replaceAll("/", "-") + "-" + name.replaceAll("[()]", "") + "]]");
+		String firstChar = title.substring(0, 1).toUpperCase();
+		line(fw, "== " + firstChar + title.substring(1));
+		line(fw, "");
+		line(fw, description);
+		line(fw, "");
+		fw.flush();
+		fw.close();
+
 	}
 }

@@ -23,12 +23,15 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.logging.Logger;
 import org.geotools.data.neo4j.Neo4jSpatialDataStore;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.GraphDatabase;
 import org.neo4j.gis.spatial.ShapefileExporter;
 
 public class OSMLayerToShapefileExporter {
+
+	private static final Logger LOGGER = Logger.getLogger(OSMLayerToShapefileExporter.class.getName());
 
 	/**
 	 * The entry point of the application. This method is responsible for exporting specific OpenStreetMap (OSM) layers
@@ -46,7 +49,7 @@ public class OSMLayerToShapefileExporter {
 	 */
 	public static void main(String[] args) throws Exception {
 		if (args.length < 6) {
-			System.out.println("Usage: osmtoshp <bolturi> <database> <user> <password> <osmdataset> <layerspecs..>");
+			LOGGER.warning("Usage: osmtoshp <bolturi> <database> <user> <password> <osmdataset> <layerspecs..>");
 		} else {
 			String bolturi = args[0];
 			String database = args[1];
@@ -60,7 +63,7 @@ public class OSMLayerToShapefileExporter {
 
 			var layers = Arrays.asList(dataStore.getTypeNames());
 			if (!layers.contains(osmdataset)) {
-				System.out.println("No layer " + osmdataset + " found for database " + database);
+				LOGGER.info("No layer " + osmdataset + " found for database " + database);
 				return;
 			}
 			ShapefileExporter exporter = new ShapefileExporter(dataStore);
@@ -75,7 +78,7 @@ public class OSMLayerToShapefileExporter {
 				}
 
 				if (layers.contains(name)) {
-					System.out.println("Exporting existing layer: " + name);
+					LOGGER.info("Exporting existing layer: " + name);
 					exporter.exportLayer(name);
 				}
 			}
