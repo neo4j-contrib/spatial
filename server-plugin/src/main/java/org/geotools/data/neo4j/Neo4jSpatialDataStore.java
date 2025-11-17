@@ -54,7 +54,7 @@ public class Neo4jSpatialDataStore extends ContentDataStore implements Constants
 
 	private static final Renderer cypherRenderer = Renderer.getRenderer(
 			Configuration.newConfig()
-					.withDialect(Dialect.NEO4J_5_26)
+					.withDialect(Dialect.NEO4J_5_DEFAULT_CYPHER)
 					.build()
 	);
 
