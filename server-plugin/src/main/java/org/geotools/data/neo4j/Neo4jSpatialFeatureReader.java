@@ -27,7 +27,6 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
-import java.util.logging.Logger;
 import org.geotools.api.data.Query;
 import org.geotools.api.data.SimpleFeatureReader;
 import org.geotools.api.data.Transaction;
@@ -35,7 +34,7 @@ import org.geotools.api.feature.simple.SimpleFeature;
 import org.geotools.api.feature.simple.SimpleFeatureType;
 import org.geotools.api.feature.type.AttributeDescriptor;
 import org.geotools.feature.simple.SimpleFeatureBuilder;
-import org.geotools.filter.text.cql2.CQL;
+import org.geotools.filter.text.ecql.ECQL;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -51,7 +50,6 @@ import org.neo4j.driver.types.Node;
 
 public class Neo4jSpatialFeatureReader implements SimpleFeatureReader {
 
-	private static final Logger LOGGER = org.geotools.util.logging.Logging.getLogger(Neo4jSpatialFeatureReader.class);
 	private static final String GEOMETRY = "geom";
 	private static final String ATTRIBUTES = "attributes";
 	private static final String NODE = "node";
@@ -103,7 +101,7 @@ public class Neo4jSpatialFeatureReader implements SimpleFeatureReader {
 			Statement statement = Cypher.call("spatial.cql")
 					.withArgs(
 							layerParam,
-							Cypher.parameter("cql", CQL.toCQL(query.getFilter()))
+							Cypher.parameter("cql", ECQL.toCQL(query.getFilter()))
 					)
 					.yield(node)
 					.returning(
@@ -123,9 +121,9 @@ public class Neo4jSpatialFeatureReader implements SimpleFeatureReader {
 					.build();
 			this.result = dataStore.executeQuery(statement, transaction).iterator();
 
-		} catch (Exception e) {
-			LOGGER.warning(e.getMessage());
+		} catch (RuntimeException e) {
 			close();
+			throw new IllegalStateException("Error initializing feature reader", e);
 		}
 	}
 
