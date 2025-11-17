@@ -6,7 +6,7 @@ nav:
 
 asciidoc:
   attributes:
-    docs-version: 2025.07
+    docs-version: 2025.10.0
     copyright: Neo4j Inc.
     page-product: Neo4j Spatial
     page-type: Neo4j Spatial Manual
