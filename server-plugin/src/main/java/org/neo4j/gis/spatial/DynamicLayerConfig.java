@@ -41,7 +41,7 @@ import org.neo4j.spatial.api.index.LayerIndexReader;
 import org.neo4j.spatial.api.index.LayerTreeIndexReader;
 import org.neo4j.spatial.api.layer.Layer;
 
-public class DynamicLayerConfig implements Layer, InternalLayer, Constants {
+public class DynamicLayerConfig implements Layer, InternalLayer {
 
 	private static final Logger LOGGER = Logger.getLogger(DynamicLayerConfig.class.getName());
 	private final DynamicLayer parent;
@@ -57,9 +57,9 @@ public class DynamicLayerConfig implements Layer, InternalLayer, Constants {
 	 */
 	public DynamicLayerConfig(DynamicLayer parent, Node configNode, boolean readOnly) {
 		this.parent = parent;
-		this.name = (String) configNode.getProperty(PROP_LAYER);
-		this.geometryType = (Integer) configNode.getProperty(PROP_TYPE);
-		this.query = (String) configNode.getProperty(PROP_QUERY);
+		this.name = (String) configNode.getProperty(Constants.PROP_LAYER);
+		this.geometryType = (Integer) configNode.getProperty(Constants.PROP_TYPE);
+		this.query = (String) configNode.getProperty(Constants.PROP_QUERY);
 		this.configNodeId = configNode.getElementId();
 		this.propertyNames = (String[]) configNode.getProperty("propertyNames", null);
 		this.readOnly = readOnly;
@@ -78,9 +78,9 @@ public class DynamicLayerConfig implements Layer, InternalLayer, Constants {
 		this.parent = parent;
 		this.readOnly = false;
 		Node node = tx.createNode();
-		node.setProperty(PROP_LAYER, name);
-		node.setProperty(PROP_TYPE, geometryType);
-		node.setProperty(PROP_QUERY, query);
+		node.setProperty(Constants.PROP_LAYER, name);
+		node.setProperty(Constants.PROP_TYPE, geometryType);
+		node.setProperty(Constants.PROP_QUERY, query);
 		parent.getLayerNode(tx).createRelationshipTo(node, SpatialRelationshipTypes.LAYER_CONFIG);
 		this.name = name;
 		this.geometryType = geometryType;
@@ -207,7 +207,7 @@ public class DynamicLayerConfig implements Layer, InternalLayer, Constants {
 
 	@Override
 	public Integer getGeometryType(Transaction tx) {
-		return (Integer) configNode(tx).getProperty(PROP_TYPE);
+		return (Integer) configNode(tx).getProperty(Constants.PROP_TYPE);
 	}
 
 	@Override

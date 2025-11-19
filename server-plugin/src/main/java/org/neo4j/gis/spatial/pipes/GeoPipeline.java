@@ -118,7 +118,7 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 		this.layer = layer;
 	}
 
-	protected static IdentityPipe<GeoPipeFlow> createStartPipe(List<SpatialRecord> records) {
+	protected static IdentityPipe<GeoPipeFlow> createStartPipe(Iterable<SpatialRecord> records) {
 		return createStartPipe(records.iterator());
 	}
 
@@ -157,7 +157,7 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 	/**
 	 * Start a new pipeline with a list of SpatialDatabaseRecords
 	 */
-	public static GeoPipeline start(Layer layer, List<SpatialRecord> records) {
+	public static GeoPipeline start(Layer layer, Iterable<SpatialRecord> records) {
 		GeoPipeline pipeline = new GeoPipeline(layer);
 		return pipeline.add(createStartPipe(records));
 	}

@@ -21,7 +21,6 @@ package org.neo4j.gis.spatial;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import org.geotools.geometry.jts.ReferencedEnvelope;
@@ -37,6 +36,7 @@ import org.locationtech.jts.linearref.LocationIndexedLine;
 import org.neo4j.gis.spatial.filter.SearchIntersect;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.spatial.api.SpatialRecord;
+import org.neo4j.spatial.api.SpatialRecords;
 import org.neo4j.spatial.api.layer.Layer;
 
 /**
@@ -121,9 +121,8 @@ public class SpatialTopologyUtils {
 	public static List<PointResult> findClosestEdges(Transaction tx, Point point, Layer layer, Geometry filter) {
 		ArrayList<PointResult> results = new ArrayList<>();
 
-		Iterator<SpatialRecord> records = layer.getIndex().search(tx, new SearchIntersect(layer, filter));
-		while (records.hasNext()) {
-			SpatialRecord record = records.next();
+		SpatialRecords records = layer.getIndex().search(tx, new SearchIntersect(layer, filter));
+		for (SpatialRecord record : records) {
 			Geometry geom = record.getGeometry();
 			if (geom instanceof LineString) {
 				LocationIndexedLine line = new LocationIndexedLine(geom);

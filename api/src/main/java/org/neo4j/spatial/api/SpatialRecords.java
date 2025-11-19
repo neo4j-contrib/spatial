@@ -25,10 +25,9 @@ import javax.annotation.Nonnull;
 import org.neo4j.graphdb.Node;
 import org.neo4j.spatial.api.layer.Layer;
 
-public class SpatialRecords implements Iterable<SpatialRecord>, Iterator<SpatialRecord> {
+public class SpatialRecords implements Iterable<SpatialRecord> {
 
 	private final SearchResults results;
-	private final Iterator<Node> nodeIterator;
 	private final BiFunction<Layer, Node, SpatialRecord> searchRecordsProducer;
 	private final Layer layer;
 
@@ -36,33 +35,36 @@ public class SpatialRecords implements Iterable<SpatialRecord>, Iterator<Spatial
 			BiFunction<Layer, Node, SpatialRecord> searchRecordsProducer) {
 		this.layer = layer;
 		this.results = results;
-		this.nodeIterator = results.iterator();
 		this.searchRecordsProducer = searchRecordsProducer;
 	}
 
 	@Override
 	@Nonnull
 	public Iterator<SpatialRecord> iterator() {
-		return this;
+		return new SpatialRecordIterator();
 	}
 
-	@Override
-	public boolean hasNext() {
-		return nodeIterator.hasNext();
-	}
+	private class SpatialRecordIterator implements Iterator<SpatialRecord> {
 
-	@Override
-	public SpatialRecord next() {
-		return searchRecordsProducer.apply(layer, nodeIterator.next());
-	}
+		private final Iterator<Node> nodeIterator;
 
-	@Override
-	public void remove() {
-		throw new UnsupportedOperationException("Cannot remove from results");
-	}
+		public SpatialRecordIterator() {
+			this.nodeIterator = results.iterator();
+		}
 
-	public int count() {
-		return results.count();
-	}
+		@Override
+		public boolean hasNext() {
+			return nodeIterator.hasNext();
+		}
 
+		@Override
+		public SpatialRecord next() {
+			return searchRecordsProducer.apply(layer, nodeIterator.next());
+		}
+
+		@Override
+		public void remove() {
+			throw new UnsupportedOperationException("Cannot remove from results");
+		}
+	}
 }
