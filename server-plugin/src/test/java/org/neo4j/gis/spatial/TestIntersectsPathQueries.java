@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
@@ -46,10 +47,11 @@ import org.locationtech.jts.geom.impl.CoordinateArraySequence;
 import org.locationtech.jts.simplify.TopologyPreservingSimplifier;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
+import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
-import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
+import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -61,6 +63,11 @@ import org.neo4j.spatial.api.layer.Layer;
 public class TestIntersectsPathQueries extends Neo4jTestCase {
 
 	private static final Logger LOGGER = Logger.getLogger(TestIntersectsPathQueries.class.getName());
+
+	@Override
+	protected List<Class<?>> loadProceduresAndFunctions() {
+		return List.of(SpatialFunctions.class, SpatialProcedures.class);
+	}
 
 	/**
 	 * This test case is designed to capture the conditions described in the bug
@@ -79,7 +86,6 @@ public class TestIntersectsPathQueries extends Neo4jTestCase {
 	 */
 	@Test
 	public void testPointSetGeoptimaIntersection() throws InterruptedException {
-		String osmPath = "albert/osm/massachusetts.highway.osm";
 		String shpPath = "albert/shp/massachusetts_highway.shp";
 		String dbRoot = "target/geoptima";
 		String dbName = "massachusetts.highway.db";
@@ -94,13 +100,8 @@ public class TestIntersectsPathQueries extends Neo4jTestCase {
 					"No database[" + dbName + "] but found shp[" + shpPath + "] - importing before running test");
 			importShapefileDatabase(shpPath, dbRoot, dbName, layerName);
 			runTestPointSetGeoptimaIntersection(tracePath, dbRoot, dbName, layerName, false);
-		} else if ((new File(osmPath)).exists()) {
-			System.out.println(
-					"No database[" + dbName + "] but found osm[" + osmPath + "] - importing before running test");
-			importOSMDatabase(osmPath, dbRoot, dbName, layerName);
-			runTestPointSetGeoptimaIntersection(tracePath, dbRoot, dbName, layerName, false);
 		} else {
-			System.out.println("No database[" + dbName + "] or osm[" + osmPath + "] - cannot run test");
+			System.out.println("No database[" + dbName + "] - cannot run test");
 		}
 	}
 
@@ -122,37 +123,6 @@ public class TestIntersectsPathQueries extends Neo4jTestCase {
 		filterEnvelope.expandToInclude(new Coordinate(-71.00, 42.10));
 		filterEnvelope.expandToInclude(new Coordinate(-71.70, 42.50));
 		return filterEnvelope;
-	}
-
-	private void importOSMDatabase(String osmPath, String dbRoot, String dbName, String layerName)
-			throws InterruptedException {
-		// TODO: Port to batch inserter in `github.com/neo4j-contrib/osm` project
-		OSMImporter importer = new OSMImporter(layerName, new LogListener(LOGGER), makeFilterEnvelope());
-		withDatabase(dbRoot, dbName, Neo4jTestCase.LARGE_CONFIG, graphDb -> {
-			try {
-				importer.importFile(graphDb, osmPath, 10000);
-				return null;
-			} catch (Exception e) {
-				return e;
-			}
-		});
-		// Weird hack to force GC on large loads
-		long start = System.currentTimeMillis();
-		if (System.currentTimeMillis() - start > 300000) {
-			for (int i = 0; i < 3; i++) {
-				System.gc();
-				Thread.sleep(1000);
-			}
-		}
-		withDatabase(dbRoot, dbName, Neo4jTestCase.LARGE_CONFIG, graphDb -> {
-			importer.reIndex(graphDb, 10000, false);
-			try {
-				TestOSMImport.checkOSMLayer(driver, graphDb, layerName);
-				return null;
-			} catch (Exception e) {
-				return e;
-			}
-		});
 	}
 
 	private static class Performance {
@@ -238,11 +208,12 @@ public class TestIntersectsPathQueries extends Neo4jTestCase {
 					assertNotNull(layer.getIndex(), "Layer index should not be null");
 					assertNotNull(layer.getIndex().getBoundingBox(tx), "Layer index envelope should not be null");
 					Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox(tx));
-					TestOSMImport.debugEnvelope(bbox, layerName, Constants.PROP_BBOX);
-					indexCount = TestOSMImport.checkIndexCount(tx, layer);
+					SpatialTestUtils.debugEnvelope(bbox, layerName, Constants.PROP_BBOX);
+					indexCount = SpatialTestUtils.checkIndexCount(tx, layer);
+					var features = tx.execute("spatial.getFeatureCount('" + layerName + "')").next().get("count");
+					assertEquals(features, indexCount);
 					tx.commit();
 				}
-				TestOSMImport.checkFeatureCount(driver, indexCount, layerName);
 
 				HashMap<String, Performance> performances = new LinkedHashMap<>();
 

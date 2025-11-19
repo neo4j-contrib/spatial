@@ -23,6 +23,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.util.List;
 import java.util.logging.Logger;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Test;
@@ -30,8 +31,10 @@ import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
+import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
+import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
@@ -42,6 +45,11 @@ import org.neo4j.spatial.api.layer.Layer;
 public class TestSpatialQueries extends Neo4jTestCase {
 
 	private static final Logger LOGGER = Logger.getLogger(TestSpatialQueries.class.getName());
+
+	@Override
+	protected List<Class<?>> loadProceduresAndFunctions() {
+		return List.of(SpatialFunctions.class, SpatialProcedures.class);
+	}
 
 	/**
 	 * This test case is designed to capture the conditions described in the bug

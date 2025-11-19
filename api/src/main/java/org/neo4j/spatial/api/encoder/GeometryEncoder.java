@@ -19,6 +19,7 @@
  */
 package org.neo4j.spatial.api.encoder;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.locationtech.jts.geom.Geometry;
@@ -50,6 +51,14 @@ import org.neo4j.spatial.api.layer.Layer;
  * turn should be capable of reading and writing all Geometries supported by that Layer.
  */
 public interface GeometryEncoder extends EnvelopeDecoder {
+
+	/**
+	 * A list of identifiers for this encoder used for lookup. The size of the list must be at least one.
+	 * The 1st entry is the key to use as key used in new references (e.g. Layers)
+	 *
+	 * @return the identifier
+	 */
+	List<String> getIdentifiers();
 
 	/**
 	 * When accessing an existing layer, the Layer is constructed from a single node in the graph

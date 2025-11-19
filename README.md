@@ -337,7 +337,7 @@ mvn clean compile
 
 ~~~bash
 mvn dependency:copy-dependencies
-java -cp target/classes:target/dependency/* org.neo4j.gis.spatial.osm.OSMImporter osm-db two-street.osm 
+java -cp target/classes:target/dependency/* org.neo4j.spatial.server.plugin.osm.OSMImporter osm-db two-street.osm 
 ~~~
 
 _Note: On windows remember to separate the classpath with ';' instead of ':'._
@@ -352,7 +352,7 @@ the above approach is most certainly the easiest way to do this.
 ### Run using 'mvn exec:java' ###
 
 ~~~bash
-mvn exec:java -Dexec.mainClass=org.neo4j.gis.spatial.osm.OSMImporter -Dexec.args="osm-db two-street.osm"
+mvn exec:java -Dexec.mainClass=org.neo4j.spatial.server.plugin.osm.OSMImporter -Dexec.args="osm-db two-street.osm"
 ~~~
 
 Note that the OSMImporter cannot re-import the same data multiple times,

@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial.encoders;
 
+import java.util.List;
 import java.util.Set;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
@@ -36,6 +37,11 @@ import org.neo4j.graphdb.Transaction;
 public class SimplePropertyEncoder extends AbstractGeometryEncoder {
 
 	private static final String PROPERTY_DATA = "data";
+
+	@Override
+	public List<String> getIdentifiers() {
+		return List.of("SimplePropertyEncoder", "org.neo4j.gis.spatial.encoders.SimplePropertyEncoder");
+	}
 
 	@Override
 	protected void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container) {

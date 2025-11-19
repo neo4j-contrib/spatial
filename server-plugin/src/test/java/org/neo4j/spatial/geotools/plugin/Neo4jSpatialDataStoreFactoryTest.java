@@ -157,7 +157,7 @@ public class Neo4jSpatialDataStoreFactoryTest {
 	public void testCreateNewDataStore() {
 		Map<String, Object> params = new HashMap<>();
 		var ex = assertThrows(IOException.class, () -> factory.createDataStore(params));
-		Assertions.assertThat(ex).hasMessage("The parameters map isn't correct");
+		assertThat(ex).hasMessage("The parameters map isn't correct");
 	}
 
 	@Test
@@ -199,14 +199,14 @@ public class Neo4jSpatialDataStoreFactoryTest {
 	@Test
 	public void testFeatureAccess() throws IOException {
 		SimpleFeatureSource source = dataStore.getFeatureSource("map");
-		Assertions.assertThat(source).isNotNull();
+		assertThat(source).isNotNull();
 
 		SimpleFeatureCollection features = source.getFeatures();
-		Assertions.assertThat(features).extracting(FeatureCollection::size).isEqualTo(2);
+		assertThat(features).extracting(FeatureCollection::size).isEqualTo(2);
 
 		// Check we can iterate through features
 		try (var iterator = features.features()) {
-			Assertions.assertThat(new BridgeIterator<>(iterator))
+			assertThat(new BridgeIterator<>(iterator))
 					.toIterable() // Convert iterator to iterable for AssertJ
 					.extracting(SimpleFeature::getDefaultGeometry)
 					.extracting(Object::toString)
@@ -219,14 +219,14 @@ public class Neo4jSpatialDataStoreFactoryTest {
 		SimpleFeatureSource source = dataStore.getFeatureSource("map");
 		Query query = new Query("map", Filter.INCLUDE);
 		SimpleFeatureCollection features = source.getFeatures(query);
-		Assertions.assertThat(features).extracting(FeatureCollection::size).isEqualTo(2);
+		assertThat(features).extracting(FeatureCollection::size).isEqualTo(2);
 	}
 
 	// CRUD Operation Tests
 	@Test
 	public void testFeatureCreation() throws IOException {
 		SimpleFeatureSource source = dataStore.getFeatureSource("map");
-		Assertions.assertThat(source).isInstanceOf(SimpleFeatureStore.class);
+		assertThat(source).isInstanceOf(SimpleFeatureStore.class);
 
 		SimpleFeatureStore store = (SimpleFeatureStore) source;
 		Transaction transaction = new DefaultTransaction("create");
@@ -242,11 +242,11 @@ public class Neo4jSpatialDataStoreFactoryTest {
 			transaction.commit();
 
 			SimpleFeatureCollection features = store.getFeatures();
-			Assertions.assertThat(features.size()).isEqualTo(initialCount + 1);
+			assertThat(features.size()).isEqualTo(initialCount + 1);
 
 			// Verify the new feature exists
 			var found = searchFeatureByXYCoordinates(13.5, 56.5, features);
-			Assertions.assertThat(found).as("New feature should be found").isNotNull();
+			assertThat(found).as("New feature should be found").isNotNull();
 
 		} catch (Exception e) {
 			transaction.rollback();
@@ -259,7 +259,7 @@ public class Neo4jSpatialDataStoreFactoryTest {
 	@Test
 	public void testFeatureModification() throws IOException {
 		SimpleFeatureSource source = dataStore.getFeatureSource("map");
-		Assertions.assertThat(source).isInstanceOf(SimpleFeatureStore.class);
+		assertThat(source).isInstanceOf(SimpleFeatureStore.class);
 
 		SimpleFeatureStore store = (SimpleFeatureStore) source;
 		Transaction transaction = new DefaultTransaction("edit");
@@ -268,7 +268,7 @@ public class Neo4jSpatialDataStoreFactoryTest {
 			store.setTransaction(transaction);
 
 			SimpleFeature originalFeature = getFirstFeature(store);
-			Assertions.assertThat(originalFeature)
+			assertThat(originalFeature)
 					.as("No features found to modify")
 					.isNotNull();
 
@@ -294,7 +294,7 @@ public class Neo4jSpatialDataStoreFactoryTest {
 	@Test
 	public void testFeatureDeletion() throws IOException {
 		SimpleFeatureSource source = dataStore.getFeatureSource("map");
-		Assertions.assertThat(source).isInstanceOf(SimpleFeatureStore.class);
+		assertThat(source).isInstanceOf(SimpleFeatureStore.class);
 
 		SimpleFeatureStore store = (SimpleFeatureStore) source;
 		Transaction transaction = new DefaultTransaction("delete");
@@ -303,10 +303,10 @@ public class Neo4jSpatialDataStoreFactoryTest {
 			store.setTransaction(transaction);
 
 			int initialCount = store.getFeatures().size();
-			Assertions.assertThat(initialCount).isGreaterThan(0);
+			assertThat(initialCount).isGreaterThan(0);
 
 			SimpleFeature featureToDelete = getFirstFeature(store);
-			Assertions.assertThat(featureToDelete).isNotNull();
+			assertThat(featureToDelete).isNotNull();
 			String featureId = featureToDelete.getID();
 
 			// Delete the feature
@@ -325,10 +325,10 @@ public class Neo4jSpatialDataStoreFactoryTest {
 			transaction.commit();
 
 			SimpleFeatureCollection features = store.getFeatures();
-			Assertions.assertThat(features.size()).isEqualTo(initialCount - 1);
+			assertThat(features.size()).isEqualTo(initialCount - 1);
 
 			SimpleFeature deletedFeature = findFeatureById(store, featureId);
-			Assertions.assertThat(deletedFeature).isNull();
+			assertThat(deletedFeature).isNull();
 
 		} catch (Exception e) {
 			transaction.rollback();
@@ -341,7 +341,7 @@ public class Neo4jSpatialDataStoreFactoryTest {
 	@Test
 	public void testComprehensiveCRUDOperations() throws IOException {
 		SimpleFeatureSource source = dataStore.getFeatureSource("map");
-		Assertions.assertThat(source).isInstanceOf(SimpleFeatureStore.class);
+		assertThat(source).isInstanceOf(SimpleFeatureStore.class);
 		SimpleFeatureStore store = (SimpleFeatureStore) source;
 
 		Transaction transaction = new DefaultTransaction("crud-transaction");
@@ -350,10 +350,10 @@ public class Neo4jSpatialDataStoreFactoryTest {
 			store.setTransaction(transaction);
 
 			int initialCount = store.getFeatures().size();
-			Assertions.assertThat(initialCount).isGreaterThan(0);
+			assertThat(initialCount).isGreaterThan(0);
 
 			SimpleFeature existingFeature = getFirstFeature(store);
-			Assertions.assertThat(existingFeature).isNotNull();
+			assertThat(existingFeature).isNotNull();
 			String existingFeatureId = existingFeature.getID();
 			Point existingPoint = extractPoint(existingFeature);
 
@@ -363,12 +363,12 @@ public class Neo4jSpatialDataStoreFactoryTest {
 			addNewFeature(newPoint, transaction);
 
 			SimpleFeatureCollection features = store.getFeatures();
-			Assertions.assertThat(features.size()).isEqualTo(initialCount + 1);
+			assertThat(features.size()).isEqualTo(initialCount + 1);
 
 			// Find the newly added feature
 			SimpleFeatureCollection features1 = store.getFeatures();
 			SimpleFeature addedFeature = searchFeatureByXYCoordinates(14.0, 57.0, features1);
-			Assertions.assertThat(addedFeature).isNotNull();
+			assertThat(addedFeature).isNotNull();
 			String addedFeatureId = addedFeature.getID();
 
 			// UPDATE: Modify an existing feature
@@ -393,22 +393,22 @@ public class Neo4jSpatialDataStoreFactoryTest {
 
 			// Verify the final state
 			features = store.getFeatures();
-			Assertions.assertThat(features.size()).isEqualTo(initialCount);
+			assertThat(features.size()).isEqualTo(initialCount);
 
 			// Verify modification persisted
 			SimpleFeature modifiedFeature = findFeatureById(store, existingFeatureId);
-			Assertions.assertThat(modifiedFeature).isNotNull();
-			Assertions.assertThat(modifiedFeature.getDefaultGeometry())
+			assertThat(modifiedFeature).isNotNull();
+			assertThat(modifiedFeature.getDefaultGeometry())
 					.isInstanceOf(Point.class)
 					.asInstanceOf(InstanceOfAssertFactories.type(Point.class))
 					.satisfies(point -> {
-						Assertions.assertThat(point.getX()).isEqualTo(modifiedPoint.getX());
-						Assertions.assertThat(point.getY()).isEqualTo(modifiedPoint.getY());
+						assertThat(point.getX()).isEqualTo(modifiedPoint.getX());
+						assertThat(point.getY()).isEqualTo(modifiedPoint.getY());
 					});
 
 			// Verify deletion persisted
 			SimpleFeature deletedFeature = findFeatureById(store, addedFeatureId);
-			Assertions.assertThat(deletedFeature).isNull();
+			assertThat(deletedFeature).isNull();
 
 		} catch (Exception e) {
 			transaction.rollback();
@@ -421,7 +421,7 @@ public class Neo4jSpatialDataStoreFactoryTest {
 	@Test
 	public void testTransactionRollback() throws IOException {
 		SimpleFeatureSource source = dataStore.getFeatureSource("map");
-		Assertions.assertThat(source).isInstanceOf(SimpleFeatureStore.class);
+		assertThat(source).isInstanceOf(SimpleFeatureStore.class);
 
 		SimpleFeatureStore store = (SimpleFeatureStore) source;
 		Transaction transaction = new DefaultTransaction("rollback-test");
@@ -430,7 +430,7 @@ public class Neo4jSpatialDataStoreFactoryTest {
 
 		int initialCount = store.getFeatures().size();
 		SimpleFeature originalFeature = getFirstFeature(store);
-		Assertions.assertThat(originalFeature).isNotNull();
+		assertThat(originalFeature).isNotNull();
 		Point originalPoint = extractPoint(originalFeature);
 		String featureId = originalFeature.getID();
 
@@ -446,16 +446,16 @@ public class Neo4jSpatialDataStoreFactoryTest {
 
 		// Verify changes are visible within the transaction
 		SimpleFeatureCollection features = store.getFeatures();
-		Assertions.assertThat(features.size()).isEqualTo(initialCount + 1);
+		assertThat(features.size()).isEqualTo(initialCount + 1);
 
 		SimpleFeature modifiedFeatureInTx = findFeatureById(store, featureId);
-		Assertions.assertThat(modifiedFeatureInTx).isNotNull();
-		Assertions.assertThat(modifiedFeatureInTx.getDefaultGeometry())
+		assertThat(modifiedFeatureInTx).isNotNull();
+		assertThat(modifiedFeatureInTx.getDefaultGeometry())
 				.isInstanceOf(Point.class)
 				.asInstanceOf(InstanceOfAssertFactories.type(Point.class))
 				.satisfies(point -> {
-					Assertions.assertThat(point.getX()).isEqualTo(modifiedPoint.getX());
-					Assertions.assertThat(point.getY()).isEqualTo(modifiedPoint.getY());
+					assertThat(point.getX()).isEqualTo(modifiedPoint.getX());
+					assertThat(point.getY()).isEqualTo(modifiedPoint.getY());
 				});
 
 		// Now roll back the transaction
@@ -465,21 +465,21 @@ public class Neo4jSpatialDataStoreFactoryTest {
 		// Verify state is back to the original
 		store = (SimpleFeatureStore) dataStore.getFeatureSource("map");
 		SimpleFeatureCollection featuresAfterRollback = store.getFeatures();
-		Assertions.assertThat(featuresAfterRollback.size()).isEqualTo(initialCount);
+		assertThat(featuresAfterRollback.size()).isEqualTo(initialCount);
 
 		// Feature should have original geometry
 		SimpleFeature restoredFeature = findFeatureById(store, featureId);
-		Assertions.assertThat(restoredFeature).isNotNull();
-		Assertions.assertThat(restoredFeature.getDefaultGeometry())
+		assertThat(restoredFeature).isNotNull();
+		assertThat(restoredFeature.getDefaultGeometry())
 				.isInstanceOf(Point.class)
 				.asInstanceOf(InstanceOfAssertFactories.type(Point.class))
 				.satisfies(point -> {
-					Assertions.assertThat(point.getX()).isEqualTo(originalPoint.getX());
-					Assertions.assertThat(point.getY()).isEqualTo(originalPoint.getY());
+					assertThat(point.getX()).isEqualTo(originalPoint.getX());
+					assertThat(point.getY()).isEqualTo(originalPoint.getY());
 				});
 
 		// New feature should not exist
-		Assertions.assertThat(searchFeatureByXYCoordinates(14.0, 57.0, featuresAfterRollback)).isNull();
+		assertThat(searchFeatureByXYCoordinates(14.0, 57.0, featuresAfterRollback)).isNull();
 	}
 
 	// Helper Methods
@@ -537,14 +537,14 @@ public class Neo4jSpatialDataStoreFactoryTest {
 	private void verifyFeatureModification(SimpleFeatureStore store, String featureId, Point expectedGeometry)
 			throws IOException {
 		SimpleFeature modifiedFeature = findFeatureById(store, featureId);
-		Assertions.assertThat(modifiedFeature).isNotNull();
+		assertThat(modifiedFeature).isNotNull();
 
-		Assertions.assertThat(modifiedFeature.getDefaultGeometry())
+		assertThat(modifiedFeature.getDefaultGeometry())
 				.isInstanceOf(Point.class)
 				.asInstanceOf(InstanceOfAssertFactories.type(Point.class))
 				.satisfies(point -> {
-					Assertions.assertThat(point.getX()).isEqualTo(expectedGeometry.getX());
-					Assertions.assertThat(point.getY()).isEqualTo(expectedGeometry.getY());
+					assertThat(point.getX()).isEqualTo(expectedGeometry.getX());
+					assertThat(point.getY()).isEqualTo(expectedGeometry.getY());
 				});
 	}
 

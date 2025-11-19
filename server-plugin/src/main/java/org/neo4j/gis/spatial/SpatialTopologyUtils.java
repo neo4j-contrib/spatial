@@ -38,6 +38,8 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.spatial.api.SpatialRecord;
 import org.neo4j.spatial.api.SpatialRecords;
 import org.neo4j.spatial.api.layer.Layer;
+import org.neo4j.spatial.api.SpatialRecord;
+import org.neo4j.spatial.api.layer.Layer;
 
 /**
  * This class is a temporary location for collecting a number of spatial

@@ -21,11 +21,13 @@ package org.neo4j.gis.spatial;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.util.function.Consumer;
+import java.util.List;
 import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
+import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
@@ -34,6 +36,11 @@ import org.neo4j.spatial.api.layer.Layer;
 public class LayerSignatureTest extends Neo4jTestCase implements Constants {
 
 	private SpatialDatabaseService spatial;
+
+	@Override
+	protected List<Class<?>> loadProceduresAndFunctions() {
+		return List.of(SpatialFunctions.class, SpatialProcedures.class);
+	}
 
 	@BeforeEach
 	public void setup() throws Exception {
@@ -79,6 +86,7 @@ public class LayerSignatureTest extends Neo4jTestCase implements Constants {
 				tx -> spatial.getOrCreateEditableLayer(tx, "test", "wkt", "wkt", null, true));
 	}
 
+	// TODO this is duplicated code
 	private Layer testLayerSignature(String signature, Function<Transaction, Layer> layerMaker) {
 		Layer layer;
 		try (Transaction tx = graphDb().beginTx()) {
@@ -88,28 +96,4 @@ public class LayerSignatureTest extends Neo4jTestCase implements Constants {
 		assertEquals(signature, layer.getSignature());
 		return layer;
 	}
-
-	private void inTx(Consumer<Transaction> txFunction) {
-		try (Transaction tx = graphDb().beginTx()) {
-			txFunction.accept(tx);
-			tx.commit();
-		}
-	}
-
-	@Test
-	public void testDynamicLayer() {
-		Layer layer = testLayerSignature(
-				"EditableLayer(name='test', encoder=WKTGeometryEncoder(geom='wkt', bbox='bbox'))",
-				tx -> spatial.getOrCreateEditableLayer(tx, "test", "wkt", "wkt", null, false));
-		inTx(tx -> {
-			DynamicLayer dynamic = spatial.asDynamicLayer(tx, layer);
-			assertEquals("EditableLayer(name='test', encoder=WKTGeometryEncoder(geom='wkt', bbox='bbox'))",
-					dynamic.getSignature());
-			DynamicLayerConfig points = dynamic.addCQLDynamicLayerOnAttribute(tx, "is_a", "point", GTYPE_POINT);
-			assertEquals(
-					"DynamicLayer(name='CQL:is_a-point', config={layer='CQL:is_a-point', query=\"geometryType(the_geom) = 'Point' AND is_a = 'point'\"})",
-					points.getSignature());
-		});
-	}
-
 }

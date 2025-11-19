@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
@@ -37,6 +38,8 @@ import org.locationtech.jts.geom.Polygon;
 import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.gis.spatial.encoders.NativePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
+import org.neo4j.gis.spatial.encoders.WKBGeometryEncoder;
+import org.neo4j.gis.spatial.encoders.WKTGeometryEncoder;
 import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
 import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
@@ -67,6 +70,7 @@ public class SpatialDatabaseService implements Constants {
 
 	private static final Logger LOGGER = Logger.getLogger(SpatialDatabaseService.class.getName());
 	private static final Map<String, RegisteredLayerType> registeredLayerPresets = new TreeMap<>();
+	private static final Map<String, Class<? extends GeometryEncoder>> registeredEncoder = new HashMap<>();
 
 	static {
 		ServiceLoader.load(LayerTypePresets.class).forEach(layerPresets -> {
@@ -77,6 +81,15 @@ public class SpatialDatabaseService implements Constants {
 							"Duplicate layer type preset detected: " + key + " - overwriting previous registration");
 				}
 				registeredLayerPresets.put(key, preset);
+			});
+		});
+
+		ServiceLoader.load(GeometryEncoder.class).forEach(encoder -> {
+			encoder.getIdentifiers().forEach(identifier -> {
+				Class<? extends GeometryEncoder> existing = registeredEncoder.put(identifier, encoder.getClass());
+				if (existing != null) {
+					LOGGER.warning("Geometry encoder identifier conflict: " + identifier);
+				}
 			});
 		});
 	}
@@ -486,5 +499,4 @@ public class SpatialDatabaseService implements Constants {
 		return getOrCreateLayer(tx, name, registeredLayerType.geometryEncoder(), registeredLayerType.layerClass(),
 				(encoderConfig == null) ? registeredLayerType.defaultConfig() : encoderConfig, indexConfig, readOnly);
 	}
-
 }

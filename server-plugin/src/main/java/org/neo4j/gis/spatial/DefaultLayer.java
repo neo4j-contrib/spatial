@@ -39,6 +39,7 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
 import org.neo4j.gis.spatial.encoders.Configurable;
+import org.neo4j.gis.spatial.encoders.WKBGeometryEncoder;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;

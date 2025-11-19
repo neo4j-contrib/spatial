@@ -5,7 +5,6 @@
 		<neo4j.version>2025.10.1</neo4j.version>
 		<java.version>21</java.version>
 		<geotools.version>33.2</geotools.version>
-		<spatial.test.osm.version>20100819</spatial.test.osm.version>
 		<spatial.test.shp.version>20100819</spatial.test.shp.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven-surefire-plugin.version>3.5.4</maven-surefire-plugin.version>
@@ -28,8 +27,11 @@
 		<module>api</module>
 		<module>geotools-common</module>
 		<module>geotools-plugin</module>
-		<module>server-plugin</module>
+		<module>test-utils</module>
 		<module>cli-tools</module>
+		<module>server-plugin</module>
+		<module>osm-server-plugin</module>
+		<module>doc-examples</module>
 	</modules>
 
 	<scm>
@@ -51,7 +53,7 @@
 				</configuration>
 			</plugin>
 		</plugins>
-	</build>
+    </build>
 	<developers>
 		<developer>
 			<id>craigtaverner</id>

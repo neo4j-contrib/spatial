@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial.encoders;
 
+import java.util.List;
 import java.util.Set;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
@@ -38,6 +39,11 @@ public class NativePointEncoder extends AbstractGeometryEncoder implements Confi
 	private static final String DEFAULT_GEOM = "location";
 	private String locationProperty = DEFAULT_GEOM;
 	private Neo4jCRS crs = Neo4jCRS.findCRS("WGS-84");
+
+	@Override
+	public List<String> getIdentifiers() {
+		return List.of("NativePointEncoder", "org.neo4j.gis.spatial.encoders.NativePointEncoder");
+	}
 
 	@Override
 	protected void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container) {

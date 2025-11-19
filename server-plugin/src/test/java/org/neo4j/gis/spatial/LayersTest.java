@@ -24,12 +24,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
-import java.util.function.Consumer;
 import java.util.logging.Logger;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
@@ -40,12 +38,12 @@ import org.neo4j.gis.spatial.encoders.NativePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePropertyEncoder;
+import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
-import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
-import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
+import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.gis.spatial.rtree.ProgressLoggingListener;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
@@ -59,11 +57,15 @@ import org.neo4j.spatial.api.encoder.GeometryEncoder;
 import org.neo4j.spatial.api.index.LayerIndexReader;
 import org.neo4j.spatial.api.layer.EditableLayer;
 import org.neo4j.spatial.api.layer.Layer;
-import org.neo4j.spatial.cli.tools.ShapefileExporter;
 
 public class LayersTest extends Neo4jTestCase {
 
 	private static final Logger LOGGER = Logger.getLogger(LayersTest.class.getName());
+
+	@Override
+	protected List<Class<?>> loadProceduresAndFunctions() {
+		return List.of(SpatialFunctions.class, SpatialProcedures.class);
+	}
 
 	@Test
 	public void testBasicLayerOperations() {
@@ -244,12 +246,9 @@ public class LayersTest extends Neo4jTestCase {
 				DynamicLayer.class);
 		testSpecificEditableLayer("test dynamic layer with graph encoder", SimpleGraphEncoder.class,
 				DynamicLayer.class);
-		testSpecificEditableLayer("test OSM layer with OSM encoder", OSMGeometryEncoder.class, OSMLayer.class);
 		testSpecificEditableLayer("test editable layer with property encoder", SimplePropertyEncoder.class,
 				EditableLayerImpl.class);
 		testSpecificEditableLayer("test editable layer with graph encoder", SimpleGraphEncoder.class,
-				EditableLayerImpl.class);
-		testSpecificEditableLayer("test editable layer with OSM encoder", OSMGeometryEncoder.class,
 				EditableLayerImpl.class);
 	}
 
@@ -313,24 +312,6 @@ public class LayersTest extends Neo4jTestCase {
 	}
 
 	@Test
-	public void testShapefileExport() throws Exception {
-		ShapefileExporter exporter = new ShapefileExporter(driver, DEFAULT_DATABASE_NAME);
-		exporter.setExportDir("target/export");
-		ArrayList<String> layers = new ArrayList<>();
-
-		layers.add(testSpecificEditableLayer("test dynamic layer with property encoder", SimplePropertyEncoder.class,
-				DynamicLayer.class));
-		layers.add(testSpecificEditableLayer("test dynamic layer with graph encoder", SimpleGraphEncoder.class,
-				DynamicLayer.class));
-		layers.add(testSpecificEditableLayer("test dynamic layer with OSM encoder", OSMGeometryEncoder.class,
-				OSMLayer.class));
-
-		for (String layerName : layers) {
-			exporter.exportLayer(layerName);
-		}
-	}
-
-	@Test
 	public void testIndexAccessAfterBulkInsertion() {
 		// Use these two lines if you want to examine the output.
 //        File dbPath = new File("target/var/BulkTest");
@@ -377,13 +358,6 @@ public class LayersTest extends Neo4jTestCase {
 			Object obj = result.columnAs("count(p)").next();
 			assertInstanceOf(Long.class, obj);
 			assertEquals(1000L, (long) ((Long) obj));
-			tx.commit();
-		}
-	}
-
-	private void inTx(Consumer<Transaction> txFunction) {
-		try (Transaction tx = graphDb().beginTx()) {
-			txFunction.accept(tx);
 			tx.commit();
 		}
 	}
