@@ -23,7 +23,6 @@ import static org.neo4j.gis.spatial.Constants.GTYPE_GEOMETRY;
 import static org.neo4j.gis.spatial.Constants.GTYPE_LINESTRING;
 import static org.neo4j.gis.spatial.Constants.PROP_TYPE;
 
-import java.io.File;
 import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -33,12 +32,12 @@ import org.json.simple.JSONObject;
 import org.neo4j.gis.spatial.DynamicLayer;
 import org.neo4j.gis.spatial.DynamicLayerConfig;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
-import org.neo4j.gis.spatial.SpatialDataset;
 import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.SpatialDataset;
 
 /**
  * Instances of this class represent the primary layer of the OSM Dataset. It
@@ -271,16 +270,4 @@ public class OSMLayer extends DynamicLayer {
 		return addDynamicLayerOnWayTags(tx, SpatialDatabaseService.convertGeometryTypeToName(gtype), gtype, null);
 	}
 
-	/**
-	 * The OSM dataset has a number of possible stylesOverride this method to provide a style if your layer wishes to
-	 * control
-	 * its own rendering in the GIS.
-	 *
-	 * @return Style or null
-	 */
-	@Override
-	public File getStyle() {
-		// TODO: Replace with a proper resource lookup, since this will be in the JAR
-		return new File("dev/neo4j/neo4j-spatial/src/main/resources/sld/osm/osm.sld");
-	}
 }

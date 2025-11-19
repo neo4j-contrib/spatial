@@ -49,8 +49,6 @@ import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import org.mockito.Mockito;
 import org.neo4j.dbms.api.DatabaseManagementService;
-import org.neo4j.gis.spatial.GeometryEncoder;
-import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SimplePointLayer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
@@ -58,13 +56,16 @@ import org.neo4j.gis.spatial.filter.SearchIntersect;
 import org.neo4j.gis.spatial.filter.SearchIntersectWindow;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.rtree.NullListener;
-import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.io.fs.FileUtils;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.spatial.api.SearchResults;
+import org.neo4j.spatial.api.encoder.GeometryEncoder;
+import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
 public abstract class LayerIndexTestBase {
@@ -125,7 +126,7 @@ public abstract class LayerIndexTestBase {
 		FileUtils.deleteDirectory(baseDir.toPath());
 		databases = new TestDatabaseManagementServiceBuilder(baseDir.toPath()).impermanent().build();
 		graph = databases.database(DEFAULT_DATABASE_NAME);
-		spatial = new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) graph, SecurityContext.AUTH_DISABLED));
+		spatial = new SpatialDatabaseService(new IndexManagerImpl((GraphDatabaseAPI) graph, SecurityContext.AUTH_DISABLED));
 	}
 
 	@AfterEach

@@ -20,9 +20,10 @@
 package org.neo4j.gis.spatial.index;
 
 import java.util.List;
-import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.index.SpatialIndexReader;
+import org.neo4j.spatial.api.monitoring.ProgressListener;
 
 
 public interface SpatialIndexWriter extends SpatialIndexReader {
@@ -35,8 +36,8 @@ public interface SpatialIndexWriter extends SpatialIndexReader {
 
 	void remove(Transaction tx, String geomNodeId, boolean deleteGeomNode, boolean throwExceptionIfNotFound);
 
-	void removeAll(Transaction tx, boolean deleteGeomNodes, Listener monitor);
+	void removeAll(Transaction tx, boolean deleteGeomNodes, ProgressListener monitor);
 
-	void clear(Transaction tx, Listener monitor);
+	void clear(Transaction tx, ProgressListener monitor);
 
 }

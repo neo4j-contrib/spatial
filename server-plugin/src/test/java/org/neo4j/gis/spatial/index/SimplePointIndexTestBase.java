@@ -19,8 +19,8 @@
  */
 package org.neo4j.gis.spatial.index;
 
-import org.neo4j.gis.spatial.GeometryEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
+import org.neo4j.spatial.api.encoder.GeometryEncoder;
 
 public abstract class SimplePointIndexTestBase extends LayerIndexTestBase {
 

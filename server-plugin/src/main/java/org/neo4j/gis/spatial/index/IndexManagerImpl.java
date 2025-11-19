@@ -33,10 +33,11 @@ import org.neo4j.internal.kernel.api.security.StaticAccessMode;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.api.security.RestrictedAccessMode;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.spatial.api.index.IndexManager;
 
-public class IndexManager {
+public class IndexManagerImpl implements IndexManager {
 
-	private static final Logger LOGGER = Logger.getLogger(IndexManager.class.getName());
+	private static final Logger LOGGER = Logger.getLogger(IndexManagerImpl.class.getName());
 
 	private final GraphDatabaseAPI db;
 	private final SecurityContext securityContext;
@@ -67,28 +68,17 @@ public class IndexManager {
 		}
 	}
 
-	public IndexManager(GraphDatabaseAPI db, SecurityContext securityContext) {
+	public IndexManagerImpl(GraphDatabaseAPI db, SecurityContext securityContext) {
 		this.db = db;
 		this.securityContext = IndexAccessMode.withIndexCreate(securityContext);
 	}
 
-	/**
-	 * Blocking call that spawns a thread to create an index and then waits for that thread to finish.
-	 * This is highly likely to cause deadlocks on index checks, so be careful where it is used.
-	 * Best used if you can commit any other outer transaction first, then run this, and after that
-	 * start a new transaction. For example, see the OSMImport approaching to batching transactions.
-	 * It is possible to use this in procedures with outer transactions if you can ensure the outer
-	 * transactions are read-only.
-	 */
+	@Override
 	public IndexDefinition indexFor(Transaction tx, String indexName, Label label, String propertyKey) {
 		return indexFor(tx, indexName, label, propertyKey, true);
 	}
 
-	/**
-	 * Non-blocking call that spawns a thread to create an index and then waits for that thread to finish.
-	 * Use this especially on indexes that are not immediately needed. Also use it if you have an outer
-	 * transaction that cannot be committed before making this call.
-	 */
+	@Override
 	public void makeIndexFor(Transaction tx, String indexName, Label label, String propertyKey) {
 		indexFor(tx, indexName, label, propertyKey, false);
 	}
@@ -122,6 +112,7 @@ public class IndexManager {
 		return null;
 	}
 
+	@Override
 	public void deleteIndex(IndexDefinition index) {
 		String name = "IndexRemover(" + index.getName() + ")";
 		Thread exists = findThread(name);

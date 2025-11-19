@@ -23,14 +23,14 @@ import org.geotools.api.feature.simple.SimpleFeature;
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.filter.text.ecql.ECQL;
-import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.Utilities;
-import org.neo4j.gis.spatial.rtree.Envelope;
-import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.Envelope;
+import org.neo4j.spatial.api.SearchFilter;
+import org.neo4j.spatial.api.layer.Layer;
 
 /**
  * Find geometries that have at least one point in common with the given

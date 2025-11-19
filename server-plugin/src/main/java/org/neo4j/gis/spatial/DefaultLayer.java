@@ -39,14 +39,17 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
 import org.neo4j.gis.spatial.encoders.Configurable;
-import org.neo4j.gis.spatial.index.IndexManager;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
-import org.neo4j.gis.spatial.rtree.Envelope;
-import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.gis.spatial.utilities.GeotoolsAdapter;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.Envelope;
+import org.neo4j.spatial.api.SearchFilter;
+import org.neo4j.spatial.api.SpatialDataset;
+import org.neo4j.spatial.api.encoder.GeometryEncoder;
+import org.neo4j.spatial.api.index.IndexManager;
+import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.layer.Layer;
 
 /**
  * Instances of Layer provide the ability for developers to query geometries associated with a single dataset (or
@@ -57,7 +60,7 @@ import org.neo4j.graphdb.Transaction;
  * You should not construct the DefaultLayer directly but use the factory methods
  * on the SpatialDatabaseService for correct initialization.
  */
-public class DefaultLayer implements Layer, SpatialDataset {
+public class DefaultLayer implements Layer, InternalLayer, SpatialDataset {
 
 	protected String layerNodeId = null;
 
@@ -268,19 +271,6 @@ public class DefaultLayer implements Layer, SpatialDataset {
 	@Override
 	public Iterable<? extends Layer> getLayers() {
 		return Collections.singletonList(this);
-	}
-
-	/**
-	 * Override this method to provide a style if your layer wishes to control
-	 * its own rendering in the GIS. If a Style is returned, it is used. If a
-	 * File is returned, it is opened and assumed to contain SLD contents. If a
-	 * String is returned, it is assumed to contain SLD contents.
-	 *
-	 * @return null
-	 */
-	@Override
-	public Object getStyle() {
-		return null;
 	}
 
 	@Override

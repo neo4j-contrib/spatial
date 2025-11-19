@@ -28,8 +28,10 @@ import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.attributes.PropertyMapper;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.SpatialRecord;
+import org.neo4j.spatial.api.layer.Layer;
 
-public class SpatialDatabaseRecord implements Constants, SpatialRecord {
+public class SpatialDatabaseRecord implements SpatialRecord {
 
 	private Node geomNode;
 	private Geometry geometry;
@@ -61,23 +63,6 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 		geomNode = tx.getNodeByElementId(geomNode.getElementId());
 	}
 
-	/**
-	 * This method returns a simple integer representation of the geometry. Some
-	 * geometry encoders store this directly as a property of the geometry node,
-	 * while others might store this information elsewhere in the graph, or
-	 * deduce it from other factors of the data model. See the GeometryEncoder
-	 * for information about mapping from the data model to the geometry.
-	 *
-	 * @return integer representation of a geometry
-	 * @deprecated This method is of questionable value, since it is better to
-	 * query the geometry object directly, outside the result
-	 */
-	@Deprecated
-	public int getType() {
-		//TODO: Get the type from the geometryEncoder
-		return SpatialDatabaseService.convertJtsClassToGeometryType(getGeometry().getClass());
-	}
-
 	@Override
 	public Geometry getGeometry() {
 		if (geometry == null) {
@@ -100,7 +85,10 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 	 */
 	@Override
 	public boolean hasProperty(Transaction tx, String name) {
-		PropertyMapper mapper = layer.getPropertyMappingManager().getPropertyMapper(tx, name);
+		PropertyMapper mapper = null;
+		if (layer instanceof InternalLayer internalLayer) {
+			mapper = internalLayer.getPropertyMappingManager().getPropertyMapper(tx, name);
+		}
 		return mapper == null ? hasGeometryProperty(name) : hasGeometryProperty(mapper.from());
 	}
 
@@ -127,7 +115,10 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 
 	@Override
 	public Object getProperty(Transaction tx, String name) {
-		PropertyMapper mapper = layer.getPropertyMappingManager().getPropertyMapper(tx, name);
+		PropertyMapper mapper = null;
+		if (layer instanceof InternalLayer internalLayer) {
+			mapper = internalLayer.getPropertyMappingManager().getPropertyMapper(tx, name);
+		}
 		return mapper == null ? getGeometryProperty(name) : mapper.map(getGeometryProperty(mapper.from()));
 	}
 
@@ -156,7 +147,9 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 
 	@Override
 	public String toString() {
-		return "SpatialDatabaseRecord[" + getNodeId() + "]: type='" + getType() + "', props[" + getPropString() + "]";
+		return "SpatialDatabaseRecord[" + getNodeId() + "]: type='"
+				+ SpatialDatabaseService.convertJtsClassToGeometryType(getGeometry().getClass()) + "', props["
+				+ getPropString() + "]";
 	}
 
 	// Protected Constructors
@@ -170,7 +163,7 @@ public class SpatialDatabaseRecord implements Constants, SpatialRecord {
 	// Private methods
 
 	private static void checkIsNotReservedProperty(String name) {
-		for (String property : RESERVED_PROPS) {
+		for (String property : Constants.RESERVED_PROPS) {
 			if (property.equals(name)) {
 				throw new SpatialDatabaseException("Updating not allowed for Reserved Property: " + name);
 			}

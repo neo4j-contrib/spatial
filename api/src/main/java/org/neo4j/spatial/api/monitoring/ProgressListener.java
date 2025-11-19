@@ -17,14 +17,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.rtree;
+package org.neo4j.spatial.api.monitoring;
 
 
 /**
  * Classes that implement this interface will be notified of units of work done,
- * and can therefor be used for progress bars or console logging or similar activities.
+ * and can therefore be used for progress bars or console logging or similar activities.
  */
-public interface Listener {
+public interface ProgressListener {
 
 	void begin(int unitsOfWork);
 

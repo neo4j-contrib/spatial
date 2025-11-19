@@ -22,10 +22,11 @@ package org.neo4j.gis.spatial;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
-import org.neo4j.gis.spatial.index.IndexManager;
+import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.spatial.api.layer.EditableLayer;
 
 public class TestRemove extends Neo4jTestCase {
 
@@ -34,7 +35,7 @@ public class TestRemove extends Neo4jTestCase {
 	@Test
 	public void testAddMoreThanMaxNodeRefThenDeleteAll() {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 
 		try (Transaction tx = graphDb().beginTx()) {
 			spatial.createLayer(tx, layerName, WKTGeometryEncoder.class, EditableLayerImpl.class, "");
@@ -49,13 +50,11 @@ public class TestRemove extends Neo4jTestCase {
 			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, false);
 			GeometryFactory geomFactory = layer.getGeometryFactory();
 			for (int i = 0; i < ids.length; i++) {
-				ids[i] = layer.add(tx, geomFactory.createPoint(new Coordinate(i, i))).getNodeId();
+				ids[i] = layer.add(tx, geomFactory.createPoint(new Coordinate(i, i))).getId();
 			}
 			layer.finalizeTransaction(tx);
 			tx.commit();
 		}
-
-		Neo4jTestUtils.debugIndexTree(graphDb(), layerName);
 
 		try (Transaction tx = graphDb().beginTx()) {
 			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, false);
@@ -65,7 +64,5 @@ public class TestRemove extends Neo4jTestCase {
 			layer.finalizeTransaction(tx);
 			tx.commit();
 		}
-
-		Neo4jTestUtils.debugIndexTree(graphDb(), layerName);
 	}
 }

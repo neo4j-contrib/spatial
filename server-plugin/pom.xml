@@ -84,6 +84,11 @@
 	<dependencies>
 		<dependency>
 			<groupId>org.neo4j</groupId>
+			<artifactId>neo4j-spatial-api</artifactId>
+			<version>2025.10.1-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j</artifactId>
 			<version>${neo4j.version}</version>
 			<scope>provided</scope>

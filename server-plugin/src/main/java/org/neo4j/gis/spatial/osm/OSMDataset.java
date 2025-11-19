@@ -28,10 +28,7 @@ import javax.annotation.Nonnull;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
-import org.neo4j.gis.spatial.GeometryEncoder;
-import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseException;
-import org.neo4j.gis.spatial.SpatialDataset;
 import org.neo4j.gis.spatial.SpatialRelationshipTypes;
 import org.neo4j.gis.spatial.utilities.RelationshipTraversal;
 import org.neo4j.graphdb.Direction;
@@ -42,6 +39,9 @@ import org.neo4j.graphdb.traversal.Evaluation;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
+import org.neo4j.spatial.api.SpatialDataset;
+import org.neo4j.spatial.api.encoder.GeometryEncoder;
+import org.neo4j.spatial.api.layer.Layer;
 
 public class OSMDataset implements SpatialDataset, Iterator<OSMDataset.Way> {
 

@@ -17,12 +17,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.index;
+package org.neo4j.spatial.api.index;
 
-import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.filter.SearchRecords;
-import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.SearchFilter;
+import org.neo4j.spatial.api.SpatialRecords;
+import org.neo4j.spatial.api.layer.Layer;
 
 public interface LayerIndexReader extends SpatialIndexReader {
 
@@ -37,6 +37,6 @@ public interface LayerIndexReader extends SpatialIndexReader {
 
 	Layer getLayer();
 
-	SearchRecords search(Transaction tx, SearchFilter filter);
+	SpatialRecords search(Transaction tx, SearchFilter filter);
 
 }

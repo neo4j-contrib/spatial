@@ -31,7 +31,6 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
 import org.locationtech.jts.io.WKTWriter;
-import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures.GeometryResult;
 import org.neo4j.gis.spatial.utilities.GeoJsonUtils;
 import org.neo4j.gis.spatial.utilities.SpatialApiBase;
@@ -40,6 +39,7 @@ import org.neo4j.graphdb.spatial.Point;
 import org.neo4j.procedure.Description;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.UserFunction;
+import org.neo4j.spatial.api.layer.Layer;
 
 public class SpatialFunctions extends SpatialApiBase {
 

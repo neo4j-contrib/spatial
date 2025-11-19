@@ -37,8 +37,6 @@ import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.gis.spatial.index.SpatialIndexWriter;
-import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
-import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
@@ -54,6 +52,14 @@ import org.neo4j.graphdb.traversal.PathEvaluator;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.graphdb.traversal.Traverser;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
+import org.neo4j.spatial.api.Envelope;
+import org.neo4j.spatial.api.EnvelopeDecoder;
+import org.neo4j.spatial.api.SearchFilter;
+import org.neo4j.spatial.api.SearchResults;
+import org.neo4j.spatial.api.index.SpatialIndexVisitor;
+import org.neo4j.spatial.api.monitoring.ProgressListener;
+import org.neo4j.spatial.api.monitoring.TreeMonitor;
+import org.neo4j.spatial.api.monitoring.TreeMonitor.NodeWithEnvelope;
 
 /**
  * This is an in-graph index utilizing the concepts of an R-Tree.
@@ -264,25 +270,6 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 
 	private List<NodeWithEnvelope> decodeGeometryNodeEnvelopes(List<Node> nodes) {
 		return nodes.stream().map(GeometryNodeWithEnvelope::new).collect(Collectors.toList());
-	}
-
-	public static class NodeWithEnvelope {
-
-		public final Envelope envelope;
-		Node node;
-
-		public NodeWithEnvelope(Node node, Envelope envelope) {
-			this.node = node;
-			this.envelope = envelope;
-		}
-
-		/**
-		 * Ensure this node is valid in the specified transaction
-		 */
-		public NodeWithEnvelope refresh(Transaction tx) {
-			this.node = tx.getNodeByElementId(this.node.getElementId());
-			return this;
-		}
 	}
 
 	public class GeometryNodeWithEnvelope extends NodeWithEnvelope {
@@ -684,7 +671,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 	}
 
 	private void detachGeometryNodes(Transaction tx, final boolean deleteGeomNodes, Node indexRoot,
-			final Listener monitor) {
+			final ProgressListener monitor) {
 		checkWritable();
 		monitor.begin(count(tx));
 		try {
@@ -717,7 +704,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 	}
 
 	@Override
-	public void removeAll(Transaction tx, final boolean deleteGeomNodes, final Listener monitor) {
+	public void removeAll(Transaction tx, final boolean deleteGeomNodes, final ProgressListener monitor) {
 		checkWritable();
 		Node indexRoot = getIndexRoot(tx);
 
@@ -741,7 +728,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 	}
 
 	@Override
-	public void clear(Transaction tx, final Listener monitor) {
+	public void clear(Transaction tx, final ProgressListener monitor) {
 		checkWritable();
 		removeAll(tx, false, new NullListener());
 		initIndexRoot(tx);

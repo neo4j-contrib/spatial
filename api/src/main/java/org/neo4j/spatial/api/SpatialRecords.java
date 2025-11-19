@@ -17,30 +17,32 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.filter;
+package org.neo4j.spatial.api;
 
 import java.util.Iterator;
+import java.util.function.BiFunction;
 import javax.annotation.Nonnull;
-import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.SpatialDatabaseRecord;
-import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.graphdb.Node;
+import org.neo4j.spatial.api.layer.Layer;
 
-public class SearchRecords implements Iterable<SpatialDatabaseRecord>, Iterator<SpatialDatabaseRecord> {
+public class SpatialRecords implements Iterable<SpatialRecord>, Iterator<SpatialRecord> {
 
 	private final SearchResults results;
 	private final Iterator<Node> nodeIterator;
+	private final BiFunction<Layer, Node, SpatialRecord> searchRecordsProducer;
 	private final Layer layer;
 
-	public SearchRecords(Layer layer, SearchResults results) {
+	public SpatialRecords(Layer layer, SearchResults results,
+			BiFunction<Layer, Node, SpatialRecord> searchRecordsProducer) {
 		this.layer = layer;
 		this.results = results;
-		nodeIterator = results.iterator();
+		this.nodeIterator = results.iterator();
+		this.searchRecordsProducer = searchRecordsProducer;
 	}
 
 	@Override
 	@Nonnull
-	public Iterator<SpatialDatabaseRecord> iterator() {
+	public Iterator<SpatialRecord> iterator() {
 		return this;
 	}
 
@@ -50,8 +52,8 @@ public class SearchRecords implements Iterable<SpatialDatabaseRecord>, Iterator<
 	}
 
 	@Override
-	public SpatialDatabaseRecord next() {
-		return new SpatialDatabaseRecord(layer, nodeIterator.next());
+	public SpatialRecord next() {
+		return searchRecordsProducer.apply(layer, nodeIterator.next());
 	}
 
 	@Override

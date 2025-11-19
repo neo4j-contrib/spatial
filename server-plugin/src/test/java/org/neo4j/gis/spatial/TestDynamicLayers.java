@@ -36,14 +36,15 @@ import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.LinearRing;
 import org.locationtech.jts.geom.Polygon;
-import org.neo4j.gis.spatial.index.IndexManager;
+import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
-import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.spatial.api.Envelope;
+import org.neo4j.spatial.api.layer.Layer;
 
 public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 
@@ -73,7 +74,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		ArrayList<Layer> layers = new ArrayList<>();
 		try (Transaction tx = graphDb().beginTx()) {
 			SpatialDatabaseService spatial = new SpatialDatabaseService(
-					new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+					new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 			DynamicLayer shpLayer = spatial.asDynamicLayer(tx, spatial.getLayer(tx, shpFile, false));
 			layers.add(shpLayer.addLayerConfig(tx, "CQL0-highway", GTYPE_GEOMETRY, "highway is not null"));
 			layers.add(shpLayer.addLayerConfig(tx, "CQL1-highway", GTYPE_POINT,
@@ -131,7 +132,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		ArrayList<Layer> layers = new ArrayList<>();
 		try (Transaction tx = graphDb().beginTx()) {
 			SpatialDatabaseService spatial = new SpatialDatabaseService(
-					new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+					new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 			OSMLayer osmLayer = (OSMLayer) spatial.getLayer(tx, osmFile, false);
 			LinearRing ring = osmLayer.getGeometryFactory().createLinearRing(
 					new Coordinate[]{new Coordinate(bbox.getMinX(), bbox.getMinY()),
@@ -286,7 +287,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 
 	private Envelope checkLayer(String layerName) {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		Layer layer;
 		try (Transaction tx = graphDb().beginTx()) {
 			layer = spatial.getLayer(tx, layerName, true);

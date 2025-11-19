@@ -22,6 +22,8 @@ package org.neo4j.gis.spatial.rtree;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.Envelope;
+import org.neo4j.spatial.api.monitoring.TreeMonitor.NodeWithEnvelope;
 
 public class TestRTreeIndex extends RTreeIndex {
 
@@ -30,7 +32,7 @@ public class TestRTreeIndex extends RTreeIndex {
 		init(tx, tx.createNode(), new SimplePointEncoder(), DEFAULT_MAX_NODE_REFERENCES, false);
 	}
 
-	public RTreeIndex.NodeWithEnvelope makeChildIndexNode(Transaction tx, NodeWithEnvelope parent,
+	public NodeWithEnvelope makeChildIndexNode(Transaction tx, NodeWithEnvelope parent,
 			Envelope bbox) {
 		Node indexNode = tx.createNode();
 		setIndexNodeEnvelope(indexNode, bbox);

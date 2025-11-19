@@ -53,9 +53,7 @@ import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
-import org.neo4j.gis.spatial.index.IndexManager;
-import org.neo4j.gis.spatial.rtree.Envelope;
-import org.neo4j.gis.spatial.rtree.Listener;
+import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Entity;
@@ -75,6 +73,8 @@ import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.spatial.api.Envelope;
+import org.neo4j.spatial.api.monitoring.ProgressListener;
 
 public class OSMImporter implements Constants {
 
@@ -104,7 +104,7 @@ public class OSMImporter implements Constants {
 	private final StatsManager stats = new StatsManager();
 	private String osm_dataset = null;
 	private long missingChangesets = 0;
-	private final Listener monitor;
+	private final ProgressListener monitor;
 	private final org.locationtech.jts.geom.Envelope filterEnvelope;
 	private SecurityContext securityContext = SecurityContext.AUTH_DISABLED;
 
@@ -214,11 +214,11 @@ public class OSMImporter implements Constants {
 		this(layerName, null);
 	}
 
-	public OSMImporter(String layerName, Listener monitor) {
+	public OSMImporter(String layerName, ProgressListener monitor) {
 		this(layerName, null, null);
 	}
 
-	public OSMImporter(String layerName, Listener monitor, org.locationtech.jts.geom.Envelope filterEnvelope) {
+	public OSMImporter(String layerName, ProgressListener monitor, org.locationtech.jts.geom.Envelope filterEnvelope) {
 		this.layerName = layerName;
 		if (monitor == null) {
 			monitor = new NullListener();
@@ -250,7 +250,7 @@ public class OSMImporter implements Constants {
 
 		setLogContext("Index");
 		SpatialDatabaseService spatialDatabase = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) database, SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) database, SecurityContext.AUTH_DISABLED));
 		OSMLayer layer;
 		OSMDataset dataset;
 		try (Transaction tx = beginTx(database)) {
@@ -945,7 +945,7 @@ public class OSMImporter implements Constants {
 		}
 
 		private Transaction beginIndexTx(GraphDatabaseService database) {
-			return beginTx(database, IndexManager.IndexAccessMode.withIndexCreate(securityContext));
+			return beginTx(database, IndexManagerImpl.IndexAccessMode.withIndexCreate(securityContext));
 		}
 
 		private static Transaction beginTx(GraphDatabaseService database, SecurityContext securityContext) {

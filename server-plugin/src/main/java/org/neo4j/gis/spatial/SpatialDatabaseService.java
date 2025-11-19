@@ -38,21 +38,25 @@ import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.gis.spatial.encoders.NativePointEncoder;
 import org.neo4j.gis.spatial.encoders.NativePointsEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
-import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
 import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.gis.spatial.index.LayerZOrderPointIndex;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMLayer;
-import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.gis.spatial.utilities.LayerUtilities;
 import org.neo4j.gis.spatial.utilities.ReferenceNodes;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.SpatialRecord;
+import org.neo4j.spatial.api.encoder.GeometryEncoder;
+import org.neo4j.spatial.api.index.IndexManager;
+import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.layer.EditableLayer;
+import org.neo4j.spatial.api.layer.Layer;
+import org.neo4j.spatial.api.monitoring.ProgressListener;
 
 /**
  * This is the main API entrypoint for the embedded access to spatial database capabilities.
@@ -136,28 +140,14 @@ public class SpatialDatabaseService implements Constants {
 		return sb.toString();
 	}
 
-	public static int convertGeometryNameToType(String geometryName) {
-		if (geometryName == null) {
-			return GTYPE_GEOMETRY;
-		}
-		try {
-			Class<?> aClass = Class.forName("org.locationtech.jts.geom." + geometryName);
-			if (!Geometry.class.isAssignableFrom(aClass)) {
-				throw new ClassNotFoundException("Not a geometry class");
-			}
-			//noinspection unchecked
-			return convertJtsClassToGeometryType((Class<? extends Geometry>) aClass);
-		} catch (ClassNotFoundException e) {
-			LOGGER.warning("Unrecognized geometry '" + geometryName + "': " + e);
-			return GTYPE_GEOMETRY;
-		}
-	}
-
 	public static String convertGeometryTypeToName(Integer geometryType) {
 		return convertGeometryTypeToJtsClass(geometryType).getName().replace("org.locationtech.jts.geom.", "");
 	}
 
 	public static Class<? extends Geometry> convertGeometryTypeToJtsClass(Integer geometryType) {
+		if (geometryType == null) {
+			return Geometry.class;
+		}
 		return switch (geometryType) {
 			case GTYPE_POINT -> Point.class;
 			case GTYPE_LINESTRING -> LineString.class;
@@ -243,7 +233,7 @@ public class SpatialDatabaseService implements Constants {
 		return layersConverted;
 	}
 
-	public String[] getLayerNames(Transaction tx) {
+	public List<String> getLayerNames(Transaction tx) {
 		assertNotOldModel(tx);
 		List<String> names = new ArrayList<>();
 
@@ -258,7 +248,7 @@ public class SpatialDatabaseService implements Constants {
 			}
 		}
 
-		return names.toArray(new String[0]);
+		return names;
 	}
 
 	public Layer getLayer(Transaction tx, String name, boolean readOnly) {
@@ -327,10 +317,6 @@ public class SpatialDatabaseService implements Constants {
 		}
 		return (EditableLayer) getOrCreateLayer(tx, name, geClass, EditableLayerImpl.class, propertyNameConfig,
 				indexConfig, readOnly);
-	}
-
-	public EditableLayer getOrCreateEditableLayer(Transaction tx, String name, String indexConfig, boolean readOnly) {
-		return getOrCreateEditableLayer(tx, name, "WKB", "", indexConfig, readOnly);
 	}
 
 	public EditableLayer getOrCreateEditableLayer(Transaction tx, String name, String wktProperty, String indexConfig,
@@ -475,7 +461,7 @@ public class SpatialDatabaseService implements Constants {
 		return layer;
 	}
 
-	public void deleteLayer(Transaction tx, String name, Listener monitor) {
+	public void deleteLayer(Transaction tx, String name, ProgressListener monitor) {
 		EditableLayer layer = (EditableLayer) getLayer(tx, name, false);
 		if (layer == null) {
 			throw new SpatialDatabaseException("Layer " + name + " does not exist");
@@ -499,9 +485,9 @@ public class SpatialDatabaseService implements Constants {
 	 * @param results   collection of SpatialDatabaseRecords to add to new layer
 	 * @return new Layer with copy of all geometries
 	 */
-	public Layer createResultsLayer(Transaction tx, String layerName, List<SpatialDatabaseRecord> results) {
+	public Layer createResultsLayer(Transaction tx, String layerName, List<SpatialRecord> results) {
 		EditableLayer layer = (EditableLayer) createWKBLayer(tx, layerName, "");
-		for (SpatialDatabaseRecord record : results) {
+		for (SpatialRecord record : results) {
 			layer.add(tx, record.getGeometry());
 		}
 		layer.finalizeTransaction(tx);

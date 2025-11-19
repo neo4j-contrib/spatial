@@ -20,6 +20,8 @@
 package org.neo4j.gis.spatial.rtree;
 
 import org.neo4j.graphdb.Node;
+import org.neo4j.spatial.api.Envelope;
+import org.neo4j.spatial.api.index.SpatialIndexVisitor;
 
 
 public class SpatialIndexRecordCounter implements SpatialIndexVisitor {

@@ -54,10 +54,7 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
-import org.neo4j.gis.spatial.EditableLayer;
 import org.neo4j.gis.spatial.EditableLayerImpl;
-import org.neo4j.gis.spatial.GeometryEncoder;
-import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.ShapefileImporter;
 import org.neo4j.gis.spatial.SimplePointLayer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
@@ -70,7 +67,6 @@ import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePropertyEncoder;
 import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
 import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.index.LayerZOrderPointIndex;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMImporter;
@@ -95,6 +91,10 @@ import org.neo4j.procedure.Context;
 import org.neo4j.procedure.Description;
 import org.neo4j.procedure.Name;
 import org.neo4j.procedure.Procedure;
+import org.neo4j.spatial.api.encoder.GeometryEncoder;
+import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.layer.EditableLayer;
+import org.neo4j.spatial.api.layer.Layer;
 
 /*
 TODO:
@@ -588,7 +588,7 @@ public class SpatialProcedures extends SpatialApiBase {
 			@Name(value = "name", description = DOC_LAYER_NAME) String name
 	) {
 		Layer layer = getLayerOrThrow(tx, spatial(), name, true);
-		org.neo4j.gis.spatial.rtree.Envelope envelope = layer.getIndex().getBoundingBox(tx);
+		org.neo4j.spatial.api.Envelope envelope = layer.getIndex().getBoundingBox(tx);
 		CoordinateReferenceSystem crs = layer.getCoordinateReferenceSystem(tx);
 		String crsName = crs != null ? crs.getName().toString() : null;
 		return Stream.of(new BoundingBoxResult(

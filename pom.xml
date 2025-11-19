@@ -25,6 +25,7 @@
 	<packaging>pom</packaging>
 
 	<modules>
+		<module>api</module>
 		<module>server-plugin</module>
 	</modules>
 

@@ -26,6 +26,8 @@ import java.util.List;
 import java.util.Map;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.index.SpatialIndexReader;
+import org.neo4j.spatial.api.monitoring.TreeMonitor;
 
 public class RTreeMonitor implements TreeMonitor {
 
@@ -50,7 +52,7 @@ public class RTreeMonitor implements TreeMonitor {
 	}
 
 	@Override
-	public void addNbrRebuilt(RTreeIndex rtree, Transaction tx) {
+	public void addNbrRebuilt(SpatialIndexReader rtree, Transaction tx) {
 		nbrRebuilt++;
 	}
 
@@ -65,7 +67,7 @@ public class RTreeMonitor implements TreeMonitor {
 	}
 
 	@Override
-	public void beforeMergeTree(Node indexNode, List<RTreeIndex.NodeWithEnvelope> right) {
+	public void beforeMergeTree(Node indexNode, List<NodeWithEnvelope> right) {
 
 	}
 

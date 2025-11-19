@@ -40,9 +40,8 @@ import org.neo4j.gis.spatial.encoders.NativePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePropertyEncoder;
-import org.neo4j.gis.spatial.index.IndexManager;
+import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
 import org.neo4j.gis.spatial.osm.OSMLayer;
@@ -55,15 +54,21 @@ import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.spatial.api.SpatialRecord;
+import org.neo4j.spatial.api.encoder.GeometryEncoder;
+import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.layer.EditableLayer;
+import org.neo4j.spatial.api.layer.Layer;
 
 public class LayersTest extends Neo4jTestCase {
+
 	private static final Logger LOGGER = Logger.getLogger(LayersTest.class.getName());
 
 	@Test
 	public void testBasicLayerOperations() {
 		String layerName = "test";
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
 			Layer layer = spatial.getLayer(tx, layerName, true);
 			assertNull(layer);
@@ -102,7 +107,7 @@ public class LayersTest extends Neo4jTestCase {
 			Class<? extends GeometryEncoder> encoderClass) {
 		String layerName = "points";
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
 			EditableLayer layer = (EditableLayer) spatial.createLayer(tx, layerName, encoderClass,
 					EditableLayerImpl.class, indexClass, null, null);
@@ -110,7 +115,7 @@ public class LayersTest extends Neo4jTestCase {
 		});
 		inTx(tx -> {
 			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, false);
-			SpatialDatabaseRecord record = layer.add(tx,
+			SpatialRecord record = layer.add(tx,
 					layer.getGeometryFactory().createPoint(new Coordinate(15.3, 56.2)));
 			layer.finalizeTransaction(tx);
 			assertNotNull(record);
@@ -118,7 +123,7 @@ public class LayersTest extends Neo4jTestCase {
 		// finds geometries that contain the given geometry
 		try (Transaction tx = graphDb().beginTx()) {
 			Layer layer = spatial.getLayer(tx, layerName, true);
-			List<SpatialDatabaseRecord> results = GeoPipeline
+			List<SpatialRecord> results = GeoPipeline
 					.startContainSearch(tx, layer,
 							layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)))
 					.toSpatialDatabaseRecordList();
@@ -137,7 +142,7 @@ public class LayersTest extends Neo4jTestCase {
 		inTx(tx -> spatial.deleteLayer(tx, layerName,
 				new ProgressLoggingListener("deleting layer '" + layerName + "'", LOGGER)));
 		inTx(tx -> assertNull(spatial.getLayer(tx, layerName, true)));
-		IndexManager.waitForDeletions();
+		IndexManagerImpl.waitForDeletions();
 	}
 
 	@Test
@@ -153,7 +158,7 @@ public class LayersTest extends Neo4jTestCase {
 	private void testDeleteGeometry(Class<? extends GeometryEncoder> encoderClass) {
 		String layerName = "test";
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
 			EditableLayer layer = (EditableLayer) spatial.createLayer(tx, layerName, encoderClass,
 					EditableLayerImpl.class, null, null, null);
@@ -161,11 +166,11 @@ public class LayersTest extends Neo4jTestCase {
 		});
 		inTx(tx -> {
 			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, false);
-			SpatialDatabaseRecord record = layer.add(tx,
+			SpatialRecord record = layer.add(tx,
 					layer.getGeometryFactory().createPoint(new Coordinate(15.3, 56.2)));
 			assertNotNull(record);
 			// try to remove the geometry
-			layer.delete(tx, record.getNodeId());
+			layer.delete(tx, record.getId());
 			layer.finalizeTransaction(tx);
 		});
 	}
@@ -174,14 +179,14 @@ public class LayersTest extends Neo4jTestCase {
 	public void testEditableLayer() {
 		String layerName = "test";
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
 			EditableLayer layer = spatial.getOrCreateEditableLayer(tx, layerName, null, null, true);
 			assertNotNull(layer);
 		});
 		inTx(tx -> {
 			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, false);
-			SpatialDatabaseRecord record = layer.add(tx,
+			SpatialRecord record = layer.add(tx,
 					layer.getGeometryFactory().createPoint(new Coordinate(15.3, 56.2)));
 			assertNotNull(record);
 			layer.finalizeTransaction(tx);
@@ -191,7 +196,7 @@ public class LayersTest extends Neo4jTestCase {
 			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, true);
 
 			// finds geometries that contain the given geometry
-			List<SpatialDatabaseRecord> results = GeoPipeline
+			List<SpatialRecord> results = GeoPipeline
 					.startContainSearch(tx, layer,
 							layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)))
 					.toSpatialDatabaseRecordList();
@@ -212,7 +217,7 @@ public class LayersTest extends Neo4jTestCase {
 	@Test
 	public void testSnapToLine() {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
 			EditableLayer layer = spatial.getOrCreateEditableLayer(tx, "roads", null, null, true);
 			Coordinate crossing_bygg_forstadsgatan = new Coordinate(13.0171471, 55.6074148);
@@ -250,7 +255,7 @@ public class LayersTest extends Neo4jTestCase {
 	private String testSpecificEditableLayer(String layerName, Class<? extends GeometryEncoder> geometryEncoderClass,
 			Class<? extends Layer> layerClass) {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
 			Layer layer = spatial.createLayer(tx, layerName, geometryEncoderClass, layerClass, null);
 			assertNotNull(layer);
@@ -298,10 +303,10 @@ public class LayersTest extends Neo4jTestCase {
 		return layerName;
 	}
 
-	private static void printResults(Layer layer, List<SpatialDatabaseRecord> results) {
+	private static void printResults(Layer layer, List<SpatialRecord> results) {
 		System.out.println("\tTesting layer '" + layer.getName() + "' (class " + layer.getClass() + "), found results: "
 				+ results.size());
-		for (SpatialDatabaseRecord r : results) {
+		for (SpatialRecord r : results) {
 			System.out.println("\t\tGeometry: " + r);
 		}
 	}
@@ -330,7 +335,7 @@ public class LayersTest extends Neo4jTestCase {
 //        File dbPath = new File("target/var/BulkTest");
 //        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath.getCanonicalPath());
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		inTx(tx -> spatial.getOrCreateSimplePointLayer(tx, "Coordinates", "rtree", "lat", "lon", null, true));
 
 		Random rand = new Random();

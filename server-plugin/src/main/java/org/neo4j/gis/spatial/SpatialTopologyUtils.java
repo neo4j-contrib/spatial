@@ -36,6 +36,8 @@ import org.locationtech.jts.linearref.LinearLocation;
 import org.locationtech.jts.linearref.LocationIndexedLine;
 import org.neo4j.gis.spatial.filter.SearchIntersect;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.SpatialRecord;
+import org.neo4j.spatial.api.layer.Layer;
 
 /**
  * This class is a temporary location for collecting a number of spatial
@@ -48,13 +50,13 @@ public class SpatialTopologyUtils {
 	 * Inner class associating points and resulting geometry records to
 	 * facilitate the result set returned.
 	 */
-	public static class PointResult implements Map.Entry<Point, SpatialDatabaseRecord>, Comparable<PointResult> {
+	public static class PointResult implements Map.Entry<Point, SpatialRecord>, Comparable<PointResult> {
 
 		private final Point point;
-		private SpatialDatabaseRecord record;
+		private SpatialRecord record;
 		private final double distance;
 
-		private PointResult(Point point, SpatialDatabaseRecord record, double distance) {
+		private PointResult(Point point, SpatialRecord record, double distance) {
 			this.point = point;
 			this.record = record;
 			this.distance = distance;
@@ -66,7 +68,7 @@ public class SpatialTopologyUtils {
 		}
 
 		@Override
-		public SpatialDatabaseRecord getValue() {
+		public SpatialRecord getValue() {
 			return record;
 		}
 
@@ -75,7 +77,7 @@ public class SpatialTopologyUtils {
 		}
 
 		@Override
-		public SpatialDatabaseRecord setValue(SpatialDatabaseRecord value) {
+		public SpatialRecord setValue(SpatialRecord value) {
 			return this.record = value;
 		}
 
@@ -119,9 +121,9 @@ public class SpatialTopologyUtils {
 	public static List<PointResult> findClosestEdges(Transaction tx, Point point, Layer layer, Geometry filter) {
 		ArrayList<PointResult> results = new ArrayList<>();
 
-		Iterator<SpatialDatabaseRecord> records = layer.getIndex().search(tx, new SearchIntersect(layer, filter));
+		Iterator<SpatialRecord> records = layer.getIndex().search(tx, new SearchIntersect(layer, filter));
 		while (records.hasNext()) {
-			SpatialDatabaseRecord record = records.next();
+			SpatialRecord record = records.next();
 			Geometry geom = record.getGeometry();
 			if (geom instanceof LineString) {
 				LocationIndexedLine line = new LocationIndexedLine(geom);
@@ -136,46 +138,6 @@ public class SpatialTopologyUtils {
 		}
 		Collections.sort(results);
 		return results;
-	}
-
-	/**
-	 * Create a Point located at the specified 'measure' distance along a
-	 * Geometry. This is achieved through using the JTS
-	 * LengthIndexedLine.extractPoint(measure) method for finding the
-	 * coordinates at the specified measure along the geometry. It is equivalent
-	 * to Oracle's SDO_LRS.LOCATE_PT.
-	 *
-	 * @param layer    Layer the geometry is contained by, and is used to access the
-	 *                 GeometryFactory for creating the Point
-	 * @param geometry Geometry to measure
-	 * @param measure  the distance along the geometry
-	 * @return Point at 'measure' distance along the geometry
-	 * @see <a
-	 * href="https://download.oracle.com/docs/cd/B13789_01/appdev.101/b10826/sdo_lrs_ref.htm#i85478">SDO_LRS.LOCATE_PT</a>
-	 * @see <a
-	 * href="https://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/linearref/LengthIndexedLine.html">LengthIndexedLine</a>
-	 */
-	public static Point locatePoint(Layer layer, Geometry geometry, double measure) {
-		return layer.getGeometryFactory().createPoint(locatePoint(geometry, measure));
-	}
-
-	/**
-	 * Find the coordinate at the specified 'measure' distance along a
-	 * Geometry. This is achieved through using the JTS
-	 * LengthIndexedLine.extractPoint(measure) method for finding the
-	 * coordinates at the specified measure along the geometry. It is equivalent
-	 * to Oracle's SDO_LRS.LOCATE_PT.
-	 *
-	 * @param geometry Geometry to measure
-	 * @param measure  the distance along the geometry
-	 * @return Coordinate at 'measure' distance along the geometry
-	 * @see <a
-	 * href="https://download.oracle.com/docs/cd/B13789_01/appdev.101/b10826/sdo_lrs_ref.htm#i85478">SDO_LRS.LOCATE_PT</a>
-	 * @see <a
-	 * href="https://www.vividsolutions.com/jts/javadoc/com/vividsolutions/jts/linearref/LengthIndexedLine.html">LengthIndexedLine</a>
-	 */
-	public static Coordinate locatePoint(Geometry geometry, double measure) {
-		return new LengthIndexedLine(geometry).extractPoint(measure);
 	}
 
 	/**
@@ -256,26 +218,6 @@ public class SpatialTopologyUtils {
 			}
 			scaled = new ReferencedEnvelope(min[0], max[0], min[1], max[1],
 					scaled.getCoordinateReferenceSystem());
-		}
-		return scaled;
-	}
-
-	public static Envelope adjustBounds(Envelope bounds, double zoomFactor, double[] offset) {
-		if (offset == null || offset.length < 2) {
-			offset = new double[]{0, 0};
-		}
-		Envelope scaled = new Envelope(bounds);
-		if (Math.abs(zoomFactor - 1.0) > 0.01) {
-			double[] min = new double[]{scaled.getMinX(), scaled.getMinY()};
-			double[] max = new double[]{scaled.getMaxX(), scaled.getMaxY()};
-			for (int i = 0; i < 2; i++) {
-				double shift = offset[i];
-				double span = (i == 0) ? scaled.getWidth() : scaled.getHeight();
-				double delta = (span - span * zoomFactor) / 2.0;
-				min[i] += shift + delta;
-				max[i] += shift - delta;
-			}
-			scaled = new Envelope(min[0], max[0], min[1], max[1]);
 		}
 		return scaled;
 	}

@@ -66,22 +66,22 @@ import org.neo4j.driver.GraphDatabase;
 import org.neo4j.gis.spatial.AbstractJavaDocTestBase;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.EditableLayerImpl;
-import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.filter.SearchIntersectWindow;
 import org.neo4j.gis.spatial.functions.SpatialFunctions;
-import org.neo4j.gis.spatial.index.IndexManager;
+import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.pipes.filtering.FilterCQL;
 import org.neo4j.gis.spatial.pipes.osm.OSMGeoPipeline;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.gis.spatial.rtree.filter.SearchAll;
-import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.harness.Neo4j;
 import org.neo4j.harness.Neo4jBuilders;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.spatial.api.SearchFilter;
+import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.test.TestData.Title;
 
 public class GeoPipesDocTest extends AbstractJavaDocTestBase {
@@ -948,7 +948,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 
 	private static void load() throws Exception {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
 
 		try (Transaction tx = db.beginTx()) {
 			loadTestOsmData("two-street.osm", 100);

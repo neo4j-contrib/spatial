@@ -20,18 +20,18 @@
 package org.neo4j.gis.spatial.indexfilter;
 
 import java.util.Map;
-import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.filter.SearchRecords;
-import org.neo4j.gis.spatial.index.IndexManager;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
-import org.neo4j.gis.spatial.index.LayerTreeIndexReader;
-import org.neo4j.gis.spatial.rtree.Envelope;
-import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
-import org.neo4j.gis.spatial.rtree.TreeMonitor;
-import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
-import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.Envelope;
+import org.neo4j.spatial.api.EnvelopeDecoder;
+import org.neo4j.spatial.api.SearchFilter;
+import org.neo4j.spatial.api.SearchResults;
+import org.neo4j.spatial.api.SpatialRecords;
+import org.neo4j.spatial.api.index.IndexManager;
+import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.index.LayerTreeIndexReader;
+import org.neo4j.spatial.api.layer.Layer;
+import org.neo4j.spatial.api.monitoring.TreeMonitor;
 
 
 /**
@@ -108,7 +108,7 @@ public class LayerIndexReaderWrapper implements LayerIndexReader {
 	}
 
 	@Override
-	public SearchRecords search(Transaction tx, SearchFilter filter) {
+	public SpatialRecords search(Transaction tx, SearchFilter filter) {
 		return index.search(tx, filter);
 	}
 }

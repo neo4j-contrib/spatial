@@ -25,8 +25,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -38,16 +39,19 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.Point;
 import org.neo4j.gis.spatial.encoders.neo4j.Neo4jCRS;
 import org.neo4j.gis.spatial.encoders.neo4j.Neo4jPoint;
-import org.neo4j.gis.spatial.index.IndexManager;
+import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
-import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.spatial.api.Envelope;
+import org.neo4j.spatial.api.SpatialRecord;
+import org.neo4j.spatial.api.layer.EditableLayer;
+import org.neo4j.spatial.api.layer.Layer;
 import org.opentest4j.AssertionFailedError;
 
 public class TestSimplePointLayer extends Neo4jTestCase {
@@ -58,7 +62,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 	public void testNearestNeighborSearchOnEmptyLayer() {
 		String layerName = "test";
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		try (Transaction tx = graphDb().beginTx()) {
 			EditableLayer layer = spatial.createSimplePointLayer(tx, layerName, "Longitude", "Latitude");
 			assertNotNull(layer);
@@ -68,7 +72,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		try (Transaction tx = graphDb().beginTx()) {
 			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, true);
 			// finds geometries around point
-			List<SpatialDatabaseRecord> results = GeoPipeline
+			List<SpatialRecord> results = GeoPipeline
 					.startNearestNeighborLatLonSearch(tx, layer, new Coordinate(15.3, 56.2), 1.0)
 					.toSpatialDatabaseRecordList();
 
@@ -83,7 +87,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 	public void testSimplePointLayer() {
 		String layerName = "test";
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		try (Transaction tx = graphDb().beginTx()) {
 			EditableLayer layer = spatial.createSimplePointLayer(tx, layerName, "Longitude", "Latitude");
 			assertNotNull(layer);
@@ -98,7 +102,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 			// finds geometries that contain the given geometry
 			Geometry geometry = layer.getGeometryFactory()
 					.toGeometry(new org.locationtech.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0));
-			List<SpatialDatabaseRecord> results = GeoPipeline.startContainSearch(tx, layer, geometry)
+			List<SpatialRecord> results = GeoPipeline.startContainSearch(tx, layer, geometry)
 					.toSpatialDatabaseRecordList();
 
 			// should not be contained
@@ -115,7 +119,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 	public void testNativePointLayer() {
 		String layerName = "test";
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
 			EditableLayer layer = spatial.createNativePointLayer(tx, layerName, "location");
 			assertNotNull(layer);
@@ -129,7 +133,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 			// finds geometries that contain the given geometry
 			Geometry geometry = layer.getGeometryFactory()
 					.toGeometry(new org.locationtech.jts.geom.Envelope(15.0, 16.0, 56.0, 57.0));
-			List<SpatialDatabaseRecord> results = GeoPipeline.startContainSearch(tx, layer, geometry)
+			List<SpatialRecord> results = GeoPipeline.startContainSearch(tx, layer, geometry)
 					.toSpatialDatabaseRecordList();
 
 			// should not be contained
@@ -146,7 +150,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 	public void testNeoTextLayer() {
 		String layerName = "neo-text";
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
 			SimplePointLayer layer = spatial.createSimplePointLayer(tx, layerName);
 			assertNotNull(layer);
@@ -203,7 +207,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 	public void testIndexingExistingSimplePointNodes() {
 		String layerName = "my-simple-points";
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		inTx(tx -> spatial.createSimplePointLayer(tx, layerName, "x", "y"));
 
 		Coordinate[] coords = makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt", testOrigin);
@@ -225,7 +229,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 	public void testIndexingExistingNativePointNodes() {
 		String layerName = "my-native-points";
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		inTx(tx -> spatial.createNativePointLayer(tx, "my-native-points", "position"));
 		Neo4jCRS crs = Neo4jCRS.findCRS("WGS-84");
 
@@ -252,7 +256,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		String layerNameC = "my-points-C";
 		GraphDatabaseService db = graphDb();
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		double x_offset = 0.15, y_offset = 0.15;
 		inTx(tx -> {
 			spatial.createSimplePointLayer(tx, layerNameA, "xa", "ya", "bbox_a");
@@ -288,7 +292,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		saveLayerAsImage(layerNameB, 700, 70);
 		saveLayerAsImage(layerNameC, 700, 70);
 
-		List<SpatialDatabaseRecord> results = new ArrayList<>();
+		List<SpatialRecord> results = new ArrayList<>();
 		inTx(tx -> {
 			Layer layerA = spatial.getLayer(tx, layerNameA, true);
 			Layer layerB = spatial.getLayer(tx, layerNameB, true);
@@ -300,9 +304,9 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 			double[] centreB = bboxB.centre();
 			double[] centreC = bboxC.centre();
 
-			List<SpatialDatabaseRecord> resultsA;
-			List<SpatialDatabaseRecord> resultsB;
-			List<SpatialDatabaseRecord> resultsC;
+			List<SpatialRecord> resultsA;
+			List<SpatialRecord> resultsB;
+			List<SpatialRecord> resultsC;
 			resultsA = GeoPipeline.startNearestNeighborLatLonSearch(tx, layerA,
 					new Coordinate(centreA[0] + 0.1, centreA[1]), 10.0).toSpatialDatabaseRecordList();
 			resultsB = GeoPipeline.startNearestNeighborLatLonSearch(tx, layerB,
@@ -345,7 +349,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 	public void testDensePointLayer() {
 		String layerName = "neo-dense";
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
 			SimplePointLayer layer = spatial.createSimplePointLayer(tx, layerName, "lon", "lat");
 			assertNotNull(layer);
@@ -364,7 +368,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 			Envelope bbox = layer.getIndex().getBoundingBox(tx);
 			double[] centre = bbox.centre();
 
-			List<SpatialDatabaseRecord> results = GeoPipeline
+			List<SpatialRecord> results = GeoPipeline
 					.startNearestNeighborLatLonSearch(tx, layer, new Coordinate(centre[0], centre[1]), 10.0)
 					.toSpatialDatabaseRecordList();
 			saveResultsAsImage(results, "temporary-results-layer-" + layer.getName(), 150, 150);
@@ -403,7 +407,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		imageExporter.setZoom(0.9);
 		imageExporter.setSize(width, height);
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
 			EditableLayer tmpLayer = spatial.createSimplePointLayer(tx, layerName, "lon", "lat");
 			for (SpatialRecord record : results) {
@@ -422,8 +426,11 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 	@SuppressWarnings({"SameParameterValue"})
 	private static Coordinate[] makeCoordinateDataFromTextFile(String textFile, Coordinate origin) {
 		CoordinateList data = new CoordinateList();
-		try {
-			BufferedReader reader = new BufferedReader(new FileReader("src/main/resources/" + textFile));
+		URL resource = TestSimplePointLayer.class.getResource("/" + textFile);
+		if (resource == null) {
+			throw new IllegalArgumentException("Input data for string test invalid: " + textFile + " not found");
+		}
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(resource.openStream()))) {
 			String line;
 			int row = 0;
 			while ((line = reader.readLine()) != null) {
@@ -459,7 +466,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 
 	private void assertIndexCountSameAs(String layerName, int count) {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		try (Transaction tx = graphDb().beginTx()) {
 			int indexCount = spatial.getLayer(tx, layerName, true).getIndex().count(tx);
 			assertEquals(count, indexCount);

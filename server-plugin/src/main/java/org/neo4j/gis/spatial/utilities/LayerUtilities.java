@@ -21,14 +21,14 @@ package org.neo4j.gis.spatial.utilities;
 
 import java.lang.reflect.InvocationTargetException;
 import org.neo4j.gis.spatial.Constants;
-import org.neo4j.gis.spatial.GeometryEncoder;
-import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseException;
-import org.neo4j.gis.spatial.index.IndexManager;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.encoder.GeometryEncoder;
+import org.neo4j.spatial.api.index.IndexManager;
+import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.layer.Layer;
 
 /**
  * Utilities for creating layers from nodes.

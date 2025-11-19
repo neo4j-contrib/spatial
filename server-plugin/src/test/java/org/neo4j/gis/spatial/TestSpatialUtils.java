@@ -31,16 +31,17 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
-import org.locationtech.jts.linearref.LengthIndexedLine;
-import org.locationtech.jts.linearref.LocationIndexedLine;
 import org.neo4j.gis.spatial.SpatialTopologyUtils.PointResult;
-import org.neo4j.gis.spatial.index.IndexManager;
+import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.spatial.api.SpatialRecord;
+import org.neo4j.spatial.api.layer.EditableLayer;
+import org.neo4j.spatial.api.layer.Layer;
 
 public class TestSpatialUtils extends Neo4jTestCase {
 
@@ -49,7 +50,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
 	@Test
 	public void testJTSLinearRef() {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		Geometry geometry;
 		try (Transaction tx = graphDb().beginTx()) {
 			EditableLayer layer = spatial.getOrCreateEditableLayer(tx, "jts", null, null, false);
@@ -57,7 +58,6 @@ public class TestSpatialUtils extends Neo4jTestCase {
 					new Coordinate(1, 1)};
 			geometry = layer.getGeometryFactory().createLineString(coordinates);
 			layer.add(tx, geometry);
-			debugLRS(geometry);
 			layer.finalizeTransaction(tx);
 			tx.commit();
 		}
@@ -82,42 +82,6 @@ public class TestSpatialUtils extends Neo4jTestCase {
 		}
 	}
 
-	/**
-	 * This method just prints a bunch of information to the console to help
-	 * understand the behaviour of the JTS LRS methods better. Currently no
-	 * assertions are made.
-	 */
-	private static void debugLRS(Geometry geometry) {
-		LengthIndexedLine line = new org.locationtech.jts.linearref.LengthIndexedLine(geometry);
-		double length = line.getEndIndex() - line.getStartIndex();
-		LOGGER.fine("Have Geometry: " + geometry);
-		LOGGER.fine("Have LengthIndexedLine: " + line);
-		LOGGER.fine("Have start index: " + line.getStartIndex());
-		LOGGER.fine("Have end index: " + line.getEndIndex());
-		LOGGER.fine("Have length: " + length);
-		LOGGER.fine("Extracting point at position 0.0: " + line.extractPoint(0.0));
-		LOGGER.fine("Extracting point at position 0.1: " + line.extractPoint(0.1));
-		LOGGER.fine("Extracting point at position 0.5: " + line.extractPoint(0.5));
-		LOGGER.fine("Extracting point at position 0.9: " + line.extractPoint(0.9));
-		LOGGER.fine("Extracting point at position 1.0: " + line.extractPoint(1.0));
-		LOGGER.fine("Extracting point at position 1.5: " + line.extractPoint(1.5));
-		LOGGER.fine("Extracting point at position 1.5 offset 0.5: " + line.extractPoint(1.5, 0.5));
-		LOGGER.fine("Extracting point at position 1.5 offset -0.5: " + line.extractPoint(1.5, -0.5));
-		LOGGER.fine("Extracting point at position " + length + ": " + line.extractPoint(length));
-		LOGGER.fine("Extracting point at position " + (length / 2) + ": " + line.extractPoint(length / 2));
-		LOGGER.fine("Extracting line from position 0.1 to 0.2: " + line.extractLine(0.1, 0.2));
-		LOGGER.fine(
-				"Extracting line from position 0.0 to " + (length / 2) + ": " + line.extractLine(0, length / 2));
-		LocationIndexedLine pline = new LocationIndexedLine(geometry);
-		LOGGER.fine("Have LocationIndexedLine: " + pline);
-		LOGGER.fine("Have start index: " + pline.getStartIndex());
-		LOGGER.fine("Have end index: " + pline.getEndIndex());
-		LOGGER.fine("Extracting point at start: " + pline.extractPoint(pline.getStartIndex()));
-		LOGGER.fine("Extracting point at end: " + pline.extractPoint(pline.getEndIndex()));
-		LOGGER.fine("Extracting point at start offset 0.5: " + pline.extractPoint(pline.getStartIndex(), 0.5));
-		LOGGER.fine("Extracting point at end offset 0.5: " + pline.extractPoint(pline.getEndIndex(), 0.5));
-	}
-
 	@Test
 	public void testSnapping() throws Exception {
 		// This was an ignored test, so perhaps not worth saving?
@@ -128,7 +92,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
 
 		// Define dynamic layers
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		try (Transaction tx = graphDb().beginTx()) {
 			OSMLayer osmLayer = (OSMLayer) spatial.getLayer(tx, osm, false);
 			osmLayer.addSimpleDynamicLayer(tx, "highway", "primary");
@@ -173,7 +137,7 @@ public class TestSpatialUtils extends Neo4jTestCase {
 					PointResult closest = edgeResults.get(0);
 					Point closestPoint = closest.getKey();
 
-					SpatialDatabaseRecord wayRecord = closest.getValue();
+					SpatialRecord wayRecord = closest.getValue();
 					OSMDataset.Way way = ((OSMDataset) osmLayer.getDataset()).getWayFrom(wayRecord.getGeomNode());
 					OSMDataset.WayPoint wayPoint = way.getPointAt(closestPoint.getCoordinate());
 					// TODO: presumably we meant to assert something here?

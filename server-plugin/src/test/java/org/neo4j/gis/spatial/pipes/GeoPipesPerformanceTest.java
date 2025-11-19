@@ -27,15 +27,15 @@ import java.util.logging.Logger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
-import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.Neo4jTestCase;
 import org.neo4j.gis.spatial.SimplePointLayer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
-import org.neo4j.gis.spatial.index.IndexManager;
+import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.spatial.api.layer.Layer;
 
 public class GeoPipesPerformanceTest extends Neo4jTestCase {
 
@@ -52,7 +52,7 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 	private void loadSamplePointData() {
 		try (Transaction tx = graphDb().beginTx()) {
 			SpatialDatabaseService spatial = new SpatialDatabaseService(
-					new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+					new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 			SimplePointLayer layer = spatial.createSimplePointLayer(tx, "GeoPipesPerformanceTest");
 			LOGGER.info("Creating database of " + records + " point records");
 			for (int i = 0; i < records; i++) {
@@ -101,7 +101,7 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 	@Test
 	public void testQueryPerformance() {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		try (Transaction tx = graphDb().beginTx()) {
 			Layer layer = spatial.getLayer(tx, "GeoPipesPerformanceTest", true);
 			// String[] keys = {"id","name","address","city","state","zip"};
@@ -146,7 +146,7 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 	@Test
 	public void testPagingPerformance() {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		try (Transaction tx = graphDb().beginTx()) {
 			Layer layer = spatial.getLayer(tx, "GeoPipesPerformanceTest", true);
 			// String[] keys = {"id","name","address","city","state","zip"};

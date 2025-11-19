@@ -19,9 +19,10 @@
  */
 package org.neo4j.gis.spatial.rtree.filter;
 
-import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.Envelope;
+import org.neo4j.spatial.api.SearchFilter;
 
 public class SearchAll implements SearchFilter {
 

@@ -46,7 +46,7 @@ import org.locationtech.jts.geom.impl.CoordinateArraySequence;
 import org.locationtech.jts.simplify.TopologyPreservingSimplifier;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
-import org.neo4j.gis.spatial.index.IndexManager;
+import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
@@ -56,6 +56,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.config.Setting;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.spatial.api.layer.Layer;
 
 public class TestIntersectsPathQueries extends Neo4jTestCase {
 
@@ -217,7 +218,7 @@ public class TestIntersectsPathQueries extends Neo4jTestCase {
 			String layerName, boolean testMultiPoint) {
 		withDatabase(dbRoot, dbName, Neo4jTestCase.NORMAL_CONFIG, graphDb -> {
 			SpatialDatabaseService spatial = new SpatialDatabaseService(
-					new IndexManager((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
+					new IndexManagerImpl((GraphDatabaseAPI) graphDb, SecurityContext.AUTH_DISABLED));
 			try {
 				int indexCount;
 				try (Transaction tx = graphDb.beginTx()) {
@@ -228,7 +229,7 @@ public class TestIntersectsPathQueries extends Neo4jTestCase {
 							+ " relationships");
 
 					System.out.println(
-							"Searching for '" + layerName + "' in " + spatial.getLayerNames(tx).length + " layers:");
+							"Searching for '" + layerName + "' in " + spatial.getLayerNames(tx).size() + " layers:");
 					for (String name : spatial.getLayerNames(tx)) {
 						System.out.println("\t" + name);
 					}

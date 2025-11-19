@@ -25,10 +25,12 @@ import java.util.Set;
 import org.apache.commons.lang3.ArrayUtils;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
-import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.Envelope;
+import org.neo4j.spatial.api.encoder.GeometryEncoder;
+import org.neo4j.spatial.api.layer.Layer;
 
 public abstract class AbstractGeometryEncoder implements GeometryEncoder, Constants {
 

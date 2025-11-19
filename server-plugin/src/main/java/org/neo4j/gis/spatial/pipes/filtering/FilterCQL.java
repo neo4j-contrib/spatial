@@ -24,10 +24,10 @@ import org.geotools.api.filter.Filter;
 import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.filter.text.ecql.ECQL;
-import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.layer.Layer;
 
 /**
  * Filter geometries using a CQL query.

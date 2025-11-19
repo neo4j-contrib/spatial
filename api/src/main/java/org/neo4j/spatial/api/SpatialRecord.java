@@ -17,20 +17,27 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.index;
+package org.neo4j.spatial.api;
 
-import org.neo4j.gis.spatial.rtree.SpatialIndexVisitor;
+import java.util.Map;
+import java.util.Set;
+import org.locationtech.jts.geom.Geometry;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
-/**
- * Spatial Indexes based on tree structures can implement the following methods common to maintaining and searching tree
- * structures.
- */
-public interface LayerTreeIndexReader extends LayerIndexReader {
+public interface SpatialRecord {
 
-	Node getIndexRoot(Transaction tx);
+	String getId();
 
-	void visit(Transaction tx, SpatialIndexVisitor visitor, Node indexNode);
+	Geometry getGeometry();
 
+	boolean hasProperty(Transaction tx, String name);
+
+	Set<String> getPropertyNames(Transaction tx);
+
+	Object getProperty(Transaction tx, String name);
+
+	Map<String, Object> getProperties(Transaction tx);
+
+	Node getGeomNode();
 }
