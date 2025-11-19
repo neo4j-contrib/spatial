@@ -20,9 +20,9 @@
 package org.neo4j.gis.spatial.filter;
 
 import org.locationtech.jts.geom.Geometry;
-import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.graphdb.Node;
+import org.neo4j.spatial.api.Envelope;
+import org.neo4j.spatial.api.layer.Layer;
 
 
 /**

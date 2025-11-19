@@ -28,14 +28,14 @@ import java.util.Iterator;
 import org.apache.lucene.util.BitUtil;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.Point;
-import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
-import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.StringSearchMode;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.api.KernelTransaction;
+import org.neo4j.spatial.api.Envelope;
+import org.neo4j.spatial.api.SearchFilter;
 
 public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String> {
 

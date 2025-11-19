@@ -20,16 +20,17 @@
 package org.neo4j.gis.spatial;
 
 import java.util.Map;
-import org.neo4j.gis.spatial.filter.SearchRecords;
-import org.neo4j.gis.spatial.index.IndexManager;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
-import org.neo4j.gis.spatial.rtree.Envelope;
-import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
-import org.neo4j.gis.spatial.rtree.TreeMonitor;
-import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
-import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.Envelope;
+import org.neo4j.spatial.api.EnvelopeDecoder;
+import org.neo4j.spatial.api.SearchFilter;
+import org.neo4j.spatial.api.SearchResults;
+import org.neo4j.spatial.api.SpatialRecords;
+import org.neo4j.spatial.api.index.IndexManager;
+import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.layer.Layer;
+import org.neo4j.spatial.api.monitoring.TreeMonitor;
 
 /**
  * A proxy wrapping the normal spatial index for the purpose of performance measurements.
@@ -128,9 +129,9 @@ public class SpatialIndexPerformanceProxy implements LayerIndexReader {
 	}
 
 	@Override
-	public SearchRecords search(Transaction tx, SearchFilter filter) {
+	public SpatialRecords search(Transaction tx, SearchFilter filter) {
 		long start = System.currentTimeMillis();
-		SearchRecords results = spatialIndex.search(tx, filter);
+		SpatialRecords results = spatialIndex.search(tx, filter);
 		long stop = System.currentTimeMillis();
 		System.out.println("# exec time(executeSearch(" + filter + ")): " + (stop - start) + "ms");
 		return results;

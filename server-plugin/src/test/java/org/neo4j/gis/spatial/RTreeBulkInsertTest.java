@@ -63,19 +63,16 @@ import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.index.ExplicitIndexBackedMonitor;
 import org.neo4j.gis.spatial.index.ExplicitIndexBackedPointIndex;
-import org.neo4j.gis.spatial.index.IndexManager;
+import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
 import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.gis.spatial.index.LayerZOrderPointIndex;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
-import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.RTreeImageExporter;
 import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.gis.spatial.rtree.RTreeMonitor;
 import org.neo4j.gis.spatial.rtree.RTreeRelationshipTypes;
-import org.neo4j.gis.spatial.rtree.TreeMonitor;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
@@ -86,6 +83,13 @@ import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.spatial.api.Envelope;
+import org.neo4j.spatial.api.encoder.GeometryEncoder;
+import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.index.SpatialIndexReader;
+import org.neo4j.spatial.api.layer.EditableLayer;
+import org.neo4j.spatial.api.layer.Layer;
+import org.neo4j.spatial.api.monitoring.TreeMonitor;
 
 public class RTreeBulkInsertTest {
 
@@ -174,7 +178,7 @@ public class RTreeBulkInsertTest {
 	}
 
 	SpatialDatabaseService spatial() {
-		return new SpatialDatabaseService(new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
+		return new SpatialDatabaseService(new IndexManagerImpl((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
 	}
 
 	private EditableLayer getOrCreateSimplePointLayer(String name, String index, String xProperty, String yProperty) {
@@ -219,7 +223,6 @@ public class RTreeBulkInsertTest {
 			layer.addAll(tx, idsToNodes(tx, list1));
 			tx.commit();
 		}
-		Neo4jTestUtils.debugIndexTree(db, "Coordinates");
 		//TODO add this part to the test
 //        try (Transaction tx = db.beginTx()) {
 //            layer.addAll(list2);
@@ -228,11 +231,6 @@ public class RTreeBulkInsertTest {
 
 		System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + (width * width)
 				+ " nodes to RTree in bulk");
-
-//        queryRTree(layer);
-//        verifyTreeStructure(layer);
-		Neo4jTestUtils.debugIndexTree(db, "Coordinates");
-
 	}
 
 	private static List<Node> idsToNodes(Transaction tx, List<String> nodeIds) {
@@ -845,9 +843,11 @@ public class RTreeBulkInsertTest {
 		}
 
 		@Override
-		public void addNbrRebuilt(RTreeIndex rtree, Transaction tx) {
-			super.addNbrRebuilt(rtree, tx);
-			printRTreeImage("rebuilt", rtree.getIndexRoot(tx), new ArrayList<>());
+		public void addNbrRebuilt(SpatialIndexReader indexReader, Transaction tx) {
+			super.addNbrRebuilt(indexReader, tx);
+			if (indexReader instanceof RTreeIndex rtree) {
+				printRTreeImage("rebuilt", rtree.getIndexRoot(tx), new ArrayList<>());
+			}
 		}
 
 		@Override
@@ -857,7 +857,7 @@ public class RTreeBulkInsertTest {
 		}
 
 		@Override
-		public void beforeMergeTree(Node indexNode, List<RTreeIndex.NodeWithEnvelope> right) {
+		public void beforeMergeTree(Node indexNode, List<NodeWithEnvelope> right) {
 			super.beforeMergeTree(indexNode, right);
 
 			printRTreeImage("before-merge", indexNode,

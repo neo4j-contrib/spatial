@@ -34,11 +34,13 @@ import java.util.Map;
 import java.util.Set;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.locationtech.jts.geom.Geometry;
-import org.neo4j.gis.spatial.index.IndexManager;
 import org.neo4j.gis.spatial.index.SpatialIndexWriter;
-import org.neo4j.gis.spatial.rtree.Listener;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.encoder.GeometryEncoder;
+import org.neo4j.spatial.api.index.IndexManager;
+import org.neo4j.spatial.api.layer.EditableLayer;
+import org.neo4j.spatial.api.monitoring.ProgressListener;
 
 public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 
@@ -136,7 +138,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 	 * Delete Layer
 	 */
 	@Override
-	public void delete(Transaction tx, Listener monitor) {
+	public void delete(Transaction tx, ProgressListener monitor) {
 		checkWritable();
 		indexWriter.removeAll(tx, true, monitor);
 		Node layerNode = getLayerNode(tx);

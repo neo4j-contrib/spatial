@@ -19,7 +19,6 @@
  */
 package org.neo4j.gis.spatial;
 
-import java.io.File;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.TreeMap;
@@ -29,17 +28,20 @@ import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.filter.text.cql2.CQLException;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
-import org.neo4j.gis.spatial.index.IndexManager;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
-import org.neo4j.gis.spatial.index.LayerTreeIndexReader;
 import org.neo4j.gis.spatial.indexfilter.CQLIndexReader;
 import org.neo4j.gis.spatial.indexfilter.DynamicIndexReader;
-import org.neo4j.gis.spatial.rtree.Envelope;
-import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.Envelope;
+import org.neo4j.spatial.api.SearchFilter;
+import org.neo4j.spatial.api.SpatialDataset;
+import org.neo4j.spatial.api.encoder.GeometryEncoder;
+import org.neo4j.spatial.api.index.IndexManager;
+import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.index.LayerTreeIndexReader;
+import org.neo4j.spatial.api.layer.Layer;
 
-public class DynamicLayerConfig implements Layer, Constants {
+public class DynamicLayerConfig implements Layer, InternalLayer {
 
 	private static final Logger LOGGER = Logger.getLogger(DynamicLayerConfig.class.getName());
 	private final DynamicLayer parent;
@@ -55,9 +57,9 @@ public class DynamicLayerConfig implements Layer, Constants {
 	 */
 	public DynamicLayerConfig(DynamicLayer parent, Node configNode, boolean readOnly) {
 		this.parent = parent;
-		this.name = (String) configNode.getProperty(PROP_LAYER);
-		this.geometryType = (Integer) configNode.getProperty(PROP_TYPE);
-		this.query = (String) configNode.getProperty(PROP_QUERY);
+		this.name = (String) configNode.getProperty(Constants.PROP_LAYER);
+		this.geometryType = (Integer) configNode.getProperty(Constants.PROP_TYPE);
+		this.query = (String) configNode.getProperty(Constants.PROP_QUERY);
 		this.configNodeId = configNode.getElementId();
 		this.propertyNames = (String[]) configNode.getProperty("propertyNames", null);
 		this.readOnly = readOnly;
@@ -76,9 +78,9 @@ public class DynamicLayerConfig implements Layer, Constants {
 		this.parent = parent;
 		this.readOnly = false;
 		Node node = tx.createNode();
-		node.setProperty(PROP_LAYER, name);
-		node.setProperty(PROP_TYPE, geometryType);
-		node.setProperty(PROP_QUERY, query);
+		node.setProperty(Constants.PROP_LAYER, name);
+		node.setProperty(Constants.PROP_TYPE, geometryType);
+		node.setProperty(Constants.PROP_QUERY, query);
 		parent.getLayerNode(tx).createRelationshipTo(node, SpatialRelationshipTypes.LAYER_CONFIG);
 		this.name = name;
 		this.geometryType = geometryType;
@@ -205,7 +207,7 @@ public class DynamicLayerConfig implements Layer, Constants {
 
 	@Override
 	public Integer getGeometryType(Transaction tx) {
-		return (Integer) configNode(tx).getProperty(PROP_TYPE);
+		return (Integer) configNode(tx).getProperty(Constants.PROP_TYPE);
 	}
 
 	@Override
@@ -238,19 +240,6 @@ public class DynamicLayerConfig implements Layer, Constants {
 	public void initialize(Transaction tx, IndexManager indexManager, String name, Node layerNode, boolean readOnly) {
 		throw new SpatialDatabaseException(
 				"Cannot initialize the layer config, initialize only the dynamic layer node");
-	}
-
-	@Override
-	public Object getStyle() {
-		Object style = parent.getStyle();
-		if (style instanceof File) {
-			File parent = ((File) style).getParentFile();
-			File newStyle = new File(parent, getName() + ".sld");
-			if (newStyle.canRead()) {
-				style = newStyle;
-			}
-		}
-		return style;
 	}
 
 	public Layer getParent() {

@@ -32,7 +32,6 @@ import org.neo4j.exceptions.KernelException;
 import org.neo4j.gis.spatial.index.curves.SpaceFillingCurve;
 import org.neo4j.gis.spatial.index.curves.StandardConfiguration;
 import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
-import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.ResourceIterator;
@@ -52,6 +51,7 @@ import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.core.NodeEntity;
 import org.neo4j.kernel.impl.coreapi.internal.CursorIterator;
 import org.neo4j.memory.EmptyMemoryTracker;
+import org.neo4j.spatial.api.SearchFilter;
 import org.neo4j.token.api.TokenConstants;
 
 public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBackedPointIndex<Long> {
@@ -113,7 +113,7 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
 	@Override
 	protected Neo4jIndexSearcher searcherFor(Transaction tx, SearchFilter filter) {
 		if (filter instanceof AbstractSearchEnvelopeIntersection) {
-			org.neo4j.gis.spatial.rtree.Envelope referenceEnvelope = ((AbstractSearchEnvelopeIntersection) filter).getReferenceEnvelope();
+			org.neo4j.spatial.api.Envelope referenceEnvelope = ((AbstractSearchEnvelopeIntersection) filter).getReferenceEnvelope();
 			return new RangeSearcher(
 					getCurve(tx).getTilesIntersectingEnvelope(referenceEnvelope.getMin(), referenceEnvelope.getMax(),
 							new StandardConfiguration()));

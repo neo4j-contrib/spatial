@@ -22,17 +22,17 @@ package org.neo4j.gis.spatial.indexfilter;
 import java.util.logging.Logger;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
-import org.neo4j.gis.spatial.filter.SearchRecords;
-import org.neo4j.gis.spatial.index.LayerTreeIndexReader;
-import org.neo4j.gis.spatial.rtree.Envelope;
 import org.neo4j.gis.spatial.rtree.SpatialIndexRecordCounter;
-import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
-import org.neo4j.gis.spatial.rtree.filter.SearchResults;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.Envelope;
+import org.neo4j.spatial.api.SearchFilter;
+import org.neo4j.spatial.api.SearchResults;
+import org.neo4j.spatial.api.SpatialRecords;
+import org.neo4j.spatial.api.index.LayerTreeIndexReader;
 
 
 /**
@@ -176,7 +176,7 @@ public class DynamicIndexReader extends LayerIndexReaderWrapper {
 	}
 
 	@Override
-	public SearchRecords search(Transaction tx, SearchFilter filter) {
+	public SpatialRecords search(Transaction tx, SearchFilter filter) {
 		return index.search(tx, wrapSearchFilter(filter));
 	}
 }

@@ -17,15 +17,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial;
+package org.neo4j.spatial.api.encoder;
 
 import java.util.Map;
 import java.util.Set;
 import org.locationtech.jts.geom.Geometry;
-import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
 import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.EnvelopeDecoder;
+import org.neo4j.spatial.api.layer.Layer;
 
 
 /**

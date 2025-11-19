@@ -22,7 +22,6 @@ package org.neo4j.gis.spatial;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.io.File;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,18 +30,19 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.gis.spatial.filter.SearchIntersect;
-import org.neo4j.gis.spatial.filter.SearchRecords;
-import org.neo4j.gis.spatial.index.IndexManager;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
+import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
-import org.neo4j.gis.spatial.rtree.Envelope;
-import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.spatial.api.Envelope;
+import org.neo4j.spatial.api.SpatialRecord;
+import org.neo4j.spatial.api.SpatialRecords;
+import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.layer.Layer;
 
 /**
  * <p>
@@ -86,9 +86,7 @@ public class TestSpatial extends Neo4jTestCase {
 	private final ArrayList<String> layers = new ArrayList<>();
 	private final HashMap<String, Envelope> layerTestEnvelope = new HashMap<>();
 	private final HashMap<String, ArrayList<TestGeometry>> layerTestGeometries = new HashMap<>();
-	private final HashMap<String, DataFormat> layerTestFormats = new HashMap<>();
 	private final HashMap<Integer, Integer> geomStats = new HashMap<>();
-	private final String spatialTestMode = System.getProperty("spatial.test.mode");
 
 	@BeforeEach
 	public void setUp() {
@@ -96,7 +94,7 @@ public class TestSpatial extends Neo4jTestCase {
 
 		Envelope bbox = new Envelope(12.9, 12.99, 56.05, 56.07); // covers half of Billesholm
 
-		addTestLayer("billesholm.osm", DataFormat.OSM, bbox);
+		addTestLayer("billesholm.osm", bbox);
 		addTestGeometry(70423036, "Ljungsgårdsvägen", "outside top left",
 				"(12.9599540,56.0570692), (12.9624780,56.0716282)");
 		addTestGeometry(67835020, "Villagatan", "in the middle", "(12.9776065,56.0561477), (12.9814421,56.0572131)");
@@ -104,99 +102,26 @@ public class TestSpatial extends Neo4jTestCase {
 				"(12.9682980,56.0524546), (12.9710302,56.0538436)");
 
 		bbox = new Envelope(12.5, 14.1, 55.0, 56.3); // cover central Skåne
-		// Bounds for sweden_administrative: 11.1194502 : 24.1585511, 55.3550515 : 69.0600767
-		// Envelope bbox = new Envelope(12.85, 13.25, 55.5, 55.65); // cover Malmö
-		// Envelope bbox = new Envelope(13, 14, 55, 58); // cover admin area 'Söderåsen'
-		// Envelope bbox = new Envelope(7, 10, 37, 40);
-
-		addTestLayer("sweden.osm", DataFormat.OSM, bbox);
-		addTestLayer("sweden.osm.administrative", DataFormat.OSM, bbox);
-
-		addTestLayer("sweden_administrative", DataFormat.SHP, bbox);
-		addTestGeometry(1055, "Söderåsens nationalpark", "near top edge",
-				"(13.167721,56.002416), (13.289724,56.047099)");
-		addTestGeometry(1067, "", "inside", "(13.2122907,55.6969478), (13.5614499,55.7835819)");
-		addTestGeometry(943, "", "crosses left edge", "(12.9120438,55.8253138), (13.0501381,55.8484289)");
-		addTestGeometry(884, "", "outside left", "(12.7492433,55.9269403), (12.9503304,55.964951)");
-		addTestGeometry(1362, "", "crosses top right", "(13.7453871,55.9483067), (14.0084487,56.1538786)");
-		addTestGeometry(1521, "", "outside right", "(14.0762394,55.4889569), (14.1869043,55.7592587)");
-		addTestGeometry(1184, "", "outside above", "(13.4215555,56.109138), (13.4683671,56.2681347)");
-
-		addTestLayer("sweden_natural", DataFormat.SHP, bbox);
-		addTestGeometry(208, "Bokskogen", "", "(13.1935576,55.5324763), (13.2710125,55.5657891)");
-		addTestGeometry(3462, "Pålsjö skog", "", "(12.6746748,56.0634246), (12.6934147,56.0776016)");
-		addTestGeometry(647, "Dalby söderskog", "", "(13.32406,55.671652), (13.336948,55.679243)");
-
-		addTestLayer("sweden_water", DataFormat.SHP, bbox);
-		addTestGeometry(13149, "Yddingesjön", "", "(13.23564,55.5360264), (13.2676649,55.5558856)");
-		addTestGeometry(14431, "Finjasjön", "", "(13.6718979,56.1157516), (13.7398759,56.1566911)");
-
-		// TODO missing file
-		addTestLayer("sweden_highway", DataFormat.SHP, bbox);
-		addTestGeometry(58904, "Holmeja byväg", "", "(13.2819022,55.5561414), (13.2820848,55.5575418)");
-		addTestGeometry(45305, "Yttre RIngvägen", "", "(12.9827334,55.5473645), (13.0118313,55.5480455)");
-		addTestGeometry(43536, "Yttre RIngvägen", "", "(12.9412071,55.5564264), (12.9422181,55.5571701)");
+		addTestLayer("sweden.osm", bbox);
+		addTestLayer("sweden.osm.administrative", bbox);
 	}
 
-	private void addTestLayer(String layer, DataFormat format, Envelope bbox) {
+	private void addTestLayer(String layer, Envelope bbox) {
 		layers.add(layer);
 		layerTestEnvelope.put(layer, bbox);
-		layerTestFormats.put(layer, format);
 		layerTestGeometries.put(layer, new ArrayList<>());
 	}
 
 	private void addTestGeometry(Integer id, String name, String comments, String bounds) {
-		String layer = layers.get(layers.size() - 1);
+		String layer = layers.getLast();
 		ArrayList<TestGeometry> geoms = layerTestGeometries.get(layer);
 		geoms.add(new TestGeometry(id, name, comments, bounds));
-	}
-
-	@Test
-	public void testShpSwedenAdministrative() throws Exception {
-		if ("long".equals(spatialTestMode)) {
-			testLayer("sweden_administrative");
-		}
-	}
-
-	@Test
-	public void testShpSwedenNatural() throws Exception {
-		if ("long".equals(spatialTestMode)) {
-			testLayer("sweden_natural");
-		}
-	}
-
-	@Test
-	public void testShpSwedenWater() throws Exception {
-		if ("long".equals(spatialTestMode)) {
-			testLayer("sweden_water");
-		}
 	}
 
 	@Test
 	public void testOsmBillesholm() throws Exception {
 		testLayer("billesholm.osm");
 	}
-
-	@Test
-	public void testOsmSwedenAdministrative() throws Exception {
-		if ("long".equals(spatialTestMode)) {
-			testLayer("sweden.osm.administrative");
-		}
-	}
-
-	@Test
-	public void testOsmSweden() throws Exception {
-		if ("long".equals(spatialTestMode)) {
-			testLayer("sweden.osm");
-		}
-	}
-
-	// TODO missing file
-    /*
-    public void testShpSwedenHighway() throws Exception {
-    	if ("long".equals(spatialTestMode))
-    		testLayer("sweden_highway");
-    } */
 
 	private void testLayer(String layerName) throws Exception {
 		testImport(layerName);
@@ -207,7 +132,7 @@ public class TestSpatial extends Neo4jTestCase {
 		long count = 0;
 		try (Transaction tx = graphDb().beginTx()) {
 			SpatialDatabaseService spatial = new SpatialDatabaseService(
-					new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+					new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 			Layer layer = spatial.getLayer(tx, layerName, true);
 			if (layer != null && layer.getIndex() != null) {
 				count = layer.getIndex().count(tx);
@@ -221,30 +146,12 @@ public class TestSpatial extends Neo4jTestCase {
 		long start = System.currentTimeMillis();
 		LOGGER.fine("\n===========\n=========== Import Test: " + layerName + "\n===========");
 		if (countLayerIndex(layerName) < 1) {
-			switch (layerTestFormats.get(layerName)) {
-				case SHP:
-					loadTestShpData(layerName);
-					break;
-				case OSM:
-					//TODO: enable batch again
-					loadTestOsmData(layerName);
-					break;
-				default:
-					fail("Unknown format: " + layerTestFormats.get(layerName));
-			}
+			loadTestOsmData(layerName);
 		} else {
 			fail("Layer already present: " + layerName);
 		}
 
 		LOGGER.fine("Total time for load: " + 1.0 * (System.currentTimeMillis() - start) / 1000.0 + "s");
-	}
-
-	private void loadTestShpData(String layerName) throws IOException {
-		String SHP_DIR = "target/shp";
-		String shpPath = SHP_DIR + File.separator + layerName;
-		LOGGER.fine("\n=== Loading layer " + layerName + " from " + shpPath + " ===");
-		ShapefileImporter importer = new ShapefileImporter(graphDb(), new NullListener(), 1000, true);
-		importer.importFile(shpPath, layerName, StandardCharsets.UTF_8);
 	}
 
 	private void loadTestOsmData(String layerName) throws Exception {
@@ -262,7 +169,7 @@ public class TestSpatial extends Neo4jTestCase {
 		long start = System.currentTimeMillis();
 
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		try (Transaction tx = graphDb().beginTx()) {
 			Layer layer = spatial.getLayer(tx, layerName, true);
 			if (layer == null || layer.getIndex() == null || layer.getIndex().count(tx) < 1) {
@@ -270,7 +177,8 @@ public class TestSpatial extends Neo4jTestCase {
 			}
 			OSMDataset.fromLayer(tx, (OSMLayer) layer); // force lookup
 
-			LayerIndexReader fakeIndex = new SpatialIndexPerformanceProxy(new FakeIndex(layer, spatial.indexManager));
+			LayerIndexReader fakeIndex = new SpatialIndexPerformanceProxy(
+					new FakeIndex(layer, spatial.indexManager, SpatialDatabaseRecord::new));
 			LayerIndexReader rtreeIndex = new SpatialIndexPerformanceProxy(layer.getIndex());
 
 			LOGGER.fine("RTreeIndex bounds: " + rtreeIndex.getBoundingBox(tx));
@@ -294,23 +202,25 @@ public class TestSpatial extends Neo4jTestCase {
 
 				SearchIntersect searchQuery = new SearchIntersect(layer,
 						layer.getGeometryFactory().toGeometry(Utilities.fromNeo4jToJts(bbox)));
-				SearchRecords results = index.search(tx, searchQuery);
+				SpatialRecords results = index.search(tx, searchQuery);
 
 				int count = 0;
 				int ri = 0;
-				for (SpatialDatabaseRecord r : results) {
+				for (SpatialRecord r : results) {
 					count++;
 					if (ri++ < 10) {
 						StringBuilder props = new StringBuilder();
 						for (String prop : r.getPropertyNames(tx)) {
-							if (props.length() > 0) {
+							if (!props.isEmpty()) {
 								props.append(", ");
 							}
 							props.append(prop).append(": ").append(r.getProperty(tx, prop));
 						}
 
 						LOGGER.fine(
-								"\tRTreeIndex result[" + ri + "]: " + r.getNodeId() + ":" + r.getType() + " - " + r
+								"\tRTreeIndex result[" + ri + "]: " + r.getId() + ":"
+										+ SpatialDatabaseService.convertJtsClassToGeometryType(
+										r.getGeometry().getClass()) + " - " + r
 										+ ": PROPS[" + props + "]");
 					} else if (ri == 10) {
 						LOGGER.fine("\t.. and " + (count - ri) + " more ..");
@@ -324,9 +234,9 @@ public class TestSpatial extends Neo4jTestCase {
 					}
 
 					Integer id = (Integer) r.getProperty(tx, "ID");
-					if ((name != null && name.length() > 0) || id != null) {
+					if ((name != null && !name.isEmpty()) || id != null) {
 						for (TestGeometry testData : layerTestGeometries.get(layerName)) {
-							if ((name != null && name.length() > 0 && testData.name.equals(name))
+							if ((name != null && !name.isEmpty() && testData.name.equals(name))
 									|| (testData.id.equals(id))) {
 								LOGGER.fine(
 										"\tFound match in test data: test[" + testData + "] == result[" + r + "]");
@@ -335,7 +245,9 @@ public class TestSpatial extends Neo4jTestCase {
 						}
 					} else {
 						LOGGER.warning(
-								"\tNo name or id in RTreeIndex result: " + r.getNodeId() + ":" + r.getType() + " - "
+								"\tNo name or id in RTreeIndex result: " + r.getId() + ":"
+										+ SpatialDatabaseService.convertJtsClassToGeometryType(
+										r.getGeometry().getClass()) + " - "
 										+ r);
 					}
 				}
@@ -387,8 +299,7 @@ public class TestSpatial extends Neo4jTestCase {
 	}
 
 	private void addGeomStats(Integer geom) {
-		Integer count = geomStats.get(geom);
-		geomStats.put(geom, count == null ? 1 : count + 1);
+		geomStats.compute(geom, (k, count) -> count == null ? 1 : count + 1);
 	}
 
 	private void dumpGeomStats() {
@@ -398,21 +309,6 @@ public class TestSpatial extends Neo4jTestCase {
 			LOGGER.fine("\t" + SpatialDatabaseService.convertGeometryTypeToName(key) + ": " + count);
 		}
 		geomStats.clear();
-	}
-
-	private enum DataFormat {
-		SHP("ESRI Shapefile"), OSM("OpenStreetMap");
-
-		private final String description;
-
-		DataFormat(String description) {
-			this.description = description;
-		}
-
-		@Override
-		public String toString() {
-			return description;
-		}
 	}
 
 	/**
@@ -443,7 +339,7 @@ public class TestSpatial extends Neo4jTestCase {
 
 		@Override
 		public String toString() {
-			return (name.length() > 0 ? name : "ID[" + id + "]") + (comments == null || comments.length() < 1 ? ""
+			return (!name.isEmpty() ? name : "ID[" + id + "]") + (comments == null || comments.isEmpty() ? ""
 					: " (" + comments + ")");
 		}
 

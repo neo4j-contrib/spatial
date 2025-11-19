@@ -44,26 +44,27 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
-import org.neo4j.gis.spatial.index.IndexManager;
-import org.neo4j.gis.spatial.rtree.Listener;
+import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.spatial.api.layer.Layer;
+import org.neo4j.spatial.api.monitoring.ProgressListener;
 
 public class ShapefileImporter implements Constants {
 
 	private static final Logger LOGGER = Logger.getLogger(ShapefileImporter.class.getName());
 	private final int commitInterval;
 	private final boolean maintainGeometryOrder;
-	private final Listener monitor;
+	private final ProgressListener monitor;
 	private final GraphDatabaseService database;
 	private final SpatialDatabaseService spatialDatabase;
 	private Envelope filterEnvelope;
 
-	public ShapefileImporter(GraphDatabaseService database, Listener monitor, int commitInterval,
+	public ShapefileImporter(GraphDatabaseService database, ProgressListener monitor, int commitInterval,
 			boolean maintainGeometryOrder) {
 		this.maintainGeometryOrder = maintainGeometryOrder;
 		if (commitInterval < 1) {
@@ -72,7 +73,7 @@ public class ShapefileImporter implements Constants {
 		this.commitInterval = commitInterval;
 		this.database = database;
 		this.spatialDatabase = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) database, SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) database, SecurityContext.AUTH_DISABLED));
 
 		if (monitor == null) {
 			monitor = new NullListener();
@@ -80,11 +81,11 @@ public class ShapefileImporter implements Constants {
 		this.monitor = monitor;
 	}
 
-	public ShapefileImporter(GraphDatabaseService database, Listener monitor, int commitInterval) {
+	public ShapefileImporter(GraphDatabaseService database, ProgressListener monitor, int commitInterval) {
 		this(database, monitor, commitInterval, false);
 	}
 
-	public ShapefileImporter(GraphDatabaseService database, Listener monitor) {
+	public ShapefileImporter(GraphDatabaseService database, ProgressListener monitor) {
 		this(database, monitor, 1000, false);
 	}
 

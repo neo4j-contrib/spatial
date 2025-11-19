@@ -21,12 +21,12 @@ package org.neo4j.gis.spatial.filter;
 
 import org.locationtech.jts.algorithm.Orientation;
 import org.locationtech.jts.geom.Geometry;
-import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.Utilities;
 import org.neo4j.gis.spatial.index.Envelope;
 import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.layer.Layer;
 
 
 /**
@@ -54,7 +54,7 @@ public class SearchIntersectWindow extends AbstractSearchEnvelopeIntersection {
 	}
 
 	@Override
-	public EnvelopFilterResult needsToVisitExtended(org.neo4j.gis.spatial.rtree.Envelope indexNodeEnvelope) {
+	public EnvelopFilterResult needsToVisitExtended(org.neo4j.spatial.api.Envelope indexNodeEnvelope) {
 		if (isBBox && referenceEnvelope.contains(indexNodeEnvelope)) {
 			return EnvelopFilterResult.INCLUDE_ALL;
 		}
@@ -77,7 +77,7 @@ public class SearchIntersectWindow extends AbstractSearchEnvelopeIntersection {
 	}
 
 	@Override
-	protected boolean onEnvelopeIntersection(Node geomNode, org.neo4j.gis.spatial.rtree.Envelope geomEnvelope) {
+	protected boolean onEnvelopeIntersection(Node geomNode, org.neo4j.spatial.api.Envelope geomEnvelope) {
 		Geometry geometry = layer.getGeometryEncoder().decodeGeometry(geomNode);
 		// The next line just calls the method that is causing exceptions on OSM data for testing
 		// TODO: Remove when OSM is working properly

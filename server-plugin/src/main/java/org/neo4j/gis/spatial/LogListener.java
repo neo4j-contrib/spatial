@@ -20,9 +20,9 @@
 package org.neo4j.gis.spatial;
 
 import java.util.logging.Logger;
-import org.neo4j.gis.spatial.rtree.Listener;
+import org.neo4j.spatial.api.monitoring.ProgressListener;
 
-public class LogListener implements Listener {
+public class LogListener implements ProgressListener {
 
 	private final Logger logger;
 	private int total = 0;

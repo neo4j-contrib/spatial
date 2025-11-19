@@ -17,17 +17,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial;
+package org.neo4j.spatial.api.layer;
 
 import java.util.Map;
 import javax.annotation.Nonnull;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.locationtech.jts.geom.GeometryFactory;
-import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
-import org.neo4j.gis.spatial.index.IndexManager;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.SpatialDataset;
+import org.neo4j.spatial.api.encoder.GeometryEncoder;
+import org.neo4j.spatial.api.index.IndexManager;
+import org.neo4j.spatial.api.index.LayerIndexReader;
 
 
 /**
@@ -110,19 +111,6 @@ public interface Layer {
 	 * @return SpatialDataset containing the data indexed by this layer.
 	 */
 	SpatialDataset getDataset();
-
-	/**
-	 * Each layer can optionally provide a style to be used in rendering this
-	 * layer. Return null if you wish to leave this choice to the GIS. If a
-	 * Style is returned, it is used. If a File is returned, it is opened and
-	 * assumed to contain SLD contents. If a String is returned, it is assumed
-	 * to contain SLD contents.
-	 *
-	 * @return Style, String, File or null
-	 */
-	Object getStyle();
-
-	PropertyMappingManager getPropertyMappingManager();
 
 	/**
 	 * For external expression of the configuration of this layer

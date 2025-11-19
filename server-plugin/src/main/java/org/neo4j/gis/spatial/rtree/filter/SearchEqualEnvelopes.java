@@ -19,9 +19,9 @@
  */
 package org.neo4j.gis.spatial.rtree.filter;
 
-import org.neo4j.gis.spatial.rtree.Envelope;
-import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
 import org.neo4j.graphdb.Node;
+import org.neo4j.spatial.api.Envelope;
+import org.neo4j.spatial.api.EnvelopeDecoder;
 
 public class SearchEqualEnvelopes extends AbstractSearchEnvelopeIntersection {
 

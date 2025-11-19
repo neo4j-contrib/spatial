@@ -35,8 +35,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
-import org.neo4j.gis.spatial.index.IndexManager;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
+import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMDataset.Way;
 import org.neo4j.gis.spatial.osm.OSMDataset.WayPoint;
@@ -49,6 +48,9 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.spatial.api.SpatialRecord;
+import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.layer.Layer;
 
 /**
  * Some test code written specifically for the user manual. This normally means
@@ -75,7 +77,7 @@ public class TestsForDocs extends Neo4jTestCase {
 
 	private void checkIndexAndFeatureCount(String layerName) throws IOException {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		try (Transaction tx = graphDb().beginTx()) {
 			Layer layer = spatial.getLayer(tx, layerName, true);
 			if (layer.getIndex().count(tx) < 1) {
@@ -146,14 +148,14 @@ public class TestsForDocs extends Neo4jTestCase {
 		GraphDatabaseService database = graphDb();
 		// START SNIPPET: searchBBox tag::searchBBox[]
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		try (Transaction tx = database.beginTx()) {
 			Layer layer = spatial.getLayer(tx, "map.osm", true);
 			LayerIndexReader spatialIndex = layer.getIndex();
 			LOGGER.fine("Have " + spatialIndex.count(tx) + " geometries in " + spatialIndex.getBoundingBox(tx));
 
 			Envelope bbox = new Envelope(12.94, 12.96, 56.04, 56.06);
-			List<SpatialDatabaseRecord> results = GeoPipeline
+			List<SpatialRecord> results = GeoPipeline
 					.startIntersectWindowSearch(tx, layer, bbox)
 					.toSpatialDatabaseRecordList();
 
@@ -185,7 +187,7 @@ public class TestsForDocs extends Neo4jTestCase {
 		GraphDatabaseService database = graphDb();
 		// START SNIPPET: exportShapefileFromOSM tag::exportShapefileFromOSM[]
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		String wayLayerName;
 		try (Transaction tx = database.beginTx()) {
 			OSMLayer layer = (OSMLayer) spatial.getLayer(tx, "map.osm", false);
@@ -206,9 +208,9 @@ public class TestsForDocs extends Neo4jTestCase {
 		GraphDatabaseService database = graphDb();
 		// START SNIPPET: exportShapefileFromQuery tag::exportShapefileFromQuery[]
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		Envelope bbox = new Envelope(12.94, 12.96, 56.04, 56.06);
-		List<SpatialDatabaseRecord> results;
+		List<SpatialRecord> results;
 		try (Transaction tx = database.beginTx()) {
 			Layer layer = spatial.getLayer(tx, "map.osm", true);
 			LayerIndexReader spatialIndex = layer.getIndex();
@@ -228,7 +230,7 @@ public class TestsForDocs extends Neo4jTestCase {
 		doGeometryTestsOnResults(bbox, results);
 	}
 
-	private static void doGeometryTestsOnResults(Envelope bbox, List<SpatialDatabaseRecord> results) {
+	private static void doGeometryTestsOnResults(Envelope bbox, List<SpatialRecord> results) {
 		LOGGER.fine("Found " + results.size() + " geometries in " + bbox);
 		Geometry geometry = results.get(0).getGeometry();
 		LOGGER.fine("First geometry is " + geometry);

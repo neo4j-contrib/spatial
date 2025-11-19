@@ -25,6 +25,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
+import org.neo4j.spatial.api.Envelope;
 
 public class EnvelopeTests {
 

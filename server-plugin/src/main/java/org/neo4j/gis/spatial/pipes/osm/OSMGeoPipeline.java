@@ -19,16 +19,17 @@
  */
 package org.neo4j.gis.spatial.pipes.osm;
 
-import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.filter.SearchRecords;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.pipes.impl.FilterPipe;
 import org.neo4j.gis.spatial.pipes.osm.filtering.FilterOSMAttributes;
 import org.neo4j.gis.spatial.pipes.osm.processing.ExtractOSMPoints;
 import org.neo4j.gis.spatial.rtree.filter.SearchAll;
-import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.SearchFilter;
+import org.neo4j.spatial.api.SpatialRecords;
+import org.neo4j.spatial.api.layer.Layer;
+
 
 public class OSMGeoPipeline extends GeoPipeline {
 
@@ -36,7 +37,7 @@ public class OSMGeoPipeline extends GeoPipeline {
 		super(layer);
 	}
 
-	public static OSMGeoPipeline startOsm(Transaction tx, Layer layer, final SearchRecords records) {
+	public static OSMGeoPipeline startOsm(Transaction tx, Layer layer, final SpatialRecords records) {
 		OSMGeoPipeline pipeline = new OSMGeoPipeline(layer);
 		return (OSMGeoPipeline) pipeline.add(createStartPipe(records));
 	}

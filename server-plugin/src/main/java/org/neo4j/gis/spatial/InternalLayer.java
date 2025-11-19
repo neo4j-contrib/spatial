@@ -17,22 +17,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.rtree.filter;
 
-import org.neo4j.gis.spatial.rtree.Envelope;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Transaction;
+package org.neo4j.gis.spatial;
 
-public interface SearchFilter {
+import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
+import org.neo4j.spatial.api.layer.Layer;
 
-	enum EnvelopFilterResult {
-		INCLUDE_ALL, EXCLUDE_ALL, FILTER
-	}
-	boolean needsToVisit(Envelope envelope);
+public interface InternalLayer extends Layer {
 
-	default EnvelopFilterResult needsToVisitExtended(Envelope envelope) {
-		return needsToVisit(envelope) ? EnvelopFilterResult.FILTER : EnvelopFilterResult.EXCLUDE_ALL;
-	}
-	boolean geometryMatches(Transaction tx, Node geomNode);
+	PropertyMappingManager getPropertyMappingManager();
 
 }

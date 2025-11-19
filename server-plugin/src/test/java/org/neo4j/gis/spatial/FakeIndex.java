@@ -24,24 +24,32 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import org.neo4j.gis.spatial.filter.SearchRecords;
-import org.neo4j.gis.spatial.index.IndexManager;
-import org.neo4j.gis.spatial.index.LayerIndexReader;
-import org.neo4j.gis.spatial.rtree.Envelope;
-import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
-import org.neo4j.gis.spatial.rtree.TreeMonitor;
-import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
-import org.neo4j.gis.spatial.rtree.filter.SearchResults;
+import java.util.function.BiFunction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.Envelope;
+import org.neo4j.spatial.api.EnvelopeDecoder;
+import org.neo4j.spatial.api.SearchFilter;
+import org.neo4j.spatial.api.SearchResults;
+import org.neo4j.spatial.api.SpatialRecord;
+import org.neo4j.spatial.api.SpatialRecords;
+import org.neo4j.spatial.api.encoder.GeometryEncoder;
+import org.neo4j.spatial.api.index.IndexManager;
+import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.layer.Layer;
+import org.neo4j.spatial.api.monitoring.TreeMonitor;
 
 /**
  * An in-memory index used for comparative benchmarking and testing
  */
-public class FakeIndex implements LayerIndexReader, Constants {
+public class FakeIndex implements LayerIndexReader {
 
-	public FakeIndex(Layer layer, IndexManager indexManager) {
+	private final BiFunction<Layer, Node, SpatialRecord> searchRecordsProducer;
+
+	public FakeIndex(Layer layer, IndexManager indexManager,
+			BiFunction<Layer, Node, SpatialRecord> searchRecordsProducer) {
 		init(null, indexManager, layer, true);
+		this.searchRecordsProducer = searchRecordsProducer;
 	}
 
 	@Override
@@ -88,12 +96,12 @@ public class FakeIndex implements LayerIndexReader, Constants {
 		return bbox;
 	}
 
-	public SpatialDatabaseRecord get(Transaction tx, String geomNodeId) {
-		return new SpatialDatabaseRecord(layer, tx.getNodeByElementId(geomNodeId));
+	public SpatialRecord get(Transaction tx, String geomNodeId) {
+		return searchRecordsProducer.apply(layer, tx.getNodeByElementId(geomNodeId));
 	}
 
-	public List<SpatialDatabaseRecord> get(Transaction tx, Set<String> geomNodeIds) {
-		List<SpatialDatabaseRecord> results = new ArrayList<>();
+	public List<SpatialRecord> get(Transaction tx, Set<String> geomNodeIds) {
+		List<SpatialRecord> results = new ArrayList<>();
 
 		for (String geomNodeId : geomNodeIds) {
 			results.add(get(tx, geomNodeId));
@@ -185,7 +193,7 @@ public class FakeIndex implements LayerIndexReader, Constants {
 	}
 
 	@Override
-	public SearchRecords search(Transaction tx, SearchFilter filter) {
-		return new SearchRecords(layer, searchIndex(tx, filter));
+	public SpatialRecords search(Transaction tx, SearchFilter filter) {
+		return new SpatialRecords(layer, searchIndex(tx, filter), searchRecordsProducer);
 	}
 }

@@ -28,6 +28,7 @@ import org.neo4j.graphdb.schema.IndexDefinition;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
+import org.neo4j.spatial.api.index.IndexManager;
 
 /**
  * The PropertyEncodingNodeIndex is a mapper onto a node property backed by a normal Cypher index,

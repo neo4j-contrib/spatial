@@ -32,6 +32,7 @@ import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.layer.Layer;
 
 /**
  * <p>
@@ -46,7 +47,7 @@ import org.neo4j.graphdb.Transaction;
  * layer to the consuming application (desktop or web application).
  * </p>
  * <p>
- * DynamicLayer extends EdiableLayerImpl, and is therefore editable. Not that
+ * DynamicLayer extends EdiableLayerImpl, and is therefore editable. Note that
  * this support is dependant on the correct working of the appropriate
  * GeometryEncoder, and also does not extend to the sub-layers provided. Those
  * are read-only views.
@@ -201,21 +202,8 @@ public class DynamicLayer extends EditableLayerImpl {
 		return null;
 	}
 
-	/**
-	 * Restrict specified layers attributes to only those that are actually
-	 * found to be used. This does an exhaustive search and can be time-consuming. For large layers, consider
-	 * manually setting the properties instead.
-	 */
-	public DynamicLayerConfig restrictLayerProperties(Transaction tx, String name) {
-		return restrictLayerProperties(tx, name, null);
-	}
-
 	public List<String> getLayerNames(Transaction tx) {
 		return new ArrayList<>(getLayerMap(tx).keySet());
-	}
-
-	public List<Layer> getLayers(Transaction tx) {
-		return new ArrayList<>(getLayerMap(tx).values());
 	}
 
 	public Layer getLayer(Transaction tx, String name) {

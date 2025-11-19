@@ -35,7 +35,7 @@ import org.junit.jupiter.api.Assertions;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.driver.Driver;
-import org.neo4j.gis.spatial.index.IndexManager;
+import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMDataset.Way;
 import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
@@ -50,6 +50,8 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.spatial.api.SpatialRecord;
+import org.neo4j.spatial.api.layer.Layer;
 
 public class TestOSMImportBase extends Neo4jTestCase {
 
@@ -70,7 +72,7 @@ public class TestOSMImportBase extends Neo4jTestCase {
 		int indexCount;
 		try (Transaction tx = db.beginTx()) {
 			SpatialDatabaseService spatial = new SpatialDatabaseService(
-					new IndexManager((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
+					new IndexManagerImpl((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
 			OSMLayer layer = (OSMLayer) spatial.getOrCreateLayer(tx, layerName, OSMGeometryEncoder.class,
 					OSMLayer.class, null, true);
 			Assertions.assertNotNull(layer.getIndex(), "OSM Layer index should not be null");
@@ -100,7 +102,7 @@ public class TestOSMImportBase extends Neo4jTestCase {
 		Assertions.assertNotNull(way, "Should be at least one way");
 		Envelope bbox = way.getEnvelope();
 		runSearches(tx, layer, bbox, true);
-		org.neo4j.gis.spatial.rtree.Envelope layerBBox = layer.getIndex().getBoundingBox(tx);
+		org.neo4j.spatial.api.Envelope layerBBox = layer.getIndex().getBoundingBox(tx);
 		double[] centre = layerBBox.centre();
 		double width = layerBBox.getWidth(0) / 100.0;
 		double height = layerBBox.getWidth(1) / 100.0;
@@ -118,7 +120,7 @@ public class TestOSMImportBase extends Neo4jTestCase {
 
 	private static void runWithinSearch(Transaction tx, OSMLayer layer, Geometry searchArea, boolean willHaveResult) {
 		long start = System.currentTimeMillis();
-		List<SpatialDatabaseRecord> results = OSMGeoPipeline.startWithinSearch(tx, layer, searchArea)
+		List<SpatialRecord> results = OSMGeoPipeline.startWithinSearch(tx, layer, searchArea)
 				.toSpatialDatabaseRecordList();
 		long time = System.currentTimeMillis() - start;
 		System.out.println(

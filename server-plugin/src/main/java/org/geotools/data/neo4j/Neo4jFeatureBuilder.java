@@ -42,10 +42,10 @@ import org.locationtech.jts.geom.MultiPoint;
 import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
-import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
-import org.neo4j.gis.spatial.SpatialRecord;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.SpatialRecord;
+import org.neo4j.spatial.api.layer.Layer;
 
 public class Neo4jFeatureBuilder {
 

@@ -39,6 +39,8 @@ import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.Envelope;
+import org.neo4j.spatial.api.monitoring.TreeMonitor.NodeWithEnvelope;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
 public class RTreeTests {
@@ -78,8 +80,8 @@ public class RTreeTests {
 
 	@Test
 	public void shouldMergeTwoPartiallyOverlappingTrees() throws IOException {
-		RTreeIndex.NodeWithEnvelope rootLeft;
-		RTreeIndex.NodeWithEnvelope rootRight;
+		NodeWithEnvelope rootLeft;
+		NodeWithEnvelope rootRight;
 		try (Transaction tx = db.beginTx()) {
 			rootLeft = createSimpleRTree(0.01, 0.81, 5);
 			tx.commit();
@@ -91,8 +93,10 @@ public class RTreeTests {
 		LOGGER.fine("Created two trees");
 		if (exportImages) {
 			try (Transaction tx = db.beginTx()) {
-				imageExporter.saveRTreeLayers(tx, new File("target/rtree-test/rtree-left.png"), rootLeft.node, 7);
-				imageExporter.saveRTreeLayers(tx, new File("target/rtree-test/rtree-right.png"), rootRight.node, 7);
+				imageExporter.saveRTreeLayers(tx, new File("target/rtree-test/rtree-left.png"),
+						tx.getNodeByElementId(rootLeft.node.getElementId()), 7);
+				imageExporter.saveRTreeLayers(tx, new File("target/rtree-test/rtree-right.png"),
+						tx.getNodeByElementId(rootRight.node.getElementId()), 7);
 				tx.commit();
 			}
 		}
@@ -103,25 +107,26 @@ public class RTreeTests {
 		LOGGER.info("Merged two trees");
 		if (exportImages) {
 			try (Transaction tx = db.beginTx()) {
-				imageExporter.saveRTreeLayers(tx, new File("target/rtree-test/rtree-merged.png"), rootLeft.node, 7);
+				imageExporter.saveRTreeLayers(tx, new File("target/rtree-test/rtree-merged.png"),
+						tx.getNodeByElementId(rootLeft.node.getElementId()), 7);
 				tx.commit();
 			}
 		}
 	}
 
 	@SuppressWarnings("SameParameterValue")
-	private RTreeIndex.NodeWithEnvelope createSimpleRTree(double minx, double maxx, int depth) {
+	private NodeWithEnvelope createSimpleRTree(double minx, double maxx, int depth) {
 		double[] min = new double[]{minx, minx};
 		double[] max = new double[]{maxx, maxx};
 		try (Transaction tx = db.beginTx()) {
-			RTreeIndex.NodeWithEnvelope rootNode = new RTreeIndex.NodeWithEnvelope(tx.createNode(),
+			NodeWithEnvelope rootNode = new NodeWithEnvelope(tx.createNode(),
 					new Envelope(min, max));
 			rtree.setIndexNodeEnvelope(rootNode);
-			ArrayList<RTreeIndex.NodeWithEnvelope> parents = new ArrayList<>();
-			ArrayList<RTreeIndex.NodeWithEnvelope> children = new ArrayList<>();
+			ArrayList<NodeWithEnvelope> parents = new ArrayList<>();
+			ArrayList<NodeWithEnvelope> children = new ArrayList<>();
 			parents.add(rootNode);
 			for (int i = 1; i < depth; i++) {
-				for (RTreeIndex.NodeWithEnvelope parent : parents) {
+				for (NodeWithEnvelope parent : parents) {
 					Envelope[] envs = new Envelope[]{
 							makeEnvelope(parent.envelope, 0.5, 0.0, 0.0),
 							makeEnvelope(parent.envelope, 0.5, 1.0, 0.0),
@@ -129,7 +134,7 @@ public class RTreeTests {
 							makeEnvelope(parent.envelope, 0.5, 0.0, 1.0)
 					};
 					for (Envelope env : envs) {
-						RTreeIndex.NodeWithEnvelope child = rtree.makeChildIndexNode(tx, parent, env);
+						NodeWithEnvelope child = rtree.makeChildIndexNode(tx, parent, env);
 						children.add(child);
 					}
 				}

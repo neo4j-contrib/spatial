@@ -35,9 +35,9 @@ import org.geotools.filter.spatial.OverlapsImpl;
 import org.geotools.filter.spatial.TouchesImpl;
 import org.geotools.filter.spatial.WithinImpl;
 import org.locationtech.jts.geom.Geometry;
-import org.neo4j.gis.spatial.rtree.Envelope;
-import org.neo4j.gis.spatial.rtree.EnvelopeDecoder;
 import org.neo4j.graphdb.Node;
+import org.neo4j.spatial.api.Envelope;
+import org.neo4j.spatial.api.EnvelopeDecoder;
 
 public class Utilities {
 
@@ -62,12 +62,12 @@ public class Utilities {
 	/**
 	 * To create an optimized index search from a Filter we try to extract an Envelope from it.
 	 */
-	public static org.neo4j.gis.spatial.rtree.Envelope extractEnvelopeFromFilter(Filter filter) {
+	public static Envelope extractEnvelopeFromFilter(Filter filter) {
 		return extractEnvelopeFromFilter(filter, true);
 	}
 
 	@SuppressWarnings("rawtypes")
-	private static org.neo4j.gis.spatial.rtree.Envelope extractEnvelopeFromFilter(Filter filter,
+	private static Envelope extractEnvelopeFromFilter(Filter filter,
 			boolean inspectAndFilters) {
 		if (filter instanceof BBOXImpl) {
 			return extractEnvelopeFromBBox((BBOXImpl) filter);

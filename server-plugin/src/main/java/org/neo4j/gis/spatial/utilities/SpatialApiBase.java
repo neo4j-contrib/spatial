@@ -33,17 +33,17 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
-import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.encoders.neo4j.Neo4jCRS;
 import org.neo4j.gis.spatial.encoders.neo4j.Neo4jGeometry;
 import org.neo4j.gis.spatial.encoders.neo4j.Neo4jPoint;
-import org.neo4j.gis.spatial.index.IndexManager;
+import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.procedure.Context;
+import org.neo4j.spatial.api.layer.Layer;
 
 public class SpatialApiBase {
 
@@ -57,7 +57,7 @@ public class SpatialApiBase {
 	public KernelTransaction ktx;
 
 	protected SpatialDatabaseService spatial() {
-		return new SpatialDatabaseService(new IndexManager(api, ktx.securityContext()));
+		return new SpatialDatabaseService(new IndexManagerImpl(api, ktx.securityContext()));
 	}
 
 	protected org.neo4j.graphdb.spatial.Geometry toNeo4jGeometry(Layer layer, Object value) {

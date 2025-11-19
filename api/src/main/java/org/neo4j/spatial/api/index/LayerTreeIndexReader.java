@@ -17,40 +17,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+package org.neo4j.spatial.api.index;
 
-package org.neo4j.gis.spatial.rtree;
-
-
-import java.util.List;
-import java.util.Map;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 
-public interface TreeMonitor {
+/**
+ * Spatial Indexes based on tree structures can implement the following methods common to maintaining and searching tree
+ * structures.
+ */
+public interface LayerTreeIndexReader extends LayerIndexReader {
 
-	void setHeight(int height);
+	Node getIndexRoot(Transaction tx);
 
-	int getHeight();
+	void visit(Transaction tx, SpatialIndexVisitor visitor, Node indexNode);
 
-	void addNbrRebuilt(RTreeIndex rtree, Transaction tx);
-
-	int getNbrRebuilt();
-
-	void addSplit(Node indexNode);
-
-	void beforeMergeTree(Node indexNode, List<RTreeIndex.NodeWithEnvelope> right);
-
-	void afterMergeTree(Node indexNode);
-
-	int getNbrSplit();
-
-	void addCase(String key);
-
-	Map<String, Integer> getCaseCounts();
-
-	void reset();
-
-	void matchedTreeNode(int level, Node node);
-
-	List<Node> getMatchedTreeNodes(int level);
 }

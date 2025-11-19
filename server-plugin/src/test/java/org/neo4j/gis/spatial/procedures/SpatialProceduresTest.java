@@ -58,11 +58,10 @@ import org.neo4j.doc.domain.examples.Example;
 import org.neo4j.doc.domain.examples.ExampleCypher;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gis.spatial.AbstractApiTest;
-import org.neo4j.gis.spatial.Layer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.SpatialRelationshipTypes;
 import org.neo4j.gis.spatial.functions.SpatialFunctions;
-import org.neo4j.gis.spatial.index.IndexManager;
+import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.utilities.ReferenceNodes;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -75,6 +74,7 @@ import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.spatial.api.layer.Layer;
 
 public class SpatialProceduresTest extends AbstractApiTest {
 
@@ -169,7 +169,7 @@ public class SpatialProceduresTest extends AbstractApiTest {
 	private void makeOldSpatialModel(Transaction tx, String... layers) {
 		KernelTransaction ktx = ((InternalTransaction) tx).kernelTransaction();
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManager((GraphDatabaseAPI) db, ktx.securityContext()));
+				new IndexManagerImpl((GraphDatabaseAPI) db, ktx.securityContext()));
 		ArrayList<Node> layerNodes = new ArrayList<>();
 		int index = 0;
 		// First create a set of layers

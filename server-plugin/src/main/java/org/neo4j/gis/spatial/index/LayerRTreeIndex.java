@@ -20,13 +20,16 @@
 package org.neo4j.gis.spatial.index;
 
 import org.neo4j.gis.spatial.Constants;
-import org.neo4j.gis.spatial.Layer;
-import org.neo4j.gis.spatial.filter.SearchRecords;
+import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.rtree.RTreeIndex;
-import org.neo4j.gis.spatial.rtree.SpatialIndexVisitor;
-import org.neo4j.gis.spatial.rtree.filter.SearchFilter;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.SearchFilter;
+import org.neo4j.spatial.api.SpatialRecords;
+import org.neo4j.spatial.api.index.IndexManager;
+import org.neo4j.spatial.api.index.LayerTreeIndexReader;
+import org.neo4j.spatial.api.index.SpatialIndexVisitor;
+import org.neo4j.spatial.api.layer.Layer;
 
 /**
  * The RTreeIndex is the first and still standard index for Neo4j Spatial. It
@@ -56,8 +59,8 @@ public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader,
 	}
 
 	@Override
-	public SearchRecords search(Transaction tx, SearchFilter filter) {
-		return new SearchRecords(layer, searchIndex(tx, filter));
+	public SpatialRecords search(Transaction tx, SearchFilter filter) {
+		return new SpatialRecords(layer, searchIndex(tx, filter), SpatialDatabaseRecord::new);
 	}
 
 }

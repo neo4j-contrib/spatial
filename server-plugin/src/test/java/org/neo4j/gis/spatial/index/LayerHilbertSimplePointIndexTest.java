@@ -19,6 +19,8 @@
  */
 package org.neo4j.gis.spatial.index;
 
+import org.neo4j.spatial.api.index.LayerIndexReader;
+
 public class LayerHilbertSimplePointIndexTest extends SimplePointIndexTestBase {
 
 	@Override
