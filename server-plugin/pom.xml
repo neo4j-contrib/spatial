@@ -89,6 +89,23 @@
 		</dependency>
 		<dependency>
 			<groupId>org.neo4j</groupId>
+			<artifactId>neo4j-spatial-geotools-common</artifactId>
+			<version>2025.10.1-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>org.neo4j</groupId>
+			<artifactId>neo4j-spatial-geotools-plugin</artifactId>
+			<version>2025.10.1-SNAPSHOT</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.neo4j</groupId>
+			<artifactId>neo4j-spatial-cli-tools</artifactId>
+			<version>2025.10.1-SNAPSHOT</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j</artifactId>
 			<version>${neo4j.version}</version>
 			<scope>provided</scope>
@@ -137,17 +154,12 @@
 		</dependency>
 		<dependency>
 			<groupId>org.geotools</groupId>
-			<artifactId>gt-main</artifactId>
+			<artifactId>gt-cql</artifactId>
 			<version>${geotools.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.geotools</groupId>
 			<artifactId>gt-shapefile</artifactId>
-			<version>${geotools.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.geotools</groupId>
-			<artifactId>gt-process</artifactId>
 			<version>${geotools.version}</version>
 		</dependency>
 		<dependency>
@@ -195,11 +207,6 @@
 			<artifactId>assertj-core</artifactId>
 			<version>3.27.6</version>
 			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.neo4j</groupId>
-			<artifactId>neo4j-cypher-dsl</artifactId>
-			<version>2025.2.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.neo4j.test</groupId>

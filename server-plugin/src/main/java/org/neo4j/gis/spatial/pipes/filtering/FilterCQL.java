@@ -21,9 +21,9 @@ package org.neo4j.gis.spatial.pipes.filtering;
 
 import org.geotools.api.feature.simple.SimpleFeature;
 import org.geotools.api.filter.Filter;
-import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.filter.text.cql2.CQLException;
 import org.geotools.filter.text.ecql.ECQL;
+import org.neo4j.gis.spatial.feature.Neo4jServerFeatureBuilder;
 import org.neo4j.gis.spatial.pipes.AbstractFilterGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.graphdb.Transaction;
@@ -34,13 +34,13 @@ import org.neo4j.spatial.api.layer.Layer;
  */
 public class FilterCQL extends AbstractFilterGeoPipe {
 
-	private final Neo4jFeatureBuilder featureBuilder;
+	private final Neo4jServerFeatureBuilder featureBuilder;
 	private final Filter filter;
 	private final Transaction tx;
 
 	public FilterCQL(Transaction tx, Layer layer, String cqlPredicate) throws CQLException {
 		this.tx = tx;
-		this.featureBuilder = Neo4jFeatureBuilder.fromLayer(tx, layer);
+		this.featureBuilder = Neo4jServerFeatureBuilder.fromLayer(tx, layer);
 		this.filter = ECQL.toFilter(cqlPredicate);
 	}
 

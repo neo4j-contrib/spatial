@@ -59,6 +59,7 @@ import org.neo4j.spatial.api.encoder.GeometryEncoder;
 import org.neo4j.spatial.api.index.LayerIndexReader;
 import org.neo4j.spatial.api.layer.EditableLayer;
 import org.neo4j.spatial.api.layer.Layer;
+import org.neo4j.spatial.cli.tools.ShapefileExporter;
 
 public class LayersTest extends Neo4jTestCase {
 

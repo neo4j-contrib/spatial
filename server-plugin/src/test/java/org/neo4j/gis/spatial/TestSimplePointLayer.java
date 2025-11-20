@@ -31,7 +31,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-import org.geotools.data.neo4j.StyledImageExporter;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateList;
@@ -52,6 +51,8 @@ import org.neo4j.spatial.api.Envelope;
 import org.neo4j.spatial.api.SpatialRecord;
 import org.neo4j.spatial.api.layer.EditableLayer;
 import org.neo4j.spatial.api.layer.Layer;
+import org.neo4j.spatial.cli.tools.ShapefileExporter;
+import org.neo4j.spatial.cli.tools.StyledImageExporter;
 import org.opentest4j.AssertionFailedError;
 
 public class TestSimplePointLayer extends Neo4jTestCase {

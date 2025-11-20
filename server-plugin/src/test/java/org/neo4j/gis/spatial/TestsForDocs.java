@@ -29,7 +29,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Logger;
 import org.geotools.api.data.DataStore;
-import org.geotools.data.neo4j.Neo4jSpatialDataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -51,6 +50,8 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.spatial.api.SpatialRecord;
 import org.neo4j.spatial.api.index.LayerIndexReader;
 import org.neo4j.spatial.api.layer.Layer;
+import org.neo4j.spatial.cli.tools.ShapefileExporter;
+import org.neo4j.spatial.geotools.plugin.Neo4jSpatialDataStore;
 
 /**
  * Some test code written specifically for the user manual. This normally means

@@ -34,7 +34,6 @@ import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.stream.Stream;
-import org.geotools.data.neo4j.StyledImageExporter;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -48,6 +47,7 @@ import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.spatial.api.SpatialRecord;
 import org.neo4j.spatial.api.SpatialRecords;
+import org.neo4j.spatial.cli.tools.StyledImageExporter;
 
 public class OsmAnalysisTest extends TestOSMImportBase {
 
