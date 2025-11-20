@@ -119,7 +119,7 @@ public class RenderingUtils {
 		Rule rule = styleFactory.createRule();
 		rule.symbolizers().add(sym);
 		try {
-			rule.setFilter(ECQL.toFilter("geometryType(the_geom)='Polygon' or geometryType(the_geom)='MultiPoligon'"));
+			rule.setFilter(ECQL.toFilter("geometryType(the_geom)='Polygon' or geometryType(the_geom)='MultiPolygon'"));
 		} catch (CQLException e) {
 			// TODO
 			e.printStackTrace();

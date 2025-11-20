@@ -19,7 +19,7 @@ mvn clean package
 
 === Deployment
 
-. Copy the `neo4j-spatial-geotools-plugin-xxx-SNAPSHOT-with-dependencies.jar` form:
+. Copy the `neo4j-spatial-geotools-plugin-xxx-SNAPSHOT-with-dependencies.jar` from:
 
   * Option A: `geotools-plugin/target/`
   * Option B: the https://github.com/neo4j-contrib/spatial/releases[GitHub releases page]
@@ -49,7 +49,7 @@ image::Geoserver-3-configure-store.png[]
    * *Username/Password*: Neo4j credentials
 
 ==== Publish Layers
-. Go to 'Layers' → 'Add new leyer'
+. Go to 'Layers' → 'Add new layer'
 . Choose your Neo4j datastore
 . Select a layer by clicking 'Publish'
 +
