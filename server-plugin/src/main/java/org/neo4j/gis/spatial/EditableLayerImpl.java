@@ -34,11 +34,11 @@ import java.util.Map;
 import java.util.Set;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.locationtech.jts.geom.Geometry;
-import org.neo4j.gis.spatial.index.SpatialIndexWriter;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.spatial.api.encoder.GeometryEncoder;
 import org.neo4j.spatial.api.index.IndexManager;
+import org.neo4j.spatial.api.index.SpatialIndexWriter;
 import org.neo4j.spatial.api.layer.EditableLayer;
 import org.neo4j.spatial.api.monitoring.ProgressListener;
 
@@ -48,13 +48,22 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 	private final Map<String, Class<?>> seenProperties = new HashMap<>();
 
 	@Override
-	public void initialize(Transaction tx, IndexManager indexManager, String name, Node layerNode, boolean readOnly) {
-		super.initialize(tx, indexManager, name, layerNode, readOnly);
-		if (indexReader instanceof SpatialIndexWriter) {
-			indexWriter = (SpatialIndexWriter) indexReader;
-		} else {
-			throw new SpatialDatabaseException("Index writer could not be initialized");
-		}
+	public List<String> getIdentifiers() {
+		return List.of("EditableLayer", "org.neo4j.gis.spatial.EditableLayerImpl");
+	}
+
+	@Override
+	public void initialize(
+			Transaction tx,
+			IndexManager indexManager,
+			String name,
+			GeometryEncoder geometryEncoder,
+			SpatialIndexWriter index,
+			Node layerNode,
+			boolean readOnly
+	) {
+		super.initialize(tx, indexManager, name, geometryEncoder, index, layerNode, readOnly);
+		indexWriter = index;
 	}
 
 	/**

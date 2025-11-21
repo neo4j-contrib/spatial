@@ -36,7 +36,6 @@ import javax.annotation.Nonnull;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.neo4j.gis.spatial.encoders.Configurable;
-import org.neo4j.gis.spatial.index.SpatialIndexWriter;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
@@ -57,6 +56,7 @@ import org.neo4j.spatial.api.EnvelopeDecoder;
 import org.neo4j.spatial.api.SearchFilter;
 import org.neo4j.spatial.api.SearchResults;
 import org.neo4j.spatial.api.index.SpatialIndexVisitor;
+import org.neo4j.spatial.api.index.SpatialIndexWriter;
 import org.neo4j.spatial.api.monitoring.ProgressListener;
 import org.neo4j.spatial.api.monitoring.TreeMonitor;
 import org.neo4j.spatial.api.monitoring.TreeMonitor.NodeWithEnvelope;
@@ -67,7 +67,7 @@ import org.neo4j.spatial.api.monitoring.TreeMonitor.NodeWithEnvelope;
  * are connected to the existing data model.
  * Queries to the index also need to be explicit.
  */
-public class RTreeIndex implements SpatialIndexWriter, Configurable {
+public abstract class RTreeIndex implements SpatialIndexWriter, Configurable {
 
 	private static final Logger LOGGER = Logger.getLogger(RTreeIndex.class.getName());
 
@@ -298,7 +298,7 @@ public class RTreeIndex implements SpatialIndexWriter, Configurable {
 		}
 	}
 
-	static List<NodeWithEnvelope> getIndexChildren(Node rootNode) {
+	protected static List<NodeWithEnvelope> getIndexChildren(Node rootNode) {
 		List<NodeWithEnvelope> result = new ArrayList<>();
 		try (var relationships = rootNode.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD)) {
 			for (Relationship r : relationships) {

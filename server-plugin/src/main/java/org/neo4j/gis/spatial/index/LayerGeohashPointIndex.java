@@ -23,8 +23,10 @@ import static org.apache.lucene.geo.GeoEncodingUtils.encodeLatitude;
 import static org.apache.lucene.geo.GeoEncodingUtils.encodeLongitude;
 import static org.apache.lucene.geo.GeoUtils.checkLatitude;
 import static org.apache.lucene.geo.GeoUtils.checkLongitude;
+import static org.neo4j.gis.spatial.Constants.INDEX_TYPE_GEOHASH;
 
 import java.util.Iterator;
+import java.util.List;
 import org.apache.lucene.util.BitUtil;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.Point;
@@ -40,8 +42,13 @@ import org.neo4j.spatial.api.SearchFilter;
 public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String> {
 
 	@Override
+	public List<String> getIdentifiers() {
+		return List.of(INDEX_TYPE_GEOHASH, "org.neo4j.gis.spatial.index.LayerGeohashPointIndex");
+	}
+
+	@Override
 	protected String indexTypeName() {
-		return "geohash";
+		return INDEX_TYPE_GEOHASH;
 	}
 
 	@Override

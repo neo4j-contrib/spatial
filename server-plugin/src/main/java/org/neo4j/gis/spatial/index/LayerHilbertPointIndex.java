@@ -19,10 +19,18 @@
  */
 package org.neo4j.gis.spatial.index;
 
+import static org.neo4j.gis.spatial.Constants.INDEX_TYPE_HILBERT;
+
+import java.util.List;
 import org.neo4j.gis.spatial.index.curves.HilbertSpaceFillingCurve2D;
 import org.neo4j.gis.spatial.index.curves.SpaceFillingCurve;
 
 public class LayerHilbertPointIndex extends LayerSpaceFillingCurvePointIndex {
+
+	@Override
+	public List<String> getIdentifiers() {
+		return List.of(INDEX_TYPE_HILBERT, "org.neo4j.gis.spatial.index.LayerHilbertPointIndex");
+	}
 
 	@Override
 	protected SpaceFillingCurve makeCurve(Envelope envelope, int maxLevels) {

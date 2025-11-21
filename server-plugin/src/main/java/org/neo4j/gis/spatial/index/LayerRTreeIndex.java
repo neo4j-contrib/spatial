@@ -19,7 +19,9 @@
  */
 package org.neo4j.gis.spatial.index;
 
-import org.neo4j.gis.spatial.Constants;
+import static org.neo4j.gis.spatial.Constants.INDEX_TYPE_RTREE;
+
+import java.util.List;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.graphdb.Node;
@@ -38,9 +40,14 @@ import org.neo4j.spatial.api.layer.Layer;
  * wrapped with modifying search functions to that custom classes can be used to
  * perform filtering searches on the tree.
  */
-public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader, Constants {
+public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader {
 
 	private Layer layer;
+
+	@Override
+	public List<String> getIdentifiers() {
+		return List.of(INDEX_TYPE_RTREE, "org.neo4j.gis.spatial.index.LayerRTreeIndex");
+	}
 
 	@Override
 	public void init(Transaction tx, IndexManager indexManager, Layer layer, boolean readOnly) {

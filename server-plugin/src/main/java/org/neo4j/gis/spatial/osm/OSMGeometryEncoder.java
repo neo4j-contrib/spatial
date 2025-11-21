@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
@@ -65,6 +66,11 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	private DateFormat dateTimeFormatter;
 	private int vertices;
 	private int vertexMistmaches = 0;
+
+	@Override
+	public List<String> getIdentifiers() {
+		return List.of("OSMGeometryEncoder", "org.neo4j.gis.spatial.osm.OSMGeometryEncoder");
+	}
 
 	/**
 	 * This class allows for OSM to avoid having empty tags nodes when there are

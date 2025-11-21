@@ -19,17 +19,17 @@
  */
 package org.neo4j.gis.spatial.index;
 
-import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.index.SpatialIndexWriter;
 
 public class LayerZOrderSimplePointIndexTest extends SimplePointIndexTestBase {
 
 	@Override
-	protected Class<? extends LayerIndexReader> getIndexClass() {
+	protected Class<? extends SpatialIndexWriter> getIndexClass() {
 		return LayerZOrderPointIndex.class;
 	}
 
 	@Override
-	protected LayerIndexReader makeIndex() {
+	protected SpatialIndexWriter makeIndex() {
 		return new LayerZOrderPointIndex();
 	}
 }

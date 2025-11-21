@@ -14,11 +14,11 @@ a|
 [source]
 ----
 (:SpatialLayer {
-    geomencoder: "org.neo4j.gis.spatial.encoders.NativePointEncoder",
+    geomencoder: "NativePointEncoder",
     geomencoder_config: "pos:mbr",
-    index_class: "org.neo4j.gis.spatial.index.LayerHilbertPointIndex",
+    index_type: "hilbert",
     layer: "geom",
-    layer_class: "org.neo4j.gis.spatial.SimplePointLayer"
+    layer_type: "SimplePointLayer"
 })
 ----
 

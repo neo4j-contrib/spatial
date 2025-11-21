@@ -58,6 +58,11 @@ public class DynamicLayer extends EditableLayerImpl {
 	private static final Logger LOGGER = Logger.getLogger(DynamicLayer.class.getName());
 	private LinkedHashMap<String, Layer> layers;
 
+	@Override
+	public List<String> getIdentifiers() {
+		return List.of("DynamicLayer", "org.neo4j.gis.spatial.DynamicLayer");
+	}
+
 	private synchronized Map<String, Layer> getLayerMap(Transaction tx) {
 		if (layers == null) {
 			layers = new LinkedHashMap<>();

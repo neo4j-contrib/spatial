@@ -32,6 +32,7 @@ public class Mapper {
 
 	public static ObjectMapper MAPPER = JsonMapper.builder()
 			.configure(MapperFeature.SORT_PROPERTIES_ALPHABETICALLY, true)
+			.configure(SerializationFeature.ORDER_MAP_ENTRIES_BY_KEYS, true)
 			.configure(SerializationFeature.INDENT_OUTPUT, true)
 			.addModule(new SimpleModule().addSerializer(Node.class, new NodeCypherSerializer()))
 			.build();

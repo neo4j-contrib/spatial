@@ -19,7 +19,10 @@
  */
 package org.neo4j.gis.spatial;
 
+import static org.neo4j.gis.spatial.Constants.PROP_LAYER;
+
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.logging.Logger;
@@ -37,8 +40,9 @@ import org.neo4j.spatial.api.SearchFilter;
 import org.neo4j.spatial.api.SpatialDataset;
 import org.neo4j.spatial.api.encoder.GeometryEncoder;
 import org.neo4j.spatial.api.index.IndexManager;
-import org.neo4j.spatial.api.index.LayerIndexReader;
 import org.neo4j.spatial.api.index.LayerTreeIndexReader;
+import org.neo4j.spatial.api.index.SpatialIndexReader;
+import org.neo4j.spatial.api.index.SpatialIndexWriter;
 import org.neo4j.spatial.api.layer.Layer;
 
 public class DynamicLayerConfig implements Layer, InternalLayer {
@@ -50,14 +54,14 @@ public class DynamicLayerConfig implements Layer, InternalLayer {
 	private final String query;
 	protected final String configNodeId;
 	private String[] propertyNames;
-	private boolean readOnly;
+	private final boolean readOnly;
 
 	/**
 	 * Construct the layer config instance on existing config information in the database.
 	 */
 	public DynamicLayerConfig(DynamicLayer parent, Node configNode, boolean readOnly) {
 		this.parent = parent;
-		this.name = (String) configNode.getProperty(Constants.PROP_LAYER);
+		this.name = (String) configNode.getProperty(PROP_LAYER);
 		this.geometryType = (Integer) configNode.getProperty(Constants.PROP_TYPE);
 		this.query = (String) configNode.getProperty(Constants.PROP_QUERY);
 		this.configNodeId = configNode.getElementId();
@@ -78,7 +82,7 @@ public class DynamicLayerConfig implements Layer, InternalLayer {
 		this.parent = parent;
 		this.readOnly = false;
 		Node node = tx.createNode();
-		node.setProperty(Constants.PROP_LAYER, name);
+		node.setProperty(PROP_LAYER, name);
 		node.setProperty(Constants.PROP_TYPE, geometryType);
 		node.setProperty(Constants.PROP_QUERY, query);
 		parent.getLayerNode(tx).createRelationshipTo(node, SpatialRelationshipTypes.LAYER_CONFIG);
@@ -86,6 +90,11 @@ public class DynamicLayerConfig implements Layer, InternalLayer {
 		this.geometryType = geometryType;
 		this.query = query;
 		configNodeId = node.getElementId();
+	}
+
+	@Override
+	public List<String> getIdentifiers() {
+		return List.of("DynamicLayerConfig");
 	}
 
 	@Override
@@ -211,7 +220,7 @@ public class DynamicLayerConfig implements Layer, InternalLayer {
 	}
 
 	@Override
-	public LayerIndexReader getIndex() {
+	public SpatialIndexReader getIndex() {
 		if (parent.indexReader instanceof LayerTreeIndexReader) {
 			String query = getQuery();
 			if (query.startsWith("{")) {
@@ -237,7 +246,8 @@ public class DynamicLayerConfig implements Layer, InternalLayer {
 	}
 
 	@Override
-	public void initialize(Transaction tx, IndexManager indexManager, String name, Node layerNode, boolean readOnly) {
+	public void initialize(Transaction tx, IndexManager indexManager, String name, GeometryEncoder geometryEncoder,
+			SpatialIndexWriter indexReader, Node layerNode, boolean readOnly) {
 		throw new SpatialDatabaseException(
 				"Cannot initialize the layer config, initialize only the dynamic layer node");
 	}
@@ -263,7 +273,7 @@ public class DynamicLayerConfig implements Layer, InternalLayer {
 
 	protected Map<String, String> getConfig() {
 		Map<String, String> config = new LinkedHashMap<>();
-		config.put("layer", this.name);
+		config.put(PROP_LAYER, this.name);
 		config.put("type", String.valueOf(this.geometryType));
 		config.put("query", this.query);
 		return config;
@@ -272,7 +282,7 @@ public class DynamicLayerConfig implements Layer, InternalLayer {
 	@Override
 	public String getSignature() {
 		Map<String, String> config = getConfig();
-		return "DynamicLayer(name='" + getName() + "', config={layer='" + config.get("layer") + "', query=\""
+		return "DynamicLayer(name='" + getName() + "', config={layer='" + config.get(PROP_LAYER) + "', query=\""
 				+ config.get("query") + "\"})";
 	}
 

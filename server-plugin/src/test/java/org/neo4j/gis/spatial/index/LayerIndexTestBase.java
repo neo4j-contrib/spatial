@@ -64,7 +64,8 @@ import org.neo4j.io.fs.FileUtils;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.spatial.api.SearchResults;
 import org.neo4j.spatial.api.encoder.GeometryEncoder;
-import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.index.SpatialIndexReader;
+import org.neo4j.spatial.api.index.SpatialIndexWriter;
 import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
@@ -76,23 +77,23 @@ public abstract class LayerIndexTestBase {
 	protected GeometryFactory geometryFactory = new GeometryFactory();
 	protected GeometryEncoder encoder = makeGeometryEncoder();
 
-	protected abstract Class<? extends LayerIndexReader> getIndexClass();
+	protected abstract Class<? extends SpatialIndexWriter> getIndexClass();
 
 	protected abstract Class<? extends GeometryEncoder> getEncoderClass();
 
-	protected abstract LayerIndexReader makeIndex();
+	protected abstract SpatialIndexWriter makeIndex();
 
 	protected abstract GeometryEncoder makeGeometryEncoder();
 
 	protected SpatialIndexWriter mockLayerIndex() {
 		Layer layer = mockLayer();
-		LayerIndexReader index = makeIndex();
+		SpatialIndexWriter index = makeIndex();
 		try (Transaction tx = graph.beginTx()) {
 			index.init(tx, spatial.indexManager, layer, false);
 			tx.commit();
 		}
 		when(layer.getIndex()).thenReturn(index);
-		return (SpatialIndexWriter) index;
+		return index;
 	}
 
 	protected Layer mockLayer() {
@@ -126,7 +127,8 @@ public abstract class LayerIndexTestBase {
 		FileUtils.deleteDirectory(baseDir.toPath());
 		databases = new TestDatabaseManagementServiceBuilder(baseDir.toPath()).impermanent().build();
 		graph = databases.database(DEFAULT_DATABASE_NAME);
-		spatial = new SpatialDatabaseService(new IndexManagerImpl((GraphDatabaseAPI) graph, SecurityContext.AUTH_DISABLED));
+		spatial = new SpatialDatabaseService(
+				new IndexManagerImpl((GraphDatabaseAPI) graph, SecurityContext.AUTH_DISABLED));
 	}
 
 	@AfterEach
@@ -142,7 +144,7 @@ public abstract class LayerIndexTestBase {
 	@Test
 	public void shouldCreateAndFindIndexViaLayer() {
 		SimplePointLayer layer = makeTestPointLayer();
-		LayerIndexReader index = layer.getIndex();
+		SpatialIndexReader index = layer.getIndex();
 		try (Transaction tx = graph.beginTx()) {
 			assertThat("Should find the same index", index.getLayer().getName(),
 					equalTo(spatial.getLayer(tx, "test", true).getName()));
@@ -154,7 +156,7 @@ public abstract class LayerIndexTestBase {
 	@Test
 	public void shouldCreateAndFindAndDeleteIndexViaLayer() {
 		Layer layer = makeTestPointLayer();
-		LayerIndexReader index = layer.getIndex();
+		SpatialIndexReader index = layer.getIndex();
 		try (Transaction tx = graph.beginTx()) {
 			assertThat("Should find the same index", index.getLayer().getName(),
 					equalTo(spatial.getLayer(tx, "test", true).getName()));
@@ -162,7 +164,7 @@ public abstract class LayerIndexTestBase {
 					equalTo(getIndexClass()));
 		}
 		try (Transaction tx = graph.beginTx()) {
-			((SimplePointLayer)layer).delete(tx, new NullListener());
+			((SimplePointLayer) layer).delete(tx, new NullListener());
 			layer = spatial.getLayer(tx, "test", true);
 			tx.commit();
 		}
@@ -190,7 +192,7 @@ public abstract class LayerIndexTestBase {
 		try (Transaction tx = graph.beginTx()) {
 			List<GeoPipeFlow> found = layer.findClosestPointsTo(tx, new Coordinate(1.0, 1.0), 0.5);
 			assertThat("Should find one geometry node", found.size(), equalTo(1));
-			assertThat("Should find same geometry node", added.getGeomNode(), equalTo(found.get(0).getGeomNode()));
+			assertThat("Should find same geometry node", added.getGeomNode(), equalTo(found.getFirst().getGeomNode()));
 			tx.commit();
 		}
 	}
@@ -201,10 +203,10 @@ public abstract class LayerIndexTestBase {
 		addSimplePoint(index, 1.0, 1.0);
 		try (Transaction tx = graph.beginTx()) {
 			SearchResults results = index.searchIndex(tx,
-					new SearchIntersectWindow(((LayerIndexReader) index).getLayer(), new Envelope(0.0, 2.0, 0.0, 2.0)));
-			List<Node> nodes = StreamSupport.stream(results.spliterator(), false).collect(Collectors.toList());
+					new SearchIntersectWindow(index.getLayer(), new Envelope(0.0, 2.0, 0.0, 2.0)));
+			List<Node> nodes = StreamSupport.stream(results.spliterator(), false).toList();
 			assertThat("Index should contain one result", nodes.size(), equalTo(1));
-			assertThat("Should find correct Geometry", encoder.decodeGeometry(nodes.get(0)),
+			assertThat("Should find correct Geometry", encoder.decodeGeometry(nodes.getFirst()),
 					equalTo(geometryFactory.createPoint(new Coordinate(1.0, 1.0))));
 			tx.commit();
 		}
@@ -217,10 +219,10 @@ public abstract class LayerIndexTestBase {
 		addSimplePoint(index, 1.0, 1.0);
 		try (Transaction tx = graph.beginTx()) {
 			SearchResults results = index.searchIndex(tx,
-					new SearchIntersectWindow(((LayerIndexReader) index).getLayer(), new Envelope(0.0, 2.0, 0.0, 2.0)));
-			List<Node> nodes = StreamSupport.stream(results.spliterator(), false).collect(Collectors.toList());
+					new SearchIntersectWindow(index.getLayer(), new Envelope(0.0, 2.0, 0.0, 2.0)));
+			List<Node> nodes = StreamSupport.stream(results.spliterator(), false).toList();
 			assertThat("Index should contain one result", nodes.size(), equalTo(1));
-			assertThat("Should find correct Geometry", encoder.decodeGeometry(nodes.get(0)),
+			assertThat("Should find correct Geometry", encoder.decodeGeometry(nodes.getFirst()),
 					equalTo(geometryFactory.createPoint(new Coordinate(1.0, 1.0))));
 			tx.commit();
 		}

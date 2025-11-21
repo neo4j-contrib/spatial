@@ -1,0 +1,6 @@
+org.neo4j.gis.spatial.DynamicLayer
+org.neo4j.gis.spatial.EditableLayerImpl
+org.neo4j.gis.spatial.OrderedEditableLayer
+org.neo4j.gis.spatial.SimplePointLayer
+
+org.neo4j.gis.spatial.osm.OSMLayer

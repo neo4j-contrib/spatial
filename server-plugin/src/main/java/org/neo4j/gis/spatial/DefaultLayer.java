@@ -20,10 +20,6 @@
 package org.neo4j.gis.spatial;
 
 import static org.neo4j.gis.spatial.Constants.PROP_CRS;
-import static org.neo4j.gis.spatial.Constants.PROP_GEOMENCODER;
-import static org.neo4j.gis.spatial.Constants.PROP_GEOMENCODER_CONFIG;
-import static org.neo4j.gis.spatial.Constants.PROP_INDEX_CLASS;
-import static org.neo4j.gis.spatial.Constants.PROP_INDEX_CONFIG;
 import static org.neo4j.gis.spatial.Constants.PROP_LAYERNODEEXTRAPROPS;
 import static org.neo4j.gis.spatial.Constants.PROP_PREFIX_EXTRA_PROP_V2;
 import static org.neo4j.gis.spatial.Constants.PROP_TYPE;
@@ -38,8 +34,6 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
-import org.neo4j.gis.spatial.encoders.Configurable;
-import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.spatial.api.Envelope;
@@ -47,7 +41,8 @@ import org.neo4j.spatial.api.SearchFilter;
 import org.neo4j.spatial.api.SpatialDataset;
 import org.neo4j.spatial.api.encoder.GeometryEncoder;
 import org.neo4j.spatial.api.index.IndexManager;
-import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.index.SpatialIndexReader;
+import org.neo4j.spatial.api.index.SpatialIndexWriter;
 import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.spatial.geotools.common.utilities.GeotoolsAdapter;
 
@@ -60,12 +55,12 @@ import org.neo4j.spatial.geotools.common.utilities.GeotoolsAdapter;
  * You should not construct the DefaultLayer directly but use the factory methods
  * on the SpatialDatabaseService for correct initialization.
  */
-public class DefaultLayer implements Layer, InternalLayer, SpatialDataset {
+public abstract class DefaultLayer implements Layer, InternalLayer, SpatialDataset {
 
 	protected String layerNodeId = null;
 
 	// Public methods
-	protected LayerIndexReader indexReader;
+	protected SpatialIndexReader indexReader;
 	private PropertyMappingManager propertyMappingManager;
 	//private SpatialDatabaseService spatialDatabase;
 	private String name;
@@ -83,13 +78,21 @@ public class DefaultLayer implements Layer, InternalLayer, SpatialDataset {
 	}
 
 	@Override
-	public void initialize(Transaction tx, IndexManager indexManager, String name, Node layerNode, boolean readOnly) {
-		//this.spatialDatabase = spatialDatabase;
+	public void initialize(
+			Transaction tx,
+			IndexManager indexManager,
+			String name,
+			GeometryEncoder geometryEncoder,
+			SpatialIndexWriter index,
+			Node layerNode,
+			boolean readOnly
+	) {
 		this.name = name;
 		this.layerNodeId = layerNode.getElementId();
 		this.readOnly = readOnly;
 
 		this.geometryFactory = new GeometryFactory();
+		this.geometryEncoder = geometryEncoder;
 		CoordinateReferenceSystem crs = getCoordinateReferenceSystem(tx);
 		if (crs != null) {
 			// TODO: Verify this code works for general cases to read SRID from layer properties and use them to construct GeometryFactory
@@ -98,44 +101,8 @@ public class DefaultLayer implements Layer, InternalLayer, SpatialDataset {
 				this.geometryFactory = new GeometryFactory(new PrecisionModel(), code);
 			}
 		}
-
-		if (layerNode.hasProperty(PROP_GEOMENCODER)) {
-			String encoderClassName = (String) layerNode.getProperty(PROP_GEOMENCODER);
-			try {
-				this.geometryEncoder = (GeometryEncoder) Class.forName(encoderClassName).getDeclaredConstructor()
-						.newInstance();
-			} catch (Exception e) {
-				throw new SpatialDatabaseException(e);
-			}
-			if (this.geometryEncoder instanceof Configurable) {
-				if (layerNode.hasProperty(PROP_GEOMENCODER_CONFIG)) {
-					((Configurable) this.geometryEncoder).setConfiguration(
-							(String) layerNode.getProperty(PROP_GEOMENCODER_CONFIG));
-				}
-			}
-		} else {
-			this.geometryEncoder = new WKBGeometryEncoder();
-		}
 		this.geometryEncoder.init(this);
-
-		// index must be created *after* geometryEncoder
-		if (layerNode.hasProperty(PROP_INDEX_CLASS)) {
-			String indexClass = (String) layerNode.getProperty(PROP_INDEX_CLASS);
-			try {
-				Object index = Class.forName(indexClass).getDeclaredConstructor().newInstance();
-				this.indexReader = (LayerIndexReader) index;
-			} catch (Exception e) {
-				throw new SpatialDatabaseException(e);
-			}
-			if (this.indexReader instanceof Configurable) {
-				if (layerNode.hasProperty(PROP_INDEX_CONFIG)) {
-					((Configurable) this.indexReader).setConfiguration(
-							(String) layerNode.getProperty(PROP_INDEX_CONFIG));
-				}
-			}
-		} else {
-			this.indexReader = new LayerRTreeIndex();
-		}
+		this.indexReader = index;
 		this.indexReader.init(tx, indexManager, this, readOnly);
 	}
 
@@ -145,7 +112,7 @@ public class DefaultLayer implements Layer, InternalLayer, SpatialDataset {
 	}
 
 	@Override
-	public LayerIndexReader getIndex() {
+	public SpatialIndexReader getIndex() {
 		return indexReader;
 	}
 

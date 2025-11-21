@@ -19,24 +19,25 @@
  */
 package org.neo4j.spatial.api.index;
 
+import java.util.List;
+import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.spatial.api.SearchFilter;
-import org.neo4j.spatial.api.SpatialRecords;
-import org.neo4j.spatial.api.layer.Layer;
+import org.neo4j.spatial.api.Identifiable;
+import org.neo4j.spatial.api.monitoring.ProgressListener;
 
-public interface LayerIndexReader extends SpatialIndexReader {
 
-	/**
-	 * The index used by a layer is dynamically constructed from a property of the layer node. As such it needs to be
-	 * constructed with a default, no-arg constructor and then initialized with necessary parameters, such as the layer.
-	 *
-	 * @param indexManager for setting up index files on disk
-	 * @param layer        object containing and controlling this index
-	 */
-	void init(Transaction tx, IndexManager indexManager, Layer layer, boolean readOnly);
+public interface SpatialIndexWriter extends SpatialIndexReader, Identifiable {
 
-	Layer getLayer();
+	default void add(Transaction tx, Node geomNode) {
+		add(tx, List.of(geomNode));
+	}
 
-	SpatialRecords search(Transaction tx, SearchFilter filter);
+	void add(Transaction tx, List<Node> geomNodes);
+
+	void remove(Transaction tx, String geomNodeId, boolean deleteGeomNode, boolean throwExceptionIfNotFound);
+
+	void removeAll(Transaction tx, boolean deleteGeomNodes, ProgressListener monitor);
+
+	void clear(Transaction tx, ProgressListener monitor);
 
 }

@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial.encoders;
 
+import java.util.List;
 import java.util.Set;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateList;
@@ -54,6 +55,11 @@ public class SimpleGraphEncoder extends AbstractGeometryEncoder {
 			throw new SpatialDatabaseException("Cannot decode non-node geometry: " + container);
 		}
 		return (Node) container;
+	}
+
+	@Override
+	public List<String> getIdentifiers() {
+		return List.of("SimpleGraphEncoder", "org.neo4j.gis.spatial.encoders.SimpleGraphEncoder");
 	}
 
 	@Override

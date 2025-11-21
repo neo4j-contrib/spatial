@@ -14,11 +14,11 @@ a|
 [source]
 ----
 (:SpatialLayer {
-    geomencoder: "org.neo4j.gis.spatial.WKTGeometryEncoder",
+    geomencoder: "WKTGeometryEncoder",
     geomencoder_config: "wkt",
-    index_class: "org.neo4j.gis.spatial.index.LayerRTreeIndex",
+    index_type: "rtree",
     layer: "update_layer",
-    layer_class: "org.neo4j.gis.spatial.EditableLayerImpl"
+    layer_type: "EditableLayer"
 })
 ----
 

@@ -41,7 +41,7 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.spatial.api.Envelope;
 import org.neo4j.spatial.api.SpatialRecord;
 import org.neo4j.spatial.api.SpatialRecords;
-import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.index.SpatialIndexReader;
 import org.neo4j.spatial.api.layer.Layer;
 
 /**
@@ -177,9 +177,9 @@ public class TestSpatial extends Neo4jTestCase {
 			}
 			OSMDataset.fromLayer(tx, (OSMLayer) layer); // force lookup
 
-			LayerIndexReader fakeIndex = new SpatialIndexPerformanceProxy(
+			SpatialIndexReader fakeIndex = new SpatialIndexPerformanceProxy(
 					new FakeIndex(layer, spatial.indexManager, SpatialDatabaseRecord::new));
-			LayerIndexReader rtreeIndex = new SpatialIndexPerformanceProxy(layer.getIndex());
+			SpatialIndexReader rtreeIndex = new SpatialIndexPerformanceProxy(layer.getIndex());
 
 			LOGGER.fine("RTreeIndex bounds: " + rtreeIndex.getBoundingBox(tx));
 			LOGGER.fine("FakeIndex bounds: " + fakeIndex.getBoundingBox(tx));
@@ -197,7 +197,7 @@ public class TestSpatial extends Neo4jTestCase {
 						+ " inside search region");
 			}
 
-			for (LayerIndexReader index : new LayerIndexReader[]{rtreeIndex, fakeIndex}) {
+			for (SpatialIndexReader index : new SpatialIndexReader[]{rtreeIndex, fakeIndex}) {
 				ArrayList<TestGeometry> foundData = new ArrayList<>();
 
 				SearchIntersect searchQuery = new SearchIntersect(layer,

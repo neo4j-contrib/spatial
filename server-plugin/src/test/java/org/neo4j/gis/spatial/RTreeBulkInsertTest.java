@@ -66,6 +66,7 @@ import org.neo4j.gis.spatial.index.ExplicitIndexBackedPointIndex;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
 import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
+import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.gis.spatial.index.LayerZOrderPointIndex;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
@@ -85,7 +86,6 @@ import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.spatial.api.Envelope;
 import org.neo4j.spatial.api.encoder.GeometryEncoder;
-import org.neo4j.spatial.api.index.LayerIndexReader;
 import org.neo4j.spatial.api.index.SpatialIndexReader;
 import org.neo4j.spatial.api.layer.EditableLayer;
 import org.neo4j.spatial.api.layer.Layer;
@@ -1202,7 +1202,7 @@ public class RTreeBulkInsertTest {
 			System.out.println("Building a Tree with " + i + " nodes");
 			try (Transaction tx = db.beginTx()) {
 
-				RTreeIndex rtree = new RTreeIndex();
+				RTreeIndex rtree = new LayerRTreeIndex();
 				rtree.init(tx, tx.createNode(), encoder, DEFAULT_MAX_NODE_REFERENCES, true);
 				List<Node> coords = new ArrayList<>(i);
 				for (int j = 0; j < i; j++) {
@@ -1524,17 +1524,17 @@ public class RTreeBulkInsertTest {
 	}
 
 	private static void verifyGeohashIndex(Layer layer) {
-		LayerIndexReader index = layer.getIndex();
+		SpatialIndexReader index = layer.getIndex();
 		assertInstanceOf(LayerGeohashPointIndex.class, index, "Index should be a geohash index");
 	}
 
 	private static void verifyHilbertIndex(Layer layer) {
-		LayerIndexReader index = layer.getIndex();
+		SpatialIndexReader index = layer.getIndex();
 		assertInstanceOf(LayerHilbertPointIndex.class, index, "Index should be a hilbert index");
 	}
 
 	private static void verifyZOrderIndex(Layer layer) {
-		LayerIndexReader index = layer.getIndex();
+		SpatialIndexReader index = layer.getIndex();
 		assertInstanceOf(LayerZOrderPointIndex.class, index, "Index should be a Z-Order index");
 	}
 
