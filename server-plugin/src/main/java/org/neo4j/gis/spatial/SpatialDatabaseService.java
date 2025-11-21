@@ -20,12 +20,12 @@
 package org.neo4j.gis.spatial;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ServiceLoader;
+import java.util.TreeMap;
 import java.util.logging.Logger;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
-import org.geotools.referencing.crs.AbstractCRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.LineString;
@@ -36,14 +36,11 @@ import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.gis.spatial.encoders.NativePointEncoder;
-import org.neo4j.gis.spatial.encoders.NativePointsEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
 import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.gis.spatial.index.LayerZOrderPointIndex;
-import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
-import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.utilities.LayerUtilities;
 import org.neo4j.gis.spatial.utilities.ReferenceNodes;
 import org.neo4j.graphdb.Direction;
@@ -56,6 +53,8 @@ import org.neo4j.spatial.api.index.IndexManager;
 import org.neo4j.spatial.api.index.LayerIndexReader;
 import org.neo4j.spatial.api.layer.EditableLayer;
 import org.neo4j.spatial.api.layer.Layer;
+import org.neo4j.spatial.api.layer.LayerTypePresets;
+import org.neo4j.spatial.api.layer.LayerTypePresets.RegisteredLayerType;
 import org.neo4j.spatial.api.monitoring.ProgressListener;
 
 /**
@@ -67,35 +66,19 @@ import org.neo4j.spatial.api.monitoring.ProgressListener;
 public class SpatialDatabaseService implements Constants {
 
 	private static final Logger LOGGER = Logger.getLogger(SpatialDatabaseService.class.getName());
-	private static final Map<String, RegisteredLayerType> registeredLayerTypes = new LinkedHashMap<>();
+	private static final Map<String, RegisteredLayerType> registeredLayerPresets = new TreeMap<>();
 
 	static {
-		addRegisteredLayerType(new RegisteredLayerType("SimplePoint", SimplePointEncoder.class,
-				SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "longitude:latitude"));
-		addRegisteredLayerType(new RegisteredLayerType("Geohash", SimplePointEncoder.class,
-				SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerGeohashPointIndex.class,
-				"longitude:latitude"));
-		addRegisteredLayerType(new RegisteredLayerType("ZOrder", SimplePointEncoder.class,
-				SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerZOrderPointIndex.class, "longitude:latitude"));
-		addRegisteredLayerType(new RegisteredLayerType("Hilbert", SimplePointEncoder.class,
-				SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerHilbertPointIndex.class,
-				"longitude:latitude"));
-		addRegisteredLayerType(new RegisteredLayerType("NativePoint", NativePointEncoder.class,
-				SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "location"));
-		addRegisteredLayerType(new RegisteredLayerType("NativePoints", NativePointsEncoder.class,
-				EditableLayerImpl.class, DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "geometry"));
-		addRegisteredLayerType(new RegisteredLayerType("NativeGeohash", NativePointEncoder.class,
-				SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerGeohashPointIndex.class, "location"));
-		addRegisteredLayerType(new RegisteredLayerType("NativeZOrder", NativePointEncoder.class,
-				SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerZOrderPointIndex.class, "location"));
-		addRegisteredLayerType(new RegisteredLayerType("NativeHilbert", NativePointEncoder.class,
-				SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerHilbertPointIndex.class, "location"));
-		addRegisteredLayerType(new RegisteredLayerType("WKT", WKTGeometryEncoder.class, EditableLayerImpl.class,
-				DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "geometry"));
-		addRegisteredLayerType(new RegisteredLayerType("WKB", WKBGeometryEncoder.class, EditableLayerImpl.class,
-				DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "geometry"));
-		addRegisteredLayerType(new RegisteredLayerType("OSM", OSMGeometryEncoder.class, OSMLayer.class,
-				DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "geometry"));
+		ServiceLoader.load(LayerTypePresets.class).forEach(layerPresets -> {
+			layerPresets.getLayerTypePresets().forEach(preset -> {
+				String key = preset.typeName().toLowerCase();
+				if (registeredLayerPresets.containsKey(key)) {
+					LOGGER.warning(
+							"Duplicate layer type preset detected: " + key + " - overwriting previous registration");
+				}
+				registeredLayerPresets.put(key, preset);
+			});
+		});
 	}
 
 	public final IndexManager indexManager;
@@ -181,20 +164,16 @@ public class SpatialDatabaseService implements Constants {
 		return GTYPE_GEOMETRY;
 	}
 
-	private static void addRegisteredLayerType(RegisteredLayerType type) {
-		registeredLayerTypes.put(type.typeName.toLowerCase(), type);
-	}
-
 	public static Map<String, String> getRegisteredLayerTypes() {
-		Map<String, String> results = new LinkedHashMap<>();
-		registeredLayerTypes.forEach((s, definition) -> results.put(s, definition.getSignature()));
+		Map<String, String> results = new TreeMap<>();
+		registeredLayerPresets.forEach((s, definition) -> results.put(s, definition.getSignature()));
 		return results;
 	}
 
 	public static Class<? extends Layer> suggestLayerClassForEncoder(Class<? extends GeometryEncoder> encoderClass) {
-		for (RegisteredLayerType type : registeredLayerTypes.values()) {
-			if (type.geometryEncoder == encoderClass) {
-				return type.layerClass;
+		for (RegisteredLayerType type : registeredLayerPresets.values()) {
+			if (type.geometryEncoder() == encoderClass) {
+				return type.layerClass();
 			}
 		}
 		return EditableLayerImpl.class;
@@ -497,52 +476,15 @@ public class SpatialDatabaseService implements Constants {
 
 	public Layer getOrCreateRegisteredTypeLayer(Transaction tx, String name, String type, String encoderConfig,
 			String indexConfig, boolean readOnly) {
-		RegisteredLayerType registeredLayerType = registeredLayerTypes.get(type.toLowerCase());
+		RegisteredLayerType registeredLayerType = registeredLayerPresets.get(type.toLowerCase());
 		return getOrCreateRegisteredTypeLayer(tx, name, registeredLayerType, encoderConfig, indexConfig, readOnly);
 	}
 
 
 	public Layer getOrCreateRegisteredTypeLayer(Transaction tx, String name, RegisteredLayerType registeredLayerType,
 			String encoderConfig, String indexConfig, boolean readOnly) {
-		return getOrCreateLayer(tx, name, registeredLayerType.geometryEncoder, registeredLayerType.layerClass,
-				(encoderConfig == null) ? registeredLayerType.defaultConfig : encoderConfig, indexConfig, readOnly);
+		return getOrCreateLayer(tx, name, registeredLayerType.geometryEncoder(), registeredLayerType.layerClass(),
+				(encoderConfig == null) ? registeredLayerType.defaultConfig() : encoderConfig, indexConfig, readOnly);
 	}
 
-	/**
-	 * Support mapping a String (ex: 'SimplePoint') to the respective GeometryEncoder and Layer classes
-	 * to allow for more streamlined method for creating Layers
-	 * This was added to help support Spatial Cypher project.
-	 */
-	public static class RegisteredLayerType {
-
-		final String typeName;
-		final Class<? extends GeometryEncoder> geometryEncoder;
-		final Class<? extends Layer> layerClass;
-		final Class<? extends LayerIndexReader> layerIndexClass;
-		final String defaultConfig;
-		final org.geotools.referencing.crs.AbstractCRS crs;
-
-		RegisteredLayerType(String typeName, Class<? extends GeometryEncoder> geometryEncoder,
-				Class<? extends Layer> layerClass, AbstractCRS crs,
-				Class<? extends LayerIndexReader> layerIndexClass, String defaultConfig) {
-			this.typeName = typeName;
-			this.geometryEncoder = geometryEncoder;
-			this.layerClass = layerClass;
-			this.layerIndexClass = layerIndexClass;
-			this.crs = crs;
-			this.defaultConfig = defaultConfig;
-		}
-
-		/**
-		 * For external expression of the configuration of this geometry encoder
-		 *
-		 * @return descriptive signature of encoder, type and configuration
-		 */
-		String getSignature() {
-			return "RegisteredLayerType(name='" + typeName + "', geometryEncoder=" +
-					geometryEncoder.getSimpleName() + ", layerClass=" + layerClass.getSimpleName() +
-					", index=" + layerIndexClass.getSimpleName() +
-					", crs='" + crs.getName(null) + "', defaultConfig='" + defaultConfig + "')";
-		}
-	}
 }
