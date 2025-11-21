@@ -30,6 +30,12 @@ import org.neo4j.spatial.api.index.LayerIndexReader;
  * layer configurations, referred to as layer-type presets. These presets define
  * mappings between layer types and their corresponding properties, components
  * and behaviors.
+ *
+ * <p>Implementations are discovered via {@link java.util.ServiceLoader} and must
+ * be registered in META-INF/services/org.neo4j.spatial.api.layer.LayerTypePresets.
+ * All registered presets from all implementations are combined into a single registry.
+ * If multiple implementations define presets with the same type name (case-insensitive),
+ * the last one loaded will override earlier registrations.</p>
  */
 public interface LayerTypePresets {
 

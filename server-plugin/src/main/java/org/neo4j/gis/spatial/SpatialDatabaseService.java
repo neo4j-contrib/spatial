@@ -71,7 +71,12 @@ public class SpatialDatabaseService implements Constants {
 	static {
 		ServiceLoader.load(LayerTypePresets.class).forEach(layerPresets -> {
 			layerPresets.getLayerTypePresets().forEach(preset -> {
-				registeredLayerPresets.put(preset.typeName().toLowerCase(), preset);
+				String key = preset.typeName().toLowerCase();
+				if (registeredLayerPresets.containsKey(key)) {
+					LOGGER.warning(
+							"Duplicate layer type preset detected: " + key + " - overwriting previous registration");
+				}
+				registeredLayerPresets.put(key, preset);
 			});
 		});
 	}
