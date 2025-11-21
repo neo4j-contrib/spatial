@@ -26,7 +26,10 @@
 
 	<modules>
 		<module>api</module>
+		<module>geotools-common</module>
+		<module>geotools-plugin</module>
 		<module>server-plugin</module>
+		<module>cli-tools</module>
 	</modules>
 
 	<scm>

@@ -40,7 +40,6 @@ import org.locationtech.jts.geom.PrecisionModel;
 import org.neo4j.gis.spatial.attributes.PropertyMappingManager;
 import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
-import org.neo4j.gis.spatial.utilities.GeotoolsAdapter;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.spatial.api.Envelope;
@@ -50,6 +49,7 @@ import org.neo4j.spatial.api.encoder.GeometryEncoder;
 import org.neo4j.spatial.api.index.IndexManager;
 import org.neo4j.spatial.api.index.LayerIndexReader;
 import org.neo4j.spatial.api.layer.Layer;
+import org.neo4j.spatial.geotools.common.utilities.GeotoolsAdapter;
 
 /**
  * Instances of Layer provide the ability for developers to query geometries associated with a single dataset (or

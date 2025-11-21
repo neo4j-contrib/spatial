@@ -49,7 +49,6 @@ import java.util.stream.StreamSupport;
 import org.apache.commons.io.FileUtils;
 import org.geotools.api.feature.simple.SimpleFeatureType;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
-import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.referencing.crs.DefaultEngineeringCRS;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
@@ -61,6 +60,7 @@ import org.locationtech.jts.geom.Geometry;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
+import org.neo4j.gis.spatial.feature.Neo4jServerFeatureBuilder;
 import org.neo4j.gis.spatial.index.ExplicitIndexBackedMonitor;
 import org.neo4j.gis.spatial.index.ExplicitIndexBackedPointIndex;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
@@ -951,7 +951,7 @@ public class RTreeBulkInsertTest {
 		RTreeIndex rtree = (RTreeIndex) layer.getIndex();
 		RTreeImageExporter imageExporter;
 		try (Transaction tx = db.beginTx()) {
-			SimpleFeatureType featureType = Neo4jFeatureBuilder.getTypeFromLayer(tx, layer);
+			SimpleFeatureType featureType = Neo4jServerFeatureBuilder.getTypeFromLayer(tx, layer);
 			imageExporter = new RTreeImageExporter(layer.getGeometryFactory(), layer.getGeometryEncoder(),
 					layer.getCoordinateReferenceSystem(tx), featureType, rtree);
 			imageExporter.initialize(tx, new Coordinate(0.0, 0.0), new Coordinate(1.0, 1.0));
@@ -1062,7 +1062,7 @@ public class RTreeBulkInsertTest {
 		RTreeIndex rtree = (RTreeIndex) layer.getIndex();
 		RTreeImageExporter imageExporter;
 		try (Transaction tx = db.beginTx()) {
-			SimpleFeatureType featureType = Neo4jFeatureBuilder.getTypeFromLayer(tx, layer);
+			SimpleFeatureType featureType = Neo4jServerFeatureBuilder.getTypeFromLayer(tx, layer);
 			imageExporter = new RTreeImageExporter(layer.getGeometryFactory(), layer.getGeometryEncoder(),
 					layer.getCoordinateReferenceSystem(tx), featureType, rtree);
 			imageExporter.initialize(tx, new Coordinate(0.0, 0.0), new Coordinate(1.0, 1.0));

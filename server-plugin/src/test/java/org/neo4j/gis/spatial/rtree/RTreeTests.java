@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.logging.Logger;
 import org.geotools.api.feature.simple.SimpleFeatureType;
-import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -37,6 +36,7 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
+import org.neo4j.gis.spatial.feature.Neo4jServerFeatureBuilder;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.spatial.api.Envelope;
@@ -62,7 +62,8 @@ public class RTreeTests {
 			tx.commit();
 		}
 		if (exportImages) {
-			SimpleFeatureType featureType = Neo4jFeatureBuilder.getType("test", Constants.GTYPE_POINT, null, false,
+			SimpleFeatureType featureType = Neo4jServerFeatureBuilder.getType("test", Constants.GTYPE_POINT, null,
+					false,
 					Collections.emptyMap());
 			imageExporter = new RTreeImageExporter(new GeometryFactory(), new SimplePointEncoder(), null, featureType,
 					rtree);

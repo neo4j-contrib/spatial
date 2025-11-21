@@ -27,7 +27,6 @@ import java.util.NoSuchElementException;
 import java.util.Set;
 import org.geotools.api.feature.simple.SimpleFeature;
 import org.geotools.api.feature.simple.SimpleFeatureType;
-import org.geotools.data.neo4j.Neo4jFeatureBuilder;
 import org.geotools.feature.FeatureCollection;
 import org.geotools.feature.collection.AbstractFeatureCollection;
 import org.geotools.filter.text.cql2.CQLException;
@@ -37,6 +36,7 @@ import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.util.AffineTransformation;
 import org.neo4j.gis.spatial.SpatialTopologyUtils;
+import org.neo4j.gis.spatial.feature.Neo4jServerFeatureBuilder;
 import org.neo4j.gis.spatial.filter.SearchCQL;
 import org.neo4j.gis.spatial.filter.SearchIntersectWindow;
 import org.neo4j.gis.spatial.pipes.filtering.FilterCQL;
@@ -832,12 +832,12 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 
 	public FeatureCollection<SimpleFeatureType, SimpleFeature> toStreamingFeatureCollection(final Transaction tx,
 			final Envelope bounds) {
-		return toStreamingFeatureCollection(tx, Neo4jFeatureBuilder.getTypeFromLayer(tx, layer), bounds);
+		return toStreamingFeatureCollection(tx, Neo4jServerFeatureBuilder.getTypeFromLayer(tx, layer), bounds);
 	}
 
 	public FeatureCollection<SimpleFeatureType, SimpleFeature> toStreamingFeatureCollection(final Transaction tx,
 			SimpleFeatureType featureType, final Envelope bounds) {
-		final Neo4jFeatureBuilder featureBuilder = Neo4jFeatureBuilder.fromLayer(tx, layer);
+		final Neo4jServerFeatureBuilder featureBuilder = Neo4jServerFeatureBuilder.fromLayer(tx, layer);
 		return new AbstractFeatureCollection(featureType) {
 			@Override
 			public int size() {
@@ -872,7 +872,7 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 	}
 
 	public FeatureCollection<SimpleFeatureType, SimpleFeature> toFeatureCollection(final Transaction tx) {
-		return toFeatureCollection(tx, Neo4jFeatureBuilder.getTypeFromLayer(tx, layer));
+		return toFeatureCollection(tx, Neo4jServerFeatureBuilder.getTypeFromLayer(tx, layer));
 	}
 
 	public FeatureCollection<SimpleFeatureType, SimpleFeature> toFeatureCollection(final Transaction tx,
@@ -891,7 +891,8 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 		final Iterator<GeoPipeFlow> recordsIterator = records.iterator();
 		final ReferencedEnvelope refBounds = new ReferencedEnvelope(bounds, layer.getCoordinateReferenceSystem(tx));
 
-		final Neo4jFeatureBuilder featureBuilder = new Neo4jFeatureBuilder(featureType, layer.getExtraProperties(tx));
+		final Neo4jServerFeatureBuilder featureBuilder = new Neo4jServerFeatureBuilder(featureType,
+				layer.getExtraProperties(tx));
 		return new AbstractFeatureCollection(featureType) {
 			@Override
 			public int size() {

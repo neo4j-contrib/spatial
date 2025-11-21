@@ -29,7 +29,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.logging.Logger;
 import org.geotools.api.data.DataStore;
-import org.geotools.data.neo4j.Neo4jSpatialDataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
 import org.junit.jupiter.api.Assertions;
 import org.locationtech.jts.geom.Envelope;
@@ -52,6 +51,7 @@ import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.spatial.api.SpatialRecord;
 import org.neo4j.spatial.api.layer.Layer;
+import org.neo4j.spatial.geotools.plugin.Neo4jSpatialDataStore;
 
 public class TestOSMImportBase extends Neo4jTestCase {
 

@@ -1,75 +1,94 @@
 [[spatial-geoserver]]
-= Neo4j Spatial Geoserver Plugin
+= Neo4j Spatial in GeoServer
 
-[IMPORTANT]
-Tested with: GeoServer 2.1.1
+Neo4j Spatial provides built-in support for GeoTools data store, making it directly usable inside GeoServer for publishing and visualizing spatial data.
 
-[[spatial-geoserver-building]]
-== Building
+== Prerequisites
 
-----
-mvn clean install
-----
+* GeoServer (download from http://geoserver.org)
+* Neo4j database with Neo4j Spatial plugin
+* Neo4j Spatial layers configured in your database
 
-[[spatial-geoserver-deployment]]
-== Deployment into Geoserver
+== Installation and Setup
 
-* unzip the +target/xxxx-server-plugin.zip+ into $GEOSERVER_HOME/webapps/geoserver/WEB-INF/lib
-
-* restart geoserver
-
-* configure a new workspace
-
-* configure a new datasource neo4j in your workspace. Point the "The directory path of the Neo4j database:" parameter to the relative (form the GeoServer working dir) or aboslute path to a Neo4j Spatial database with layers (see https://github.com/neo4j/spatial[Neo4j Spatial])
-
-* in Layers, do "Add new resource" and choose your Neo4j datastore to see the exisitng Neo4j Spatial layers and add them.
-
-[[spatial-geoserver-trunk]]
-== Testing in GeoServer trunk
-
-* check out the geoserver source
+=== Building the Plugin
 
 ----
-svn co https://svn.codehaus.org/geoserver/trunk geoserver-trunk
+mvn clean package
 ----
 
-* build the source
+=== Deployment
 
+. Copy the `neo4j-spatial-geotools-plugin-xxx-SNAPSHOT-with-dependencies.jar` from:
+
+  * Option A: `geotools-plugin/target/`
+  * Option B: the https://github.com/neo4j-contrib/spatial/releases[GitHub releases page]
+
++
+into `$GEOSERVER_HOME/webapps/geoserver/WEB-INF/lib`
+. Restart GeoServer
+. Open the GeoServer admin interface at http://localhost:8080/geoserver/web/
+
+=== Configuration
+
+==== Create Workspace
+. Login to GeoServer (default: admin/geoserver)
+. Create a new workspace for your Neo4j data
+
+==== Add Data Source
+. Go to 'Stores' → 'Add new Store'
++
+image::Geoserver-1-logged-in.png[]
+. Select 'Neo4j' under Vector Data Sources
++
+image::Geoserver-2-add-new-store.png[]
+. Configure the Neo4j connection:
++
+image::Geoserver-3-configure-store.png[]
+   * *Database URI*: Connection string to your Neo4j database
+   * *Username/Password*: Neo4j credentials
+
+==== Publish Layers
+. Go to 'Layers' → 'Add new layer'
+. Choose your Neo4j datastore
+. Select a layer by clicking 'Publish'
++
+image::Geoserver-4-publish-layer.png[]
+. Configure layer settings:
+   * Click 'Compute from data' for a native bounding box
+   * Click 'Compute from native bounds' for a Lat/Lon bounding box
+. Save the layer
+
+== Usage
+
+=== Preview Layers
+* Single layer: Go to 'Layer Preview' → select layer → 'OpenLayers'
+
+== Development Testing
+
+For testing with GeoServer source code:
+
+. Check out GeoServer source
+. Add Neo4j profile to `src/web/app/pom.xml`:
++
+[source,xml,subs="attributes+"]
 ----
-cd geoserver-trunk
-mvn clean install
+<profile>
+  <id>neo4j</id>
+  <dependencies>
+    <dependency>
+      <groupId>org.neo4j</groupId>
+      <artifactId>neo4j-spatial-geotools-plugin</artifactId>
+      <version>{docs-version}</version>
+    </dependency>
+  </dependencies>
+</profile>
 ----
 
-* check that you can run the web app as of http://docs.geoserver.org/latest/en/developer/maven-guide/index.html#running-the-web-module-with-jetty[The GeoServer Maven build guide]
-
+. Run with profile:
++
+[source,shell]
 ----
 cd src/web/app
-mvn jetty:run
-----
-
-* in $GEOSERVER_SOURCE/src/web/app/pom.xml (https://svn.codehaus.org/geoserver/trunk/src/web/app/pom.xml), add the following lines under the profiles section:
-
-----
-    <profile>
-      <id>neo4j</id>
-      <dependencies>
-        <dependency>
-          <groupId>org.neo4j</groupId>
-          <artifactId>neo4j-spatial</artifactId>
-          <version>0.7-SNAPSHOT</version>
-        </dependency>
-      </dependencies>
-    </profile>
-----
-
-* start the GeoServer webapp again with the added neo4j profile
-
-----
-cd $GEOSERVER_SRC/src/web/app
 mvn jetty:run -Pneo4j
 ----
-
-* find Neo4j installed as a datasource under http://localhost:8080
-
-
-For more info head over to http://wiki.neo4j.org/content/Neo4j_Spatial_in_GeoServer[Neo4j Wiki on Geoserver]
