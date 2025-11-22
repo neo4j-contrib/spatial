@@ -26,6 +26,7 @@ import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.spatial.api.EnvelopeDecoder;
+import org.neo4j.spatial.api.Identifiable;
 import org.neo4j.spatial.api.layer.Layer;
 
 
@@ -49,7 +50,7 @@ import org.neo4j.spatial.api.layer.Layer;
  * created from it, and the Layer will create an instance of the required GeometryEncoder, which in
  * turn should be capable of reading and writing all Geometries supported by that Layer.
  */
-public interface GeometryEncoder extends EnvelopeDecoder {
+public interface GeometryEncoder extends EnvelopeDecoder, Identifiable {
 
 	/**
 	 * When accessing an existing layer, the Layer is constructed from a single node in the graph

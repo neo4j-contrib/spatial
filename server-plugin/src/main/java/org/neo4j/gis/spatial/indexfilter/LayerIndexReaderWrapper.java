@@ -28,8 +28,8 @@ import org.neo4j.spatial.api.SearchFilter;
 import org.neo4j.spatial.api.SearchResults;
 import org.neo4j.spatial.api.SpatialRecords;
 import org.neo4j.spatial.api.index.IndexManager;
-import org.neo4j.spatial.api.index.LayerIndexReader;
 import org.neo4j.spatial.api.index.LayerTreeIndexReader;
+import org.neo4j.spatial.api.index.SpatialIndexReader;
 import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.spatial.api.monitoring.TreeMonitor;
 
@@ -42,7 +42,7 @@ import org.neo4j.spatial.api.monitoring.TreeMonitor;
  * only specific methods. For example, override the executeSearch method with a
  * modification to the search parameter.
  */
-public class LayerIndexReaderWrapper implements LayerIndexReader {
+public class LayerIndexReaderWrapper implements SpatialIndexReader {
 
 	protected final LayerTreeIndexReader index;
 

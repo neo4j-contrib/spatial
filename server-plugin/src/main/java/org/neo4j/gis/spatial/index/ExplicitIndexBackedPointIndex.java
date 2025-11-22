@@ -36,7 +36,7 @@ import org.neo4j.spatial.api.SearchFilter;
 import org.neo4j.spatial.api.SearchResults;
 import org.neo4j.spatial.api.SpatialRecords;
 import org.neo4j.spatial.api.index.IndexManager;
-import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.index.SpatialIndexWriter;
 import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.spatial.api.monitoring.ProgressListener;
 import org.neo4j.spatial.api.monitoring.TreeMonitor;
@@ -55,7 +55,7 @@ import org.neo4j.spatial.api.monitoring.TreeMonitor;
  *
  * @param <E> either a String or a Long depending on whether the index is geohash or space-filling curve.
  */
-public abstract class ExplicitIndexBackedPointIndex<E> implements LayerIndexReader, SpatialIndexWriter {
+public abstract class ExplicitIndexBackedPointIndex<E> implements SpatialIndexWriter {
 
 	protected Layer layer;
 	private PropertyEncodingNodeIndex<E> index;

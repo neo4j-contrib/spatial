@@ -221,7 +221,6 @@ a|
 [source]
 ----
 {
-  "type" : "GeometryCollection",
   "geometries" : [ {
     "coordinates" : [ 40.0, 10.0 ],
     "type" : "Point"
@@ -231,7 +230,8 @@ a|
   }, {
     "coordinates" : [ [ [ 40.0, 40.0 ], [ 20.0, 45.0 ], [ 45.0, 30.0 ], [ 40.0, 40.0 ] ] ],
     "type" : "Polygon"
-  } ]
+  } ],
+  "type" : "GeometryCollection"
 }
 ----
 

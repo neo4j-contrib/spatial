@@ -35,14 +35,14 @@ import org.neo4j.spatial.api.SpatialRecord;
 import org.neo4j.spatial.api.SpatialRecords;
 import org.neo4j.spatial.api.encoder.GeometryEncoder;
 import org.neo4j.spatial.api.index.IndexManager;
-import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.index.SpatialIndexReader;
 import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.spatial.api.monitoring.TreeMonitor;
 
 /**
  * An in-memory index used for comparative benchmarking and testing
  */
-public class FakeIndex implements LayerIndexReader {
+public class FakeIndex implements SpatialIndexReader {
 
 	private final BiFunction<Layer, Node, SpatialRecord> searchRecordsProducer;
 

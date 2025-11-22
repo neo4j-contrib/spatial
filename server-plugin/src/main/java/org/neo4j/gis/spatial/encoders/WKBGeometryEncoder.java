@@ -17,17 +17,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial;
+package org.neo4j.gis.spatial.encoders;
 
+import java.util.List;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKBReader;
 import org.locationtech.jts.io.WKBWriter;
-import org.neo4j.gis.spatial.encoders.AbstractSinglePropertyEncoder;
+import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.Transaction;
 
 public class WKBGeometryEncoder extends AbstractSinglePropertyEncoder {
+
+	@Override
+	public List<String> getIdentifiers() {
+		return List.of("WKBGeometryEncoder", "org.neo4j.gis.spatial.encoders.WKBGeometryEncoder");
+	}
 
 	@Override
 	public Geometry decodeGeometry(Entity container) {

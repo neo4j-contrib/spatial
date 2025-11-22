@@ -23,7 +23,7 @@ package org.neo4j.spatial.api.layer;
 import java.util.List;
 import org.geotools.referencing.crs.AbstractCRS;
 import org.neo4j.spatial.api.encoder.GeometryEncoder;
-import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.index.SpatialIndexWriter;
 
 /**
  * Interface that provides a mechanism for managing a collection of predefined
@@ -50,21 +50,10 @@ public interface LayerTypePresets {
 			Class<? extends GeometryEncoder> geometryEncoder,
 			Class<? extends Layer> layerClass,
 			AbstractCRS crs,
-			Class<? extends LayerIndexReader> layerIndexClass,
-			String defaultConfig
+			Class<? extends SpatialIndexWriter> layerIndexClass,
+			String defaultEncoderConfig
 	) {
 
-		/**
-		 * For external expression of the configuration of this geometry encoder
-		 *
-		 * @return descriptive signature of encoder, type and configuration
-		 */
-		public String getSignature() {
-			return "RegisteredLayerType(name='" + typeName + "', geometryEncoder=" +
-					geometryEncoder.getSimpleName() + ", layerClass=" + layerClass.getSimpleName() +
-					", index=" + layerIndexClass.getSimpleName() +
-					", crs='" + crs.getName(null) + "', defaultConfig='" + defaultConfig + "')";
-		}
 	}
 
 }

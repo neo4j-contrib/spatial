@@ -25,10 +25,12 @@ import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.Identifiable;
 import org.neo4j.spatial.api.SpatialDataset;
 import org.neo4j.spatial.api.encoder.GeometryEncoder;
 import org.neo4j.spatial.api.index.IndexManager;
-import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.index.SpatialIndexReader;
+import org.neo4j.spatial.api.index.SpatialIndexWriter;
 
 
 /**
@@ -39,15 +41,16 @@ import org.neo4j.spatial.api.index.LayerIndexReader;
  * layer, the layer itself is the dataset. See the class DefaultLayer for the standard
  * implementation of that pattern.
  */
-public interface Layer {
+public interface Layer extends Identifiable {
 
 	/**
 	 * The layer is constructed from metadata in the layer node, which requires that the layer have
 	 * a no-argument constructor. The real initialization of the layer is then performed by calling
 	 * this method. The layer implementation can store the passed parameters for later use
-	 * satisfying the prupose of the layer API (see other Layer methods).
+	 * satisfying the purpose of the layer API (see other Layer methods).
 	 */
-	void initialize(Transaction tx, IndexManager indexManager, String name, Node layerNode, boolean readOnly);
+	void initialize(Transaction tx, IndexManager indexManager, String name, GeometryEncoder geometryEncoder,
+			SpatialIndexWriter index, Node layerNode, boolean readOnly);
 
 	/**
 	 * Every layer using a specific implementation of the SpatialIndexReader and SpatialIndexWriter
@@ -55,7 +58,7 @@ public interface Layer {
 	 *
 	 * @return the SpatialIndexReader used to perform searches on the data in the layer
 	 */
-	LayerIndexReader getIndex();
+	SpatialIndexReader getIndex();
 
 	GeometryFactory getGeometryFactory();
 

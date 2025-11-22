@@ -19,14 +19,22 @@
  */
 package org.neo4j.gis.spatial.index;
 
+import static org.neo4j.gis.spatial.Constants.INDEX_TYPE_ZORDER;
+
+import java.util.List;
 import org.neo4j.gis.spatial.index.curves.SpaceFillingCurve;
 import org.neo4j.gis.spatial.index.curves.ZOrderSpaceFillingCurve2D;
 
 public class LayerZOrderPointIndex extends LayerSpaceFillingCurvePointIndex {
 
 	@Override
+	public List<String> getIdentifiers() {
+		return List.of(INDEX_TYPE_ZORDER, "org.neo4j.gis.spatial.index.LayerZOrderPointIndex");
+	}
+
+	@Override
 	protected String indexTypeName() {
-		return "zorder";
+		return INDEX_TYPE_ZORDER;
 	}
 
 	@Override

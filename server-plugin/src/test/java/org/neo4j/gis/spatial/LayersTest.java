@@ -56,7 +56,7 @@ import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.spatial.api.SpatialRecord;
 import org.neo4j.spatial.api.encoder.GeometryEncoder;
-import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.index.SpatialIndexWriter;
 import org.neo4j.spatial.api.layer.EditableLayer;
 import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.spatial.cli.tools.ShapefileExporter;
@@ -104,7 +104,7 @@ public class LayersTest extends Neo4jTestCase {
 		testPointLayer(LayerGeohashPointIndex.class, NativePointEncoder.class);
 	}
 
-	private void testPointLayer(Class<? extends LayerIndexReader> indexClass,
+	private void testPointLayer(Class<? extends SpatialIndexWriter> indexClass,
 			Class<? extends GeometryEncoder> encoderClass) {
 		String layerName = "points";
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
@@ -162,7 +162,7 @@ public class LayersTest extends Neo4jTestCase {
 				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
 			EditableLayer layer = (EditableLayer) spatial.createLayer(tx, layerName, encoderClass,
-					EditableLayerImpl.class, null, null, null);
+					EditableLayerImpl.class, LayerRTreeIndex.class, null, null);
 			assertNotNull(layer);
 		});
 		inTx(tx -> {

@@ -21,6 +21,7 @@ package org.neo4j.gis.spatial;
 
 import static org.neo4j.gis.spatial.utilities.TraverserFactory.createTraverserInBackwardsCompatibleWay;
 
+import java.util.List;
 import java.util.Map;
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.graphdb.Direction;
@@ -49,6 +50,11 @@ public class OrderedEditableLayer extends EditableLayerImpl {
 
 	enum OrderedRelationshipTypes implements RelationshipType {
 		GEOMETRIES, NEXT_GEOM
+	}
+
+	@Override
+	public List<String> getIdentifiers() {
+		return List.of("OrderedEditableLayer", "org.neo4j.gis.spatial.OrderedEditableLayer");
 	}
 
 	@Override

@@ -167,10 +167,10 @@ a|
 [source]
 ----
 (:SpatialLayer {
-    geomencoder: "org.neo4j.gis.spatial.encoders.SimplePointEncoder",
-    index_class: "org.neo4j.gis.spatial.index.LayerRTreeIndex",
+    geomencoder: "SimplePointEncoder",
+    index_type: "rtree",
     layer: "count_layer",
-    layer_class: "org.neo4j.gis.spatial.SimplePointLayer"
+    layer_type: "SimplePointLayer"
 })
 ----
 

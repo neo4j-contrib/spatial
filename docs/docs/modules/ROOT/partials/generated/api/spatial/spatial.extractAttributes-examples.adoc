@@ -21,9 +21,9 @@ a|
 [source]
 ----
 {
-  "name" : "test_wkt_point",
   "category" : "marker",
-  "id" : 42
+  "id" : 42,
+  "name" : "test_wkt_point"
 }
 ----
 
@@ -52,8 +52,8 @@ a|
 [source]
 ----
 {
-  "name" : "test_point",
   "elevation" : 100,
+  "name" : "test_point",
   "type" : "landmark"
 }
 ----

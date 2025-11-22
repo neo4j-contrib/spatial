@@ -1,32 +1,41 @@
-=== Using both functions together
+=== Decode a geometry from a node property
 
+.Create a WKT layer
 [source,cypher]
 ----
-CALL spatial.addPointLayer('combined_layer') YIELD node
-WITH node
-CREATE (n:Point {longitude: 5.5, latitude: 45.5, city: 'TestCity', population: 50000})
-WITH n
-CALL spatial.addNode('combined_layer', n) YIELD node as added_node
-WITH n
-RETURN
-	spatial.decodeGeometry('combined_layer', n) as geometry,
-	spatial.extractAttributes('combined_layer', n) as attributes
-
+CALL spatial.addWKTLayer('geom','geom')
 ----
 
 .Result
 
-[opts="header",cols="2"]
+[opts="header",cols="1"]
 |===
-|attributes|geometry
+|node
 a|
 [source]
 ----
-{
-  "city" : "TestCity",
-  "population" : 50000
-}
+(:SpatialLayer {
+    geomencoder: "WKTGeometryEncoder",
+    geomencoder_config: "geom",
+    index_type: "rtree",
+    layer: "geom",
+    layer_type: "EditableLayer"
+})
 ----
-|point({x: 5.5, y: 45.5, crs: 'cartesian'})
+
+|===
+
+.Decode a geometry
+[source,cypher]
+----
+CREATE (n:Node {geom:'POINT(4.0 5.0)'}) RETURN spatial.decodeGeometry('geom',n) AS geometry
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|geometry
+|point({x: 4.0, y: 5.0, crs: 'cartesian'})
 |===
 

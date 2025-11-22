@@ -21,10 +21,7 @@ package org.neo4j.gis.spatial;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.ServiceLoader;
-import java.util.TreeMap;
-import java.util.logging.Logger;
+import javax.annotation.Nonnull;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.locationtech.jts.geom.Geometry;
@@ -34,13 +31,13 @@ import org.locationtech.jts.geom.MultiPoint;
 import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
-import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.gis.spatial.encoders.NativePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
-import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
-import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
+import org.neo4j.gis.spatial.encoders.WKBGeometryEncoder;
+import org.neo4j.gis.spatial.encoders.WKTGeometryEncoder;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
-import org.neo4j.gis.spatial.index.LayerZOrderPointIndex;
+import org.neo4j.gis.spatial.utilities.IndexRegistry;
+import org.neo4j.gis.spatial.utilities.LayerTypePresetRegistry;
 import org.neo4j.gis.spatial.utilities.LayerUtilities;
 import org.neo4j.gis.spatial.utilities.ReferenceNodes;
 import org.neo4j.graphdb.Direction;
@@ -50,10 +47,9 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.spatial.api.SpatialRecord;
 import org.neo4j.spatial.api.encoder.GeometryEncoder;
 import org.neo4j.spatial.api.index.IndexManager;
-import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.index.SpatialIndexWriter;
 import org.neo4j.spatial.api.layer.EditableLayer;
 import org.neo4j.spatial.api.layer.Layer;
-import org.neo4j.spatial.api.layer.LayerTypePresets;
 import org.neo4j.spatial.api.layer.LayerTypePresets.RegisteredLayerType;
 import org.neo4j.spatial.api.monitoring.ProgressListener;
 
@@ -64,22 +60,6 @@ import org.neo4j.spatial.api.monitoring.ProgressListener;
  * through the layer instance which interprets the GIS functions in terms of the underlying model.
  */
 public class SpatialDatabaseService implements Constants {
-
-	private static final Logger LOGGER = Logger.getLogger(SpatialDatabaseService.class.getName());
-	private static final Map<String, RegisteredLayerType> registeredLayerPresets = new TreeMap<>();
-
-	static {
-		ServiceLoader.load(LayerTypePresets.class).forEach(layerPresets -> {
-			layerPresets.getLayerTypePresets().forEach(preset -> {
-				String key = preset.typeName().toLowerCase();
-				if (registeredLayerPresets.containsKey(key)) {
-					LOGGER.warning(
-							"Duplicate layer type preset detected: " + key + " - overwriting previous registration");
-				}
-				registeredLayerPresets.put(key, preset);
-			});
-		});
-	}
 
 	public final IndexManager indexManager;
 
@@ -93,19 +73,6 @@ public class SpatialDatabaseService implements Constants {
 			throw new IllegalStateException(
 					"Old reference node exists - please upgrade the spatial database to the new format");
 		}
-	}
-
-	public static Class<? extends LayerIndexReader> resolveIndexClass(String index) {
-		if (index == null) {
-			return LayerRTreeIndex.class;
-		}
-		return switch (index.toLowerCase()) {
-			case INDEX_TYPE_RTREE -> LayerRTreeIndex.class;
-			case INDEX_TYPE_GEOHASH -> LayerGeohashPointIndex.class;
-			case INDEX_TYPE_ZORDER -> LayerZOrderPointIndex.class;
-			case INDEX_TYPE_HILBERT -> LayerHilbertPointIndex.class;
-			default -> throw new IllegalArgumentException("Unknown index: " + index);
-		};
 	}
 
 	public static String makeEncoderConfig(String... args) {
@@ -162,21 +129,6 @@ public class SpatialDatabaseService implements Constants {
 			return GTYPE_MULTIPOLYGON;
 		}
 		return GTYPE_GEOMETRY;
-	}
-
-	public static Map<String, String> getRegisteredLayerTypes() {
-		Map<String, String> results = new TreeMap<>();
-		registeredLayerPresets.forEach((s, definition) -> results.put(s, definition.getSignature()));
-		return results;
-	}
-
-	public static Class<? extends Layer> suggestLayerClassForEncoder(Class<? extends GeometryEncoder> encoderClass) {
-		for (RegisteredLayerType type : registeredLayerPresets.values()) {
-			if (type.geometryEncoder() == encoderClass) {
-				return type.layerClass();
-			}
-		}
-		return EditableLayerImpl.class;
 	}
 
 	public List<String> upgradeFromOldModel(Transaction tx) {
@@ -279,7 +231,7 @@ public class SpatialDatabaseService implements Constants {
 			return (DynamicLayer) layer;
 		}
 		Node node = layer.getLayerNode(tx);
-		node.setProperty(PROP_LAYER_CLASS, DynamicLayer.class.getCanonicalName());
+		node.setProperty(PROP_LAYER_TYPE, DynamicLayer.class.getCanonicalName());
 		return (DynamicLayer) LayerUtilities.makeLayerFromNode(tx, indexManager, node, layer.isReadOnly());
 	}
 
@@ -305,20 +257,34 @@ public class SpatialDatabaseService implements Constants {
 
 	public EditableLayer getOrCreateSimplePointLayer(Transaction tx, String name, String index, String xProperty,
 			String yProperty, String indexConfig, boolean readOnly) {
-		return getOrCreatePointLayer(tx, name, resolveIndexClass(index), SimplePointEncoder.class, indexConfig,
+		return getOrCreatePointLayer(tx, name, IndexRegistry.INSTANCE.getRegisteredIndices().get(index),
+				SimplePointEncoder.class, indexConfig,
 				readOnly, xProperty,
 				yProperty);
 	}
 
-	public EditableLayer getOrCreateNativePointLayer(Transaction tx, String name, String index,
-			String locationProperty, String indexConfig, boolean readOnly) {
-		return getOrCreatePointLayer(tx, name, resolveIndexClass(index), SimplePointEncoder.class, indexConfig,
+	public EditableLayer getOrCreateNativePointLayer(
+			@Nonnull Transaction tx,
+			@Nonnull String name,
+			@Nonnull String index,
+			String locationProperty,
+			String indexConfig,
+			boolean readOnly
+	) {
+		return getOrCreatePointLayer(tx, name, IndexRegistry.INSTANCE.getRegisteredIndices().get(index),
+				SimplePointEncoder.class, indexConfig,
 				readOnly, locationProperty);
 	}
 
-	public EditableLayer getOrCreatePointLayer(Transaction tx, String name,
-			Class<? extends LayerIndexReader> indexClass, Class<? extends GeometryEncoder> encoderClass,
-			String indexConfig, boolean readOnly, String... encoderConfig) {
+	public EditableLayer getOrCreatePointLayer(
+			@Nonnull Transaction tx,
+			@Nonnull String name,
+			@Nonnull Class<? extends SpatialIndexWriter> indexClass,
+			@Nonnull Class<? extends GeometryEncoder> encoderClass,
+			String indexConfig,
+			boolean readOnly,
+			String... encoderConfig
+	) {
 		Layer layer = getLayer(tx, name, readOnly);
 		if (layer == null) {
 			return (EditableLayer) createLayer(tx, name, encoderClass, SimplePointLayer.class, indexClass,
@@ -335,7 +301,8 @@ public class SpatialDatabaseService implements Constants {
 			Class<? extends Layer> layerClass, String encoderConfig, String indexConfig, boolean readOnly) {
 		Layer layer = getLayer(tx, name, readOnly);
 		if (layer == null) {
-			layer = createLayer(tx, name, geometryEncoder, layerClass, null, encoderConfig, indexConfig);
+			layer = createLayer(tx, name, geometryEncoder, layerClass, LayerRTreeIndex.class, encoderConfig,
+					indexConfig);
 		} else if (!(layerClass == null || layerClass.isInstance(layer))) {
 			throw new SpatialDatabaseException(
 					"Existing layer '" + layer + "' is not of the expected type: " + layerClass);
@@ -376,21 +343,35 @@ public class SpatialDatabaseService implements Constants {
 				encoderConfig);
 	}
 
-	public SimplePointLayer createPointLayer(Transaction tx, String name, Class<? extends LayerIndexReader> indexClass,
-			Class<? extends GeometryEncoder> encoderClass, String indexConfig, String... encoderConfig
+	public SimplePointLayer createPointLayer(
+			@Nonnull Transaction tx,
+			@Nonnull String name,
+			@Nonnull Class<? extends SpatialIndexWriter> indexClass,
+			@Nonnull Class<? extends GeometryEncoder> encoderClass,
+			String indexConfig,
+			String... encoderConfig
 	) {
 		return (SimplePointLayer) createLayer(tx, name, encoderClass, SimplePointLayer.class, indexClass,
 				makeEncoderConfig(encoderConfig), indexConfig, org.geotools.referencing.crs.DefaultGeographicCRS.WGS84
 		);
 	}
 
-	public Layer createLayer(Transaction tx, String name, Class<? extends GeometryEncoder> geometryEncoderClass,
-			Class<? extends Layer> layerClass, String indexConfig) {
-		return createLayer(tx, name, geometryEncoderClass, layerClass, null, null, indexConfig);
+	public Layer createLayer(
+			@Nonnull Transaction tx,
+			@Nonnull String name,
+			@Nonnull Class<? extends GeometryEncoder> geometryEncoderClass,
+			@Nonnull Class<? extends Layer> layerClass,
+			String indexConfig
+	) {
+		return createLayer(tx, name, geometryEncoderClass, layerClass, LayerRTreeIndex.class, null, indexConfig);
 	}
 
-	public Layer createLayer(Transaction tx, String name, Class<? extends GeometryEncoder> geometryEncoderClass,
-			Class<? extends Layer> layerClass, Class<? extends LayerIndexReader> indexClass,
+	public Layer createLayer(
+			@Nonnull Transaction tx,
+			@Nonnull String name,
+			@Nonnull Class<? extends GeometryEncoder> geometryEncoderClass,
+			@Nonnull Class<? extends Layer> layerClass,
+			@Nonnull Class<? extends SpatialIndexWriter> indexClass,
 			String encoderConfig,
 			String indexConfig
 	) {
@@ -398,11 +379,12 @@ public class SpatialDatabaseService implements Constants {
 		);
 	}
 
-	public Layer createLayer(Transaction tx,
-			String name,
-			Class<? extends GeometryEncoder> geometryEncoderClass,
-			Class<? extends Layer> layerClass,
-			Class<? extends LayerIndexReader> indexClass,
+	public Layer createLayer(
+			@Nonnull Transaction tx,
+			@Nonnull String name,
+			@Nonnull Class<? extends GeometryEncoder> geometryEncoderClass,
+			@Nonnull Class<? extends Layer> layerClass,
+			@Nonnull Class<? extends SpatialIndexWriter> indexClass,
 			String encoderConfig,
 			String indexConfig,
 			CoordinateReferenceSystem crs
@@ -411,29 +393,8 @@ public class SpatialDatabaseService implements Constants {
 			throw new SpatialDatabaseException("Layer " + name + " already exists");
 		}
 
-		Layer layer = LayerUtilities.makeLayerAndNode(tx, indexManager, name, geometryEncoderClass, layerClass,
-				indexClass, false);
-		if (encoderConfig != null && !encoderConfig.isEmpty()) {
-			GeometryEncoder encoder = layer.getGeometryEncoder();
-			if (encoder instanceof Configurable) {
-				((Configurable) encoder).setConfiguration(encoderConfig);
-				layer.getLayerNode(tx).setProperty(PROP_GEOMENCODER_CONFIG, encoderConfig);
-			} else {
-				LOGGER.warning(
-						"Warning: encoder configuration '" + encoderConfig + "' passed to non-configurable encoder: "
-								+ geometryEncoderClass);
-			}
-		}
-		if (indexConfig != null && !indexConfig.isEmpty()) {
-			LayerIndexReader index = layer.getIndex();
-			if (index instanceof Configurable) {
-				((Configurable) index).setConfiguration(indexConfig);
-				layer.getLayerNode(tx).setProperty(PROP_INDEX_CONFIG, indexConfig);
-			} else {
-				LOGGER.warning("Warning: index configuration '" + indexConfig + "' passed to non-configurable index: "
-						+ indexClass);
-			}
-		}
+		var layer = LayerUtilities.makeLayerAndNode(tx, indexManager, name, geometryEncoderClass, encoderConfig,
+				layerClass, indexClass, indexConfig);
 		if (crs != null && layer instanceof EditableLayer) {
 			((EditableLayer) layer).setCoordinateReferenceSystem(tx, crs);
 		}
@@ -476,7 +437,10 @@ public class SpatialDatabaseService implements Constants {
 
 	public Layer getOrCreateRegisteredTypeLayer(Transaction tx, String name, String type, String encoderConfig,
 			String indexConfig, boolean readOnly) {
-		RegisteredLayerType registeredLayerType = registeredLayerPresets.get(type.toLowerCase());
+		RegisteredLayerType registeredLayerType = LayerTypePresetRegistry.INSTANCE.getRegisteredLayerType(type);
+		if (registeredLayerType == null) {
+			throw new SpatialDatabaseException("Unknown layer type: " + type);
+		}
 		return getOrCreateRegisteredTypeLayer(tx, name, registeredLayerType, encoderConfig, indexConfig, readOnly);
 	}
 
@@ -484,7 +448,7 @@ public class SpatialDatabaseService implements Constants {
 	public Layer getOrCreateRegisteredTypeLayer(Transaction tx, String name, RegisteredLayerType registeredLayerType,
 			String encoderConfig, String indexConfig, boolean readOnly) {
 		return getOrCreateLayer(tx, name, registeredLayerType.geometryEncoder(), registeredLayerType.layerClass(),
-				(encoderConfig == null) ? registeredLayerType.defaultConfig() : encoderConfig, indexConfig, readOnly);
+				(encoderConfig == null) ? registeredLayerType.defaultEncoderConfig() : encoderConfig, indexConfig, readOnly);
 	}
 
 }

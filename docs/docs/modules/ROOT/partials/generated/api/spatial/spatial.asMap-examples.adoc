@@ -14,8 +14,8 @@ a|
 [source]
 ----
 {
-  "type" : "Point",
-  "coordinate" : [ 4.0, 5.0 ]
+  "coordinate" : [ 4.0, 5.0 ],
+  "type" : "Point"
 }
 ----
 

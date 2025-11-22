@@ -33,6 +33,11 @@ public class SimplePointLayer extends EditableLayerImpl {
 
 	public static final int LIMIT_RESULTS = 100;
 
+	@Override
+	public List<String> getIdentifiers() {
+		return List.of("SimplePointLayer", "org.neo4j.gis.spatial.SimplePointLayer");
+	}
+
 	public SpatialDatabaseRecord add(Transaction tx, Coordinate coordinate) {
 		return add(tx, coordinate, null);
 	}

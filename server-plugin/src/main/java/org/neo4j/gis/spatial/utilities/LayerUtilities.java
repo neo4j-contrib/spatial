@@ -19,53 +19,95 @@
  */
 package org.neo4j.gis.spatial.utilities;
 
-import java.lang.reflect.InvocationTargetException;
-import org.neo4j.gis.spatial.Constants;
-import org.neo4j.gis.spatial.SpatialDatabaseException;
+import static org.neo4j.gis.spatial.Constants.LABEL_LAYER;
+import static org.neo4j.gis.spatial.Constants.PROP_GEOMENCODER;
+import static org.neo4j.gis.spatial.Constants.PROP_GEOMENCODER_CONFIG;
+import static org.neo4j.gis.spatial.Constants.PROP_INDEX_CLASS;
+import static org.neo4j.gis.spatial.Constants.PROP_INDEX_CONFIG;
+import static org.neo4j.gis.spatial.Constants.PROP_INDEX_TYPE;
+import static org.neo4j.gis.spatial.Constants.PROP_LAYER;
+import static org.neo4j.gis.spatial.Constants.PROP_LAYER_CLASS;
+import static org.neo4j.gis.spatial.Constants.PROP_LAYER_TYPE;
+
+import javax.annotation.Nonnull;
+import org.neo4j.gis.spatial.EditableLayerImpl;
+import org.neo4j.gis.spatial.encoders.Configurable;
+import org.neo4j.gis.spatial.encoders.WKBGeometryEncoder;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.spatial.api.encoder.GeometryEncoder;
 import org.neo4j.spatial.api.index.IndexManager;
-import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.index.SpatialIndexWriter;
 import org.neo4j.spatial.api.layer.Layer;
 
 /**
  * Utilities for creating layers from nodes.
  */
-public class LayerUtilities implements Constants {
+public class LayerUtilities {
 
 	/**
 	 * Factory method to construct a layer from an existing layerNode. This will read the layer
 	 * class from the layer node properties and construct the correct class from that.
 	 *
-	 * @return new layer instance from existing layer node
+	 * @return new layer instance from the existing layer node
 	 */
-	@SuppressWarnings("unchecked")
 	public static Layer makeLayerFromNode(
-			Transaction tx,
-			IndexManager indexManager,
-			Node layerNode,
+			@Nonnull Transaction tx,
+			@Nonnull IndexManager indexManager,
+			@Nonnull Node layerNode,
 			boolean readOnly
 	) {
-		try {
-			String name = (String) layerNode.getProperty(PROP_LAYER);
-			if (name == null) {
-				throw new IllegalArgumentException(
-						"Node is not a layer node, it has no " + PROP_LAYER + " property: " + layerNode);
-			}
-
-			String className = null;
-			if (layerNode.hasProperty(PROP_LAYER_CLASS)) {
-				className = (String) layerNode.getProperty(PROP_LAYER_CLASS);
-			}
-
-			Class<? extends Layer> layerClass =
-					className == null ? Layer.class : (Class<? extends Layer>) Class.forName(className);
-			return makeLayerInstance(tx, indexManager, name, layerNode, layerClass, readOnly);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
+		String name = (String) layerNode.getProperty(PROP_LAYER);
+		if (name == null) {
+			throw new IllegalArgumentException(
+					"Node is not a layer node, it has no " + PROP_LAYER + " property: " + layerNode);
 		}
+
+		// init the geometry encoder
+		GeometryEncoder encoder;
+		if (layerNode.hasProperty(PROP_GEOMENCODER)) {
+			String encoderName = (String) layerNode.getProperty(PROP_GEOMENCODER);
+			encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(encoderName,
+					(String) layerNode.getProperty(PROP_GEOMENCODER_CONFIG, null));
+		} else {
+			encoder = new WKBGeometryEncoder();
+		}
+
+		// init the layer
+		Layer layer;
+		if (layerNode.hasProperty(PROP_LAYER_TYPE)) {
+			String layerName = (String) layerNode.getProperty(PROP_LAYER_TYPE);
+			layer = LayerRegistry.INSTANCE.constructLayer(layerName);
+		} else if (layerNode.hasProperty(PROP_LAYER_CLASS)) {
+			String layerName = (String) layerNode.getProperty(PROP_LAYER_CLASS);
+			layer = LayerRegistry.INSTANCE.constructLayer(layerName);
+			if (!readOnly) {
+				layerNode.setProperty(PROP_LAYER_TYPE, layer.getIdentifier());
+			}
+		} else {
+			layer = new EditableLayerImpl();
+		}
+
+		// init the index
+		SpatialIndexWriter indexWriter;
+		String indexConfig = (String) layerNode.getProperty(PROP_INDEX_CONFIG, null);
+		if (layerNode.hasProperty(PROP_INDEX_TYPE)) {
+			String indexName = (String) layerNode.getProperty(PROP_INDEX_TYPE);
+			indexWriter = IndexRegistry.INSTANCE.constructIndex(indexName, indexConfig);
+		} else  if (layerNode.hasProperty(PROP_INDEX_CLASS)) {
+			String indexName = (String) layerNode.getProperty(PROP_INDEX_CLASS);
+			indexWriter = IndexRegistry.INSTANCE.constructIndex(indexName, indexConfig);
+			if (!readOnly) {
+				layerNode.setProperty(PROP_INDEX_TYPE, indexWriter.getIdentifier());
+			}
+		} else {
+			indexWriter = new LayerRTreeIndex();
+		}
+
+		layer.initialize(tx, indexManager, name, encoder, indexWriter, layerNode, readOnly);
+
+		return layer;
 	}
 
 	/**
@@ -74,46 +116,43 @@ public class LayerUtilities implements Constants {
 	 *
 	 * @return new Layer instance based on newly created layer Node
 	 */
-	public static Layer makeLayerAndNode(
-			Transaction tx,
-			IndexManager indexManager,
-			String name,
-			Class<? extends GeometryEncoder> geometryEncoderClass,
-			Class<? extends Layer> layerClass,
-			Class<? extends LayerIndexReader> indexClass,
-			boolean readOnly
+	public static <L extends Layer> L makeLayerAndNode(
+			@Nonnull Transaction tx,
+			@Nonnull IndexManager indexManager,
+			@Nonnull String name,
+			@Nonnull Class<? extends GeometryEncoder> geometryEncoderClass,
+			String encoderConfig,
+			@Nonnull Class<L> layerClass,
+			@Nonnull Class<? extends SpatialIndexWriter> indexClass,
+			String indexConfig
 	) {
-		try {
-			if (indexClass == null) {
-				indexClass = LayerRTreeIndex.class;
-			}
-			Node layerNode = tx.createNode();
-			layerNode.addLabel(LABEL_LAYER);
-			layerNode.setProperty(PROP_LAYER, name);
-			layerNode.setProperty(PROP_GEOMENCODER, geometryEncoderClass.getCanonicalName());
-			layerNode.setProperty(PROP_INDEX_CLASS, indexClass.getCanonicalName());
-			layerNode.setProperty(PROP_LAYER_CLASS, layerClass.getCanonicalName());
-			return makeLayerInstance(tx, indexManager, name, layerNode, layerClass, false);
-		} catch (Exception e) {
-			throw new SpatialDatabaseException(e);
-		}
-	}
+		Node layerNode = tx.createNode();
+		layerNode.addLabel(LABEL_LAYER);
+		layerNode.setProperty(PROP_LAYER, name);
 
-	private static Layer makeLayerInstance(
-			Transaction tx,
-			IndexManager indexManager,
-			String name,
-			Node layerNode,
-			Class<? extends Layer> layerClass,
-			boolean readOnly
-	)
-			throws InstantiationException, IllegalAccessException, NoSuchMethodException, InvocationTargetException {
-		if (layerClass == null) {
-			layerClass = Layer.class;
+		// init the geometry encoder
+		GeometryEncoder encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(
+				geometryEncoderClass,
+				encoderConfig);
+		layerNode.setProperty(PROP_GEOMENCODER, encoder.getIdentifier());
+		if (encoderConfig != null && !encoderConfig.isEmpty() && encoder instanceof Configurable) {
+			layerNode.setProperty(PROP_GEOMENCODER_CONFIG, encoderConfig);
 		}
-		Layer layer = layerClass.getDeclaredConstructor().newInstance();
-		layer.initialize(tx, indexManager, name, layerNode, readOnly);
+
+		// init the layer
+		L layer = LayerRegistry.INSTANCE.constructLayer(layerClass);
+		layerNode.setProperty(PROP_LAYER_TYPE, layer.getIdentifier());
+
+		// init the index
+		SpatialIndexWriter index = IndexRegistry.INSTANCE.constructIndex(indexClass, indexConfig);
+		layerNode.setProperty(PROP_INDEX_TYPE, index.getIdentifier());
+		if (indexConfig != null && !indexConfig.isEmpty() && index instanceof Configurable) {
+			layerNode.setProperty(PROP_INDEX_CONFIG, indexConfig);
+		}
+
+		layer.initialize(tx, indexManager, name, encoder, index, layerNode, false);
+
 		return layer;
-	}
 
+	}
 }

@@ -26,6 +26,8 @@ import org.neo4j.spatial.api.Envelope;
 import org.neo4j.spatial.api.EnvelopeDecoder;
 import org.neo4j.spatial.api.SearchFilter;
 import org.neo4j.spatial.api.SearchResults;
+import org.neo4j.spatial.api.SpatialRecords;
+import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.spatial.api.monitoring.TreeMonitor;
 
 public interface SpatialIndexReader {
@@ -50,4 +52,17 @@ public interface SpatialIndexReader {
 
 	default void finalizeTransaction(Transaction tx) {
 	}
+
+	/**
+	 * The index used by a layer is dynamically constructed from a property of the layer node. As such it needs to be
+	 * constructed with a default, no-arg constructor and then initialized with necessary parameters, such as the layer.
+	 *
+	 * @param indexManager for setting up index files on disk
+	 * @param layer        object containing and controlling this index
+	 */
+	void init(Transaction tx, IndexManager indexManager, Layer layer, boolean readOnly);
+
+	Layer getLayer();
+
+	SpatialRecords search(Transaction tx, SearchFilter filter);
 }

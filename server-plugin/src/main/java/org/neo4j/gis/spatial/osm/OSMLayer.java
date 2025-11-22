@@ -24,6 +24,7 @@ import static org.neo4j.gis.spatial.Constants.GTYPE_LINESTRING;
 import static org.neo4j.gis.spatial.Constants.PROP_TYPE;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
@@ -49,6 +50,11 @@ public class OSMLayer extends DynamicLayer {
 	private static final Logger LOGGER = Logger.getLogger(OSMLayer.class.getName());
 
 	private OSMDataset osmDataset;
+
+	@Override
+	public List<String> getIdentifiers() {
+		return List.of("OSMLayer", "org.neo4j.gis.spatial.osm.OSMLayer");
+	}
 
 	@Override
 	public SpatialDataset getDataset() {

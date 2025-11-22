@@ -20,12 +20,13 @@
 package org.neo4j.gis.spatial.rtree;
 
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
+import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.spatial.api.Envelope;
 import org.neo4j.spatial.api.monitoring.TreeMonitor.NodeWithEnvelope;
 
-public class TestRTreeIndex extends RTreeIndex {
+public class TestRTreeIndex extends LayerRTreeIndex {
 
 	// TODO: Rather pass tx into init after construction (bad pattern to pass tx to constructor, as if it will be saved)
 	public TestRTreeIndex(Transaction tx) {

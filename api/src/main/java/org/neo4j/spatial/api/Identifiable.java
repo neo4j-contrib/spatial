@@ -17,27 +17,27 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.index;
+
+package org.neo4j.spatial.api;
 
 import java.util.List;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Transaction;
-import org.neo4j.spatial.api.index.SpatialIndexReader;
-import org.neo4j.spatial.api.monitoring.ProgressListener;
 
+public interface Identifiable {
 
-public interface SpatialIndexWriter extends SpatialIndexReader {
+	/**
+	 * A list of identifiers for this Identifiable used for lookup. The size of the list must be at least one.
+	 * The 1st entry is the default identifier used in new references (e.g. Layers), all other entries are aliases used
+	 * for backwards compatibility.
+	 *
+	 * @return the identifiers
+	 */
+	List<String> getIdentifiers();
 
-	default void add(Transaction tx, Node geomNode) {
-		add(tx, List.of(geomNode));
+	/**
+	 * @return the default identifier used in new references
+	 */
+	default String getIdentifier() {
+		return getIdentifiers().getFirst();
 	}
-
-	void add(Transaction tx, List<Node> geomNodes);
-
-	void remove(Transaction tx, String geomNodeId, boolean deleteGeomNode, boolean throwExceptionIfNotFound);
-
-	void removeAll(Transaction tx, boolean deleteGeomNodes, ProgressListener monitor);
-
-	void clear(Transaction tx, ProgressListener monitor);
 
 }

@@ -48,7 +48,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.spatial.api.SpatialRecord;
-import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.index.SpatialIndexReader;
 import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.spatial.cli.tools.ShapefileExporter;
 import org.neo4j.spatial.geotools.plugin.Neo4jSpatialDataStore;
@@ -152,7 +152,7 @@ public class TestsForDocs extends Neo4jTestCase {
 				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		try (Transaction tx = database.beginTx()) {
 			Layer layer = spatial.getLayer(tx, "map.osm", true);
-			LayerIndexReader spatialIndex = layer.getIndex();
+			SpatialIndexReader spatialIndex = layer.getIndex();
 			LOGGER.fine("Have " + spatialIndex.count(tx) + " geometries in " + spatialIndex.getBoundingBox(tx));
 
 			Envelope bbox = new Envelope(12.94, 12.96, 56.04, 56.06);
@@ -214,7 +214,7 @@ public class TestsForDocs extends Neo4jTestCase {
 		List<SpatialRecord> results;
 		try (Transaction tx = database.beginTx()) {
 			Layer layer = spatial.getLayer(tx, "map.osm", true);
-			LayerIndexReader spatialIndex = layer.getIndex();
+			SpatialIndexReader spatialIndex = layer.getIndex();
 			LOGGER.fine("Have " + spatialIndex.count(tx) + " geometries in " + spatialIndex.getBoundingBox(tx));
 
 			results = GeoPipeline

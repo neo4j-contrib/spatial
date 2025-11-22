@@ -14,10 +14,10 @@ a|
 [source]
 ----
 (:SpatialLayer {
-    geomencoder: "org.neo4j.gis.spatial.encoders.NativePointEncoder",
-    index_class: "org.neo4j.gis.spatial.index.LayerRTreeIndex",
+    geomencoder: "NativePointEncoder",
+    index_type: "rtree",
     layer: "my-native-rtree-layer",
-    layer_class: "org.neo4j.gis.spatial.SimplePointLayer"
+    layer_type: "SimplePointLayer"
 })
 ----
 

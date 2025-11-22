@@ -14,10 +14,10 @@ a|
 [source]
 ----
 (:SpatialLayer {
-    geomencoder: "org.neo4j.gis.spatial.encoders.NativePointEncoder",
-    index_class: "org.neo4j.gis.spatial.index.LayerHilbertPointIndex",
+    geomencoder: "NativePointEncoder",
+    index_type: "hilbert",
     layer: "my-native-hilbert-layer",
-    layer_class: "org.neo4j.gis.spatial.SimplePointLayer",
+    layer_type: "SimplePointLayer",
     layercrs: "GEOGCS[\"WGS84(DD)\", \n  DATUM[\"WGS84\", \n    SPHEROID[\"WGS84\", 6378137.0, 298.257223563]], \n  PRIMEM[\"Greenwich\", 0.0], \n  UNIT[\"degree\", 0.017453292519943295], \n  AXIS[\"Geodetic longitude\", EAST], \n  AXIS[\"Geodetic latitude\", NORTH], \n  AUTHORITY[\"EPSG\",\"4326\"]]"
 })
 ----

@@ -28,18 +28,18 @@ import org.neo4j.spatial.api.SearchFilter;
 import org.neo4j.spatial.api.SearchResults;
 import org.neo4j.spatial.api.SpatialRecords;
 import org.neo4j.spatial.api.index.IndexManager;
-import org.neo4j.spatial.api.index.LayerIndexReader;
+import org.neo4j.spatial.api.index.SpatialIndexReader;
 import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.spatial.api.monitoring.TreeMonitor;
 
 /**
  * A proxy wrapping the normal spatial index for the purpose of performance measurements.
  */
-public class SpatialIndexPerformanceProxy implements LayerIndexReader {
+public class SpatialIndexPerformanceProxy implements SpatialIndexReader {
 
-	private final LayerIndexReader spatialIndex;
+	private final SpatialIndexReader spatialIndex;
 
-	public SpatialIndexPerformanceProxy(LayerIndexReader spatialIndex) {
+	public SpatialIndexPerformanceProxy(SpatialIndexReader spatialIndex) {
 		this.spatialIndex = spatialIndex;
 	}
 

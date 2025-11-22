@@ -14,10 +14,10 @@ a|
 [source]
 ----
 (:SpatialLayer {
-    geomencoder: "org.neo4j.gis.spatial.encoders.NativePointEncoder",
-    index_class: "org.neo4j.gis.spatial.index.LayerRTreeIndex",
+    geomencoder: "NativePointEncoder",
+    index_type: "rtree",
     layer: "geom",
-    layer_class: "org.neo4j.gis.spatial.SimplePointLayer"
+    layer_type: "SimplePointLayer"
 })
 ----
 
@@ -43,11 +43,11 @@ a|
 [source]
 ----
 (:SpatialLayer {
-    geomencoder: "org.neo4j.gis.spatial.encoders.NativePointEncoder",
+    geomencoder: "NativePointEncoder",
     geomencoder_config: "pos:mbr",
-    index_class: "org.neo4j.gis.spatial.index.LayerRTreeIndex",
+    index_type: "rtree",
     layer: "geom",
-    layer_class: "org.neo4j.gis.spatial.SimplePointLayer"
+    layer_type: "SimplePointLayer"
 })
 ----
 
@@ -73,11 +73,11 @@ a|
 [source]
 ----
 (:SpatialLayer {
-    geomencoder: "org.neo4j.gis.spatial.encoders.NativePointEncoder",
+    geomencoder: "NativePointEncoder",
     geomencoder_config: "pos:mbr:Cartesian",
-    index_class: "org.neo4j.gis.spatial.index.LayerRTreeIndex",
+    index_type: "rtree",
     layer: "geom",
-    layer_class: "org.neo4j.gis.spatial.SimplePointLayer"
+    layer_type: "SimplePointLayer"
 })
 ----
 
@@ -99,10 +99,10 @@ a|
 [source]
 ----
 (:SpatialLayer {
-    geomencoder: "org.neo4j.gis.spatial.encoders.SimplePointEncoder",
-    index_class: "org.neo4j.gis.spatial.index.LayerRTreeIndex",
+    geomencoder: "SimplePointEncoder",
+    index_type: "rtree",
     layer: "geom",
-    layer_class: "org.neo4j.gis.spatial.SimplePointLayer"
+    layer_type: "SimplePointLayer"
 })
 ----
 
@@ -129,11 +129,11 @@ a|
 [source]
 ----
 (:SpatialLayer {
-    geomencoder: "org.neo4j.gis.spatial.encoders.SimplePointEncoder",
+    geomencoder: "SimplePointEncoder",
     geomencoder_config: "x:y:mbr",
-    index_class: "org.neo4j.gis.spatial.index.LayerRTreeIndex",
+    index_type: "rtree",
     layer: "geom",
-    layer_class: "org.neo4j.gis.spatial.SimplePointLayer"
+    layer_type: "SimplePointLayer"
 })
 ----
 

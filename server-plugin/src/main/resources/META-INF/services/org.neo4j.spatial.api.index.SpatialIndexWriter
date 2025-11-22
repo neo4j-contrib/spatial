@@ -1,0 +1,4 @@
+org.neo4j.gis.spatial.index.LayerGeohashPointIndex
+org.neo4j.gis.spatial.index.LayerHilbertPointIndex
+org.neo4j.gis.spatial.index.LayerRTreeIndex
+org.neo4j.gis.spatial.index.LayerZOrderPointIndex
