@@ -16,7 +16,7 @@
 		"@antora/site-generator-default": "^3.1.14"
 	},
 	"devDependencies": {
-		"express": "^5.1.0",
+		"express": "^5.2.0",
 		"npm-watch": "^0.13.0"
 	},
 	"watch": {
