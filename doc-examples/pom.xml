@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  ~ Copyright (c) "Neo4j"
+  ~ Neo4j Sweden AB [http://neo4j.com]
+  ~
+  ~ This file is part of Neo4j Spatial.
+  ~
+  ~ Neo4j is free software: you can redistribute it and/or modify
+  ~ it under the terms of the GNU General Public License as published by
+  ~ the Free Software Foundation, either version 3 of the License, or
+  ~ (at your option) any later version.
+  ~
+  ~ This program is distributed in the hope that it will be useful,
+  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~ GNU General Public License for more details.
+  ~
+  ~ You should have received a copy of the GNU General Public License
+  ~ along with this program. If not, see <http://www.gnu.org/licenses/>.
+  -->
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>org.neo4j</groupId>
+		<artifactId>neo4j-spatial</artifactId>
+		<version>2025.10.1-SNAPSHOT</version>
+	</parent>
+
+	<artifactId>neo4j-spatial-doc-examples</artifactId>
+
+	<dependencies>
+		<dependency>
+			<groupId>info.picocli</groupId>
+			<artifactId>picocli</artifactId>
+			<version>4.7.7</version>
+		</dependency>
+		<dependency>
+			<groupId>org.neo4j</groupId>
+			<artifactId>neo4j-spatial-test-utils</artifactId>
+			<version>2025.10.1-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>org.neo4j</groupId>
+			<artifactId>neo4j-spatial-cli-tools</artifactId>
+			<version>2025.10.1-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>org.neo4j</groupId>
+			<artifactId>neo4j-spatial-server-plugin</artifactId>
+			<version>2025.10.1-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>org.neo4j</groupId>
+			<artifactId>neo4j-kernel-test-utils</artifactId>
+			<version>${neo4j.version}</version>
+		</dependency>
+	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>exec-maven-plugin</artifactId>
+				<version>3.6.2</version>
+				<configuration>
+					<executable>java</executable>
+					<systemProperties>
+						<systemProperty>
+							<key>user.dir</key>
+							<value>${project.parent.basedir}</value>
+						</systemProperty>
+					</systemProperties>
+				</configuration>
+				<executions>
+					<execution>
+						<id>generate-api-docs</id>
+						<phase>compile</phase>
+						<goals><goal>exec</goal></goals>
+						<configuration>
+							<executable>java</executable>
+							<workingDirectory>${project.parent.basedir}</workingDirectory>
+							<arguments>
+								<argument>-classpath</argument>
+								<classpath/>
+								<argument>org.neo4j.spatial.doc.examples.ApiDocGenerator</argument>
+							</arguments>
+						</configuration>
+					</execution>
+					<execution>
+						<id>generate-examples</id>
+						<phase>compile</phase>
+						<goals><goal>exec</goal></goals>
+						<configuration>
+							<executable>java</executable>
+							<workingDirectory>${project.parent.basedir}</workingDirectory>
+							<arguments>
+								<argument>-classpath</argument>
+								<classpath/>
+								<argument>org.neo4j.spatial.doc.examples.ApiExampleGenerator</argument>
+							</arguments>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+</project>

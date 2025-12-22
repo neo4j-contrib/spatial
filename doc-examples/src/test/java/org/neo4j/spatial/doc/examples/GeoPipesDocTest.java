@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial.pipes;
+package org.neo4j.spatial.doc.examples;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -57,11 +57,9 @@ import org.locationtech.jts.io.ParseException;
 import org.locationtech.jts.io.WKTReader;
 import org.neo4j.annotations.documented.Documented;
 import org.neo4j.configuration.GraphDatabaseSettings;
-import org.neo4j.doc.tools.JavaTestDocsGenerator;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
-import org.neo4j.gis.spatial.AbstractJavaDocTestBase;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.EditableLayerImpl;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
@@ -70,6 +68,8 @@ import org.neo4j.gis.spatial.filter.SearchIntersectWindow;
 import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.osm.OSMImporter;
+import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
+import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.pipes.filtering.FilterCQL;
 import org.neo4j.gis.spatial.pipes.osm.OSMGeoPipeline;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
@@ -82,6 +82,7 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.spatial.api.SearchFilter;
 import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.spatial.cli.tools.StyledImageExporter;
+import org.neo4j.spatial.doc.examples.tools.JavaTestDocsGenerator;
 import org.neo4j.spatial.geotools.common.utilities.RenderingUtils;
 import org.neo4j.test.TestData.Title;
 
@@ -1009,7 +1010,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	@SuppressWarnings("SameParameterValue")
 	private static void loadTestOsmData(String layerName, int commitInterval)
 			throws Exception {
-		String osmPath = "./" + layerName;
+		String osmPath = "../server-plugin/" + layerName;
 		LOGGER.info("\n=== Loading layer " + layerName + " from "
 				+ osmPath + " ===");
 		OSMImporter importer = new OSMImporter(layerName);
@@ -1073,8 +1074,6 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		databases = neo4j.databaseManagementService();
 		db = databases.database(DEFAULT_DATABASE_NAME);
 		load();
-		StyledImageExporter exporter = new StyledImageExporter(driver, DEFAULT_DATABASE_NAME);
-		exporter.setExportDir("target/docs/images/");
 	}
 
 	@AfterAll

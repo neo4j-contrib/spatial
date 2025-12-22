@@ -19,19 +19,28 @@
  */
 package org.neo4j.gis.spatial;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.neo4j.gis.spatial.encoders.WKTGeometryEncoder;
+import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
+import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.spatial.api.layer.EditableLayer;
+import org.neo4j.spatial.testutils.Neo4jTestCase;
 
 public class TestRemove extends Neo4jTestCase {
 
 	private static final String layerName = "TestRemove";
+
+	@Override
+	protected List<Class<?>> loadProceduresAndFunctions() {
+		return List.of(SpatialFunctions.class, SpatialProcedures.class);
+	}
 
 	@Test
 	public void testAddMoreThanMaxNodeRefThenDeleteAll() {

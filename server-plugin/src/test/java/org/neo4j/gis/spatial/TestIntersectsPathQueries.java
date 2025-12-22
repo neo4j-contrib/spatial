@@ -46,10 +46,12 @@ import org.locationtech.jts.geom.impl.CoordinateArraySequence;
 import org.locationtech.jts.simplify.TopologyPreservingSimplifier;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
+import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
+import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -57,10 +59,17 @@ import org.neo4j.graphdb.config.Setting;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.spatial.api.layer.Layer;
+import org.neo4j.spatial.testutils.Neo4jTestCase;
+import org.neo4j.spatial.testutils.SpatialTestUtils;
 
 public class TestIntersectsPathQueries extends Neo4jTestCase {
 
 	private static final Logger LOGGER = Logger.getLogger(TestIntersectsPathQueries.class.getName());
+
+	@Override
+	protected List<Class<?>> loadProceduresAndFunctions() {
+		return List.of(SpatialFunctions.class, SpatialProcedures.class);
+	}
 
 	/**
 	 * This test case is designed to capture the conditions described in the bug
@@ -238,8 +247,8 @@ public class TestIntersectsPathQueries extends Neo4jTestCase {
 					assertNotNull(layer.getIndex(), "Layer index should not be null");
 					assertNotNull(layer.getIndex().getBoundingBox(tx), "Layer index envelope should not be null");
 					Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox(tx));
-					TestOSMImport.debugEnvelope(bbox, layerName, Constants.PROP_BBOX);
-					indexCount = TestOSMImport.checkIndexCount(tx, layer);
+					SpatialTestUtils.debugEnvelope(bbox, layerName, Constants.PROP_BBOX);
+					indexCount = SpatialTestUtils.checkIndexCount(tx, layer);
 					tx.commit();
 				}
 				TestOSMImport.checkFeatureCount(driver, indexCount, layerName);

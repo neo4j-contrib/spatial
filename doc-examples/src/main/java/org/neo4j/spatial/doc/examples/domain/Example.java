@@ -18,16 +18,13 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.neo4j.doc.domain.examples;
+package org.neo4j.spatial.doc.examples.domain;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.Consumer;
-import org.assertj.core.api.Assertions;
-import org.assertj.core.api.InstanceOfAssertFactories;
-import org.neo4j.doc.tools.DocNode;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.kernel.impl.core.NodeEntity;
 
@@ -80,19 +77,6 @@ public class Example {
 		return this;
 	}
 
-	public Example assertSingleResult(String field, Consumer<Object> assertions) {
-		Assertions.assertThat(lastResult).singleElement()
-				.asInstanceOf(InstanceOfAssertFactories.map(String.class, Object.class))
-				.extracting(field)
-				.satisfies(assertions);
-		return this;
-	}
-
-	public Example assertResult(Consumer<List<Map<String, Object>>> assertions) {
-		assertions.accept(lastResult);
-		return this;
-	}
-
 	CharSequence generateCypherBlocks() {
 		if (queries.isEmpty()) {
 			return "";
@@ -113,14 +97,4 @@ public class Example {
 		return lastResult;
 	}
 
-	public Map<String, Object> getLastSingleResult() {
-		if (lastResult== null || lastResult.size() != 1){
-			throw new IllegalStateException("Expected a single result, but got " + lastResult);
-		}
-		return lastResult.get(0);
-	}
-
-	public Object getLastSingleResult(String field) {
-		return getLastSingleResult().get(field);
-	}
 }

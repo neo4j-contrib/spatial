@@ -22,20 +22,23 @@ package org.neo4j.gis.spatial.pipes;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
-import org.neo4j.gis.spatial.Neo4jTestCase;
 import org.neo4j.gis.spatial.SimplePointLayer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
+import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
+import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.spatial.api.layer.Layer;
+import org.neo4j.spatial.testutils.Neo4jTestCase;
 
 public class GeoPipesPerformanceTest extends Neo4jTestCase {
 
@@ -43,6 +46,11 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 
 	private final int records = 10000;
 	private final int chunkSize = records / 10;
+
+	@Override
+	protected List<Class<?>> loadProceduresAndFunctions() {
+		return List.of(SpatialFunctions.class, SpatialProcedures.class);
+	}
 
 	@BeforeEach
 	public void setUp() throws Exception {

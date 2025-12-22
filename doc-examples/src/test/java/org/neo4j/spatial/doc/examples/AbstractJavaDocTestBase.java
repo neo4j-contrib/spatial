@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.gis.spatial;
+package org.neo4j.spatial.doc.examples;
 
 import java.io.IOException;
 import java.util.Map;
@@ -26,9 +26,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.extension.RegisterExtension;
 import org.neo4j.dbms.api.DatabaseManagementService;
-import org.neo4j.doc.tools.JavaTestDocsGenerator;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
+import org.neo4j.spatial.doc.examples.tools.JavaTestDocsGenerator;
 import org.neo4j.test.GraphDatabaseServiceCleaner;
 import org.neo4j.test.GraphDescription;
 import org.neo4j.test.GraphHolder;

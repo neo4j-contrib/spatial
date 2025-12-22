@@ -18,9 +18,8 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.neo4j.doc.tools;
+package org.neo4j.spatial.doc.examples.domain;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -39,7 +38,7 @@ import org.neo4j.kernel.impl.core.AbstractNodeEntity;
 import org.neo4j.kernel.impl.core.NodeEntity;
 
 /**
- * A {@link Node} implementation that represents the labal and properties of a {@link NodeEntity}.
+ * A {@link Node} implementation that represents the label and properties of a {@link NodeEntity}.
  */
 public class DocNode extends AbstractNodeEntity {
 
@@ -99,7 +98,7 @@ public class DocNode extends AbstractNodeEntity {
 
 	@Override
 	public Map<String, Object> getProperties(String... keys) {
-		var result = new HashMap<String, Object>();
+		var result = new TreeMap<String, Object>();
 		for (String key : keys) {
 			result.put(key, propertyMap.get(key));
 		}

@@ -23,10 +23,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.List;
 import org.geotools.api.data.DataSourceException;
 import org.geotools.api.data.DataStore;
 import org.geotools.data.simple.SimpleFeatureCollection;
@@ -34,9 +34,11 @@ import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.LinearRing;
 import org.locationtech.jts.geom.Polygon;
+import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
+import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
@@ -46,8 +48,14 @@ import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.spatial.cli.tools.ShapefileExporter;
 import org.neo4j.spatial.cli.tools.StyledImageExporter;
 import org.neo4j.spatial.geotools.plugin.Neo4jSpatialDataStore;
+import org.neo4j.spatial.testutils.Neo4jTestCase;
 
 public class TestDynamicLayers extends Neo4jTestCase implements Constants {
+
+	@Override
+	protected List<Class<?>> loadProceduresAndFunctions() {
+		return List.of(SpatialFunctions.class, SpatialProcedures.class);
+	}
 
 	@Test
 	public void testShapefileExport_Map1() throws Exception {
@@ -61,14 +69,14 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 
 	@Test
 	public void testImageExport_HighwayShp() throws Exception {
-		runDynamicShapefile("highway.shp");
+		runDynamicShapefile("../example-data/shp/highway.shp", "highway.shp");
 	}
 
 	@SuppressWarnings("SameParameterValue")
-	private void runDynamicShapefile(String shpFile) throws Exception {
+	private void runDynamicShapefile(String shpFile, String layerName) throws Exception {
 		printDatabaseStats();
-		loadTestShpData(shpFile);
-		checkLayer(shpFile);
+		loadTestShpData(layerName, shpFile);
+		checkLayer(layerName);
 		printDatabaseStats();
 
 		// Define dynamic layers
@@ -76,7 +84,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		try (Transaction tx = graphDb().beginTx()) {
 			SpatialDatabaseService spatial = new SpatialDatabaseService(
 					new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
-			DynamicLayer shpLayer = spatial.asDynamicLayer(tx, spatial.getLayer(tx, shpFile, false));
+			DynamicLayer shpLayer = spatial.asDynamicLayer(tx, spatial.getLayer(tx, layerName, false));
 			layers.add(shpLayer.addLayerConfig(tx, "CQL0-highway", GTYPE_GEOMETRY, "highway is not null"));
 			layers.add(shpLayer.addLayerConfig(tx, "CQL1-highway", GTYPE_POINT,
 					"geometryType(the_geom) = 'MultiLineString'"));
@@ -101,7 +109,7 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 			// Now export the layers to files
 			// First prepare the SHP and PNG exporters
 			StyledImageExporter imageExporter = new StyledImageExporter(driver, DEFAULT_DATABASE_NAME);
-			imageExporter.setExportDir("target/export/" + shpFile);
+			imageExporter.setExportDir("target/export/" + layerName);
 			imageExporter.setZoom(3.0);
 			imageExporter.setOffset(-0.05, -0.05);
 			imageExporter.setSize(1024, 768);
@@ -279,11 +287,10 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		importer.reIndex(graphDb(), 1000);
 	}
 
-	private void loadTestShpData(String layerName) throws IOException {
-		String shpPath = "shp" + File.separator + layerName;
-		System.out.println("\n=== Loading layer " + layerName + " from " + shpPath + " ===");
+	private void loadTestShpData(String layerName, String file) throws IOException {
+		System.out.println("\n=== Loading layer " + layerName + " from " + file + " ===");
 		ShapefileImporter importer = new ShapefileImporter(graphDb(), new NullListener(), 1000);
-		importer.importFile(shpPath, layerName, StandardCharsets.UTF_8);
+		importer.importFile(file, layerName, StandardCharsets.UTF_8);
 	}
 
 	private Envelope checkLayer(String layerName) {
@@ -300,7 +307,6 @@ public class TestDynamicLayers extends Neo4jTestCase implements Constants {
 		}
 		assertNotNull(bbox, "Layer index envelope should not be null");
 		System.out.println("Layer has bounding box: " + bbox);
-		Neo4jTestUtils.debugIndexTree(graphDb(), layerName);
 		return bbox;
 	}
 }

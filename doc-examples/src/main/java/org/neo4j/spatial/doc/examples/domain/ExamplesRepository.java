@@ -18,9 +18,10 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.neo4j.doc.domain.examples;
+package org.neo4j.spatial.doc.examples.domain;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -29,14 +30,9 @@ import org.neo4j.graphdb.GraphDatabaseService;
 
 public class ExamplesRepository {
 
-	static Map<String, Examples> examples = new HashMap<>();
-	private GraphDatabaseService db;
+	private final Map<String, Examples> examples = new HashMap<>();
 
-	public ExamplesRepository(GraphDatabaseService db) {
-		this.db = db;
-	}
-
-	public Example docExample(@Nonnull String signature, @Nonnull String title) {
+	public Example docExample(@Nonnull String signature, @Nonnull String title, GraphDatabaseService db) {
 		Example example = new Example(db, title, this);
 		add(signature, example);
 		return example;
@@ -47,9 +43,9 @@ public class ExamplesRepository {
 				.examples().add(example);
 	}
 
-	public void write() throws IOException {
+	public void write(Path root) throws IOException {
 		for (Examples examples : examples.values()) {
-			examples.writeExamples();
+			examples.writeExamples(root);
 		}
 	}
 }

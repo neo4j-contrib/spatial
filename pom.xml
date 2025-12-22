@@ -28,8 +28,10 @@
 		<module>api</module>
 		<module>geotools-common</module>
 		<module>geotools-plugin</module>
+		<module>test-utils</module>
 		<module>server-plugin</module>
 		<module>cli-tools</module>
+		<module>doc-examples</module>
 	</modules>
 
 	<scm>

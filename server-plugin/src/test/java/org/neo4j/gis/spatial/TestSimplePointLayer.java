@@ -30,7 +30,6 @@ import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateList;
@@ -38,10 +37,12 @@ import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.Point;
 import org.neo4j.gis.spatial.encoders.neo4j.Neo4jCRS;
 import org.neo4j.gis.spatial.encoders.neo4j.Neo4jPoint;
+import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
+import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -53,11 +54,17 @@ import org.neo4j.spatial.api.layer.EditableLayer;
 import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.spatial.cli.tools.ShapefileExporter;
 import org.neo4j.spatial.cli.tools.StyledImageExporter;
+import org.neo4j.spatial.testutils.Neo4jTestCase;
 import org.opentest4j.AssertionFailedError;
 
 public class TestSimplePointLayer extends Neo4jTestCase {
 
 	private static final Coordinate testOrigin = new Coordinate(13.0, 55.6);
+
+	@Override
+	protected List<Class<?>> loadProceduresAndFunctions() {
+		return List.of(SpatialFunctions.class, SpatialProcedures.class);
+	}
 
 	@Test
 	public void testNearestNeighborSearchOnEmptyLayer() {
@@ -471,13 +478,6 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		try (Transaction tx = graphDb().beginTx()) {
 			int indexCount = spatial.getLayer(tx, layerName, true).getIndex().count(tx);
 			assertEquals(count, indexCount);
-			tx.commit();
-		}
-	}
-
-	private void inTx(Consumer<Transaction> txFunction) {
-		try (Transaction tx = graphDb().beginTx()) {
-			txFunction.accept(tx);
 			tx.commit();
 		}
 	}
