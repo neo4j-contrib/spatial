@@ -17,7 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-package org.neo4j.doc.tools;
+package org.neo4j.spatial.doc.examples.tools;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -52,7 +52,6 @@ public abstract class AsciiDocGenerator {
 	protected GraphDatabaseService graph;
 	protected static final String SNIPPET_MARKER = "@@";
 	protected Map<String, String> snippets = new HashMap<String, String>();
-	private static final Map<String, Integer> counters = new HashMap<String, Integer>();
 
 	public AsciiDocGenerator(final String title, final String section) {
 		this.section = section;
@@ -190,25 +189,5 @@ public abstract class AsciiDocGenerator {
 		return "[source,java,indent=0]\n" + "----\n"
 				+ "include::example$" + source.getSimpleName() + ".java[tags=" + tagName + "]\n"
 				+ "----\n";
-	}
-
-	public void addGithubTestSourceLink(String key, Class<?> source,
-			String dir) {
-		githubLink(key, source, dir, "test");
-	}
-
-	public void addGithubSourceLink(String key, Class<?> source, String dir) {
-		githubLink(key, source, dir, "main");
-	}
-
-	private void githubLink(String key, Class<?> source, String dir,
-			String mainOrTest) {
-		String path = "https://github.com/neo4j/neo4j/blob/{neo4j-git-tag}/";
-		if (dir != null) {
-			path += dir + "/";
-		}
-		path += "src/" + mainOrTest + "/java/" + getPath(source);
-		path += "[" + source.getSimpleName() + ".java]\n";
-		addSnippet(key, path);
 	}
 }

@@ -34,6 +34,7 @@ import org.junit.jupiter.api.Assertions;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.driver.Driver;
+import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMDataset.Way;
@@ -42,6 +43,7 @@ import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.osm.OSMRelation;
 import org.neo4j.gis.spatial.pipes.osm.OSMGeoPipeline;
+import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -50,12 +52,18 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.spatial.api.SpatialRecord;
-import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.spatial.geotools.plugin.Neo4jSpatialDataStore;
+import org.neo4j.spatial.testutils.Neo4jTestCase;
+import org.neo4j.spatial.testutils.SpatialTestUtils;
 
 public class TestOSMImportBase extends Neo4jTestCase {
 
 	private static final Logger LOGGER = Logger.getLogger(TestOSMImportBase.class.getName());
+
+	@Override
+	protected List<Class<?>> loadProceduresAndFunctions() {
+		return List.of(SpatialFunctions.class, SpatialProcedures.class);
+	}
 
 	protected static String checkOSMFile(String osm) {
 		File osmFile = new File(osm);
@@ -79,9 +87,9 @@ public class TestOSMImportBase extends Neo4jTestCase {
 			Assertions.assertNotNull(layer.getIndex().getBoundingBox(tx),
 					"OSM Layer index envelope should not be null");
 			Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox(tx));
-			debugEnvelope(bbox, layerName, Constants.PROP_BBOX);
+			SpatialTestUtils.debugEnvelope(bbox, layerName, Constants.PROP_BBOX);
 			// ((RTreeIndex)layer.getIndex()).debugIndexTree();
-			indexCount = checkIndexCount(tx, layer);
+			indexCount = SpatialTestUtils.checkIndexCount(tx, layer);
 			checkChangesetsAndUsers(tx, layer);
 			checkOSMSearch(tx, layer);
 			tx.commit();
@@ -129,21 +137,6 @@ public class TestOSMImportBase extends Neo4jTestCase {
 		if (willHaveResult) {
 			Assertions.assertTrue(results.size() > 0, "Should be at least one result, but got zero");
 		}
-	}
-
-	public static void debugEnvelope(Envelope bbox, String layer, String name) {
-		System.out.println("Layer '" + layer + "' has envelope '" + name + "': " + bbox);
-		System.out.println("\tX: [" + bbox.getMinX() + ":" + bbox.getMaxX() + "]");
-		System.out.println("\tY: [" + bbox.getMinY() + ":" + bbox.getMaxY() + "]");
-	}
-
-	public static int checkIndexCount(Transaction tx, Layer layer) {
-		if (layer.getIndex().count(tx) < 1) {
-			System.out.println("Warning: index count zero: " + layer.getName());
-		}
-		System.out.println(
-				"Layer '" + layer.getName() + "' has " + layer.getIndex().count(tx) + " entries in the index");
-		return layer.getIndex().count(tx);
 	}
 
 	public static void checkFeatureCount(Driver driver, int indexCount, String layerName) throws IOException {

@@ -18,13 +18,14 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.neo4j.doc.domain.examples;
+package org.neo4j.spatial.doc.examples.domain;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
+import org.neo4j.spatial.doc.examples.utils.Mapper;
 import org.neo4j.values.storable.Value;
 
 /**
@@ -37,7 +38,7 @@ public class ExampleCypher {
 	private String comment;
 	private String title;
 	private List<Map<String, Object>> result;
-	private boolean storeResult;
+	private boolean storeResult = true;
 
 	public ExampleCypher(String cypher) {
 		this.cypher = cypher;
@@ -90,8 +91,8 @@ public class ExampleCypher {
 		return storeResult;
 	}
 
-	public ExampleCypher storeResult() {
-		this.storeResult = true;
+	public ExampleCypher skipResult() {
+		this.storeResult = false;
 		return this;
 	}
 
@@ -138,7 +139,7 @@ public class ExampleCypher {
 		}
 		StringBuilder writer = new StringBuilder();
 		writer.append(".Result\n\n");
-		var columns = new TreeSet<>(result.get(0).keySet());
+		var columns = new TreeSet<>(result.getFirst().keySet());
 
 		writer.append("[opts=\"header\",cols=\"")
 				.append(columns.size())

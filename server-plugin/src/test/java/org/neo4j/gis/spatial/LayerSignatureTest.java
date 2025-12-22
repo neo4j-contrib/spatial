@@ -21,19 +21,27 @@ package org.neo4j.gis.spatial;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import java.util.function.Consumer;
+import java.util.List;
 import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
+import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.spatial.api.layer.Layer;
+import org.neo4j.spatial.testutils.Neo4jTestCase;
 
 public class LayerSignatureTest extends Neo4jTestCase implements Constants {
 
 	private SpatialDatabaseService spatial;
+
+	@Override
+	protected List<Class<?>> loadProceduresAndFunctions() {
+		return List.of(SpatialFunctions.class, SpatialProcedures.class);
+	}
 
 	@BeforeEach
 	public void setup() throws Exception {
@@ -87,13 +95,6 @@ public class LayerSignatureTest extends Neo4jTestCase implements Constants {
 		}
 		assertEquals(signature, layer.getSignature());
 		return layer;
-	}
-
-	private void inTx(Consumer<Transaction> txFunction) {
-		try (Transaction tx = graphDb().beginTx()) {
-			txFunction.accept(tx);
-			tx.commit();
-		}
 	}
 
 	@Test

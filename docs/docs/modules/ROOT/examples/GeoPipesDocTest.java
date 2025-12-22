@@ -1,1 +1,1 @@
-../../../../../server-plugin/src/test/java/org/neo4j/gis/spatial/pipes/GeoPipesDocTest.java
+../../../../../doc-examples/src/test/java/org/neo4j/spatial/doc/examples/GeoPipesDocTest.java

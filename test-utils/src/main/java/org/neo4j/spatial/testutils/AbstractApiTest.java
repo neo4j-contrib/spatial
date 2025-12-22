@@ -18,8 +18,11 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.neo4j.gis.spatial;
+package org.neo4j.spatial.testutils;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 import java.io.File;
@@ -28,18 +31,16 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import javax.annotation.Nonnull;
-import org.junit.jupiter.api.AfterAll;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.dbms.api.DatabaseManagementService;
-import org.neo4j.doc.domain.examples.Example;
-import org.neo4j.doc.domain.examples.ExamplesRepository;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.ResourceIterator;
+import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.helpers.collection.Iterators;
 import org.neo4j.io.fs.FileUtils;
@@ -51,7 +52,6 @@ public abstract class AbstractApiTest {
 
 	private DatabaseManagementService databases;
 	protected GraphDatabaseService db;
-	static ExamplesRepository examples;
 
 	@BeforeEach
 	public void setUp() throws KernelException, IOException {
@@ -62,7 +62,6 @@ public abstract class AbstractApiTest {
 				.impermanent()
 				.build();
 		db = databases.database(DEFAULT_DATABASE_NAME);
-		examples = new ExamplesRepository(db);
 		registerApiProceduresAndFunctions();
 	}
 
@@ -124,14 +123,27 @@ public abstract class AbstractApiTest {
 		return obj;
 	}
 
-
-	protected Example docExample(@Nonnull String signature, @Nonnull String title) {
-		return examples.docExample(signature, title);
+	public static void testResult(GraphDatabaseService db, String call, Map<String, Object> params,
+			Consumer<Result> resultConsumer) {
+		try (Transaction tx = db.beginTx()) {
+			Map<String, Object> p = (params == null) ? Map.of() : params;
+			resultConsumer.accept(tx.execute(call, p));
+			tx.commit();
+		}
 	}
 
-	@AfterAll
-	public static void generateDocumentation() throws IOException {
-		examples.write();
+	protected void testCountQuery(String name, String query, long count, String column, Map<String, Object> params) {
+		try (Transaction tx = db.beginTx()) {
+			Result results = tx.execute("EXPLAIN " + query, params == null ? Map.of() : params);
+			results.close();
+			tx.commit();
+		}
+		testResult(db, query, params, res -> {
+			assertTrue(res.hasNext(), "Expected a single result");
+			long c = (Long) res.next().get(column);
+			assertFalse(res.hasNext(), "Expected a single result");
+			assertEquals(count, c, "Expected count of " + count + " nodes but got " + c);
+		});
 	}
 
 }

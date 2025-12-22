@@ -1,1 +1,1 @@
-../../../../../server-plugin/src/test/java/org/neo4j/gis/spatial/TestsForDocs.java
+../../../../../doc-examples/src/test/java/org/neo4j/spatial/doc/examples/TestsForDocs.java

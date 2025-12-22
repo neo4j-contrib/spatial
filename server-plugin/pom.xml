@@ -147,6 +147,12 @@
 			<scope>test</scope>
 		</dependency>
 		<dependency>
+			<groupId>org.neo4j</groupId>
+			<artifactId>neo4j-spatial-test-utils</artifactId>
+			<version>2025.10.1-SNAPSHOT</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
 			<groupId>org.neo4j.spatial</groupId>
 			<artifactId>shp-test-data</artifactId>
 			<version>${spatial.test.shp.version}</version>

@@ -18,7 +18,7 @@
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
 
-package org.neo4j.doc.tools;
+package org.neo4j.spatial.doc.examples.utils;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.databind.JsonSerializer;
@@ -26,7 +26,6 @@ import com.fasterxml.jackson.databind.SerializerProvider;
 import java.io.IOException;
 import java.util.Map;
 import java.util.TreeMap;
-import org.neo4j.doc.domain.examples.Mapper;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 

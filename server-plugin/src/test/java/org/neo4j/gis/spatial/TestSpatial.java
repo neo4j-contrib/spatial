@@ -25,15 +25,18 @@ import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.logging.Logger;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.gis.spatial.filter.SearchIntersect;
+import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.osm.OSMDataset;
 import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.osm.OSMLayer;
+import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
@@ -43,6 +46,7 @@ import org.neo4j.spatial.api.SpatialRecord;
 import org.neo4j.spatial.api.SpatialRecords;
 import org.neo4j.spatial.api.index.SpatialIndexReader;
 import org.neo4j.spatial.api.layer.Layer;
+import org.neo4j.spatial.testutils.Neo4jTestCase;
 
 /**
  * <p>
@@ -87,6 +91,11 @@ public class TestSpatial extends Neo4jTestCase {
 	private final HashMap<String, Envelope> layerTestEnvelope = new HashMap<>();
 	private final HashMap<String, ArrayList<TestGeometry>> layerTestGeometries = new HashMap<>();
 	private final HashMap<Integer, Integer> geomStats = new HashMap<>();
+
+	@Override
+	protected List<Class<?>> loadProceduresAndFunctions() {
+		return List.of(SpatialFunctions.class, SpatialProcedures.class);
+	}
 
 	@BeforeEach
 	public void setUp() {
