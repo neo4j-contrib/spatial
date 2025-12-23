@@ -39,6 +39,7 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.spatial.doc.examples.domain.Example;
 import org.neo4j.spatial.doc.examples.domain.ExampleCypher;
 import org.neo4j.spatial.doc.examples.domain.ExamplesRepository;
+import org.neo4j.spatial.osm.server.plugin.procedures.OsmSpatialProcedures;
 import org.neo4j.test.GraphDatabaseServiceCleaner;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import picocli.CommandLine;
@@ -83,6 +84,7 @@ public class ApiExampleGenerator implements Callable<Integer> {
 				.getDependencyResolver()
 				.resolveDependency(GlobalProcedures.class);
 		procedures.registerProcedure(SpatialProcedures.class);
+		procedures.registerProcedure(OsmSpatialProcedures.class);
 		procedures.registerFunction(SpatialFunctions.class);
 
 		examples = new ExamplesRepository();

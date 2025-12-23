@@ -43,7 +43,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
@@ -66,9 +65,6 @@ import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
 import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.gis.spatial.index.LayerZOrderPointIndex;
-import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
-import org.neo4j.gis.spatial.osm.OSMImporter;
-import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
@@ -81,8 +77,6 @@ import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.internal.kernel.api.security.SecurityContext;
-import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.api.QueryLanguage;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
@@ -823,102 +817,6 @@ public class SpatialProcedures extends SpatialApiBase {
 			return importer.importFile(shpPath, layerName);
 		}
 		return importer.importFile(shpPath, layer, Charset.defaultCharset());
-	}
-
-	@Procedure(value = "spatial.importOSMToLayer", mode = WRITE)
-	@Description("Imports the the provided osm-file from URI to a layer, returns the count of data added")
-	public Stream<CountResult> importOSM(
-			@Name(value = "layerName", description = DOC_LAYER_NAME) String layerName,
-			@Name(value = "uri", description = DOC_URI) String uri)
-			throws InterruptedException {
-		// Delegate finding the layer to the inner thread, so we do not pollute the procedure transaction with anything that might conflict.
-		// Since the procedure transaction starts before, and ends after, all inner transactions.
-		BiFunction<Transaction, String, OSMLayer> layerFinder = (tx, name) -> (OSMLayer) getEditableLayerOrThrow(tx,
-				spatial(), name);
-		return Stream.of(new CountResult(importOSMToLayer(uri, layerName, layerFinder)));
-	}
-
-	@Procedure(value = "spatial.importOSM", mode = WRITE)
-	@Description("Imports the the provided osm-file from URI to a layer of the same name, returns the count of data added")
-	public Stream<CountResult> importOSM(
-			@Name(value = "uri", description = DOC_URI) String uri)
-			throws InterruptedException {
-		String layerName = uri.substring(uri.lastIndexOf(File.separator) + 1);
-		assertLayerDoesNotExist(spatial(), layerName);
-		// Delegate creating the layer to the inner thread, so we do not pollute the procedure transaction with anything that might conflict.
-		// Since the procedure transaction starts before, and ends after, all inner transactions.
-		BiFunction<Transaction, String, OSMLayer> layerMaker = (tx, name) -> (OSMLayer) spatial().getOrCreateLayer(tx,
-				name, OSMGeometryEncoder.class, OSMLayer.class, "", false);
-		return Stream.of(new CountResult(importOSMToLayer(uri, layerName, layerMaker)));
-	}
-
-	private long importOSMToLayer(String osmPath, String layerName,
-			BiFunction<Transaction, String, OSMLayer> layerMaker) throws InterruptedException {
-		// add extension
-		if (!osmPath.toLowerCase().endsWith(".osm")) {
-			osmPath = osmPath + ".osm";
-		}
-		OSMImportRunner runner = new OSMImportRunner(api, ktx.securityContext(), osmPath, layerName, layerMaker, log,
-				Level.DEBUG);
-		Thread importerThread = new Thread(runner);
-		importerThread.start();
-		importerThread.join();
-		return runner.getResult();
-	}
-
-	private static class OSMImportRunner implements Runnable {
-
-		private final GraphDatabaseAPI db;
-		private final String osmPath;
-		private final String layerName;
-		private final BiFunction<Transaction, String, OSMLayer> layerMaker;
-		private final Log log;
-		private final Level level;
-		private final SecurityContext securityContext;
-		private Exception e;
-		private long rc = -1;
-
-		OSMImportRunner(GraphDatabaseAPI db, SecurityContext securityContext, String osmPath, String layerName,
-				BiFunction<Transaction, String, OSMLayer> layerMaker, Log log, Level level) {
-			this.db = db;
-			this.osmPath = osmPath;
-			this.layerName = layerName;
-			this.layerMaker = layerMaker;
-			this.log = log;
-			this.level = level;
-			this.securityContext = securityContext;
-		}
-
-		long getResult() {
-			if (e == null) {
-				return rc;
-			}
-			throw new RuntimeException(
-					"Failed to import " + osmPath + " to layer '" + layerName + "': " + e.getMessage(), e);
-		}
-
-		@Override
-		public void run() {
-			// Create the layer in the same thread as doing the import, otherwise we have an outer thread doing a creation,
-			// and the inner thread repeating it, resulting in duplicates
-			try (Transaction tx = db.beginTransaction(KernelTransaction.Type.EXPLICIT, securityContext)) {
-				layerMaker.apply(tx, layerName);
-				tx.commit();
-			}
-			OSMImporter importer = new OSMImporter(layerName,
-					new ProgressLoggingListener("Importing " + osmPath, log, level));
-			try {
-				// Provide the security context for all inner transactions that will be made during import
-				importer.setSecurityContext(securityContext);
-				// import using multiple, serial inner transactions (using the security context of the outer thread)
-				importer.importFile(db, osmPath, false, 10000);
-				// Re-index using inner transactions (using the security context of the outer thread)
-				rc = importer.reIndex(db, 10000, false);
-			} catch (Exception e) {
-				log.error("Error running OSMImporter: " + e.getMessage());
-				this.e = e;
-			}
-		}
 	}
 
 	@Procedure(value = "spatial.bbox", mode = READ)

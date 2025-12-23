@@ -21,6 +21,8 @@ The key features include:
 
 The easiest way to get started with neo4j-spatial is to grab the `neo4j-spatial-server-plugin-x.x.x-with-dependencies.jar` from https://github.com/neo4j-contrib/spatial/releases[the latest release], copy it to your `$NEO4J_HOME/plugins` and restart your Neo4j server.
 
+NOTE: OpenStreetMap label:OSM[] features are shipped in a separate, optional plugin JAR (`neo4j-spatial-osm-server-plugin-x.x.x-with-dependencies.jar`). To enable OSM-specific imports and endpoints, add that JAR along with the main server-plugin to `$NEO4J_HOME/plugins`.
+
 From there you can use all the xref:api/index.adoc[spatial procedures and functions] in your Cypher queries to add Nodes to the spatial index and perform a number of spatial point, distance and intersection queries.
 
 .Simple Example
@@ -37,7 +39,7 @@ RETURN node;
 CALL spatial.bbox('geom',{lon:15.0,lat:60.0}, {lon:15.3, lat:61.0});
 ----
 
-A good example blog post for how to use them with one of the neo4j drivers, is http://www.lyonwj.com/2016/08/09/neo4j-spatial-procedures-congressional-boundaries/[Spatial Procedures in Legis Graph] by http://twitter.com/lyonwj[William Lyon] (http://www.lyonwj.com/2016/03/21/legis-graph-spatial-indexing/[Part 1]).
+A good example blog post for how to use them with one of the neo4j drivers, is http://www.lyonwj.com/2016/08/09/neo4j-spatial-procedures-congressional-boundaries[Spatial Procedures in Legis Graph] by http://twitter.com/lyonwj[William Lyon] (http://www.lyonwj.com/2016/03/21/legis-graph-spatial-indexing/[Part 1]).
 
 http://twitter.com/maxdemarzi[Max de Marzi] explains the spatial-server-plugin in his https://maxdemarzi.com/2014/02/11/neo4j-spatial-part-2/[two-part blog post around restaurant recommendations].
 

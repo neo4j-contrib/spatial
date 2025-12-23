@@ -393,15 +393,15 @@ public class SpatialFunctionsTest extends AbstractApiTest {
 	public void testDecodeGeometryAndExtractAttributesTogether() {
 		try (Transaction tx = db.beginTx()) {
 			var result = tx.execute("""
-								CALL spatial.addPointLayer('combined_layer') YIELD node
-								WITH node
-								CREATE (n:Point {longitude: 5.5, latitude: 45.5, city: 'TestCity', population: 50000})
-								WITH n
-								CALL spatial.addNode('combined_layer', n) YIELD node as added_node
-								WITH n
-								RETURN 
-									spatial.decodeGeometry('combined_layer', n) as geometry,
-									spatial.extractAttributes('combined_layer', n) as attributes
+					CALL spatial.addPointLayer('combined_layer') YIELD node
+					WITH node
+					CREATE (n:Point {longitude: 5.5, latitude: 45.5, city: 'TestCity', population: 50000})
+					WITH n
+					CALL spatial.addNode('combined_layer', n) YIELD node as added_node
+					WITH n
+					RETURN
+						spatial.decodeGeometry('combined_layer', n) as geometry,
+						spatial.extractAttributes('combined_layer', n) as attributes
 					""").next();
 			assertInstanceOf(Geometry.class, result.get("geometry"), "Should be Geometry type");
 			Assertions.assertThat(result.get("attributes"))

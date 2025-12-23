@@ -3,7 +3,7 @@
 # This script reads the pom.xml and determines the dependencies required by neo4j-spatial
 # so that they can be included in ruby code. Work on this stopped once we started using:
 #   mvn dependency:copy-dependencies
-#   java -cp target/classes:target/dependency/* org.neo4j.gis.spatial.osm.OSMImporter osm-db two-street.osm 
+#   java -cp target/classes:target/dependency/* org.neo4j.spatial.osm.server.plugin.OSMImporter osm-db two-street.osm
 
 require 'rexml/document'
 

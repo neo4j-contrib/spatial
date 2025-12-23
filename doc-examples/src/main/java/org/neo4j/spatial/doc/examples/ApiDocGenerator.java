@@ -38,6 +38,7 @@ import java.util.stream.Stream;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
+import org.neo4j.gis.spatial.utilities.SpatialApiBase;
 import org.neo4j.internal.kernel.api.procs.DescribedSignature;
 import org.neo4j.internal.kernel.api.procs.FieldSignature;
 import org.neo4j.internal.kernel.api.procs.ProcedureSignature;
@@ -47,6 +48,7 @@ import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.api.procedure.ProcedureView;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.spatial.doc.examples.utils.Mapper;
+import org.neo4j.spatial.osm.server.plugin.procedures.OsmSpatialProcedures;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
@@ -77,34 +79,42 @@ public class ApiDocGenerator implements Callable<Integer> {
 		System.exit(exitCode);
 	}
 
+	record ApiEntry(DescribedSignature sig, Class<? extends SpatialApiBase> aClass) {
+
+	}
+
 	@Override
 	public Integer call() throws Exception {
-		try (var neo4j = new TestDatabaseManagementServiceBuilder()
-				.setConfig(GraphDatabaseSettings.procedure_unrestricted, List.of("spatial.*"))
-				.impermanent()
-				.build()) {
+		Structure root = new Structure(null);
+		for (Class<? extends SpatialApiBase> aClass : List.of(SpatialFunctions.class, SpatialProcedures.class,
+				OsmSpatialProcedures.class)) {
 
-			GlobalProcedures procedures = ((GraphDatabaseAPI) neo4j.database(DEFAULT_DATABASE_NAME))
-					.getDependencyResolver()
-					.resolveDependency(GlobalProcedures.class);
-			procedures.registerProcedure(SpatialProcedures.class);
-			procedures.registerFunction(SpatialFunctions.class);
+			try (var neo4j = new TestDatabaseManagementServiceBuilder()
+					.setConfig(GraphDatabaseSettings.procedure_unrestricted, List.of("spatial.*"))
+					.impermanent()
+					.build()) {
 
-			ProcedureView currentView = procedures.getCurrentView();
-			Structure root = new Structure(null);
-			Stream.of(
-							currentView.getAllNonAggregatingFunctions(QueryLanguage.CYPHER_5),
-							currentView.getAllAggregatingFunctions(QueryLanguage.CYPHER_5),
-							currentView.getAllProcedures(QueryLanguage.CYPHER_5)
-					)
-					.flatMap(stream -> stream)
-					.forEach(root::add);
+				GlobalProcedures procedures = ((GraphDatabaseAPI) neo4j.database(DEFAULT_DATABASE_NAME))
+						.getDependencyResolver()
+						.resolveDependency(GlobalProcedures.class);
+				procedures.registerProcedure(aClass);
+				procedures.registerFunction(aClass);
 
-			Structure spatial = root.nested.get("spatial");
-			spatial.writeDoc();
-			spatial.writeNav();
-			spatial.writeSingleDocs();
+				ProcedureView currentView = procedures.getCurrentView();
+				Stream.of(
+								currentView.getAllNonAggregatingFunctions(QueryLanguage.CYPHER_5),
+								currentView.getAllAggregatingFunctions(QueryLanguage.CYPHER_5),
+								currentView.getAllProcedures(QueryLanguage.CYPHER_5)
+						)
+						.flatMap(stream -> stream)
+						.map(sig -> new ApiEntry(sig, aClass))
+						.forEach(root::add);
+			}
 		}
+		Structure spatial = root.nested.get("spatial");
+		spatial.writeDoc();
+		spatial.writeNav();
+		spatial.writeSingleDocs();
 		System.out.println("API-Doc successfully generated!");
 		return 0;
 	}
@@ -113,14 +123,14 @@ public class ApiDocGenerator implements Callable<Integer> {
 
 		String namespace;
 		Map<String, Structure> nested = new TreeMap<>();
-		Set<DescribedSignature> entries = new TreeSet<>(Comparator.comparing(s -> s.name().name()));
+		Set<ApiEntry> apiEntries = new TreeSet<>(Comparator.comparing(e -> e.sig.name().name()));
 
 		public Structure(String namespace) {
 			this.namespace = namespace;
 		}
 
-		public void add(DescribedSignature sig) {
-			String[] parts = sig.name().namespace();
+		public void add(ApiEntry apiEntry) {
+			String[] parts = apiEntry.sig.name().namespace();
 			Structure current = this;
 			StringBuilder currentNS = new StringBuilder();
 			for (String part : parts) {
@@ -130,7 +140,7 @@ public class ApiDocGenerator implements Callable<Integer> {
 				currentNS.append(part);
 				current = current.nested.computeIfAbsent(part, namespace1 -> new Structure(currentNS.toString()));
 			}
-			current.entries.add(sig);
+			current.apiEntries.add(apiEntry);
 		}
 
 		public void writeDoc() throws IOException {
@@ -150,18 +160,19 @@ public class ApiDocGenerator implements Callable<Integer> {
 		}
 
 		public void writeSingleDocs() throws IOException {
-			for (DescribedSignature entry : entries) {
-				writeSingleDoc(entry);
+			for (ApiEntry apiEntry : apiEntries) {
+				writeSingleDoc(apiEntry);
 			}
 			for (Structure value : nested.values()) {
 				value.writeSingleDocs();
 			}
 		}
 
-		private void writeSingleDoc(DescribedSignature entry) throws IOException {
-			String fqname = entry.name().toString();
+		private void writeSingleDoc(ApiEntry apiEntry) throws IOException {
+			var sig = apiEntry.sig;
+			String fqname = sig.name().toString();
 
-			Path customizedFile = customizableRoot.resolve( namespace).resolve( fqname + ".adoc");
+			Path customizedFile = customizableRoot.resolve(namespace).resolve(fqname + ".adoc");
 			if (!Files.exists(customizedFile)) {
 				Files.createDirectories(customizedFile.getParent());
 				String commented =
@@ -183,20 +194,20 @@ public class ApiDocGenerator implements Callable<Integer> {
 			Optional<String> deprecatedBy;
 			Optional<String> warning = Optional.empty();
 			String type;
-			if (entry instanceof ProcedureSignature proc) {
+			if (sig instanceof ProcedureSignature proc) {
 				inputs = proc.inputSignature();
 				outputs = proc.outputSignature();
 				deprecated = proc.isDeprecated();
 				deprecatedBy = proc.deprecated();
 				warning = proc.warning();
 				type = "procedure";
-			} else if (entry instanceof UserFunctionSignature fun) {
+			} else if (sig instanceof UserFunctionSignature fun) {
 				inputs = fun.inputSignature();
 				deprecated = fun.isDeprecated();
 				deprecatedBy = fun.deprecated();
 				type = "function";
 			} else {
-				throw new IllegalArgumentException("Unknown signature type: " + entry);
+				throw new IllegalArgumentException("Unknown signature type: " + sig);
 			}
 
 			try (BufferedWriter writer = Files.newBufferedWriter(file)) {
@@ -205,15 +216,17 @@ public class ApiDocGenerator implements Callable<Integer> {
 				writer.append(":description: This section contains reference documentation for the ")
 						.append(fqname).append(" ").append(type)
 						.append(".\n\nlabel:").append(type).append("[]");
-
+				if (OsmSpatialProcedures.class.isAssignableFrom(apiEntry.aClass)) {
+					writer.append(" label:OSM[]");
+				}
 				if (deprecated) {
 					writer.append(" label:deprecated[]");
 				}
 				writer.append("\n\n");
 
-				if (entry.description().isPresent()) {
+				if (sig.description().isPresent()) {
 					writer.append("[.emphasis]\n");
-					writer.append(entry.description().get()).append("\n\n");
+					writer.append(sig.description().get()).append("\n\n");
 				}
 
 				if (warning.isPresent() || deprecatedBy.isPresent()) {
@@ -225,7 +238,7 @@ public class ApiDocGenerator implements Callable<Integer> {
 				}
 
 				writer.append("== Signature\n\n[source]\n----\n")
-						.append(String.valueOf(entry))
+						.append(String.valueOf(sig))
 						.append("\n----\n\n");
 
 				if (inputs != null && !inputs.isEmpty()) {
@@ -269,12 +282,13 @@ public class ApiDocGenerator implements Callable<Integer> {
 
 		private String generateIndex() {
 			StringBuilder builder = new StringBuilder();
-			if (!entries.isEmpty()) {
+			if (!apiEntries.isEmpty()) {
 				builder.append("== ").append(namespace).append("\n\n");
 				builder.append("[.procedures,opts=header,cols='5a,1a']\n");
 				builder.append("|===\n");
 				builder.append("|Qualified Name |Type\n");
-				entries.forEach(sig -> {
+				apiEntries.forEach(apiEntry -> {
+					var sig = apiEntry.sig;
 
 					boolean deprecated = false;
 					String type = "unknown";
@@ -289,6 +303,9 @@ public class ApiDocGenerator implements Callable<Integer> {
 					builder.append("|xref:api/")
 							.append(namespace).append("/").append(sig.name()).append(".adoc[")
 							.append(sig.name()).append(" icon:book[]]");
+					if (OsmSpatialProcedures.class.isAssignableFrom(apiEntry.aClass)) {
+						builder.append(" label:OSM[]");
+					}
 					if (deprecated) {
 						builder.append(" label:deprecated[]");
 					}
@@ -311,13 +328,11 @@ public class ApiDocGenerator implements Callable<Integer> {
 
 		private String generateNav() {
 			StringBuilder builder = new StringBuilder();
-			entries.forEach(sig -> {
-				builder
-						.append("** xref:api/")
-						.append(namespace).append("/")
-						.append(sig.name())
-						.append(".adoc[]\n");
-			});
+			apiEntries.forEach(apiEntry -> builder
+					.append("** xref:api/")
+					.append(namespace).append("/")
+					.append(apiEntry.sig.name())
+					.append(".adoc[]\n"));
 			for (Structure value : nested.values()) {
 				builder.append(value.generateNav());
 			}

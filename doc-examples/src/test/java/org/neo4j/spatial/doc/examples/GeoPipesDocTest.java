@@ -67,11 +67,9 @@ import org.neo4j.gis.spatial.feature.Neo4jServerFeatureBuilder;
 import org.neo4j.gis.spatial.filter.SearchIntersectWindow;
 import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
-import org.neo4j.gis.spatial.osm.OSMImporter;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.pipes.filtering.FilterCQL;
-import org.neo4j.gis.spatial.pipes.osm.OSMGeoPipeline;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.gis.spatial.rtree.filter.SearchAll;
 import org.neo4j.graphdb.Transaction;
@@ -84,6 +82,8 @@ import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.spatial.cli.tools.StyledImageExporter;
 import org.neo4j.spatial.doc.examples.tools.JavaTestDocsGenerator;
 import org.neo4j.spatial.geotools.common.utilities.RenderingUtils;
+import org.neo4j.spatial.osm.server.plugin.OSMImporter;
+import org.neo4j.spatial.osm.server.plugin.pipes.OSMGeoPipeline;
 import org.neo4j.test.TestData.Title;
 
 public class GeoPipesDocTest extends AbstractJavaDocTestBase {
@@ -1010,7 +1010,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	@SuppressWarnings("SameParameterValue")
 	private static void loadTestOsmData(String layerName, int commitInterval)
 			throws Exception {
-		String osmPath = "../server-plugin/" + layerName;
+		String osmPath = "../osm-server-plugin/" + layerName;
 		LOGGER.info("\n=== Loading layer " + layerName + " from "
 				+ osmPath + " ===");
 		OSMImporter importer = new OSMImporter(layerName);
