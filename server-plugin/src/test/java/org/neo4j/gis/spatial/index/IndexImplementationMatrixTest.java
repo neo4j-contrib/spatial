@@ -17,6 +17,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
+
 package org.neo4j.gis.spatial.index;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -31,16 +32,22 @@ import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAM
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.Parameter;
+import org.junit.jupiter.params.ParameterizedClass;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
@@ -52,6 +59,8 @@ import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.gis.spatial.SimplePointLayer;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
+import org.neo4j.gis.spatial.encoders.NativePointEncoder;
+import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.filter.SearchIntersect;
 import org.neo4j.gis.spatial.filter.SearchIntersectWindow;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
@@ -69,32 +78,42 @@ import org.neo4j.spatial.api.index.SpatialIndexWriter;
 import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
-public abstract class LayerIndexTestBase {
 
-	protected DatabaseManagementService databases;
-	protected GraphDatabaseService graph;
-	protected SpatialDatabaseService spatial;
-	protected GeometryFactory geometryFactory = new GeometryFactory();
-	protected GeometryEncoder encoder = makeGeometryEncoder();
+@ParameterizedClass(name = "index={0},encoder={1}")
+@MethodSource("testMatrix")
+public class IndexImplementationMatrixTest {
 
-	protected abstract Class<? extends SpatialIndexWriter> getIndexClass();
+	public static Stream<Arguments> testMatrix() {
+		var indexesToTest = List.of(
+				LayerGeohashPointIndex.class,
+				LayerRTreeIndex.class,
+				LayerHilbertPointIndex.class,
+				LayerZOrderPointIndex.class
+		);
 
-	protected abstract Class<? extends GeometryEncoder> getEncoderClass();
+		var encoderToTest = List.of(
+				SimplePointEncoder.class,
+				NativePointEncoder.class
+		);
 
-	protected abstract SpatialIndexWriter makeIndex();
-
-	protected abstract GeometryEncoder makeGeometryEncoder();
-
-	protected SpatialIndexWriter mockLayerIndex() {
-		Layer layer = mockLayer();
-		SpatialIndexWriter index = makeIndex();
-		try (Transaction tx = graph.beginTx()) {
-			index.init(tx, spatial.indexManager, layer, false);
-			tx.commit();
-		}
-		when(layer.getIndex()).thenReturn(index);
-		return index;
+		return indexesToTest.stream().flatMap(index ->
+				encoderToTest.stream()
+						.map(encoder -> Arguments.of(index, encoder))
+		);
 	}
+
+	@Parameter(0)
+	Class<? extends SpatialIndexWriter> indexClass;
+
+	@Parameter(1)
+	Class<? extends GeometryEncoder> encoderClass;
+
+	private DatabaseManagementService databases;
+	private GraphDatabaseService graph;
+	private SpatialDatabaseService spatial;
+	private static final GeometryFactory geometryFactory = new GeometryFactory();
+	private GeometryEncoder encoder;
+	private SpatialIndexWriter index;
 
 	protected Layer mockLayer() {
 		Node layerNode;
@@ -122,13 +141,24 @@ public abstract class LayerIndexTestBase {
 	}
 
 	@BeforeEach
-	public void setup() throws IOException {
+	public void setup()
+			throws IOException, NoSuchMethodException, InvocationTargetException, InstantiationException, IllegalAccessException {
+		encoder = encoderClass.getConstructor().newInstance();
+		index = indexClass.getConstructor().newInstance();
+
 		File baseDir = new File("target/layers");
 		FileUtils.deleteDirectory(baseDir.toPath());
 		databases = new TestDatabaseManagementServiceBuilder(baseDir.toPath()).impermanent().build();
 		graph = databases.database(DEFAULT_DATABASE_NAME);
 		spatial = new SpatialDatabaseService(
 				new IndexManagerImpl((GraphDatabaseAPI) graph, SecurityContext.AUTH_DISABLED));
+
+		Layer layer = mockLayer();
+		try (Transaction tx = graph.beginTx()) {
+			index.init(tx, spatial.indexManager, layer, false);
+			tx.commit();
+		}
+		when(layer.getIndex()).thenReturn(index);
 	}
 
 	@AfterEach
@@ -149,7 +179,7 @@ public abstract class LayerIndexTestBase {
 			assertThat("Should find the same index", index.getLayer().getName(),
 					equalTo(spatial.getLayer(tx, "test", true).getName()));
 			assertThat("Index should be of right type", spatial.getLayer(tx, "test", true).getIndex().getClass(),
-					equalTo(getIndexClass()));
+					equalTo(indexClass));
 		}
 	}
 
@@ -161,7 +191,7 @@ public abstract class LayerIndexTestBase {
 			assertThat("Should find the same index", index.getLayer().getName(),
 					equalTo(spatial.getLayer(tx, "test", true).getName()));
 			assertThat("Index should be of right type", spatial.getLayer(tx, "test", true).getIndex().getClass(),
-					equalTo(getIndexClass()));
+					equalTo(indexClass));
 		}
 		try (Transaction tx = graph.beginTx()) {
 			((SimplePointLayer) layer).delete(tx, new NullListener());
@@ -173,7 +203,7 @@ public abstract class LayerIndexTestBase {
 
 	private SimplePointLayer makeTestPointLayer() {
 		try (Transaction tx = graph.beginTx()) {
-			SimplePointLayer layer = spatial.createPointLayer(tx, "test", getIndexClass(), getEncoderClass(), null
+			SimplePointLayer layer = spatial.createPointLayer(tx, "test", indexClass, encoderClass, null
 			);
 			layer.finalizeTransaction(tx);
 			tx.commit();
@@ -199,11 +229,11 @@ public abstract class LayerIndexTestBase {
 
 	@Test
 	public void shouldFindNodeAddedDirectlyToIndex() {
-		SpatialIndexWriter index = mockLayerIndex();
-		addSimplePoint(index, 1.0, 1.0);
+		addSimplePoint((SpatialIndexWriter) index, 1.0, 1.0);
 		try (Transaction tx = graph.beginTx()) {
 			SearchResults results = index.searchIndex(tx,
-					new SearchIntersectWindow(index.getLayer(), new Envelope(0.0, 2.0, 0.0, 2.0)));
+					new SearchIntersectWindow(index.getLayer(),
+							new org.neo4j.gis.spatial.index.Envelope(0.0, 2.0, 0.0, 2.0)));
 			List<Node> nodes = StreamSupport.stream(results.spliterator(), false).toList();
 			assertThat("Index should contain one result", nodes.size(), equalTo(1));
 			assertThat("Should find correct Geometry", encoder.decodeGeometry(nodes.getFirst()),
@@ -214,9 +244,8 @@ public abstract class LayerIndexTestBase {
 
 	@Test
 	public void shouldFindOnlyOneOfTwoNodesAddedDirectlyToIndex() {
-		SpatialIndexWriter index = mockLayerIndex();
-		addSimplePoint(index, 10.0, 10.0);
-		addSimplePoint(index, 1.0, 1.0);
+		addSimplePoint((SpatialIndexWriter) index, 10.0, 10.0);
+		addSimplePoint((SpatialIndexWriter) index, 1.0, 1.0);
 		try (Transaction tx = graph.beginTx()) {
 			SearchResults results = index.searchIndex(tx,
 					new SearchIntersectWindow(index.getLayer(), new Envelope(0.0, 2.0, 0.0, 2.0)));
@@ -285,4 +314,5 @@ public abstract class LayerIndexTestBase {
 			tx.commit();
 		}
 	}
+
 }
