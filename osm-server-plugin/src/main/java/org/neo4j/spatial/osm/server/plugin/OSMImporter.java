@@ -20,6 +20,13 @@
 package org.neo4j.spatial.osm.server.plugin;
 
 import static java.util.Arrays.asList;
+import static org.neo4j.gis.spatial.Constants.GTYPE_GEOMETRY;
+import static org.neo4j.gis.spatial.Constants.GTYPE_LINESTRING;
+import static org.neo4j.gis.spatial.Constants.GTYPE_MULTILINESTRING;
+import static org.neo4j.gis.spatial.Constants.GTYPE_MULTIPOINT;
+import static org.neo4j.gis.spatial.Constants.GTYPE_POINT;
+import static org.neo4j.gis.spatial.Constants.GTYPE_POLYGON;
+import static org.neo4j.gis.spatial.Constants.PROP_TYPE;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -51,7 +58,6 @@ import javax.xml.stream.XMLStreamReader;
 import org.geotools.referencing.datum.DefaultEllipsoid;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
-import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.rtree.NullListener;
@@ -76,7 +82,7 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.spatial.api.Envelope;
 import org.neo4j.spatial.api.monitoring.ProgressListener;
 
-public class OSMImporter implements Constants {
+public class OSMImporter {
 
 	private static final Logger LOGGER = Logger.getLogger(OSMImporter.class.getName());
 

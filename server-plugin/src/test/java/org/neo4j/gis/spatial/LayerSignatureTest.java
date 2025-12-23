@@ -34,7 +34,7 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.spatial.testutils.Neo4jTestCase;
 
-public class LayerSignatureTest extends Neo4jTestCase implements Constants {
+public class LayerSignatureTest extends Neo4jTestCase {
 
 	private SpatialDatabaseService spatial;
 

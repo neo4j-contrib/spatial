@@ -55,7 +55,7 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.spatial.api.monitoring.ProgressListener;
 
-public class ShapefileImporter implements Constants {
+public class ShapefileImporter {
 
 	private static final Logger LOGGER = Logger.getLogger(ShapefileImporter.class.getName());
 	private final int commitInterval;

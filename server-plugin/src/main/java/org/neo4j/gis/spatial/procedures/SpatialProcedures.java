@@ -29,9 +29,9 @@ import static org.neo4j.gis.spatial.Constants.DOC_JTS_GEOMETRY;
 import static org.neo4j.gis.spatial.Constants.DOC_LAYER_NAME;
 import static org.neo4j.gis.spatial.Constants.DOC_LAYER_TYPE;
 import static org.neo4j.gis.spatial.Constants.DOC_URI;
+import static org.neo4j.gis.spatial.Constants.INDEX_TYPE_RTREE;
 import static org.neo4j.gis.spatial.Constants.PROP_CRS;
 import static org.neo4j.gis.spatial.Constants.WGS84_CRS_NAME;
-import static org.neo4j.gis.spatial.SpatialDatabaseService.INDEX_TYPE_RTREE;
 import static org.neo4j.procedure.Mode.READ;
 import static org.neo4j.procedure.Mode.WRITE;
 
