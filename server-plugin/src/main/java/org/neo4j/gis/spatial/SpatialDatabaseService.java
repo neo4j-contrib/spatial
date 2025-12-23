@@ -19,6 +19,18 @@
  */
 package org.neo4j.gis.spatial;
 
+import static org.neo4j.gis.spatial.Constants.GTYPE_GEOMETRY;
+import static org.neo4j.gis.spatial.Constants.GTYPE_LINESTRING;
+import static org.neo4j.gis.spatial.Constants.GTYPE_MULTILINESTRING;
+import static org.neo4j.gis.spatial.Constants.GTYPE_MULTIPOINT;
+import static org.neo4j.gis.spatial.Constants.GTYPE_MULTIPOLYGON;
+import static org.neo4j.gis.spatial.Constants.GTYPE_POINT;
+import static org.neo4j.gis.spatial.Constants.GTYPE_POLYGON;
+import static org.neo4j.gis.spatial.Constants.LABEL_LAYER;
+import static org.neo4j.gis.spatial.Constants.PROP_LAYER;
+import static org.neo4j.gis.spatial.Constants.PROP_LAYER_CLASS;
+import static org.neo4j.gis.spatial.Constants.PROP_LAYER_TYPE;
+
 import java.util.ArrayList;
 import java.util.List;
 import javax.annotation.Nonnull;
@@ -59,7 +71,7 @@ import org.neo4j.spatial.api.monitoring.ProgressListener;
  * depending on the actual data model backing the GIS. All real data access is then done
  * through the layer instance which interprets the GIS functions in terms of the underlying model.
  */
-public class SpatialDatabaseService implements Constants {
+public class SpatialDatabaseService {
 
 	public final IndexManager indexManager;
 
@@ -448,6 +460,7 @@ public class SpatialDatabaseService implements Constants {
 	public Layer getOrCreateRegisteredTypeLayer(Transaction tx, String name, RegisteredLayerType registeredLayerType,
 			String encoderConfig, String indexConfig, boolean readOnly) {
 		return getOrCreateLayer(tx, name, registeredLayerType.geometryEncoder(), registeredLayerType.layerClass(),
-				(encoderConfig == null) ? registeredLayerType.defaultEncoderConfig() : encoderConfig, indexConfig, readOnly);
+				(encoderConfig == null) ? registeredLayerType.defaultEncoderConfig() : encoderConfig, indexConfig,
+				readOnly);
 	}
 }

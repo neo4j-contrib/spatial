@@ -19,6 +19,13 @@
  */
 package org.neo4j.spatial.osm.server.plugin;
 
+import static org.neo4j.gis.spatial.Constants.GTYPE_LINESTRING;
+import static org.neo4j.gis.spatial.Constants.GTYPE_MULTILINESTRING;
+import static org.neo4j.gis.spatial.Constants.GTYPE_MULTIPOINT;
+import static org.neo4j.gis.spatial.Constants.GTYPE_MULTIPOLYGON;
+import static org.neo4j.gis.spatial.Constants.GTYPE_POINT;
+import static org.neo4j.gis.spatial.Constants.GTYPE_POLYGON;
+import static org.neo4j.gis.spatial.Constants.PROP_TYPE;
 import static org.neo4j.gis.spatial.utilities.TraverserFactory.createTraverserInBackwardsCompatibleWay;
 
 import java.io.Serial;

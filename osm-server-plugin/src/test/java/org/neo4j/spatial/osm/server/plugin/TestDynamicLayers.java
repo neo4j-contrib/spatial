@@ -22,6 +22,11 @@ package org.neo4j.spatial.osm.server.plugin;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
+import static org.neo4j.gis.spatial.Constants.GTYPE_GEOMETRY;
+import static org.neo4j.gis.spatial.Constants.GTYPE_LINESTRING;
+import static org.neo4j.gis.spatial.Constants.GTYPE_MULTILINESTRING;
+import static org.neo4j.gis.spatial.Constants.GTYPE_POINT;
+import static org.neo4j.gis.spatial.Constants.GTYPE_POLYGON;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -34,7 +39,6 @@ import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.LinearRing;
 import org.locationtech.jts.geom.Polygon;
-import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.DynamicLayer;
 import org.neo4j.gis.spatial.ShapefileImporter;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
@@ -53,7 +57,7 @@ import org.neo4j.spatial.geotools.plugin.Neo4jSpatialDataStore;
 import org.neo4j.spatial.osm.server.plugin.procedures.OsmSpatialProcedures;
 import org.neo4j.spatial.testutils.Neo4jTestCase;
 
-public class TestDynamicLayers extends Neo4jTestCase implements Constants {
+public class TestDynamicLayers extends Neo4jTestCase {
 
 	@Override
 	protected List<Class<?>> loadProceduresAndFunctions() {

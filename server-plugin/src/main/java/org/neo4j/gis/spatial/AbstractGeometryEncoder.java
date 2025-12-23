@@ -19,6 +19,15 @@
  */
 package org.neo4j.gis.spatial;
 
+import static org.neo4j.gis.spatial.Constants.GTYPE_LINESTRING;
+import static org.neo4j.gis.spatial.Constants.GTYPE_MULTILINESTRING;
+import static org.neo4j.gis.spatial.Constants.GTYPE_MULTIPOINT;
+import static org.neo4j.gis.spatial.Constants.GTYPE_MULTIPOLYGON;
+import static org.neo4j.gis.spatial.Constants.GTYPE_POINT;
+import static org.neo4j.gis.spatial.Constants.GTYPE_POLYGON;
+import static org.neo4j.gis.spatial.Constants.PROP_BBOX;
+import static org.neo4j.gis.spatial.Constants.PROP_TYPE;
+
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
@@ -32,7 +41,7 @@ import org.neo4j.spatial.api.Envelope;
 import org.neo4j.spatial.api.encoder.GeometryEncoder;
 import org.neo4j.spatial.api.layer.Layer;
 
-public abstract class AbstractGeometryEncoder implements GeometryEncoder, Constants {
+public abstract class AbstractGeometryEncoder implements GeometryEncoder {
 
 	protected String bboxProperty = PROP_BBOX;
 

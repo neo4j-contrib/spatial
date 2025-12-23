@@ -19,6 +19,8 @@
  */
 package org.neo4j.gis.spatial.encoders;
 
+import static org.neo4j.gis.spatial.Constants.PROP_TYPE;
+
 import java.util.List;
 import java.util.Set;
 import org.locationtech.jts.geom.Coordinate;
