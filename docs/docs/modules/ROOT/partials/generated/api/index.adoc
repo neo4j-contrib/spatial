@@ -133,11 +133,11 @@ Returns the number of features in the layer
 
 Returns the bounding box of the layer
 |label:procedure[]
-|xref:api/spatial/spatial.importOSM.adoc[spatial.importOSM icon:book[]]
+|xref:api/spatial/spatial.importOSM.adoc[spatial.importOSM icon:book[]] label:OSM[]
 
 Imports the the provided osm-file from URI to a layer of the same name, returns the count of data added
 |label:procedure[]
-|xref:api/spatial/spatial.importOSMToLayer.adoc[spatial.importOSMToLayer icon:book[]]
+|xref:api/spatial/spatial.importOSMToLayer.adoc[spatial.importOSMToLayer icon:book[]] label:OSM[]
 
 Imports the the provided osm-file from URI to a layer, returns the count of data added
 |label:procedure[]

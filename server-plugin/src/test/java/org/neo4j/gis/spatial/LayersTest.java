@@ -24,7 +24,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,8 +42,6 @@ import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
-import org.neo4j.gis.spatial.osm.OSMGeometryEncoder;
-import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.gis.spatial.rtree.ProgressLoggingListener;
@@ -60,7 +57,6 @@ import org.neo4j.spatial.api.encoder.GeometryEncoder;
 import org.neo4j.spatial.api.index.SpatialIndexWriter;
 import org.neo4j.spatial.api.layer.EditableLayer;
 import org.neo4j.spatial.api.layer.Layer;
-import org.neo4j.spatial.cli.tools.ShapefileExporter;
 import org.neo4j.spatial.testutils.Neo4jTestCase;
 
 public class LayersTest extends Neo4jTestCase {
@@ -251,12 +247,9 @@ public class LayersTest extends Neo4jTestCase {
 				DynamicLayer.class);
 		testSpecificEditableLayer("test dynamic layer with graph encoder", SimpleGraphEncoder.class,
 				DynamicLayer.class);
-		testSpecificEditableLayer("test OSM layer with OSM encoder", OSMGeometryEncoder.class, OSMLayer.class);
 		testSpecificEditableLayer("test editable layer with property encoder", SimplePropertyEncoder.class,
 				EditableLayerImpl.class);
 		testSpecificEditableLayer("test editable layer with graph encoder", SimpleGraphEncoder.class,
-				EditableLayerImpl.class);
-		testSpecificEditableLayer("test editable layer with OSM encoder", OSMGeometryEncoder.class,
 				EditableLayerImpl.class);
 	}
 
@@ -316,24 +309,6 @@ public class LayersTest extends Neo4jTestCase {
 				+ results.size());
 		for (SpatialRecord r : results) {
 			System.out.println("\t\tGeometry: " + r);
-		}
-	}
-
-	@Test
-	public void testShapefileExport() throws Exception {
-		ShapefileExporter exporter = new ShapefileExporter(driver, DEFAULT_DATABASE_NAME);
-		exporter.setExportDir("target/export");
-		ArrayList<String> layers = new ArrayList<>();
-
-		layers.add(testSpecificEditableLayer("test dynamic layer with property encoder", SimplePropertyEncoder.class,
-				DynamicLayer.class));
-		layers.add(testSpecificEditableLayer("test dynamic layer with graph encoder", SimpleGraphEncoder.class,
-				DynamicLayer.class));
-		layers.add(testSpecificEditableLayer("test dynamic layer with OSM encoder", OSMGeometryEncoder.class,
-				OSMLayer.class));
-
-		for (String layerName : layers) {
-			exporter.exportLayer(layerName);
 		}
 	}
 

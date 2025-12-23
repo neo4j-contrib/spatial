@@ -3,7 +3,7 @@
 
 :description: This section contains reference documentation for the spatial.importOSM procedure.
 
-label:procedure[]
+label:procedure[] label:OSM[]
 
 [.emphasis]
 Imports the the provided osm-file from URI to a layer of the same name, returns the count of data added

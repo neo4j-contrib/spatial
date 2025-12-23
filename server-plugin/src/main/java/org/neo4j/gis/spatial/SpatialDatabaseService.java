@@ -450,5 +450,4 @@ public class SpatialDatabaseService implements Constants {
 		return getOrCreateLayer(tx, name, registeredLayerType.geometryEncoder(), registeredLayerType.layerClass(),
 				(encoderConfig == null) ? registeredLayerType.defaultEncoderConfig() : encoderConfig, indexConfig, readOnly);
 	}
-
 }

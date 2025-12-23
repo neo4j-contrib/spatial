@@ -431,8 +431,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		}
 	}
 
-	@SuppressWarnings({"SameParameterValue"})
-	private static Coordinate[] makeCoordinateDataFromTextFile(String textFile, Coordinate origin) {
+	public static Coordinate[] makeCoordinateDataFromTextFile(String textFile, Coordinate origin) {
 		CoordinateList data = new CoordinateList();
 		URL resource = TestSimplePointLayer.class.getResource("/" + textFile);
 		if (resource == null) {

@@ -40,11 +40,6 @@ import org.neo4j.gis.spatial.ShapefileImporter;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
-import org.neo4j.gis.spatial.osm.OSMDataset;
-import org.neo4j.gis.spatial.osm.OSMDataset.Way;
-import org.neo4j.gis.spatial.osm.OSMDataset.WayPoint;
-import org.neo4j.gis.spatial.osm.OSMImporter;
-import org.neo4j.gis.spatial.osm.OSMLayer;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.graphdb.GraphDatabaseService;
@@ -57,6 +52,12 @@ import org.neo4j.spatial.api.index.SpatialIndexReader;
 import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.spatial.cli.tools.ShapefileExporter;
 import org.neo4j.spatial.geotools.plugin.Neo4jSpatialDataStore;
+import org.neo4j.spatial.osm.server.plugin.OSMDataset;
+import org.neo4j.spatial.osm.server.plugin.OSMDataset.Way;
+import org.neo4j.spatial.osm.server.plugin.OSMDataset.WayPoint;
+import org.neo4j.spatial.osm.server.plugin.OSMImporter;
+import org.neo4j.spatial.osm.server.plugin.OSMLayer;
+import org.neo4j.spatial.osm.server.plugin.procedures.OsmSpatialProcedures;
 import org.neo4j.spatial.testutils.Neo4jTestCase;
 import org.neo4j.test.GraphDatabaseServiceCleaner;
 
@@ -73,7 +74,7 @@ public class TestsForDocs extends Neo4jTestCase {
 
 	@Override
 	protected List<Class<?>> loadProceduresAndFunctions() {
-		return List.of(SpatialFunctions.class, SpatialProcedures.class);
+		return List.of(SpatialFunctions.class, SpatialProcedures.class, OsmSpatialProcedures.class);
 	}
 
 	@BeforeEach
@@ -131,7 +132,7 @@ public class TestsForDocs extends Neo4jTestCase {
 		// START SNIPPET: importOsm tag::importOsm[]
 		OSMImporter importer = new OSMImporter("map.osm");
 		importer.setCharset(StandardCharsets.UTF_8);
-		importer.importFile(db, "../server-plugin/map.osm");
+		importer.importFile(db, "../osm-server-plugin/map.osm");
 		importer.reIndex(db);
 		// END SNIPPET: importOsm end::importOsm[]
 	}

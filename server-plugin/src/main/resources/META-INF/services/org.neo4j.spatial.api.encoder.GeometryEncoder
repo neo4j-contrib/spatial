@@ -5,5 +5,3 @@ org.neo4j.gis.spatial.encoders.SimplePointEncoder
 org.neo4j.gis.spatial.encoders.SimplePropertyEncoder
 org.neo4j.gis.spatial.encoders.WKBGeometryEncoder
 org.neo4j.gis.spatial.encoders.WKTGeometryEncoder
-
-org.neo4j.gis.spatial.osm.OSMGeometryEncoder
