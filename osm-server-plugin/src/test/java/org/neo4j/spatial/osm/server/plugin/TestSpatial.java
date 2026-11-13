@@ -21,7 +21,6 @@ package org.neo4j.spatial.osm.server.plugin;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -53,39 +52,7 @@ import org.neo4j.spatial.osm.server.plugin.utils.SpatialIndexPerformanceProxy;
 import org.neo4j.spatial.testutils.Neo4jTestCase;
 
 /**
- * <p>
- * Test cases for initial version of Neo4j-Spatial. This was originally
- * converted directly from Davide Savazzi's console applications:
- * ShapefileImporter, Test, Test2 and Test3. It was then extended substantially
- * by Craig to include tests for successful search of a number of specific
- * geometries in a number of specific shapefiles. After this tests for OSM
- * dataset import and search were added. The latest OSM work, specific to
- * DynamicLayer's is tested in the new test class TestDynamicLayers.
- * </p>
- * <p>
- * This class can also be configured on the command-line, java runtime
- * configuration or maven configuration. Set the java system property
- * spatial.test.mode to one of the following options:
- * <dl>
- * <dt>long</dt>
- * <dd>All known tests are run, regardless of the size of data or length of time
- * taken to test. This is good for infrequent tests with laeger data. It is
- * possible the maven dependencies will not include the necessary data to run
- * this test, so if you get failures, check that it is not simply missing data.
- * <dt>short</dt>
- * <dd>A very short set of tests are run, just as a quite check. This might be
- * one small SHP and one small OSM file, or even less</dd>
- * <dt>dev</dt>
- * <dd>Tests here change all the time as the developers are coding new features.
- * Craig in particular uses this place for a kind of TDD approach, writing tests
- * as he codes to drive the development. No guarranteee these tests will pass,
- * especially if something is only half coded</dd>
- * <dt>any other value, or leave unset</dt>
- * <dd>The default set of tests to run. This should be something that will work
- * well in the hudson build, as well as for developers downloading and trying
- * out neo4j-spatial</dd>
- * </dl>
- * </p>
+ * Imports {@code map.osm} (Billesholm) and checks the RTree index against a brute-force scan.
  */
 public class TestSpatial extends Neo4jTestCase {
 
@@ -103,20 +70,14 @@ public class TestSpatial extends Neo4jTestCase {
 
 	@BeforeEach
 	public void setUp() {
-		// TODO: Rather load this from a configuration file, properties file or JRuby test code
-
 		Envelope bbox = new Envelope(12.9, 12.99, 56.05, 56.07); // covers half of Billesholm
 
-		addTestLayer("billesholm.osm", bbox);
+		addTestLayer("map.osm", bbox);
 		addTestGeometry(70423036, "Ljungsgårdsvägen", "outside top left",
 				"(12.9599540,56.0570692), (12.9624780,56.0716282)");
 		addTestGeometry(67835020, "Villagatan", "in the middle", "(12.9776065,56.0561477), (12.9814421,56.0572131)");
 		addTestGeometry(60966388, "Storgatan", "crossing left edge",
 				"(12.9682980,56.0524546), (12.9710302,56.0538436)");
-
-		bbox = new Envelope(12.5, 14.1, 55.0, 56.3); // cover central Skåne
-		addTestLayer("sweden.osm", bbox);
-		addTestLayer("sweden.osm.administrative", bbox);
 	}
 
 	private void addTestLayer(String layer, Envelope bbox) {
@@ -132,8 +93,8 @@ public class TestSpatial extends Neo4jTestCase {
 	}
 
 	@Test
-	public void testOsmBillesholm() throws Exception {
-		testLayer("billesholm.osm");
+	public void testOsmMap() throws Exception {
+		testLayer("map.osm");
 	}
 
 	private void testLayer(String layerName) throws Exception {
@@ -168,8 +129,7 @@ public class TestSpatial extends Neo4jTestCase {
 	}
 
 	private void loadTestOsmData(String layerName) throws Exception {
-		String OSM_DIR = "target/osm";
-		String osmPath = OSM_DIR + File.separator + layerName;
+		String osmPath = layerName;
 		LOGGER.fine("\n=== Loading layer " + layerName + " from " + osmPath + " ===");
 		OSMImporter importer = new OSMImporter(layerName);
 		importer.setCharset(StandardCharsets.UTF_8);

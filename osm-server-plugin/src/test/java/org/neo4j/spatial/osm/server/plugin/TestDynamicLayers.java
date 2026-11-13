@@ -70,11 +70,6 @@ public class TestDynamicLayers extends Neo4jTestCase {
 	}
 
 	@Test
-	public void testShapefileExport_Map2() throws Exception {
-		runShapefileExport("map2.osm");
-	}
-
-	@Test
 	public void testImageExport_HighwayShp() throws Exception {
 		runDynamicShapefile("../example-data/shp/highway.shp", "highway.shp");
 	}
@@ -134,9 +129,6 @@ public class TestDynamicLayers extends Neo4jTestCase {
 	}
 
 	private void runShapefileExport(String osmFile) throws Exception {
-		// TODO: Consider merits of using dependency data in target/osm,
-		// downloaded by maven, as done in TestSpatial, versus the test data
-		// commited to source code as done here
 		printDatabaseStats();
 		loadTestOsmData(osmFile);
 		Envelope bbox = checkLayer(osmFile);
