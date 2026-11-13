@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
@@ -36,7 +35,6 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.config.Setting;
 import org.neo4j.harness.Neo4j;
 import org.neo4j.harness.Neo4jBuilder;
-import org.neo4j.harness.Neo4jBuilders;
 
 /**
  * Base class for the metamodel tests.
@@ -73,7 +71,7 @@ public abstract class Neo4jTestCase {
 	@SuppressWarnings("unchecked")
 	@BeforeEach
 	void setUpDatabase() {
-		Neo4jBuilder neo4jBuilder = Neo4jBuilders
+		Neo4jBuilder neo4jBuilder = TestNeo4jBuilders
 				.newInProcessBuilder(getDbPath())
 				.withConfig(GraphDatabaseSettings.procedure_unrestricted, List.of("spatial.*"));
 
@@ -88,9 +86,6 @@ public abstract class Neo4jTestCase {
 		} else {
 			NORMAL_CONFIG.forEach((setting, o) -> neo4jBuilder.withConfig((Setting<Object>) setting, o));
 		}
-
-		// Bolt waits this quiet period (default 5s) per netty event loop group on shutdown: ~10s per test
-		neo4jBuilder.withConfig(GraphDatabaseInternalSettings.netty_server_shutdown_quiet_period, 0);
 
 		neo4j = neo4jBuilder.build();
 		driver = GraphDatabase.driver(neo4j.boltURI().toString(), AuthTokens.basic("neo4j", ""));
