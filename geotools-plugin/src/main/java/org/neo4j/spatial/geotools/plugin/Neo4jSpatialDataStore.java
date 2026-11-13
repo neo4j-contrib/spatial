@@ -123,9 +123,14 @@ public class Neo4jSpatialDataStore extends ContentDataStore {
 		Session session = getSession(tx);
 
 		if (tx == org.geotools.api.data.Transaction.AUTO_COMMIT) {
-			return session.run(cypher, parameters)
-					.stream()
-					.onClose(session::close);
+			try {
+				return session.run(cypher, parameters)
+						.stream()
+						.onClose(session::close);
+			} catch (RuntimeException e) {
+				session.close();
+				throw e;
+			}
 		} else {
 			Neo4jTransactionState state = (Neo4jTransactionState) tx.getState(this);
 			org.neo4j.driver.Transaction neo4jTx = state.getNeo4jTransaction();
