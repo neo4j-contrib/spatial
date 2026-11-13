@@ -24,3 +24,24 @@ jobs:
         with:
           files: "**/target/surefire-reports/*.xml"
           report_individual_runs: "true"
+
+  docs:
+    name: Check generated docs are up to date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-jdk
+      - uses: ./.github/actions/setup-maven-cache
+      - name: Regenerate docs
+        run: ./mvnw --no-transfer-progress -Pgenerate-docs verify -pl doc-examples -am -Dtest=GeoPipesDocTest -Dsurefire.failIfNoSpecifiedTests=false
+        shell: bash
+      # PNGs are excluded: rendering is not byte-stable across JDKs and fonts
+      - name: Fail on stale docs
+        run: |
+          changes=$(git status --porcelain -- 'docs/**/*.adoc')
+          if [ -n "$changes" ]; then
+            echo "$changes"
+            echo "::error::Generated docs are stale, run: ./mvnw -Pgenerate-docs verify -pl doc-examples -am"
+            exit 1
+          fi
+        shell: bash
