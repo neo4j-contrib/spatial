@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.logging.Logger;
 import org.neo4j.gis.spatial.SpatialDatabaseException;
-import org.neo4j.gis.spatial.encoders.Configurable;
+import org.neo4j.spatial.api.Configurable;
 import org.neo4j.spatial.api.index.SpatialIndexWriter;
 
 public class IndexRegistry {
@@ -67,8 +67,8 @@ public class IndexRegistry {
 		try {
 			T index = indexClass.getDeclaredConstructor().newInstance();
 			if (config != null && !config.isEmpty()) {
-				if (index instanceof Configurable) {
-					((Configurable) index).setConfiguration(config);
+				if (index instanceof Configurable<?> configurable) {
+					ConfigurationUtils.setLegacyConfig(configurable, config);
 				} else {
 					LOGGER.warning(
 							"Warning: index configuration '" + config + "' passed to non-configurable index: "

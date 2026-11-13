@@ -19,8 +19,11 @@
  */
 package org.neo4j.gis.spatial.encoders;
 
+import static org.neo4j.gis.spatial.Constants.DOC_CRS;
+import static org.neo4j.gis.spatial.Constants.PROP_GEOM;
 import static org.neo4j.gis.spatial.Constants.PROP_TYPE;
 
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -28,7 +31,9 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.LineString;
 import org.neo4j.gis.spatial.AbstractGeometryEncoder;
+import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
+import org.neo4j.gis.spatial.encoders.NativePointsEncoder.Config;
 import org.neo4j.gis.spatial.encoders.neo4j.Neo4jCRS;
 import org.neo4j.gis.spatial.encoders.neo4j.Neo4jPoint;
 import org.neo4j.graphdb.Entity;
@@ -37,10 +42,43 @@ import org.neo4j.graphdb.Transaction;
 /**
  * Simple encoder that stores line strings as an array of points.
  */
-public class NativePointsEncoder extends AbstractGeometryEncoder implements Configurable {
+public class NativePointsEncoder extends AbstractGeometryEncoder<Config> {
 
-	private String property = "geometry";
-	private Neo4jCRS crs = Neo4jCRS.findCRS("WGS-84");
+	public static class Config extends BaseGeometryEncoderConfig {
+
+		@JsonPropertyDescription("The name of the property containing the geometry")
+		public String geomProperty = PROP_GEOM;
+
+		@JsonPropertyDescription(DOC_CRS)
+		public String crs = Constants.WGS84_CRS_NAME;
+
+		public Config() {
+		}
+
+		public Config(String geomProperty) {
+			this(geomProperty, null);
+		}
+
+		public Config(String geomProperty, String crs) {
+			if (geomProperty != null) {
+				this.geomProperty = geomProperty;
+			}
+			if (crs != null) {
+				this.crs = crs;
+			}
+		}
+	}
+
+
+	@Override
+	public Class<Config> getConfigType() {
+		return Config.class;
+	}
+
+	// derived on access: setConfiguration runs from the super constructor, before field initializers
+	private Neo4jCRS crs() {
+		return Neo4jCRS.findCRS(configuration.crs);
+	}
 
 	@Override
 	public List<String> getIdentifiers() {
@@ -51,11 +89,12 @@ public class NativePointsEncoder extends AbstractGeometryEncoder implements Conf
 	protected void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container) {
 		var gtype = SpatialDatabaseService.convertJtsClassToGeometryType(geometry.getClass());
 		if (geometry instanceof LineString lineString) {
+			Neo4jCRS crs = crs();
 			var neo4jPoints = Arrays.stream(lineString.getCoordinates())
 					.map(coordinate -> new Neo4jPoint(coordinate, crs))
 					.toArray(org.neo4j.graphdb.spatial.Point[]::new);
 			container.setProperty(PROP_TYPE, gtype);
-			container.setProperty(property, neo4jPoints);
+			container.setProperty(configuration.geomProperty, neo4jPoints);
 		} else {
 			throw new IllegalArgumentException(
 					"Can only store point-arrays as linestring: " + SpatialDatabaseService.convertGeometryTypeToName(
@@ -64,10 +103,15 @@ public class NativePointsEncoder extends AbstractGeometryEncoder implements Conf
 
 	}
 
+	public NativePointsEncoder() {
+		super(new Config());
+	}
+
 	@Override
 	public Geometry decodeGeometry(Entity container) {
-		var points = ((org.neo4j.graphdb.spatial.Point[]) container.getProperty(property));
+		var points = ((org.neo4j.graphdb.spatial.Point[]) container.getProperty(configuration.geomProperty));
 		var factory = getGeometryFactory();
+		Neo4jCRS crs = crs();
 		var coordinates = Arrays.stream(points)
 				.map(point -> {
 					if (point.getCRS().getCode() != crs.getCode()) {
@@ -87,34 +131,38 @@ public class NativePointsEncoder extends AbstractGeometryEncoder implements Conf
 	}
 
 	@Override
-	public String getConfiguration() {
-		return property + ":" + bboxProperty + ": " + crs.getCode();
-	}
-
-	@Override
-	public void setConfiguration(String configuration) {
+	public Config migrateLegacyConfiguration(String configuration) {
+		Config config = new Config();
 		if (configuration != null && !configuration.trim().isEmpty()) {
 			String[] fields = configuration.split(":");
 			if (fields.length > 0) {
-				property = fields[0];
+				config.geomProperty = fields[0];
 			}
 			if (fields.length > 1) {
-				bboxProperty = fields[1];
+				config.bboxProperty = fields[1];
 			}
 			if (fields.length > 2) {
-				crs = Neo4jCRS.findCRS(fields[2]);
+				config.crs = fields[2];
 			}
 		}
+		return config;
+	}
+
+	@Override
+	public void setConfiguration(Config configuration) {
+		Neo4jCRS.findCRS(configuration.crs); // fail fast on unsupported CRS
+		super.setConfiguration(configuration);
 	}
 
 	@Override
 	public String getSignature() {
-		return "NativePointEncoder(geometry='" + property + "', bbox='" + bboxProperty + "', crs=" + crs.getCode()
+		return "NativePointEncoder(geometry='" + configuration.geomProperty + "', bbox='" + configuration.bboxProperty
+				+ "', crs=" + crs().getCode()
 				+ ")";
 	}
 
 	@Override
 	public Set<String> getEncoderProperties() {
-		return Set.of(bboxProperty, property, PROP_TYPE);
+		return Set.of(configuration.bboxProperty, configuration.geomProperty, PROP_TYPE);
 	}
 }

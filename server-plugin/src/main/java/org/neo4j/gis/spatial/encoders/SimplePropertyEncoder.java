@@ -26,6 +26,7 @@ import java.util.Set;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.AbstractGeometryEncoder;
+import org.neo4j.gis.spatial.AbstractGeometryEncoder.BaseGeometryEncoderConfig;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.Transaction;
@@ -36,9 +37,23 @@ import org.neo4j.graphdb.Transaction;
  */
 // TODO: Consider generalizing this code and making a float[] type geometry store available in the library
 // TODO: Consider switching from Float to Double according to Davide Savazzi
-public class SimplePropertyEncoder extends AbstractGeometryEncoder {
+public class SimplePropertyEncoder extends AbstractGeometryEncoder<BaseGeometryEncoderConfig> {
 
 	private static final String PROPERTY_DATA = "data";
+
+	public SimplePropertyEncoder() {
+		super(new BaseGeometryEncoderConfig());
+	}
+
+	@Override
+	public BaseGeometryEncoderConfig migrateLegacyConfiguration(String configuration) {
+		return new BaseGeometryEncoderConfig();
+	}
+
+	@Override
+	public Class<BaseGeometryEncoderConfig> getConfigType() {
+		return BaseGeometryEncoderConfig.class;
+	}
 
 	@Override
 	public List<String> getIdentifiers() {
@@ -70,6 +85,6 @@ public class SimplePropertyEncoder extends AbstractGeometryEncoder {
 
 	@Override
 	public Set<String> getEncoderProperties() {
-		return Set.of(bboxProperty, PROPERTY_DATA, PROP_TYPE);
+		return Set.of(configuration.bboxProperty, PROPERTY_DATA, PROP_TYPE);
 	}
 }

@@ -16,7 +16,13 @@ a|
 ----
 (:SpatialLayer {
     geomencoder: "SimplePointEncoder",
-    geomencoder_config: "lon:lat",
+    geomencoder_config.bboxProperty: "bbox",
+    geomencoder_config.xProperty: "lon",
+    geomencoder_config.yProperty: "lat",
+    index_config.maxNodeReferences: 100,
+    index_config.referenceRelationshipType: "RTREE_REFERENCE",
+    index_config.shouldMergeTrees: false,
+    index_config.splitMode: "greene",
     index_type: "rtree",
     layer: "geom",
     layer_type: "SimplePointLayer",

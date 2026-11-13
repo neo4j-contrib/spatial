@@ -46,6 +46,7 @@ import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.LinearRing;
 import org.locationtech.jts.geom.Polygon;
 import org.neo4j.gis.spatial.AbstractGeometryEncoder;
+import org.neo4j.gis.spatial.AbstractGeometryEncoder.BaseGeometryEncoderConfig;
 import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.index.Envelope;
@@ -58,7 +59,7 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 
-public class OSMGeometryEncoder extends AbstractGeometryEncoder {
+public class OSMGeometryEncoder extends AbstractGeometryEncoder<BaseGeometryEncoderConfig> {
 
 	private static final Logger LOGGER = Logger.getLogger(OSMGeometryEncoder.class.getName());
 
@@ -74,9 +75,23 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	private int vertices;
 	private int vertexMistmaches = 0;
 
+	public OSMGeometryEncoder() {
+		super(new BaseGeometryEncoderConfig());
+	}
+
 	@Override
 	public List<String> getIdentifiers() {
 		return List.of("OSMGeometryEncoder", "org.neo4j.gis.spatial.osm.OSMGeometryEncoder");
+	}
+
+	@Override
+	public BaseGeometryEncoderConfig migrateLegacyConfiguration(String configuration) {
+		return new BaseGeometryEncoderConfig();
+	}
+
+	@Override
+	public Class<BaseGeometryEncoderConfig> getConfigType() {
+		return BaseGeometryEncoderConfig.class;
 	}
 
 	/**
@@ -164,14 +179,15 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 	@Override
 	public Envelope decodeEnvelope(Entity container) {
 		Node geomNode = testIsNode(container);
-		double[] bbox = (double[]) geomNode.getProperty(bboxProperty);
+		double[] bbox = (double[]) geomNode.getProperty(configuration.bboxProperty);
 		// double xmin, double xmax, double ymin, double ymax
 		return new Envelope(bbox[0], bbox[1], bbox[2], bbox[3]);
 	}
 
 	@Override
 	public void encodeEnvelope(Envelope mbb, Entity container) {
-		container.setProperty(bboxProperty, new double[]{mbb.getMinX(), mbb.getMaxX(), mbb.getMinY(), mbb.getMaxY()});
+		container.setProperty(configuration.bboxProperty,
+				new double[]{mbb.getMinX(), mbb.getMaxX(), mbb.getMinY(), mbb.getMaxY()});
 	}
 
 	public static Node getOSMNodeFromGeometryNode(Node geomNode) {
@@ -585,7 +601,7 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder {
 
 	@Override
 	public Set<String> getEncoderProperties() {
-		return Set.of(bboxProperty, PROPERTY_VERTICES, PROPERTY_LAT, PROPERTY_LON, PROP_TYPE);
+		return Set.of(configuration.bboxProperty, PROPERTY_VERTICES, PROPERTY_LAT, PROPERTY_LON, PROP_TYPE);
 	}
 
 	@Override

@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.logging.Logger;
 import org.neo4j.gis.spatial.SpatialDatabaseException;
-import org.neo4j.gis.spatial.encoders.Configurable;
+import org.neo4j.spatial.api.Configurable;
 import org.neo4j.spatial.api.encoder.GeometryEncoder;
 
 public class GeometryEncoderRegistry {
@@ -65,8 +65,8 @@ public class GeometryEncoderRegistry {
 		try {
 			T geometryEncoder = encoderClass.getDeclaredConstructor().newInstance();
 			if (config != null && !config.isEmpty()) {
-				if (geometryEncoder instanceof Configurable) {
-					((Configurable) geometryEncoder).setConfiguration(config);
+				if (geometryEncoder instanceof Configurable<?> configurable) {
+					ConfigurationUtils.setLegacyConfig(configurable, config);
 				} else {
 					LOGGER.warning(
 							"Warning: encoder configuration '" + config + "' passed to non-configurable encoder: "

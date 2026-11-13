@@ -16,7 +16,12 @@ a|
 ----
 (:SpatialLayer {
     geomencoder: "WKTGeometryEncoder",
-    geomencoder_config: "wkt",
+    geomencoder_config.bboxProperty: "bbox",
+    geomencoder_config.geomProperty: "wkt",
+    index_config.maxNodeReferences: 100,
+    index_config.referenceRelationshipType: "RTREE_REFERENCE",
+    index_config.shouldMergeTrees: false,
+    index_config.splitMode: "greene",
     index_type: "rtree",
     layer: "update_layer",
     layer_type: "EditableLayer"

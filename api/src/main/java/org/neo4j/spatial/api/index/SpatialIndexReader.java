@@ -19,7 +19,6 @@
  */
 package org.neo4j.spatial.api.index;
 
-import java.util.Map;
 import org.neo4j.gis.spatial.index.Envelope;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -47,8 +46,6 @@ public interface SpatialIndexReader {
 	SearchResults searchIndex(Transaction tx, SearchFilter filter);
 
 	void addMonitor(TreeMonitor monitor);
-
-	void configure(Map<String, Object> config);
 
 	default void finalizeTransaction(Transaction tx) {
 	}

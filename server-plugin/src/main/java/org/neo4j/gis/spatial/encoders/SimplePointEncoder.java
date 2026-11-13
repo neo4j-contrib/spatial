@@ -21,24 +21,87 @@ package org.neo4j.gis.spatial.encoders;
 
 import static org.neo4j.gis.spatial.Constants.PROP_TYPE;
 
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import java.util.List;
 import java.util.Set;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.AbstractGeometryEncoder;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
+import org.neo4j.gis.spatial.encoders.SimplePointEncoder.Config;
 import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.Transaction;
 
 /**
  * Simple encoder that stores point geometries as two x/y properties.
  */
-public class SimplePointEncoder extends AbstractGeometryEncoder implements Configurable {
+public class SimplePointEncoder extends AbstractGeometryEncoder<Config> {
 
-	public static final String DEFAULT_X = "longitude";
-	public static final String DEFAULT_Y = "latitude";
-	protected String xProperty = DEFAULT_X;
-	protected String yProperty = DEFAULT_Y;
+	/**
+	 * @deprecated use {@link Config#DEFAULT_X}
+	 */
+	@Deprecated
+	public static final String DEFAULT_X = Config.DEFAULT_X;
+
+	/**
+	 * @deprecated use {@link Config#DEFAULT_Y}
+	 */
+	@Deprecated
+	public static final String DEFAULT_Y = Config.DEFAULT_Y;
+
+	public static class Config extends BaseGeometryEncoderConfig {
+
+		public static final String DEFAULT_X = "longitude";
+		public static final String DEFAULT_Y = "latitude";
+
+		@JsonPropertyDescription("The name of the property containing the x-coordinate")
+		public String xProperty = DEFAULT_X;
+
+		@JsonPropertyDescription("The name of the property containing the y-coordinate")
+		public String yProperty = DEFAULT_Y;
+
+		public Config() {
+		}
+
+		public Config(String xProperty, String yProperty) {
+			this.xProperty = xProperty == null ? DEFAULT_X : xProperty;
+			this.yProperty = yProperty == null ? DEFAULT_Y : yProperty;
+		}
+
+		public Config(String xProperty, String yProperty, String bboxProperty) {
+			this.xProperty = xProperty == null ? DEFAULT_X : xProperty;
+			this.yProperty = yProperty == null ? DEFAULT_Y : yProperty;
+			if (bboxProperty != null) {
+				this.bboxProperty = bboxProperty;
+			}
+		}
+
+		public static Config migrateLegacyConfiguration(String configuration) {
+			Config config = new Config();
+			if (configuration != null && !configuration.trim().isEmpty()) {
+				String[] fields = configuration.split(":");
+				if (fields.length > 0) {
+					config.xProperty = fields[0];
+				}
+				if (fields.length > 1) {
+					config.yProperty = fields[1];
+				}
+				if (fields.length > 2) {
+					config.bboxProperty = fields[2];
+				}
+			}
+			return config;
+		}
+	}
+
+	public SimplePointEncoder() {
+		super(new Config());
+	}
+
+	@Override
+	public Class<Config> getConfigType() {
+		return Config.class;
+	}
 
 	@Override
 	public List<String> getIdentifiers() {
@@ -51,46 +114,31 @@ public class SimplePointEncoder extends AbstractGeometryEncoder implements Confi
 				PROP_TYPE,
 				SpatialDatabaseService.convertJtsClassToGeometryType(geometry.getClass()));
 		Coordinate[] coords = geometry.getCoordinates();
-		container.setProperty(xProperty, coords[0].x);
-		container.setProperty(yProperty, coords[0].y);
+		container.setProperty(configuration.xProperty, coords[0].x);
+		container.setProperty(configuration.yProperty, coords[0].y);
 	}
 
 	@Override
 	public Geometry decodeGeometry(Entity container) {
-		double x = ((Number) container.getProperty(xProperty)).doubleValue();
-		double y = ((Number) container.getProperty(yProperty)).doubleValue();
+		double x = ((Number) container.getProperty(configuration.xProperty)).doubleValue();
+		double y = ((Number) container.getProperty(configuration.yProperty)).doubleValue();
 		Coordinate coordinate = new Coordinate(x, y);
 		return getGeometryFactory().createPoint(coordinate);
 	}
 
 	@Override
-	public String getConfiguration() {
-		return xProperty + ":" + yProperty + ":" + bboxProperty;
-	}
-
-	@Override
-	public void setConfiguration(String configuration) {
-		if (configuration != null && !configuration.trim().isEmpty()) {
-			String[] fields = configuration.split(":");
-			if (fields.length > 0) {
-				xProperty = fields[0];
-			}
-			if (fields.length > 1) {
-				yProperty = fields[1];
-			}
-			if (fields.length > 2) {
-				bboxProperty = fields[2];
-			}
-		}
+	public Config migrateLegacyConfiguration(String configuration) {
+		return Config.migrateLegacyConfiguration(configuration);
 	}
 
 	@Override
 	public String getSignature() {
-		return "SimplePointEncoder(x='" + xProperty + "', y='" + yProperty + "', bbox='" + bboxProperty + "')";
+		return "SimplePointEncoder(x='" + configuration.xProperty + "', y='" + configuration.yProperty + "', bbox='"
+				+ configuration.bboxProperty + "')";
 	}
 
 	@Override
 	public Set<String> getEncoderProperties() {
-		return Set.of(bboxProperty, xProperty, yProperty, PROP_TYPE);
+		return Set.of(configuration.bboxProperty, configuration.xProperty, configuration.yProperty, PROP_TYPE);
 	}
 }

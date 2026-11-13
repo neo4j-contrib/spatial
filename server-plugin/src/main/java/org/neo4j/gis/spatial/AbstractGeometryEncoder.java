@@ -28,30 +28,54 @@ import static org.neo4j.gis.spatial.Constants.GTYPE_POLYGON;
 import static org.neo4j.gis.spatial.Constants.PROP_BBOX;
 import static org.neo4j.gis.spatial.Constants.PROP_TYPE;
 
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.ArrayUtils;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
+import org.neo4j.gis.spatial.AbstractGeometryEncoder.BaseGeometryEncoderConfig;
 import org.neo4j.gis.spatial.index.Envelope;
 import org.neo4j.graphdb.Entity;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.Configurable;
 import org.neo4j.spatial.api.encoder.GeometryEncoder;
 import org.neo4j.spatial.api.layer.Layer;
 
-public abstract class AbstractGeometryEncoder implements GeometryEncoder {
+public abstract class AbstractGeometryEncoder<C extends BaseGeometryEncoderConfig> implements GeometryEncoder,
+		Configurable<C> {
 
-	protected String bboxProperty = PROP_BBOX;
+	public static class BaseGeometryEncoderConfig {
+
+		@JsonPropertyDescription("Property name for storing the bounding box of the indexed node")
+		public String bboxProperty = PROP_BBOX;
+	}
+
+	protected C configuration;
 
 	private GeometryFactory geometryFactory;
+
+	public AbstractGeometryEncoder(C defaultConfiguration) {
+		setConfiguration(defaultConfiguration);
+	}
 
 	protected GeometryFactory getGeometryFactory() {
 		if (geometryFactory == null) {
 			geometryFactory = new GeometryFactory();
 		}
 		return geometryFactory;
+	}
+
+	@Override
+	public C getConfiguration() {
+		return configuration;
+	}
+
+	@Override
+	public void setConfiguration(C configuration) {
+		this.configuration = configuration;
 	}
 
 	// Public methods
@@ -62,7 +86,8 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder {
 	}
 
 	public void encodeEnvelope(Envelope mbb, Entity container) {
-		container.setProperty(bboxProperty, new double[]{mbb.getMinX(), mbb.getMinY(), mbb.getMaxX(), mbb.getMaxY()});
+		container.setProperty(configuration.bboxProperty,
+				new double[]{mbb.getMinX(), mbb.getMinY(), mbb.getMaxX(), mbb.getMaxY()});
 	}
 
 	@Override
@@ -80,7 +105,7 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder {
 	@Override
 	public Envelope decodeEnvelope(Entity container) {
 		double[] bbox = new double[]{0, 0, 0, 0};
-		Object bboxProp = container.getProperty(bboxProperty);
+		Object bboxProp = container.getProperty(configuration.bboxProperty);
 		if (bboxProp instanceof Double[]) {
 			bbox = ArrayUtils.toPrimitive((Double[]) bboxProp);
 		} else if (bboxProp instanceof double[]) {
@@ -138,12 +163,12 @@ public abstract class AbstractGeometryEncoder implements GeometryEncoder {
 	 */
 	@Override
 	public String getSignature() {
-		return "GeometryEncoder(bbox='" + bboxProperty + "')";
+		return "GeometryEncoder(bbox='" + configuration.bboxProperty + "')";
 	}
 
 	@Override
 	public Set<String> getEncoderProperties() {
-		return Set.of(bboxProperty);
+		return Set.of(configuration.bboxProperty);
 	}
 
 	@Override

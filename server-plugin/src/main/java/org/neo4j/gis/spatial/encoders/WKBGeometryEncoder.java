@@ -39,7 +39,7 @@ public class WKBGeometryEncoder extends AbstractSinglePropertyEncoder {
 	public Geometry decodeGeometry(Entity container) {
 		try {
 			WKBReader reader = new WKBReader(layer.getGeometryFactory());
-			return reader.read((byte[]) container.getProperty(geomProperty));
+			return reader.read((byte[]) container.getProperty(configuration.geomProperty));
 		} catch (ParseException e) {
 			throw new SpatialDatabaseException(e.getMessage(), e);
 		}
@@ -48,7 +48,7 @@ public class WKBGeometryEncoder extends AbstractSinglePropertyEncoder {
 	@Override
 	protected void encodeGeometryShape(Transaction tx, Geometry geometry, Entity container) {
 		WKBWriter writer = new WKBWriter();
-		container.setProperty(geomProperty, writer.write(geometry));
+		container.setProperty(configuration.geomProperty, writer.write(geometry));
 	}
 
 	@Override

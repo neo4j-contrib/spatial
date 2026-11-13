@@ -23,39 +23,62 @@ package org.neo4j.gis.spatial.encoders;
 import static org.neo4j.gis.spatial.Constants.PROP_GEOM;
 import static org.neo4j.gis.spatial.Constants.PROP_TYPE;
 
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import java.util.Set;
 import org.neo4j.gis.spatial.AbstractGeometryEncoder;
+import org.neo4j.gis.spatial.encoders.AbstractSinglePropertyEncoder.Config;
 
-public abstract class AbstractSinglePropertyEncoder extends AbstractGeometryEncoder implements Configurable {
+public abstract class AbstractSinglePropertyEncoder extends AbstractGeometryEncoder<Config> {
 
-	protected String geomProperty = PROP_GEOM;
+	public static class Config extends BaseGeometryEncoderConfig {
 
-	@Override
-	public void setConfiguration(String configuration) {
-		if (configuration != null && !configuration.trim().isEmpty()) {
-			String[] fields = configuration.split(":");
-			if (fields.length > 0) {
-				geomProperty = fields[0];
-			}
-			if (fields.length > 1) {
-				bboxProperty = fields[1];
+		@JsonPropertyDescription("The name of the property containing the geometry")
+		public String geomProperty = PROP_GEOM;
+
+		public Config() {
+		}
+
+		public Config(String geomProperty) {
+			if (geomProperty != null) {
+				this.geomProperty = geomProperty;
 			}
 		}
 	}
 
+
+	public AbstractSinglePropertyEncoder() {
+		super(new Config());
+	}
+
 	@Override
-	public String getConfiguration() {
-		return geomProperty + ":" + bboxProperty;
+	public Class<Config> getConfigType() {
+		return Config.class;
+	}
+
+
+	@Override
+	public Config migrateLegacyConfiguration(String configuration) {
+		Config config = new Config();
+		if (configuration != null && !configuration.trim().isEmpty()) {
+			String[] fields = configuration.split(":");
+			if (fields.length > 0) {
+				config.geomProperty = fields[0];
+			}
+			if (fields.length > 1) {
+				config.bboxProperty = fields[1];
+			}
+		}
+		return config;
 	}
 
 	@Override
 	public String getSignature() {
-		return "GeometryEncoder(geom='" + geomProperty + "', bbox='" + bboxProperty + "')";
+		return "GeometryEncoder(geom='" + configuration.geomProperty + "', bbox='" + configuration.bboxProperty + "')";
 	}
 
 
 	@Override
 	public Set<String> getEncoderProperties() {
-		return Set.of(bboxProperty, geomProperty, PROP_TYPE);
+		return Set.of(configuration.bboxProperty, configuration.geomProperty, PROP_TYPE);
 	}
 }

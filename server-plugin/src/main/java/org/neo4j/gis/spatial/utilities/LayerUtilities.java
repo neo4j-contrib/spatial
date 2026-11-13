@@ -29,13 +29,20 @@ import static org.neo4j.gis.spatial.Constants.PROP_LAYER;
 import static org.neo4j.gis.spatial.Constants.PROP_LAYER_CLASS;
 import static org.neo4j.gis.spatial.Constants.PROP_LAYER_TYPE;
 
+import java.lang.reflect.Array;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import javax.annotation.Nonnull;
 import org.neo4j.gis.spatial.EditableLayerImpl;
-import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.gis.spatial.encoders.WKBGeometryEncoder;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
+import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.Configurable;
+import org.neo4j.spatial.api.Identifiable;
 import org.neo4j.spatial.api.encoder.GeometryEncoder;
 import org.neo4j.spatial.api.index.IndexManager;
 import org.neo4j.spatial.api.index.SpatialIndexWriter;
@@ -68,8 +75,10 @@ public class LayerUtilities {
 		GeometryEncoder encoder;
 		if (layerNode.hasProperty(PROP_GEOMENCODER)) {
 			String encoderName = (String) layerNode.getProperty(PROP_GEOMENCODER);
-			encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(encoderName,
-					(String) layerNode.getProperty(PROP_GEOMENCODER_CONFIG, null));
+			encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(encoderName, null);
+			if (encoder instanceof Configurable<?> configurable) {
+				setConfig(layerNode, PROP_GEOMENCODER_CONFIG, configurable);
+			}
 		} else {
 			encoder = new WKBGeometryEncoder();
 		}
@@ -91,18 +100,20 @@ public class LayerUtilities {
 
 		// init the index
 		SpatialIndexWriter indexWriter;
-		String indexConfig = (String) layerNode.getProperty(PROP_INDEX_CONFIG, null);
 		if (layerNode.hasProperty(PROP_INDEX_TYPE)) {
 			String indexName = (String) layerNode.getProperty(PROP_INDEX_TYPE);
-			indexWriter = IndexRegistry.INSTANCE.constructIndex(indexName, indexConfig);
-		} else  if (layerNode.hasProperty(PROP_INDEX_CLASS)) {
+			indexWriter = IndexRegistry.INSTANCE.constructIndex(indexName, null);
+		} else if (layerNode.hasProperty(PROP_INDEX_CLASS)) {
 			String indexName = (String) layerNode.getProperty(PROP_INDEX_CLASS);
-			indexWriter = IndexRegistry.INSTANCE.constructIndex(indexName, indexConfig);
+			indexWriter = IndexRegistry.INSTANCE.constructIndex(indexName, null);
 			if (!readOnly) {
 				layerNode.setProperty(PROP_INDEX_TYPE, indexWriter.getIdentifier());
 			}
 		} else {
 			indexWriter = new LayerRTreeIndex();
+		}
+		if (indexWriter instanceof Configurable<?> configurable) {
+			setConfig(layerNode, PROP_INDEX_CONFIG, configurable);
 		}
 
 		layer.initialize(tx, indexManager, name, encoder, indexWriter, layerNode, readOnly);
@@ -134,10 +145,7 @@ public class LayerUtilities {
 		GeometryEncoder encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(
 				geometryEncoderClass,
 				encoderConfig);
-		layerNode.setProperty(PROP_GEOMENCODER, encoder.getIdentifier());
-		if (encoderConfig != null && !encoderConfig.isEmpty() && encoder instanceof Configurable) {
-			layerNode.setProperty(PROP_GEOMENCODER_CONFIG, encoderConfig);
-		}
+		persistIdAndConfig(encoder, layerNode, PROP_GEOMENCODER, PROP_GEOMENCODER_CONFIG);
 
 		// init the layer
 		L layer = LayerRegistry.INSTANCE.constructLayer(layerClass);
@@ -145,14 +153,71 @@ public class LayerUtilities {
 
 		// init the index
 		SpatialIndexWriter index = IndexRegistry.INSTANCE.constructIndex(indexClass, indexConfig);
-		layerNode.setProperty(PROP_INDEX_TYPE, index.getIdentifier());
-		if (indexConfig != null && !indexConfig.isEmpty() && index instanceof Configurable) {
-			layerNode.setProperty(PROP_INDEX_CONFIG, indexConfig);
-		}
+		persistIdAndConfig(index, layerNode, PROP_INDEX_TYPE, PROP_INDEX_CONFIG);
 
 		layer.initialize(tx, indexManager, name, encoder, index, layerNode, false);
 
 		return layer;
 
 	}
-}
+
+	private static void persistIdAndConfig(
+			@Nonnull Identifiable identifiable,
+			@Nonnull Node layerNode,
+			@Nonnull String propId,
+			@Nonnull String propConfigPrefix) {
+		layerNode.setProperty(propId, identifiable.getIdentifier());
+		if (identifiable instanceof Configurable<?> configurable) {
+			ConfigurationUtils.getConfigMap(configurable).forEach((key, value) -> {
+				if (value != null) {
+					layerNode.setProperty(propConfigPrefix + "." + key, toPropertyValue(propConfigPrefix, key, value));
+				}
+			});
+		}
+	}
+
+	private static final Set<Class<?>> SCALAR_PROPERTY_TYPES = Set.of(String.class, Boolean.class, Long.class,
+			Double.class);
+
+	// Jackson maps arrays to lists; Neo4j only stores homogeneous arrays of scalars
+	private static Object toPropertyValue(String prefix, String key, Object value) {
+		if (SCALAR_PROPERTY_TYPES.contains(value.getClass())) {
+			return value;
+		}
+		if (value instanceof List<?> list && !list.isEmpty()) {
+			Class<?> elementType = list.get(0) == null ? null : list.get(0).getClass();
+			if (SCALAR_PROPERTY_TYPES.contains(elementType)
+					&& list.stream().allMatch(e -> e != null && e.getClass() == elementType)) {
+				Object array = Array.newInstance(elementType, list.size());
+				for (int i = 0; i < list.size(); i++) {
+					Array.set(array, i, list.get(i));
+				}
+				return array;
+			}
+		}
+		throw new IllegalArgumentException(
+				"Configuration '" + prefix + "." + key + "' has unsupported type " + value.getClass().getName()
+						+ ": only String, boolean, long, double and non-empty arrays thereof can be persisted");
+	}
+
+	/**
+	 * Reads {@code prefix.*} properties; falls back to the legacy string property {@code prefix} of older layers.
+	 */
+	private static void setConfig(
+			@Nonnull Node layerNode,
+			@Nonnull String propConfigPrefix,
+			@Nonnull Configurable<?> configurable
+	) {
+		Map<String, Object> configuration = new HashMap<>();
+		String prefix = propConfigPrefix + ".";
+		layerNode.getPropertyKeys().forEach(key -> {
+			if (key.startsWith(prefix)) {
+				configuration.put(key.substring(prefix.length()), layerNode.getProperty(key));
+			}
+		});
+		if (configuration.isEmpty() && layerNode.getProperty(propConfigPrefix, null) instanceof String legacy) {
+			ConfigurationUtils.setLegacyConfig(configurable, legacy);
+			return;
+		}
+		ConfigurationUtils.setConfig(configurable, configuration);
+	}}

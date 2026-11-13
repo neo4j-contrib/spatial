@@ -30,7 +30,7 @@ public class TestRTreeIndex extends LayerRTreeIndex {
 
 	// TODO: Rather pass tx into init after construction (bad pattern to pass tx to constructor, as if it will be saved)
 	public TestRTreeIndex(Transaction tx) {
-		init(tx, tx.createNode(), new SimplePointEncoder(), DEFAULT_MAX_NODE_REFERENCES, false);
+		init(tx, tx.createNode(), new SimplePointEncoder(), false);
 	}
 
 	public NodeWithEnvelope makeChildIndexNode(Transaction tx, NodeWithEnvelope parent,

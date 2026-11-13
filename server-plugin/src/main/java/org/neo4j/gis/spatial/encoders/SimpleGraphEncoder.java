@@ -28,6 +28,7 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateList;
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.gis.spatial.AbstractGeometryEncoder;
+import org.neo4j.gis.spatial.AbstractGeometryEncoder.BaseGeometryEncoderConfig;
 import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Entity;
@@ -43,11 +44,25 @@ import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
  * nodes. Only supports LineString geometries.
  */
 // TODO: Consider generalizing this code and making a general linked list geometry store available in the library
-public class SimpleGraphEncoder extends AbstractGeometryEncoder {
+public class SimpleGraphEncoder extends AbstractGeometryEncoder<BaseGeometryEncoderConfig> {
 
 	private static final String PROPERTY_X_COORD = "x";
 	private static final String PROPERTY_Y_COORD = "y";
 	private static final String PROPERTY_Z_COORD = "z";
+
+	public SimpleGraphEncoder() {
+		super(new BaseGeometryEncoderConfig());
+	}
+
+	@Override
+	public BaseGeometryEncoderConfig migrateLegacyConfiguration(String configuration) {
+		return new BaseGeometryEncoderConfig();
+	}
+
+	@Override
+	public Class<BaseGeometryEncoderConfig> getConfigType() {
+		return BaseGeometryEncoderConfig.class;
+	}
 
 	protected enum SimpleRelationshipTypes implements RelationshipType {
 		FIRST, NEXT
@@ -105,6 +120,6 @@ public class SimpleGraphEncoder extends AbstractGeometryEncoder {
 
 	@Override
 	public Set<String> getEncoderProperties() {
-		return Set.of(bboxProperty, PROPERTY_X_COORD, PROPERTY_Y_COORD, PROPERTY_Z_COORD, PROP_TYPE);
+		return Set.of(configuration.bboxProperty, PROPERTY_X_COORD, PROPERTY_Y_COORD, PROPERTY_Z_COORD, PROP_TYPE);
 	}
 }

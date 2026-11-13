@@ -16,6 +16,13 @@ a|
 ----
 (:SpatialLayer {
     geomencoder: "NativePointEncoder",
+    geomencoder_config.bboxProperty: "bbox",
+    geomencoder_config.crs: "wgs84",
+    geomencoder_config.locationProperty: "location",
+    index_config.maxNodeReferences: 100,
+    index_config.referenceRelationshipType: "RTREE_REFERENCE",
+    index_config.shouldMergeTrees: false,
+    index_config.splitMode: "greene",
     index_type: "rtree",
     layer: "my-native-rtree-layer",
     layer_type: "SimplePointLayer"

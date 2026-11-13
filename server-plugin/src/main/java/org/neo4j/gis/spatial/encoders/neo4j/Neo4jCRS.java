@@ -51,7 +51,7 @@ public class Neo4jCRS implements org.neo4j.graphdb.spatial.CRS {
 
 	public static Neo4jCRS findCRS(String crs) {
 		return switch (crs) {      // name in Neo4j CRS table
-			case "WGS-84", "WGS84(DD)" ->   // name in geotools crs library
+			case Constants.WGS84_CRS_NAME, "WGS-84", "WGS84(DD)" ->   // name in geotools crs library
 					makeCRS(Constants.SRID_COORDINATES_2D);
 			case "Cartesian" -> makeCRS(7203);
 			default -> throw new IllegalArgumentException("Cypher type system does not support CRS: " + crs);
