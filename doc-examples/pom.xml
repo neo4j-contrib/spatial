@@ -26,12 +26,16 @@
 	<parent>
 		<groupId>org.neo4j</groupId>
 		<artifactId>neo4j-spatial</artifactId>
-		<version>2025.10.1-SNAPSHOT</version>
+		<version>2026.10.2-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>neo4j-spatial-doc-examples</artifactId>
 
 	<dependencies>
+		<dependency>
+			<groupId>com.google.code.findbugs</groupId>
+			<artifactId>jsr305</artifactId>
+		</dependency>
 		<dependency>
 			<groupId>info.picocli</groupId>
 			<artifactId>picocli</artifactId>
@@ -40,22 +44,22 @@
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-spatial-test-utils</artifactId>
-			<version>2025.10.1-SNAPSHOT</version>
+			<version>2026.10.2-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-spatial-cli-tools</artifactId>
-			<version>2025.10.1-SNAPSHOT</version>
+			<version>2026.10.2-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-spatial-server-plugin</artifactId>
-			<version>2025.10.1-SNAPSHOT</version>
+			<version>2026.10.2-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-spatial-osm-server-plugin</artifactId>
-			<version>2025.10.1-SNAPSHOT</version>
+			<version>2026.10.2-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.neo4j</groupId>

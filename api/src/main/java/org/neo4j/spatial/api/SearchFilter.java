@@ -19,6 +19,7 @@
  */
 package org.neo4j.spatial.api;
 
+import org.neo4j.gis.spatial.index.Envelope;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 

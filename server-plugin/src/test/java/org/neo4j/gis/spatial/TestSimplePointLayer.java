@@ -37,6 +37,7 @@ import org.locationtech.jts.geom.Point;
 import org.neo4j.gis.spatial.encoders.neo4j.Neo4jCRS;
 import org.neo4j.gis.spatial.encoders.neo4j.Neo4jPoint;
 import org.neo4j.gis.spatial.functions.SpatialFunctions;
+import org.neo4j.gis.spatial.index.Envelope;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
@@ -47,7 +48,7 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
-import org.neo4j.spatial.api.Envelope;
+import org.neo4j.spatial.api.Envelopes;
 import org.neo4j.spatial.api.SpatialRecord;
 import org.neo4j.spatial.api.layer.EditableLayer;
 import org.neo4j.spatial.api.layer.Layer;
@@ -170,7 +171,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		try (Transaction tx = graphDb().beginTx()) {
 			SimplePointLayer layer = (SimplePointLayer) spatial.getLayer(tx, layerName, true);
 			Envelope bbox = layer.getIndex().getBoundingBox(tx);
-			double[] centre = bbox.centre();
+			double[] centre = Envelopes.centre(bbox);
 
 			List<GeoPipeFlow> results = GeoPipeline
 					.startNearestNeighborLatLonSearch(tx, layer, new Coordinate(centre[0] + 0.1, centre[1]), 10.0)
@@ -253,9 +254,9 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 			Envelope bboxA = layerA.getIndex().getBoundingBox(tx);
 			Envelope bboxB = layerB.getIndex().getBoundingBox(tx);
 			Envelope bboxC = layerC.getIndex().getBoundingBox(tx);
-			double[] centreA = bboxA.centre();
-			double[] centreB = bboxB.centre();
-			double[] centreC = bboxC.centre();
+			double[] centreA = Envelopes.centre(bboxA);
+			double[] centreB = Envelopes.centre(bboxB);
+			double[] centreC = Envelopes.centre(bboxC);
 
 			List<SpatialRecord> resultsA;
 			List<SpatialRecord> resultsB;
@@ -311,7 +312,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		inTx(tx -> {
 			Layer layer = spatial.getLayer(tx, layerName, true);
 			Envelope bbox = layer.getIndex().getBoundingBox(tx);
-			double[] centre = bbox.centre();
+			double[] centre = Envelopes.centre(bbox);
 
 			List<SpatialRecord> results = GeoPipeline
 					.startNearestNeighborLatLonSearch(tx, layer, new Coordinate(centre[0], centre[1]), 10.0)

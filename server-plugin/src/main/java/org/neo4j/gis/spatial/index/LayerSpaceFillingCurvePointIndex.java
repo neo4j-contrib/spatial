@@ -113,9 +113,9 @@ public abstract class LayerSpaceFillingCurvePointIndex extends ExplicitIndexBack
 	@Override
 	protected Neo4jIndexSearcher searcherFor(Transaction tx, SearchFilter filter) {
 		if (filter instanceof AbstractSearchEnvelopeIntersection) {
-			org.neo4j.spatial.api.Envelope referenceEnvelope = ((AbstractSearchEnvelopeIntersection) filter).getReferenceEnvelope();
+			org.neo4j.gis.spatial.index.Envelope referenceEnvelope = ((AbstractSearchEnvelopeIntersection) filter).getReferenceEnvelope();
 			return new RangeSearcher(
-					getCurve(tx).getTilesIntersectingEnvelope(referenceEnvelope.getMin(), referenceEnvelope.getMax(),
+					getCurve(tx).getTilesIntersectingEnvelope(referenceEnvelope.min(), referenceEnvelope.max(),
 							new StandardConfiguration()));
 		}
 		throw new UnsupportedOperationException(

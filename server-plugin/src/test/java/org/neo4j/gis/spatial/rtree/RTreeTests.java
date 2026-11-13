@@ -42,12 +42,12 @@ import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.feature.Neo4jServerFeatureBuilder;
+import org.neo4j.gis.spatial.index.Envelope;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.spatial.api.Envelope;
 import org.neo4j.spatial.api.monitoring.TreeMonitor.NodeWithEnvelope;
 import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
@@ -166,11 +166,15 @@ public class RTreeTests {
 
 	@SuppressWarnings("SameParameterValue")
 	static Envelope makeEnvelope(Envelope parent, double scaleFactor, double offsetX, double offsetY) {
-		Envelope env = new Envelope(parent);
-		env.scaleBy(scaleFactor);
-		env.shiftBy(offsetX * env.getWidth(0), 0);
-		env.shiftBy(offsetY * env.getWidth(1), 1);
-		return env;
+		double[] offsets = {offsetX, offsetY};
+		double[] min = new double[parent.getDimension()];
+		double[] max = new double[parent.getDimension()];
+		for (int i = 0; i < min.length; i++) {
+			double width = parent.getWidth(i) * scaleFactor;
+			min[i] = parent.getMin(i) + offsets[i] * width;
+			max[i] = min[i] + width;
+		}
+		return new Envelope(min, max);
 	}
 
 	private static void assertParentsCoverChildren(Node indexNode, int depth, Set<Integer> leafDepths) {
