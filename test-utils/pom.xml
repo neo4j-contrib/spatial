@@ -26,7 +26,7 @@
 	<parent>
 		<groupId>org.neo4j</groupId>
 		<artifactId>neo4j-spatial</artifactId>
-		<version>2026.10.0-SNAPSHOT</version>
+		<version>2026.10.0</version>
 	</parent>
 
 	<artifactId>neo4j-spatial-test-utils</artifactId>
@@ -35,7 +35,7 @@
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-spatial-api</artifactId>
-			<version>2026.10.0-SNAPSHOT</version>
+			<version>2026.10.0</version>
 		</dependency>
 		<dependency>
 			<groupId>org.neo4j.test</groupId>
