@@ -32,8 +32,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-jdk
       - uses: ./.github/actions/setup-maven-cache
+      # Generators only write files; prune so removed APIs/examples show up as deleted
       - name: Regenerate docs
-        run: ./mvnw --no-transfer-progress -Pgenerate-docs verify -pl doc-examples -am -Dtest=GeoPipesDocTest -Dsurefire.failIfNoSpecifiedTests=false
+        run: |
+          rm -rf docs/docs/modules/ROOT/partials/generated docs/docs/modules/ROOT/pages/geo-pipes/examples/generated
+          ./mvnw --no-transfer-progress -Pgenerate-docs verify -pl doc-examples -am -Dtest=GeoPipesDocTest -Dsurefire.failIfNoSpecifiedTests=false
         shell: bash
       # PNGs are excluded: rendering is not byte-stable across JDKs and fonts
       - name: Fail on stale docs
