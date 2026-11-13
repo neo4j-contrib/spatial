@@ -21,11 +21,11 @@ package org.neo4j.gis.spatial;
 
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import java.util.List;
 import java.util.logging.Logger;
-import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
@@ -103,10 +103,7 @@ public class TestSpatialQueries extends Neo4jTestCase {
 			pipeline = GeoPipeline.startNearestNeighborSearch(tx, layer, point.getCoordinate(), 100)
 					.sort("Distance")
 					.getMin("Distance");
-			for (SpatialRecord result : pipeline) {
-				LOGGER.fine("\tGot search result: " + result);
-				assertEquals(closestGeom.toString(), result.getGeometry().toString(), "Did not find the closest");
-			}
+			assertOnlyClosest(pipeline, closestGeom);
 			tx.commit();
 		}
 
@@ -121,10 +118,7 @@ public class TestSpatialQueries extends Neo4jTestCase {
 					.sort("Distance")
 					.getMin("Distance");
 			LOGGER.fine("Searching for geometries close to " + point + " within " + env);
-			for (SpatialRecord result : pipeline) {
-				LOGGER.fine("\tGot search result: " + result);
-				assertEquals(closestGeom.toString(), result.getGeometry().toString(), "Did not find the closest");
-			}
+			assertOnlyClosest(pipeline, closestGeom);
 			tx.commit();
 		}
 
@@ -136,10 +130,7 @@ public class TestSpatialQueries extends Neo4jTestCase {
 					.sort("Distance")
 					.getMin("Distance");
 			LOGGER.fine("Searching for geometries close to " + point + " within buffer " + buffer);
-			for (SpatialRecord result : pipeline) {
-				LOGGER.fine("\tGot search result: " + result);
-				assertEquals(closestGeom.toString(), result.getGeometry().toString(), "Did not find the closest");
-			}
+			assertOnlyClosest(pipeline, closestGeom);
 			tx.commit();
 		}
 
@@ -153,12 +144,16 @@ public class TestSpatialQueries extends Neo4jTestCase {
 			LOGGER.fine(
 					"Searching for geometries close to " + point + " within automatic window designed to get about "
 							+ limit + " geometries");
-			for (SpatialRecord result : pipeline) {
-				LOGGER.fine("\tGot search result: " + result);
-				MatcherAssert.assertThat("Did not find the closest", result.getGeometry().toString(),
-						is(closestGeom.toString()));
-			}
+			assertOnlyClosest(pipeline, closestGeom);
 			tx.commit();
+		}
+	}
+
+	private static void assertOnlyClosest(GeoPipeline pipeline, Geometry closestGeom) {
+		List<SpatialRecord> results = pipeline.toSpatialDatabaseRecordList();
+		assertFalse(results.isEmpty(), "Expected a closest geometry");
+		for (SpatialRecord result : results) {
+			assertEquals(closestGeom.toString(), result.getGeometry().toString(), "Did not find the closest");
 		}
 	}
 }

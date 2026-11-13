@@ -19,18 +19,23 @@
  */
 package org.neo4j.gis.spatial;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.neo4j.gis.spatial.encoders.WKTGeometryEncoder;
 import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
+import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.spatial.api.layer.EditableLayer;
+import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.spatial.testutils.Neo4jTestCase;
 
 public class TestRemove extends Neo4jTestCase {
@@ -73,6 +78,13 @@ public class TestRemove extends Neo4jTestCase {
 			}
 			layer.finalizeTransaction(tx);
 			tx.commit();
+		}
+
+		try (Transaction tx = graphDb().beginTx()) {
+			Layer layer = spatial.getLayer(tx, layerName, true);
+			assertEquals(0, layer.getIndex().count(tx));
+			assertEquals(0, GeoPipeline.startIntersectWindowSearch(tx, layer, new Envelope(-1, ids.length, -1, ids.length))
+					.toSpatialDatabaseRecordList().size());
 		}
 	}
 }

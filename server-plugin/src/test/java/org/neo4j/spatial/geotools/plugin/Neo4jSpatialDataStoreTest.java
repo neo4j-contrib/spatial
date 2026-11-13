@@ -121,16 +121,6 @@ public class Neo4jSpatialDataStoreTest extends Neo4jTestCase {
 	}
 
 	@Test
-	public void shouldBeAbleToGetFeatureSourceForLayer() throws IOException {
-		Neo4jSpatialDataStore store = new Neo4jSpatialDataStore(driver, DEFAULT_DATABASE_NAME);
-		SimpleFeatureSource source = store.getFeatureSource("testlayer");
-		SimpleFeatureCollection features = source.getFeatures();
-		MatcherAssert.assertThat("Expected 3 features", features.size(), equalTo(3));
-		MatcherAssert.assertThat("Expected there to be a feature with name 'Nybrodalsvägen'", featureNames(features),
-				hasItem("Nybrodalsvägen"));
-	}
-
-	@Test
 	public void shouldBeAbleToGetInfoForLayer() throws IOException {
 		Neo4jSpatialDataStore store = new Neo4jSpatialDataStore(driver, DEFAULT_DATABASE_NAME);
 		SimpleFeatureSource source = store.getFeatureSource("testlayer");

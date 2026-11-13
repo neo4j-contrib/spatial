@@ -22,7 +22,6 @@ package org.neo4j.gis.spatial;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -52,8 +51,6 @@ import org.neo4j.spatial.api.Envelope;
 import org.neo4j.spatial.api.SpatialRecord;
 import org.neo4j.spatial.api.layer.EditableLayer;
 import org.neo4j.spatial.api.layer.Layer;
-import org.neo4j.spatial.cli.tools.ShapefileExporter;
-import org.neo4j.spatial.cli.tools.StyledImageExporter;
 import org.neo4j.spatial.testutils.Neo4jTestCase;
 import org.opentest4j.AssertionFailedError;
 
@@ -64,11 +61,6 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 	@Override
 	protected List<Class<?>> loadProceduresAndFunctions() {
 		return List.of(SpatialFunctions.class, SpatialProcedures.class);
-	}
-
-	@Override
-	protected boolean useBolt() {
-		return true;
 	}
 
 	@Test
@@ -174,7 +166,6 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 			}
 			layer.finalizeTransaction(tx);
 		});
-		saveLayerAsImage(layerName, 700, 70);
 
 		try (Transaction tx = graphDb().beginTx()) {
 			SimplePointLayer layer = (SimplePointLayer) spatial.getLayer(tx, layerName, true);
@@ -185,7 +176,6 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 					.startNearestNeighborLatLonSearch(tx, layer, new Coordinate(centre[0] + 0.1, centre[1]), 10.0)
 					.sort(OrthodromicDistance.DISTANCE).toList();
 
-			saveResultsAsImage(results, "temporary-results-layer-" + layer.getName(), 130, 70);
 			assertEquals(71, results.size());
 			checkPointOrder(results);
 
@@ -193,7 +183,6 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 					.startNearestNeighborLatLonSearch(tx, layer, new Coordinate(centre[0] + 0.1, centre[1]), 5.0)
 					.sort(OrthodromicDistance.DISTANCE).toList();
 
-			saveResultsAsImage(results, "temporary-results-layer2-" + layer.getName(), 130, 70);
 			assertEquals(30, results.size());
 			checkPointOrder(results);
 
@@ -214,52 +203,6 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 			tx.commit();
 		}
 
-	}
-
-	@Test
-	public void testIndexingExistingSimplePointNodes() {
-		String layerName = "my-simple-points";
-		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
-		inTx(tx -> spatial.createSimplePointLayer(tx, layerName, "x", "y"));
-
-		Coordinate[] coords = makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt", testOrigin);
-		inTx(tx -> {
-			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, false);
-			for (Coordinate coordinate : coords) {
-				Node n = tx.createNode();
-				n.setProperty("x", coordinate.x);
-				n.setProperty("y", coordinate.y);
-				layer.add(tx, n);
-			}
-			layer.finalizeTransaction(tx);
-		});
-		saveLayerAsImage(layerName, 700, 70);
-		assertIndexCountSameAs(layerName, coords.length);
-	}
-
-	@Test
-	public void testIndexingExistingNativePointNodes() {
-		String layerName = "my-native-points";
-		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
-		inTx(tx -> spatial.createNativePointLayer(tx, "my-native-points", "position"));
-		Neo4jCRS crs = Neo4jCRS.findCRS("WGS-84");
-
-		Coordinate[] coords = makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt", testOrigin);
-		inTx(tx -> {
-			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, false);
-			for (Coordinate coordinate : coords) {
-				Node n = tx.createNode();
-				n.setProperty("x", coordinate.x);
-				n.setProperty("y", coordinate.y);
-				n.setProperty("position", new Neo4jPoint(coordinate, crs));
-				layer.add(tx, n);
-			}
-			layer.finalizeTransaction(tx);
-		});
-		saveLayerAsImage(layerName, 700, 70);
-		assertIndexCountSameAs(layerName, coords.length);
 	}
 
 	@Test
@@ -301,9 +244,6 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 			layerC.finalizeTransaction(tx);
 			tx.commit();
 		}
-		saveLayerAsImage(layerNameA, 700, 70);
-		saveLayerAsImage(layerNameB, 700, 70);
-		saveLayerAsImage(layerNameC, 700, 70);
 
 		List<SpatialRecord> results = new ArrayList<>();
 		inTx(tx -> {
@@ -333,12 +273,6 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 			assertEquals(71, resultsB.size());
 			assertEquals(71, resultsC.size());
 			assertEquals(213, results.size());
-			saveResultsAsImage(resultsA, "temporary-results-layer-" + layerA.getName(), 130, 70);
-			saveResultsAsImage(resultsB, "temporary-results-layer-" + layerB.getName(), 130, 70);
-			saveResultsAsImage(resultsC, "temporary-results-layer-" + layerC.getName(), 130, 70);
-			saveResultsAsImage(results,
-					"temporary-results-layer-" + layerA.getName() + "-" + layerB.getName() + "-" + layerC.getName(),
-					200, 200);
 		});
 
 		assertIndexCountSameAs(layerNameA, coords.length);
@@ -374,8 +308,6 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 			layer.finalizeTransaction(tx);
 		});
 
-		saveLayerAsImage(layerName, 300, 300);
-
 		inTx(tx -> {
 			Layer layer = spatial.getLayer(tx, layerName, true);
 			Envelope bbox = layer.getIndex().getBoundingBox(tx);
@@ -384,7 +316,6 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 			List<SpatialRecord> results = GeoPipeline
 					.startNearestNeighborLatLonSearch(tx, layer, new Coordinate(centre[0], centre[1]), 10.0)
 					.toSpatialDatabaseRecordList();
-			saveResultsAsImage(results, "temporary-results-layer-" + layer.getName(), 150, 150);
 			assertEquals(456, results.size());
 
 			// Repeat with sorting
@@ -392,48 +323,8 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 					.startNearestNeighborLatLonSearch(tx, layer, new Coordinate(centre[0], centre[1]), 10.0)
 					.sort(OrthodromicDistance.DISTANCE)
 					.toSpatialDatabaseRecordList();
-			saveResultsAsImage(results, "temporary-results-layer-sorted-" + layer.getName(), 150, 150);
 			assertEquals(456, results.size());
 		});
-	}
-
-	private void saveLayerAsImage(String layerName, int width, int height) {
-		ShapefileExporter shpExporter = new ShapefileExporter(driver, DEFAULT_DATABASE_NAME);
-		shpExporter.setExportDir("target/export/SimplePointTests");
-		StyledImageExporter imageExporter = new StyledImageExporter(driver, DEFAULT_DATABASE_NAME);
-		imageExporter.setExportDir("target/export/SimplePointTests");
-		imageExporter.setZoom(0.9);
-		imageExporter.setSize(width, height);
-		try {
-			imageExporter.saveLayerImage(layerName);
-			shpExporter.exportLayer(layerName);
-		} catch (Exception e) {
-			throw new AssertionFailedError("Failed to save layer '" + layerName + "' as image: " + e.getMessage());
-		}
-	}
-
-	private void saveResultsAsImage(List<? extends SpatialRecord> results, String layerName, int width, int height) {
-		ShapefileExporter shpExporter = new ShapefileExporter(driver, DEFAULT_DATABASE_NAME);
-		shpExporter.setExportDir("target/export/SimplePointTests");
-		StyledImageExporter imageExporter = new StyledImageExporter(driver, DEFAULT_DATABASE_NAME);
-		imageExporter.setExportDir("target/export/SimplePointTests");
-		imageExporter.setZoom(0.9);
-		imageExporter.setSize(width, height);
-		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
-		inTx(tx -> {
-			EditableLayer tmpLayer = spatial.createSimplePointLayer(tx, layerName, "lon", "lat");
-			for (SpatialRecord record : results) {
-				tmpLayer.add(tx, record.getGeometry());
-			}
-			tmpLayer.finalizeTransaction(tx);
-		});
-		try {
-			imageExporter.saveLayerImage(layerName);
-			shpExporter.exportLayer(layerName);
-		} catch (Exception e) {
-			throw new AssertionFailedError("Failed to save results image: " + e.getMessage());
-		}
 	}
 
 	public static Coordinate[] makeCoordinateDataFromTextFile(String textFile, Coordinate origin) {

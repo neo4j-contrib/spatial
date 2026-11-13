@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
@@ -197,8 +198,10 @@ public class TestsForDocs extends Neo4jTestCase {
 			tx.commit();
 		}
 		ShapefileExporter shpExporter = new ShapefileExporter(driver, DEFAULT_DATABASE_NAME);
-		shpExporter.exportLayer(wayLayerName);
+		shpExporter.setExportDir("target/export");
+		File shapefile = shpExporter.exportLayer(wayLayerName);
 		// END SNIPPET: exportShapefileFromOSM end::exportShapefileFromOSM[]
+		assertHasRecords(shapefile);
 	}
 
 	@Test
@@ -220,9 +223,11 @@ public class TestsForDocs extends Neo4jTestCase {
 
 		}
 		ShapefileExporter shpExporter = new ShapefileExporter(driver, DEFAULT_DATABASE_NAME);
-		shpExporter.exportLayer("results");
+		shpExporter.setExportDir("target/export");
+		File shapefile = shpExporter.exportLayer("results");
 		// END SNIPPET: exportShapefileFromQuery end::exportShapefileFromQuery[]
 		doGeometryTestsOnResults(bbox, results);
+		assertHasRecords(shapefile);
 	}
 
 	private static void doGeometryTestsOnResults(Envelope bbox, List<SpatialRecord> results) {
@@ -230,4 +235,9 @@ public class TestsForDocs extends Neo4jTestCase {
 		geometry.buffer(2);
 	}
 
+
+	private static void assertHasRecords(File shapefile) {
+		// a .shp without records is just its 100-byte header
+		assertTrue(shapefile.length() > 100, "Expected records in " + shapefile);
+	}
 }

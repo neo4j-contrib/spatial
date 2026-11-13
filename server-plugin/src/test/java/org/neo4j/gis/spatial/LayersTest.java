@@ -24,12 +24,18 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateList;
 import org.locationtech.jts.geom.Envelope;
@@ -86,27 +92,17 @@ public class LayersTest extends Neo4jTestCase {
 		inTx(tx -> assertNull(spatial.getLayer(tx, layerName, true)));
 	}
 
-	@Test
-	public void testSimplePointLayerWithRTree() {
-		testPointLayer(LayerRTreeIndex.class, SimplePointEncoder.class);
+	static Stream<Arguments> pointIndexesAndEncoders() {
+		return Stream.of(
+				arguments(LayerRTreeIndex.class, SimplePointEncoder.class),
+				arguments(LayerGeohashPointIndex.class, SimplePointEncoder.class),
+				arguments(LayerRTreeIndex.class, NativePointEncoder.class),
+				arguments(LayerGeohashPointIndex.class, NativePointEncoder.class));
 	}
 
-	@Test
-	public void testSimplePointLayerWithGeohash() {
-		testPointLayer(LayerGeohashPointIndex.class, SimplePointEncoder.class);
-	}
-
-	@Test
-	public void testNativePointLayerWithRTree() {
-		testPointLayer(LayerRTreeIndex.class, NativePointEncoder.class);
-	}
-
-	@Test
-	public void testNativePointLayerWithGeohash() {
-		testPointLayer(LayerGeohashPointIndex.class, NativePointEncoder.class);
-	}
-
-	private void testPointLayer(Class<? extends SpatialIndexWriter> indexClass,
+	@ParameterizedTest
+	@MethodSource("pointIndexesAndEncoders")
+	public void testPointLayer(Class<? extends SpatialIndexWriter> indexClass,
 			Class<? extends GeometryEncoder> encoderClass) {
 		String layerName = "points";
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
@@ -148,17 +144,9 @@ public class LayersTest extends Neo4jTestCase {
 		IndexManagerImpl.waitForDeletions();
 	}
 
-	@Test
-	public void testDeleteSimplePointGeometry() {
-		testDeleteGeometry(SimplePointEncoder.class);
-	}
-
-	@Test
-	public void testDeleteNativePointGeometry() {
-		testDeleteGeometry(NativePointEncoder.class);
-	}
-
-	private void testDeleteGeometry(Class<? extends GeometryEncoder> encoderClass) {
+	@ParameterizedTest
+	@ValueSource(classes = {SimplePointEncoder.class, NativePointEncoder.class})
+	public void testDeleteGeometry(Class<? extends GeometryEncoder> encoderClass) {
 		String layerName = "test";
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
@@ -172,49 +160,16 @@ public class LayersTest extends Neo4jTestCase {
 			SpatialRecord record = layer.add(tx,
 					layer.getGeometryFactory().createPoint(new Coordinate(15.3, 56.2)));
 			assertNotNull(record);
-			// try to remove the geometry
 			layer.delete(tx, record.getId());
 			layer.finalizeTransaction(tx);
 		});
-	}
-
-	@Test
-	public void testEditableLayer() {
-		String layerName = "test";
-		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
-			EditableLayer layer = spatial.getOrCreateEditableLayer(tx, layerName, null, null, true);
-			assertNotNull(layer);
-		});
-		inTx(tx -> {
-			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, false);
-			SpatialRecord record = layer.add(tx,
-					layer.getGeometryFactory().createPoint(new Coordinate(15.3, 56.2)));
-			assertNotNull(record);
-			layer.finalizeTransaction(tx);
-		});
-
-		try (Transaction tx = graphDb().beginTx()) {
-			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, true);
-
-			// finds geometries that contain the given geometry
-			List<SpatialRecord> results = GeoPipeline
-					.startContainSearch(tx, layer,
+			Layer layer = spatial.getLayer(tx, layerName, true);
+			assertEquals(0, layer.getIndex().count(tx));
+			assertEquals(0, GeoPipeline.startWithinSearch(tx, layer,
 							layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)))
-					.toSpatialDatabaseRecordList();
-
-			// should not be contained
-			assertEquals(0, results.size());
-
-			results = GeoPipeline
-					.startWithinSearch(tx, layer,
-							layer.getGeometryFactory().toGeometry(new Envelope(15.0, 16.0, 56.0, 57.0)))
-					.toSpatialDatabaseRecordList();
-
-			assertEquals(1, results.size());
-			tx.commit();
-		}
+					.toSpatialDatabaseRecordList().size());
+		});
 	}
 
 	@Test
@@ -262,42 +217,30 @@ public class LayersTest extends Neo4jTestCase {
 			editableLayer.finalizeTransaction(tx);
 		});
 
-		// TODO this test is not complete
-
 		try (Transaction tx = graphDb().beginTx()) {
 			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, true);
-			printResults(layer, GeoPipeline
+			// only the first line crosses the window
+			assertEquals(1, GeoPipeline
 					.startIntersectSearch(tx, layer,
 							layer.getGeometryFactory().toGeometry(new Envelope(13.2, 14.1, 56.1, 56.2)))
-					.toSpatialDatabaseRecordList());
-
-			printResults(layer, GeoPipeline
+					.toSpatialDatabaseRecordList().size(), layerName);
+			// no line contains the whole envelope
+			assertEquals(0, GeoPipeline
 					.startContainSearch(tx, layer,
 							layer.getGeometryFactory().toGeometry(new Envelope(12.0, 15.0, 55.0, 57.0)))
-					.toSpatialDatabaseRecordList());
+					.toSpatialDatabaseRecordList().size(), layerName);
 			tx.commit();
 		}
 		return layerName;
 	}
 
-	private static void printResults(Layer layer, List<SpatialRecord> results) {
-		System.out.println("\tTesting layer '" + layer.getName() + "' (class " + layer.getClass() + "), found results: "
-				+ results.size());
-		for (SpatialRecord r : results) {
-			System.out.println("\t\tGeometry: " + r);
-		}
-	}
-
 	@Test
 	public void testIndexAccessAfterBulkInsertion() {
-		// Use these two lines if you want to examine the output.
-//        File dbPath = new File("target/var/BulkTest");
-//        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(dbPath.getCanonicalPath());
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		inTx(tx -> spatial.getOrCreateSimplePointLayer(tx, "Coordinates", "rtree", "lat", "lon", null, true));
 
-		Random rand = new Random();
+		Random rand = new Random(42);
 
 		try (Transaction tx = graphDb().beginTx()) {
 			SimplePointLayer layer = (SimplePointLayer) spatial.getLayer(tx, "Coordinates", false);
