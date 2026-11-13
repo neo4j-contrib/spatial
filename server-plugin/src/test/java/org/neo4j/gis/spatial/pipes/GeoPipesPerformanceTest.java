@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.logging.Logger;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.neo4j.gis.spatial.SimplePointLayer;
@@ -40,6 +41,10 @@ import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.spatial.testutils.Neo4jTestCase;
 
+/**
+ * Timing only; assertions are not functional checks.
+ */
+@Tag("benchmark")
 public class GeoPipesPerformanceTest extends Neo4jTestCase {
 
 	private static final Logger LOGGER = Logger.getLogger(GeoPipesPerformanceTest.class.getName());

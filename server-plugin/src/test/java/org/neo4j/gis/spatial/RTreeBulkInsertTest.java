@@ -33,6 +33,7 @@ import static org.neo4j.gis.spatial.rtree.RTreeIndex.DEFAULT_MAX_NODE_REFERENCES
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -46,7 +47,6 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.StreamSupport;
-import org.apache.commons.io.FileUtils;
 import org.geotools.api.feature.simple.SimpleFeatureType;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.referencing.crs.DefaultEngineeringCRS;
@@ -54,11 +54,11 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.dbms.api.DatabaseManagementService;
-import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.feature.Neo4jServerFeatureBuilder;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
@@ -85,17 +85,18 @@ import org.neo4j.spatial.api.index.SpatialIndexReader;
 import org.neo4j.spatial.api.layer.EditableLayer;
 import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.spatial.api.monitoring.TreeMonitor;
+import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
 public class RTreeBulkInsertTest {
 
 	private DatabaseManagementService databases;
 	private GraphDatabaseService db;
-	private final File storeDir = new File("target/store").getAbsoluteFile();
 
 
 	@BeforeEach
-	public void before() throws IOException {
-		restart();
+	public void before() {
+		databases = new TestDatabaseManagementServiceBuilder(Path.of("target", "rtree-bulk")).impermanent().build();
+		db = databases.database(DEFAULT_DATABASE_NAME);
 	}
 
 	@AfterEach
@@ -292,11 +293,13 @@ public class RTreeBulkInsertTest {
 		insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("small"));
 	}
 
+	@Tag("benchmark")
 	@Test
 	public void shouldInsertManyNodesInBulkWithQuadraticSplit_small_10() {
 		insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("small"));
 	}
 
+	@Tag("benchmark")
 	@Test
 	public void shouldInsertManyNodesInBulkWithGreenesSplit_small_10() {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("small"));
@@ -318,11 +321,13 @@ public class RTreeBulkInsertTest {
 		insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("small"));
 	}
 
+	@Tag("benchmark")
 	@Test
 	public void shouldInsertManyNodesInBulkWithQuadraticSplit_small_100() {
 		insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("small"));
 	}
 
+	@Tag("benchmark")
 	@Test
 	public void shouldInsertManyNodesInBulkWithGreenesSplit_small_100() {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("small"));
@@ -344,11 +349,13 @@ public class RTreeBulkInsertTest {
 		insertManyNodesIndividually(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("medium"));
 	}
 
+	@Tag("benchmark")
 	@Test
 	public void shouldInsertManyNodesInBulkWithQuadraticSplit_medium_10() {
 		insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("medium"));
 	}
 
+	@Tag("benchmark")
 	@Test
 	public void shouldInsertManyNodesInBulkWithGreenesSplit_medium_10() {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 10, testConfigs.get("medium"));
@@ -388,6 +395,7 @@ public class RTreeBulkInsertTest {
 		insertManyNodesInBulk(RTreeIndex.QUADRATIC_SPLIT, 5000, 100, testConfigs.get("medium"));
 	}
 
+	@Tag("benchmark")
 	@Test
 	public void shouldInsertManyNodesInBulkWithGreenesSplit_medium_100() {
 		insertManyNodesInBulk(RTreeIndex.GREENES_SPLIT, 5000, 100, testConfigs.get("medium"));
@@ -1210,27 +1218,11 @@ public class RTreeBulkInsertTest {
 		}
 	}
 
-	private void restart() throws IOException {
-		if (databases != null) {
-			databases.shutdown();
-		}
-		if (storeDir.exists()) {
-			System.out.println("Deleting previous database: " + storeDir);
-			FileUtils.deleteDirectory(storeDir);
-		}
-		FileUtils.forceMkdir(storeDir);
-		databases = new DatabaseManagementServiceBuilder(storeDir.toPath()).build();
-		db = databases.database(DEFAULT_DATABASE_NAME);
-	}
-
 	private void doCleanShutdown() {
 		try {
-			System.out.println("Shutting down database");
 			if (databases != null) {
 				databases.shutdown();
 			}
-			//TODO: Uncomment this once all tests are stable
-//            FileUtils.deleteDirectory(storeDir);
 		} finally {
 			databases = null;
 			db = null;
