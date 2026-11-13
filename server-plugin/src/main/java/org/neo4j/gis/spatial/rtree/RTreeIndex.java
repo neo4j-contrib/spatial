@@ -121,28 +121,10 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Con
 				Object rawValue = jsonObject.get(key);
 				switch (key) {
 					case KEY_SPLIT:
-						String value = rawValue.toString();
-						switch (value) {
-							case QUADRATIC_SPLIT:
-							case GREENES_SPLIT:
-								config.splitMode = value;
-								break;
-							default:
-								throw new IllegalArgumentException(
-										"No such RTreeIndex value for '" + key + "': " + rawValue);
-						}
+						config.splitMode = rawValue.toString();
 						break;
 					case KEY_MAX_NODE_REFERENCES:
-						int intValue = Integer.parseInt(rawValue.toString());
-						if (intValue < MIN_MAX_NODE_REFERENCES) {
-							throw new IllegalArgumentException(
-									"RTreeIndex does not allow " + key + " less than " + MIN_MAX_NODE_REFERENCES);
-						}
-						if (intValue > MAX_MAX_NODE_REFERENCES) {
-							throw new IllegalArgumentException(
-									"RTreeIndex does not allow " + key + " greater than " + MAX_MAX_NODE_REFERENCES);
-						}
-						config.maxNodeReferences = intValue;
+						config.maxNodeReferences = Long.parseLong(rawValue.toString());
 						break;
 					case KEY_SHOULD_MERGE_TREES:
 						config.shouldMergeTrees = Boolean.parseBoolean(rawValue.toString());
@@ -154,7 +136,22 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Con
 						throw new IllegalArgumentException("No such RTreeIndex configuration key: " + key);
 				}
 			}
+			config.validate();
 			return config;
+		}
+
+		public void validate() {
+			if (!QUADRATIC_SPLIT.equals(splitMode) && !GREENES_SPLIT.equals(splitMode)) {
+				throw new IllegalArgumentException("No such RTreeIndex value for '" + KEY_SPLIT + "': " + splitMode);
+			}
+			if (maxNodeReferences < MIN_MAX_NODE_REFERENCES) {
+				throw new IllegalArgumentException("RTreeIndex does not allow " + KEY_MAX_NODE_REFERENCES
+						+ " less than " + MIN_MAX_NODE_REFERENCES);
+			}
+			if (maxNodeReferences > MAX_MAX_NODE_REFERENCES) {
+				throw new IllegalArgumentException("RTreeIndex does not allow " + KEY_MAX_NODE_REFERENCES
+						+ " greater than " + MAX_MAX_NODE_REFERENCES);
+			}
 		}
 	}
 
@@ -198,6 +195,7 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Con
 
 	@Override
 	public void setConfiguration(Config configuration) {
+		configuration.validate();
 		this.referenceRelationshipType = RelationshipType.withName(configuration.referenceRelationshipType);
 		this.configuration = configuration;
 	}

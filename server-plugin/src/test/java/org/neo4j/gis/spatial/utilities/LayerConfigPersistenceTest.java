@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial.utilities;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.neo4j.gis.spatial.Constants.LABEL_LAYER;
 import static org.neo4j.gis.spatial.Constants.PROP_GEOMENCODER;
 import static org.neo4j.gis.spatial.Constants.PROP_GEOMENCODER_CONFIG;
@@ -131,6 +132,17 @@ class LayerConfigPersistenceTest extends Neo4jTestCase {
 			Layer layer = spatial.getLayer(tx, "layer", true);
 			assertThat(((RTreeIndex) layer.getIndex()).getConfiguration().maxNodeReferences).isEqualTo(20L);
 		});
+	}
+
+	@Test
+	void invalidPersistedIndexConfigFailsOnLoad() {
+		inTx(tx -> {
+			Node layerNode = legacyLayerNode(tx);
+			layerNode.setProperty(PROP_INDEX_CONFIG + ".maxNodeReferences", 0L);
+		});
+		inTx(tx -> assertThatThrownBy(() -> spatial.getLayer(tx, "legacy", true))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining("maxNodeReferences"));
 	}
 
 	private static Node legacyLayerNode(Transaction tx) {

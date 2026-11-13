@@ -37,6 +37,18 @@ import org.neo4j.graphdb.Transaction;
  */
 public class SimplePointEncoder extends AbstractGeometryEncoder<Config> {
 
+	/**
+	 * @deprecated use {@link Config#DEFAULT_X}
+	 */
+	@Deprecated
+	public static final String DEFAULT_X = Config.DEFAULT_X;
+
+	/**
+	 * @deprecated use {@link Config#DEFAULT_Y}
+	 */
+	@Deprecated
+	public static final String DEFAULT_Y = Config.DEFAULT_Y;
+
 	public static class Config extends BaseGeometryEncoderConfig {
 
 		public static final String DEFAULT_X = "longitude";

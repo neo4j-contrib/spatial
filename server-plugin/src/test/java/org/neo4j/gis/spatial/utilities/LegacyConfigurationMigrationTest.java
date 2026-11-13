@@ -36,6 +36,7 @@ import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.encoders.WKBGeometryEncoder;
 import org.neo4j.gis.spatial.encoders.WKTGeometryEncoder;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
+import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.spatial.api.Configurable;
 
 class LegacyConfigurationMigrationTest {
@@ -110,5 +111,20 @@ class LegacyConfigurationMigrationTest {
 	void rejectsInvalidLegacyRTreeConfiguration(String legacy) {
 		assertThatThrownBy(() -> new LayerRTreeIndex().migrateLegacyConfiguration(legacy))
 				.isInstanceOf(IllegalArgumentException.class);
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"splitMode=linear", "maxNodeReferences=9", "maxNodeReferences=1000001"})
+	void rejectsInvalidTypedRTreeConfiguration(String invalid) {
+		String[] kv = invalid.split("=");
+		RTreeIndex.Config config = new RTreeIndex.Config();
+		if (kv[0].equals("splitMode")) {
+			config.splitMode = kv[1];
+		} else {
+			config.maxNodeReferences = Long.parseLong(kv[1]);
+		}
+		assertThatThrownBy(() -> new LayerRTreeIndex().setConfiguration(config))
+				.isInstanceOf(IllegalArgumentException.class)
+				.hasMessageContaining(kv[0]);
 	}
 }
