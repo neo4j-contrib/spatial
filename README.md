@@ -95,6 +95,13 @@ repository.
 The spatial plugin will also be created in the `target` directory, and can be copied to your local server using
 instructions from the [installation section](#installation).
 
+Generated documentation under `docs/` (API pages, GeoPipes examples and images) is only written with the
+`generate-docs` profile; CI fails if the committed `.adoc` files are stale:
+
+~~~bash
+./mvnw -Pgenerate-docs verify -pl doc-examples -am
+~~~
+
 ## Layers and GeometryEncoders ##
 
 The primary type that defines a collection of geometries is the Layer. A layer contains an index for querying. In

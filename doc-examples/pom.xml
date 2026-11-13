@@ -64,52 +64,66 @@
 		</dependency>
 	</dependencies>
 
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.codehaus.mojo</groupId>
-				<artifactId>exec-maven-plugin</artifactId>
-				<version>3.6.2</version>
-				<configuration>
-					<executable>java</executable>
-					<systemProperties>
-						<systemProperty>
-							<key>user.dir</key>
-							<value>${project.parent.basedir}</value>
-						</systemProperty>
-					</systemProperties>
-				</configuration>
-				<executions>
-					<execution>
-						<id>generate-api-docs</id>
-						<phase>compile</phase>
-						<goals><goal>exec</goal></goals>
+	<profiles>
+		<profile>
+			<!-- Regenerates docs/ (API pages, GeoPipes snippets and images): ./mvnw -Pgenerate-docs -pl doc-examples -am verify -->
+			<id>generate-docs</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>exec-maven-plugin</artifactId>
+						<version>3.6.2</version>
 						<configuration>
 							<executable>java</executable>
-							<workingDirectory>${project.parent.basedir}</workingDirectory>
-							<arguments>
-								<argument>-classpath</argument>
-								<classpath/>
-								<argument>org.neo4j.spatial.doc.examples.ApiDocGenerator</argument>
-							</arguments>
+							<systemProperties>
+								<systemProperty>
+									<key>user.dir</key>
+									<value>${project.parent.basedir}</value>
+								</systemProperty>
+							</systemProperties>
 						</configuration>
-					</execution>
-					<execution>
-						<id>generate-examples</id>
-						<phase>compile</phase>
-						<goals><goal>exec</goal></goals>
+						<executions>
+							<execution>
+								<id>generate-api-docs</id>
+								<phase>compile</phase>
+								<goals><goal>exec</goal></goals>
+								<configuration>
+									<executable>java</executable>
+									<workingDirectory>${project.parent.basedir}</workingDirectory>
+									<arguments>
+										<argument>-classpath</argument>
+										<classpath/>
+										<argument>org.neo4j.spatial.doc.examples.ApiDocGenerator</argument>
+									</arguments>
+								</configuration>
+							</execution>
+							<execution>
+								<id>generate-examples</id>
+								<phase>compile</phase>
+								<goals><goal>exec</goal></goals>
+								<configuration>
+									<executable>java</executable>
+									<workingDirectory>${project.parent.basedir}</workingDirectory>
+									<arguments>
+										<argument>-classpath</argument>
+										<classpath/>
+										<argument>org.neo4j.spatial.doc.examples.ApiExampleGenerator</argument>
+									</arguments>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<artifactId>maven-surefire-plugin</artifactId>
 						<configuration>
-							<executable>java</executable>
-							<workingDirectory>${project.parent.basedir}</workingDirectory>
-							<arguments>
-								<argument>-classpath</argument>
-								<classpath/>
-								<argument>org.neo4j.spatial.doc.examples.ApiExampleGenerator</argument>
-							</arguments>
+							<systemPropertyVariables>
+								<spatial.docs.generate>true</spatial.docs.generate>
+							</systemPropertyVariables>
 						</configuration>
-					</execution>
-				</executions>
-			</plugin>
-		</plugins>
-	</build>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>

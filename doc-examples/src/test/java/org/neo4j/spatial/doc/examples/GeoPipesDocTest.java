@@ -90,6 +90,11 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 
 	private static final Logger LOGGER = Logger.getLogger(GeoPipesDocTest.class.getName());
 
+	/**
+	 * Write adoc snippets and images into {@code ../docs}; set by the {@code generate-docs} Maven profile.
+	 */
+	private static final boolean GENERATE_DOCS = Boolean.getBoolean("spatial.docs.generate");
+
 	private static Layer osmLayer;
 	private static EditableLayerImpl boxesLayer;
 	private static EditableLayerImpl concaveLayer;
@@ -926,6 +931,9 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 				);
 			}
 
+			if (!GENERATE_DOCS) {
+				return;
+			}
 			ReferencedEnvelope bounds = layerCollection.getBounds();
 			bounds.expandToInclude(pipelineCollection.getBounds());
 			bounds.expandBy(boundsDelta, boundsDelta);
@@ -1020,8 +1028,12 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 	}
 
 	@BeforeEach
-	public void setUp() throws IOException {
+	public void setUp() {
 		gen.get().setGraph(db);
+		tx = db.beginTx();
+	}
+
+	private static void renderLayerImages() throws IOException {
 		try (Transaction tx = db.beginTx()) {
 			StyledImageExporter exporter = new StyledImageExporter(driver, DEFAULT_DATABASE_NAME);
 			exporter.setExportDir("../docs/docs/modules/ROOT/images/generated/layers");
@@ -1048,14 +1060,15 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 							"osmLayer.png"));
 			tx.commit();
 		}
-		tx = db.beginTx();
 	}
 
 	@AfterEach
 	public void doc() throws IOException {
-		JavaTestDocsGenerator docsGenerator = gen.get();
-		docsGenerator.addTestSourceSnippets(GeoPipesDocTest.class, "s_" + getTitle().toLowerCase());
-		docsGenerator.document("../docs/docs/modules/ROOT/pages/geo-pipes", "examples");
+		if (GENERATE_DOCS) {
+			JavaTestDocsGenerator docsGenerator = gen.get();
+			docsGenerator.addTestSourceSnippets(GeoPipesDocTest.class, "s_" + getTitle().toLowerCase());
+			docsGenerator.document("../docs/docs/modules/ROOT/pages/geo-pipes", "examples");
+		}
 		if (tx != null) {
 			tx.commit();
 			tx.close();
@@ -1074,6 +1087,9 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		databases = neo4j.databaseManagementService();
 		db = databases.database(DEFAULT_DATABASE_NAME);
 		load();
+		if (GENERATE_DOCS) {
+			renderLayerImages();
+		}
 	}
 
 	@AfterAll
@@ -1084,6 +1100,9 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 
 	@AfterAll
 	public static void writeIndexAdoc() throws IOException {
+		if (!GENERATE_DOCS) {
+			return;
+		}
 		// write an index.adoc file including all generated snippets
 		var adocs = new TreeSet<>();
 		Path path = Paths.get("../docs/docs/modules/ROOT/pages/geo-pipes/examples/generated");

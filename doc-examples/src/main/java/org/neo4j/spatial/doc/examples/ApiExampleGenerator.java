@@ -260,6 +260,10 @@ public class ApiExampleGenerator implements Callable<Integer> {
 								the `mbr` property instead of `bbox` and Cartesian coordinates.
 								"""));
 
+		docExample("spatial.layer", "Find an existing layer")
+				.runCypher("CALL spatial.addWKTLayer('geom','wkt')", config -> config.skipResult().setComment("Create a WKT layer"))
+				.runCypher("CALL spatial.layer('geom')");
+
 		docExample("spatial.layers", "Add and Remove a layer")
 				.additionalSignature("spatial.removeLayer")
 				.runCypher("CALL spatial.addWKTLayer('geom','wkt')")
