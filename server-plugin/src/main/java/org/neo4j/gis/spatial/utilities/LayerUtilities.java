@@ -39,10 +39,7 @@ import org.neo4j.gis.spatial.EditableLayerImpl;
 import org.neo4j.gis.spatial.encoders.WKBGeometryEncoder;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.gis.spatial.rtree.RTreeIndex;
-import org.neo4j.gis.spatial.rtree.RTreeRelationshipTypes;
-import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.spatial.api.Configurable;
 import org.neo4j.spatial.api.Identifiable;
@@ -117,9 +114,6 @@ public class LayerUtilities {
 		}
 		if (indexWriter instanceof Configurable<?> configurable) {
 			setConfig(layerNode, PROP_INDEX_CONFIG, configurable);
-		}
-		if (indexWriter instanceof RTreeIndex rtree) {
-			applyLegacyMaxNodeReferences(layerNode, rtree);
 		}
 
 		layer.initialize(tx, indexManager, name, encoder, indexWriter, layerNode, readOnly);
@@ -226,20 +220,4 @@ public class LayerUtilities {
 			return;
 		}
 		ConfigurationUtils.setConfig(configurable, configuration);
-	}
-
-	/**
-	 * Older layers stored {@code maxNodeReferences} only on the RTree metadata node.
-	 */
-	private static void applyLegacyMaxNodeReferences(@Nonnull Node layerNode, @Nonnull RTreeIndex rtree) {
-		if (layerNode.hasProperty(PROP_INDEX_CONFIG + ".maxNodeReferences")) {
-			return;
-		}
-		Relationship metadata = layerNode.getSingleRelationship(RTreeRelationshipTypes.RTREE_METADATA,
-				Direction.OUTGOING);
-		if (metadata != null
-				&& metadata.getEndNode().getProperty("maxNodeReferences", null) instanceof Number legacy) {
-			rtree.getConfiguration().maxNodeReferences = legacy.longValue();
-		}
-	}
-}
+	}}

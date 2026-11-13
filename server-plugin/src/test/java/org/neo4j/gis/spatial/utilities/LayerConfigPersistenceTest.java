@@ -31,6 +31,7 @@ import static org.neo4j.gis.spatial.Constants.PROP_LAYER;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.neo4j.gis.spatial.EditableLayerImpl;
@@ -119,6 +120,22 @@ class LayerConfigPersistenceTest extends Neo4jTestCase {
 	}
 
 	@Test
+	void directInitOnLegacyTreeUsesMaxNodeReferencesFromRTreeMetadata() {
+		String rootId = inTxResult(tx -> {
+			Node root = tx.createNode();
+			Node metadata = tx.createNode();
+			metadata.setProperty("maxNodeReferences", 42);
+			root.createRelationshipTo(metadata, RTreeRelationshipTypes.RTREE_METADATA);
+			return root.getElementId();
+		});
+		inTx(tx -> {
+			RTreeIndex rtree = new LayerRTreeIndex();
+			rtree.init(tx, tx.getNodeByElementId(rootId), new SimplePointEncoder(), false);
+			assertThat(rtree.getConfiguration().maxNodeReferences).isEqualTo(42L);
+		});
+	}
+
+	@Test
 	void flattenedMaxNodeReferencesWinsOverRTreeMetadata() {
 		inTx(tx -> spatial.createLayer(tx, "layer", SimplePointEncoder.class, EditableLayerImpl.class,
 				LayerRTreeIndex.class, null, "{\"maxNodeReferences\":20}"));
@@ -143,6 +160,14 @@ class LayerConfigPersistenceTest extends Neo4jTestCase {
 		inTx(tx -> assertThatThrownBy(() -> spatial.getLayer(tx, "legacy", true))
 				.isInstanceOf(IllegalArgumentException.class)
 				.hasMessageContaining("maxNodeReferences"));
+	}
+
+	private <T> T inTxResult(Function<Transaction, T> function) {
+		try (Transaction tx = graphDb().beginTx()) {
+			T result = function.apply(tx);
+			tx.commit();
+			return result;
+		}
 	}
 
 	private static Node legacyLayerNode(Transaction tx) {

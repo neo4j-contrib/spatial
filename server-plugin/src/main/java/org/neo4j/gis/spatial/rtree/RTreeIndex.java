@@ -19,6 +19,8 @@
  */
 package org.neo4j.gis.spatial.rtree;
 
+import static org.neo4j.gis.spatial.Constants.PROP_INDEX_CONFIG;
+
 import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -978,6 +980,13 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Con
 			layerNode.createRelationshipTo(metadataNode, RTreeRelationshipTypes.RTREE_METADATA);
 			// read by older versions only; the layer node's index config is authoritative
 			metadataNode.setProperty("maxNodeReferences", (int) configuration.maxNodeReferences);
+		} else if (!layerNode.hasProperty(PROP_INDEX_CONFIG + "." + KEY_MAX_NODE_REFERENCES)) {
+			// older trees stored maxNodeReferences only on the metadata node
+			Node metadataNode = layerNode.getSingleRelationship(RTreeRelationshipTypes.RTREE_METADATA,
+					Direction.OUTGOING).getEndNode();
+			if (metadataNode.getProperty("maxNodeReferences", null) instanceof Number legacy) {
+				configuration.maxNodeReferences = legacy.longValue();
+			}
 		}
 
 		saveCount(tx);
