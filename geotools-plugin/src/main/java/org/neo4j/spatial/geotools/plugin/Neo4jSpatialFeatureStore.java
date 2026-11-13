@@ -69,7 +69,7 @@ public class Neo4jSpatialFeatureStore extends ContentFeatureStore {
 			throw new IllegalStateException("Determine BBOX with filter is not yet implemented for " + cql);
 		}
 
-		return dataStore.executeQuery(statement, transaction)
+		return dataStore.query(statement, transaction, records -> records
 				.map(record -> {
 					Value crs = record.get("crs");
 					return new ReferencedEnvelope(
@@ -81,7 +81,7 @@ public class Neo4jSpatialFeatureStore extends ContentFeatureStore {
 									: GeotoolsAdapter.getCRS(crs.asString()));
 				})
 				.findFirst()
-				.orElseThrow();
+				.orElseThrow());
 
 	}
 
@@ -108,10 +108,10 @@ public class Neo4jSpatialFeatureStore extends ContentFeatureStore {
 					.build();
 		}
 
-		return dataStore.executeQuery(statement, transaction)
+		return dataStore.query(statement, transaction, records -> records
 				.mapToInt(record -> record.get("count").asInt())
 				.findFirst()
-				.orElseThrow();
+				.orElseThrow());
 	}
 
 	@Override

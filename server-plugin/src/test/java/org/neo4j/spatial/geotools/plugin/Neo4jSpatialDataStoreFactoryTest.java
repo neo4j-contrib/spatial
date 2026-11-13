@@ -53,6 +53,9 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.driver.AuthTokens;
+import org.neo4j.driver.Driver;
+import org.neo4j.driver.GraphDatabase;
 import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.harness.Neo4j;
@@ -576,5 +579,56 @@ public class Neo4jSpatialDataStoreFactoryTest {
 		}
 		return null;
 	}
-}
 
+	// Lifecycle
+
+	@Test
+	public void shouldReleaseAllConnectionsOnDispose() throws Exception {
+		awaitBoltConnections(0);
+		Neo4jSpatialDataStore store = factory.createDataStore(params());
+		try {
+			assertThat(store.getTypeNames()).containsExactly("map");
+			assertThat(store.getSchema("map").getGeometryDescriptor()).isNotNull();
+			try (SimpleFeatureIterator features = store.getFeatureSource("map").getFeatures().features()) {
+				assertThat(features.hasNext()).isTrue(); // reader closed without consuming all records
+			}
+			assertThat(boltConnections()).as("the store should have connected").isPositive();
+		} finally {
+			store.dispose();
+		}
+		awaitBoltConnections(0);
+	}
+
+	@Test
+	public void shouldNotCloseCallerOwnedDriverOnDispose() throws Exception {
+		try (Driver driver = GraphDatabase.driver(neo4j.boltURI(), AuthTokens.basic("neo4j", ""))) {
+			Neo4jSpatialDataStore store = new Neo4jSpatialDataStore(driver, "neo4j");
+			assertThat(store.getTypeNames()).containsExactly("map");
+			store.dispose();
+			driver.verifyConnectivity();
+		}
+	}
+
+	private static Map<String, Object> params() {
+		return Map.of("dbtype", "neo4j-driver", "uri", neo4j.boltURI().toString(), "username", "neo4j",
+				"password", "", "database", "neo4j");
+	}
+
+	private static long boltConnections() {
+		return (long) neo4j.defaultDatabaseService().executeTransactionally(
+				"CALL dbms.listConnections() YIELD connector WHERE connector = 'bolt' RETURN count(*) AS count",
+				Map.of(), result -> result.next().get("count"));
+	}
+
+	/**
+	 * The server closes connections asynchronously after the client disconnects.
+	 */
+	private static void awaitBoltConnections(long expected) throws InterruptedException {
+		long deadline = System.currentTimeMillis() + 10_000;
+		long actual;
+		while ((actual = boltConnections()) != expected && System.currentTimeMillis() < deadline) {
+			Thread.sleep(50);
+		}
+		assertThat(actual).as("open Bolt connections").isEqualTo(expected);
+	}
+}
