@@ -66,6 +66,11 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		return List.of(SpatialFunctions.class, SpatialProcedures.class);
 	}
 
+	@Override
+	protected boolean useBolt() {
+		return true;
+	}
+
 	@Test
 	public void testNearestNeighborSearchOnEmptyLayer() {
 		String layerName = "test";

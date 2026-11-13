@@ -33,7 +33,6 @@ import org.junit.jupiter.api.Test;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateList;
 import org.locationtech.jts.geom.Envelope;
-import org.locationtech.jts.geom.LineString;
 import org.neo4j.gis.spatial.encoders.NativePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
@@ -216,29 +215,6 @@ public class LayersTest extends Neo4jTestCase {
 			assertEquals(1, results.size());
 			tx.commit();
 		}
-	}
-
-	@Test
-	public void testSnapToLine() {
-		SpatialDatabaseService spatial = new SpatialDatabaseService(
-				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
-		inTx(tx -> {
-			EditableLayer layer = spatial.getOrCreateEditableLayer(tx, "roads", null, null, true);
-			Coordinate crossing_bygg_forstadsgatan = new Coordinate(13.0171471, 55.6074148);
-			Coordinate[] waypoints_forstadsgatan = {new Coordinate(13.0201511, 55.6066846),
-					crossing_bygg_forstadsgatan};
-			LineString ostra_forstadsgatan_malmo = layer.getGeometryFactory().createLineString(waypoints_forstadsgatan);
-			Coordinate[] waypoints_byggmastaregatan = {crossing_bygg_forstadsgatan,
-					new Coordinate(13.0182092, 55.6088238)};
-			LineString byggmastaregatan_malmo = layer.getGeometryFactory().createLineString(waypoints_byggmastaregatan);
-			LineString[] test_way_segments = {byggmastaregatan_malmo, ostra_forstadsgatan_malmo};
-			/* MultiLineString test_way = */
-			layer.getGeometryFactory().createMultiLineString(test_way_segments);
-		});
-		inTx(tx -> {
-			// Coordinate slussgatan14 = new Coordinate( 13.0181127, 55.608236 );
-			//TODO now determine the nearest point on test_way to slussis
-		});
 	}
 
 	@Test

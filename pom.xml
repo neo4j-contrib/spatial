@@ -5,8 +5,9 @@
 		<neo4j.version>2025.10.1</neo4j.version>
 		<java.version>21</java.version>
 		<geotools.version>33.2</geotools.version>
-		<spatial.test.shp.version>20100819</spatial.test.shp.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<!-- run benchmarks with -Pbenchmark -->
+		<spatial.test.excludedGroups>benchmark</spatial.test.excludedGroups>
 		<maven-surefire-plugin.version>3.5.4</maven-surefire-plugin.version>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
@@ -48,8 +49,9 @@
 				<configuration>
 					<threadCount>1</threadCount>
 					<forkCount>1</forkCount>
-					<reuseForks>false</reuseForks>
+					<reuseForks>true</reuseForks>
 					<argLine>-server -Xms1024m -Xmx2048m</argLine>
+					<excludedGroups>${spatial.test.excludedGroups}</excludedGroups>
 				</configuration>
 			</plugin>
 		</plugins>
@@ -166,18 +168,15 @@
 				<enabled>false</enabled>
 			</snapshots>
 		</repository>
-		<repository>
-			<id>neo4j-contrib-releases</id>
-			<url>https://raw.github.com/neo4j-contrib/m2/master/releases</url>
-			<releases>
-				<enabled>true</enabled>
-			</releases>
-			<snapshots>
-				<enabled>false</enabled>
-			</snapshots>
-		</repository>
 	</repositories>
 	<profiles>
+		<profile>
+			<id>benchmark</id>
+			<properties>
+				<spatial.test.excludedGroups/>
+				<groups>benchmark</groups>
+			</properties>
+		</profile>
 		<profile>
 			<id>release</id>
 			<build>
@@ -197,54 +196,6 @@
 					</plugin>
 				</plugins>
 			</build>
-		</profile>
-		<profile>
-			<id>test-default</id>
-			<activation>
-				<property>
-					<name>env</name>
-					<value>default</value>
-				</property>
-			</activation>
-			<properties>
-				<spatial.test.mode>default</spatial.test.mode>
-			</properties>
-		</profile>
-		<profile>
-			<id>test-short</id>
-			<activation>
-				<property>
-					<name>env</name>
-					<value>short</value>
-				</property>
-			</activation>
-			<properties>
-				<spatial.test.mode>short</spatial.test.mode>
-			</properties>
-		</profile>
-		<profile>
-			<id>test-dev</id>
-			<activation>
-				<property>
-					<name>env</name>
-					<value>dev</value>
-				</property>
-			</activation>
-			<properties>
-				<spatial.test.mode>dev</spatial.test.mode>
-			</properties>
-		</profile>
-		<profile>
-			<id>test-long</id>
-			<activation>
-				<property>
-					<name>env</name>
-					<value>long</value>
-				</property>
-			</activation>
-			<properties>
-				<spatial.test.mode>long</spatial.test.mode>
-			</properties>
 		</profile>
 	</profiles>
 	<reporting>

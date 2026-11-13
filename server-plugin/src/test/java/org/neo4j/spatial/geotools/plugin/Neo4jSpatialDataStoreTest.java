@@ -47,14 +47,19 @@ import org.neo4j.driver.exceptions.ClientException;
 import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.harness.Neo4jBuilder;
-import org.neo4j.harness.Neo4jBuilders;
 import org.neo4j.spatial.testutils.Neo4jTestCase;
+import org.neo4j.spatial.testutils.TestNeo4jBuilders;
 
 public class Neo4jSpatialDataStoreTest extends Neo4jTestCase {
 
 	@Override
 	protected List<Class<?>> loadProceduresAndFunctions() {
 		return List.of(SpatialFunctions.class, SpatialProcedures.class);
+	}
+
+	@Override
+	protected boolean useBolt() {
+		return true;
 	}
 
 	@BeforeEach
@@ -81,7 +86,7 @@ public class Neo4jSpatialDataStoreTest extends Neo4jTestCase {
 
 	@Test
 	public void shouldFailOnNonSpatialDatabase() {
-		Neo4jBuilder neo4jBuilder = Neo4jBuilders
+		Neo4jBuilder neo4jBuilder = TestNeo4jBuilders
 				.newInProcessBuilder();
 		try (
 				var neo4jWithoutSpatial = neo4jBuilder.build();

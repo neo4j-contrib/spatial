@@ -56,7 +56,7 @@ import org.neo4j.configuration.GraphDatabaseSettings;
 import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.harness.Neo4j;
-import org.neo4j.harness.Neo4jBuilders;
+import org.neo4j.spatial.testutils.TestNeo4jBuilders;
 
 
 public class Neo4jSpatialDataStoreFactoryTest {
@@ -68,7 +68,7 @@ public class Neo4jSpatialDataStoreFactoryTest {
 
 	@BeforeAll
 	public static void init() {
-		neo4j = Neo4jBuilders
+		neo4j = TestNeo4jBuilders
 				.newInProcessBuilder()
 				.withConfig(GraphDatabaseSettings.procedure_unrestricted, List.of("spatial.*"))
 				.withProcedure(SpatialProcedures.class)

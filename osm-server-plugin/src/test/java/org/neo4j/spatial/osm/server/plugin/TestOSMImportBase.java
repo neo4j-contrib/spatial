@@ -65,6 +65,11 @@ public class TestOSMImportBase extends Neo4jTestCase {
 		return List.of(SpatialFunctions.class, SpatialProcedures.class, OsmSpatialProcedures.class);
 	}
 
+	@Override
+	protected boolean useBolt() {
+		return true;
+	}
+
 	protected static String checkOSMFile(String osm) {
 		File osmFile = new File(osm);
 		if (!osmFile.exists()) {
@@ -266,13 +271,8 @@ public class TestOSMImportBase extends Neo4jTestCase {
 	}
 
 	protected void runImport(String osm, boolean includePoints) throws Exception {
-		// TODO: Consider merits of using dependency data in target/osm,
-		// downloaded by maven, as done in TestSpatial, versus the test data
-		// committed to source code as done here
 		String osmPath = checkOSMFile(osm);
-		if (osmPath == null) {
-			return;
-		}
+		Assertions.assertNotNull(osmPath, "Missing OSM test file: " + osm);
 		printDatabaseStats();
 		loadTestOsmData(osm, osmPath, includePoints);
 		checkOSMLayer(driver, graphDb(), osm);

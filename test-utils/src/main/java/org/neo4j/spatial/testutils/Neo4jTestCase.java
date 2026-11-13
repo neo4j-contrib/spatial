@@ -20,102 +20,84 @@
 package org.neo4j.spatial.testutils;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.config.Setting;
 import org.neo4j.harness.Neo4j;
 import org.neo4j.harness.Neo4jBuilder;
-import org.neo4j.harness.Neo4jBuilders;
+import org.neo4j.exceptions.KernelException;
+import org.neo4j.kernel.api.procedure.GlobalProcedures;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
 /**
  * Base class for the metamodel tests.
  */
 public abstract class Neo4jTestCase {
 
-	protected static final Map<Setting<?>, Object> NORMAL_CONFIG = new HashMap<>();
-	static final List<Thread> closeThreads = new ArrayList<>();
-
-	static {
-		//NORMAL_CONFIG.put( GraphDatabaseSettings.nodestore_mapped_memory_size.name(), "50M" );
-		//NORMAL_CONFIG.put( GraphDatabaseSettings.relationshipstore_mapped_memory_size.name(), "120M" );
-		//NORMAL_CONFIG.put( GraphDatabaseSettings.nodestore_propertystore_mapped_memory_size.name(), "150M" );
-		//NORMAL_CONFIG.put( GraphDatabaseSettings.strings_mapped_memory_size.name(), "200M" );
-		//NORMAL_CONFIG.put( GraphDatabaseSettings.arrays_mapped_memory_size.name(), "0M" );
-		NORMAL_CONFIG.put(GraphDatabaseSettings.pagecache_memory, 200000000L);
-		NORMAL_CONFIG.put(GraphDatabaseInternalSettings.trace_cursors, true);
-	}
-
-	protected static final Map<Setting<?>, Object> LARGE_CONFIG = new HashMap<>();
-
-	static {
-		//LARGE_CONFIG.put( GraphDatabaseSettings.nodestore_mapped_memory_size.name(), "100M" );
-		//LARGE_CONFIG.put( GraphDatabaseSettings.relationshipstore_mapped_memory_size.name(), "300M" );
-		//LARGE_CONFIG.put( GraphDatabaseSettings.nodestore_propertystore_mapped_memory_size.name(), "400M" );
-		//LARGE_CONFIG.put( GraphDatabaseSettings.strings_mapped_memory_size.name(), "800M" );
-		//LARGE_CONFIG.put( GraphDatabaseSettings.arrays_mapped_memory_size.name(), "10M" );
-		LARGE_CONFIG.put(GraphDatabaseSettings.pagecache_memory, 100000000L);
-	}
-
 	private Neo4j neo4j;
+	private DatabaseManagementService databases;
+	/**
+	 * Only set if {@link #useBolt()}.
+	 */
 	protected Driver driver;
 
 	protected abstract List<Class<?>> loadProceduresAndFunctions();
 
 	/**
-	 * Configurable options for text cases, with or without deleting the previous database, and with
-	 * or without using the BatchInserter for higher creation speeds. Note that tests that need to
-	 * delete nodes or use transactions should not use the BatchInserter.
+	 * Start a Bolt server and {@link #driver} (needed by exporters and the GeoTools data store). Otherwise, an
+	 * impermanent embedded database is used, which is several times faster to start.
 	 */
-	@SuppressWarnings("unchecked")
+	protected boolean useBolt() {
+		return false;
+	}
+
 	@BeforeEach
-	void setUpDatabase() {
-		Neo4jBuilder neo4jBuilder = Neo4jBuilders
+	void setUpDatabase() throws KernelException {
+		if (!useBolt()) {
+			databases = new TestDatabaseManagementServiceBuilder(getDbPath())
+					.setConfig(GraphDatabaseSettings.procedure_unrestricted, List.of("spatial.*"))
+					.impermanent()
+					.build();
+			GlobalProcedures procedures = ((GraphDatabaseAPI) graphDb()).getDependencyResolver()
+					.resolveDependency(GlobalProcedures.class);
+			for (Class<?> api : loadProceduresAndFunctions()) {
+				procedures.registerProcedure(api);
+				procedures.registerFunction(api);
+			}
+			return;
+		}
+		Neo4jBuilder neo4jBuilder = TestNeo4jBuilders
 				.newInProcessBuilder(getDbPath())
-				.withConfig(GraphDatabaseSettings.procedure_unrestricted, List.of("spatial.*"));
+				.withConfig(GraphDatabaseSettings.procedure_unrestricted, List.of("spatial.*"))
+				.withConfig(GraphDatabaseSettings.pagecache_memory, 200000000L);
 
 		loadProceduresAndFunctions().forEach(aClass -> {
 			neo4jBuilder.withProcedure(aClass);
 			neo4jBuilder.withFunction(aClass);
 		});
 
-		String largeMode = System.getProperty("spatial.test.large");
-		if (largeMode != null && largeMode.equalsIgnoreCase("true")) {
-			LARGE_CONFIG.forEach((setting, o) -> neo4jBuilder.withConfig((Setting<Object>) setting, o));
-		} else {
-			NORMAL_CONFIG.forEach((setting, o) -> neo4jBuilder.withConfig((Setting<Object>) setting, o));
-		}
-
 		neo4j = neo4jBuilder.build();
+		databases = neo4j.databaseManagementService();
 		driver = GraphDatabase.driver(neo4j.boltURI().toString(), AuthTokens.basic("neo4j", ""));
-	}
-
-	@AfterAll
-	static void afterAll() throws InterruptedException {
-		for (Thread closeThread : closeThreads) {
-			closeThread.join();
-		}
 	}
 
 	@AfterEach
 	public void tearDown() {
-		driver.close();
-		// defer cleanup so the test can run faster
-		Thread closeThread = new Thread(() -> neo4j.close());
-		closeThread.start();
-		closeThreads.add(closeThread);
+		if (neo4j != null) {
+			driver.close();
+			neo4j.close();
+		} else {
+			databases.shutdown();
+		}
 	}
 
 	static Path getDbPath() {
@@ -127,7 +109,7 @@ public abstract class Neo4jTestCase {
 	}
 
 	protected GraphDatabaseService graphDb() {
-		return neo4j.databaseManagementService().database(GraphDatabaseSettings.DEFAULT_DATABASE_NAME);
+		return databases.database(GraphDatabaseSettings.DEFAULT_DATABASE_NAME);
 	}
 
 	protected void inTx(Consumer<Transaction> txFunction) {

@@ -19,91 +19,14 @@
  */
 package org.neo4j.spatial.osm.server.plugin;
 
-import static org.junit.jupiter.params.provider.Arguments.of;
-
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
-import org.neo4j.graphdb.Node;
-import org.neo4j.graphdb.Relationship;
-import org.neo4j.graphdb.RelationshipType;
-import org.neo4j.graphdb.Transaction;
+import org.junit.jupiter.params.provider.ValueSource;
 
 public class TestOSMImport extends TestOSMImportBase {
 
-
-	private static Stream<Arguments> parameters() {
-
-		List<String> layersToTest = List.of("map.osm");
-
-		boolean[] pointsTestModes = new boolean[]{true, false};
-
-		// Finally, build the set of complete test cases based on the collection above
-		ArrayList<Arguments> params = new ArrayList<>();
-		for (final String layerName : layersToTest) {
-			for (final boolean includePoints : pointsTestModes) {
-				params.add(of(layerName, includePoints));
-			}
-		}
-		System.out.println("This suite has " + params.size() + " tests");
-		for (Arguments arguments : params) {
-			System.out.println("\t" + Arrays.toString(arguments.get()));
-		}
-		return params.stream();
-	}
-
 	@ParameterizedTest
-	@MethodSource("parameters")
-	public void runTest(String layerName, boolean includePoints) throws Exception {
-		runImport(layerName, includePoints);
-		try (Transaction tx = graphDb().beginTx()) {
-			for (Node n : tx.getAllNodes()) {
-				debugNode(n);
-			}
-			tx.commit();
-		}
-	}
-
-	@Test
-	public void buildDataModel() {
-		try (Transaction tx = this.graphDb().beginTx()) {
-			Node n1 = tx.createNode();
-			n1.setProperty("name", "n1");
-			Node n2 = tx.createNode();
-			n2.setProperty("name", "n2");
-			n1.createRelationshipTo(n2, RelationshipType.withName("LIKES"));
-			debugNode(n1);
-			debugNode(n2);
-			tx.commit();
-		}
-		try (Transaction tx = this.graphDb().beginTx()) {
-			for (Node n : tx.getAllNodes()) {
-				debugNode(n);
-			}
-			tx.commit();
-		}
-	}
-
-	private static void debugNode(Node node) {
-		Map<String, Object> properties = node.getProperties();
-		System.out.println(node + " has " + properties.size() + " properties");
-		for (Map.Entry<String, Object> property : properties.entrySet()) {
-			System.out.println("      key: " + property.getKey());
-			System.out.println("    value: " + property.getValue());
-		}
-		Iterable<Relationship> relationships = node.getRelationships();
-		long count = StreamSupport.stream(relationships.spliterator(), false).count();
-		System.out.println(node + " has " + count + " relationships");
-		for (Relationship relationship : relationships) {
-			System.out.println("     (" + relationship.getStartNode() + ")-[:" + relationship.getType() + "]->("
-					+ relationship.getEndNode() + ")");
-		}
+	@ValueSource(booleans = {true, false})
+	public void importMapOsm(boolean includePoints) throws Exception {
+		runImport("map.osm", includePoints);
 	}
 }

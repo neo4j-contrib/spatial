@@ -74,7 +74,6 @@ import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.gis.spatial.rtree.filter.SearchAll;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.harness.Neo4j;
-import org.neo4j.harness.Neo4jBuilders;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.spatial.api.SearchFilter;
@@ -85,6 +84,7 @@ import org.neo4j.spatial.geotools.common.utilities.RenderingUtils;
 import org.neo4j.spatial.osm.server.plugin.OSMImporter;
 import org.neo4j.spatial.osm.server.plugin.pipes.OSMGeoPipeline;
 import org.neo4j.test.TestData.Title;
+import org.neo4j.spatial.testutils.TestNeo4jBuilders;
 
 public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 
@@ -1064,7 +1064,7 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 
 	@BeforeAll
 	public static void init() throws Exception {
-		neo4j = Neo4jBuilders
+		neo4j = TestNeo4jBuilders
 				.newInProcessBuilder(Path.of("target/docs"))
 				.withConfig(GraphDatabaseSettings.procedure_unrestricted, List.of("spatial.*"))
 				.withProcedure(SpatialProcedures.class)

@@ -31,28 +31,8 @@
 
 	<artifactId>neo4j-spatial-osm-server-plugin</artifactId>
 
-	<properties>
-		<spatial.test.osm.version>20100819</spatial.test.osm.version>
-	</properties>
-
 	<build>
 		<plugins>
-			<plugin>
-				<artifactId>maven-dependency-plugin</artifactId>
-				<executions>
-					<execution>
-						<id>get-test-data</id>
-						<goals>
-							<goal>unpack-dependencies</goal>
-						</goals>
-						<configuration>
-							<outputDirectory>${project.build.directory}</outputDirectory>
-							<includeGroupIds>org.neo4j.spatial</includeGroupIds>
-							<includeArtifactIds>osm-test-data</includeArtifactIds>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
 				<version>3.7.1</version>
@@ -97,12 +77,6 @@
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter-engine</artifactId>
 			<version>5.13.4</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.neo4j.spatial</groupId>
-			<artifactId>osm-test-data</artifactId>
-			<version>${spatial.test.osm.version}</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
