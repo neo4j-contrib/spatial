@@ -26,7 +26,7 @@
 	<parent>
 		<groupId>org.neo4j</groupId>
 		<artifactId>neo4j-spatial</artifactId>
-		<version>2026.10.0</version>
+		<version>2026.10.1-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>neo4j-spatial-server-plugin</artifactId>
@@ -64,23 +64,23 @@
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-spatial-api</artifactId>
-			<version>2026.10.0</version>
+			<version>2026.10.1-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-spatial-geotools-common</artifactId>
-			<version>2026.10.0</version>
+			<version>2026.10.1-SNAPSHOT</version>
 		</dependency>
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-spatial-geotools-plugin</artifactId>
-			<version>2026.10.0</version>
+			<version>2026.10.1-SNAPSHOT</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-spatial-cli-tools</artifactId>
-			<version>2026.10.0</version>
+			<version>2026.10.1-SNAPSHOT</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -104,7 +104,7 @@
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-spatial-test-utils</artifactId>
-			<version>2026.10.0</version>
+			<version>2026.10.1-SNAPSHOT</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
