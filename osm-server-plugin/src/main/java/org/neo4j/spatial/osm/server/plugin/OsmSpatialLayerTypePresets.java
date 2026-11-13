@@ -31,7 +31,7 @@ public class OsmSpatialLayerTypePresets implements LayerTypePresets {
 	@Override
 	public List<RegisteredLayerType> getLayerTypePresets() {
 		return List.of(
-				new RegisteredLayerType("OSM", OSMGeometryEncoder.class, OSMLayer.class,
+				RegisteredLayerType.of("OSM", OSMGeometryEncoder.class, OSMLayer.class,
 						DefaultGeographicCRS.WGS84, LayerRTreeIndex.class,
 						new BaseGeometryEncoderConfig())
 		);

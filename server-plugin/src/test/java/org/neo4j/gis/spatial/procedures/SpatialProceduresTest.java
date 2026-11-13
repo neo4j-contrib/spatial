@@ -28,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-import static org.neo4j.gis.spatial.Constants.INDEX_TYPE_RTREE;
 import static org.neo4j.gis.spatial.Constants.LABEL_LAYER;
 import static org.neo4j.gis.spatial.Constants.PROP_GEOMENCODER;
 import static org.neo4j.gis.spatial.Constants.PROP_GEOMENCODER_CONFIG;
@@ -137,10 +136,9 @@ public class SpatialProceduresTest extends AbstractApiTest {
 	private static Layer makeLayerOfVariousTypes(SpatialDatabaseService spatial, Transaction tx, String name,
 			int index) {
 		return switch (index % 3) {
-			case 0 -> spatial.getOrCreateSimplePointLayer(tx, name, INDEX_TYPE_RTREE, "x", "y",
-					null, false);
-			case 1 -> spatial.getOrCreateNativePointLayer(tx, name, INDEX_TYPE_RTREE, "location",
-					null, false);
+			case 0 -> spatial.getOrCreateSimplePointLayer(tx, name, null, new SimplePointEncoder.Config("x", "y"),
+					false);
+			case 1 -> spatial.getOrCreateNativePointLayer(tx, name, null, null, false);
 			default -> spatial.getOrCreateDefaultLayer(tx, name, false);
 		};
 	}
@@ -470,7 +468,7 @@ public class SpatialProceduresTest extends AbstractApiTest {
 			assertEquals("SimplePointEncoder(x='longitude', y='latitude', bbox='bbox')",
 					spatial.getLayer(tx, "c", true).getGeometryEncoder().getSignature());
 			assertEquals("longitude", ((SimplePointEncoder.Config) LayerTypePresetRegistry.INSTANCE
-					.getRegisteredLayerType("SimplePoint").defaultEncoderConfig).xProperty);
+					.getRegisteredLayerType("SimplePoint").defaultEncoderConfig()).xProperty);
 			tx.commit();
 		}
 	}

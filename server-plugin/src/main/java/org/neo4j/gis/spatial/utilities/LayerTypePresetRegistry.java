@@ -28,6 +28,7 @@ import java.util.logging.Logger;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.neo4j.gis.spatial.EditableLayerImpl;
+import org.neo4j.spatial.api.Configurable;
 import org.neo4j.spatial.api.encoder.GeometryEncoder;
 import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.spatial.api.layer.LayerTypePresets;
@@ -43,8 +44,12 @@ public class LayerTypePresetRegistry {
 
 	private LayerTypePresetRegistry() {
 		ServiceLoader.load(LayerTypePresets.class).forEach(layerPresets -> {
-			layerPresets.getLayerTypePresets().forEach(preset -> {
-				String key = preset.typeName.toLowerCase();
+			layerPresets.getLayerTypePresets().forEach(declared -> {
+				RegisteredLayerType preset = withTypedDefaultConfig(declared);
+				if (preset == null) {
+					return;
+				}
+				String key = preset.typeName().toLowerCase();
 				if (registeredLayerPresets.containsKey(key)) {
 					LOGGER.warning(
 							"Duplicate layer type preset detected: " + key + " - overwriting previous registration");
@@ -52,6 +57,38 @@ public class LayerTypePresetRegistry {
 				registeredLayerPresets.put(key, preset);
 			});
 		});
+	}
+
+	/**
+	 * @return the preset with a config of the encoder's config type (legacy strings migrated), or {@code null} if
+	 * the config doesn't match the encoder
+	 */
+	@Nullable
+	static RegisteredLayerType withTypedDefaultConfig(RegisteredLayerType preset) {
+		Object config = preset.defaultEncoderConfig();
+		if (config == null) {
+			return preset;
+		}
+		GeometryEncoder encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(preset.geometryEncoder());
+		if (!(encoder instanceof Configurable<?> configurable)) {
+			LOGGER.warning("Layer type preset '" + preset.typeName() + "' has a default config for non-configurable "
+					+ "encoder " + preset.geometryEncoder() + " - ignoring the config");
+			return withConfig(preset, null);
+		}
+		if (config instanceof String legacy) {
+			return withConfig(preset, configurable.migrateLegacyConfiguration(legacy));
+		}
+		if (!configurable.getConfigType().isInstance(config)) {
+			LOGGER.warning("Layer type preset '" + preset.typeName() + "' has a default config of " + config.getClass()
+					+ ", expected " + configurable.getConfigType() + " - skipping the preset");
+			return null;
+		}
+		return preset;
+	}
+
+	private static RegisteredLayerType withConfig(RegisteredLayerType preset, Object config) {
+		return new RegisteredLayerType(preset.typeName(), preset.geometryEncoder(), preset.layerClass(), preset.crs(),
+				preset.layerIndexClass(), config);
 	}
 
 	public Map<String, RegisteredLayerType> getRegisteredLayerPresets() {
@@ -62,8 +99,8 @@ public class LayerTypePresetRegistry {
 	@Nonnull
 	public Class<? extends Layer> suggestLayerClassForEncoder(Class<? extends GeometryEncoder> encoderClass) {
 		for (RegisteredLayerType type : registeredLayerPresets.values()) {
-			if (type.geometryEncoder == encoderClass) {
-				return type.layerClass;
+			if (type.geometryEncoder() == encoderClass) {
+				return type.layerClass();
 			}
 		}
 		return EditableLayerImpl.class;

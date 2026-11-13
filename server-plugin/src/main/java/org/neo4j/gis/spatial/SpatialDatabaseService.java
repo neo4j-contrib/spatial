@@ -266,34 +266,44 @@ public class SpatialDatabaseService {
 		return getOrCreateEditableLayer(tx, name, "WKT", wktProperty, indexConfig, readOnly);
 	}
 
-	public EditableLayer getOrCreateSimplePointLayer(Transaction tx, String name, String indexType, String xProperty,
-			String yProperty, String indexConfig, boolean readOnly) {
-		EditableLayer layer = getEditableLayer(tx, name, readOnly);
-		if (layer == null) {
-			var encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(SimplePointEncoder.class,
-					new SimplePointEncoder.Config(xProperty, yProperty));
-			var index = IndexRegistry.INSTANCE.constructIndex(indexType, indexConfig);
-			layer = (EditableLayer) createLayer(tx, name, SimplePointLayer.class, DefaultGeographicCRS.WGS84, encoder,
-					index);
-		}
-		return layer;
+	/**
+	 * @param index         index template, {@code null} for an RTree with default configuration
+	 * @param encoderConfig {@code null} for the default configuration
+	 */
+	public EditableLayer getOrCreateSimplePointLayer(
+			@Nonnull Transaction tx,
+			@Nonnull String name,
+			@Nullable SpatialIndexWriter index,
+			@Nullable SimplePointEncoder.Config encoderConfig,
+			boolean readOnly
+	) {
+		return getOrCreatePointLayer(tx, name, index,
+				GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(SimplePointEncoder.class, encoderConfig),
+				readOnly);
 	}
 
+	/**
+	 * @param index         index template, {@code null} for an RTree with default configuration
+	 * @param encoderConfig {@code null} for the default configuration
+	 */
 	public EditableLayer getOrCreateNativePointLayer(
 			@Nonnull Transaction tx,
 			@Nonnull String name,
-			@Nonnull String indexType,
-			String locationProperty,
-			String indexConfig,
+			@Nullable SpatialIndexWriter index,
+			@Nullable NativePointEncoder.Config encoderConfig,
 			boolean readOnly
 	) {
+		return getOrCreatePointLayer(tx, name, index,
+				GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(NativePointEncoder.class, encoderConfig),
+				readOnly);
+	}
+
+	private EditableLayer getOrCreatePointLayer(Transaction tx, String name, @Nullable SpatialIndexWriter index,
+			GeometryEncoder encoder, boolean readOnly) {
 		EditableLayer layer = getEditableLayer(tx, name, readOnly);
 		if (layer == null) {
-			var encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(NativePointEncoder.class,
-					new NativePointEncoder.Config(locationProperty));
-			var index = IndexRegistry.INSTANCE.constructIndex(indexType, indexConfig);
 			layer = (EditableLayer) createLayer(tx, name, SimplePointLayer.class, DefaultGeographicCRS.WGS84, encoder,
-					index);
+					index != null ? index : new LayerRTreeIndex());
 		}
 		return layer;
 	}
@@ -360,13 +370,17 @@ public class SpatialDatabaseService {
 				index);
 	}
 
+	/**
+	 * @param encoder template for the layer's encoder: type and configuration are copied, the instance stays unbound
+	 * @param index   template for the layer's index, copied like {@code encoder}
+	 */
 	public @Nonnull Layer createLayer(
 			@Nonnull Transaction tx,
 			@Nonnull String name,
 			@Nonnull Class<? extends Layer> layerClass,
 			CoordinateReferenceSystem crs,
-			GeometryEncoder encoder,
-			SpatialIndexWriter index) {
+			@Nonnull GeometryEncoder encoder,
+			@Nonnull SpatialIndexWriter index) {
 		if (containsLayer(tx, name)) {
 			throw new SpatialDatabaseException("Layer " + name + " already exists");
 		}

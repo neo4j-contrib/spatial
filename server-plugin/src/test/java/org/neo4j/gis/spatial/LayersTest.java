@@ -23,11 +23,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.neo4j.gis.spatial.Constants.GTYPE_POINT;
-import static org.neo4j.gis.spatial.Constants.INDEX_TYPE_RTREE;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -100,16 +100,16 @@ public class LayersTest extends Neo4jTestCase {
 	@Test
 	public void testGetOrCreateSimplePointLayer() {
 		testGetOrCreatePointLayer(
-				(spatial, tx, x) -> spatial.getOrCreateSimplePointLayer(tx, "points", INDEX_TYPE_RTREE, x, "y", null,
-						false),
+				(spatial, tx, x) -> spatial.getOrCreateSimplePointLayer(tx, "points", null,
+						new SimplePointEncoder.Config(x, "y"), false),
 				"SimplePointEncoder(x='x', y='y', bbox='bbox')");
 	}
 
 	@Test
 	public void testGetOrCreateNativePointLayer() {
 		testGetOrCreatePointLayer(
-				(spatial, tx, location) -> spatial.getOrCreateNativePointLayer(tx, "points", INDEX_TYPE_RTREE,
-						location, null, false),
+				(spatial, tx, location) -> spatial.getOrCreateNativePointLayer(tx, "points", null,
+						new NativePointEncoder.Config(location), false),
 				"NativePointEncoder(geometry='x', bbox='bbox', crs=4326)");
 	}
 
@@ -136,6 +136,24 @@ public class LayersTest extends Neo4jTestCase {
 	}
 
 	@Test
+	public void testEncoderAndIndexInstancesCanBeReused() {
+		SpatialDatabaseService spatial = new SpatialDatabaseService(
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+		var encoder = new SimplePointEncoder();
+		encoder.setConfiguration(new SimplePointEncoder.Config("x", "y"));
+		var index = new LayerRTreeIndex();
+		inTx(tx -> {
+			var a = (EditableLayer) spatial.createLayer(tx, "a", SimplePointLayer.class, null, encoder, index);
+			var b = (EditableLayer) spatial.createLayer(tx, "b", SimplePointLayer.class, null, encoder, index);
+			a.add(tx, a.getGeometryFactory().createPoint(new Coordinate(1, 1)));
+			assertEquals(1, a.getIndex().count(tx));
+			assertEquals(0, b.getIndex().count(tx));
+			assertNotSame(encoder, a.getGeometryEncoder());
+			assertEquals("SimplePointEncoder(x='x', y='y', bbox='bbox')", b.getGeometryEncoder().getSignature());
+		});
+	}
+
+	@Test
 	public void testGetOrCreatePointLayerRejectsNonEditableLayer() {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
@@ -147,11 +165,9 @@ public class LayersTest extends Neo4jTestCase {
 			String configName = spatial.getLayerNames(tx).stream().filter(n -> !n.equals("base")).findFirst()
 					.orElseThrow();
 			assertThrows(SpatialDatabaseException.class,
-					() -> spatial.getOrCreateSimplePointLayer(tx, configName, INDEX_TYPE_RTREE, "x", "y", null,
-							false));
+					() -> spatial.getOrCreateSimplePointLayer(tx, configName, null, null, false));
 			assertThrows(SpatialDatabaseException.class,
-					() -> spatial.getOrCreateNativePointLayer(tx, configName, INDEX_TYPE_RTREE, "location", null,
-							false));
+					() -> spatial.getOrCreateNativePointLayer(tx, configName, null, null, false));
 		});
 	}
 
@@ -307,7 +323,7 @@ public class LayersTest extends Neo4jTestCase {
 	public void testIndexAccessAfterBulkInsertion() {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
-		inTx(tx -> spatial.getOrCreateSimplePointLayer(tx, "Coordinates", "rtree", "lat", "lon", null, true));
+		inTx(tx -> spatial.getOrCreateSimplePointLayer(tx, "Coordinates", null, new SimplePointEncoder.Config("lat", "lon"), true));
 
 		Random rand = new Random(42);
 

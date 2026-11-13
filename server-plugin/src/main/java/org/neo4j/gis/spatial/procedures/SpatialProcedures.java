@@ -176,13 +176,13 @@ public class SpatialProcedures extends SpatialApiBase {
 
 		public LayerType(RegisteredLayerType registeredLayerType) {
 			this(
-					registeredLayerType.typeName,
-					resolveIdentifier(registeredLayerType.geometryEncoder),
-					resolveIdentifier(registeredLayerType.layerClass),
-					resolveIdentifier(registeredLayerType.layerIndexClass),
-					registeredLayerType.crs.getName(null),
-					registeredLayerType.defaultEncoderConfig != null ? ConfigurationUtils.getConfigMap(
-							registeredLayerType.defaultEncoderConfig) : null
+					registeredLayerType.typeName(),
+					resolveIdentifier(registeredLayerType.geometryEncoder()),
+					resolveIdentifier(registeredLayerType.layerClass()),
+					resolveIdentifier(registeredLayerType.layerIndexClass()),
+					registeredLayerType.crs().getName(null),
+					registeredLayerType.defaultEncoderConfig() != null ? ConfigurationUtils.getConfigMap(
+							registeredLayerType.defaultEncoderConfig()) : null
 			);
 		}
 
@@ -543,19 +543,19 @@ public class SpatialProcedures extends SpatialApiBase {
 		SpatialDatabaseService sdb = spatial();
 		assertLayerDoesNotExist(sdb, name);
 
-		var encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(registeredLayerType.geometryEncoder);
+		var encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(registeredLayerType.geometryEncoder());
 		if (encoder instanceof Configurable<?> configurable) {
 			if (encoderConfig != null) {
 				ConfigurationUtils.setLegacyConfig(configurable, encoderConfig);
-			} else if (registeredLayerType.defaultEncoderConfig != null) {
-				// copy: the preset's config instance is shared by all layers of that type
+			} else if (registeredLayerType.defaultEncoderConfig() != null) {
+				// via map: the preset config is untyped (Object)
 				ConfigurationUtils.setConfig(configurable,
-						ConfigurationUtils.getConfigMap(registeredLayerType.defaultEncoderConfig));
+						ConfigurationUtils.getConfigMap(registeredLayerType.defaultEncoderConfig()));
 			}
 		}
 		var index = IndexRegistry.INSTANCE.constructIndex(LayerRTreeIndex.class,
 				RTreeIndex.Config.migrateLegacyConfiguration(indexConfig));
-		var layer = sdb.createLayer(tx, name, registeredLayerType.layerClass, null, encoder, index);
+		var layer = sdb.createLayer(tx, name, registeredLayerType.layerClass(), null, encoder, index);
 
 		return streamNode(layer.getLayerNode(tx));
 	}

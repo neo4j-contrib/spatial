@@ -45,17 +45,24 @@ public interface LayerTypePresets {
 	/**
 	 * Support mapping a String (ex: 'SimplePoint') to the respective GeometryEncoder and Layer classes
 	 * to allow for more streamlined method for creating Layers.
+	 *
+	 * @param defaultEncoderConfig the encoder's config type (see {@link #of}); a legacy config {@code String} is
+	 *                             migrated on registration. Shared by all layers of this type: never mutate it.
 	 */
-	class RegisteredLayerType {
+	record RegisteredLayerType(
+			String typeName,
+			Class<? extends GeometryEncoder> geometryEncoder,
+			Class<? extends Layer> layerClass,
+			AbstractCRS crs,
+			Class<? extends SpatialIndexWriter> layerIndexClass,
+			Object defaultEncoderConfig
+	) {
 
-		public final String typeName;
-		public final Class<? extends GeometryEncoder> geometryEncoder;
-		public final Class<? extends Layer> layerClass;
-		public final AbstractCRS crs;
-		public final Class<? extends SpatialIndexWriter> layerIndexClass;
-		public Object defaultEncoderConfig = null;
-
-		public <Encoder extends GeometryEncoder & Configurable<EncoderConfig>, EncoderConfig>RegisteredLayerType(
+		/**
+		 * Type-safe factory: {@code defaultEncoderConfig} must match the encoder's config type.
+		 */
+		public static <Encoder extends GeometryEncoder & Configurable<EncoderConfig>, EncoderConfig>
+		RegisteredLayerType of(
 				String typeName,
 				Class<Encoder> geometryEncoder,
 				Class<? extends Layer> layerClass,
@@ -63,22 +70,8 @@ public interface LayerTypePresets {
 				Class<? extends SpatialIndexWriter> layerIndexClass,
 				EncoderConfig defaultEncoderConfig
 		) {
-			this(typeName, geometryEncoder, layerClass, crs, layerIndexClass);
-			this.defaultEncoderConfig = defaultEncoderConfig;
-		}
-
-		public RegisteredLayerType(
-				String typeName,
-				Class<? extends GeometryEncoder> geometryEncoder,
-				Class<? extends Layer> layerClass,
-				AbstractCRS crs,
-				Class<? extends SpatialIndexWriter> layerIndexClass
-		) {
-			this.typeName = typeName;
-			this.geometryEncoder = geometryEncoder;
-			this.layerClass = layerClass;
-			this.crs = crs;
-			this.layerIndexClass = layerIndexClass;
+			return new RegisteredLayerType(typeName, geometryEncoder, layerClass, crs, layerIndexClass,
+					defaultEncoderConfig);
 		}
 	}
 

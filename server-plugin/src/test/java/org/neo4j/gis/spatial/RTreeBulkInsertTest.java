@@ -70,6 +70,7 @@ import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.gis.spatial.rtree.RTreeIndex.Config;
 import org.neo4j.gis.spatial.rtree.RTreeMonitor;
 import org.neo4j.gis.spatial.rtree.RTreeRelationshipTypes;
+import org.neo4j.gis.spatial.utilities.IndexRegistry;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Label;
@@ -112,8 +113,8 @@ public class RTreeBulkInsertTest {
 		CoordinateReferenceSystem crs = DefaultEngineeringCRS.GENERIC_2D;
 		try (Transaction tx = db.beginTx()) {
 			SpatialDatabaseService sdbs = spatial();
-			EditableLayer layer = sdbs.getOrCreateSimplePointLayer(tx, name, index, xProperty, yProperty, null,
-					false);
+			EditableLayer layer = sdbs.getOrCreateSimplePointLayer(tx, name, IndexRegistry.INSTANCE.constructIndex(index),
+					new SimplePointEncoder.Config(xProperty, yProperty), false);
 			layer.setCoordinateReferenceSystem(tx, crs);
 			tx.commit();
 			return layer;
@@ -872,8 +873,8 @@ public class RTreeBulkInsertTest {
 			System.out.println("BulkLoadingTestRun " + j);
 			try (Transaction tx = db.beginTx()) {
 
-				EditableLayer layer = sdbs.getOrCreateSimplePointLayer(tx, "BulkLoader", "rtree", "lon", "lat", null,
-						false);
+				EditableLayer layer = sdbs.getOrCreateSimplePointLayer(tx, "BulkLoader", null,
+						new SimplePointEncoder.Config("lon", "lat"), false);
 				List<Node> coords = new ArrayList<>(N);
 				for (int i = 0; i < N; i++) {
 					Node n = tx.createNode(Label.label("Coordinate"));

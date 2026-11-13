@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import org.neo4j.gis.spatial.EditableLayerImpl;
+import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.gis.spatial.encoders.WKBGeometryEncoder;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.graphdb.Node;
@@ -123,15 +124,20 @@ public class LayerUtilities {
 	/**
 	 * Creates the layer node, persists the encoder's and index's identifier and configuration on it, and returns the
 	 * initialized layer.
+	 * <p>
+	 * {@code encoder} and {@code index} only describe type and configuration: the layer gets its own copies, since
+	 * initialization binds them to the layer. The passed instances stay untouched and can be reused.
 	 */
 	public static <L extends Layer> @Nonnull L makeLayerAndNode(
 			@Nonnull Transaction tx,
 			@Nonnull IndexManager indexManager,
 			@Nonnull String name,
 			@Nonnull Class<L> layerClass,
-			GeometryEncoder encoder,
-			SpatialIndexWriter index
+			@Nonnull GeometryEncoder encoderTemplate,
+			@Nonnull SpatialIndexWriter indexTemplate
 	) {
+		GeometryEncoder encoder = copyOf(encoderTemplate);
+		SpatialIndexWriter index = copyOf(indexTemplate);
 		Node layerNode = tx.createNode();
 		layerNode.addLabel(LABEL_LAYER);
 		layerNode.setProperty(PROP_LAYER, name);
@@ -144,6 +150,20 @@ public class LayerUtilities {
 		layer.initialize(tx, indexManager, name, encoder, index, layerNode, false);
 
 		return layer;
+	}
+
+	private static <T> T copyOf(@Nonnull T component) {
+		T copy;
+		try {
+			//noinspection unchecked
+			copy = (T) component.getClass().getDeclaredConstructor().newInstance();
+		} catch (ReflectiveOperationException e) {
+			throw new SpatialDatabaseException(e);
+		}
+		if (component instanceof Configurable<?> configurable) {
+			ConfigurationUtils.setConfig((Configurable<?>) copy, ConfigurationUtils.getConfigMap(configurable));
+		}
+		return copy;
 	}
 
 	private static void persistIdAndConfig(
