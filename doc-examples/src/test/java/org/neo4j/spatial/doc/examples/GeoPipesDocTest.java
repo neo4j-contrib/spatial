@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.TreeSet;
+import java.util.function.ToDoubleFunction;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -357,6 +358,8 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 			result.append(flow.getProperties().get("GML"));
 		}
 		gen.get().addSnippet("exportgml", "[source,xml]\n----\n" + result + "\n----\n");
+		assertEquals(2, GeoPipeline.start(tx, boxesLayer).createGML().toList().size());
+		assertTrue(result.toString().contains("<gml:Polygon"), result.toString());
 	}
 
 	@Test
@@ -460,7 +463,8 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		// end::s_boundary[]
 		addImageSnippet(boxesLayer, pipeline, getTitle(), Constants.GTYPE_LINESTRING);
 
-		// TODO test?
+		// perimeters of box A (1x1) and B (4x2)
+		assertEquals(List.of(4.0, 12.0), sorted(GeoPipeline.start(tx, boxesLayer).toBoundary(), Geometry::getLength));
 	}
 
 	@Test
@@ -482,7 +486,9 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		// end::s_difference[]
 		addImageSnippet(intersectionLayer, pipeline, getTitle());
 
-		// TODO test?
+		// squares of area 16, 25, 36 minus their overlap with the trapezoid (8, 4, 6.75)
+		assertEquals(List.of(8.0, 21.0, 29.25),
+				sorted(GeoPipeline.start(tx, intersectionLayer).difference(geometry), Geometry::getArea));
 	}
 
 	@Test
@@ -504,7 +510,8 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		// end::s_intersection[]
 		addImageSnippet(intersectionLayer, pipeline, getTitle());
 
-		// TODO test?
+		assertEquals(List.of(4.0, 6.75, 8.0),
+				sorted(GeoPipeline.start(tx, intersectionLayer).intersect(geometry), Geometry::getArea));
 	}
 
 	@Test
@@ -527,7 +534,9 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		// end::s_union[]
 		addImageSnippet(intersectionLayer, pipeline, getTitle());
 
-		// TODO test?
+		// only the 6x6 square matches the window: 36 + trapezoid 12 - overlap 6.75
+		assertEquals(List.of(41.25),
+				sorted(GeoPipeline.start(tx, intersectionLayer, filter).union(geometry), Geometry::getArea));
 	}
 
 	@Test
@@ -767,7 +776,10 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		// end::s_intersecting_windows[]
 		addImageSnippet(boxesLayer, pipeline, getTitle());
 
-		// TODO test?
+		List<GeoPipeFlow> found = GeoPipeline.start(tx, boxesLayer)
+				.windowIntersectionFilter(new Envelope(0, 10, 0, 10)).toList();
+		assertEquals(1, found.size());
+		assertEquals("B", found.getFirst().getRecord().getProperty(tx, "name"));
 	}
 
 	@Test
@@ -844,7 +856,8 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 		// end::s_envelope[]
 		addImageSnippet(linesLayer, pipeline, getTitle(), Constants.GTYPE_POLYGON);
 
-		// TODO test
+		// line spans x 12..23, y 26..38
+		assertEquals(List.of(132.0), sorted(GeoPipeline.start(tx, linesLayer).toEnvelope(), Geometry::getArea));
 	}
 
 	@Test
@@ -1116,5 +1129,12 @@ public class GeoPipesDocTest extends AbstractJavaDocTestBase {
 						Stream.of("// DO NOT MODIFY, THIS FILE IS AUTO GENERATED!"),
 						adocs.stream().map(s -> "include::" + s + "[]"))
 				.collect(Collectors.toList()));
+	}
+
+	private static List<Double> sorted(GeoPipeline pipeline, ToDoubleFunction<Geometry> measure) {
+		return pipeline.toList().stream()
+				.map(flow -> Math.round(measure.applyAsDouble(flow.getGeometry()) * 1e6) / 1e6)
+				.sorted()
+				.toList();
 	}
 }
