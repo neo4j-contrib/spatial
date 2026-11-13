@@ -19,6 +19,7 @@
  */
 package org.neo4j.gis.spatial.rtree;
 
+import com.fasterxml.jackson.annotation.JsonPropertyDescription;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -33,10 +34,9 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
-import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
-import org.neo4j.gis.spatial.encoders.Configurable;
 import org.neo4j.gis.spatial.index.Envelope;
+import org.neo4j.gis.spatial.rtree.RTreeIndex.Config;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
@@ -52,6 +52,7 @@ import org.neo4j.graphdb.traversal.PathEvaluator;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.graphdb.traversal.Traverser;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
+import org.neo4j.spatial.api.Configurable;
 import org.neo4j.spatial.api.EnvelopeDecoder;
 import org.neo4j.spatial.api.Envelopes;
 import org.neo4j.spatial.api.SearchFilter;
@@ -68,7 +69,7 @@ import org.neo4j.spatial.api.monitoring.TreeMonitor.NodeWithEnvelope;
  * are connected to the existing data model.
  * Queries to the index also need to be explicit.
  */
-public abstract class RTreeIndex implements SpatialIndexWriter, Configurable {
+public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Config> {
 
 	private static final Logger LOGGER = Logger.getLogger(RTreeIndex.class.getName());
 
@@ -88,25 +89,93 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable {
 	private TreeMonitor monitor;
 	private String rootNodeId;
 	private EnvelopeDecoder envelopeDecoder;
-	private int maxNodeReferences;
 	private boolean readOnly;
-	private String splitMode = GREENES_SPLIT;
-	private boolean shouldMergeTrees = false;
 	private RelationshipType referenceRelationshipType = RTreeRelationshipTypes.RTREE_REFERENCE;
 
 	private int totalGeometryCount = 0;
 	private boolean countSaved = false;
+
+	private Config configuration;
+
+	public static class Config {
+
+		@JsonPropertyDescription("The split algorithm: 'quadratic' (slower insertion, faster search) or 'greene' (faster insertion, simpler spatial distribution).")
+		public String splitMode = GREENES_SPLIT;
+
+		@JsonPropertyDescription("The maximum number of references (children or geometry nodes) allowed per index node.")
+		public long maxNodeReferences = DEFAULT_MAX_NODE_REFERENCES;
+
+		@JsonPropertyDescription("Whether to attempt merging subtrees during bulk insertion to reduce overlap.")
+		public boolean shouldMergeTrees = false;
+
+		@JsonPropertyDescription("The relationship type used to connect index leaves to the actual geometry nodes.")
+		public String referenceRelationshipType = "RTREE_REFERENCE";
+
+		public static Config migrateLegacyConfiguration(String jsonConfig) {
+			Config config = new Config();
+			if (jsonConfig == null || jsonConfig.isBlank()) {
+				return config;
+			}
+			Map<String, Object> jsonObject = (Map<String, Object>) JSONValue.parse(jsonConfig);
+			for (String key : jsonObject.keySet()) {
+				Object rawValue = jsonObject.get(key);
+				switch (key) {
+					case KEY_SPLIT:
+						String value = rawValue.toString();
+						switch (value) {
+							case QUADRATIC_SPLIT:
+							case GREENES_SPLIT:
+								config.splitMode = value;
+								break;
+							default:
+								throw new IllegalArgumentException(
+										"No such RTreeIndex value for '" + key + "': " + rawValue);
+						}
+						break;
+					case KEY_MAX_NODE_REFERENCES:
+						int intValue = Integer.parseInt(rawValue.toString());
+						if (intValue < MIN_MAX_NODE_REFERENCES) {
+							throw new IllegalArgumentException(
+									"RTreeIndex does not allow " + key + " less than " + MIN_MAX_NODE_REFERENCES);
+						}
+						if (intValue > MAX_MAX_NODE_REFERENCES) {
+							throw new IllegalArgumentException(
+									"RTreeIndex does not allow " + key + " greater than " + MAX_MAX_NODE_REFERENCES);
+						}
+						config.maxNodeReferences = intValue;
+						break;
+					case KEY_SHOULD_MERGE_TREES:
+						config.shouldMergeTrees = Boolean.parseBoolean(rawValue.toString());
+						break;
+					case REFERENCE_RELATIONSHIP_TYPE:
+						config.referenceRelationshipType = rawValue.toString();
+						break;
+					default:
+						throw new IllegalArgumentException("No such RTreeIndex configuration key: " + key);
+				}
+			}
+			return config;
+		}
+	}
+
+	public RTreeIndex() {
+		setConfiguration(new Config());
+	}
+
+	@Override
+	public Class<Config> getConfigType() {
+		return Config.class;
+	}
+
 
 	@Override
 	public void addMonitor(TreeMonitor monitor) {
 		this.monitor = monitor;
 	}
 
-	public void init(Transaction tx, Node layerNode, EnvelopeDecoder envelopeDecoder, int maxNodeReferences,
-			boolean readOnly) {
+	public void init(Transaction tx, Node layerNode, EnvelopeDecoder envelopeDecoder, boolean readOnly) {
 		this.rootNodeId = layerNode.getElementId();
 		this.envelopeDecoder = envelopeDecoder;
-		this.maxNodeReferences = maxNodeReferences;
 		this.readOnly = readOnly;
 		monitor = new EmptyMonitor();
 		if (envelopeDecoder == null) {
@@ -123,66 +192,19 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable {
 	}
 
 	@Override
-	public void setConfiguration(String jsonConfig) {
-		if (jsonConfig == null || jsonConfig.isBlank()) {
-			return;
-		}
-		JSONObject jsonObject = (JSONObject) JSONValue.parse(jsonConfig);
-		HashMap<String, Object> config = new HashMap<>();
-		for (Object key : jsonObject.keySet()) {
-			config.put(key.toString(), jsonObject.get(key));
-		}
-		configure(config);
+	public Config getConfiguration() {
+		return configuration;
 	}
 
 	@Override
-	public String getConfiguration() {
-		HashMap<String, Object> config = new HashMap<>();
-		config.put(KEY_SPLIT, this.splitMode);
-		config.put(KEY_MAX_NODE_REFERENCES, this.maxNodeReferences);
-		config.put(KEY_SHOULD_MERGE_TREES, this.shouldMergeTrees);
-		config.put(REFERENCE_RELATIONSHIP_TYPE, this.referenceRelationshipType.name());
-		return JSONObject.toJSONString(config);
+	public void setConfiguration(Config configuration) {
+		this.referenceRelationshipType = RelationshipType.withName(configuration.referenceRelationshipType);
+		this.configuration = configuration;
 	}
 
 	@Override
-	public void configure(Map<String, Object> config) {
-		config.forEach((key, rawValue) -> {
-			switch (key) {
-				case KEY_SPLIT:
-					String value = rawValue.toString();
-					switch (value) {
-						case QUADRATIC_SPLIT:
-						case GREENES_SPLIT:
-							splitMode = value;
-							break;
-						default:
-							throw new IllegalArgumentException(
-									"No such RTreeIndex value for '" + key + "': " + rawValue);
-					}
-					break;
-				case KEY_MAX_NODE_REFERENCES:
-					int intValue = Integer.parseInt(rawValue.toString());
-					if (intValue < MIN_MAX_NODE_REFERENCES) {
-						throw new IllegalArgumentException(
-								"RTreeIndex does not allow " + key + " less than " + MIN_MAX_NODE_REFERENCES);
-					}
-					if (intValue > MAX_MAX_NODE_REFERENCES) {
-						throw new IllegalArgumentException(
-								"RTreeIndex does not allow " + key + " greater than " + MAX_MAX_NODE_REFERENCES);
-					}
-					this.maxNodeReferences = intValue;
-					break;
-				case KEY_SHOULD_MERGE_TREES:
-					this.shouldMergeTrees = Boolean.parseBoolean(rawValue.toString());
-					break;
-				case REFERENCE_RELATIONSHIP_TYPE:
-					this.referenceRelationshipType = RelationshipType.withName(rawValue.toString());
-					break;
-				default:
-					throw new IllegalArgumentException("No such RTreeIndex configuration key: " + key);
-			}
-		});
+	public Config migrateLegacyConfiguration(String jsonConfig) {
+		return Config.migrateLegacyConfiguration(jsonConfig);
 	}
 
 	/**
@@ -195,7 +217,7 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable {
 			parent = chooseSubTree(parent, geomNode);
 		}
 		// bbox enlargement needed
-		if (countChildren(parent, referenceRelationshipType) >= maxNodeReferences) {
+		if (countChildren(parent, referenceRelationshipType) >= configuration.maxNodeReferences) {
 			insertInLeaf(parent, geomNode);
 			splitAndAdjustPathBoundingBox(tx, parent);
 		} else if (insertInLeaf(parent, geomNode)) {
@@ -212,7 +234,7 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable {
 		checkWritable();
 		int numChildren = countChildren(parent, RTreeRelationshipTypes.RTREE_CHILD);
 		boolean needExpansion = addChild(parent, RTreeRelationshipTypes.RTREE_CHILD, child);
-		if (numChildren < maxNodeReferences) {
+		if (numChildren < configuration.maxNodeReferences) {
 			if (needExpansion) {
 				adjustPathBoundingBox(parent);
 			}
@@ -381,7 +403,7 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable {
 			else //Do not create underfull nodes, instead use the add logic, except we know the root not to add them too.
 				//this handles the case where the number of nodes in a cluster is small.
 				if (expectedHeight == currentRTreeHeight) {
-					if (cluster.size() < maxNodeReferences * loadingFactor / 2) {
+					if (cluster.size() < configuration.maxNodeReferences * loadingFactor / 2) {
 						monitor.addCase("h_i == l_t && small cluster");
 						// getParent because addition might cause a split. This strategy not ideal,
 						// but does tend to limit overlap more than adding to the child exclusively.
@@ -393,7 +415,7 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable {
 						monitor.addCase("h_i == l_t && big cluster");
 						Node newRootNode = tx.createNode();
 						buildRtreeFromScratch(tx, newRootNode, cluster, loadingFactor);
-						if (shouldMergeTrees) {
+						if (configuration.shouldMergeTrees) {
 							NodeWithEnvelope nodeWithEnvelope = new NodeWithEnvelope(newRootNode,
 									getIndexNodeEnvelope(newRootNode));
 							List<NodeWithEnvelope> insert = new ArrayList<>(
@@ -425,11 +447,11 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable {
 							Relationship relationship = n.node.getSingleRelationship(RTreeRelationshipTypes.RTREE_CHILD,
 									Direction.INCOMING);
 							relationship.delete();
-							if (!shouldMergeTrees) {
+							if (!configuration.shouldMergeTrees) {
 								insertIndexNodeOnParent(tx, child.node, n.node);
 							}
 						}
-						if (shouldMergeTrees) {
+						if (configuration.shouldMergeTrees) {
 							monitor.beforeMergeTree(child.node, childrenToBeInserted);
 							mergeTwoSubtrees(tx, child, childrenToBeInserted);
 							monitor.afterMergeTree(child.node);
@@ -506,7 +528,7 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable {
 			parent.envelope.expandToInclude(n.envelope);
 		}
 		setIndexNodeEnvelope(parent.node, parent.envelope);
-		if (countChildren(parent.node, RTreeRelationshipTypes.RTREE_CHILD) > maxNodeReferences) {
+		if (countChildren(parent.node, RTreeRelationshipTypes.RTREE_CHILD) > configuration.maxNodeReferences) {
 			splitAndAdjustPathBoundingBox(tx, parent.node);
 		} else {
 			adjustPathBoundingBox(parent.node);
@@ -517,7 +539,7 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable {
 		if (size == 1) {
 			return 1;
 		}
-		final int targetLoading = (int) Math.floor(maxNodeReferences * loadingFactor);
+		final int targetLoading = (int) Math.floor(configuration.maxNodeReferences * loadingFactor);
 		return (int) Math.ceil(Math.log(size) / Math.log(targetLoading)); //exploit change of base formula
 
 	}
@@ -554,7 +576,7 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable {
 		nodes.sort(new SingleDimensionNodeEnvelopeComparator(longestDimension));
 
 		//work out the number of times to partition it:
-		final int targetLoading = (int) Math.round(maxNodeReferences * loadingFactor);
+		final int targetLoading = (int) Math.round(configuration.maxNodeReferences * loadingFactor);
 		int nodeCount = nodes.size();
 
 		if (nodeCount <= targetLoading) {
@@ -951,19 +973,13 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable {
 
 	private void initIndexMetadata(Transaction tx) {
 		Node layerNode = getRootNode(tx);
-		if (layerNode.hasRelationship(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_METADATA)) {
-			// metadata already present
-			Node metadataNode = layerNode.getSingleRelationship(RTreeRelationshipTypes.RTREE_METADATA,
-					Direction.OUTGOING).getEndNode();
-
-			maxNodeReferences = (Integer) metadataNode.getProperty("maxNodeReferences");
-		} else {
+		if (!layerNode.hasRelationship(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_METADATA)) {
 			checkWritable();
 			// metadata initialization
 			Node metadataNode = tx.createNode();
 			layerNode.createRelationshipTo(metadataNode, RTreeRelationshipTypes.RTREE_METADATA);
-
-			metadataNode.setProperty("maxNodeReferences", maxNodeReferences);
+			// read by older versions only; the layer node's index config is authoritative
+			metadataNode.setProperty("maxNodeReferences", (int) configuration.maxNodeReferences);
 		}
 
 		saveCount(tx);
@@ -1101,7 +1117,8 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable {
 		checkWritable();
 		// create a new node and distribute the entries
 		Node newIndexNode =
-				splitMode.equals(GREENES_SPLIT) ? greenesSplit(tx, indexNode) : quadraticSplit(tx, indexNode);
+				configuration.splitMode.equals(GREENES_SPLIT) ? greenesSplit(tx, indexNode)
+						: quadraticSplit(tx, indexNode);
 		Node parent = getIndexNodeParent(indexNode);
 		// if indexNode is the root
 		if (parent == null) {
@@ -1111,7 +1128,7 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable {
 
 			addChild(parent, RTreeRelationshipTypes.RTREE_CHILD, newIndexNode);
 
-			if (countChildren(parent, RTreeRelationshipTypes.RTREE_CHILD) > maxNodeReferences) {
+			if (countChildren(parent, RTreeRelationshipTypes.RTREE_CHILD) > configuration.maxNodeReferences) {
 				splitAndAdjustPathBoundingBox(tx, parent);
 			} else {
 				adjustPathBoundingBox(parent);

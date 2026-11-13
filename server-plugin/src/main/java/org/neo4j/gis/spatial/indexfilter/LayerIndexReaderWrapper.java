@@ -19,7 +19,6 @@
  */
 package org.neo4j.gis.spatial.indexfilter;
 
-import java.util.Map;
 import org.neo4j.gis.spatial.index.Envelope;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -99,11 +98,6 @@ public class LayerIndexReaderWrapper implements SpatialIndexReader {
 
 	@Override
 	public void addMonitor(TreeMonitor monitor) {
-
-	}
-
-	@Override
-	public void configure(Map<String, Object> config) {
 
 	}
 

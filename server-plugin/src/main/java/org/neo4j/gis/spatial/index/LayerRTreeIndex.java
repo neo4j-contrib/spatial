@@ -51,7 +51,7 @@ public class LayerRTreeIndex extends RTreeIndex implements LayerTreeIndexReader 
 
 	@Override
 	public void init(Transaction tx, IndexManager indexManager, Layer layer, boolean readOnly) {
-		super.init(tx, layer.getLayerNode(tx), layer.getGeometryEncoder(), 100, readOnly);
+		super.init(tx, layer.getLayerNode(tx), layer.getGeometryEncoder(), readOnly);
 		this.layer = layer;
 	}
 

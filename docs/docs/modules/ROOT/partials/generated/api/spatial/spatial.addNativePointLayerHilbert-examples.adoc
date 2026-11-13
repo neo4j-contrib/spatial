@@ -16,6 +16,9 @@ a|
 ----
 (:SpatialLayer {
     geomencoder: "NativePointEncoder",
+    geomencoder_config.bboxProperty: "bbox",
+    geomencoder_config.crs: "wgs84",
+    geomencoder_config.locationProperty: "location",
     index_type: "hilbert",
     layer: "my-native-hilbert-layer",
     layer_type: "SimplePointLayer",

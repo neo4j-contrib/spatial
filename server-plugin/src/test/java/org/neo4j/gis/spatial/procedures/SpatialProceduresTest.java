@@ -227,27 +227,40 @@ public class SpatialProceduresTest extends AbstractApiTest {
 	}
 
 	@ParameterizedTest
-	@CsvSource({
-			"SimplePointEncoder,",
-			"SimplePointEncoder,x:y:mbr",
-			"NativePointEncoder,",
-			"NativePointEncoder,pos:mbr",
-			"NativePointEncoder,pos:mbr:Cartesian",
-			"NativePointEncoder,pos:mbr:WGS-84",
+	@CsvSource(delimiter = '|', value = {
+			"SimplePointEncoder||xProperty=longitude,yProperty=latitude,bboxProperty=bbox",
+			"SimplePointEncoder|x:y:mbr|xProperty=x,yProperty=y,bboxProperty=mbr",
+			"NativePointEncoder||locationProperty=location,bboxProperty=bbox,crs=wgs84",
+			"NativePointEncoder|pos:mbr|locationProperty=pos,bboxProperty=mbr,crs=wgs84",
+			"NativePointEncoder|pos:mbr:Cartesian|locationProperty=pos,bboxProperty=mbr,crs=Cartesian",
+			"NativePointEncoder|pos:mbr:WGS-84|locationProperty=pos,bboxProperty=mbr,crs=WGS-84",
 	})
-	public void create_a_pointlayer_using_named_encoder(String encoder, String config) {
+	public void create_a_pointlayer_using_named_encoder(String encoder, String config, String expectedConfig) {
 		testCall(db, "CALL spatial.addLayerWithEncoder('geom',$encoder,$config)",
 				Map.of("encoder", encoder, "config", config == null ? "" : config), (r) -> {
 					Node node = (Node) r.get("node");
 					assertEquals("geom", node.getProperty(PROP_LAYER));
 					assertEquals(encoder, node.getProperty(PROP_GEOMENCODER));
 					assertEquals("SimplePointLayer", node.getProperty(PROP_LAYER_TYPE));
-					if (config == null) {
-						assertFalse(node.hasProperty(PROP_GEOMENCODER_CONFIG));
-					} else {
-						assertEquals(config, node.getProperty(PROP_GEOMENCODER_CONFIG));
+					assertFalse(node.hasProperty(PROP_GEOMENCODER_CONFIG));
+					Map<String, Object> expected = new LinkedHashMap<>();
+					for (String entry : expectedConfig.split(",")) {
+						String[] kv = entry.split("=");
+						expected.put(kv[0], kv[1]);
 					}
+					assertEquals(expected, encoderConfig(node));
 				});
+	}
+
+	private static Map<String, Object> encoderConfig(Node node) {
+		String prefix = PROP_GEOMENCODER_CONFIG + ".";
+		Map<String, Object> config = new LinkedHashMap<>();
+		node.getAllProperties().forEach((key, value) -> {
+			if (key.startsWith(prefix)) {
+				config.put(key.substring(prefix.length()), value);
+			}
+		});
+		return config;
 	}
 
 	//
@@ -274,7 +287,8 @@ public class SpatialProceduresTest extends AbstractApiTest {
 			assertEquals("NativePointEncoder", node.getProperty(PROP_GEOMENCODER));
 			assertEquals("hilbert",
 					node.getProperty(PROP_INDEX_TYPE));
-			assertEquals("pos:mbr", node.getProperty(PROP_GEOMENCODER_CONFIG));
+			assertEquals(Map.of("locationProperty", "pos", "bboxProperty", "mbr", "crs", "wgs84"),
+					encoderConfig(node));
 		});
 	}
 
@@ -287,7 +301,7 @@ public class SpatialProceduresTest extends AbstractApiTest {
 			assertEquals("geom", node.getProperty(PROP_LAYER));
 			assertEquals("SimplePointEncoder", node.getProperty(PROP_GEOMENCODER));
 			assertEquals("rtree", node.getProperty(PROP_INDEX_TYPE));
-			assertEquals("x:y", node.getProperty(PROP_GEOMENCODER_CONFIG));
+			assertEquals(Map.of("xProperty", "x", "yProperty", "y", "bboxProperty", "bbox"), encoderConfig(node));
 
 		});
 
@@ -645,7 +659,8 @@ public class SpatialProceduresTest extends AbstractApiTest {
 	@Test
 	public void create_a_WKT_layer() {
 		testCall(db, "CALL spatial.addWKTLayer('geom','wkt')",
-				r -> assertEquals("wkt", ((Node) r.get("node")).getProperty(PROP_GEOMENCODER_CONFIG)));
+				r -> assertEquals(Map.of("geomProperty", "wkt", "bboxProperty", "bbox"),
+						encoderConfig((Node) r.get("node"))));
 	}
 
 	@Test

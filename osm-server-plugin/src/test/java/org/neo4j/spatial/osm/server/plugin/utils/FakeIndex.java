@@ -22,7 +22,6 @@ package org.neo4j.spatial.osm.server.plugin.utils;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.BiFunction;
 import org.neo4j.gis.spatial.index.Envelope;
@@ -186,10 +185,6 @@ public class FakeIndex implements SpatialIndexReader {
 
 	@Override
 	public void addMonitor(TreeMonitor monitor) {
-	}
-
-	@Override
-	public void configure(Map<String, Object> config) {
 	}
 
 	@Override

@@ -21,7 +21,6 @@ package org.neo4j.gis.spatial.index;
 
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.graphdb.Label;
@@ -224,11 +223,6 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements SpatialIndexWr
 
 	public ExplicitIndexBackedMonitor getMonitor() {
 		return this.monitor;
-	}
-
-	@Override
-	public void configure(Map<String, Object> config) {
-
 	}
 
 }

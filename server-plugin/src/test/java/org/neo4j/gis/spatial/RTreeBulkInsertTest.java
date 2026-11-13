@@ -28,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
-import static org.neo4j.gis.spatial.rtree.RTreeIndex.DEFAULT_MAX_NODE_REFERENCES;
 
 import java.io.File;
 import java.io.IOException;
@@ -68,6 +67,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.rtree.RTreeImageExporter;
 import org.neo4j.gis.spatial.rtree.RTreeIndex;
+import org.neo4j.gis.spatial.rtree.RTreeIndex.Config;
 import org.neo4j.gis.spatial.rtree.RTreeMonitor;
 import org.neo4j.gis.spatial.rtree.RTreeRelationshipTypes;
 import org.neo4j.graphdb.Direction;
@@ -215,11 +215,11 @@ public class RTreeBulkInsertTest {
 		public EditableLayer setupLayer(Transaction tx) {
 			this.nodes = setup(name, "rtree", config.width);
 			this.layer = (EditableLayer) spatial.getLayer(tx, name, false);
-			layer.getIndex().configure(Map.of(
-					RTreeIndex.KEY_SPLIT, splitMode,
-					RTreeIndex.KEY_MAX_NODE_REFERENCES, maxNodeReferences,
-					RTreeIndex.KEY_SHOULD_MERGE_TREES, shouldMergeTrees)
-			);
+			Config configuration = new Config();
+			configuration.splitMode = splitMode;
+			configuration.maxNodeReferences = maxNodeReferences;
+			configuration.shouldMergeTrees = shouldMergeTrees;
+			((RTreeIndex) layer.getIndex()).setConfiguration(configuration);
 			return layer;
 		}
 
@@ -821,19 +821,19 @@ public class RTreeBulkInsertTest {
 
 		List<Integer> range = IntStream.rangeClosed(1, 300).boxed().collect(Collectors.toList());
 		//test over the transiton from two to three deep trees
-		range.addAll(IntStream.rangeClosed(4700, 5000).boxed().collect(Collectors.toList()));
+		range.addAll(IntStream.rangeClosed(4700, 5000).boxed().toList());
 
 		for (int i : range) {
 			System.out.println("Building a Tree with " + i + " nodes");
 			try (Transaction tx = db.beginTx()) {
 
 				RTreeIndex rtree = new LayerRTreeIndex();
-				rtree.init(tx, tx.createNode(), encoder, DEFAULT_MAX_NODE_REFERENCES, true);
+				rtree.init(tx, tx.createNode(), encoder, true);
 				List<Node> coords = new ArrayList<>(i);
 				for (int j = 0; j < i; j++) {
 					Node n = tx.createNode(Label.label("Coordinate"));
-					n.setProperty(SimplePointEncoder.DEFAULT_X, random.nextDouble() * 90.0);
-					n.setProperty(SimplePointEncoder.DEFAULT_Y, random.nextDouble() * 90.0);
+					n.setProperty(SimplePointEncoder.Config.DEFAULT_X, random.nextDouble() * 90.0);
+					n.setProperty(SimplePointEncoder.Config.DEFAULT_Y, random.nextDouble() * 90.0);
 					Geometry geometry = encoder.decodeGeometry(n);
 					// add BBOX to Node if it's missing
 					encoder.encodeGeometry(tx, geometry, n);
@@ -1284,7 +1284,7 @@ public class RTreeBulkInsertTest {
 			ArrayList<Object> fieldList = new ArrayList<>();
 			fieldList.addAll(Arrays.asList(fieldArray()));
 			fieldList.addAll(
-					knownKeys.stream().map(data::get).map(v -> (v == null) ? "" : v).collect(Collectors.toList()));
+					knownKeys.stream().map(data::get).map(v -> (v == null) ? "" : v).toList());
 			return fieldList;
 		}
 

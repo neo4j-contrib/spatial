@@ -16,6 +16,9 @@ a|
 ----
 (:SpatialLayer {
     geomencoder: "SimplePointEncoder",
+    geomencoder_config.bboxProperty: "bbox",
+    geomencoder_config.xProperty: "longitude",
+    geomencoder_config.yProperty: "latitude",
     index_type: "hilbert",
     layer: "my-simple-hilbert-layer",
     layer_type: "SimplePointLayer",

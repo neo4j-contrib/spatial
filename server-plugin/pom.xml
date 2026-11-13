@@ -89,6 +89,19 @@
 			<version>${neo4j.version}</version>
 			<scope>provided</scope>
 		</dependency>
+		<!-- shipped with Neo4j; keep versions in sync with ${neo4j.version} -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<version>2.22.3</version>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-annotations</artifactId>
+			<version>2.22</version>
+			<scope>provided</scope>
+		</dependency>
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
 			<artifactId>gson</artifactId>
