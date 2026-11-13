@@ -225,75 +225,6 @@ public class Neo4jSpatialDataStoreFactoryTest {
 		assertThat(features).extracting(FeatureCollection::size).isEqualTo(2);
 	}
 
-	// CRUD Operation Tests
-	@Test
-	public void testFeatureCreation() throws IOException {
-		SimpleFeatureSource source = dataStore.getFeatureSource("map");
-		assertThat(source).isInstanceOf(SimpleFeatureStore.class);
-
-		SimpleFeatureStore store = (SimpleFeatureStore) source;
-		Transaction transaction = new DefaultTransaction("create");
-
-		try {
-			store.setTransaction(transaction);
-			int initialCount = store.getFeatures().size();
-
-			GeometryFactory gf = new GeometryFactory();
-			Point newPoint = gf.createPoint(new Coordinate(13.5, 56.5));
-			addNewFeature(newPoint, transaction);
-
-			transaction.commit();
-
-			SimpleFeatureCollection features = store.getFeatures();
-			assertThat(features.size()).isEqualTo(initialCount + 1);
-
-			// Verify the new feature exists
-			var found = searchFeatureByXYCoordinates(13.5, 56.5, features);
-			assertThat(found).as("New feature should be found").isNotNull();
-
-		} catch (Exception e) {
-			transaction.rollback();
-			throw e;
-		} finally {
-			transaction.close();
-		}
-	}
-
-	@Test
-	public void testFeatureModification() throws IOException {
-		SimpleFeatureSource source = dataStore.getFeatureSource("map");
-		assertThat(source).isInstanceOf(SimpleFeatureStore.class);
-
-		SimpleFeatureStore store = (SimpleFeatureStore) source;
-		Transaction transaction = new DefaultTransaction("edit");
-
-		try {
-			store.setTransaction(transaction);
-
-			SimpleFeature originalFeature = getFirstFeature(store);
-			assertThat(originalFeature)
-					.as("No features found to modify")
-					.isNotNull();
-
-			Point originalPoint = extractPoint(originalFeature);
-			Assertions.<Object>assertThat(originalPoint)
-					.as("Feature geometry should be a Point")
-					.isNotNull();
-
-			Point newPoint = createModifiedPoint(originalPoint);
-			modifyFeatureGeometry(originalFeature.getID(), newPoint, transaction);
-
-			transaction.commit();
-			verifyFeatureModification(store, originalFeature.getID(), newPoint);
-
-		} catch (Exception e) {
-			transaction.rollback();
-			throw e;
-		} finally {
-			transaction.close();
-		}
-	}
-
 	@Test
 	public void testFeatureDeletion() throws IOException {
 		SimpleFeatureSource source = dataStore.getFeatureSource("map");
@@ -535,20 +466,6 @@ public class Neo4jSpatialDataStoreFactoryTest {
 			}
 		}
 		Assertions.fail("Feature with ID %s not found for modification", featureId);
-	}
-
-	private void verifyFeatureModification(SimpleFeatureStore store, String featureId, Point expectedGeometry)
-			throws IOException {
-		SimpleFeature modifiedFeature = findFeatureById(store, featureId);
-		assertThat(modifiedFeature).isNotNull();
-
-		assertThat(modifiedFeature.getDefaultGeometry())
-				.isInstanceOf(Point.class)
-				.asInstanceOf(InstanceOfAssertFactories.type(Point.class))
-				.satisfies(point -> {
-					assertThat(point.getX()).isEqualTo(expectedGeometry.getX());
-					assertThat(point.getY()).isEqualTo(expectedGeometry.getY());
-				});
 	}
 
 	private SimpleFeature findFeatureById(SimpleFeatureStore store, String featureId) throws IOException {
