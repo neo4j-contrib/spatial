@@ -20,12 +20,10 @@
 package org.neo4j.spatial.testutils;
 
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
-import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
@@ -46,16 +44,9 @@ import org.neo4j.harness.Neo4jBuilders;
 public abstract class Neo4jTestCase {
 
 	protected static final Map<Setting<?>, Object> NORMAL_CONFIG = new HashMap<>();
-	static final List<Thread> closeThreads = new ArrayList<>();
 
 	static {
-		//NORMAL_CONFIG.put( GraphDatabaseSettings.nodestore_mapped_memory_size.name(), "50M" );
-		//NORMAL_CONFIG.put( GraphDatabaseSettings.relationshipstore_mapped_memory_size.name(), "120M" );
-		//NORMAL_CONFIG.put( GraphDatabaseSettings.nodestore_propertystore_mapped_memory_size.name(), "150M" );
-		//NORMAL_CONFIG.put( GraphDatabaseSettings.strings_mapped_memory_size.name(), "200M" );
-		//NORMAL_CONFIG.put( GraphDatabaseSettings.arrays_mapped_memory_size.name(), "0M" );
 		NORMAL_CONFIG.put(GraphDatabaseSettings.pagecache_memory, 200000000L);
-		NORMAL_CONFIG.put(GraphDatabaseInternalSettings.trace_cursors, true);
 	}
 
 	protected static final Map<Setting<?>, Object> LARGE_CONFIG = new HashMap<>();
@@ -98,24 +89,17 @@ public abstract class Neo4jTestCase {
 			NORMAL_CONFIG.forEach((setting, o) -> neo4jBuilder.withConfig((Setting<Object>) setting, o));
 		}
 
+		// Bolt waits this quiet period (default 5s) per netty event loop group on shutdown: ~10s per test
+		neo4jBuilder.withConfig(GraphDatabaseInternalSettings.netty_server_shutdown_quiet_period, 0);
+
 		neo4j = neo4jBuilder.build();
 		driver = GraphDatabase.driver(neo4j.boltURI().toString(), AuthTokens.basic("neo4j", ""));
-	}
-
-	@AfterAll
-	static void afterAll() throws InterruptedException {
-		for (Thread closeThread : closeThreads) {
-			closeThread.join();
-		}
 	}
 
 	@AfterEach
 	public void tearDown() {
 		driver.close();
-		// defer cleanup so the test can run faster
-		Thread closeThread = new Thread(() -> neo4j.close());
-		closeThread.start();
-		closeThreads.add(closeThread);
+		neo4j.close();
 	}
 
 	static Path getDbPath() {
