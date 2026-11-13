@@ -40,7 +40,7 @@
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-cypher-dsl</artifactId>
-			<version>2025.2.0</version>
+			<version>2025.3.6</version>
 		</dependency>
 		<dependency>
 			<groupId>org.neo4j.driver</groupId>
@@ -76,7 +76,7 @@
 		<plugins>
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
-				<version>3.7.1</version>
+				<version>3.8.0</version>
 				<configuration>
 					<descriptors>
 						<descriptor>src/main/assembly/geotools-plugin.xml</descriptor>

@@ -4,11 +4,11 @@
 	<properties>
 		<neo4j.version>2025.10.1</neo4j.version>
 		<java.version>21</java.version>
-		<geotools.version>33.2</geotools.version>
+		<geotools.version>35.2</geotools.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<!-- run benchmarks with -Pbenchmark -->
 		<spatial.test.excludedGroups>benchmark</spatial.test.excludedGroups>
-		<maven-surefire-plugin.version>3.5.4</maven-surefire-plugin.version>
+		<maven-surefire-plugin.version>3.6.1</maven-surefire-plugin.version>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
 		<maven.compiler.target>${java.version}</maven.compiler.target>
 		<maven.compiler.release>${java.version}</maven.compiler.release>
@@ -42,6 +42,34 @@
 		<tag>HEAD</tag>
 	</scm>
 	<build>
+		<pluginManagement>
+			<plugins>
+				<plugin>
+					<artifactId>maven-clean-plugin</artifactId>
+					<version>3.5.0</version>
+				</plugin>
+				<plugin>
+					<artifactId>maven-compiler-plugin</artifactId>
+					<version>3.16.0</version>
+				</plugin>
+				<plugin>
+					<artifactId>maven-resources-plugin</artifactId>
+					<version>3.5.0</version>
+				</plugin>
+				<plugin>
+					<artifactId>maven-jar-plugin</artifactId>
+					<version>3.5.1</version>
+				</plugin>
+				<plugin>
+					<artifactId>maven-install-plugin</artifactId>
+					<version>3.2.0</version>
+				</plugin>
+				<plugin>
+					<artifactId>maven-dependency-plugin</artifactId>
+					<version>3.11.0</version>
+				</plugin>
+			</plugins>
+		</pluginManagement>
 		<plugins>
 			<plugin>
 				<artifactId>maven-surefire-plugin</artifactId>
@@ -124,17 +152,17 @@
 			<dependency>
 				<groupId>org.neo4j.driver</groupId>
 				<artifactId>neo4j-java-driver</artifactId>
-				<version>5.28.9</version>
+				<version>6.3.0</version>
 			</dependency>
 			<dependency>
 				<groupId>org.slf4j</groupId>
 				<artifactId>slf4j-api</artifactId>
-				<version>2.0.17</version>
+				<version>2.0.20</version>
 			</dependency>
 			<dependency>
 				<groupId>org.apache.commons</groupId>
 				<artifactId>commons-lang3</artifactId>
-				<version>3.18.0</version>
+				<version>3.22.0</version>
 			</dependency>
 			<dependency>
 				<groupId>jakarta.annotation</groupId>
@@ -149,12 +177,12 @@
 			<dependency>
 				<groupId>com.google.errorprone</groupId>
 				<artifactId>error_prone_annotations</artifactId>
-				<version>2.41.0</version>
+				<version>2.52.0</version>
 			</dependency>
 			<dependency>
 				<groupId>org.junit</groupId>
 				<artifactId>junit-bom</artifactId>
-				<version>5.14.1</version>
+				<version>6.1.3</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
@@ -189,7 +217,7 @@
 					<plugin>
 						<groupId>org.apache.maven.plugins</groupId>
 						<artifactId>maven-source-plugin</artifactId>
-						<version>3.3.1</version>
+						<version>3.4.0</version>
 						<executions>
 							<execution>
 								<id>attach-sources</id>
