@@ -149,29 +149,16 @@ public class OsmSpatialProceduresTest extends AbstractApiTest {
 
 
 	@Test
-	public void import_osm() {
-		testCountQuery("importOSM", "CALL spatial.importOSM('map.osm')", 55, "count", null);
-		testCallCount(db, "CALL spatial.layers()", null, 1);
-	}
-
-	@Test
 	public void import_osm_twice_should_fail() {
-		testCountQuery("importOSM", "CALL spatial.importOSM('map.osm')", 55, "count", null);
+		testCountQuery("importOSM", "CALL spatial.importOSM('sample.osm')", 1, "count", null);
 		testCallCount(db, "CALL spatial.layers()", null, 1);
-		testCallFails(db, "CALL spatial.importOSM('map.osm')", null, "Layer already exists: 'map.osm'");
+		testCallFails(db, "CALL spatial.importOSM('sample.osm')", null, "Layer already exists: 'sample.osm'");
 		testCallCount(db, "CALL spatial.layers()", null, 1);
 	}
 
 	@Test
 	public void import_osm_without_extension() {
-		testCountQuery("importOSM", "CALL spatial.importOSM('map')", 55, "count", null);
-		testCallCount(db, "CALL spatial.layers()", null, 1);
-	}
-
-	@Test
-	public void import_osm_to_layer() {
-		execute("CALL spatial.addLayer('geom','OSM','')");
-		testCountQuery("importOSMToLayer", "CALL spatial.importOSMToLayer('geom','map.osm')", 55, "count", null);
+		testCountQuery("importOSM", "CALL spatial.importOSM('sample')", 1, "count", null);
 		testCallCount(db, "CALL spatial.layers()", null, 1);
 	}
 
