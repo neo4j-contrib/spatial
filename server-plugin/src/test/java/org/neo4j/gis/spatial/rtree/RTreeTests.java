@@ -171,7 +171,9 @@ public class RTreeTests {
 		double[] max = new double[parent.getDimension()];
 		for (int i = 0; i < min.length; i++) {
 			double width = parent.getWidth(i) * scaleFactor;
-			min[i] = parent.getMin(i) + offsets[i] * width;
+			// only x and y are shifted; higher dimensions are just scaled
+			double offset = i < offsets.length ? offsets[i] : 0.0;
+			min[i] = parent.getMin(i) + offset * width;
 			max[i] = min[i] + width;
 		}
 		return new Envelope(min, max);
