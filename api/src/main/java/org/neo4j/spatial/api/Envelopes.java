@@ -58,7 +58,8 @@ public final class Envelopes {
 	}
 
 	/**
-	 * @return area of the combined bounding box not covered by either envelope (negative if they overlap)
+	 * Dead-space score for R-tree splits: combined bounding-box area minus both areas.
+	 * Overlap is subtracted twice, so this ranks pairs; it is neither the uncovered area nor an overlap test.
 	 */
 	public static double separation(Envelope a, Envelope b) {
 		return bbox(a, b).getArea() - a.getArea() - b.getArea();
