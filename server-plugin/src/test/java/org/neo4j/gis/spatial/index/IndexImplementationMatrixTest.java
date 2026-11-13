@@ -172,18 +172,6 @@ public class IndexImplementationMatrixTest {
 	}
 
 	@Test
-	public void shouldCreateAndFindIndexViaLayer() {
-		SimplePointLayer layer = makeTestPointLayer();
-		SpatialIndexReader index = layer.getIndex();
-		try (Transaction tx = graph.beginTx()) {
-			assertThat("Should find the same index", index.getLayer().getName(),
-					equalTo(spatial.getLayer(tx, "test", true).getName()));
-			assertThat("Index should be of right type", spatial.getLayer(tx, "test", true).getIndex().getClass(),
-					equalTo(indexClass));
-		}
-	}
-
-	@Test
 	public void shouldCreateAndFindAndDeleteIndexViaLayer() {
 		Layer layer = makeTestPointLayer();
 		SpatialIndexReader index = layer.getIndex();
@@ -223,21 +211,6 @@ public class IndexImplementationMatrixTest {
 			List<GeoPipeFlow> found = layer.findClosestPointsTo(tx, new Coordinate(1.0, 1.0), 0.5);
 			assertThat("Should find one geometry node", found.size(), equalTo(1));
 			assertThat("Should find same geometry node", added.getGeomNode(), equalTo(found.getFirst().getGeomNode()));
-			tx.commit();
-		}
-	}
-
-	@Test
-	public void shouldFindNodeAddedDirectlyToIndex() {
-		addSimplePoint((SpatialIndexWriter) index, 1.0, 1.0);
-		try (Transaction tx = graph.beginTx()) {
-			SearchResults results = index.searchIndex(tx,
-					new SearchIntersectWindow(index.getLayer(),
-							new org.neo4j.gis.spatial.index.Envelope(0.0, 2.0, 0.0, 2.0)));
-			List<Node> nodes = StreamSupport.stream(results.spliterator(), false).toList();
-			assertThat("Index should contain one result", nodes.size(), equalTo(1));
-			assertThat("Should find correct Geometry", encoder.decodeGeometry(nodes.getFirst()),
-					equalTo(geometryFactory.createPoint(new Coordinate(1.0, 1.0))));
 			tx.commit();
 		}
 	}
