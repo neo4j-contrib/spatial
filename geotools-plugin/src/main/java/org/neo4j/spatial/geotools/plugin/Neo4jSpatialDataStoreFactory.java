@@ -76,7 +76,7 @@ public class Neo4jSpatialDataStoreFactory implements DataAccessFactory {
 
 		Driver driver = GraphDatabase.driver(uri, AuthTokens.basic(username, password));
 
-		return new Neo4jSpatialDataStore(driver, database);
+		return new Neo4jSpatialDataStore(driver, database, true);
 	}
 
 	@Override

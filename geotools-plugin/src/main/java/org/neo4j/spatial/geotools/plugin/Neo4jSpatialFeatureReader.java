@@ -27,6 +27,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.stream.Stream;
 import org.geotools.api.data.Query;
 import org.geotools.api.data.SimpleFeatureReader;
 import org.geotools.api.data.Transaction;
@@ -61,6 +62,7 @@ public class Neo4jSpatialFeatureReader implements SimpleFeatureReader {
 	private final Transaction transaction;
 	private final Query query;
 
+	protected Stream<org.neo4j.driver.Record> records;
 	protected Iterator<org.neo4j.driver.Record> result;
 	protected Record currentRecord;
 	protected SimpleFeature currentFeature;
@@ -119,7 +121,8 @@ public class Neo4jSpatialFeatureReader implements SimpleFeatureReader {
 									.as(GEOMETRY)
 					)
 					.build();
-			this.result = dataStore.executeQuery(statement, transaction).iterator();
+			this.records = dataStore.executeQuery(statement, transaction);
+			this.result = records.iterator();
 
 		} catch (RuntimeException e) {
 			close();
@@ -168,6 +171,10 @@ public class Neo4jSpatialFeatureReader implements SimpleFeatureReader {
 	@Override
 	public void close() {
 		if (!closed) {
+			if (records != null) {
+				records.close();
+				records = null;
+			}
 			result = null;
 			closed = true;
 		}

@@ -23,6 +23,7 @@ package org.neo4j.spatial.geotools.plugin;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.logging.Logger;
+import java.util.stream.Stream;
 import org.geotools.api.data.FeatureWriter;
 import org.geotools.api.feature.GeometryAttribute;
 import org.geotools.api.feature.simple.SimpleFeature;
@@ -98,7 +99,7 @@ public class Neo4jSpatialFeatureWriter implements FeatureWriter<SimpleFeatureTyp
 
 			Parameter<String> layerName = Cypher.parameter("layerName", current.getType().getTypeName());
 			var exitingNode = Cypher.anyNode("exitingNode");
-			dataStore.executeQuery(Cypher
+			dataStore.query(Cypher
 							.match(exitingNode)
 							.where(Cypher.elementId(exitingNode).isEqualTo(Cypher.parameter("nodeToDelete", current.getID())))
 							.call("spatial.removeNode")
@@ -106,7 +107,7 @@ public class Neo4jSpatialFeatureWriter implements FeatureWriter<SimpleFeatureTyp
 							.yield(Cypher.anyNode("nodeId"))
 							.with(exitingNode)
 							.delete(exitingNode).build(),
-					featureStore.getTransaction());
+					featureStore.getTransaction(), Stream::count);
 		}
 
 		live = null;
@@ -177,7 +178,7 @@ public class Neo4jSpatialFeatureWriter implements FeatureWriter<SimpleFeatureTyp
 				.mutate(node, Cypher.parameter("attributes", extraAttributes));
 
 		var statement = result.returning(node).build();
-		dataStore.executeQuery(statement, featureStore.getTransaction());
+		dataStore.query(statement, featureStore.getTransaction(), Stream::count);
 	}
 
 	@Override

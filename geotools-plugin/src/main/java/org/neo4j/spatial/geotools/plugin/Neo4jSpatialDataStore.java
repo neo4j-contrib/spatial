@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Stream;
 import org.geotools.api.data.Query;
 import org.geotools.api.feature.simple.SimpleFeatureType;
@@ -59,13 +60,30 @@ public class Neo4jSpatialDataStore extends ContentDataStore {
 	);
 
 	private final Driver driver;
+	private final boolean ownsDriver;
 	private final SessionConfig sessionConfig;
 
 	private final Map<String, SimpleFeatureType> simpleFeatureTypeCache = Collections.synchronizedMap(new HashMap<>());
 
 	public Neo4jSpatialDataStore(Driver driver, String database) {
+		this(driver, database, false);
+	}
+
+	/**
+	 * @param ownsDriver close the driver on {@link #dispose()}
+	 */
+	Neo4jSpatialDataStore(Driver driver, String database, boolean ownsDriver) {
 		this.driver = driver;
+		this.ownsDriver = ownsDriver;
 		this.sessionConfig = SessionConfig.forDatabase(database);
+	}
+
+	@Override
+	public void dispose() {
+		super.dispose();
+		if (ownsDriver) {
+			driver.close();
+		}
 	}
 
 	public Session getSession(org.geotools.api.data.Transaction t) {
@@ -87,6 +105,19 @@ public class Neo4jSpatialDataStore extends ContentDataStore {
 		return executeQuery(cypherRenderer.render(statement), statement.getCatalog().getParameters(), tx);
 	}
 
+	/**
+	 * Runs the statement and closes the result (and an auto-commit session) once {@code consumer} returns.
+	 */
+	public <T> T query(Statement statement, org.geotools.api.data.Transaction tx,
+			Function<Stream<Record>, T> consumer) {
+		try (var records = executeQuery(statement, tx)) {
+			return consumer.apply(records);
+		}
+	}
+
+	/**
+	 * The caller must close the returned stream, otherwise an auto-commit session leaks.
+	 */
 	public Stream<Record> executeQuery(String cypher, Map<String, Object> parameters,
 			org.geotools.api.data.Transaction tx) {
 		Session session = getSession(tx);
@@ -111,12 +142,9 @@ public class Neo4jSpatialDataStore extends ContentDataStore {
 	@Override
 	protected List<Name> createTypeNames() {
 		Statement statement = Cypher.call("spatial.layers").build();
-		var result = executeQuery(statement, org.geotools.api.data.Transaction.AUTO_COMMIT);
-		return result.<Name>map(record -> {
-					String layerName = record.get("name").asString();
-					return new NameImpl(layerName);
-				})
-				.toList();
+		return query(statement, org.geotools.api.data.Transaction.AUTO_COMMIT, records -> records
+				.<Name>map(record -> new NameImpl(record.get("name").asString()))
+				.toList());
 	}
 
 	/**
@@ -130,8 +158,8 @@ public class Neo4jSpatialDataStore extends ContentDataStore {
 					.withArgs(Cypher.parameter("layerName", layerName))
 					.build();
 
-			var result = executeQuery(statement, org.geotools.api.data.Transaction.AUTO_COMMIT).findFirst()
-					.orElseThrow();
+			var result = query(statement, org.geotools.api.data.Transaction.AUTO_COMMIT,
+					records -> records.findFirst().orElseThrow());
 
 			String geometryType = result.get("geometryType").asString();
 			Class<? extends Geometry> geometryTypeClass;
