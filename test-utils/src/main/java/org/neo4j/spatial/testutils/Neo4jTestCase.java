@@ -20,9 +20,7 @@
 package org.neo4j.spatial.testutils;
 
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,7 +30,6 @@ import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.graphdb.config.Setting;
 import org.neo4j.harness.Neo4j;
 import org.neo4j.harness.Neo4jBuilder;
 
@@ -41,51 +38,22 @@ import org.neo4j.harness.Neo4jBuilder;
  */
 public abstract class Neo4jTestCase {
 
-	protected static final Map<Setting<?>, Object> NORMAL_CONFIG = new HashMap<>();
-
-	static {
-		NORMAL_CONFIG.put(GraphDatabaseSettings.pagecache_memory, 200000000L);
-	}
-
-	protected static final Map<Setting<?>, Object> LARGE_CONFIG = new HashMap<>();
-
-	static {
-		//LARGE_CONFIG.put( GraphDatabaseSettings.nodestore_mapped_memory_size.name(), "100M" );
-		//LARGE_CONFIG.put( GraphDatabaseSettings.relationshipstore_mapped_memory_size.name(), "300M" );
-		//LARGE_CONFIG.put( GraphDatabaseSettings.nodestore_propertystore_mapped_memory_size.name(), "400M" );
-		//LARGE_CONFIG.put( GraphDatabaseSettings.strings_mapped_memory_size.name(), "800M" );
-		//LARGE_CONFIG.put( GraphDatabaseSettings.arrays_mapped_memory_size.name(), "10M" );
-		LARGE_CONFIG.put(GraphDatabaseSettings.pagecache_memory, 100000000L);
-	}
-
 	private Neo4j neo4j;
 	protected Driver driver;
 
 	protected abstract List<Class<?>> loadProceduresAndFunctions();
 
-	/**
-	 * Configurable options for text cases, with or without deleting the previous database, and with
-	 * or without using the BatchInserter for higher creation speeds. Note that tests that need to
-	 * delete nodes or use transactions should not use the BatchInserter.
-	 */
-	@SuppressWarnings("unchecked")
 	@BeforeEach
 	void setUpDatabase() {
 		Neo4jBuilder neo4jBuilder = TestNeo4jBuilders
 				.newInProcessBuilder(getDbPath())
-				.withConfig(GraphDatabaseSettings.procedure_unrestricted, List.of("spatial.*"));
+				.withConfig(GraphDatabaseSettings.procedure_unrestricted, List.of("spatial.*"))
+				.withConfig(GraphDatabaseSettings.pagecache_memory, 200000000L);
 
 		loadProceduresAndFunctions().forEach(aClass -> {
 			neo4jBuilder.withProcedure(aClass);
 			neo4jBuilder.withFunction(aClass);
 		});
-
-		String largeMode = System.getProperty("spatial.test.large");
-		if (largeMode != null && largeMode.equalsIgnoreCase("true")) {
-			LARGE_CONFIG.forEach((setting, o) -> neo4jBuilder.withConfig((Setting<Object>) setting, o));
-		} else {
-			NORMAL_CONFIG.forEach((setting, o) -> neo4jBuilder.withConfig((Setting<Object>) setting, o));
-		}
 
 		neo4j = neo4jBuilder.build();
 		driver = GraphDatabase.driver(neo4j.boltURI().toString(), AuthTokens.basic("neo4j", ""));

@@ -266,13 +266,8 @@ public class TestOSMImportBase extends Neo4jTestCase {
 	}
 
 	protected void runImport(String osm, boolean includePoints) throws Exception {
-		// TODO: Consider merits of using dependency data in target/osm,
-		// downloaded by maven, as done in TestSpatial, versus the test data
-		// committed to source code as done here
 		String osmPath = checkOSMFile(osm);
-		if (osmPath == null) {
-			return;
-		}
+		Assertions.assertNotNull(osmPath, "Missing OSM test file: " + osm);
 		printDatabaseStats();
 		loadTestOsmData(osm, osmPath, includePoints);
 		checkOSMLayer(driver, graphDb(), osm);

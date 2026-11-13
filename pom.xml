@@ -5,7 +5,6 @@
 		<neo4j.version>2025.10.1</neo4j.version>
 		<java.version>21</java.version>
 		<geotools.version>33.2</geotools.version>
-		<spatial.test.shp.version>20100819</spatial.test.shp.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<maven-surefire-plugin.version>3.5.4</maven-surefire-plugin.version>
 		<maven.compiler.source>${java.version}</maven.compiler.source>
@@ -197,54 +196,6 @@
 					</plugin>
 				</plugins>
 			</build>
-		</profile>
-		<profile>
-			<id>test-default</id>
-			<activation>
-				<property>
-					<name>env</name>
-					<value>default</value>
-				</property>
-			</activation>
-			<properties>
-				<spatial.test.mode>default</spatial.test.mode>
-			</properties>
-		</profile>
-		<profile>
-			<id>test-short</id>
-			<activation>
-				<property>
-					<name>env</name>
-					<value>short</value>
-				</property>
-			</activation>
-			<properties>
-				<spatial.test.mode>short</spatial.test.mode>
-			</properties>
-		</profile>
-		<profile>
-			<id>test-dev</id>
-			<activation>
-				<property>
-					<name>env</name>
-					<value>dev</value>
-				</property>
-			</activation>
-			<properties>
-				<spatial.test.mode>dev</spatial.test.mode>
-			</properties>
-		</profile>
-		<profile>
-			<id>test-long</id>
-			<activation>
-				<property>
-					<name>env</name>
-					<value>long</value>
-				</property>
-			</activation>
-			<properties>
-				<spatial.test.mode>long</spatial.test.mode>
-			</properties>
 		</profile>
 	</profiles>
 	<reporting>

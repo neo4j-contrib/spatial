@@ -61,13 +61,8 @@ import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.feature.Neo4jServerFeatureBuilder;
-import org.neo4j.gis.spatial.index.ExplicitIndexBackedMonitor;
-import org.neo4j.gis.spatial.index.ExplicitIndexBackedPointIndex;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
-import org.neo4j.gis.spatial.index.LayerGeohashPointIndex;
-import org.neo4j.gis.spatial.index.LayerHilbertPointIndex;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
-import org.neo4j.gis.spatial.index.LayerZOrderPointIndex;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.rtree.RTreeImageExporter;
@@ -97,8 +92,6 @@ public class RTreeBulkInsertTest {
 	private GraphDatabaseService db;
 	private final File storeDir = new File("target/store").getAbsoluteFile();
 
-	// While the current lucene index implmentation is so slow (16n/s) we disable all benchmarks for lucene backed indexes
-	private static final boolean enableLucene = false;
 
 	@BeforeEach
 	public void before() throws IOException {
@@ -108,73 +101,6 @@ public class RTreeBulkInsertTest {
 	@AfterEach
 	public void after() {
 		doCleanShutdown();
-	}
-
-	@Disabled
-	@Test
-	public void shouldDeleteRecursiveTree() {
-		int depth = 5;
-		int width = 2;
-		//Create nodes
-		ArrayList<ArrayList<Node>> nodes = new ArrayList<>();
-		try (Transaction tx = db.beginTx()) {
-			nodes.add(new ArrayList<>());
-			nodes.get(0).add(tx.createNode());
-			nodes.get(0).get(0).setProperty("name", "0-0");
-
-			for (int i = 1; i < depth; i++) {
-				ArrayList<Node> children = new ArrayList<>();
-				nodes.add(children);
-				for (Node parent : nodes.get(i - 1)) {
-					for (int j = 0; j < width; j++) {
-						Node node = tx.createNode();
-						node.setProperty("name", i + "-" + j);
-						parent.createRelationshipTo(node, RTreeRelationshipTypes.RTREE_CHILD);
-						children.add(node);
-					}
-				}
-			}
-			debugRest();
-			//Disconact leafs
-			ArrayList<Node> leaves = nodes.get(nodes.size() - 1);
-			for (Node leaf : leaves) {
-				leaf.getSingleRelationship(RTreeRelationshipTypes
-						.RTREE_CHILD, Direction.INCOMING).delete();
-
-			}
-
-			deleteRecursivelySubtree(nodes.get(0).get(0), null);
-			System.out.println("Leaf");
-			nodes.get(nodes.size() - 1).forEach(System.out::println);
-			tx.commit();
-		}
-		debugRest();
-	}
-
-	private void debugRest() {
-		try (Transaction tx = db.beginTx()) {
-			Result result = tx.execute("MATCH (n) OPTIONAL MATCH (n)-[r]-() RETURN elementId(n), n.name, count(r)");
-			while (result.hasNext()) {
-				System.out.println(result.next());
-			}
-			tx.commit();
-		}
-	}
-
-	private static void deleteRecursivelySubtree(Node node, Relationship incoming) {
-		for (Relationship relationship : node.getRelationships(Direction.OUTGOING,
-				RTreeRelationshipTypes.RTREE_CHILD)) {
-			deleteRecursivelySubtree(relationship.getEndNode(), relationship);
-		}
-		if (incoming != null) {
-			incoming.delete();
-		}
-//        Iterator<Relationship> itr = node.getRelationships().iterator();
-//        while(itr.hasNext()){
-//            itr.next().delete();
-//        }
-		System.out.println(node.getElementId());
-		node.delete();
 	}
 
 	SpatialDatabaseService spatial() {
@@ -191,46 +117,6 @@ public class RTreeBulkInsertTest {
 			tx.commit();
 			return layer;
 		}
-	}
-
-	@Disabled
-	@Test
-	public void shouldInsertSimpleRTree() {
-		int width = 20;
-		EditableLayer layer = getOrCreateSimplePointLayer("Coordinates", "rtree", "lon", "lat");
-		List<String> nodes = new ArrayList<>();
-		try (Transaction tx = db.beginTx()) {
-			for (int i = 0; i < width; i++) {
-				Node node = tx.createNode();
-				node.addLabel(Label.label("Coordinates"));
-				node.setProperty("lat", i);
-				node.setProperty("lon", 0);
-				nodes.add(node.getElementId());
-				node.toString();
-			}
-			tx.commit();
-		}
-//        java.util.Collections.shuffle( nodes,new Random( 1 ) );
-		TreeMonitor monitor = new RTreeMonitor();
-		layer.getIndex().addMonitor(monitor);
-		long start = System.currentTimeMillis();
-
-		List<String> list1 = nodes.subList(0, nodes.size() / 2 + 8);
-		List<String> list2 = nodes.subList(list1.size(), nodes.size());
-		System.out.println(list1);
-		System.out.println(list2);
-		try (Transaction tx = db.beginTx()) {
-			layer.addAll(tx, idsToNodes(tx, list1));
-			tx.commit();
-		}
-		//TODO add this part to the test
-//        try (Transaction tx = db.beginTx()) {
-//            layer.addAll(list2);
-//            tx.commit();
-//        }
-
-		System.out.println("Took " + (System.currentTimeMillis() - start) + "ms to add " + (width * width)
-				+ " nodes to RTree in bulk");
 	}
 
 	private static List<Node> idsToNodes(Transaction tx, List<String> nodeIds) {
@@ -294,153 +180,6 @@ public class RTreeBulkInsertTest {
 		IndexTestConfig getConfig();
 
 		void verifyStructure();
-	}
-
-	private class GeohashIndexMaker implements IndexMaker {
-
-		private final String name;
-		private final String insertMode;
-		private final IndexTestConfig config;
-		private List<String> nodes;
-		private EditableLayer layer;
-
-		private GeohashIndexMaker(String name, String insertMode, IndexTestConfig config) {
-			this.name = name;
-			this.insertMode = insertMode;
-			this.config = config;
-		}
-
-		@Override
-		public EditableLayer setupLayer(Transaction tx) {
-			this.nodes = setup(name, "geohash", config.width);
-			this.layer = (EditableLayer) spatial().getLayer(tx, "Coordinates", false);
-			return layer;
-		}
-
-		@Override
-		public List<String> nodes() {
-			return nodes;
-		}
-
-		@Override
-		public TestStats initStats(int blockSize) {
-			return new TestStats(config, insertMode, "Geohash", blockSize, -1);
-		}
-
-		@Override
-		public TimedLogger initLogger() {
-			return new TimedLogger(
-					"Inserting " + config.totalCount + " nodes into Geohash using " + insertMode + " insert",
-					config.totalCount);
-		}
-
-		@Override
-		public IndexTestConfig getConfig() {
-			return config;
-		}
-
-		@Override
-		public void verifyStructure() {
-			verifyGeohashIndex(layer);
-		}
-	}
-
-	private class ZOrderIndexMaker implements IndexMaker {
-
-		private final String name;
-		private final String insertMode;
-		private final IndexTestConfig config;
-		private List<String> nodes;
-		private EditableLayer layer;
-
-		private ZOrderIndexMaker(String name, String insertMode, IndexTestConfig config) {
-			this.name = name;
-			this.insertMode = insertMode;
-			this.config = config;
-		}
-
-		@Override
-		public EditableLayer setupLayer(Transaction tx) {
-			this.nodes = setup(name, "zorder", config.width);
-			this.layer = (EditableLayer) spatial().getLayer(tx, "Coordinates", false);
-			return layer;
-		}
-
-		@Override
-		public List<String> nodes() {
-			return nodes;
-		}
-
-		@Override
-		public TestStats initStats(int blockSize) {
-			return new TestStats(config, insertMode, "Z-Order", blockSize, -1);
-		}
-
-		@Override
-		public TimedLogger initLogger() {
-			return new TimedLogger(
-					"Inserting " + config.totalCount + " nodes into Z-Order using " + insertMode + " insert",
-					config.totalCount);
-		}
-
-		@Override
-		public IndexTestConfig getConfig() {
-			return config;
-		}
-
-		@Override
-		public void verifyStructure() {
-			verifyZOrderIndex(layer);
-		}
-	}
-
-	private class HilbertIndexMaker implements IndexMaker {
-
-		private final String name;
-		private final String insertMode;
-		private final IndexTestConfig config;
-		private List<String> nodes;
-		private EditableLayer layer;
-
-		private HilbertIndexMaker(String name, String insertMode, IndexTestConfig config) {
-			this.name = name;
-			this.insertMode = insertMode;
-			this.config = config;
-		}
-
-		@Override
-		public EditableLayer setupLayer(Transaction tx) {
-			this.nodes = setup(name, "hilbert", config.width);
-			this.layer = (EditableLayer) spatial().getLayer(tx, "Coordinates", false);
-			return layer;
-		}
-
-		@Override
-		public List<String> nodes() {
-			return nodes;
-		}
-
-		@Override
-		public TestStats initStats(int blockSize) {
-			return new TestStats(config, insertMode, "Hilbert", blockSize, -1);
-		}
-
-		@Override
-		public TimedLogger initLogger() {
-			return new TimedLogger(
-					"Inserting " + config.totalCount + " nodes into Hilbert using " + insertMode + " insert",
-					config.totalCount);
-		}
-
-		@Override
-		public IndexTestConfig getConfig() {
-			return config;
-		}
-
-		@Override
-		public void verifyStructure() {
-			verifyHilbertIndex(layer);
-		}
 	}
 
 	private class RTreeIndexMaker implements IndexMaker {
@@ -518,38 +257,6 @@ public class RTreeBulkInsertTest {
 	 */
 
 	@Test
-	public void shouldInsertManyNodesIndividuallyWithGeohash_very_small() {
-		insertManyNodesIndividually(new GeohashIndexMaker("Coordinates", "Single", testConfigs.get("very_small")),
-				5000);
-	}
-
-	@Test
-	public void shouldInsertManyNodesInBulkWithGeohash_very_small() {
-		insertManyNodesInBulk(new GeohashIndexMaker("Coordinates", "Bulk", testConfigs.get("very_small")), 5000);
-	}
-
-	@Test
-	public void shouldInsertManyNodesIndividuallyWithZOrder_very_small() {
-		insertManyNodesIndividually(new ZOrderIndexMaker("Coordinates", "Single", testConfigs.get("very_small")), 5000);
-	}
-
-	@Test
-	public void shouldInsertManyNodesInBulkWithZOrder_very_small() {
-		insertManyNodesInBulk(new ZOrderIndexMaker("Coordinates", "Bulk", testConfigs.get("very_small")), 5000);
-	}
-
-	@Test
-	public void shouldInsertManyNodesIndividuallyWithHilbert_very_small() {
-		insertManyNodesIndividually(new HilbertIndexMaker("Coordinates", "Single", testConfigs.get("very_small")),
-				5000);
-	}
-
-	@Test
-	public void shouldInsertManyNodesInBulkWithHilbert_very_small() {
-		insertManyNodesInBulk(new HilbertIndexMaker("Coordinates", "Bulk", testConfigs.get("very_small")), 5000);
-	}
-
-	@Test
 	public void shouldInsertManyNodesIndividuallyWithQuadraticSplit_very_small_10() {
 		insertManyNodesIndividually(RTreeIndex.QUADRATIC_SPLIT, 5000, 10, testConfigs.get("very_small"));
 	}
@@ -572,36 +279,6 @@ public class RTreeBulkInsertTest {
 	/*
 	 * Small model 250*250 nodes
 	 */
-
-	@Test
-	public void shouldInsertManyNodesIndividuallyWithGeohash_small() {
-		insertManyNodesIndividually(new GeohashIndexMaker("Coordinates", "Single", testConfigs.get("small")), 5000);
-	}
-
-	@Test
-	public void shouldInsertManyNodesInBulkWithGeohash_small() {
-		insertManyNodesInBulk(new GeohashIndexMaker("Coordinates", "Bulk", testConfigs.get("small")), 5000);
-	}
-
-	@Test
-	public void shouldInsertManyNodesIndividuallyWithZOrder_small() {
-		insertManyNodesIndividually(new ZOrderIndexMaker("Coordinates", "Single", testConfigs.get("small")), 5000);
-	}
-
-	@Test
-	public void shouldInsertManyNodesInBulkWithZOrder_small() {
-		insertManyNodesInBulk(new ZOrderIndexMaker("Coordinates", "Bulk", testConfigs.get("small")), 5000);
-	}
-
-	@Test
-	public void shouldInsertManyNodesIndividuallyWithHilbert_small() {
-		insertManyNodesIndividually(new HilbertIndexMaker("Coordinates", "Single", testConfigs.get("small")), 5000);
-	}
-
-	@Test
-	public void shouldInsertManyNodesInBulkWithHilbert_small() {
-		insertManyNodesInBulk(new HilbertIndexMaker("Coordinates", "Bulk", testConfigs.get("small")), 5000);
-	}
 
 	@Disabled // takes too long, change to @Test when benchmarking
 	@Test
@@ -654,36 +331,6 @@ public class RTreeBulkInsertTest {
 	/*
 	 * Medium model 500*500 nodes (deep tree - factor 10)
 	 */
-
-	@Test
-	public void shouldInsertManyNodesIndividuallyWithGeohash_medium() {
-		insertManyNodesIndividually(new GeohashIndexMaker("Coordinates", "Single", testConfigs.get("medium")), 5000);
-	}
-
-	@Test
-	public void shouldInsertManyNodesInBulkWithGeohash_medium() {
-		insertManyNodesInBulk(new GeohashIndexMaker("Coordinates", "Bulk", testConfigs.get("medium")), 5000);
-	}
-
-	@Test
-	public void shouldInsertManyNodesIndividuallyWithZOrder_medium() {
-		insertManyNodesIndividually(new ZOrderIndexMaker("Coordinates", "Single", testConfigs.get("medium")), 5000);
-	}
-
-	@Test
-	public void shouldInsertManyNodesInBulkWithZOrder_medium() {
-		insertManyNodesInBulk(new ZOrderIndexMaker("Coordinates", "Bulk", testConfigs.get("medium")), 5000);
-	}
-
-	@Test
-	public void shouldInsertManyNodesIndividuallyWithHilbert_medium() {
-		insertManyNodesIndividually(new HilbertIndexMaker("Coordinates", "Single", testConfigs.get("medium")), 5000);
-	}
-
-	@Test
-	public void shouldInsertManyNodesInBulkWithHilbert_medium() {
-		insertManyNodesInBulk(new HilbertIndexMaker("Coordinates", "Bulk", testConfigs.get("medium")), 5000);
-	}
 
 	@Disabled
 	@Test
@@ -761,36 +408,6 @@ public class RTreeBulkInsertTest {
 	/*
 	 * Large model 750*750 nodes (only test bulk insert, 100 and 10, green and quadratic)
 	 */
-
-	@Test
-	public void shouldInsertManyNodesIndividuallyWithGeohash_large() {
-		insertManyNodesIndividually(new GeohashIndexMaker("Coordinates", "Single", testConfigs.get("large")), 5000);
-	}
-
-	@Test
-	public void shouldInsertManyNodesInBulkWithGeohash_large() {
-		insertManyNodesInBulk(new GeohashIndexMaker("Coordinates", "Bulk", testConfigs.get("large")), 5000);
-	}
-
-	@Test
-	public void shouldInsertManyNodesIndividuallyWithZOrder_large() {
-		insertManyNodesIndividually(new ZOrderIndexMaker("Coordinates", "Single", testConfigs.get("large")), 5000);
-	}
-
-	@Test
-	public void shouldInsertManyNodesInBulkWithZOrder_large() {
-		insertManyNodesInBulk(new ZOrderIndexMaker("Coordinates", "Bulk", testConfigs.get("large")), 5000);
-	}
-
-	@Test
-	public void shouldInsertManyNodesIndividuallyWithHilbert_large() {
-		insertManyNodesIndividually(new HilbertIndexMaker("Coordinates", "Single", testConfigs.get("large")), 5000);
-	}
-
-	@Test
-	public void shouldInsertManyNodesInBulkWithHilbert_large() {
-		insertManyNodesInBulk(new HilbertIndexMaker("Coordinates", "Bulk", testConfigs.get("large")), 5000);
-	}
 
 	@Disabled // takes too long, change to @Test when benchmarking
 	@Test
@@ -902,7 +519,7 @@ public class RTreeBulkInsertTest {
 	}
 
 	private void insertManyNodesIndividually(IndexMaker indexMaker, int blockSize) {
-		if (enableLucene || indexMaker instanceof RTreeIndexMaker) {
+		if (indexMaker instanceof RTreeIndexMaker) {
 			TestStats stats = indexMaker.initStats(blockSize);
 			EditableLayer layer = setupLayer(indexMaker);
 			List<String> nodes = indexMaker.nodes();
@@ -1011,7 +628,7 @@ public class RTreeBulkInsertTest {
 	}
 
 	private void insertManyNodesInBulk(IndexMaker indexMaker, int blockSize) {
-		if (enableLucene || indexMaker instanceof RTreeIndexMaker) {
+		if (indexMaker instanceof RTreeIndexMaker) {
 			TestStats stats = indexMaker.initStats(blockSize);
 			EditableLayer layer = setupLayer(indexMaker);
 			List<String> nodes = indexMaker.nodes();
@@ -1394,8 +1011,6 @@ public class RTreeBulkInsertTest {
 		List<Node> nodes = queryIndex(layer, stats);
 		if (layer.getIndex() instanceof RTreeIndex) {
 			getRTreeIndexStats((RTreeIndex) layer.getIndex(), monitor, stats, true, nodes.size());
-		} else if (layer.getIndex() instanceof ExplicitIndexBackedPointIndex) {
-			getExplicitIndexBackedIndexStats((ExplicitIndexBackedPointIndex<?>) layer.getIndex(), stats);
 		}
 		return nodes;
 	}
@@ -1469,23 +1084,6 @@ public class RTreeBulkInsertTest {
 		}
 	}
 
-	private static void getExplicitIndexBackedIndexStats(ExplicitIndexBackedPointIndex<?> index, TestStats stats) {
-		IndexTestConfig config = stats.config;
-		ExplicitIndexBackedMonitor monitor = index.getMonitor();
-		long touched = monitor.getHits() + monitor.getMisses();
-		long matched = monitor.getHits();
-		stats.put("Found", matched);
-		stats.put("Touched", touched);
-		System.out.println(
-				"Matched " + matched + "/" + touched + " touched nodes (" + (100.0 * matched / touched) + "%)");
-		// Note that due to some crazy GIS spec points on polygon edges are considered to be contained,
-		// unless the polygon is a rectangle, in which case they are not contained, leading to
-		// different numbers for expectedGeometries and expectedCount.
-		// See https://github.com/locationtech/jts/blob/master/modules/core/src/main/java/org/locationtech/jts/operation/predicate/RectangleContains.java#L70
-		assertEquals(config.expectedCount, matched,
-				"Expected " + config.expectedCount + " nodes to be matched");
-	}
-
 	private class TimedLogger {
 
 		long count;
@@ -1521,21 +1119,6 @@ public class RTreeBulkInsertTest {
 				previous = current;
 			}
 		}
-	}
-
-	private static void verifyGeohashIndex(Layer layer) {
-		SpatialIndexReader index = layer.getIndex();
-		assertInstanceOf(LayerGeohashPointIndex.class, index, "Index should be a geohash index");
-	}
-
-	private static void verifyHilbertIndex(Layer layer) {
-		SpatialIndexReader index = layer.getIndex();
-		assertInstanceOf(LayerHilbertPointIndex.class, index, "Index should be a hilbert index");
-	}
-
-	private static void verifyZOrderIndex(Layer layer) {
-		SpatialIndexReader index = layer.getIndex();
-		assertInstanceOf(LayerZOrderPointIndex.class, index, "Index should be a Z-Order index");
 	}
 
 	private void verifyTreeStructure(Layer layer, String splitMode, TestStats stats) {
