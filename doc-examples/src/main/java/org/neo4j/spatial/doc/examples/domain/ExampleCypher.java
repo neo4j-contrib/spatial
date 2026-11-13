@@ -22,6 +22,7 @@ package org.neo4j.spatial.doc.examples.domain;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeSet;
@@ -139,7 +140,12 @@ public class ExampleCypher {
 		}
 		StringBuilder writer = new StringBuilder();
 		writer.append(".Result\n\n");
-		var columns = new TreeSet<>(result.getFirst().keySet());
+		List<String> priorityColumns = List.of("id", "name", "type", "defaultValue", "description");
+		var columns = new TreeSet<>(Comparator.<String>comparingInt(column -> {
+			int index = priorityColumns.indexOf(column);
+			return index == -1 ? priorityColumns.size() : index;
+		}).thenComparing(Comparator.naturalOrder()));
+		columns.addAll(result.getFirst().keySet());
 
 		writer.append("[opts=\"header\",cols=\"")
 				.append(columns.size())
@@ -154,6 +160,10 @@ public class ExampleCypher {
 				if (value instanceof Value || value instanceof String) {
 					writer.append("|").append(value);
 				} else {
+					// AsciiDoc only recognises the `a|` cell specifier at the start of a line
+					if (!Character.isWhitespace(writer.charAt(writer.length() - 1))) {
+						writer.append("\n");
+					}
 					try {
 						writer.append("a|\n[source]\n----\n")
 								.append(Mapper.MAPPER.writeValueAsString(value))

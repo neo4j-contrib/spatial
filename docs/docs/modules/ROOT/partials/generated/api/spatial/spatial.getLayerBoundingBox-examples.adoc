@@ -56,7 +56,8 @@ CALL spatial.getLayerBoundingBox('bbox_layer') YIELD minX, minY, maxX, maxY, crs
 [opts="header",cols="5"]
 |===
 |crs|maxX|maxY|minX|minY
-|WGS84(DD)a|
+|WGS84(DD)
+a|
 [source]
 ----
 16.0

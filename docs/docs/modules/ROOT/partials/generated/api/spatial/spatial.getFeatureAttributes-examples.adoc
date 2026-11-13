@@ -78,9 +78,9 @@ CALL spatial.getFeatureAttributes('geom')
 
 [opts="header",cols="2"]
 |===
-|className|name
-|java.lang.String|color
-|java.lang.String|name
-|java.lang.String|type
+|name|className
+|color|java.lang.String
+|name|java.lang.String
+|type|java.lang.String
 |===
 
