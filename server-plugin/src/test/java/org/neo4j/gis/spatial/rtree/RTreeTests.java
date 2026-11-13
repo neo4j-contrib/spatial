@@ -19,6 +19,9 @@
  */
 package org.neo4j.gis.spatial.rtree;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
 
 import java.io.File;
@@ -26,6 +29,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.logging.Logger;
 import org.geotools.api.feature.simple.SimpleFeatureType;
 import org.junit.jupiter.api.AfterEach;
@@ -37,7 +42,10 @@ import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.gis.spatial.Constants;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.feature.Neo4jServerFeatureBuilder;
+import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.spatial.api.Envelope;
 import org.neo4j.spatial.api.monitoring.TreeMonitor.NodeWithEnvelope;
@@ -105,7 +113,15 @@ public class RTreeTests {
 			rtree.mergeTwoTrees(tx, rootLeft.refresh(tx), rootRight.refresh(tx));
 			tx.commit();
 		}
-		LOGGER.info("Merged two trees");
+		try (Transaction tx = db.beginTx()) {
+			Node root = tx.getNodeByElementId(rootLeft.node.getElementId());
+			Envelope merged = RTreeIndex.getIndexNodeEnvelope(root);
+			assertEquals(0.01, merged.getMin(0), 1e-9);
+			assertEquals(0.99, merged.getMax(0), 1e-9);
+			Set<Integer> leafDepths = new HashSet<>();
+			assertParentsCoverChildren(root, 0, leafDepths);
+			assertEquals(Set.of(4), leafDepths, "Merged tree should stay balanced");
+		}
 		if (exportImages) {
 			try (Transaction tx = db.beginTx()) {
 				imageExporter.saveRTreeLayers(tx, new File("target/rtree-test/rtree-merged.png"),
@@ -155,5 +171,24 @@ public class RTreeTests {
 		env.shiftBy(offsetX * env.getWidth(0), 0);
 		env.shiftBy(offsetY * env.getWidth(1), 1);
 		return env;
+	}
+
+	private static void assertParentsCoverChildren(Node indexNode, int depth, Set<Integer> leafDepths) {
+		Envelope envelope = RTreeIndex.getIndexNodeEnvelope(indexNode);
+		boolean hasChildren = false;
+		for (Relationship rel : indexNode.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD)) {
+			hasChildren = true;
+			Envelope child = RTreeIndex.getIndexNodeEnvelope(rel.getEndNode());
+			for (int dim = 0; dim < envelope.getDimension(); dim++) {
+				// tolerance: the test trees are built with scale/shift arithmetic
+				assertTrue(envelope.getMin(dim) <= child.getMin(dim) + 1e-9
+								&& envelope.getMax(dim) >= child.getMax(dim) - 1e-9,
+						"Index node " + envelope + " does not cover child " + child);
+			}
+			assertParentsCoverChildren(rel.getEndNode(), depth + 1, leafDepths);
+		}
+		if (!hasChildren) {
+			leafDepths.add(depth);
+		}
 	}
 }

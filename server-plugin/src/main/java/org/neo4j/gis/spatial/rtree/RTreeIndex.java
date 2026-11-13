@@ -480,6 +480,7 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable {
 			merged.expandToInclude(pair.right.envelope);
 			NodeWithEnvelope newNode = new NodeWithEnvelope(pair.left.node, merged);
 			setIndexNodeEnvelope(newNode.node, newNode.envelope);
+			parent.envelope.expandToInclude(merged);
 			List<NodeWithEnvelope> rightChildren = getIndexChildren(pair.right.node);
 			pairs.removeIf(t -> t.contains(pair.left) || t.contains(pair.right));
 			try (var relationships = pair.right.node.getRelationships()) {
