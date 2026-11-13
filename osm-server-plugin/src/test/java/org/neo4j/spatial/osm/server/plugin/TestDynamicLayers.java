@@ -64,6 +64,11 @@ public class TestDynamicLayers extends Neo4jTestCase {
 		return List.of(SpatialFunctions.class, SpatialProcedures.class, OsmSpatialProcedures.class);
 	}
 
+	@Override
+	protected boolean useBolt() {
+		return true;
+	}
+
 	@Test
 	public void testShapefileExport_Map1() throws Exception {
 		runShapefileExport("map.osm");

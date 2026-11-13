@@ -65,6 +65,11 @@ public class TestOSMImportBase extends Neo4jTestCase {
 		return List.of(SpatialFunctions.class, SpatialProcedures.class, OsmSpatialProcedures.class);
 	}
 
+	@Override
+	protected boolean useBolt() {
+		return true;
+	}
+
 	protected static String checkOSMFile(String osm) {
 		File osmFile = new File(osm);
 		if (!osmFile.exists()) {

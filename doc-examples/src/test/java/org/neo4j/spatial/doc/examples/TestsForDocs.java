@@ -77,6 +77,11 @@ public class TestsForDocs extends Neo4jTestCase {
 		return List.of(SpatialFunctions.class, SpatialProcedures.class, OsmSpatialProcedures.class);
 	}
 
+	@Override
+	protected boolean useBolt() {
+		return true;
+	}
+
 	@BeforeEach
 	public void setUp() {
 		GraphDatabaseServiceCleaner.cleanDatabaseContent(graphDb());

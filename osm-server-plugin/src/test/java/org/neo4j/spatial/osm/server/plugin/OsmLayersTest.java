@@ -52,6 +52,11 @@ public class OsmLayersTest extends Neo4jTestCase {
 		return List.of(SpatialFunctions.class, SpatialProcedures.class, OsmSpatialProcedures.class);
 	}
 
+	@Override
+	protected boolean useBolt() {
+		return true;
+	}
+
 	@Test
 	public void testShapefileExport() throws Exception {
 		ShapefileExporter exporter = new ShapefileExporter(driver, DEFAULT_DATABASE_NAME);

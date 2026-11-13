@@ -57,6 +57,11 @@ public class Neo4jSpatialDataStoreTest extends Neo4jTestCase {
 		return List.of(SpatialFunctions.class, SpatialProcedures.class);
 	}
 
+	@Override
+	protected boolean useBolt() {
+		return true;
+	}
+
 	@BeforeEach
 	public void setup() throws Exception {
 		try (Session session = driver.session()) {

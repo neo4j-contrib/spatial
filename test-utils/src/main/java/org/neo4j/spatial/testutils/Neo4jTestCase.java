@@ -25,6 +25,7 @@ import java.util.function.Consumer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.neo4j.configuration.GraphDatabaseSettings;
+import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.driver.AuthTokens;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.GraphDatabase;
@@ -32,6 +33,10 @@ import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.harness.Neo4j;
 import org.neo4j.harness.Neo4jBuilder;
+import org.neo4j.exceptions.KernelException;
+import org.neo4j.kernel.api.procedure.GlobalProcedures;
+import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.test.TestDatabaseManagementServiceBuilder;
 
 /**
  * Base class for the metamodel tests.
@@ -39,12 +44,37 @@ import org.neo4j.harness.Neo4jBuilder;
 public abstract class Neo4jTestCase {
 
 	private Neo4j neo4j;
+	private DatabaseManagementService databases;
+	/**
+	 * Only set if {@link #useBolt()}.
+	 */
 	protected Driver driver;
 
 	protected abstract List<Class<?>> loadProceduresAndFunctions();
 
+	/**
+	 * Start a Bolt server and {@link #driver} (needed by exporters and the GeoTools data store). Otherwise, an
+	 * impermanent embedded database is used, which is several times faster to start.
+	 */
+	protected boolean useBolt() {
+		return false;
+	}
+
 	@BeforeEach
-	void setUpDatabase() {
+	void setUpDatabase() throws KernelException {
+		if (!useBolt()) {
+			databases = new TestDatabaseManagementServiceBuilder(getDbPath())
+					.setConfig(GraphDatabaseSettings.procedure_unrestricted, List.of("spatial.*"))
+					.impermanent()
+					.build();
+			GlobalProcedures procedures = ((GraphDatabaseAPI) graphDb()).getDependencyResolver()
+					.resolveDependency(GlobalProcedures.class);
+			for (Class<?> api : loadProceduresAndFunctions()) {
+				procedures.registerProcedure(api);
+				procedures.registerFunction(api);
+			}
+			return;
+		}
 		Neo4jBuilder neo4jBuilder = TestNeo4jBuilders
 				.newInProcessBuilder(getDbPath())
 				.withConfig(GraphDatabaseSettings.procedure_unrestricted, List.of("spatial.*"))
@@ -56,13 +86,18 @@ public abstract class Neo4jTestCase {
 		});
 
 		neo4j = neo4jBuilder.build();
+		databases = neo4j.databaseManagementService();
 		driver = GraphDatabase.driver(neo4j.boltURI().toString(), AuthTokens.basic("neo4j", ""));
 	}
 
 	@AfterEach
 	public void tearDown() {
-		driver.close();
-		neo4j.close();
+		if (neo4j != null) {
+			driver.close();
+			neo4j.close();
+		} else {
+			databases.shutdown();
+		}
 	}
 
 	static Path getDbPath() {
@@ -74,7 +109,7 @@ public abstract class Neo4jTestCase {
 	}
 
 	protected GraphDatabaseService graphDb() {
-		return neo4j.databaseManagementService().database(GraphDatabaseSettings.DEFAULT_DATABASE_NAME);
+		return databases.database(GraphDatabaseSettings.DEFAULT_DATABASE_NAME);
 	}
 
 	protected void inTx(Consumer<Transaction> txFunction) {
