@@ -25,7 +25,8 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
-import org.neo4j.spatial.api.Envelope;
+import org.neo4j.gis.spatial.index.Envelope;
+import org.neo4j.spatial.api.Envelopes;
 
 public class EnvelopeTests {
 
@@ -82,8 +83,8 @@ public class EnvelopeTests {
 		testOverlaps(left, right, intersects, overlap);
 		assertThat("Expected overlap area", left.intersection(right).getArea(), closeTo(overlapArea, 0.000001));
 		assertThat("Expected overlap area", right.intersection(left).getArea(), closeTo(overlapArea, 0.000001));
-		assertThat("Expected bbox area", left.bbox(right).getArea(), closeTo(bboxArea, 0.000001));
-		assertThat("Expected bbox area", right.bbox(left).getArea(), closeTo(bboxArea, 0.000001));
+		assertThat("Expected bbox area", Envelopes.bbox(left, right).getArea(), closeTo(bboxArea, 0.000001));
+		assertThat("Expected bbox area", Envelopes.bbox(right, left).getArea(), closeTo(bboxArea, 0.000001));
 	}
 
 	@Test

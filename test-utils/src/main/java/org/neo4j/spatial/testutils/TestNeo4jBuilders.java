@@ -20,6 +20,7 @@
 package org.neo4j.spatial.testutils;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import org.neo4j.configuration.GraphDatabaseInternalSettings;
 import org.neo4j.harness.Neo4jBuilder;
 import org.neo4j.harness.Neo4jBuilders;
@@ -41,6 +42,6 @@ public final class TestNeo4jBuilders {
 	}
 
 	private static Neo4jBuilder fastShutdown(Neo4jBuilder builder) {
-		return builder.withConfig(GraphDatabaseInternalSettings.netty_server_shutdown_quiet_period, 0);
+		return builder.withConfig(GraphDatabaseInternalSettings.netty_server_shutdown_quiet_period, Duration.ZERO);
 	}
 }

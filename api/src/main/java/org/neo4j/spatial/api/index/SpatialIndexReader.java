@@ -20,9 +20,9 @@
 package org.neo4j.spatial.api.index;
 
 import java.util.Map;
+import org.neo4j.gis.spatial.index.Envelope;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.spatial.api.Envelope;
 import org.neo4j.spatial.api.EnvelopeDecoder;
 import org.neo4j.spatial.api.SearchFilter;
 import org.neo4j.spatial.api.SearchResults;

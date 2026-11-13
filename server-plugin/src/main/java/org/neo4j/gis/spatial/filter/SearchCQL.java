@@ -26,9 +26,9 @@ import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.gis.spatial.Utilities;
 import org.neo4j.gis.spatial.feature.Neo4jServerFeatureBuilder;
+import org.neo4j.gis.spatial.index.Envelope;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.spatial.api.Envelope;
 import org.neo4j.spatial.api.SearchFilter;
 import org.neo4j.spatial.api.layer.Layer;
 

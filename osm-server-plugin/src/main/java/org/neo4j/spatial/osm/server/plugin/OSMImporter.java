@@ -59,6 +59,7 @@ import org.geotools.referencing.datum.DefaultEllipsoid;
 import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
+import org.neo4j.gis.spatial.index.Envelope;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.graphdb.Direction;
@@ -79,7 +80,7 @@ import org.neo4j.io.layout.Neo4jLayout;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
-import org.neo4j.spatial.api.Envelope;
+import org.neo4j.spatial.api.Envelopes;
 import org.neo4j.spatial.api.monitoring.ProgressListener;
 
 public class OSMImporter {
@@ -382,9 +383,9 @@ public class OSMImporter {
 
 		private void expandToInclude(double[] location) {
 			if (bbox == null) {
-				bbox = new Envelope(location);
+				bbox = Envelopes.ofPoint(location);
 			} else {
-				bbox.expandToInclude(location);
+				bbox.expandToInclude(Envelopes.ofPoint(location));
 			}
 		}
 
@@ -634,7 +635,7 @@ public class OSMImporter {
 				double[] location = new double[]{
 						(Double) nodeProps.get("lon"),
 						(Double) nodeProps.get("lat")};
-				addNodeGeometry(currentNode, GTYPE_POINT, new Envelope(location), 1);
+				addNodeGeometry(currentNode, GTYPE_POINT, Envelopes.ofPoint(location), 1);
 				poiCount++;
 			}
 			addNodeTags(currentNode, currentNodeTags, "node");
@@ -706,9 +707,9 @@ public class OSMImporter {
 						(Double) nodeProps.get("lon"),
 						(Double) nodeProps.get("lat")};
 				if (bbox == null) {
-					bbox = new Envelope(location);
+					bbox = Envelopes.ofPoint(location);
 				} else {
-					bbox.expandToInclude(location);
+					bbox.expandToInclude(Envelopes.ofPoint(location));
 				}
 				if (prevProxy == null) {
 					createRelationship(way, proxyNode, OSMRelation.FIRST_NODE);

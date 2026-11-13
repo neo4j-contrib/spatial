@@ -35,8 +35,8 @@ import org.geotools.filter.spatial.OverlapsImpl;
 import org.geotools.filter.spatial.TouchesImpl;
 import org.geotools.filter.spatial.WithinImpl;
 import org.locationtech.jts.geom.Geometry;
+import org.neo4j.gis.spatial.index.Envelope;
 import org.neo4j.graphdb.Node;
-import org.neo4j.spatial.api.Envelope;
 import org.neo4j.spatial.api.EnvelopeDecoder;
 
 public class Utilities {

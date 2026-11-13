@@ -30,7 +30,6 @@ import org.neo4j.graphdb.NotFoundException;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.api.KernelTransaction;
-import org.neo4j.spatial.api.Envelope;
 import org.neo4j.spatial.api.EnvelopeDecoder;
 import org.neo4j.spatial.api.SearchFilter;
 import org.neo4j.spatial.api.SearchResults;

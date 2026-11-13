@@ -23,9 +23,9 @@ package org.neo4j.spatial.api.monitoring;
 
 import java.util.List;
 import java.util.Map;
+import org.neo4j.gis.spatial.index.Envelope;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
-import org.neo4j.spatial.api.Envelope;
 import org.neo4j.spatial.api.index.SpatialIndexReader;
 
 public interface TreeMonitor {

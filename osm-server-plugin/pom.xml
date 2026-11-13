@@ -26,7 +26,7 @@
 	<parent>
 		<groupId>org.neo4j</groupId>
 		<artifactId>neo4j-spatial</artifactId>
-		<version>2025.10.1-SNAPSHOT</version>
+		<version>2026.10.0-SNAPSHOT</version>
 	</parent>
 
 	<artifactId>neo4j-spatial-osm-server-plugin</artifactId>
@@ -35,7 +35,7 @@
 		<plugins>
 			<plugin>
 				<artifactId>maven-assembly-plugin</artifactId>
-				<version>3.7.1</version>
+				<version>3.8.0</version>
 				<configuration>
 					<descriptors>
 						<descriptor>src/main/assembly/osm-server-plugin.xml</descriptor>
@@ -56,6 +56,10 @@
 
 	<dependencies>
 		<dependency>
+			<groupId>com.google.code.findbugs</groupId>
+			<artifactId>jsr305</artifactId>
+		</dependency>
+		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j</artifactId>
 			<version>${neo4j.version}</version>
@@ -64,19 +68,18 @@
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-spatial-server-plugin</artifactId>
-			<version>2025.10.1-SNAPSHOT</version>
+			<version>2026.10.0-SNAPSHOT</version>
 			<scope>provided</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-spatial-cli-tools</artifactId>
-			<version>2025.10.1-SNAPSHOT</version>
+			<version>2026.10.0-SNAPSHOT</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
 			<groupId>org.junit.jupiter</groupId>
 			<artifactId>junit-jupiter-engine</artifactId>
-			<version>5.13.4</version>
 			<scope>test</scope>
 		</dependency>
 		<dependency>
@@ -100,7 +103,7 @@
 		<dependency>
 			<groupId>org.neo4j</groupId>
 			<artifactId>neo4j-spatial-test-utils</artifactId>
-			<version>2025.10.1-SNAPSHOT</version>
+			<version>2026.10.0-SNAPSHOT</version>
 			<scope>test</scope>
 		</dependency>
 	</dependencies>

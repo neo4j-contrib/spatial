@@ -48,6 +48,7 @@ import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
+import org.neo4j.spatial.api.Envelopes;
 import org.neo4j.spatial.api.SpatialRecord;
 import org.neo4j.spatial.geotools.plugin.Neo4jSpatialDataStore;
 import org.neo4j.spatial.osm.server.plugin.OSMDataset.Way;
@@ -115,8 +116,8 @@ public class TestOSMImportBase extends Neo4jTestCase {
 		Assertions.assertNotNull(way, "Should be at least one way");
 		Envelope bbox = way.getEnvelope();
 		runSearches(tx, layer, bbox, true);
-		org.neo4j.spatial.api.Envelope layerBBox = layer.getIndex().getBoundingBox(tx);
-		double[] centre = layerBBox.centre();
+		org.neo4j.gis.spatial.index.Envelope layerBBox = layer.getIndex().getBoundingBox(tx);
+		double[] centre = Envelopes.centre(layerBBox);
 		double width = layerBBox.getWidth(0) / 100.0;
 		double height = layerBBox.getWidth(1) / 100.0;
 		bbox = new Envelope(centre[0] - width, centre[0] + width, centre[1] - height, centre[1] + height);

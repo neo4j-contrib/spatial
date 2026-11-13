@@ -36,6 +36,7 @@ import javax.annotation.Nonnull;
 import org.json.simple.JSONObject;
 import org.json.simple.JSONValue;
 import org.neo4j.gis.spatial.encoders.Configurable;
+import org.neo4j.gis.spatial.index.Envelope;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.NotFoundException;
@@ -51,8 +52,8 @@ import org.neo4j.graphdb.traversal.PathEvaluator;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.graphdb.traversal.Traverser;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
-import org.neo4j.spatial.api.Envelope;
 import org.neo4j.spatial.api.EnvelopeDecoder;
+import org.neo4j.spatial.api.Envelopes;
 import org.neo4j.spatial.api.SearchFilter;
 import org.neo4j.spatial.api.SearchResults;
 import org.neo4j.spatial.api.index.SpatialIndexVisitor;
@@ -1142,7 +1143,7 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable {
 			NodeWithEnvelope e = entries.get(i);
 			for (int j = i + 1; j < entries.size(); ++j) {
 				NodeWithEnvelope e1 = entries.get(j);
-				double deadSpace = e.envelope.separation(e1.envelope);
+				double deadSpace = Envelopes.separation(e.envelope, e1.envelope);
 				if (deadSpace > worst) {
 					worst = deadSpace;
 					seed1 = e;
@@ -1206,7 +1207,7 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable {
 
 		@Override
 		public int compare(NodeWithEnvelope o1, NodeWithEnvelope o2) {
-			double length = o2.envelope.centre(dimension) - o1.envelope.centre(dimension);
+			double length = Envelopes.centre(o2.envelope, dimension) - Envelopes.centre(o1.envelope, dimension);
 			return Double.compare(length, 0.0);
 		}
 	}
