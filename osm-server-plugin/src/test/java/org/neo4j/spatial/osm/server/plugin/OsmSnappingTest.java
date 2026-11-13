@@ -19,7 +19,9 @@
  */
 package org.neo4j.spatial.osm.server.plugin;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -39,14 +41,13 @@ import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
-import org.neo4j.spatial.api.SpatialRecord;
 import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.spatial.osm.server.plugin.procedures.OsmSpatialProcedures;
 import org.neo4j.spatial.testutils.Neo4jTestCase;
 
-public class OsmTestSpatialUtils extends Neo4jTestCase {
+public class OsmSnappingTest extends Neo4jTestCase {
 
-	private static final Logger LOGGER = Logger.getLogger(OsmTestSpatialUtils.class.getName());
+	private static final Logger LOGGER = Logger.getLogger(OsmSnappingTest.class.getName());
 
 	@Override
 	protected List<Class<?>> loadProceduresAndFunctions() {
@@ -55,7 +56,6 @@ public class OsmTestSpatialUtils extends Neo4jTestCase {
 
 	@Test
 	public void testSnapping() throws Exception {
-		// This was an ignored test, so perhaps not worth saving?
 		printDatabaseStats();
 		String osm = "map.osm";
 		loadTestOsmData(osm, 1000);
@@ -104,15 +104,13 @@ public class OsmTestSpatialUtils extends Neo4jTestCase {
 											.toString(),
 									"distance", (long) (1000000 * result.getDistance())));
 				}
-				if (!edgeResults.isEmpty()) {
-					PointResult closest = edgeResults.get(0);
-					Point closestPoint = closest.getKey();
-
-					SpatialRecord wayRecord = closest.getValue();
-					OSMDataset.Way way = ((OSMDataset) osmLayer.getDataset()).getWayFrom(wayRecord.getGeomNode());
-					OSMDataset.WayPoint wayPoint = way.getPointAt(closestPoint.getCoordinate());
-					// TODO: presumably we meant to assert something here?
+				assertFalse(edgeResults.isEmpty(), "Expected to snap to an edge in layer " + layerName);
+				PointResult closest = edgeResults.getFirst();
+				for (PointResult result : edgeResults) {
+					assertTrue(closest.getDistance() <= result.getDistance(), "Closest edge should come first");
 				}
+				assertTrue(closest.getValue().getGeometry().distance(closest.getKey()) < 1e-9,
+						"Snapped point should lie on the closest edge");
 			}
 			tx.commit();
 		}
