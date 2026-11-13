@@ -34,6 +34,8 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateList;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.Point;
+import org.neo4j.gis.spatial.encoders.NativePointEncoder.Config;
+import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.encoders.neo4j.Neo4jCRS;
 import org.neo4j.gis.spatial.encoders.neo4j.Neo4jPoint;
 import org.neo4j.gis.spatial.functions.SpatialFunctions;
@@ -127,7 +129,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
-			EditableLayer layer = spatial.createNativePointLayer(tx, layerName, "location");
+			EditableLayer layer = spatial.createNativePointLayer(tx, layerName, new Config("location"));
 			assertNotNull(layer);
 			SpatialRecord record = layer.add(tx, layer.getGeometryFactory().createPoint(new Coordinate(15.3, 56.2)));
 			assertNotNull(record);
@@ -158,7 +160,7 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
-			SimplePointLayer layer = spatial.createSimplePointLayer(tx, layerName);
+			SimplePointLayer layer = spatial.createSimplePointLayer(tx, layerName, null);
 			assertNotNull(layer);
 			assertNotNull(layer.getName(), "layer name is not null");
 			for (Coordinate coordinate : makeCoordinateDataFromTextFile("NEO4J-SPATIAL.txt", testOrigin)) {
@@ -216,9 +218,9 @@ public class TestSimplePointLayer extends Neo4jTestCase {
 				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		double x_offset = 0.15, y_offset = 0.15;
 		inTx(tx -> {
-			spatial.createSimplePointLayer(tx, layerNameA, "xa", "ya", "bbox_a");
-			spatial.createSimplePointLayer(tx, layerNameB, "xb", "yb", "bbox_b");
-			spatial.createNativePointLayer(tx, layerNameC, "loc", "bbox_c");
+			spatial.createSimplePointLayer(tx, layerNameA, new SimplePointEncoder.Config("xa", "ya", "bbox_a"));
+			spatial.createSimplePointLayer(tx, layerNameB, new SimplePointEncoder.Config("xb", "yb", "bbox_b"));
+			spatial.createNativePointLayer(tx, layerNameC, new Config("loc", "bbox_c"));
 		});
 		Neo4jCRS crs = Neo4jCRS.findCRS("WGS-84");
 

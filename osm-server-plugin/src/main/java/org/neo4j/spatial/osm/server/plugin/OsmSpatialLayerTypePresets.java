@@ -22,6 +22,7 @@ package org.neo4j.spatial.osm.server.plugin;
 
 import java.util.List;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
+import org.neo4j.gis.spatial.AbstractGeometryEncoder.BaseGeometryEncoderConfig;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.spatial.api.layer.LayerTypePresets;
 
@@ -31,7 +32,8 @@ public class OsmSpatialLayerTypePresets implements LayerTypePresets {
 	public List<RegisteredLayerType> getLayerTypePresets() {
 		return List.of(
 				new RegisteredLayerType("OSM", OSMGeometryEncoder.class, OSMLayer.class,
-						DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "geometry")
+						DefaultGeographicCRS.WGS84, LayerRTreeIndex.class,
+						new BaseGeometryEncoderConfig())
 		);
 	}
 }

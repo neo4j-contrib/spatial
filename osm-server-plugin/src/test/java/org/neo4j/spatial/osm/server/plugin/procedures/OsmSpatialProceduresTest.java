@@ -143,7 +143,7 @@ public class OsmSpatialProceduresTest extends AbstractApiTest {
 					.containsEntry("layer", "OSMLayer")
 					.containsEntry("index", "rtree")
 					.containsEntry("crsName", "WGS84(DD)")
-					.containsEntry("defaultEncoderConfig", "geometry");
+					.containsEntry("defaultEncoderConfig", Map.of("bboxProperty", "bbox"));
 		});
 	}
 

@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.neo4j.gis.spatial.encoders.NativePointEncoder;
 import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
@@ -59,14 +60,14 @@ public class LayerSignatureTest extends Neo4jTestCase {
 	public void testNativePointLayer() {
 		testLayerSignature(
 				"EditableLayer(name='test', encoder=NativePointEncoder(geometry='position', bbox='mbr', crs=4326))",
-				tx -> spatial.createNativePointLayer(tx, "test", "position", "mbr"));
+				tx -> spatial.createNativePointLayer(tx, "test", new NativePointEncoder.Config("position", "mbr")));
 	}
 
 	@Test
 	public void testDefaultSimplePointLayer() {
 		testLayerSignature(
 				"EditableLayer(name='test', encoder=SimplePointEncoder(x='longitude', y='latitude', bbox='bbox'))",
-				tx -> spatial.createSimplePointLayer(tx, "test"));
+				tx -> spatial.createSimplePointLayer(tx, "test", null));
 	}
 
 	@Test

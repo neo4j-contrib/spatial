@@ -108,7 +108,7 @@ public class ShapefileImporter {
 		EditableLayerImpl layer;
 		try (Transaction tx = database.beginTx()) {
 			layer = (EditableLayerImpl) spatialDatabase.getOrCreateLayer(tx, layerName, WKBGeometryEncoder.class,
-					layerClass, null, false);
+					layerClass, null, null, false);
 			tx.commit();
 		}
 		return importFile(dataset, layer, charset);

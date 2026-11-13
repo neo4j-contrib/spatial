@@ -66,7 +66,7 @@ public class GeoPipesPerformanceTest extends Neo4jTestCase {
 		try (Transaction tx = graphDb().beginTx()) {
 			SpatialDatabaseService spatial = new SpatialDatabaseService(
 					new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
-			SimplePointLayer layer = spatial.createSimplePointLayer(tx, "GeoPipesPerformanceTest");
+			SimplePointLayer layer = spatial.createSimplePointLayer(tx, "GeoPipesPerformanceTest", null);
 			LOGGER.info("Creating database of " + records + " point records");
 			for (int i = 0; i < records; i++) {
 				double x = 10.0 + Math.random() * 10.0;

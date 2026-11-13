@@ -35,7 +35,9 @@ import org.neo4j.gis.spatial.encoders.SimpleGraphEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePropertyEncoder;
 import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
+import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
+import org.neo4j.gis.spatial.utilities.GeometryEncoderRegistry;
 import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
 import org.neo4j.spatial.api.encoder.GeometryEncoder;
@@ -82,12 +84,17 @@ public class OsmLayersTest extends Neo4jTestCase {
 				EditableLayerImpl.class);
 	}
 
-	private String testSpecificEditableLayer(String layerName, Class<? extends GeometryEncoder> geometryEncoderClass,
-			Class<? extends Layer> layerClass) {
+	private String testSpecificEditableLayer(
+			String layerName,
+			Class<? extends GeometryEncoder> geometryEncoderClass,
+			Class<? extends Layer> layerClass
+	) {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
-			Layer layer = spatial.createLayer(tx, layerName, geometryEncoderClass, layerClass, null);
+			var encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(geometryEncoderClass);
+			var index = new LayerRTreeIndex();
+			var layer = spatial.createLayer(tx, layerName, layerClass, null, encoder, index);
 			assertNotNull(layer);
 			assertInstanceOf(EditableLayer.class, layer, "Should be an editable layer");
 		});

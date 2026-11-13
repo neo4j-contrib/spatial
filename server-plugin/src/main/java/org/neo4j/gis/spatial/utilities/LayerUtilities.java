@@ -38,7 +38,6 @@ import javax.annotation.Nonnull;
 import org.neo4j.gis.spatial.EditableLayerImpl;
 import org.neo4j.gis.spatial.encoders.WKBGeometryEncoder;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
-import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.spatial.api.Configurable;
@@ -75,7 +74,7 @@ public class LayerUtilities {
 		GeometryEncoder encoder;
 		if (layerNode.hasProperty(PROP_GEOMENCODER)) {
 			String encoderName = (String) layerNode.getProperty(PROP_GEOMENCODER);
-			encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(encoderName, null);
+			encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(encoderName);
 			if (encoder instanceof Configurable<?> configurable) {
 				setConfig(layerNode, PROP_GEOMENCODER_CONFIG, configurable);
 			}
@@ -102,10 +101,10 @@ public class LayerUtilities {
 		SpatialIndexWriter indexWriter;
 		if (layerNode.hasProperty(PROP_INDEX_TYPE)) {
 			String indexName = (String) layerNode.getProperty(PROP_INDEX_TYPE);
-			indexWriter = IndexRegistry.INSTANCE.constructIndex(indexName, null);
+			indexWriter = IndexRegistry.INSTANCE.constructIndex(indexName);
 		} else if (layerNode.hasProperty(PROP_INDEX_CLASS)) {
 			String indexName = (String) layerNode.getProperty(PROP_INDEX_CLASS);
-			indexWriter = IndexRegistry.INSTANCE.constructIndex(indexName, null);
+			indexWriter = IndexRegistry.INSTANCE.constructIndex(indexName);
 			if (!readOnly) {
 				layerNode.setProperty(PROP_INDEX_TYPE, indexWriter.getIdentifier());
 			}
@@ -122,43 +121,29 @@ public class LayerUtilities {
 	}
 
 	/**
-	 * Factory method to construct a layer with the specified layer class. This can be used when
-	 * creating a layer for the first time. It will also construct the underlying Node in the graph.
-	 *
-	 * @return new Layer instance based on newly created layer Node
+	 * Creates the layer node, persists the encoder's and index's identifier and configuration on it, and returns the
+	 * initialized layer.
 	 */
-	public static <L extends Layer> L makeLayerAndNode(
+	public static <L extends Layer> @Nonnull L makeLayerAndNode(
 			@Nonnull Transaction tx,
 			@Nonnull IndexManager indexManager,
 			@Nonnull String name,
-			@Nonnull Class<? extends GeometryEncoder> geometryEncoderClass,
-			String encoderConfig,
 			@Nonnull Class<L> layerClass,
-			@Nonnull Class<? extends SpatialIndexWriter> indexClass,
-			String indexConfig
+			GeometryEncoder encoder,
+			SpatialIndexWriter index
 	) {
 		Node layerNode = tx.createNode();
 		layerNode.addLabel(LABEL_LAYER);
 		layerNode.setProperty(PROP_LAYER, name);
-
-		// init the geometry encoder
-		GeometryEncoder encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(
-				geometryEncoderClass,
-				encoderConfig);
 		persistIdAndConfig(encoder, layerNode, PROP_GEOMENCODER, PROP_GEOMENCODER_CONFIG);
+		persistIdAndConfig(index, layerNode, PROP_INDEX_TYPE, PROP_INDEX_CONFIG);
 
 		// init the layer
 		L layer = LayerRegistry.INSTANCE.constructLayer(layerClass);
 		layerNode.setProperty(PROP_LAYER_TYPE, layer.getIdentifier());
-
-		// init the index
-		SpatialIndexWriter index = IndexRegistry.INSTANCE.constructIndex(indexClass, indexConfig);
-		persistIdAndConfig(index, layerNode, PROP_INDEX_TYPE, PROP_INDEX_CONFIG);
-
 		layer.initialize(tx, indexManager, name, encoder, index, layerNode, false);
 
 		return layer;
-
 	}
 
 	private static void persistIdAndConfig(
@@ -220,4 +205,5 @@ public class LayerUtilities {
 			return;
 		}
 		ConfigurationUtils.setConfig(configurable, configuration);
-	}}
+	}
+}

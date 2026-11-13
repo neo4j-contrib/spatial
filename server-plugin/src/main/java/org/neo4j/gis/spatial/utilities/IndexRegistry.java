@@ -55,30 +55,45 @@ public class IndexRegistry {
 		return Collections.unmodifiableMap(registeredIndices);
 	}
 
+	public SpatialIndexWriter constructIndex(String indexName) {
+		return constructIndex(indexName, null);
+	}
+
+	/**
+	 * @param config legacy string configuration, see {@link Configurable#migrateLegacyConfiguration(String)}
+	 */
 	public SpatialIndexWriter constructIndex(String indexName, String config) {
 		Class<? extends SpatialIndexWriter> indexClass = registeredIndices.get(indexName);
 		if (indexClass == null) {
 			throw new SpatialDatabaseException("no index for name: " + indexName);
 		}
-		return constructIndex(indexClass, config);
+		SpatialIndexWriter index = constructIndex(indexClass);
+		if (config != null && !config.isEmpty()) {
+			if (index instanceof Configurable<?> configurable) {
+				ConfigurationUtils.setLegacyConfig(configurable, config);
+			} else {
+				LOGGER.warning(
+						"Warning: index configuration '" + config + "' passed to non-configurable index: "
+								+ indexClass);
+			}
+		}
+		return index;
 	}
 
-	public <T extends SpatialIndexWriter> T constructIndex(Class<T> indexClass, String config) {
+	public <T extends SpatialIndexWriter> T constructIndex(Class<T> indexClass) {
 		try {
-			T index = indexClass.getDeclaredConstructor().newInstance();
-			if (config != null && !config.isEmpty()) {
-				if (index instanceof Configurable<?> configurable) {
-					ConfigurationUtils.setLegacyConfig(configurable, config);
-				} else {
-					LOGGER.warning(
-							"Warning: index configuration '" + config + "' passed to non-configurable index: "
-									+ indexClass);
-				}
-			}
-			return index;
+			return indexClass.getDeclaredConstructor().newInstance();
 		} catch (Exception e) {
 			throw new SpatialDatabaseException(e);
 		}
+	}
+
+	public <T extends SpatialIndexWriter & Configurable<C>, C> T constructIndex(Class<T> indexClass, C config) {
+		T index = constructIndex(indexClass);
+		if (config != null) {
+			index.setConfiguration(config);
+		}
+		return index;
 	}
 
 }

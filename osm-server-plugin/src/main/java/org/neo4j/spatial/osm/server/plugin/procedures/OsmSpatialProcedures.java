@@ -76,8 +76,11 @@ public class OsmSpatialProcedures extends SpatialApiBase {
 		assertLayerDoesNotExist(spatial(), layerName);
 		// Delegate creating the layer to the inner thread, so we do not pollute the procedure transaction with anything that might conflict.
 		// Since the procedure transaction starts before, and ends after, all inner transactions.
-		BiFunction<Transaction, String, OSMLayer> layerMaker = (tx, name) -> (OSMLayer) spatial().getOrCreateLayer(tx,
-				name, OSMGeometryEncoder.class, OSMLayer.class, "", false);
+		BiFunction<Transaction, String, OSMLayer> layerMaker = (tx, name) -> {
+			SpatialDatabaseService spatialDatabaseService = spatial();
+			return (OSMLayer) spatialDatabaseService.getOrCreateLayer(tx, name, OSMGeometryEncoder.class,
+					OSMLayer.class, null, null, false);
+		};
 		return Stream.of(new CountResult(importOSMToLayer(uri, layerName, layerMaker)));
 	}
 

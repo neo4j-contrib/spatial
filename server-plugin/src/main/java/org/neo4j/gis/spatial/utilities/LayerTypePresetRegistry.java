@@ -44,7 +44,7 @@ public class LayerTypePresetRegistry {
 	private LayerTypePresetRegistry() {
 		ServiceLoader.load(LayerTypePresets.class).forEach(layerPresets -> {
 			layerPresets.getLayerTypePresets().forEach(preset -> {
-				String key = preset.typeName().toLowerCase();
+				String key = preset.typeName.toLowerCase();
 				if (registeredLayerPresets.containsKey(key)) {
 					LOGGER.warning(
 							"Duplicate layer type preset detected: " + key + " - overwriting previous registration");
@@ -62,8 +62,8 @@ public class LayerTypePresetRegistry {
 	@Nonnull
 	public Class<? extends Layer> suggestLayerClassForEncoder(Class<? extends GeometryEncoder> encoderClass) {
 		for (RegisteredLayerType type : registeredLayerPresets.values()) {
-			if (type.geometryEncoder() == encoderClass) {
-				return type.layerClass();
+			if (type.geometryEncoder == encoderClass) {
+				return type.layerClass;
 			}
 		}
 		return EditableLayerImpl.class;
