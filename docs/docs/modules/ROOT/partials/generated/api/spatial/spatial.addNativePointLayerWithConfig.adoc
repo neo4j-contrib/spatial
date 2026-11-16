@@ -12,7 +12,7 @@ Adds a new native point layer with the given configuration, returns the layer ro
 
 [source]
 ----
-spatial.addNativePointLayerWithConfig(name :: STRING, encoderConfig :: STRING, indexType = rtree :: STRING, crsName =  :: STRING, indexConfig =  :: STRING) :: (node :: NODE)
+spatial.addNativePointLayerWithConfig(name :: STRING, encoderConfig :: ANY, indexType = rtree :: STRING, crsName =  :: STRING, indexConfig =  :: ANY) :: (node :: NODE)
 ----
 
 == Input parameters
@@ -22,14 +22,14 @@ spatial.addNativePointLayerWithConfig(name :: STRING, encoderConfig :: STRING, i
 |Name|Type|Default|Description
 |name|STRING|null
 a|The name of the layer
-|encoderConfig|STRING|null
-a|The configuration of the encoder that is used by layer to en-/decode the geometry of indexed nodes
+|encoderConfig|ANY|null
+a|The configuration of the encoder that is used by layer to en-/decode the geometry of indexed nodes: a map by option name (see `spatial.encoders.config`) or a legacy string
 |indexType|STRING|"rtree"
 a|The type of the index algorithm to be used, valid values are: `rtree`, `geohash`, `zorder` or `hilbert`
 |crsName|STRING|""
 a|The CRS to be used, valid values are: `wgs84`
-|indexConfig|STRING|""
-a|The configuration of the newly created index
+|indexConfig|ANY|""
+a|The configuration of the newly created index: a map by option name (see `spatial.indexTypes.config`) or a legacy string
 |===
 
 == Output parameters

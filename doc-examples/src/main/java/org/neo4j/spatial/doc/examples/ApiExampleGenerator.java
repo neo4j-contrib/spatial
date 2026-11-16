@@ -244,6 +244,13 @@ public class ApiExampleGenerator implements Callable<Integer> {
 								and the `mbr` property instead of `bbox`.
 								"""));
 
+		docExample("spatial.addLayerWithEncoder",
+				"Create a `SimplePointEncoder` with a customized encoder configuration map")
+				.runCypher("CALL spatial.addLayerWithEncoder('geom','SimplePointEncoder',{xProperty: 'x', yProperty: 'y'})",
+						config -> config.setComment("""
+								Options not given keep their defaults, see `spatial.encoders.config`.
+								"""));
+
 		docExample("spatial.addLayerWithEncoder", "Create a `NativePointEncoder`")
 				.runCypher("CALL spatial.addLayerWithEncoder('geom','NativePointEncoder','')");
 
@@ -343,6 +350,18 @@ public class ApiExampleGenerator implements Callable<Integer> {
 								""",
 						config -> config.skipResult().setComment("Remove node 2"))
 				.runCypher("CALL spatial.withinDistance('geom',{lon:15.0,lat:60.0},100)");
+
+		docExample("spatial.addLayer", "Create a layer with encoder and index configuration maps")
+				.runCypher("""
+						CALL spatial.addLayer(
+							'geom',
+							'NativePoint',
+							{locationProperty: 'pos', bboxProperty: 'mbr'},
+							{maxNodeReferences: 50}
+						)
+						""", config -> config.setComment("""
+						The options are listed by `spatial.encoders.config` and `spatial.indexTypes.config`.
+						"""));
 
 		docExample("spatial.addLayer", "Add the same node to multiple layers")
 				.runCypher("""

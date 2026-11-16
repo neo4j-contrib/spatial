@@ -12,7 +12,7 @@ Adds a new WKT layer with the given node property to hold the WKT string, return
 
 [source]
 ----
-spatial.addWKTLayer(name :: STRING, nodePropertyName :: STRING, indexConfig =  :: STRING) :: (node :: NODE)
+spatial.addWKTLayer(name :: STRING, nodePropertyName :: STRING, indexConfig =  :: ANY) :: (node :: NODE)
 ----
 
 == Input parameters
@@ -24,8 +24,8 @@ spatial.addWKTLayer(name :: STRING, nodePropertyName :: STRING, indexConfig =  :
 a|The name of the layer
 |nodePropertyName|STRING|null
 a|The property from which the WKT will be read
-|indexConfig|STRING|""
-a|The configuration of the newly created index
+|indexConfig|ANY|""
+a|The configuration of the newly created index: a map by option name (see `spatial.indexTypes.config`) or a legacy string
 |===
 
 == Output parameters

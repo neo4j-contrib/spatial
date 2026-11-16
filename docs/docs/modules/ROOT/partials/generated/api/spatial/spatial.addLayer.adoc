@@ -12,7 +12,7 @@ Adds a new layer with the given `type` (see `spatial.layerTypes`) and configurat
 
 [source]
 ----
-spatial.addLayer(name :: STRING, type :: STRING, encoderConfig :: STRING, indexConfig =  :: STRING) :: (node :: NODE)
+spatial.addLayer(name :: STRING, type :: STRING, encoderConfig :: ANY, indexConfig =  :: ANY) :: (node :: NODE)
 ----
 
 == Input parameters
@@ -24,10 +24,10 @@ spatial.addLayer(name :: STRING, type :: STRING, encoderConfig :: STRING, indexC
 a|The name of the layer
 |type|STRING|null
 a|The type of the new layer. Existing layer types can be queried by `spatial.layer`
-|encoderConfig|STRING|null
-a|The configuration of the encoder that is used by layer to en-/decode the geometry of indexed nodes
-|indexConfig|STRING|""
-a|The configuration of the newly created index
+|encoderConfig|ANY|null
+a|The configuration of the encoder that is used by layer to en-/decode the geometry of indexed nodes: a map by option name (see `spatial.encoders.config`) or a legacy string
+|indexConfig|ANY|""
+a|The configuration of the newly created index: a map by option name (see `spatial.indexTypes.config`) or a legacy string
 |===
 
 == Output parameters

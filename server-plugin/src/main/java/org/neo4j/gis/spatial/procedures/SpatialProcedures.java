@@ -64,12 +64,12 @@ import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.SpatialTopologyUtils;
 import org.neo4j.gis.spatial.encoders.NativePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
+import org.neo4j.gis.spatial.index.ExplicitIndexBackedPointIndex;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
 import org.neo4j.gis.spatial.rtree.ProgressLoggingListener;
-import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.gis.spatial.utilities.BaseRegistry.EntryMeta;
 import org.neo4j.gis.spatial.utilities.ConfigurationUtils;
 import org.neo4j.gis.spatial.utilities.ConfigurationUtils.ConfigParam;
@@ -329,7 +329,7 @@ public class SpatialProcedures extends SpatialApiBase {
 			@Name(value = "name", description = DOC_LAYER_NAME) String name,
 			@Name(value = "indexType", defaultValue = INDEX_TYPE_RTREE, description = DOC_LAYER_TYPE) String indexType,
 			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME, description = DOC_CRS) String crsName,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) Object indexConfig
 	) {
 		SpatialDatabaseService sdb = spatial();
 		assertLayerDoesNotExist(sdb, name);
@@ -344,7 +344,7 @@ public class SpatialProcedures extends SpatialApiBase {
 	public Stream<NodeResult> addSimplePointLayerGeohash(
 			@Name(value = "name", description = DOC_LAYER_NAME) String name,
 			@Name(value = "crsName", defaultValue = WGS84_CRS_NAME, description = DOC_CRS) String crsName,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig) {
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) Object indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		assertLayerDoesNotExist(sdb, name);
 		CoordinateReferenceSystem crs = selectCRS(crsName);
@@ -358,7 +358,7 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Description("Adds a new simple point layer with z-order curve based index, returns the layer root node")
 	public Stream<NodeResult> addSimplePointLayerZOrder(
 			@Name(value = "name", description = DOC_LAYER_NAME) String name,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig) {
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) Object indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		assertLayerDoesNotExist(sdb, name);
 		var encoder = new SimplePointEncoder();
@@ -371,7 +371,7 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Description("Adds a new simple point layer with hilbert curve based index, returns the layer root node")
 	public Stream<NodeResult> addSimplePointLayerHilbert(
 			@Name(value = "name", description = DOC_LAYER_NAME) String name,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) Object indexConfig
 	) {
 		SpatialDatabaseService sdb = spatial();
 		assertLayerDoesNotExist(sdb, name);
@@ -389,7 +389,7 @@ public class SpatialProcedures extends SpatialApiBase {
 			@Name(value = "yProperty", description = "The property of the node to read the y coordinate from") String yProperty,
 			@Name(value = "indexType", defaultValue = INDEX_TYPE_RTREE, description = DOC_INDEX_TYPE) String indexType,
 			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME, description = DOC_CRS) String crsName,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig) {
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) Object indexConfig) {
 		if (xProperty == null || yProperty == null) {
 			throw new IllegalArgumentException(
 					"Cannot create layer '" + name + "': Missing encoder config values: xProperty[" + xProperty
@@ -409,19 +409,19 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Description("Adds a new simple point layer with the given configuration, returns the layer root node")
 	public Stream<NodeResult> addSimplePointLayerWithConfig(
 			@Name(value = "name", description = DOC_LAYER_NAME) String name,
-			@Name(value = "encoderConfig", description = DOC_ENCODER_CONFIG) String encoderConfig,
+			@Name(value = "encoderConfig", description = DOC_ENCODER_CONFIG) Object encoderConfig,
 			@Name(value = "indexType", defaultValue = INDEX_TYPE_RTREE, description = DOC_INDEX_TYPE) String indexType,
 			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME, description = DOC_CRS) String crsName,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig) {
-		if (encoderConfig.indexOf(':') <= 0) {
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) Object indexConfig) {
+		if (encoderConfig instanceof String legacy && legacy.indexOf(':') <= 0) {
 			throw new IllegalArgumentException(
 					"Cannot create layer '" + name + "': invalid encoder config '" + encoderConfig + "'");
 		}
 		SpatialDatabaseService sdb = spatial();
 		assertLayerDoesNotExist(sdb, name);
-		CoordinateReferenceSystem crs = selectCRS(hintCRSName(crsName, encoderConfig));
-		var encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(SimplePointEncoder.class,
-				SimplePointEncoder.Config.migrateLegacyConfiguration(encoderConfig));
+		var encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(SimplePointEncoder.class);
+		ConfigurationUtils.applyConfig(encoder, encoderConfig);
+		CoordinateReferenceSystem crs = selectCRS(hintCRSName(crsName, crsHint(encoder, encoderConfig)));
 		var index = IndexRegistry.INSTANCE.constructIndex(indexType, indexConfig);
 		var layer = sdb.createLayer(tx, name, SimplePointLayer.class, crs, encoder, index);
 		return streamNode(layer.getLayerNode(tx));
@@ -433,7 +433,7 @@ public class SpatialProcedures extends SpatialApiBase {
 			@Name(value = "name", description = DOC_LAYER_NAME) String name,
 			@Name(value = "indexType", defaultValue = INDEX_TYPE_RTREE, description = DOC_INDEX_TYPE) String indexType,
 			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME, description = DOC_CRS) String crsName,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig) {
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) Object indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		assertLayerDoesNotExist(sdb, name);
 		var encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(NativePointEncoder.class);
@@ -447,7 +447,7 @@ public class SpatialProcedures extends SpatialApiBase {
 	public Stream<NodeResult> addNativePointLayerGeohash(
 			@Name(value = "name", description = DOC_LAYER_NAME) String name,
 			@Name(value = "crsName", defaultValue = WGS84_CRS_NAME, description = DOC_CRS) String crsName,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig) {
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) Object indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		assertLayerDoesNotExist(sdb, name);
 		CoordinateReferenceSystem crs = selectCRS(crsName);
@@ -461,7 +461,7 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Description("Adds a new native point layer with z-order curve based index, returns the layer root node")
 	public Stream<NodeResult> addNativePointLayerZOrder(
 			@Name(value = "name", description = DOC_LAYER_NAME) String name,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig) {
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) Object indexConfig) {
 		SpatialDatabaseService sdb = spatial();
 		assertLayerDoesNotExist(sdb, name);
 		var encoder = new NativePointEncoder();
@@ -474,7 +474,7 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Description("Adds a new native point layer with hilbert curve based index, returns the layer root node")
 	public Stream<NodeResult> addNativePointLayerHilbert(
 			@Name(value = "name", description = DOC_LAYER_NAME) String name,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) Object indexConfig
 	) {
 		SpatialDatabaseService sdb = spatial();
 		assertLayerDoesNotExist(sdb, name);
@@ -493,7 +493,7 @@ public class SpatialProcedures extends SpatialApiBase {
 			@Name(value = "yProperty", description = "The name of the property with the y coordinate") String yProperty,
 			@Name(value = "indexType", defaultValue = INDEX_TYPE_RTREE, description = DOC_INDEX_TYPE) String indexType,
 			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME, description = DOC_CRS) String crsName,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig) {
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) Object indexConfig) {
 		if (xProperty == null || yProperty == null) {
 			throw new IllegalArgumentException(
 					"Cannot create layer '" + name + "': Missing encoder config values: xProperty[" + xProperty
@@ -513,21 +513,21 @@ public class SpatialProcedures extends SpatialApiBase {
 	@Description("Adds a new native point layer with the given configuration, returns the layer root node")
 	public Stream<NodeResult> addNativePointLayerWithConfig(
 			@Name(value = "name", description = DOC_LAYER_NAME) String name,
-			@Name(value = "encoderConfig", description = DOC_ENCODER_CONFIG) String encoderConfig,
+			@Name(value = "encoderConfig", description = DOC_ENCODER_CONFIG) Object encoderConfig,
 			@Name(value = "indexType", defaultValue = INDEX_TYPE_RTREE, description = DOC_INDEX_TYPE) String indexType,
 			@Name(value = "crsName", defaultValue = UNSET_CRS_NAME, description = DOC_CRS) String crsName,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) Object indexConfig
 	) {
-		if (encoderConfig.indexOf(':') <= 0) {
+		if (encoderConfig instanceof String legacy && legacy.indexOf(':') <= 0) {
 			throw new IllegalArgumentException(
 					"Cannot create layer '" + name + "': invalid encoder config '" + encoderConfig + "'");
 		}
 		SpatialDatabaseService sdb = spatial();
 		assertLayerDoesNotExist(sdb, name);
 
-		CoordinateReferenceSystem crs = selectCRS(hintCRSName(crsName, encoderConfig));
-		var encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(NativePointEncoder.class,
-				NativePointEncoder.Config.migrateLegacyConfiguration(encoderConfig));
+		var encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(NativePointEncoder.class);
+		ConfigurationUtils.applyConfig(encoder, encoderConfig);
+		CoordinateReferenceSystem crs = selectCRS(hintCRSName(crsName, crsHint(encoder, encoderConfig)));
 		var index = IndexRegistry.INSTANCE.constructIndex(indexType, indexConfig);
 		var layer = sdb.createLayer(tx, name, SimplePointLayer.class, crs, encoder, index);
 		return streamNode(layer.getLayerNode(tx));
@@ -561,13 +561,19 @@ public class SpatialProcedures extends SpatialApiBase {
 		return crsName;
 	}
 
+	private static String crsHint(Configurable<?> encoder, Object encoderConfig) {
+		return encoderConfig instanceof String legacy
+				? legacy
+				: ConfigurationUtils.getConfigMap(encoder).values().toString();
+	}
+
 	@Procedure(value = "spatial.addLayerWithEncoder", mode = WRITE)
 	@Description("Adds a new layer with the given encoder class and configuration, returns the layer root node")
 	public Stream<NodeResult> addLayerWithEncoder(
 			@Name(value = "name", description = DOC_LAYER_NAME) String name,
 			@Name(value = "encoder", description = DOC_ENCODER_NAME) String encoderName,
-			@Name(value = "encoderConfig", description = DOC_ENCODER_CONFIG) String encoderConfig,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig) {
+			@Name(value = "encoderConfig", description = DOC_ENCODER_CONFIG) Object encoderConfig,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) Object indexConfig) {
 		EntryMeta<GeometryEncoder> encoderMeta = GeometryEncoderRegistry.INSTANCE.getRegisteredEncoders()
 				.get(encoderName);
 		if (encoderMeta == null) {
@@ -579,11 +585,9 @@ public class SpatialProcedures extends SpatialApiBase {
 		assertLayerDoesNotExist(sdb, name);
 		Class<? extends Layer> layerClass = LayerTypePresetRegistry.INSTANCE.suggestLayerClassForEncoder(encoderClass);
 		var encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(encoderClass);
-		if (encoder instanceof Configurable<?> configurable) {
-			ConfigurationUtils.setLegacyConfig(configurable, encoderConfig);
-		}
-		var index = IndexRegistry.INSTANCE.constructIndex(LayerRTreeIndex.class,
-				RTreeIndex.Config.migrateLegacyConfiguration(indexConfig));
+		ConfigurationUtils.applyConfig("encoder", encoder, encoderConfig);
+		var index = IndexRegistry.INSTANCE.constructIndex(LayerRTreeIndex.class);
+		IndexRegistry.INSTANCE.applyConfig(index, indexConfig);
 		var layer = sdb.createLayer(tx, name, layerClass, null, encoder, index);
 		return streamNode(layer.getLayerNode(tx));
 	}
@@ -593,8 +597,8 @@ public class SpatialProcedures extends SpatialApiBase {
 	public Stream<NodeResult> addLayerOfType(
 			@Name(value = "name", description = DOC_LAYER_NAME) String name,
 			@Name(value = "type", description = DOC_LAYER_TYPE) String type,
-			@Name(value = "encoderConfig", description = DOC_ENCODER_CONFIG) String encoderConfig,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig) {
+			@Name(value = "encoderConfig", description = DOC_ENCODER_CONFIG) Object encoderConfig,
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) Object indexConfig) {
 		RegisteredLayerType registeredLayerType = LayerTypePresetRegistry.INSTANCE.getRegisteredLayerType(type);
 		if (registeredLayerType == null) {
 			throw new IllegalArgumentException(
@@ -605,18 +609,13 @@ public class SpatialProcedures extends SpatialApiBase {
 		assertLayerDoesNotExist(sdb, name);
 
 		var encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(registeredLayerType.geometryEncoder());
-		if (encoder instanceof Configurable<?> configurable) {
-			if (encoderConfig != null) {
-				ConfigurationUtils.setLegacyConfig(configurable, encoderConfig);
-			} else if (registeredLayerType.defaultEncoderConfig() != null) {
-				// via map: the preset config is untyped (Object)
-				ConfigurationUtils.setConfig(configurable,
-						ConfigurationUtils.getConfigMap(registeredLayerType.defaultEncoderConfig()));
-			}
-		}
-		var index = IndexRegistry.INSTANCE.constructIndex(LayerRTreeIndex.class,
-				RTreeIndex.Config.migrateLegacyConfiguration(indexConfig));
-		var layer = sdb.createLayer(tx, name, registeredLayerType.layerClass(), null, encoder, index);
+		ConfigurationUtils.applyConfig("encoder", encoder,
+				ConfigurationUtils.withDefaults(registeredLayerType.defaultEncoderConfig(), encoderConfig));
+		var index = IndexRegistry.INSTANCE.constructIndex(registeredLayerType.layerIndexClass());
+		IndexRegistry.INSTANCE.applyConfig(index, indexConfig);
+		// space-filling-curve indexes need a CRS; others keep none (e.g. WKT distances stay cartesian)
+		var crs = index instanceof ExplicitIndexBackedPointIndex<?> ? registeredLayerType.crs() : null;
+		var layer = sdb.createLayer(tx, name, registeredLayerType.layerClass(), crs, encoder, index);
 
 		return streamNode(layer.getLayerNode(tx));
 	}
@@ -634,7 +633,7 @@ public class SpatialProcedures extends SpatialApiBase {
 	public Stream<NodeResult> addWKTLayer(
 			@Name(value = "name", description = DOC_LAYER_NAME) String name,
 			@Name(value = "nodePropertyName", description = "The property from which the WKT will be read") String nodePropertyName,
-			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig) {
+			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) Object indexConfig) {
 		return addLayerOfType(name, "WKT", nodePropertyName, indexConfig);
 	}
 

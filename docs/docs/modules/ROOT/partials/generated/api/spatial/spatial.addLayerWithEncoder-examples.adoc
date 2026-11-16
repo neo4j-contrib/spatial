@@ -172,3 +172,38 @@ a|
 
 |===
 
+=== Create a `SimplePointEncoder` with a customized encoder configuration map
+
+Options not given keep their defaults, see `spatial.encoders.config`.
+
+
+[source,cypher]
+----
+CALL spatial.addLayerWithEncoder('geom','SimplePointEncoder',{xProperty: 'x', yProperty: 'y'})
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|node
+a|
+[source]
+----
+(:SpatialLayer {
+    geomencoder: "SimplePointEncoder",
+    geomencoder_config.bboxProperty: "bbox",
+    geomencoder_config.xProperty: "x",
+    geomencoder_config.yProperty: "y",
+    index_config.maxNodeReferences: 100,
+    index_config.referenceRelationshipType: "RTREE_REFERENCE",
+    index_config.shouldMergeTrees: false,
+    index_config.splitMode: "greene",
+    index_type: "rtree",
+    layer: "geom",
+    layer_type: "SimplePointLayer"
+})
+----
+
+|===
+

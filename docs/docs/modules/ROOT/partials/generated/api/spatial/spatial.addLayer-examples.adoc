@@ -100,3 +100,44 @@ a|
 
 |===
 
+=== Create a layer with encoder and index configuration maps
+
+The options are listed by `spatial.encoders.config` and `spatial.indexTypes.config`.
+
+
+[source,cypher]
+----
+CALL spatial.addLayer(
+	'geom',
+	'NativePoint',
+	{locationProperty: 'pos', bboxProperty: 'mbr'},
+	{maxNodeReferences: 50}
+)
+
+----
+
+.Result
+
+[opts="header",cols="1"]
+|===
+|node
+a|
+[source]
+----
+(:SpatialLayer {
+    geomencoder: "NativePointEncoder",
+    geomencoder_config.bboxProperty: "mbr",
+    geomencoder_config.crs: "wgs84",
+    geomencoder_config.locationProperty: "pos",
+    index_config.maxNodeReferences: 50,
+    index_config.referenceRelationshipType: "RTREE_REFERENCE",
+    index_config.shouldMergeTrees: false,
+    index_config.splitMode: "greene",
+    index_type: "rtree",
+    layer: "geom",
+    layer_type: "SimplePointLayer"
+})
+----
+
+|===
+

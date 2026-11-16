@@ -12,7 +12,7 @@ Adds a new simple point layer, returns the layer root node
 
 [source]
 ----
-spatial.addPointLayer(name :: STRING, indexType = rtree :: STRING, crsName =  :: STRING, indexConfig =  :: STRING) :: (node :: NODE)
+spatial.addPointLayer(name :: STRING, indexType = rtree :: STRING, crsName =  :: STRING, indexConfig =  :: ANY) :: (node :: NODE)
 ----
 
 == Input parameters
@@ -26,8 +26,8 @@ a|The name of the layer
 a|The type of the new layer. Existing layer types can be queried by `spatial.layer`
 |crsName|STRING|""
 a|The CRS to be used, valid values are: `wgs84`
-|indexConfig|STRING|""
-a|The configuration of the newly created index
+|indexConfig|ANY|""
+a|The configuration of the newly created index: a map by option name (see `spatial.indexTypes.config`) or a legacy string
 |===
 
 == Output parameters

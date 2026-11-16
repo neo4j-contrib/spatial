@@ -28,10 +28,15 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
+import javax.annotation.Nullable;
 import org.neo4j.procedure.Description;
 import org.neo4j.spatial.api.Configurable;
+import org.neo4j.spatial.api.Identifiable;
 
 public class ConfigurationUtils {
+
+	private static final Logger LOGGER = Logger.getLogger(ConfigurationUtils.class.getName());
 
 	// longs: config fields are persisted as Neo4j properties, which have no int type
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
@@ -100,6 +105,75 @@ public class ConfigurationUtils {
 				});
 	}
 
+
+	/**
+	 * @param config a map by option name (see {@link #getConfigMeta(Class)}) or a legacy string
+	 *               (see {@link Configurable#migrateLegacyConfiguration(String)}); {@code null} or empty: unchanged
+	 */
+	@SuppressWarnings("unchecked")
+	public static void applyConfig(Configurable<?> configurable, @Nullable Object config) {
+		if (isEmptyConfig(config)) {
+			return;
+		}
+		switch (config) {
+			case String legacy -> setLegacyConfig(configurable, legacy);
+			case Map<?, ?> map -> setConfig(configurable, (Map<String, Object>) map);
+			default -> throw invalidConfigType(config);
+		}
+	}
+
+	/**
+	 * Like {@link #applyConfig(Configurable, Object)}, also for components without config options: for those a legacy
+	 * string is ignored with a warning (compatibility), a map is rejected.
+	 *
+	 * @param kind what the component is, for messages, e.g. {@code "encoder"}
+	 */
+	public static void applyConfig(String kind, Identifiable component, @Nullable Object config) {
+		if (component instanceof Configurable<?> configurable) {
+			applyConfig(configurable, config);
+			return;
+		}
+		if (isEmptyConfig(config)) {
+			return;
+		}
+		switch (config) {
+			case String legacy -> LOGGER.warning(
+					"Warning: configuration '" + legacy + "' passed to " + kind + " without config options: "
+							+ component.getIdentifier());
+			case Map<?, ?> map -> throw new IllegalArgumentException(
+					kind + " '" + component.getIdentifier() + "' has no config options, got: " + map);
+			default -> throw invalidConfigType(config);
+		}
+	}
+
+	/**
+	 * @param defaults a typed config, e.g. a layer preset's, or {@code null}
+	 * @param config   as for {@link #applyConfig(Configurable, Object)}
+	 * @return the defaults with the options of a config map (or none) applied on top; any other config unchanged,
+	 * a legacy string replaces the defaults as a whole
+	 */
+	@Nullable
+	public static Object withDefaults(@Nullable Object defaults, @Nullable Object config) {
+		if (defaults == null || !(config == null || config instanceof Map<?, ?>)) {
+			return config;
+		}
+		Map<String, Object> merged = getConfigMap(defaults);
+		if (config instanceof Map<?, ?> map) {
+			map.forEach((key, value) -> merged.put(String.valueOf(key), value));
+		}
+		return merged;
+	}
+
+	private static IllegalArgumentException invalidConfigType(Object config) {
+		return new IllegalArgumentException(
+				"config must be a MAP or STRING, got: " + config.getClass().getSimpleName());
+	}
+
+	public static boolean isEmptyConfig(@Nullable Object config) {
+		return config == null
+				|| config instanceof String s && s.isEmpty()
+				|| config instanceof Map<?, ?> m && m.isEmpty();
+	}
 
 	public static <C> void setLegacyConfig(Configurable<C> configurable, String config) {
 		C configuration = configurable.migrateLegacyConfiguration(config);
