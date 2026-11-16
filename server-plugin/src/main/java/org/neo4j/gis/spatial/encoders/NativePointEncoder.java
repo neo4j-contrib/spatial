@@ -165,4 +165,9 @@ public class NativePointEncoder extends AbstractGeometryEncoder<Config> {
 	public Set<String> getEncoderProperties() {
 		return Set.of(configuration.bboxProperty, configuration.locationProperty, PROP_TYPE);
 	}
+
+	@Override
+	public String getDescription() {
+		return "An encoder for Point geometries that leverages Neo4j's native Point data type for efficient storage.";
+	}
 }

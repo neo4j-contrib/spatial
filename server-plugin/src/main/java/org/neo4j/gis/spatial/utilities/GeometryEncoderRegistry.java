@@ -29,7 +29,7 @@ public class GeometryEncoderRegistry extends BaseRegistry<GeometryEncoder> {
 	public static final GeometryEncoderRegistry INSTANCE = new GeometryEncoderRegistry();
 
 	private GeometryEncoderRegistry() {
-		super(GeometryEncoder.class);
+		super(GeometryEncoder.class, GeometryEncoder::getDescription);
 	}
 
 	public Map<String, EntryMeta<GeometryEncoder>> getRegisteredEncoders() {

@@ -53,7 +53,8 @@ public class OSMLayer extends DynamicLayer {
 
 	@Override
 	public List<String> getIdentifiers() {
-		return List.of("OSMLayer", "org.neo4j.gis.spatial.osm.OSMLayer");
+		// legacy package name (before #462) is still persisted in existing stores
+		return List.of("OSMLayer", "org.neo4j.spatial.osm.server.plugin.OSMLayer", "org.neo4j.gis.spatial.osm.OSMLayer");
 	}
 
 	@Override

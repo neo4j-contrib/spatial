@@ -118,4 +118,12 @@ public interface GeometryEncoder extends EnvelopeDecoder, Identifiable {
 	boolean hasComplexAttributes();
 
 	Map<String, ?> getAttributes(Transaction tx, Node geomNode);
+
+
+	/**
+	 * Provides a textual description of the geometry encoder.
+	 *
+	 * @return a description of the geometry encoder, typically including its purpose or functionality
+	 */
+	String getDescription();
 }

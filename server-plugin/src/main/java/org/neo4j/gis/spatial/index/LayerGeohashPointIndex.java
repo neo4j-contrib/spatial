@@ -118,4 +118,10 @@ public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String
 		}
 		return s.toString();
 	}
+
+	@Override
+	public String getDescription() {
+		return "A point index using Geohash-style bit-interleaving of latitude and longitude. " +
+				"Provides efficient prefix-based range searches for geographic coordinates.";
+	}
 }

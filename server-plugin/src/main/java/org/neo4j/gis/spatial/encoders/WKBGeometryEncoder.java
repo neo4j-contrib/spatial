@@ -55,4 +55,9 @@ public class WKBGeometryEncoder extends AbstractSinglePropertyEncoder {
 	public String getSignature() {
 		return "WKB" + super.getSignature();
 	}
+
+	@Override
+	public String getDescription() {
+		return "Encodes and decodes geometries using the Well-Known Binary (WKB) format stored in a single node property.";
+	}
 }

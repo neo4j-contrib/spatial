@@ -32,7 +32,7 @@ public class IndexRegistry extends BaseRegistry<SpatialIndexWriter> {
 	public static final IndexRegistry INSTANCE = new IndexRegistry();
 
 	private IndexRegistry() {
-		super(SpatialIndexWriter.class);
+		super(SpatialIndexWriter.class, SpatialIndexWriter::getDescription);
 	}
 
 	public Map<String, EntryMeta<SpatialIndexWriter>> getRegisteredIndices() {

@@ -165,4 +165,9 @@ public class NativePointsEncoder extends AbstractGeometryEncoder<Config> {
 	public Set<String> getEncoderProperties() {
 		return Set.of(configuration.bboxProperty, configuration.geomProperty, PROP_TYPE);
 	}
+
+	@Override
+	public String getDescription() {
+		return "Encodes JTS LineString geometries as arrays of native Neo4j Point types, providing efficient storage for linear spatial data.";
+	}
 }

@@ -454,6 +454,82 @@ public class SpatialProceduresTest extends AbstractApiTest {
 	}
 
 	@Test
+	public void list_encoders() {
+		assertIdsAndDescriptions("CALL spatial.encoders.list()", "NativePointEncoder", "NativePointsEncoder",
+				"SimpleGraphEncoder", "SimplePointEncoder", "SimplePropertyEncoder", "WKBGeometryEncoder",
+				"WKTGeometryEncoder");
+	}
+
+	@Test
+	public void list_index_types() {
+		assertIdsAndDescriptions("CALL spatial.indexTypes.list()", "geohash", "hilbert", "rtree", "zorder");
+	}
+
+	private void assertIdsAndDescriptions(String call, String... expectedIds) {
+		testResult(db, call, res -> {
+			var rows = res.stream().toList();
+			// exact order: sorted by id, one row per component although each is registered under several ids
+			Assertions.assertThat(rows).extracting(r -> r.get("id")).containsExactly((Object[]) expectedIds);
+			Assertions.assertThat(rows).allSatisfy(r -> Assertions.assertThat((String) r.get("description")).isNotBlank());
+		});
+	}
+
+	@Test
+	public void encoder_config() {
+		assertConfig("CALL spatial.encoders.config('SimplePointEncoder')",
+				configParam("bboxProperty", "STRING", "bbox"),
+				configParam("xProperty", "STRING", "longitude"),
+				configParam("yProperty", "STRING", "latitude"));
+	}
+
+	@Test
+	public void encoder_config_by_class_name() {
+		testCallCount(db, "CALL spatial.encoders.config('org.neo4j.gis.spatial.encoders.SimplePointEncoder')", null, 3);
+	}
+
+	@Test
+	public void index_type_config() {
+		assertConfig("CALL spatial.indexTypes.config('rtree')",
+				configParam("maxNodeReferences", "INTEGER", 100L),
+				configParam("referenceRelationshipType", "STRING", "RTREE_REFERENCE"),
+				configParam("shouldMergeTrees", "BOOLEAN", false),
+				configParam("splitMode", "STRING", "greene"));
+	}
+
+	@Test
+	public void index_type_config_of_non_configurable_index_is_empty() {
+		testCallCount(db, "CALL spatial.indexTypes.config('hilbert')", null, 0);
+	}
+
+	@SafeVarargs
+	private void assertConfig(String call, Map<String, Object>... expected) {
+		testResult(db, call, res -> {
+			var rows = res.stream().toList();
+			Assertions.assertThat(rows).allSatisfy(r -> Assertions.assertThat((String) r.get("description")).isNotBlank());
+			Assertions.assertThat(rows)
+					.extracting(r -> Map.<String, Object>of("name", r.get("name"), "type", r.get("type"), "defaultValue",
+							r.get("defaultValue")))
+					.containsExactly(expected);
+		});
+	}
+
+	private static Map<String, Object> configParam(String name, String type, Object defaultValue) {
+		return Map.of("name", name, "type", type, "defaultValue", defaultValue);
+	}
+
+	@Test
+	public void encoder_config_of_unknown_id_fails() {
+		testCallFails(db, "CALL spatial.encoders.config('Nope')", null,
+				"unknown encoder 'Nope' - supported are [NativePointEncoder, NativePointsEncoder, SimpleGraphEncoder");
+	}
+
+	@Test
+	public void index_type_config_of_unknown_id_fails() {
+		testCallFails(db, "CALL spatial.indexTypes.config('Nope')", null,
+				"unknown index type 'Nope' - supported are [geohash, hilbert, rtree, zorder]");
+	}
+
+	@Test
 	public void add_layer_of_same_type_keeps_preset_default_config() {
 		execute("CALL spatial.addLayer('a','SimplePoint',null)");
 		execute("CALL spatial.addLayer('b','SimplePoint','x:y')");

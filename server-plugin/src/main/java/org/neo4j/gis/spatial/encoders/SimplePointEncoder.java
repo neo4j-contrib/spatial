@@ -141,4 +141,10 @@ public class SimplePointEncoder extends AbstractGeometryEncoder<Config> {
 	public Set<String> getEncoderProperties() {
 		return Set.of(configuration.bboxProperty, configuration.xProperty, configuration.yProperty, PROP_TYPE);
 	}
+
+	@Override
+	public String getDescription() {
+		return "An encoder for Point geometries that maps coordinates to individual node properties. " +
+				"The property names for X and Y coordinates (e.g., longitude/latitude) are configurable.";
+	}
 }

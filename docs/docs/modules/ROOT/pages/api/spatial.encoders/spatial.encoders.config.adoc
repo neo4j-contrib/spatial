@@ -1,0 +1,5 @@
+include::partial$generated/api/spatial.encoders/spatial.encoders.config.adoc[]
+
+== Examples
+
+include::partial$generated/api/spatial.encoders/spatial.encoders.config-examples.adoc[]

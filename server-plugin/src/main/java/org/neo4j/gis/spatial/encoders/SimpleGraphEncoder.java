@@ -122,4 +122,9 @@ public class SimpleGraphEncoder extends AbstractGeometryEncoder<BaseGeometryEnco
 	public Set<String> getEncoderProperties() {
 		return Set.of(configuration.bboxProperty, PROPERTY_X_COORD, PROPERTY_Y_COORD, PROPERTY_Z_COORD, PROP_TYPE);
 	}
+
+	@Override
+	public String getDescription() {
+		return "Encodes LineString geometries as a linked list of point nodes using FIRST and NEXT relationships. Coordinates are stored as x, y, and z properties on individual nodes.";
+	}
 }

@@ -33,6 +33,9 @@ import org.neo4j.dbms.api.DatabaseManagementService;
 import org.neo4j.exceptions.KernelException;
 import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
+import org.neo4j.gis.spatial.utilities.BaseRegistry.EntryMeta;
+import org.neo4j.gis.spatial.utilities.GeometryEncoderRegistry;
+import org.neo4j.gis.spatial.utilities.IndexRegistry;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.kernel.api.procedure.GlobalProcedures;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
@@ -280,6 +283,18 @@ public class ApiExampleGenerator implements Callable<Integer> {
 
 		docExample("spatial.layerTypes", "List the available layer types")
 				.runCypher("CALL spatial.layerTypes()");
+
+		docExample("spatial.encoders.list", "List the available encoders")
+				.runCypher("CALL spatial.encoders.list()");
+		primaryIds(GeometryEncoderRegistry.INSTANCE.getRegisteredEncoders()).forEach(id ->
+				docExample("spatial.encoders.config", "Get the config options of the " + id)
+						.runCypher("CALL spatial.encoders.config('" + id + "')"));
+
+		docExample("spatial.indexTypes.list", "List the available index types")
+				.runCypher("CALL spatial.indexTypes.list()");
+		primaryIds(IndexRegistry.INSTANCE.getRegisteredIndices()).forEach(id ->
+				docExample("spatial.indexTypes.config", "Get the config options of the " + id + " index")
+						.runCypher("CALL spatial.indexTypes.config('" + id + "')"));
 
 		Stream.of("Simple", "Native").forEach(encoder ->
 				Stream.of("Geohash", "ZOrder", "Hilbert", "RTree").forEach(indexType -> {
@@ -549,6 +564,14 @@ public class ApiExampleGenerator implements Callable<Integer> {
 						config -> config.skipResult().setComment("Add a WKT linestring"))
 				.runCypher("CALL spatial.getFeatureCount('wkt_layer') YIELD count",
 						config -> config.setComment("Count features in WKT layer"));
+	}
+
+	private static List<String> primaryIds(Map<String, ? extends EntryMeta<?>> entries) {
+		return entries.values().stream()
+				.map(entry -> entry.identifiers().getFirst())
+				.distinct()
+				.sorted()
+				.toList();
 	}
 
 	private void writeDocumentation() throws IOException {

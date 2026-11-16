@@ -237,6 +237,36 @@ Adds the given nodes list to the layer, returns the count
 |label:procedure[]
 |===
 
+== spatial.encoders
+
+[.procedures,opts=header,cols='5a,1a']
+|===
+|Qualified Name |Type
+|xref:api/spatial.encoders/spatial.encoders.config.adoc[spatial.encoders.config icon:book[]]
+
+Returns the config options of the given encoder (see `spatial.encoders.list`)
+|label:procedure[]
+|xref:api/spatial.encoders/spatial.encoders.list.adoc[spatial.encoders.list icon:book[]]
+
+Returns the registered geometry encoders, one row per encoder
+|label:procedure[]
+|===
+
+== spatial.indexTypes
+
+[.procedures,opts=header,cols='5a,1a']
+|===
+|Qualified Name |Type
+|xref:api/spatial.indexTypes/spatial.indexTypes.config.adoc[spatial.indexTypes.config icon:book[]]
+
+Returns the config options of the given index type (see `spatial.indexTypes.list`)
+|label:procedure[]
+|xref:api/spatial.indexTypes/spatial.indexTypes.list.adoc[spatial.indexTypes.list icon:book[]]
+
+Returns the registered index types, one row per index type
+|label:procedure[]
+|===
+
 == spatial.removeNode
 
 [.procedures,opts=header,cols='5a,1a']

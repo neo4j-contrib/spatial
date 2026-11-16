@@ -26,8 +26,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
+import java.util.function.Function;
 import java.util.logging.Logger;
+import javax.annotation.Nullable;
 import org.neo4j.gis.spatial.SpatialDatabaseException;
+import org.neo4j.gis.spatial.utilities.ConfigurationUtils.ConfigParam;
+import org.neo4j.spatial.api.Configurable;
 import org.neo4j.spatial.api.Identifiable;
 
 /**
@@ -39,7 +43,9 @@ public class BaseRegistry<T extends Identifiable> {
 
 	public record EntryMeta<T>(
 			List<String> identifiers,
-			Class<? extends T> clazz
+			@Nullable String description,
+			Class<? extends T> clazz,
+			List<ConfigParam> config
 	) {
 
 	}
@@ -47,8 +53,16 @@ public class BaseRegistry<T extends Identifiable> {
 	private final Map<String, EntryMeta<T>> registeredEntries = new HashMap<>();
 
 	protected BaseRegistry(Class<T> tClass) {
+		this(tClass, entry -> null);
+	}
+
+	protected BaseRegistry(Class<T> tClass, Function<T, String> descriptionExtractor) {
 		ServiceLoader.load(tClass).forEach(entry -> {
-			EntryMeta<T> entryMeta = new EntryMeta<>(entry.getIdentifiers(), entry.getClass().asSubclass(tClass));
+			List<ConfigParam> config = entry instanceof Configurable<?> configurable
+					? ConfigurationUtils.getConfigMeta(configurable.getConfigType())
+					: List.of();
+			EntryMeta<T> entryMeta = new EntryMeta<>(entry.getIdentifiers(), descriptionExtractor.apply(entry),
+					entry.getClass().asSubclass(tClass), config);
 			entryMeta.identifiers().forEach(identifier -> {
 				if (registeredEntries.containsKey(identifier)) {
 					LOGGER.warning(tClass.getSimpleName() + " identifier conflict: " + identifier

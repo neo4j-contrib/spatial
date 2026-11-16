@@ -81,7 +81,8 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder<BaseGeometryEnco
 
 	@Override
 	public List<String> getIdentifiers() {
-		return List.of("OSMGeometryEncoder", "org.neo4j.gis.spatial.osm.OSMGeometryEncoder");
+		// legacy package name (before #462) is still persisted in existing stores
+		return List.of("OSMGeometryEncoder", "org.neo4j.spatial.osm.server.plugin.OSMGeometryEncoder", "org.neo4j.gis.spatial.osm.OSMGeometryEncoder");
 	}
 
 	@Override
@@ -620,5 +621,10 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder<BaseGeometryEnco
 			}
 		}
 		return result;
+	}
+
+	@Override
+	public String getDescription() {
+		return "Encoder for OpenStreetMap (OSM) data models. It maps OSM Nodes, Ways, and Relations to JTS Geometries and manages spatial indexing for OSM-specific graph structures.";
 	}
 }

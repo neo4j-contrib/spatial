@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Stream;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -68,5 +69,13 @@ class RegistriesTest {
 		assertThat(byShortId.clazz()).isEqualTo(clazz);
 		assertThat(construct.apply(shortId)).isExactlyInstanceOf(clazz);
 		assertThat(construct.apply(clazz.getName())).isExactlyInstanceOf(clazz);
+	}
+
+	@Test
+	void encodersAndIndicesHaveDescriptions() {
+		Stream.concat(
+						GeometryEncoderRegistry.INSTANCE.getRegisteredEncoders().values().stream(),
+						IndexRegistry.INSTANCE.getRegisteredIndices().values().stream())
+				.forEach(entry -> assertThat(entry.description()).as(entry.clazz().getName()).isNotBlank());
 	}
 }
