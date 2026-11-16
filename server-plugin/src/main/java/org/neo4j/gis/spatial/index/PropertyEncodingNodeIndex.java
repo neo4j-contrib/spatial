@@ -71,6 +71,22 @@ public class PropertyEncodingNodeIndex<E> {
 		return Iterators.loop(tx.findNodes(label));
 	}
 
+	public boolean isEmpty(Transaction tx) {
+		try (var nodes = tx.findNodes(label)) {
+			return !nodes.hasNext();
+		}
+	}
+
+	public int count(Transaction tx) {
+		try (var nodes = tx.findNodes(label)) {
+			return (int) Iterators.count(nodes);
+		}
+	}
+
+	public boolean contains(Node node) {
+		return node.hasLabel(label);
+	}
+
 	public Iterator<Node> query(Transaction tx, ExplicitIndexBackedPointIndex.Neo4jIndexSearcher searcher) {
 		KernelTransaction ktx = ((InternalTransaction) tx).kernelTransaction();
 		return searcher.search(ktx, label, propertyKey);

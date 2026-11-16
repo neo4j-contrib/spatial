@@ -133,22 +133,39 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements SpatialIndexWr
 
 	@Override
 	public boolean isEmpty(Transaction tx) {
-		return true;
+		return index.isEmpty(tx);
 	}
 
 	@Override
-	public int count(Transaction ignore) {
-		return 0;
+	public int count(Transaction tx) {
+		return index.count(tx);
 	}
 
+	/**
+	 * Scans all indexed nodes: the backing index stores no bounding box.
+	 */
 	@Override
 	public Envelope getBoundingBox(Transaction tx) {
-		return null;
+		EnvelopeDecoder decoder = getEnvelopeDecoder();
+		Envelope bbox = null;
+		for (Node node : getAllIndexedNodes(tx)) {
+			Envelope envelope = decoder.decodeEnvelope(node);
+			if (bbox == null) {
+				bbox = new Envelope(envelope);
+			} else {
+				bbox.expandToInclude(envelope);
+			}
+		}
+		return bbox;
 	}
 
 	@Override
 	public boolean isNodeIndexed(Transaction tx, String nodeId) {
-		return false;
+		try {
+			return index.contains(tx.getNodeByElementId(nodeId));
+		} catch (NotFoundException e) {
+			return false;
+		}
 	}
 
 	@Override
