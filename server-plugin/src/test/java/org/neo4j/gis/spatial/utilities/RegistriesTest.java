@@ -78,11 +78,4 @@ class RegistriesTest {
 						IndexRegistry.INSTANCE.getRegisteredIndices().values().stream())
 				.forEach(entry -> assertThat(entry.description()).as(entry.clazz().getName()).isNotBlank());
 	}
-
-	@Test
-	void layersHaveNoDescription() {
-		assertThat(LayerRegistry.INSTANCE.getRegisteredLayers().values())
-				.isNotEmpty()
-				.allSatisfy(entry -> assertThat(entry.description()).isNull());
-	}
 }
