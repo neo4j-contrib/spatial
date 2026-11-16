@@ -28,6 +28,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Nullable;
 import org.neo4j.procedure.Description;
 import org.neo4j.spatial.api.Configurable;
 
@@ -100,6 +101,29 @@ public class ConfigurationUtils {
 				});
 	}
 
+
+	/**
+	 * @param config a map by option name (see {@link #getConfigMeta(Class)}) or a legacy string
+	 *               (see {@link Configurable#migrateLegacyConfiguration(String)}); {@code null} or empty: unchanged
+	 */
+	@SuppressWarnings("unchecked")
+	public static void applyConfig(Configurable<?> configurable, @Nullable Object config) {
+		if (isEmptyConfig(config)) {
+			return;
+		}
+		switch (config) {
+			case String legacy -> setLegacyConfig(configurable, legacy);
+			case Map<?, ?> map -> setConfig(configurable, (Map<String, Object>) map);
+			default -> throw new IllegalArgumentException(
+					"config must be a MAP or STRING, got: " + config.getClass().getSimpleName());
+		}
+	}
+
+	public static boolean isEmptyConfig(@Nullable Object config) {
+		return config == null
+				|| config instanceof String s && s.isEmpty()
+				|| config instanceof Map<?, ?> m && m.isEmpty();
+	}
 
 	public static <C> void setLegacyConfig(Configurable<C> configurable, String config) {
 		C configuration = configurable.migrateLegacyConfiguration(config);

@@ -12,7 +12,7 @@ Adds a new layer with the given encoder class and configuration, returns the lay
 
 [source]
 ----
-spatial.addLayerWithEncoder(name :: STRING, encoder :: STRING, encoderConfig :: STRING, indexConfig =  :: STRING) :: (node :: NODE)
+spatial.addLayerWithEncoder(name :: STRING, encoder :: STRING, encoderConfig :: ANY, indexConfig =  :: ANY) :: (node :: NODE)
 ----
 
 == Input parameters
@@ -24,10 +24,10 @@ spatial.addLayerWithEncoder(name :: STRING, encoder :: STRING, encoderConfig :: 
 a|The name of the layer
 |encoder|STRING|null
 a|The name of the encoder to be used for the new layer
-|encoderConfig|STRING|null
-a|The configuration of the encoder that is used by layer to en-/decode the geometry of indexed nodes
-|indexConfig|STRING|""
-a|The configuration of the newly created index
+|encoderConfig|ANY|null
+a|The configuration of the encoder that is used by layer to en-/decode the geometry of indexed nodes: a map by option name (see `spatial.encoders.config`) or a legacy string
+|indexConfig|ANY|""
+a|The configuration of the newly created index: a map by option name (see `spatial.indexTypes.config`) or a legacy string
 |===
 
 == Output parameters

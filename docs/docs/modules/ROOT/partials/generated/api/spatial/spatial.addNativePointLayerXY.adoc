@@ -18,7 +18,7 @@ This procedure is deprecated by: spatial.addPointLayerXY
 
 [source]
 ----
-spatial.addNativePointLayerXY(name :: STRING, xProperty :: STRING, yProperty :: STRING, indexType = rtree :: STRING, crsName =  :: STRING, indexConfig =  :: STRING) :: (node :: NODE)
+spatial.addNativePointLayerXY(name :: STRING, xProperty :: STRING, yProperty :: STRING, indexType = rtree :: STRING, crsName =  :: STRING, indexConfig =  :: ANY) :: (node :: NODE)
 ----
 
 == Input parameters
@@ -36,8 +36,8 @@ a|The name of the property with the y coordinate
 a|The type of the index algorithm to be used, valid values are: `rtree`, `geohash`, `zorder` or `hilbert`
 |crsName|STRING|""
 a|The CRS to be used, valid values are: `wgs84`
-|indexConfig|STRING|""
-a|The configuration of the newly created index
+|indexConfig|ANY|""
+a|The configuration of the newly created index: a map by option name (see `spatial.indexTypes.config`) or a legacy string
 |===
 
 == Output parameters

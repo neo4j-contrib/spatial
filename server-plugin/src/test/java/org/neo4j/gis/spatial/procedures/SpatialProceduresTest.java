@@ -29,8 +29,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.neo4j.gis.spatial.Constants.LABEL_LAYER;
+import static org.neo4j.gis.spatial.Constants.PROP_CRS;
 import static org.neo4j.gis.spatial.Constants.PROP_GEOMENCODER;
 import static org.neo4j.gis.spatial.Constants.PROP_GEOMENCODER_CONFIG;
+import static org.neo4j.gis.spatial.Constants.PROP_INDEX_CONFIG;
 import static org.neo4j.gis.spatial.Constants.PROP_INDEX_TYPE;
 import static org.neo4j.gis.spatial.Constants.PROP_LAYER;
 import static org.neo4j.gis.spatial.Constants.PROP_LAYER_TYPE;
@@ -399,7 +401,7 @@ public class SpatialProceduresTest extends AbstractApiTest {
 					procs.get("spatial.layers"));
 			assertEquals("spatial.layer(name :: STRING) :: (node :: NODE)", procs.get("spatial.layer"));
 			assertEquals(
-					"spatial.addLayer(name :: STRING, type :: STRING, encoderConfig :: STRING, indexConfig =  :: STRING) :: (node :: NODE)",
+					"spatial.addLayer(name :: STRING, type :: STRING, encoderConfig :: ANY, indexConfig =  :: ANY) :: (node :: NODE)",
 					procs.get("spatial.addLayer"));
 			assertEquals("spatial.addNode(layerName :: STRING, node :: NODE) :: (node :: NODE)",
 					procs.get("spatial.addNode"));
@@ -527,6 +529,67 @@ public class SpatialProceduresTest extends AbstractApiTest {
 	public void index_type_config_of_unknown_id_fails() {
 		testCallFails(db, "CALL spatial.indexTypes.config('Nope')", null,
 				"unknown index type 'Nope' - supported are [geohash, hilbert, rtree, zorder]");
+	}
+
+	@ParameterizedTest
+	@CsvSource({"SimplePoint,rtree", "Geohash,geohash", "ZOrder,zorder", "Hilbert,hilbert", "NativePoint,rtree",
+			"NativeGeohash,geohash", "NativeZOrder,zorder", "NativeHilbert,hilbert", "WKT,rtree"})
+	public void add_layer_uses_the_preset_index(String type, String expectedIndex) {
+		testCall(db, "CALL spatial.addLayer('layer', $type, null)", Map.of("type", type), r -> {
+			Node node = (Node) r.get("node");
+			assertEquals(expectedIndex, node.getProperty(PROP_INDEX_TYPE));
+			// only space-filling-curve indexes get the preset CRS
+			assertEquals(!expectedIndex.equals("rtree"), node.hasProperty(PROP_CRS));
+		});
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {"'{\"maxNodeReferences\":20}'", "{maxNodeReferences: 20}"})
+	public void add_layer_applies_index_config(String indexConfig) {
+		testCall(db, "CALL spatial.addLayer('layer', 'SimplePoint', null, " + indexConfig + ") YIELD node "
+				+ "RETURN node.`" + PROP_INDEX_CONFIG + ".maxNodeReferences` AS max", r -> assertEquals(20L, r.get("max")));
+	}
+
+	@Test
+	public void add_layer_with_encoder_config_map() {
+		testCall(db, "CALL spatial.addLayer('layer', 'SimplePoint', {xProperty: 'x', yProperty: 'y'})",
+				r -> assertEquals(Map.of("xProperty", "x", "yProperty", "y", "bboxProperty", "bbox"),
+						encoderConfig((Node) r.get("node"))));
+	}
+
+	@Test
+	public void add_layer_with_encoder_and_config_maps() {
+		testCall(db, "CALL spatial.addLayerWithEncoder('layer', 'NativePointEncoder', {locationProperty: 'pos'}, "
+						+ "{maxNodeReferences: 20})",
+				r -> {
+					Node node = (Node) r.get("node");
+					assertEquals(Map.of("locationProperty", "pos", "bboxProperty", "bbox", "crs", "wgs84"),
+							encoderConfig(node));
+					assertEquals(20L, node.getProperty(PROP_INDEX_CONFIG + ".maxNodeReferences"));
+				});
+	}
+
+	@Test
+	public void add_point_layer_with_config_map() {
+		testCall(db, "CALL spatial.addPointLayerWithConfig('layer', {xProperty: 'lon', yProperty: 'lat'}, 'hilbert')",
+				r -> {
+					Node node = (Node) r.get("node");
+					assertEquals(Map.of("xProperty", "lon", "yProperty", "lat", "bboxProperty", "bbox"),
+							encoderConfig(node));
+					// 'lat' hints a geographic CRS, as for the legacy string form
+					assertTrue(node.hasProperty(PROP_CRS));
+				});
+	}
+
+	@Test
+	public void add_layer_rejects_unknown_config_option() {
+		testCallFails(db, "CALL spatial.addLayer('layer', 'SimplePoint', {nope: 'x'})", null, "nope");
+	}
+
+	@Test
+	public void add_layer_rejects_config_of_wrong_type() {
+		testCallFails(db, "CALL spatial.addLayer('layer', 'SimplePoint', null, 42)", null,
+				"config must be a MAP or STRING, got: Long");
 	}
 
 	@Test

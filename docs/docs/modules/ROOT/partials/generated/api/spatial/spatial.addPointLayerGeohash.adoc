@@ -12,7 +12,7 @@ Adds a new simple point layer with geohash based index, returns the layer root n
 
 [source]
 ----
-spatial.addPointLayerGeohash(name :: STRING, crsName = wgs84 :: STRING, indexConfig =  :: STRING) :: (node :: NODE)
+spatial.addPointLayerGeohash(name :: STRING, crsName = wgs84 :: STRING, indexConfig =  :: ANY) :: (node :: NODE)
 ----
 
 == Input parameters
@@ -24,8 +24,8 @@ spatial.addPointLayerGeohash(name :: STRING, crsName = wgs84 :: STRING, indexCon
 a|The name of the layer
 |crsName|STRING|"wgs84"
 a|The CRS to be used, valid values are: `wgs84`
-|indexConfig|STRING|""
-a|The configuration of the newly created index
+|indexConfig|ANY|""
+a|The configuration of the newly created index: a map by option name (see `spatial.indexTypes.config`) or a legacy string
 |===
 
 == Output parameters

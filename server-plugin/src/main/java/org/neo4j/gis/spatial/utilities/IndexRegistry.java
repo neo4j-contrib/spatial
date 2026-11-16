@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial.utilities;
 
 import java.util.Map;
 import java.util.logging.Logger;
+import javax.annotation.Nullable;
 import org.neo4j.spatial.api.Configurable;
 import org.neo4j.spatial.api.index.SpatialIndexWriter;
 
@@ -44,20 +45,25 @@ public class IndexRegistry extends BaseRegistry<SpatialIndexWriter> {
 	}
 
 	/**
-	 * @param config legacy string configuration, see {@link Configurable#migrateLegacyConfiguration(String)}
+	 * @param config see {@link #applyConfig(SpatialIndexWriter, Object)}
 	 */
-	public SpatialIndexWriter constructIndex(String indexName, String config) {
+	public SpatialIndexWriter constructIndex(String indexName, @Nullable Object config) {
 		SpatialIndexWriter index = constructEntry("index", indexName);
-		if (config != null && !config.isEmpty()) {
-			if (index instanceof Configurable<?> configurable) {
-				ConfigurationUtils.setLegacyConfig(configurable, config);
-			} else {
-				LOGGER.warning(
-						"Warning: index configuration '" + config + "' passed to non-configurable index: "
-								+ index.getClass());
-			}
-		}
+		applyConfig(index, config);
 		return index;
+	}
+
+	/**
+	 * @param config see {@link ConfigurationUtils#applyConfig(Configurable, Object)}; ignored with a warning for a
+	 *               non-configurable index
+	 */
+	public void applyConfig(SpatialIndexWriter index, @Nullable Object config) {
+		if (index instanceof Configurable<?> configurable) {
+			ConfigurationUtils.applyConfig(configurable, config);
+		} else if (!ConfigurationUtils.isEmptyConfig(config)) {
+			LOGGER.warning("Warning: index configuration '" + config + "' passed to non-configurable index: "
+					+ index.getClass());
+		}
 	}
 
 	public <T extends SpatialIndexWriter> T constructIndex(Class<T> indexClass) {

@@ -84,8 +84,8 @@ public interface Constants {
 
 	String DOC_LAYER_NAME = "The name of the layer";
 	String DOC_LAYER_TYPE = "The type of the new layer. Existing layer types can be queried by `spatial.layer`";
-	String DOC_ENCODER_CONFIG = "The configuration of the encoder that is used by layer to en-/decode the geometry of indexed nodes";
-	String DOC_INDEX_CONFIG = "The configuration of the newly created index";
+	String DOC_ENCODER_CONFIG = "The configuration of the encoder that is used by layer to en-/decode the geometry of indexed nodes: a map by option name (see `spatial.encoders.config`) or a legacy string";
+	String DOC_INDEX_CONFIG = "The configuration of the newly created index: a map by option name (see `spatial.indexTypes.config`) or a legacy string";
 	String DOC_ENCODER_NAME = "The name of the encoder to be used for the new layer";
 	String DOC_INDEX_TYPE =
 			"The type of the index algorithm to be used, valid values are: `" + INDEX_TYPE_RTREE + "`, `"

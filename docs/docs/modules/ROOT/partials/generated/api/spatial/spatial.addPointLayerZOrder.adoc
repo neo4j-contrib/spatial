@@ -12,7 +12,7 @@ Adds a new simple point layer with z-order curve based index, returns the layer 
 
 [source]
 ----
-spatial.addPointLayerZOrder(name :: STRING, indexConfig =  :: STRING) :: (node :: NODE)
+spatial.addPointLayerZOrder(name :: STRING, indexConfig =  :: ANY) :: (node :: NODE)
 ----
 
 == Input parameters
@@ -22,8 +22,8 @@ spatial.addPointLayerZOrder(name :: STRING, indexConfig =  :: STRING) :: (node :
 |Name|Type|Default|Description
 |name|STRING|null
 a|The name of the layer
-|indexConfig|STRING|""
-a|The configuration of the newly created index
+|indexConfig|ANY|""
+a|The configuration of the newly created index: a map by option name (see `spatial.indexTypes.config`) or a legacy string
 |===
 
 == Output parameters
