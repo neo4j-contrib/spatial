@@ -1,0 +1,5 @@
+include::partial$generated/api/spatial.indexTypes/spatial.indexTypes.list.adoc[]
+
+== Examples
+
+include::partial$generated/api/spatial.indexTypes/spatial.indexTypes.list-examples.adoc[]

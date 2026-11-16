@@ -72,6 +72,7 @@ import org.neo4j.gis.spatial.rtree.ProgressLoggingListener;
 import org.neo4j.gis.spatial.rtree.RTreeIndex;
 import org.neo4j.gis.spatial.utilities.BaseRegistry.EntryMeta;
 import org.neo4j.gis.spatial.utilities.ConfigurationUtils;
+import org.neo4j.gis.spatial.utilities.ConfigurationUtils.ConfigParam;
 import org.neo4j.gis.spatial.utilities.GeometryEncoderRegistry;
 import org.neo4j.gis.spatial.utilities.IndexRegistry;
 import org.neo4j.gis.spatial.utilities.LayerTypePresetRegistry;
@@ -124,6 +125,15 @@ public class SpatialProcedures extends SpatialApiBase {
 	}
 
 	public record NameResult(String name, String signature) {
+
+	}
+
+	public record NameAndDescriptionResult(
+			@Description("The id of the component")
+			String name,
+			@Description("What the component does")
+			String description
+	) {
 
 	}
 
@@ -262,6 +272,55 @@ public class SpatialProcedures extends SpatialApiBase {
 				.stream()
 				.map(LayerType::new)
 				.sorted(Comparator.comparing(LayerType::id));
+	}
+
+	@Procedure(value = "spatial.encoders.list", mode = READ)
+	@Description("Returns the registered geometry encoders, one row per encoder")
+	public Stream<NameAndDescriptionResult> listEncoders() {
+		return listEntries(GeometryEncoderRegistry.INSTANCE.getRegisteredEncoders());
+	}
+
+	@Procedure(value = "spatial.encoders.config", mode = READ)
+	@Description("Returns the config options of the given encoder (see `spatial.encoders.list`)")
+	public Stream<ConfigParam> encoderConfig(
+			@Name(value = "encoderId", description = "The id of the encoder") String encoderId) {
+		return getEntry("encoder", GeometryEncoderRegistry.INSTANCE.getRegisteredEncoders(), encoderId)
+				.config().stream();
+	}
+
+	@Procedure(value = "spatial.indexTypes.list", mode = READ)
+	@Description("Returns the registered index types, one row per index type")
+	public Stream<NameAndDescriptionResult> listIndexTypes() {
+		return listEntries(IndexRegistry.INSTANCE.getRegisteredIndices());
+	}
+
+	@Procedure(value = "spatial.indexTypes.config", mode = READ)
+	@Description("Returns the config options of the given index type (see `spatial.indexTypes.list`)")
+	public Stream<ConfigParam> indexTypeConfig(
+			@Name(value = "indexId", description = "The id of the index type") String indexId) {
+		return getEntry("index type", IndexRegistry.INSTANCE.getRegisteredIndices(), indexId)
+				.config().stream();
+	}
+
+	private static Stream<? extends EntryMeta<?>> distinctEntries(Map<String, ? extends EntryMeta<?>> entries) {
+		// each entry is registered under all its identifiers
+		return entries.values().stream()
+				.distinct()
+				.sorted(Comparator.comparing(entry -> entry.identifiers().getFirst()));
+	}
+
+	private static Stream<NameAndDescriptionResult> listEntries(Map<String, ? extends EntryMeta<?>> entries) {
+		return distinctEntries(entries)
+				.map(entry -> new NameAndDescriptionResult(entry.identifiers().getFirst(), entry.description()));
+	}
+
+	private static <M extends EntryMeta<?>> M getEntry(String kind, Map<String, M> entries, String id) {
+		M entry = entries.get(id);
+		if (entry == null) {
+			throw new IllegalArgumentException("unknown " + kind + " '" + id + "' - supported are "
+					+ distinctEntries(entries).map(e -> e.identifiers().getFirst()).toList());
+		}
+		return entry;
 	}
 
 	@Procedure(value = "spatial.addPointLayer", mode = WRITE)
