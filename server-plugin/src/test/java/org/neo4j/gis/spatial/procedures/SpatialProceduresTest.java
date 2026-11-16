@@ -802,6 +802,15 @@ public class SpatialProceduresTest extends AbstractApiTest {
 		});
 		// distance 0: search radius derived from the layer bounding box
 		testCallCount(db, "CALL spatial.closest('geom', {lon: 15.2, lat: 60.1}, 0.0)", null, 1);
+
+		testCall(db, """
+				CALL spatial.bbox('geom', {lon: 15.0, lat: 60.0}, {lon: 17.0, lat: 62.0}) YIELD node
+				WITH collect(node) AS nodes
+				CALL spatial.removeNodes('geom', nodes) YIELD count
+				RETURN count""", r -> assertEquals(2L, r.get("count")));
+		testCall(db, "CALL spatial.getFeatureCount('geom')", r -> assertEquals(0L, r.get("count")));
+		// empty layer: closest must not derive a radius from the (absent) bounding box
+		testCallCount(db, "CALL spatial.closest('geom', {lon: 15.2, lat: 60.1}, 0.0)", null, 0);
 	}
 
 	@Test
