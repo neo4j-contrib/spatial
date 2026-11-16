@@ -10,18 +10,18 @@ CALL spatial.layerTypes()
 
 [opts="header",cols="6"]
 |===
-|crsName|defaultEncoderConfig|encoder|id|index|layer
-|WGS84(DD)|longitude:latitude|SimplePointEncoder|Geohash|geohash|SimplePointLayer
-|WGS84(DD)|longitude:latitude|SimplePointEncoder|Hilbert|hilbert|SimplePointLayer
-|WGS84(DD)|location|NativePointEncoder|NativeGeohash|geohash|SimplePointLayer
-|WGS84(DD)|location|NativePointEncoder|NativeHilbert|hilbert|SimplePointLayer
-|WGS84(DD)|location|NativePointEncoder|NativePoint|rtree|SimplePointLayer
-|WGS84(DD)|geometry|NativePointsEncoder|NativePoints|rtree|EditableLayer
-|WGS84(DD)|location|NativePointEncoder|NativeZOrder|zorder|SimplePointLayer
-|WGS84(DD)|geometry|OSMGeometryEncoder|OSM|rtree|OSMLayer
-|WGS84(DD)|longitude:latitude|SimplePointEncoder|SimplePoint|rtree|SimplePointLayer
-|WGS84(DD)|geometry|WKBGeometryEncoder|WKB|rtree|EditableLayer
-|WGS84(DD)|geometry|WKTGeometryEncoder|WKT|rtree|EditableLayer
-|WGS84(DD)|longitude:latitude|SimplePointEncoder|ZOrder|zorder|SimplePointLayer
+|id|crsName|defaultEncoderConfig|encoder|index|layer
+|Geohash|WGS84(DD)|longitude:latitude|SimplePointEncoder|geohash|SimplePointLayer
+|Hilbert|WGS84(DD)|longitude:latitude|SimplePointEncoder|hilbert|SimplePointLayer
+|NativeGeohash|WGS84(DD)|location|NativePointEncoder|geohash|SimplePointLayer
+|NativeHilbert|WGS84(DD)|location|NativePointEncoder|hilbert|SimplePointLayer
+|NativePoint|WGS84(DD)|location|NativePointEncoder|rtree|SimplePointLayer
+|NativePoints|WGS84(DD)|geometry|NativePointsEncoder|rtree|EditableLayer
+|NativeZOrder|WGS84(DD)|location|NativePointEncoder|zorder|SimplePointLayer
+|OSM|WGS84(DD)|geometry|OSMGeometryEncoder|rtree|OSMLayer
+|SimplePoint|WGS84(DD)|longitude:latitude|SimplePointEncoder|rtree|SimplePointLayer
+|WKB|WGS84(DD)|geometry|WKBGeometryEncoder|rtree|EditableLayer
+|WKT|WGS84(DD)|geometry|WKTGeometryEncoder|rtree|EditableLayer
+|ZOrder|WGS84(DD)|longitude:latitude|SimplePointEncoder|zorder|SimplePointLayer
 |===
 

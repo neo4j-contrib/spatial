@@ -52,26 +52,28 @@ CALL spatial.layerMeta('meta_layer') YIELD name, geometryType, crs, hasComplexAt
 
 [opts="header",cols="5"]
 |===
-|crs|extraAttributes|geometryType|hasComplexAttributes|name
-|GEOGCS["WGS84(DD)", 
+|name|crs|extraAttributes|geometryType|hasComplexAttributes
+|meta_layer|GEOGCS["WGS84(DD)", 
   DATUM["WGS84", 
     SPHEROID["WGS84", 6378137.0, 298.257223563]], 
   PRIMEM["Greenwich", 0.0], 
   UNIT["degree", 0.017453292519943295], 
   AXIS["Geodetic longitude", EAST], 
   AXIS["Geodetic latitude", NORTH], 
-  AUTHORITY["EPSG","4326"]]a|
+  AUTHORITY["EPSG","4326"]]
+a|
 [source]
 ----
 {
   "name" : "java.lang.String"
 }
 ----
-|org.locationtech.jts.geom.Pointa|
+|org.locationtech.jts.geom.Point
+a|
 [source]
 ----
 false
 ----
-|meta_layer
+
 |===
 
