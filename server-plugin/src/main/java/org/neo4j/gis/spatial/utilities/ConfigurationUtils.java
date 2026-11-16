@@ -28,11 +28,15 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import org.neo4j.procedure.Description;
 import org.neo4j.spatial.api.Configurable;
+import org.neo4j.spatial.api.Identifiable;
 
 public class ConfigurationUtils {
+
+	private static final Logger LOGGER = Logger.getLogger(ConfigurationUtils.class.getName());
 
 	// longs: config fields are persisted as Neo4j properties, which have no int type
 	private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper()
@@ -118,7 +122,31 @@ public class ConfigurationUtils {
 		}
 	}
 
-	public static IllegalArgumentException invalidConfigType(Object config) {
+	/**
+	 * Like {@link #applyConfig(Configurable, Object)}, also for components without config options: for those a legacy
+	 * string is ignored with a warning (compatibility), a map is rejected.
+	 *
+	 * @param kind what the component is, for messages, e.g. {@code "encoder"}
+	 */
+	public static void applyConfig(String kind, Identifiable component, @Nullable Object config) {
+		if (component instanceof Configurable<?> configurable) {
+			applyConfig(configurable, config);
+			return;
+		}
+		if (isEmptyConfig(config)) {
+			return;
+		}
+		switch (config) {
+			case String legacy -> LOGGER.warning(
+					"Warning: configuration '" + legacy + "' passed to " + kind + " without config options: "
+							+ component.getIdentifier());
+			case Map<?, ?> map -> throw new IllegalArgumentException(
+					kind + " '" + component.getIdentifier() + "' has no config options, got: " + map);
+			default -> throw invalidConfigType(config);
+		}
+	}
+
+	private static IllegalArgumentException invalidConfigType(Object config) {
 		return new IllegalArgumentException(
 				"config must be a MAP or STRING, got: " + config.getClass().getSimpleName());
 	}

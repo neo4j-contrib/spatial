@@ -21,14 +21,12 @@
 package org.neo4j.gis.spatial.utilities;
 
 import java.util.Map;
-import java.util.logging.Logger;
 import javax.annotation.Nullable;
 import org.neo4j.spatial.api.Configurable;
+import org.neo4j.spatial.api.Identifiable;
 import org.neo4j.spatial.api.index.SpatialIndexWriter;
 
 public class IndexRegistry extends BaseRegistry<SpatialIndexWriter> {
-
-	private static final Logger LOGGER = Logger.getLogger(IndexRegistry.class.getName());
 
 	public static final IndexRegistry INSTANCE = new IndexRegistry();
 
@@ -54,25 +52,10 @@ public class IndexRegistry extends BaseRegistry<SpatialIndexWriter> {
 	}
 
 	/**
-	 * @param config see {@link ConfigurationUtils#applyConfig(Configurable, Object)}; for a non-configurable index a
-	 *               legacy string is ignored with a warning, a map is rejected
+	 * @param config see {@link ConfigurationUtils#applyConfig(String, Identifiable, Object)}
 	 */
 	public void applyConfig(SpatialIndexWriter index, @Nullable Object config) {
-		if (index instanceof Configurable<?> configurable) {
-			ConfigurationUtils.applyConfig(configurable, config);
-			return;
-		}
-		if (ConfigurationUtils.isEmptyConfig(config)) {
-			return;
-		}
-		switch (config) {
-			case String legacy -> LOGGER.warning(
-					"Warning: index configuration '" + legacy + "' passed to non-configurable index: "
-							+ index.getClass());
-			case Map<?, ?> map -> throw new IllegalArgumentException(
-					"index type '" + index.getIdentifiers().getFirst() + "' has no config options, got: " + map);
-			default -> throw ConfigurationUtils.invalidConfigType(config);
-		}
+		ConfigurationUtils.applyConfig("index type", index, config);
 	}
 
 	public <T extends SpatialIndexWriter> T constructIndex(Class<T> indexClass) {

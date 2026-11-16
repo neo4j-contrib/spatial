@@ -585,9 +585,7 @@ public class SpatialProcedures extends SpatialApiBase {
 		assertLayerDoesNotExist(sdb, name);
 		Class<? extends Layer> layerClass = LayerTypePresetRegistry.INSTANCE.suggestLayerClassForEncoder(encoderClass);
 		var encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(encoderClass);
-		if (encoder instanceof Configurable<?> configurable) {
-			ConfigurationUtils.applyConfig(configurable, encoderConfig);
-		}
+		ConfigurationUtils.applyConfig("encoder", encoder, encoderConfig);
 		var index = IndexRegistry.INSTANCE.constructIndex(LayerRTreeIndex.class);
 		IndexRegistry.INSTANCE.applyConfig(index, indexConfig);
 		var layer = sdb.createLayer(tx, name, layerClass, null, encoder, index);
@@ -611,14 +609,12 @@ public class SpatialProcedures extends SpatialApiBase {
 		assertLayerDoesNotExist(sdb, name);
 
 		var encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(registeredLayerType.geometryEncoder());
-		if (encoder instanceof Configurable<?> configurable) {
-			if (encoderConfig != null) {
-				ConfigurationUtils.applyConfig(configurable, encoderConfig);
-			} else if (registeredLayerType.defaultEncoderConfig() != null) {
-				// via map: the preset config is untyped (Object)
-				ConfigurationUtils.setConfig(configurable,
-						ConfigurationUtils.getConfigMap(registeredLayerType.defaultEncoderConfig()));
-			}
+		if (encoderConfig != null) {
+			ConfigurationUtils.applyConfig("encoder", encoder, encoderConfig);
+		} else if (encoder instanceof Configurable<?> configurable && registeredLayerType.defaultEncoderConfig() != null) {
+			// via map: the preset config is untyped (Object)
+			ConfigurationUtils.setConfig(configurable,
+					ConfigurationUtils.getConfigMap(registeredLayerType.defaultEncoderConfig()));
 		}
 		var index = IndexRegistry.INSTANCE.constructIndex(registeredLayerType.layerIndexClass());
 		IndexRegistry.INSTANCE.applyConfig(index, indexConfig);
