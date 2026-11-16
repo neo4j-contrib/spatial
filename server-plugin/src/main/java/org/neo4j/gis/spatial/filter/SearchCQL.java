@@ -61,6 +61,11 @@ public class SearchCQL implements SearchFilter {
 	}
 
 	@Override
+	public Envelope getBoundingEnvelope() {
+		return filterEnvelope;
+	}
+
+	@Override
 	public boolean geometryMatches(Transaction tx, Node geomNode) {
 		SimpleFeature feature = featureBuilder.buildFeature(tx, new SpatialDatabaseRecord(this.layer, geomNode));
 		return filter.evaluate(feature);

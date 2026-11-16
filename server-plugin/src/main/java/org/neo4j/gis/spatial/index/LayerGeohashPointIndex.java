@@ -30,13 +30,11 @@ import java.util.List;
 import org.apache.lucene.util.BitUtil;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.Point;
-import org.neo4j.gis.spatial.rtree.filter.AbstractSearchEnvelopeIntersection;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.StringSearchMode;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.kernel.api.KernelTransaction;
-import org.neo4j.spatial.api.SearchFilter;
 
 public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String> {
 
@@ -70,16 +68,10 @@ public class LayerGeohashPointIndex extends ExplicitIndexBackedPointIndex<String
 	}
 
 	@Override
-	protected Neo4jIndexSearcher searcherFor(Transaction tx, SearchFilter filter) {
-		if (filter instanceof AbstractSearchEnvelopeIntersection) {
-			Envelope referenceEnvelope = ((AbstractSearchEnvelopeIntersection) filter).getReferenceEnvelope();
-			String maxHash = geoTermToString(encode(referenceEnvelope.getMaxY(), referenceEnvelope.getMaxX()));
-			String minHash = geoTermToString(encode(referenceEnvelope.getMinY(), referenceEnvelope.getMinX()));
-			return new PrefixSearcher(greatestCommonPrefix(minHash, maxHash));
-		}
-		throw new UnsupportedOperationException(
-				"Geohash Index only supports searches based on AbstractSearchEnvelopeIntersection, not "
-						+ filter.getClass().getCanonicalName());
+	protected Neo4jIndexSearcher searcherFor(Transaction tx, Envelope envelope) {
+		String maxHash = geoTermToString(encode(envelope.getMaxY(), envelope.getMaxX()));
+		String minHash = geoTermToString(encode(envelope.getMinY(), envelope.getMinX()));
+		return new PrefixSearcher(greatestCommonPrefix(minHash, maxHash));
 	}
 
 	public static class PrefixSearcher implements Neo4jIndexSearcher {

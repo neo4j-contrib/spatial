@@ -939,6 +939,22 @@ public class SpatialProceduresTest extends AbstractApiTest {
 				r -> assertEquals("org.locationtech.jts.geom.Point", r.get("geometryType")));
 	}
 
+	@ParameterizedTest
+	@ValueSource(strings = {"addPointLayer", "addPointLayerGeohash", "addPointLayerZOrder", "addPointLayerHilbert",
+			"addNativePointLayer", "addNativePointLayerGeohash", "addNativePointLayerZOrder",
+			"addNativePointLayerHilbert"})
+	public void cql_on_point_layers(String procedure) {
+		execute("CALL spatial." + procedure + "('geom')");
+		execute("CALL spatial.addWKT('geom','POINT (15.2 60.1)')");
+		execute("CALL spatial.addWKT('geom','POINT (16.2 61.1)')");
+		testCallCount(db, "CALL spatial.cql('geom', 'BBOX(the_geom, 15, 60, 16, 61)')", null, 1);
+		// no bounding envelope can be derived from these filters
+		testCallCount(db, "CALL spatial.cql('geom', 'BBOX(the_geom, 15, 60, 15.5, 60.5) OR "
+				+ "BBOX(the_geom, 16, 61, 16.5, 61.5)')", null, 2);
+		testCallCount(db, "CALL spatial.cql('geom', 'NOT BBOX(the_geom, 15, 60, 16, 61)')", null, 1);
+		testCallCount(db, "CALL spatial.cql('geom', 'INCLUDE')", null, 2);
+	}
+
 	@Test
 	public void testUpdateWKT() {
 		execute("CALL spatial.addWKTLayer('update_layer', 'wkt') YIELD node");
