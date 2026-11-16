@@ -925,6 +925,20 @@ public class SpatialProceduresTest extends AbstractApiTest {
 		}
 	}
 
+	@ParameterizedTest
+	@ValueSource(strings = {"addPointLayer", "addPointLayerGeohash", "addPointLayerZOrder", "addPointLayerHilbert",
+			"addNativePointLayer", "addNativePointLayerGeohash", "addNativePointLayerZOrder",
+			"addNativePointLayerHilbert"})
+	public void point_layer_meta(String procedure) {
+		execute("CALL spatial." + procedure + "('geom')");
+		// point layers know their type without searching the index, also when empty
+		testCall(db, "CALL spatial.layerMeta('geom')",
+				r -> assertEquals("org.locationtech.jts.geom.Point", r.get("geometryType")));
+		execute("CALL spatial.addWKT('geom','POINT (15.2 60.1)')");
+		testCall(db, "CALL spatial.layerMeta('geom')",
+				r -> assertEquals("org.locationtech.jts.geom.Point", r.get("geometryType")));
+	}
+
 	@Test
 	public void testUpdateWKT() {
 		execute("CALL spatial.addWKTLayer('update_layer', 'wkt') YIELD node");
