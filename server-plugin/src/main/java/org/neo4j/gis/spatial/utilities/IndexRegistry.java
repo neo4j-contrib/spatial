@@ -54,15 +54,24 @@ public class IndexRegistry extends BaseRegistry<SpatialIndexWriter> {
 	}
 
 	/**
-	 * @param config see {@link ConfigurationUtils#applyConfig(Configurable, Object)}; ignored with a warning for a
-	 *               non-configurable index
+	 * @param config see {@link ConfigurationUtils#applyConfig(Configurable, Object)}; for a non-configurable index a
+	 *               legacy string is ignored with a warning, a map is rejected
 	 */
 	public void applyConfig(SpatialIndexWriter index, @Nullable Object config) {
 		if (index instanceof Configurable<?> configurable) {
 			ConfigurationUtils.applyConfig(configurable, config);
-		} else if (!ConfigurationUtils.isEmptyConfig(config)) {
-			LOGGER.warning("Warning: index configuration '" + config + "' passed to non-configurable index: "
-					+ index.getClass());
+			return;
+		}
+		if (ConfigurationUtils.isEmptyConfig(config)) {
+			return;
+		}
+		switch (config) {
+			case String legacy -> LOGGER.warning(
+					"Warning: index configuration '" + legacy + "' passed to non-configurable index: "
+							+ index.getClass());
+			case Map<?, ?> map -> throw new IllegalArgumentException(
+					"index type '" + index.getIdentifiers().getFirst() + "' has no config options, got: " + map);
+			default -> throw ConfigurationUtils.invalidConfigType(config);
 		}
 	}
 

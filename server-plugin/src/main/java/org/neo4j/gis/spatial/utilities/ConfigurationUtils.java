@@ -114,9 +114,13 @@ public class ConfigurationUtils {
 		switch (config) {
 			case String legacy -> setLegacyConfig(configurable, legacy);
 			case Map<?, ?> map -> setConfig(configurable, (Map<String, Object>) map);
-			default -> throw new IllegalArgumentException(
-					"config must be a MAP or STRING, got: " + config.getClass().getSimpleName());
+			default -> throw invalidConfigType(config);
 		}
+	}
+
+	public static IllegalArgumentException invalidConfigType(Object config) {
+		return new IllegalArgumentException(
+				"config must be a MAP or STRING, got: " + config.getClass().getSimpleName());
 	}
 
 	public static boolean isEmptyConfig(@Nullable Object config) {

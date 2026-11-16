@@ -587,6 +587,23 @@ public class SpatialProceduresTest extends AbstractApiTest {
 	}
 
 	@Test
+	public void add_layer_rejects_config_map_for_index_without_options() {
+		testCallFails(db, "CALL spatial.addLayer('layer', 'Geohash', null, {maxNodeReferences: 20})", null,
+				"index type 'geohash' has no config options, got: {maxNodeReferences=20}");
+	}
+
+	@Test
+	public void add_layer_ignores_legacy_config_string_for_index_without_options() {
+		testCallCount(db, "CALL spatial.addLayer('layer', 'Geohash', null, '{\"maxNodeReferences\":20}')", null, 1);
+	}
+
+	@Test
+	public void add_layer_rejects_config_of_wrong_type_for_index_without_options() {
+		testCallFails(db, "CALL spatial.addLayer('layer', 'Geohash', null, 42)", null,
+				"config must be a MAP or STRING, got: Long");
+	}
+
+	@Test
 	public void add_layer_rejects_config_of_wrong_type() {
 		testCallFails(db, "CALL spatial.addLayer('layer', 'SimplePoint', null, 42)", null,
 				"config must be a MAP or STRING, got: Long");
