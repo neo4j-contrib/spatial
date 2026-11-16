@@ -787,9 +787,10 @@ public class SpatialProceduresTest extends AbstractApiTest {
 	}
 
 	@ParameterizedTest
-	@ValueSource(strings = {"Geohash", "ZOrder", "Hilbert"})
-	public void space_filling_curve_layer_counts_and_bounds(String indexType) {
-		execute("CALL spatial.addPointLayer" + indexType + "('geom')");
+	@ValueSource(strings = {"addPointLayerGeohash", "addPointLayerZOrder", "addPointLayerHilbert",
+			"addNativePointLayerGeohash", "addNativePointLayerZOrder", "addNativePointLayerHilbert"})
+	public void space_filling_curve_layer_counts_and_bounds(String procedure) {
+		execute("CALL spatial." + procedure + "('geom')");
 		execute("CALL spatial.addWKT('geom','POINT (15.2 60.1)')");
 		execute("CALL spatial.addWKT('geom','POINT (16.2 61.1)')");
 		testCall(db, "CALL spatial.getFeatureCount('geom')", r -> assertEquals(2L, r.get("count")));
