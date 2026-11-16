@@ -68,8 +68,10 @@ class LayerConfigPersistenceTest extends Neo4jTestCase {
 
 	@Test
 	void newLayerPersistsFlattenedConfigAndReloadsIt() {
-		inTx(tx -> spatial.createLayer(tx, "layer", NativePointEncoder.class, EditableLayerImpl.class,
-				LayerRTreeIndex.class, "pos:mbr:Cartesian", "{\"maxNodeReferences\":20,\"splitMode\":\"quadratic\"}"));
+		inTx(tx -> spatial.createLayer(tx, "layer", EditableLayerImpl.class, null,
+				GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(NativePointEncoder.class,
+						new NativePointEncoder.Config("pos", "mbr", "Cartesian")),
+				IndexRegistry.INSTANCE.constructIndex("rtree", "{\"maxNodeReferences\":20,\"splitMode\":\"quadratic\"}")));
 
 		Map<String, Object> expectedEncoder = Map.of("locationProperty", "pos", "bboxProperty", "mbr",
 				"crs", "Cartesian");
@@ -137,8 +139,8 @@ class LayerConfigPersistenceTest extends Neo4jTestCase {
 
 	@Test
 	void flattenedMaxNodeReferencesWinsOverRTreeMetadata() {
-		inTx(tx -> spatial.createLayer(tx, "layer", SimplePointEncoder.class, EditableLayerImpl.class,
-				LayerRTreeIndex.class, null, "{\"maxNodeReferences\":20}"));
+		inTx(tx -> spatial.createLayer(tx, "layer", EditableLayerImpl.class, null, new SimplePointEncoder(),
+				IndexRegistry.INSTANCE.constructIndex("rtree", "{\"maxNodeReferences\":20}")));
 		inTx(tx -> {
 			Node metadata = tx.findNode(LABEL_LAYER, PROP_LAYER, "layer")
 					.getSingleRelationship(RTreeRelationshipTypes.RTREE_METADATA, Direction.OUTGOING)

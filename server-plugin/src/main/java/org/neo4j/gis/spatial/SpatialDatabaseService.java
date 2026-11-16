@@ -33,7 +33,9 @@ import static org.neo4j.gis.spatial.Constants.PROP_LAYER_TYPE;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.locationtech.jts.geom.Geometry;
@@ -43,26 +45,27 @@ import org.locationtech.jts.geom.MultiPoint;
 import org.locationtech.jts.geom.MultiPolygon;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
+import org.neo4j.gis.spatial.encoders.AbstractSinglePropertyEncoder;
 import org.neo4j.gis.spatial.encoders.NativePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.encoders.WKBGeometryEncoder;
 import org.neo4j.gis.spatial.encoders.WKTGeometryEncoder;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
+import org.neo4j.gis.spatial.utilities.GeometryEncoderRegistry;
 import org.neo4j.gis.spatial.utilities.IndexRegistry;
-import org.neo4j.gis.spatial.utilities.LayerTypePresetRegistry;
 import org.neo4j.gis.spatial.utilities.LayerUtilities;
 import org.neo4j.gis.spatial.utilities.ReferenceNodes;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
+import org.neo4j.spatial.api.Configurable;
 import org.neo4j.spatial.api.SpatialRecord;
 import org.neo4j.spatial.api.encoder.GeometryEncoder;
 import org.neo4j.spatial.api.index.IndexManager;
 import org.neo4j.spatial.api.index.SpatialIndexWriter;
 import org.neo4j.spatial.api.layer.EditableLayer;
 import org.neo4j.spatial.api.layer.Layer;
-import org.neo4j.spatial.api.layer.LayerTypePresets.RegisteredLayerType;
 import org.neo4j.spatial.api.monitoring.ProgressListener;
 
 /**
@@ -85,21 +88,6 @@ public class SpatialDatabaseService {
 			throw new IllegalStateException(
 					"Old reference node exists - please upgrade the spatial database to the new format");
 		}
-	}
-
-	public static String makeEncoderConfig(String... args) {
-		StringBuilder sb = new StringBuilder();
-		if (args != null) {
-			for (String arg : args) {
-				if (arg != null) {
-					if (!sb.isEmpty()) {
-						sb.append(":");
-					}
-					sb.append(arg);
-				}
-			}
-		}
-		return sb.toString();
 	}
 
 	public static String convertGeometryTypeToName(Integer geometryType) {
@@ -194,6 +182,16 @@ public class SpatialDatabaseService {
 		return names;
 	}
 
+	@Nullable
+	public EditableLayer getEditableLayer(Transaction tx, String name, boolean readOnly) {
+		Layer layer = getLayer(tx, name, readOnly);
+		if (layer == null || layer instanceof EditableLayer) {
+			return (EditableLayer) layer;
+		}
+		throw new SpatialDatabaseException(
+				"Existing layer '" + layer + "' is not of the expected type: " + EditableLayer.class);
+	}
+
 	public Layer getLayer(Transaction tx, String name, boolean readOnly) {
 		assertNotOldModel(tx);
 		try (var layers = tx.findNodes(LABEL_LAYER)) {
@@ -247,74 +245,84 @@ public class SpatialDatabaseService {
 		return (DynamicLayer) LayerUtilities.makeLayerFromNode(tx, indexManager, node, layer.isReadOnly());
 	}
 
-	public DefaultLayer getOrCreateDefaultLayer(Transaction tx, String name, String indexConfig, boolean readOnly) {
-		return (DefaultLayer) getOrCreateLayer(tx, name, WKBGeometryEncoder.class, EditableLayerImpl.class, "",
-				indexConfig, readOnly);
+	public DefaultLayer getOrCreateDefaultLayer(Transaction tx, String name, boolean readOnly) {
+		return (DefaultLayer) getOrCreateLayer(tx, name, WKBGeometryEncoder.class, EditableLayerImpl.class, null,
+				null, readOnly);
 	}
 
 	public EditableLayer getOrCreateEditableLayer(Transaction tx, String name, String format, String propertyNameConfig,
-			String indexConfig, boolean readOnly) {
-		Class<? extends GeometryEncoder> geClass = WKBGeometryEncoder.class;
+			LayerRTreeIndex.Config indexConfig, boolean readOnly) {
+		Class<? extends AbstractSinglePropertyEncoder> geClass = WKBGeometryEncoder.class;
 		if (format != null && format.toUpperCase().startsWith("WKT")) {
 			geClass = WKTGeometryEncoder.class;
 		}
-		return (EditableLayer) getOrCreateLayer(tx, name, geClass, EditableLayerImpl.class, propertyNameConfig,
+		return (EditableLayer) getOrCreateLayer(tx, name, geClass, EditableLayerImpl.class,
+				new AbstractSinglePropertyEncoder.Config(propertyNameConfig),
 				indexConfig, readOnly);
 	}
 
-	public EditableLayer getOrCreateEditableLayer(Transaction tx, String name, String wktProperty, String indexConfig,
+	public EditableLayer getOrCreateEditableLayer(Transaction tx, String name, String wktProperty,
+			LayerRTreeIndex.Config indexConfig,
 			boolean readOnly) {
 		return getOrCreateEditableLayer(tx, name, "WKT", wktProperty, indexConfig, readOnly);
 	}
 
-	public EditableLayer getOrCreateSimplePointLayer(Transaction tx, String name, String index, String xProperty,
-			String yProperty, String indexConfig, boolean readOnly) {
-		return getOrCreatePointLayer(tx, name, IndexRegistry.INSTANCE.getRegisteredIndices().get(index),
-				SimplePointEncoder.class, indexConfig,
-				readOnly, xProperty,
-				yProperty);
+	/**
+	 * @param index         index template, {@code null} for an RTree with default configuration
+	 * @param encoderConfig {@code null} for the default configuration
+	 */
+	public EditableLayer getOrCreateSimplePointLayer(
+			@Nonnull Transaction tx,
+			@Nonnull String name,
+			@Nullable SpatialIndexWriter index,
+			@Nullable SimplePointEncoder.Config encoderConfig,
+			boolean readOnly
+	) {
+		return getOrCreatePointLayer(tx, name, index,
+				() -> GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(SimplePointEncoder.class, encoderConfig),
+				readOnly);
 	}
 
+	/**
+	 * @param index         index template, {@code null} for an RTree with default configuration
+	 * @param encoderConfig {@code null} for the default configuration
+	 */
 	public EditableLayer getOrCreateNativePointLayer(
 			@Nonnull Transaction tx,
 			@Nonnull String name,
-			@Nonnull String index,
-			String locationProperty,
-			String indexConfig,
+			@Nullable SpatialIndexWriter index,
+			@Nullable NativePointEncoder.Config encoderConfig,
 			boolean readOnly
 	) {
-		return getOrCreatePointLayer(tx, name, IndexRegistry.INSTANCE.getRegisteredIndices().get(index),
-				SimplePointEncoder.class, indexConfig,
-				readOnly, locationProperty);
+		return getOrCreatePointLayer(tx, name, index,
+				() -> GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(NativePointEncoder.class, encoderConfig),
+				readOnly);
 	}
 
-	public EditableLayer getOrCreatePointLayer(
-			@Nonnull Transaction tx,
-			@Nonnull String name,
-			@Nonnull Class<? extends SpatialIndexWriter> indexClass,
-			@Nonnull Class<? extends GeometryEncoder> encoderClass,
-			String indexConfig,
-			boolean readOnly,
-			String... encoderConfig
-	) {
-		Layer layer = getLayer(tx, name, readOnly);
+	// encoder is supplied lazily: its config is ignored for an existing layer and mustn't fail validation then
+	private EditableLayer getOrCreatePointLayer(Transaction tx, String name, @Nullable SpatialIndexWriter index,
+			Supplier<GeometryEncoder> encoder, boolean readOnly) {
+		EditableLayer layer = getEditableLayer(tx, name, readOnly);
 		if (layer == null) {
-			return (EditableLayer) createLayer(tx, name, encoderClass, SimplePointLayer.class, indexClass,
-					makeEncoderConfig(encoderConfig), indexConfig, DefaultGeographicCRS.WGS84);
+			layer = (EditableLayer) createLayer(tx, name, SimplePointLayer.class, DefaultGeographicCRS.WGS84,
+					encoder.get(), index != null ? index : new LayerRTreeIndex());
 		}
-		if (layer instanceof EditableLayer) {
-			return (EditableLayer) layer;
-		}
-		throw new SpatialDatabaseException(
-				"Existing layer '" + layer + "' is not of the expected type: " + EditableLayer.class);
+		return layer;
 	}
 
-	public Layer getOrCreateLayer(Transaction tx, String name, Class<? extends GeometryEncoder> geometryEncoder,
-			Class<? extends Layer> layerClass, String encoderConfig, String indexConfig, boolean readOnly) {
+	public <Encoder extends GeometryEncoder & Configurable<EncoderConfig>, EncoderConfig> Layer getOrCreateLayer(
+			Transaction tx,
+			String name,
+			Class<Encoder> geometryEncoder,
+			Class<? extends Layer> layerClass,
+			EncoderConfig encoderConfig,
+			LayerRTreeIndex.Config indexConfig,
+			boolean readOnly) {
 		Layer layer = getLayer(tx, name, readOnly);
 		if (layer == null) {
-			layer = createLayer(tx, name, geometryEncoder, layerClass, LayerRTreeIndex.class, encoderConfig,
-					indexConfig);
+			var encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(geometryEncoder, encoderConfig);
+			var index = IndexRegistry.INSTANCE.constructIndex(LayerRTreeIndex.class, indexConfig);
+			layer = createLayer(tx, name, layerClass, null, encoder, index);
 		} else if (!(layerClass == null || layerClass.isInstance(layer))) {
 			throw new SpatialDatabaseException(
 					"Existing layer '" + layer + "' is not of the expected type: " + layerClass);
@@ -322,91 +330,63 @@ public class SpatialDatabaseService {
 		return layer;
 	}
 
-	public Layer getOrCreateLayer(Transaction tx, String name, Class<? extends GeometryEncoder> geometryEncoder,
-			Class<? extends Layer> layerClass, String indexConfig, boolean readOnly) {
-		return getOrCreateLayer(tx, name, geometryEncoder, layerClass, "", indexConfig, readOnly);
-	}
-
 	public boolean containsLayer(Transaction tx, String name) {
 		return getLayer(tx, name, true) != null;
 	}
 
-	public Layer createWKBLayer(Transaction tx, String name, String indexConfig) {
-		return createLayer(tx, name, WKBGeometryEncoder.class, EditableLayerImpl.class, indexConfig);
+	public Layer createWKBLayer(Transaction tx, String name, LayerRTreeIndex.Config indexConfig) {
+		var encoder = new WKBGeometryEncoder();
+		var index = IndexRegistry.INSTANCE.constructIndex(LayerRTreeIndex.class, indexConfig);
+		return createLayer(tx, name, EditableLayerImpl.class, null, encoder, index);
 	}
 
-	public SimplePointLayer createSimplePointLayer(Transaction tx, String name) {
-		return createSimplePointLayer(tx, name, (String[]) null);
+	public SimplePointLayer createSimplePointLayer(Transaction tx, String name, SimplePointEncoder.Config encoderConfig) {
+		return createPointLayer(tx, name, new LayerRTreeIndex(),
+				GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(SimplePointEncoder.class, encoderConfig));
 	}
 
 	public SimplePointLayer createSimplePointLayer(Transaction tx, String name, String xProperty, String yProperty) {
-		return createSimplePointLayer(tx, name, xProperty, yProperty, null);
-	}
-
-	public SimplePointLayer createSimplePointLayer(Transaction tx, String name,
-			String... xybProperties) {
-		return createPointLayer(tx, name, LayerRTreeIndex.class, SimplePointEncoder.class, null,
-				xybProperties);
+		return createSimplePointLayer(tx, name, new SimplePointEncoder.Config(xProperty, yProperty));
 	}
 
 	public SimplePointLayer createNativePointLayer(Transaction tx, String name,
-			String... encoderConfig) {
-		return createPointLayer(tx, name, LayerRTreeIndex.class, NativePointEncoder.class, null,
-				encoderConfig);
+			NativePointEncoder.Config encoderConfig) {
+		return createPointLayer(tx, name, new LayerRTreeIndex(),
+				GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(NativePointEncoder.class, encoderConfig));
 	}
 
+	/**
+	 * Creates a {@link SimplePointLayer} in WGS84; see {@link #createLayer} for how {@code index} and
+	 * {@code encoder} are used.
+	 */
 	public SimplePointLayer createPointLayer(
 			@Nonnull Transaction tx,
 			@Nonnull String name,
-			@Nonnull Class<? extends SpatialIndexWriter> indexClass,
-			@Nonnull Class<? extends GeometryEncoder> encoderClass,
-			String indexConfig,
-			String... encoderConfig
+			@Nonnull SpatialIndexWriter index,
+			@Nonnull GeometryEncoder encoder
 	) {
-		return (SimplePointLayer) createLayer(tx, name, encoderClass, SimplePointLayer.class, indexClass,
-				makeEncoderConfig(encoderConfig), indexConfig, org.geotools.referencing.crs.DefaultGeographicCRS.WGS84
-		);
+		return (SimplePointLayer) createLayer(tx, name, SimplePointLayer.class, DefaultGeographicCRS.WGS84, encoder,
+				index);
 	}
 
-	public Layer createLayer(
+	/**
+	 * @param encoder template for the layer's encoder: a new instance of its class (no-argument constructor) gets
+	 *                its configuration, the template stays unbound
+	 * @param index   template for the layer's index, copied like {@code encoder}
+	 */
+	public @Nonnull Layer createLayer(
 			@Nonnull Transaction tx,
 			@Nonnull String name,
-			@Nonnull Class<? extends GeometryEncoder> geometryEncoderClass,
 			@Nonnull Class<? extends Layer> layerClass,
-			String indexConfig
-	) {
-		return createLayer(tx, name, geometryEncoderClass, layerClass, LayerRTreeIndex.class, null, indexConfig);
-	}
-
-	public Layer createLayer(
-			@Nonnull Transaction tx,
-			@Nonnull String name,
-			@Nonnull Class<? extends GeometryEncoder> geometryEncoderClass,
-			@Nonnull Class<? extends Layer> layerClass,
-			@Nonnull Class<? extends SpatialIndexWriter> indexClass,
-			String encoderConfig,
-			String indexConfig
-	) {
-		return createLayer(tx, name, geometryEncoderClass, layerClass, indexClass, encoderConfig, indexConfig, null
-		);
-	}
-
-	public Layer createLayer(
-			@Nonnull Transaction tx,
-			@Nonnull String name,
-			@Nonnull Class<? extends GeometryEncoder> geometryEncoderClass,
-			@Nonnull Class<? extends Layer> layerClass,
-			@Nonnull Class<? extends SpatialIndexWriter> indexClass,
-			String encoderConfig,
-			String indexConfig,
-			CoordinateReferenceSystem crs
-	) {
+			CoordinateReferenceSystem crs,
+			@Nonnull GeometryEncoder encoder,
+			@Nonnull SpatialIndexWriter index) {
 		if (containsLayer(tx, name)) {
 			throw new SpatialDatabaseException("Layer " + name + " already exists");
 		}
 
-		var layer = LayerUtilities.makeLayerAndNode(tx, indexManager, name, geometryEncoderClass, encoderConfig,
-				layerClass, indexClass, indexConfig);
+		var layer = LayerUtilities.makeLayerAndNode(tx, indexManager, name, layerClass, encoder, index);
+
 		if (crs != null && layer instanceof EditableLayer) {
 			((EditableLayer) layer).setCoordinateReferenceSystem(tx, crs);
 		}
@@ -438,7 +418,7 @@ public class SpatialDatabaseService {
 	 * @return new Layer with copy of all geometries
 	 */
 	public Layer createResultsLayer(Transaction tx, String layerName, List<SpatialRecord> results) {
-		EditableLayer layer = (EditableLayer) createWKBLayer(tx, layerName, "");
+		EditableLayer layer = (EditableLayer) createWKBLayer(tx, layerName, null);
 		for (SpatialRecord record : results) {
 			layer.add(tx, record.getGeometry());
 		}
@@ -446,21 +426,4 @@ public class SpatialDatabaseService {
 		return layer;
 	}
 
-
-	public Layer getOrCreateRegisteredTypeLayer(Transaction tx, String name, String type, String encoderConfig,
-			String indexConfig, boolean readOnly) {
-		RegisteredLayerType registeredLayerType = LayerTypePresetRegistry.INSTANCE.getRegisteredLayerType(type);
-		if (registeredLayerType == null) {
-			throw new SpatialDatabaseException("Unknown layer type: " + type);
-		}
-		return getOrCreateRegisteredTypeLayer(tx, name, registeredLayerType, encoderConfig, indexConfig, readOnly);
-	}
-
-
-	public Layer getOrCreateRegisteredTypeLayer(Transaction tx, String name, RegisteredLayerType registeredLayerType,
-			String encoderConfig, String indexConfig, boolean readOnly) {
-		return getOrCreateLayer(tx, name, registeredLayerType.geometryEncoder(), registeredLayerType.layerClass(),
-				(encoderConfig == null) ? registeredLayerType.defaultEncoderConfig() : encoderConfig, indexConfig,
-				readOnly);
-	}
 }

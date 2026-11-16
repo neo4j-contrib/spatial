@@ -29,6 +29,7 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.neo4j.gis.spatial.encoders.WKTGeometryEncoder;
 import org.neo4j.gis.spatial.functions.SpatialFunctions;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
+import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.graphdb.Transaction;
@@ -53,7 +54,9 @@ public class TestRemove extends Neo4jTestCase {
 				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 
 		try (Transaction tx = graphDb().beginTx()) {
-			spatial.createLayer(tx, layerName, WKTGeometryEncoder.class, EditableLayerImpl.class, "");
+			var encoder = new WKTGeometryEncoder();
+			var index = new LayerRTreeIndex();
+			spatial.createLayer(tx, layerName, EditableLayerImpl.class, null, encoder, index);
 			tx.commit();
 		}
 

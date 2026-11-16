@@ -11,17 +11,133 @@ CALL spatial.layerTypes()
 [opts="header",cols="6"]
 |===
 |id|crsName|defaultEncoderConfig|encoder|index|layer
-|Geohash|WGS84(DD)|longitude:latitude|SimplePointEncoder|geohash|SimplePointLayer
-|Hilbert|WGS84(DD)|longitude:latitude|SimplePointEncoder|hilbert|SimplePointLayer
-|NativeGeohash|WGS84(DD)|location|NativePointEncoder|geohash|SimplePointLayer
-|NativeHilbert|WGS84(DD)|location|NativePointEncoder|hilbert|SimplePointLayer
-|NativePoint|WGS84(DD)|location|NativePointEncoder|rtree|SimplePointLayer
-|NativePoints|WGS84(DD)|geometry|NativePointsEncoder|rtree|EditableLayer
-|NativeZOrder|WGS84(DD)|location|NativePointEncoder|zorder|SimplePointLayer
-|OSM|WGS84(DD)|geometry|OSMGeometryEncoder|rtree|OSMLayer
-|SimplePoint|WGS84(DD)|longitude:latitude|SimplePointEncoder|rtree|SimplePointLayer
-|WKB|WGS84(DD)|geometry|WKBGeometryEncoder|rtree|EditableLayer
-|WKT|WGS84(DD)|geometry|WKTGeometryEncoder|rtree|EditableLayer
-|ZOrder|WGS84(DD)|longitude:latitude|SimplePointEncoder|zorder|SimplePointLayer
+|Geohash|WGS84(DD)
+a|
+[source]
+----
+{
+  "bboxProperty" : "bbox",
+  "xProperty" : "longitude",
+  "yProperty" : "latitude"
+}
+----
+|SimplePointEncoder|geohash|SimplePointLayer
+|Hilbert|WGS84(DD)
+a|
+[source]
+----
+{
+  "bboxProperty" : "bbox",
+  "xProperty" : "longitude",
+  "yProperty" : "latitude"
+}
+----
+|SimplePointEncoder|hilbert|SimplePointLayer
+|NativeGeohash|WGS84(DD)
+a|
+[source]
+----
+{
+  "bboxProperty" : "bbox",
+  "crs" : "wgs84",
+  "locationProperty" : "location"
+}
+----
+|NativePointEncoder|geohash|SimplePointLayer
+|NativeHilbert|WGS84(DD)
+a|
+[source]
+----
+{
+  "bboxProperty" : "bbox",
+  "crs" : "wgs84",
+  "locationProperty" : "location"
+}
+----
+|NativePointEncoder|hilbert|SimplePointLayer
+|NativePoint|WGS84(DD)
+a|
+[source]
+----
+{
+  "bboxProperty" : "bbox",
+  "crs" : "wgs84",
+  "locationProperty" : "location"
+}
+----
+|NativePointEncoder|rtree|SimplePointLayer
+|NativePoints|WGS84(DD)
+a|
+[source]
+----
+{
+  "bboxProperty" : "bbox",
+  "crs" : "wgs84",
+  "geomProperty" : "geometry"
+}
+----
+|NativePointsEncoder|rtree|EditableLayer
+|NativeZOrder|WGS84(DD)
+a|
+[source]
+----
+{
+  "bboxProperty" : "bbox",
+  "crs" : "wgs84",
+  "locationProperty" : "location"
+}
+----
+|NativePointEncoder|zorder|SimplePointLayer
+|OSM|WGS84(DD)
+a|
+[source]
+----
+{
+  "bboxProperty" : "bbox"
+}
+----
+|OSMGeometryEncoder|rtree|OSMLayer
+|SimplePoint|WGS84(DD)
+a|
+[source]
+----
+{
+  "bboxProperty" : "bbox",
+  "xProperty" : "longitude",
+  "yProperty" : "latitude"
+}
+----
+|SimplePointEncoder|rtree|SimplePointLayer
+|WKB|WGS84(DD)
+a|
+[source]
+----
+{
+  "bboxProperty" : "bbox",
+  "geomProperty" : "geometry"
+}
+----
+|WKBGeometryEncoder|rtree|EditableLayer
+|WKT|WGS84(DD)
+a|
+[source]
+----
+{
+  "bboxProperty" : "bbox",
+  "geomProperty" : "geometry"
+}
+----
+|WKTGeometryEncoder|rtree|EditableLayer
+|ZOrder|WGS84(DD)
+a|
+[source]
+----
+{
+  "bboxProperty" : "bbox",
+  "xProperty" : "longitude",
+  "yProperty" : "latitude"
+}
+----
+|SimplePointEncoder|zorder|SimplePointLayer
 |===
 

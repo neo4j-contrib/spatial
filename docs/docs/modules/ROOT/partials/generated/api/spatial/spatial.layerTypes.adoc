@@ -12,7 +12,7 @@ Returns the different registered layer types
 
 [source]
 ----
-spatial.layerTypes() :: (id :: STRING, encoder :: STRING, layer :: STRING, index :: STRING, crsName :: STRING, defaultEncoderConfig :: STRING)
+spatial.layerTypes() :: (id :: STRING, encoder :: STRING, layer :: STRING, index :: STRING, crsName :: STRING, defaultEncoderConfig :: MAP)
 ----
 
 == Output parameters
@@ -25,6 +25,6 @@ spatial.layerTypes() :: (id :: STRING, encoder :: STRING, layer :: STRING, index
 |layer|STRING|The identifier of the layer to use
 |index|STRING|The identifier of the index to use
 |crsName|STRING|The CRS to use
-|defaultEncoderConfig|STRING|The default configuration used for the encoder
+|defaultEncoderConfig|MAP|The default configuration used for the encoder
 |===
 

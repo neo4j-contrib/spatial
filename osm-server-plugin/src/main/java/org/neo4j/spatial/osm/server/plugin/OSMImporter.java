@@ -262,8 +262,8 @@ public class OSMImporter {
 		OSMLayer layer;
 		OSMDataset dataset;
 		try (Transaction tx = beginTx(database)) {
-			layer = (OSMLayer) spatialDatabase.getOrCreateLayer(tx, layerName, OSMGeometryEncoder.class,
-					OSMLayer.class, null, false);
+			layer = (OSMLayer) spatialDatabase.getOrCreateLayer(tx, layerName, OSMGeometryEncoder.class, OSMLayer.class,
+					null, null, false);
 			dataset = OSMDataset.withDatasetId(tx, layer, osm_dataset);
 			tx.commit();
 		}

@@ -23,8 +23,11 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
+import static org.neo4j.gis.spatial.Constants.GTYPE_POINT;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -50,6 +53,8 @@ import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.procedures.SpatialProcedures;
 import org.neo4j.gis.spatial.rtree.ProgressLoggingListener;
+import org.neo4j.gis.spatial.utilities.GeometryEncoderRegistry;
+import org.neo4j.gis.spatial.utilities.IndexRegistry;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.ResourceIterator;
@@ -92,6 +97,99 @@ public class LayersTest extends Neo4jTestCase {
 		inTx(tx -> assertNull(spatial.getLayer(tx, layerName, true)));
 	}
 
+	@Test
+	public void testGetOrCreateSimplePointLayer() {
+		testGetOrCreatePointLayer(
+				(spatial, tx, x) -> spatial.getOrCreateSimplePointLayer(tx, "points", null,
+						new SimplePointEncoder.Config(x, "y"), false),
+				"SimplePointEncoder(x='x', y='y', bbox='bbox')");
+	}
+
+	@Test
+	public void testGetOrCreateNativePointLayer() {
+		testGetOrCreatePointLayer(
+				(spatial, tx, location) -> spatial.getOrCreateNativePointLayer(tx, "points", null,
+						new NativePointEncoder.Config(location), false),
+				"NativePointEncoder(geometry='x', bbox='bbox', crs=4326)");
+	}
+
+	private interface PointLayerFactory {
+
+		EditableLayer getOrCreate(SpatialDatabaseService spatial, Transaction tx, String property);
+	}
+
+	private void testGetOrCreatePointLayer(PointLayerFactory factory, String expectedEncoderSignature) {
+		SpatialDatabaseService spatial = new SpatialDatabaseService(
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+		inTx(tx -> {
+			EditableLayer layer = factory.getOrCreate(spatial, tx, "x");
+			assertInstanceOf(SimplePointLayer.class, layer);
+			assertEquals(expectedEncoderSignature, layer.getGeometryEncoder().getSignature());
+		});
+		// existing layer is returned unchanged, the passed config is ignored
+		inTx(tx -> {
+			EditableLayer layer = factory.getOrCreate(spatial, tx, "other");
+			assertInstanceOf(SimplePointLayer.class, layer);
+			assertEquals(expectedEncoderSignature, layer.getGeometryEncoder().getSignature());
+			assertEquals(1, spatial.getLayerNames(tx).size());
+		});
+	}
+
+	@Test
+	public void testGetOrCreateNativePointLayerIgnoresConfigForExistingLayer() {
+		SpatialDatabaseService spatial = new SpatialDatabaseService(
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+		inTx(tx -> spatial.getOrCreateNativePointLayer(tx, "points", null, null, false));
+		inTx(tx -> {
+			var invalid = new NativePointEncoder.Config("location", "bbox", "no-such-crs");
+			assertNotNull(spatial.getOrCreateNativePointLayer(tx, "points", null, invalid, false));
+		});
+	}
+
+	@Test
+	public void testCreatePointLayerWithNonConfigurableIndex() {
+		SpatialDatabaseService spatial = new SpatialDatabaseService(
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+		inTx(tx -> spatial.createPointLayer(tx, "points", new LayerGeohashPointIndex(), new SimplePointEncoder()));
+		inTx(tx -> assertInstanceOf(LayerGeohashPointIndex.class, spatial.getLayer(tx, "points", true).getIndex()));
+	}
+
+	@Test
+	public void testEncoderAndIndexInstancesCanBeReused() {
+		SpatialDatabaseService spatial = new SpatialDatabaseService(
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+		var encoder = new SimplePointEncoder();
+		encoder.setConfiguration(new SimplePointEncoder.Config("x", "y"));
+		var index = new LayerRTreeIndex();
+		inTx(tx -> {
+			var a = (EditableLayer) spatial.createLayer(tx, "a", SimplePointLayer.class, null, encoder, index);
+			var b = (EditableLayer) spatial.createLayer(tx, "b", SimplePointLayer.class, null, encoder, index);
+			a.add(tx, a.getGeometryFactory().createPoint(new Coordinate(1, 1)));
+			assertEquals(1, a.getIndex().count(tx));
+			assertEquals(0, b.getIndex().count(tx));
+			assertNotSame(encoder, a.getGeometryEncoder());
+			assertEquals("SimplePointEncoder(x='x', y='y', bbox='bbox')", b.getGeometryEncoder().getSignature());
+		});
+	}
+
+	@Test
+	public void testGetOrCreatePointLayerRejectsNonEditableLayer() {
+		SpatialDatabaseService spatial = new SpatialDatabaseService(
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+		inTx(tx -> {
+			Layer base = spatial.createWKBLayer(tx, "base", null);
+			spatial.asDynamicLayer(tx, base).addCQLDynamicLayerOnGeometryType(tx, GTYPE_POINT);
+		});
+		inTx(tx -> {
+			String configName = spatial.getLayerNames(tx).stream().filter(n -> !n.equals("base")).findFirst()
+					.orElseThrow();
+			assertThrows(SpatialDatabaseException.class,
+					() -> spatial.getOrCreateSimplePointLayer(tx, configName, null, null, false));
+			assertThrows(SpatialDatabaseException.class,
+					() -> spatial.getOrCreateNativePointLayer(tx, configName, null, null, false));
+		});
+	}
+
 	static Stream<Arguments> pointIndexesAndEncoders() {
 		return Stream.of(
 				arguments(LayerRTreeIndex.class, SimplePointEncoder.class),
@@ -102,14 +200,17 @@ public class LayersTest extends Neo4jTestCase {
 
 	@ParameterizedTest
 	@MethodSource("pointIndexesAndEncoders")
-	public void testPointLayer(Class<? extends SpatialIndexWriter> indexClass,
-			Class<? extends GeometryEncoder> encoderClass) {
+	public void testPointLayer(
+			Class<? extends SpatialIndexWriter> indexClass,
+			Class<? extends GeometryEncoder> encoderClass
+	) {
 		String layerName = "points";
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
-			EditableLayer layer = (EditableLayer) spatial.createLayer(tx, layerName, encoderClass,
-					EditableLayerImpl.class, indexClass, null, null);
+			var encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(encoderClass);
+			var index = IndexRegistry.INSTANCE.constructIndex(indexClass);
+			var layer = spatial.createLayer(tx, layerName, EditableLayerImpl.class, null, encoder, index);
 			assertNotNull(layer);
 		});
 		inTx(tx -> {
@@ -151,8 +252,9 @@ public class LayersTest extends Neo4jTestCase {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
-			EditableLayer layer = (EditableLayer) spatial.createLayer(tx, layerName, encoderClass,
-					EditableLayerImpl.class, LayerRTreeIndex.class, null, null);
+			var encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(encoderClass);
+			var index = new LayerRTreeIndex();
+			var layer = spatial.createLayer(tx, layerName, EditableLayerImpl.class, null, encoder, index);
 			assertNotNull(layer);
 		});
 		inTx(tx -> {
@@ -189,7 +291,9 @@ public class LayersTest extends Neo4jTestCase {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
 		inTx(tx -> {
-			Layer layer = spatial.createLayer(tx, layerName, geometryEncoderClass, layerClass, null);
+			var encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(geometryEncoderClass);
+			var index = new LayerRTreeIndex();
+			var layer = spatial.createLayer(tx, layerName, layerClass, null, encoder, index);
 			assertNotNull(layer);
 			assertInstanceOf(EditableLayer.class, layer, "Should be an editable layer");
 		});
@@ -238,7 +342,7 @@ public class LayersTest extends Neo4jTestCase {
 	public void testIndexAccessAfterBulkInsertion() {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
-		inTx(tx -> spatial.getOrCreateSimplePointLayer(tx, "Coordinates", "rtree", "lat", "lon", null, true));
+		inTx(tx -> spatial.getOrCreateSimplePointLayer(tx, "Coordinates", null, new SimplePointEncoder.Config("lat", "lon"), true));
 
 		Random rand = new Random(42);
 

@@ -53,30 +53,29 @@ public class GeometryEncoderRegistry {
 		return Collections.unmodifiableMap(registeredEncoders);
 	}
 
-	public GeometryEncoder constructGeometryEncoder(String encoderName, String config) {
+	public GeometryEncoder constructGeometryEncoder(String encoderName) {
 		Class<? extends GeometryEncoder> encoderClass = registeredEncoders.get(encoderName);
 		if (encoderClass == null) {
 			throw new SpatialDatabaseException("no encoder found for name: " + encoderName);
 		}
-		return constructGeometryEncoder(encoderClass, config);
+		return constructGeometryEncoder(encoderClass);
 	}
 
-	public <T extends GeometryEncoder> T constructGeometryEncoder(Class<T> encoderClass, String config) {
+	public <T extends GeometryEncoder> T constructGeometryEncoder(Class<T> encoderClass) {
 		try {
-			T geometryEncoder = encoderClass.getDeclaredConstructor().newInstance();
-			if (config != null && !config.isEmpty()) {
-				if (geometryEncoder instanceof Configurable<?> configurable) {
-					ConfigurationUtils.setLegacyConfig(configurable, config);
-				} else {
-					LOGGER.warning(
-							"Warning: encoder configuration '" + config + "' passed to non-configurable encoder: "
-									+ encoderClass);
-				}
-			}
-			return geometryEncoder;
+			return encoderClass.getDeclaredConstructor().newInstance();
 		} catch (Exception e) {
 			throw new SpatialDatabaseException(e);
 		}
+	}
+
+	public <T extends GeometryEncoder & Configurable<C>, C> T constructGeometryEncoder(Class<T> encoderClass,
+			C config) {
+		T encoder = constructGeometryEncoder(encoderClass);
+		if (config != null) {
+			encoder.setConfiguration(config);
+		}
+		return encoder;
 	}
 
 }

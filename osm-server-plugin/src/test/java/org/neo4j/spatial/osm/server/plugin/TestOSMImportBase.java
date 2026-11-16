@@ -88,7 +88,7 @@ public class TestOSMImportBase extends Neo4jTestCase {
 			SpatialDatabaseService spatial = new SpatialDatabaseService(
 					new IndexManagerImpl((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
 			OSMLayer layer = (OSMLayer) spatial.getOrCreateLayer(tx, layerName, OSMGeometryEncoder.class,
-					OSMLayer.class, null, true);
+					OSMLayer.class, null, null, true);
 			Assertions.assertNotNull(layer.getIndex(), "OSM Layer index should not be null");
 			Assertions.assertNotNull(layer.getIndex().getBoundingBox(tx),
 					"OSM Layer index envelope should not be null");

@@ -28,7 +28,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
-import static org.neo4j.gis.spatial.Constants.INDEX_TYPE_RTREE;
 import static org.neo4j.gis.spatial.Constants.LABEL_LAYER;
 import static org.neo4j.gis.spatial.Constants.PROP_GEOMENCODER;
 import static org.neo4j.gis.spatial.Constants.PROP_GEOMENCODER_CONFIG;
@@ -55,7 +54,9 @@ import org.neo4j.exceptions.KernelException;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
 import org.neo4j.gis.spatial.SpatialRelationshipTypes;
 import org.neo4j.gis.spatial.functions.SpatialFunctions;
+import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.index.IndexManagerImpl;
+import org.neo4j.gis.spatial.utilities.LayerTypePresetRegistry;
 import org.neo4j.gis.spatial.utilities.ReferenceNodes;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
@@ -63,6 +64,7 @@ import org.neo4j.graphdb.QueryExecutionException;
 import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.spatial.Geometry;
+import org.neo4j.internal.kernel.api.security.SecurityContext;
 import org.neo4j.kernel.api.KernelTransaction;
 import org.neo4j.kernel.impl.coreapi.InternalTransaction;
 import org.neo4j.kernel.internal.GraphDatabaseAPI;
@@ -134,11 +136,10 @@ public class SpatialProceduresTest extends AbstractApiTest {
 	private static Layer makeLayerOfVariousTypes(SpatialDatabaseService spatial, Transaction tx, String name,
 			int index) {
 		return switch (index % 3) {
-			case 0 -> spatial.getOrCreateSimplePointLayer(tx, name, INDEX_TYPE_RTREE, "x", "y",
-					null, false);
-			case 1 -> spatial.getOrCreateNativePointLayer(tx, name, INDEX_TYPE_RTREE, "location",
-					null, false);
-			default -> spatial.getOrCreateDefaultLayer(tx, name, null, false);
+			case 0 -> spatial.getOrCreateSimplePointLayer(tx, name, null, new SimplePointEncoder.Config("x", "y"),
+					false);
+			case 1 -> spatial.getOrCreateNativePointLayer(tx, name, null, null, false);
+			default -> spatial.getOrCreateDefaultLayer(tx, name, false);
 		};
 	}
 
@@ -417,31 +418,31 @@ public class SpatialProceduresTest extends AbstractApiTest {
 					.collect(Collectors.toMap(r -> r.get("id").toString(), r -> r));
 			Assertions.assertThat(layerTypes).hasSize(11);
 
-			assertLayerType(layerTypes, "SimplePoint", "SimplePointEncoder", "SimplePointLayer", "rtree",
-					"longitude:latitude");
-			assertLayerType(layerTypes, "NativePoint", "NativePointEncoder", "SimplePointLayer", "rtree",
-					"location");
+			var simplePoint = Map.<String, Object>of("xProperty", "longitude", "yProperty", "latitude",
+					"bboxProperty", "bbox");
+			var nativePoint = Map.<String, Object>of("locationProperty", "location", "bboxProperty", "bbox",
+					"crs", "wgs84");
+			var singleProperty = Map.<String, Object>of("geomProperty", "geometry", "bboxProperty", "bbox");
+			assertLayerType(layerTypes, "SimplePoint", "SimplePointEncoder", "SimplePointLayer", "rtree", simplePoint);
+			assertLayerType(layerTypes, "NativePoint", "NativePointEncoder", "SimplePointLayer", "rtree", nativePoint);
 			assertLayerType(layerTypes, "NativePoints", "NativePointsEncoder", "EditableLayer", "rtree",
-					"geometry");
-			assertLayerType(layerTypes, "WKT", "WKTGeometryEncoder", "EditableLayer", "rtree", "geometry");
-			assertLayerType(layerTypes, "WKB", "WKBGeometryEncoder", "EditableLayer", "rtree", "geometry");
-			assertLayerType(layerTypes, "Geohash", "SimplePointEncoder", "SimplePointLayer", "geohash",
-					"longitude:latitude");
-			assertLayerType(layerTypes, "ZOrder", "SimplePointEncoder", "SimplePointLayer", "zorder",
-					"longitude:latitude");
-			assertLayerType(layerTypes, "Hilbert", "SimplePointEncoder", "SimplePointLayer", "hilbert",
-					"longitude:latitude");
+					Map.of("geomProperty", "geometry", "bboxProperty", "bbox", "crs", "wgs84"));
+			assertLayerType(layerTypes, "WKT", "WKTGeometryEncoder", "EditableLayer", "rtree", singleProperty);
+			assertLayerType(layerTypes, "WKB", "WKBGeometryEncoder", "EditableLayer", "rtree", singleProperty);
+			assertLayerType(layerTypes, "Geohash", "SimplePointEncoder", "SimplePointLayer", "geohash", simplePoint);
+			assertLayerType(layerTypes, "ZOrder", "SimplePointEncoder", "SimplePointLayer", "zorder", simplePoint);
+			assertLayerType(layerTypes, "Hilbert", "SimplePointEncoder", "SimplePointLayer", "hilbert", simplePoint);
 			assertLayerType(layerTypes, "NativeGeohash", "NativePointEncoder", "SimplePointLayer", "geohash",
-					"location");
+					nativePoint);
 			assertLayerType(layerTypes, "NativeZOrder", "NativePointEncoder", "SimplePointLayer", "zorder",
-					"location");
+					nativePoint);
 			assertLayerType(layerTypes, "NativeHilbert", "NativePointEncoder", "SimplePointLayer", "hilbert",
-					"location");
+					nativePoint);
 		});
 	}
 
 	private void assertLayerType(Map<String, Map<String, Object>> layerTypes, String id, String encoder, String layer,
-			String index, String defaultConfig) {
+			String index, Map<String, Object> defaultConfig) {
 		Assertions.assertThat(layerTypes).containsKey(id);
 		Assertions.assertThat(layerTypes.get(id))
 				.containsEntry("id", id)
@@ -450,6 +451,26 @@ public class SpatialProceduresTest extends AbstractApiTest {
 				.containsEntry("index", index)
 				.containsEntry("crsName", "WGS84(DD)")
 				.containsEntry("defaultEncoderConfig", defaultConfig);
+	}
+
+	@Test
+	public void add_layer_of_same_type_keeps_preset_default_config() {
+		execute("CALL spatial.addLayer('a','SimplePoint',null)");
+		execute("CALL spatial.addLayer('b','SimplePoint','x:y')");
+		execute("CALL spatial.addLayer('c','SimplePoint',null)");
+		try (Transaction tx = db.beginTx()) {
+			SpatialDatabaseService spatial = new SpatialDatabaseService(
+					new IndexManagerImpl((GraphDatabaseAPI) db, SecurityContext.AUTH_DISABLED));
+			assertEquals("SimplePointEncoder(x='longitude', y='latitude', bbox='bbox')",
+					spatial.getLayer(tx, "a", true).getGeometryEncoder().getSignature());
+			assertEquals("SimplePointEncoder(x='x', y='y', bbox='bbox')",
+					spatial.getLayer(tx, "b", true).getGeometryEncoder().getSignature());
+			assertEquals("SimplePointEncoder(x='longitude', y='latitude', bbox='bbox')",
+					spatial.getLayer(tx, "c", true).getGeometryEncoder().getSignature());
+			assertEquals("longitude", ((SimplePointEncoder.Config) LayerTypePresetRegistry.INSTANCE
+					.getRegisteredLayerType("SimplePoint").defaultEncoderConfig()).xProperty);
+			tx.commit();
+		}
 	}
 
 	@Test

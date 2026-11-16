@@ -65,6 +65,8 @@ import org.neo4j.gis.spatial.filter.SearchIntersect;
 import org.neo4j.gis.spatial.filter.SearchIntersectWindow;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.rtree.NullListener;
+import org.neo4j.gis.spatial.utilities.GeometryEncoderRegistry;
+import org.neo4j.gis.spatial.utilities.IndexRegistry;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -191,8 +193,10 @@ public class IndexImplementationMatrixTest {
 
 	private SimplePointLayer makeTestPointLayer() {
 		try (Transaction tx = graph.beginTx()) {
-			SimplePointLayer layer = spatial.createPointLayer(tx, "test", indexClass, encoderClass, null
-			);
+			var encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(encoderClass);
+			var index = IndexRegistry.INSTANCE.constructIndex(indexClass);
+			var layer = (SimplePointLayer) spatial.createLayer(tx, "test", SimplePointLayer.class,
+					DefaultGeographicCRS.WGS84, encoder, index);
 			layer.finalizeTransaction(tx);
 			tx.commit();
 			return layer;

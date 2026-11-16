@@ -49,6 +49,9 @@ import org.neo4j.spatial.api.layer.Layer;
  * GeometryEncoder, and if the Layer needs to be read later, that node will be read, and a Layer
  * created from it, and the Layer will create an instance of the required GeometryEncoder, which in
  * turn should be capable of reading and writing all Geometries supported by that Layer.
+ * <p>
+ * Implementations need a public no-argument constructor: layers re-create their encoder from the persisted
+ * identifier and configuration (see {@link org.neo4j.spatial.api.Configurable}).
  */
 public interface GeometryEncoder extends EnvelopeDecoder, Identifiable {
 

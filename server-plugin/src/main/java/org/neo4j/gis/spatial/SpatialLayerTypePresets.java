@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial;
 
 import java.util.List;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
+import org.neo4j.gis.spatial.encoders.AbstractSinglePropertyEncoder;
 import org.neo4j.gis.spatial.encoders.NativePointEncoder;
 import org.neo4j.gis.spatial.encoders.NativePointsEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
@@ -38,32 +39,39 @@ public class SpatialLayerTypePresets implements LayerTypePresets {
 	@Override
 	public List<RegisteredLayerType> getLayerTypePresets() {
 		return List.of(
-				new RegisteredLayerType("SimplePoint", SimplePointEncoder.class,
+				RegisteredLayerType.of("SimplePoint", SimplePointEncoder.class,
 						SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerRTreeIndex.class,
-						"longitude:latitude"),
-				new RegisteredLayerType("Geohash", SimplePointEncoder.class,
+						new SimplePointEncoder.Config("longitude", "latitude")),
+				RegisteredLayerType.of("Geohash", SimplePointEncoder.class,
 						SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerGeohashPointIndex.class,
-						"longitude:latitude"),
-				new RegisteredLayerType("ZOrder", SimplePointEncoder.class,
+						new SimplePointEncoder.Config("longitude", "latitude")),
+				RegisteredLayerType.of("ZOrder", SimplePointEncoder.class,
 						SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerZOrderPointIndex.class,
-						"longitude:latitude"),
-				new RegisteredLayerType("Hilbert", SimplePointEncoder.class,
+						new SimplePointEncoder.Config("longitude", "latitude")),
+				RegisteredLayerType.of("Hilbert", SimplePointEncoder.class,
 						SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerHilbertPointIndex.class,
-						"longitude:latitude"),
-				new RegisteredLayerType("NativePoint", NativePointEncoder.class,
-						SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "location"),
-				new RegisteredLayerType("NativePoints", NativePointsEncoder.class,
-						EditableLayerImpl.class, DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "geometry"),
-				new RegisteredLayerType("NativeGeohash", NativePointEncoder.class,
-						SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerGeohashPointIndex.class, "location"),
-				new RegisteredLayerType("NativeZOrder", NativePointEncoder.class,
-						SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerZOrderPointIndex.class, "location"),
-				new RegisteredLayerType("NativeHilbert", NativePointEncoder.class,
-						SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerHilbertPointIndex.class, "location"),
-				new RegisteredLayerType("WKT", WKTGeometryEncoder.class, EditableLayerImpl.class,
-						DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "geometry"),
-				new RegisteredLayerType("WKB", WKBGeometryEncoder.class, EditableLayerImpl.class,
-						DefaultGeographicCRS.WGS84, LayerRTreeIndex.class, "geometry")
+						new SimplePointEncoder.Config("longitude", "latitude")),
+				RegisteredLayerType.of("NativePoint", NativePointEncoder.class,
+						SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerRTreeIndex.class,
+						new NativePointEncoder.Config("location")),
+				RegisteredLayerType.of("NativePoints", NativePointsEncoder.class,
+						EditableLayerImpl.class, DefaultGeographicCRS.WGS84, LayerRTreeIndex.class,
+						new NativePointsEncoder.Config("geometry")),
+				RegisteredLayerType.of("NativeGeohash", NativePointEncoder.class,
+						SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerGeohashPointIndex.class,
+						new NativePointEncoder.Config("location")),
+				RegisteredLayerType.of("NativeZOrder", NativePointEncoder.class,
+						SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerZOrderPointIndex.class,
+						new NativePointEncoder.Config("location")),
+				RegisteredLayerType.of("NativeHilbert", NativePointEncoder.class,
+						SimplePointLayer.class, DefaultGeographicCRS.WGS84, LayerHilbertPointIndex.class,
+						new NativePointEncoder.Config("location")),
+				RegisteredLayerType.of("WKT", WKTGeometryEncoder.class, EditableLayerImpl.class,
+						DefaultGeographicCRS.WGS84, LayerRTreeIndex.class,
+						new AbstractSinglePropertyEncoder.Config("geometry")),
+				RegisteredLayerType.of("WKB", WKBGeometryEncoder.class, EditableLayerImpl.class,
+						DefaultGeographicCRS.WGS84, LayerRTreeIndex.class,
+						new AbstractSinglePropertyEncoder.Config("geometry"))
 		);
 	}
 }

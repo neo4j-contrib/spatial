@@ -22,6 +22,7 @@ package org.neo4j.spatial.api.layer;
 
 import java.util.List;
 import org.geotools.referencing.crs.AbstractCRS;
+import org.neo4j.spatial.api.Configurable;
 import org.neo4j.spatial.api.encoder.GeometryEncoder;
 import org.neo4j.spatial.api.index.SpatialIndexWriter;
 
@@ -44,6 +45,9 @@ public interface LayerTypePresets {
 	/**
 	 * Support mapping a String (ex: 'SimplePoint') to the respective GeometryEncoder and Layer classes
 	 * to allow for more streamlined method for creating Layers.
+	 *
+	 * @param defaultEncoderConfig the encoder's config type (see {@link #of}); a legacy config {@code String} is
+	 *                             migrated on registration. Shared by all layers of this type: never mutate it.
 	 */
 	record RegisteredLayerType(
 			String typeName,
@@ -51,9 +55,24 @@ public interface LayerTypePresets {
 			Class<? extends Layer> layerClass,
 			AbstractCRS crs,
 			Class<? extends SpatialIndexWriter> layerIndexClass,
-			String defaultEncoderConfig
+			Object defaultEncoderConfig
 	) {
 
+		/**
+		 * Type-safe factory: {@code defaultEncoderConfig} must match the encoder's config type.
+		 */
+		public static <Encoder extends GeometryEncoder & Configurable<EncoderConfig>, EncoderConfig>
+		RegisteredLayerType of(
+				String typeName,
+				Class<Encoder> geometryEncoder,
+				Class<? extends Layer> layerClass,
+				AbstractCRS crs,
+				Class<? extends SpatialIndexWriter> layerIndexClass,
+				EncoderConfig defaultEncoderConfig
+		) {
+			return new RegisteredLayerType(typeName, geometryEncoder, layerClass, crs, layerIndexClass,
+					defaultEncoderConfig);
+		}
 	}
 
 }
