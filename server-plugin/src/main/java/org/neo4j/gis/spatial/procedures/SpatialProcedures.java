@@ -70,6 +70,7 @@ import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
 import org.neo4j.gis.spatial.rtree.ProgressLoggingListener;
 import org.neo4j.gis.spatial.rtree.RTreeIndex;
+import org.neo4j.gis.spatial.utilities.BaseRegistry.EntryMeta;
 import org.neo4j.gis.spatial.utilities.ConfigurationUtils;
 import org.neo4j.gis.spatial.utilities.GeometryEncoderRegistry;
 import org.neo4j.gis.spatial.utilities.IndexRegistry;
@@ -508,12 +509,13 @@ public class SpatialProcedures extends SpatialApiBase {
 			@Name(value = "encoder", description = DOC_ENCODER_NAME) String encoderName,
 			@Name(value = "encoderConfig", description = DOC_ENCODER_CONFIG) String encoderConfig,
 			@Name(value = "indexConfig", defaultValue = UNSET_INDEX_CONFIG, description = DOC_INDEX_CONFIG) String indexConfig) {
-		Class<? extends GeometryEncoder> encoderClass = GeometryEncoderRegistry.INSTANCE.getRegisteredEncoders()
+		EntryMeta<GeometryEncoder> encoderMeta = GeometryEncoderRegistry.INSTANCE.getRegisteredEncoders()
 				.get(encoderName);
-		if (encoderClass == null) {
+		if (encoderMeta == null) {
 			throw new IllegalArgumentException(
 					"Cannot create layer '" + name + "': invalid encoder '" + encoderName + "'");
 		}
+		Class<? extends GeometryEncoder> encoderClass = encoderMeta.clazz();
 		SpatialDatabaseService sdb = spatial();
 		assertLayerDoesNotExist(sdb, name);
 		Class<? extends Layer> layerClass = LayerTypePresetRegistry.INSTANCE.suggestLayerClassForEncoder(encoderClass);

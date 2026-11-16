@@ -20,53 +20,28 @@
 
 package org.neo4j.gis.spatial.utilities;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.ServiceLoader;
-import java.util.logging.Logger;
-import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.spatial.api.Configurable;
 import org.neo4j.spatial.api.encoder.GeometryEncoder;
 
-public class GeometryEncoderRegistry {
-
-	private static final Logger LOGGER = Logger.getLogger(GeometryEncoderRegistry.class.getName());
-
-	private final Map<String, Class<? extends GeometryEncoder>> registeredEncoders = new HashMap<>();
+public class GeometryEncoderRegistry extends BaseRegistry<GeometryEncoder> {
 
 	public static final GeometryEncoderRegistry INSTANCE = new GeometryEncoderRegistry();
 
 	private GeometryEncoderRegistry() {
-
-		ServiceLoader.load(GeometryEncoder.class).forEach(encoder -> encoder.getIdentifiers().forEach(identifier -> {
-			if (registeredEncoders.containsKey(identifier)) {
-				LOGGER.warning(
-						"Geometry encoder identifier conflict: " + identifier
-								+ " - overwriting previous registration");
-			}
-			registeredEncoders.put(identifier, encoder.getClass());
-		}));
+		super(GeometryEncoder.class);
 	}
 
-	public Map<String, Class<? extends GeometryEncoder>> getRegisteredEncoders() {
-		return Collections.unmodifiableMap(registeredEncoders);
+	public Map<String, EntryMeta<GeometryEncoder>> getRegisteredEncoders() {
+		return getRegisteredEntries();
 	}
 
 	public GeometryEncoder constructGeometryEncoder(String encoderName) {
-		Class<? extends GeometryEncoder> encoderClass = registeredEncoders.get(encoderName);
-		if (encoderClass == null) {
-			throw new SpatialDatabaseException("no encoder found for name: " + encoderName);
-		}
-		return constructGeometryEncoder(encoderClass);
+		return constructEntry("encoder", encoderName);
 	}
 
 	public <T extends GeometryEncoder> T constructGeometryEncoder(Class<T> encoderClass) {
-		try {
-			return encoderClass.getDeclaredConstructor().newInstance();
-		} catch (Exception e) {
-			throw new SpatialDatabaseException(e);
-		}
+		return constructEntry(encoderClass);
 	}
 
 	public <T extends GeometryEncoder & Configurable<C>, C> T constructGeometryEncoder(Class<T> encoderClass,

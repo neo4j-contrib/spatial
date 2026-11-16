@@ -20,39 +20,23 @@
 
 package org.neo4j.gis.spatial.utilities;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.ServiceLoader;
 import java.util.logging.Logger;
-import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.spatial.api.Configurable;
 import org.neo4j.spatial.api.index.SpatialIndexWriter;
 
-public class IndexRegistry {
+public class IndexRegistry extends BaseRegistry<SpatialIndexWriter> {
 
 	private static final Logger LOGGER = Logger.getLogger(IndexRegistry.class.getName());
-
-	private final Map<String, Class<? extends SpatialIndexWriter>> registeredIndices = new HashMap<>();
 
 	public static final IndexRegistry INSTANCE = new IndexRegistry();
 
 	private IndexRegistry() {
-
-		ServiceLoader.load(SpatialIndexWriter.class).forEach(index -> {
-			index.getIdentifiers().forEach(identifier -> {
-				if (registeredIndices.containsKey(identifier)) {
-					LOGGER.warning(
-							"Index identifier conflict: " + identifier
-									+ " - overwriting previous registration");
-				}
-				registeredIndices.put(identifier, index.getClass());
-			});
-		});
+		super(SpatialIndexWriter.class);
 	}
 
-	public Map<String, Class<? extends SpatialIndexWriter>> getRegisteredIndices() {
-		return Collections.unmodifiableMap(registeredIndices);
+	public Map<String, EntryMeta<SpatialIndexWriter>> getRegisteredIndices() {
+		return getRegisteredEntries();
 	}
 
 	public SpatialIndexWriter constructIndex(String indexName) {
@@ -63,29 +47,21 @@ public class IndexRegistry {
 	 * @param config legacy string configuration, see {@link Configurable#migrateLegacyConfiguration(String)}
 	 */
 	public SpatialIndexWriter constructIndex(String indexName, String config) {
-		Class<? extends SpatialIndexWriter> indexClass = registeredIndices.get(indexName);
-		if (indexClass == null) {
-			throw new SpatialDatabaseException("no index for name: " + indexName);
-		}
-		SpatialIndexWriter index = constructIndex(indexClass);
+		SpatialIndexWriter index = constructEntry("index", indexName);
 		if (config != null && !config.isEmpty()) {
 			if (index instanceof Configurable<?> configurable) {
 				ConfigurationUtils.setLegacyConfig(configurable, config);
 			} else {
 				LOGGER.warning(
 						"Warning: index configuration '" + config + "' passed to non-configurable index: "
-								+ indexClass);
+								+ index.getClass());
 			}
 		}
 		return index;
 	}
 
 	public <T extends SpatialIndexWriter> T constructIndex(Class<T> indexClass) {
-		try {
-			return indexClass.getDeclaredConstructor().newInstance();
-		} catch (Exception e) {
-			throw new SpatialDatabaseException(e);
-		}
+		return constructEntry(indexClass);
 	}
 
 	public <T extends SpatialIndexWriter & Configurable<C>, C> T constructIndex(Class<T> indexClass, C config) {
