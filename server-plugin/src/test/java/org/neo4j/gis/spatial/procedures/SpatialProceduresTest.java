@@ -786,6 +786,33 @@ public class SpatialProceduresTest extends AbstractApiTest {
 		testCallCount(db, "CALL spatial.closest('geom',{lon:15.2, lat:60.1}, 1.0)", null, 1);
 	}
 
+	@ParameterizedTest
+	@ValueSource(strings = {"addPointLayerGeohash", "addPointLayerZOrder", "addPointLayerHilbert",
+			"addNativePointLayerGeohash", "addNativePointLayerZOrder", "addNativePointLayerHilbert"})
+	public void space_filling_curve_layer_counts_and_bounds(String procedure) {
+		execute("CALL spatial." + procedure + "('geom')");
+		execute("CALL spatial.addWKT('geom','POINT (15.2 60.1)')");
+		execute("CALL spatial.addWKT('geom','POINT (16.2 61.1)')");
+		testCall(db, "CALL spatial.getFeatureCount('geom')", r -> assertEquals(2L, r.get("count")));
+		testCall(db, "CALL spatial.getLayerBoundingBox('geom')", r -> {
+			assertEquals(15.2, r.get("minX"));
+			assertEquals(60.1, r.get("minY"));
+			assertEquals(16.2, r.get("maxX"));
+			assertEquals(61.1, r.get("maxY"));
+		});
+		// distance 0: search radius derived from the layer bounding box
+		testCallCount(db, "CALL spatial.closest('geom', {lon: 15.2, lat: 60.1}, 0.0)", null, 1);
+
+		testCall(db, """
+				CALL spatial.bbox('geom', {lon: 15.0, lat: 60.0}, {lon: 17.0, lat: 62.0}) YIELD node
+				WITH collect(node) AS nodes
+				CALL spatial.removeNodes('geom', nodes) YIELD count
+				RETURN count""", r -> assertEquals(2L, r.get("count")));
+		testCall(db, "CALL spatial.getFeatureCount('geom')", r -> assertEquals(0L, r.get("count")));
+		// empty layer: closest must not derive a radius from the (absent) bounding box
+		testCallCount(db, "CALL spatial.closest('geom', {lon: 15.2, lat: 60.1}, 0.0)", null, 0);
+	}
+
 	@Test
 	public void find_no_geometries_using_closest_on_empty_layer() {
 		execute("CALL spatial.addLayer('geom','WKT','wkt')");

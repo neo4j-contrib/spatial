@@ -132,13 +132,14 @@ public class IndexImplementationMatrixTest {
 		return layer;
 	}
 
-	protected void addSimplePoint(SpatialIndexWriter index, double x, double y) {
+	protected Node addSimplePoint(SpatialIndexWriter index, double x, double y) {
 		try (Transaction tx = graph.beginTx()) {
 			Node geomNode = tx.createNode();
 			Point point = geometryFactory.createPoint(new Coordinate(x, y));
 			encoder.encodeGeometry(tx, point, geomNode);
 			index.add(tx, geomNode);
 			tx.commit();
+			return geomNode;
 		}
 	}
 
@@ -216,6 +217,46 @@ public class IndexImplementationMatrixTest {
 			assertThat("Should find one geometry node", found.size(), equalTo(1));
 			assertThat("Should find same geometry node", added.getGeomNode(), equalTo(found.getFirst().getGeomNode()));
 			tx.commit();
+		}
+	}
+
+	@Test
+	public void shouldTrackIndexedNodes() {
+		try (Transaction tx = graph.beginTx()) {
+			assertThat(index.isEmpty(tx), is(true));
+			assertThat(index.count(tx), equalTo(0));
+		}
+		Node a = addSimplePoint(index, 1.0, 2.0);
+		Node b = addSimplePoint(index, 10.0, 20.0);
+		try (Transaction tx = graph.beginTx()) {
+			assertThat(index.isEmpty(tx), is(false));
+			assertThat(index.count(tx), equalTo(2));
+			assertThat(index.isNodeIndexed(tx, a.getElementId()), is(true));
+			Envelope bbox = index.getBoundingBox(tx);
+			assertThat(bbox.getMinX(), equalTo(1.0));
+			assertThat(bbox.getMinY(), equalTo(2.0));
+			assertThat(bbox.getMaxX(), equalTo(10.0));
+			assertThat(bbox.getMaxY(), equalTo(20.0));
+		}
+		try (Transaction tx = graph.beginTx()) {
+			index.remove(tx, a.getElementId(), false, true);
+			tx.commit();
+		}
+		try (Transaction tx = graph.beginTx()) {
+			assertThat(index.count(tx), equalTo(1));
+			assertThat(index.isNodeIndexed(tx, a.getElementId()), is(false));
+			assertThat(index.isNodeIndexed(tx, b.getElementId()), is(true));
+		}
+		try (Transaction tx = graph.beginTx()) {
+			index.remove(tx, b.getElementId(), false, true);
+			tx.commit();
+		}
+		try (Transaction tx = graph.beginTx()) {
+			// RTree keeps the root bbox after removals, so isEmpty stays false (pre-existing)
+			if (indexClass != LayerRTreeIndex.class) {
+				assertThat(index.isEmpty(tx), is(true));
+			}
+			assertThat(index.count(tx), equalTo(0));
 		}
 	}
 
