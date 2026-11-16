@@ -136,6 +136,17 @@ public class LayersTest extends Neo4jTestCase {
 	}
 
 	@Test
+	public void testGetOrCreateNativePointLayerIgnoresConfigForExistingLayer() {
+		SpatialDatabaseService spatial = new SpatialDatabaseService(
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+		inTx(tx -> spatial.getOrCreateNativePointLayer(tx, "points", null, null, false));
+		inTx(tx -> {
+			var invalid = new NativePointEncoder.Config("location", "bbox", "no-such-crs");
+			assertNotNull(spatial.getOrCreateNativePointLayer(tx, "points", null, invalid, false));
+		});
+	}
+
+	@Test
 	public void testEncoderAndIndexInstancesCanBeReused() {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));

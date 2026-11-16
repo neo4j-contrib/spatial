@@ -33,6 +33,7 @@ import static org.neo4j.gis.spatial.Constants.PROP_LAYER_TYPE;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Supplier;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
@@ -278,7 +279,7 @@ public class SpatialDatabaseService {
 			boolean readOnly
 	) {
 		return getOrCreatePointLayer(tx, name, index,
-				GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(SimplePointEncoder.class, encoderConfig),
+				() -> GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(SimplePointEncoder.class, encoderConfig),
 				readOnly);
 	}
 
@@ -294,16 +295,17 @@ public class SpatialDatabaseService {
 			boolean readOnly
 	) {
 		return getOrCreatePointLayer(tx, name, index,
-				GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(NativePointEncoder.class, encoderConfig),
+				() -> GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(NativePointEncoder.class, encoderConfig),
 				readOnly);
 	}
 
+	// encoder is supplied lazily: its config is ignored for an existing layer and mustn't fail validation then
 	private EditableLayer getOrCreatePointLayer(Transaction tx, String name, @Nullable SpatialIndexWriter index,
-			GeometryEncoder encoder, boolean readOnly) {
+			Supplier<GeometryEncoder> encoder, boolean readOnly) {
 		EditableLayer layer = getEditableLayer(tx, name, readOnly);
 		if (layer == null) {
-			layer = (EditableLayer) createLayer(tx, name, SimplePointLayer.class, DefaultGeographicCRS.WGS84, encoder,
-					index != null ? index : new LayerRTreeIndex());
+			layer = (EditableLayer) createLayer(tx, name, SimplePointLayer.class, DefaultGeographicCRS.WGS84,
+					encoder.get(), index != null ? index : new LayerRTreeIndex());
 		}
 		return layer;
 	}
