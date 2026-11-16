@@ -19,6 +19,7 @@
  */
 package org.neo4j.spatial.api;
 
+import javax.annotation.Nullable;
 import org.neo4j.gis.spatial.index.Envelope;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -34,5 +35,14 @@ public interface SearchFilter {
 		return needsToVisit(envelope) ? EnvelopFilterResult.FILTER : EnvelopFilterResult.EXCLUDE_ALL;
 	}
 	boolean geometryMatches(Transaction tx, Node geomNode);
+
+	/**
+	 * @return an envelope every matching geometry intersects, or {@code null} if unknown; lets indexes that can't
+	 * use {@link #needsToVisit} (e.g. space-filling curves) narrow the search
+	 */
+	@Nullable
+	default Envelope getBoundingEnvelope() {
+		return null;
+	}
 
 }

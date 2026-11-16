@@ -40,6 +40,11 @@ public abstract class AbstractSearchEnvelopeIntersection implements SearchFilter
 	}
 
 	@Override
+	public Envelope getBoundingEnvelope() {
+		return referenceEnvelope;
+	}
+
+	@Override
 	public boolean needsToVisit(Envelope indexNodeEnvelope) {
 		return indexNodeEnvelope.intersects(referenceEnvelope);
 	}

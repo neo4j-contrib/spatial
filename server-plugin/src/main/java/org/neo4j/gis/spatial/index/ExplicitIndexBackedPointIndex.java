@@ -175,7 +175,11 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements SpatialIndexWr
 
 	@Override
 	public SearchResults searchIndex(Transaction tx, SearchFilter filter) {
-		Iterator<Node> indexHits = index.query(tx, searcherFor(tx, filter));
+		Envelope envelope = filter.getBoundingEnvelope();
+		// without an envelope the curve can't narrow the search: scan, geometryMatches filters below
+		Iterator<Node> indexHits = envelope == null
+				? index.queryAll(tx).iterator()
+				: index.query(tx, searcherFor(tx, envelope));
 		return new SearchResults(() -> new FilteredIndexIterator(tx, indexHits, filter));
 	}
 
@@ -226,7 +230,7 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements SpatialIndexWr
 	/**
 	 * Create a class capable of performing a specific search based on a custom 2D to 1D conversion.
 	 */
-	protected abstract Neo4jIndexSearcher searcherFor(Transaction tx, SearchFilter filter);
+	protected abstract Neo4jIndexSearcher searcherFor(Transaction tx, Envelope envelope);
 
 	public interface Neo4jIndexSearcher {
 
