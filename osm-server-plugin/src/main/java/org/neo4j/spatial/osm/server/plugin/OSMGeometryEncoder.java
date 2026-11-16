@@ -621,4 +621,9 @@ public class OSMGeometryEncoder extends AbstractGeometryEncoder<BaseGeometryEnco
 		}
 		return result;
 	}
+
+	@Override
+	public String getDescription() {
+		return "Encoder for OpenStreetMap (OSM) data models. It maps OSM Nodes, Ways, and Relations to JTS Geometries and manages spatial indexing for OSM-specific graph structures.";
+	}
 }

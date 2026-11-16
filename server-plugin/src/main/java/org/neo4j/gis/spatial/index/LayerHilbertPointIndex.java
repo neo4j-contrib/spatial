@@ -36,4 +36,9 @@ public class LayerHilbertPointIndex extends LayerSpaceFillingCurvePointIndex {
 	protected SpaceFillingCurve makeCurve(Envelope envelope, int maxLevels) {
 		return new HilbertSpaceFillingCurve2D(envelope, maxLevels);
 	}
+
+	@Override
+	public String getDescription() {
+		return "A spatial point index using a Hilbert Space-Filling Curve to map 2D coordinates to a 1D sequence for efficient range and proximity searches.";
+	}
 }

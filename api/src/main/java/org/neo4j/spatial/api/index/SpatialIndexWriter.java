@@ -45,4 +45,11 @@ public interface SpatialIndexWriter extends SpatialIndexReader, Identifiable {
 
 	void clear(Transaction tx, ProgressListener monitor);
 
+	/**
+	 * Provides a textual description of the index writer.
+	 *
+	 * @return a description of the index writer, typically including its purpose or functionality
+	 */
+	String getDescription();
+
 }

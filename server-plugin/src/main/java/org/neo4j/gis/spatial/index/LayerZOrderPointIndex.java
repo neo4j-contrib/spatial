@@ -41,4 +41,9 @@ public class LayerZOrderPointIndex extends LayerSpaceFillingCurvePointIndex {
 	protected SpaceFillingCurve makeCurve(Envelope envelope, int maxLevels) {
 		return new ZOrderSpaceFillingCurve2D(envelope, maxLevels);
 	}
+
+	@Override
+	public String getDescription() {
+		return "A spatial point index using a Z-Order (Morton) space-filling curve to map 2D coordinates to 1D values for efficient range searches.";
+	}
 }

@@ -1613,4 +1613,9 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Con
 			throw new IllegalStateException("Index is read only");
 		}
 	}
+
+	@Override
+	public String getDescription() {
+		return "In-graph R-Tree index for spatial data, providing balanced tree structures for efficient geometric range and containment queries.";
+	}
 }

@@ -55,4 +55,9 @@ public class WKTGeometryEncoder extends AbstractSinglePropertyEncoder {
 	public String getSignature() {
 		return "WKT" + super.getSignature();
 	}
+
+	@Override
+	public String getDescription() {
+		return "Encodes and decodes geometries using the Well-Known Text (WKT) format stored in a single node property.";
+	}
 }

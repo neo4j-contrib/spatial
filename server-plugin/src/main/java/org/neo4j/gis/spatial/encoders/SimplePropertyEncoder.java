@@ -87,4 +87,9 @@ public class SimplePropertyEncoder extends AbstractGeometryEncoder<BaseGeometryE
 	public Set<String> getEncoderProperties() {
 		return Set.of(configuration.bboxProperty, PROPERTY_DATA, PROP_TYPE);
 	}
+
+	@Override
+	public String getDescription() {
+		return "Encodes LineString geometries into a single 'data' property as a flattened float array (x1, y1, x2, y2, ...).";
+	}
 }
