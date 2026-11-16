@@ -609,13 +609,8 @@ public class SpatialProcedures extends SpatialApiBase {
 		assertLayerDoesNotExist(sdb, name);
 
 		var encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(registeredLayerType.geometryEncoder());
-		if (encoderConfig != null) {
-			ConfigurationUtils.applyConfig("encoder", encoder, encoderConfig);
-		} else if (encoder instanceof Configurable<?> configurable && registeredLayerType.defaultEncoderConfig() != null) {
-			// via map: the preset config is untyped (Object)
-			ConfigurationUtils.setConfig(configurable,
-					ConfigurationUtils.getConfigMap(registeredLayerType.defaultEncoderConfig()));
-		}
+		ConfigurationUtils.applyConfig("encoder", encoder,
+				ConfigurationUtils.withDefaults(registeredLayerType.defaultEncoderConfig(), encoderConfig));
 		var index = IndexRegistry.INSTANCE.constructIndex(registeredLayerType.layerIndexClass());
 		IndexRegistry.INSTANCE.applyConfig(index, indexConfig);
 		// space-filling-curve indexes need a CRS; others keep none (e.g. WKT distances stay cartesian)

@@ -146,6 +146,24 @@ public class ConfigurationUtils {
 		}
 	}
 
+	/**
+	 * @param defaults a typed config, e.g. a layer preset's, or {@code null}
+	 * @param config   as for {@link #applyConfig(Configurable, Object)}
+	 * @return the defaults with the options of a config map (or none) applied on top; any other config unchanged,
+	 * a legacy string replaces the defaults as a whole
+	 */
+	@Nullable
+	public static Object withDefaults(@Nullable Object defaults, @Nullable Object config) {
+		if (defaults == null || !(config == null || config instanceof Map<?, ?>)) {
+			return config;
+		}
+		Map<String, Object> merged = getConfigMap(defaults);
+		if (config instanceof Map<?, ?> map) {
+			map.forEach((key, value) -> merged.put(String.valueOf(key), value));
+		}
+		return merged;
+	}
+
 	private static IllegalArgumentException invalidConfigType(Object config) {
 		return new IllegalArgumentException(
 				"config must be a MAP or STRING, got: " + config.getClass().getSimpleName());

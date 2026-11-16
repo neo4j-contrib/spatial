@@ -20,17 +20,42 @@
 
 package org.neo4j.gis.spatial.utilities;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.spatial.api.Identifiable;
 
 class ConfigurationUtilsTest {
 
 	private static final Identifiable WITHOUT_OPTIONS = () -> List.of("plain");
+
+	private static final SimplePointEncoder.Config PRESET = new SimplePointEncoder.Config("x", "y");
+
+	@Test
+	void config_map_overrides_defaults_per_option() {
+		assertThat(ConfigurationUtils.withDefaults(PRESET, Map.of("yProperty", "lat")))
+				.isEqualTo(Map.of("xProperty", "x", "yProperty", "lat", "bboxProperty", "bbox"));
+	}
+
+	@Test
+	void missing_or_empty_config_map_yields_defaults() {
+		var defaults = Map.of("xProperty", "x", "yProperty", "y", "bboxProperty", "bbox");
+		assertThat(ConfigurationUtils.withDefaults(PRESET, null)).isEqualTo(defaults);
+		assertThat(ConfigurationUtils.withDefaults(PRESET, Map.of())).isEqualTo(defaults);
+	}
+
+	@Test
+	void legacy_config_and_missing_defaults_pass_through() {
+		assertThat(ConfigurationUtils.withDefaults(PRESET, "a:b")).isEqualTo("a:b");
+		assertThat(ConfigurationUtils.withDefaults(PRESET, 42L)).isEqualTo(42L);
+		assertThat(ConfigurationUtils.withDefaults(null, Map.of("a", 1))).isEqualTo(Map.of("a", 1));
+		assertThat(ConfigurationUtils.withDefaults(null, null)).isNull();
+	}
 
 	@Test
 	void component_without_options_ignores_empty_and_legacy_config() {
