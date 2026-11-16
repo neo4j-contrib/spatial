@@ -58,6 +58,12 @@ public class SimplePointLayer extends EditableLayerImpl {
 		return GTYPE_POINT;
 	}
 
+	// known without guessing via an index search, which space-filling-curve indexes don't support
+	@Override
+	public Integer getGeometryType(Transaction tx) {
+		return GTYPE_POINT;
+	}
+
 	public List<GeoPipeFlow> findClosestPointsTo(Transaction tx, Coordinate coordinate, double d) {
 		return GeoPipeline
 				.startNearestNeighborLatLonSearch(tx, this, coordinate, d)
