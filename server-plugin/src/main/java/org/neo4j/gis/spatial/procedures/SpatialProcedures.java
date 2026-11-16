@@ -128,9 +128,9 @@ public class SpatialProcedures extends SpatialApiBase {
 
 	}
 
-	public record NameAndDescriptionResult(
+	public record IdAndDescriptionResult(
 			@Description("The id of the component")
-			String name,
+			String id,
 			@Description("What the component does")
 			String description
 	) {
@@ -276,7 +276,7 @@ public class SpatialProcedures extends SpatialApiBase {
 
 	@Procedure(value = "spatial.encoders.list", mode = READ)
 	@Description("Returns the registered geometry encoders, one row per encoder")
-	public Stream<NameAndDescriptionResult> listEncoders() {
+	public Stream<IdAndDescriptionResult> listEncoders() {
 		return listEntries(GeometryEncoderRegistry.INSTANCE.getRegisteredEncoders());
 	}
 
@@ -290,7 +290,7 @@ public class SpatialProcedures extends SpatialApiBase {
 
 	@Procedure(value = "spatial.indexTypes.list", mode = READ)
 	@Description("Returns the registered index types, one row per index type")
-	public Stream<NameAndDescriptionResult> listIndexTypes() {
+	public Stream<IdAndDescriptionResult> listIndexTypes() {
 		return listEntries(IndexRegistry.INSTANCE.getRegisteredIndices());
 	}
 
@@ -309,9 +309,9 @@ public class SpatialProcedures extends SpatialApiBase {
 				.sorted(Comparator.comparing(entry -> entry.identifiers().getFirst()));
 	}
 
-	private static Stream<NameAndDescriptionResult> listEntries(Map<String, ? extends EntryMeta<?>> entries) {
+	private static Stream<IdAndDescriptionResult> listEntries(Map<String, ? extends EntryMeta<?>> entries) {
 		return distinctEntries(entries)
-				.map(entry -> new NameAndDescriptionResult(entry.identifiers().getFirst(), entry.description()));
+				.map(entry -> new IdAndDescriptionResult(entry.identifiers().getFirst(), entry.description()));
 	}
 
 	private static <M extends EntryMeta<?>> M getEntry(String kind, Map<String, M> entries, String id) {

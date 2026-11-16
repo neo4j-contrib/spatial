@@ -12,7 +12,7 @@ Returns the registered geometry encoders, one row per encoder
 
 [source]
 ----
-spatial.encoders.list() :: (name :: STRING, description :: STRING)
+spatial.encoders.list() :: (id :: STRING, description :: STRING)
 ----
 
 == Output parameters
@@ -20,7 +20,7 @@ spatial.encoders.list() :: (name :: STRING, description :: STRING)
 [.procedures,opts=header,cols='1,1,8']
 |===
 |Name|Type|Description
-|name|STRING|The id of the component
+|id|STRING|The id of the component
 |description|STRING|What the component does
 |===
 

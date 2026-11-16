@@ -10,7 +10,7 @@ CALL spatial.encoders.list()
 
 [opts="header",cols="2"]
 |===
-|name|description
+|id|description
 |NativePointEncoder|An encoder for Point geometries that leverages Neo4j's native Point data type for efficient storage.
 |NativePointsEncoder|Encodes JTS LineString geometries as arrays of native Neo4j Point types, providing efficient storage for linear spatial data.
 |OSMGeometryEncoder|Encoder for OpenStreetMap (OSM) data models. It maps OSM Nodes, Ways, and Relations to JTS Geometries and manages spatial indexing for OSM-specific graph structures.

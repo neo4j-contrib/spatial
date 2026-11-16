@@ -469,7 +469,7 @@ public class SpatialProceduresTest extends AbstractApiTest {
 		testResult(db, call, res -> {
 			var rows = res.stream().toList();
 			// exact order: sorted by id, one row per component although each is registered under several ids
-			Assertions.assertThat(rows).extracting(r -> r.get("name")).containsExactly((Object[]) expectedIds);
+			Assertions.assertThat(rows).extracting(r -> r.get("id")).containsExactly((Object[]) expectedIds);
 			Assertions.assertThat(rows).allSatisfy(r -> Assertions.assertThat((String) r.get("description")).isNotBlank());
 		});
 	}

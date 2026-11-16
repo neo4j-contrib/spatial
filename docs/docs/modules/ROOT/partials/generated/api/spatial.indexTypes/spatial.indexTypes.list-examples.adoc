@@ -10,7 +10,7 @@ CALL spatial.indexTypes.list()
 
 [opts="header",cols="2"]
 |===
-|name|description
+|id|description
 |geohash|A point index using Geohash-style bit-interleaving of latitude and longitude. Provides efficient prefix-based range searches for geographic coordinates.
 |hilbert|A spatial point index using a Hilbert Space-Filling Curve to map 2D coordinates to a 1D sequence for efficient range and proximity searches.
 |rtree|In-graph R-Tree index for spatial data, providing balanced tree structures for efficient geometric range and containment queries.
