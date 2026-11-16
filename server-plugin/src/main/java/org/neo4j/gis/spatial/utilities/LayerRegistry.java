@@ -20,54 +20,27 @@
 
 package org.neo4j.gis.spatial.utilities;
 
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
-import java.util.ServiceLoader;
-import java.util.logging.Logger;
-import org.neo4j.gis.spatial.SpatialDatabaseException;
 import org.neo4j.spatial.api.layer.Layer;
 
-public class LayerRegistry {
-
-	private static final Logger LOGGER = Logger.getLogger(LayerRegistry.class.getName());
-
-	private final Map<String, Class<? extends Layer>> registeredLayers = new HashMap<>();
+public class LayerRegistry extends BaseRegistry<Layer> {
 
 	public static final LayerRegistry INSTANCE = new LayerRegistry();
 
 	private LayerRegistry() {
-
-		ServiceLoader.load(Layer.class).forEach(layer -> {
-			layer.getIdentifiers().forEach(identifier -> {
-				if (registeredLayers.containsKey(identifier)) {
-					LOGGER.warning(
-							"Layer identifier conflict: " + identifier
-									+ " - overwriting previous registration");
-				}
-				registeredLayers.put(identifier, layer.getClass());
-			});
-		});
+		super(Layer.class);
 	}
 
-	public Map<String, Class<? extends Layer>> getRegisteredLayers() {
-		return Collections.unmodifiableMap(registeredLayers);
+	public Map<String, EntryMeta<Layer>> getRegisteredLayers() {
+		return getRegisteredEntries();
 	}
 
 	public Layer constructLayer(String layerName) {
-		Class<? extends Layer> layerClass = registeredLayers.get(layerName);
-		if (layerClass == null) {
-			throw new SpatialDatabaseException("no layer for name: " + layerName);
-		}
-		return constructLayer(layerClass);
+		return constructEntry("layer", layerName);
 	}
 
 	public <T extends Layer> T constructLayer(Class<T> layerClass) {
-		try {
-			return layerClass.getDeclaredConstructor().newInstance();
-		} catch (Exception e) {
-			throw new SpatialDatabaseException(e);
-		}
+		return constructEntry(layerClass);
 	}
 
 }
