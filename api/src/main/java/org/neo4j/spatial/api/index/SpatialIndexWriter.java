@@ -25,7 +25,12 @@ import org.neo4j.graphdb.Transaction;
 import org.neo4j.spatial.api.Identifiable;
 import org.neo4j.spatial.api.monitoring.ProgressListener;
 
-
+/**
+ * Writable spatial index of a layer.
+ * <p>
+ * Implementations need a public no-argument constructor: layers re-create their index from the persisted
+ * identifier and configuration (see {@link org.neo4j.spatial.api.Configurable}).
+ */
 public interface SpatialIndexWriter extends SpatialIndexReader, Identifiable {
 
 	default void add(Transaction tx, Node geomNode) {

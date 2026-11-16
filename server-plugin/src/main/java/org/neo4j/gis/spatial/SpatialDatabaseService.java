@@ -341,39 +341,37 @@ public class SpatialDatabaseService {
 	}
 
 	public SimplePointLayer createSimplePointLayer(Transaction tx, String name, SimplePointEncoder.Config encoderConfig) {
-		return createPointLayer(tx, name, LayerRTreeIndex.class, SimplePointEncoder.class, null, encoderConfig);
+		return createPointLayer(tx, name, new LayerRTreeIndex(),
+				GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(SimplePointEncoder.class, encoderConfig));
 	}
 
 	public SimplePointLayer createSimplePointLayer(Transaction tx, String name, String xProperty, String yProperty) {
-		return createPointLayer(tx, name, LayerRTreeIndex.class, SimplePointEncoder.class, null,
-				new SimplePointEncoder.Config(xProperty, yProperty));
+		return createSimplePointLayer(tx, name, new SimplePointEncoder.Config(xProperty, yProperty));
 	}
 
 	public SimplePointLayer createNativePointLayer(Transaction tx, String name,
 			NativePointEncoder.Config encoderConfig) {
-		return createPointLayer(tx, name, LayerRTreeIndex.class, NativePointEncoder.class, null, encoderConfig);
+		return createPointLayer(tx, name, new LayerRTreeIndex(),
+				GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(NativePointEncoder.class, encoderConfig));
 	}
 
-	public <Encoder extends GeometryEncoder & Configurable<EncoderConfig>,
-			EncoderConfig,
-			Index extends SpatialIndexWriter & Configurable<IndexConfig>,
-			IndexConfig>
-	SimplePointLayer createPointLayer(
+	/**
+	 * Creates a {@link SimplePointLayer} in WGS84; see {@link #createLayer} for how {@code index} and
+	 * {@code encoder} are used.
+	 */
+	public SimplePointLayer createPointLayer(
 			@Nonnull Transaction tx,
 			@Nonnull String name,
-			@Nonnull Class<Index> indexClass,
-			@Nonnull Class<Encoder> encoderClass,
-			IndexConfig indexConfig,
-			EncoderConfig encoderConfig
+			@Nonnull SpatialIndexWriter index,
+			@Nonnull GeometryEncoder encoder
 	) {
-		var encoder = GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(encoderClass, encoderConfig);
-		var index = IndexRegistry.INSTANCE.constructIndex(indexClass, indexConfig);
 		return (SimplePointLayer) createLayer(tx, name, SimplePointLayer.class, DefaultGeographicCRS.WGS84, encoder,
 				index);
 	}
 
 	/**
-	 * @param encoder template for the layer's encoder: type and configuration are copied, the instance stays unbound
+	 * @param encoder template for the layer's encoder: a new instance of its class (no-argument constructor) gets
+	 *                its configuration, the template stays unbound
 	 * @param index   template for the layer's index, copied like {@code encoder}
 	 */
 	public @Nonnull Layer createLayer(

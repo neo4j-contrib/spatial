@@ -157,6 +157,9 @@ public class LayerUtilities {
 		try {
 			//noinspection unchecked
 			copy = (T) component.getClass().getDeclaredConstructor().newInstance();
+		} catch (NoSuchMethodException e) {
+			throw new SpatialDatabaseException(component.getClass().getName() + " needs a no-argument constructor: "
+					+ "layers re-create their encoder and index from the persisted type and configuration", e);
 		} catch (ReflectiveOperationException e) {
 			throw new SpatialDatabaseException(e);
 		}

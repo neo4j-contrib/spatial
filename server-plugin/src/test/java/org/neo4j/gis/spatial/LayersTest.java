@@ -147,6 +147,14 @@ public class LayersTest extends Neo4jTestCase {
 	}
 
 	@Test
+	public void testCreatePointLayerWithNonConfigurableIndex() {
+		SpatialDatabaseService spatial = new SpatialDatabaseService(
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+		inTx(tx -> spatial.createPointLayer(tx, "points", new LayerGeohashPointIndex(), new SimplePointEncoder()));
+		inTx(tx -> assertInstanceOf(LayerGeohashPointIndex.class, spatial.getLayer(tx, "points", true).getIndex()));
+	}
+
+	@Test
 	public void testEncoderAndIndexInstancesCanBeReused() {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
