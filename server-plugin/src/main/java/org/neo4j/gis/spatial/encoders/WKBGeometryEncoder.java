@@ -32,7 +32,9 @@ public class WKBGeometryEncoder extends AbstractSinglePropertyEncoder {
 
 	@Override
 	public List<String> getIdentifiers() {
-		return List.of("WKBGeometryEncoder", "org.neo4j.gis.spatial.encoders.WKBGeometryEncoder");
+		// last: class name before #458, persisted in layers created by earlier releases
+		return List.of("WKBGeometryEncoder", "org.neo4j.gis.spatial.encoders.WKBGeometryEncoder",
+				"org.neo4j.gis.spatial.WKBGeometryEncoder");
 	}
 
 	@Override
