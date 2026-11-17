@@ -17,3 +17,6 @@ CALL spatial.addNativePointLayerWithConfig('native_cfg', 'pos:mbr', 'rtree');
 CALL spatial.addPointLayer('rtree20', 'rtree', '');
 CALL spatial.addPointLayerGeohash('sfc_geohash');
 CALL spatial.addPointLayerHilbert('sfc_hilbert');
+// layers indexing user nodes (spatial.addNodes), the common usage
+CALL spatial.addPointLayer('places');
+CALL spatial.addNativePointLayer('native_places');

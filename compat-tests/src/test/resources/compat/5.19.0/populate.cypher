@@ -8,3 +8,11 @@ WITH 'POINT (' + toString(15.0 + (i % 10) * 0.1) + ' ' + toString(60.0 + (i / 10
 WITH collect(wkt) AS wkts
 CALL spatial.addWKTs('rtree20', wkts) YIELD node RETURN count(node) AS rtree20;
 CALL spatial.importOSMToLayer('p_OSM', 'two-street.osm') YIELD count RETURN count AS osm;
+UNWIND [[15.25, 60.15], [15.45, 60.35], [16.1, 61.0]] AS c
+CREATE (:Place {longitude: c[0], latitude: c[1]});
+MATCH (p:Place) WITH collect(p) AS places
+CALL spatial.addNodes('places', places) YIELD count RETURN count AS places;
+UNWIND [[15.25, 60.15], [15.45, 60.35], [16.1, 61.0]] AS c
+CREATE (:NativePlace {location: point({longitude: c[0], latitude: c[1]})});
+MATCH (p:NativePlace) WITH collect(p) AS places
+CALL spatial.addNodes('native_places', places) YIELD count RETURN count AS nativePlaces;

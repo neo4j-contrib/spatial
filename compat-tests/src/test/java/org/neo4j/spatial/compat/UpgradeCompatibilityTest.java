@@ -71,8 +71,10 @@ class UpgradeCompatibilityTest {
 
 	// node ids only: the database id within elementId changes each time the store is opened
 	private static final Map<String, String> LAYER_QUERIES = Map.of(
-			"1 layerMeta", "CALL spatial.layerMeta($l) YIELD geometryType, crs, hasComplexAttributes "
-					+ "RETURN geometryType, split(crs, ',')[0] AS crs, hasComplexAttributes",
+			"1 layerMeta", "CALL spatial.layerMeta($l) YIELD geometryType, crs, hasComplexAttributes, extraAttributes "
+					+ "RETURN geometryType, split(crs, ',')[0] AS crs, hasComplexAttributes, "
+					+ "COLLECT { UNWIND keys(extraAttributes) AS k WITH k ORDER BY k "
+					+ "RETURN k + ':' + extraAttributes[k] } AS extraAttributes",
 			"2 count", "CALL spatial.getFeatureCount($l) YIELD count RETURN count",
 			"3 layerBbox", "CALL spatial.getLayerBoundingBox($l) YIELD minX, minY, maxX, maxY "
 					+ "RETURN minX, minY, maxX, maxY",
@@ -226,6 +228,36 @@ class UpgradeCompatibilityTest {
 							max(COUNT { (n)-[:RTREE_CHILD|RTREE_REFERENCE]->() }) AS children""").next();
 				assertThat((Long) row.get("children")).isLessThanOrEqualTo(((Number) row.get("max")).longValue());
 			}
+		}
+		for (String layer : List.of("places", "native_places")) {
+			if (layers.contains(layer)) {
+				assertRemovalOfUserNodes(db, layer);
+			}
+		}
+	}
+
+	// removes all user nodes from the old index one by one; the nodes themselves stay
+	private static void assertRemovalOfUserNodes(GraphDatabaseService db, String layer) {
+		long count = featureCount(db, layer);
+		assertThat(count).as(layer).isPositive();
+		for (long remaining = count - 1; remaining >= 0; remaining--) {
+			try (Transaction tx = db.beginTx()) {
+				tx.execute("""
+						CALL spatial.withinDistance($l, {lon: 15.2, lat: 60.1}, 1000) YIELD node
+						WITH node LIMIT 1
+						CALL spatial.removeNode($l, node) YIELD nodeId
+						RETURN nodeId""", Map.of("l", layer)).accept(row -> true);
+				tx.commit();
+			}
+			assertThat(featureCount(db, layer)).as(layer).isEqualTo(remaining);
+		}
+		try (Transaction tx = db.beginTx()) {
+			assertThat(tx.execute("CALL spatial.getLayerBoundingBox($l)", Map.of("l", layer)).hasNext()).as(layer)
+					.isFalse();
+			assertThat(tx.execute("CALL spatial.closest($l, {lon: 15.2, lat: 60.1}, 0.0)", Map.of("l", layer))
+					.hasNext()).as(layer).isFalse();
+			assertThat((Long) tx.execute("MATCH (n:Place|NativePlace) RETURN count(n) AS n").columnAs("n").next())
+					.as("user nodes are kept").isEqualTo(6L);
 		}
 	}
 
