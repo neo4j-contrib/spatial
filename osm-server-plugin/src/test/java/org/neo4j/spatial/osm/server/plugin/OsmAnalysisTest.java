@@ -51,6 +51,8 @@ import org.neo4j.spatial.api.SpatialRecord;
 import org.neo4j.spatial.api.SpatialRecords;
 import org.neo4j.spatial.cli.tools.StyledImageExporter;
 
+// uses the deprecated dynamic layer API: adapt when it is removed
+@SuppressWarnings("removal")
 public class OsmAnalysisTest extends TestOSMImportBase {
 
 	private static final boolean usePoints = true;

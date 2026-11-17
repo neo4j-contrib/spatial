@@ -235,7 +235,9 @@ public class SpatialDatabaseService {
 	 * views, or 'dynamic layers' to the layer.
 	 *
 	 * @return new DynamicLayer version of the original layer
+	 * @deprecated dynamic layers can only be created through the Java API, not with the server plugin; planned for removal, see https://github.com/neo4j-contrib/spatial/discussions/489
 	 */
+	@Deprecated(forRemoval = true)
 	public DynamicLayer asDynamicLayer(Transaction tx, Layer layer) {
 		if (layer instanceof DynamicLayer) {
 			return (DynamicLayer) layer;

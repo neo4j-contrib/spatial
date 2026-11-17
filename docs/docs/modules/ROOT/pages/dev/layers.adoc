@@ -14,3 +14,5 @@ However, `OMSLayer` extends `DynamicLayer`, which allow it to provide any number
 For example, you can have a layer providing all cycle paths as `LineStrings`, or a layer providing all lakes as `Polygons`.
 Underneath these are all still backed by the same fully connected graph, but exposed dynamically as apparently separate geometry layers.
 
+NOTE: Dynamic layers are deprecated and planned for removal: they can only be created through the Java API, not with the server plugin. If you use them, please comment on https://github.com/neo4j-contrib/spatial/discussions/489[the discussion].
+

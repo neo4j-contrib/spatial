@@ -107,10 +107,18 @@ public class DynamicLayer extends EditableLayerImpl {
 		return "geometryType(the_geom) = '" + makeGeometryName(gtype) + "'";
 	}
 
+	/**
+	 * @deprecated dynamic layers can only be created through the Java API, not with the server plugin; planned for removal, see https://github.com/neo4j-contrib/spatial/discussions/489
+	 */
+	@Deprecated(forRemoval = true)
 	public DynamicLayerConfig addCQLDynamicLayerOnGeometryType(Transaction tx, int gtype) {
 		return addLayerConfig(tx, "CQL:" + makeGeometryName(gtype), gtype, makeGeometryCQL(gtype));
 	}
 
+	/**
+	 * @deprecated dynamic layers can only be created through the Java API, not with the server plugin; planned for removal, see https://github.com/neo4j-contrib/spatial/discussions/489
+	 */
+	@Deprecated(forRemoval = true)
 	public DynamicLayerConfig addCQLDynamicLayerOnAttribute(Transaction tx, String key, String value, int gtype) {
 		if (value == null) {
 			return addLayerConfig(tx, "CQL:" + key, gtype, key + " IS NOT NULL AND " + makeGeometryCQL(gtype));
@@ -120,6 +128,10 @@ public class DynamicLayer extends EditableLayerImpl {
 		return addCQLDynamicLayerOnAttributes(tx, new String[]{key, value}, gtype);
 	}
 
+	/**
+	 * @deprecated dynamic layers can only be created through the Java API, not with the server plugin; planned for removal, see https://github.com/neo4j-contrib/spatial/discussions/489
+	 */
+	@Deprecated(forRemoval = true)
 	public DynamicLayerConfig addCQLDynamicLayerOnAttributes(Transaction tx, String[] attributes, int gtype) {
 		if (attributes == null) {
 			return addCQLDynamicLayerOnGeometryType(tx, gtype);
@@ -149,6 +161,11 @@ public class DynamicLayer extends EditableLayerImpl {
 		return addLayerConfig(tx, "CQL:" + name, gtype, query.toString());
 	}
 
+	/**
+	 * @deprecated dynamic layers can only be created through the Java API, not with the server plugin; planned for removal, see https://github.com/neo4j-contrib/spatial/discussions/489
+	 */
+	@Deprecated(forRemoval = true)
+	@SuppressWarnings("removal")
 	public DynamicLayerConfig addLayerConfig(Transaction tx, String name, int type, String query) {
 		// Not a JSON query, must be CQL, so check the syntax
 		if (!query.startsWith("{")) {
@@ -188,7 +205,10 @@ public class DynamicLayer extends EditableLayerImpl {
 	 *
 	 * @param name  of layer to restrict
 	 * @param names to use for attributes
+	 * @deprecated dynamic layers can only be created through the Java API, not with the server plugin; planned for removal, see https://github.com/neo4j-contrib/spatial/discussions/489
 	 */
+	@Deprecated(forRemoval = true)
+	@SuppressWarnings("removal")
 	public DynamicLayerConfig restrictLayerProperties(Transaction tx, String name, String[] names) {
 		Layer layer = getLayerMap(tx).get(name);
 		if (layer != null) {

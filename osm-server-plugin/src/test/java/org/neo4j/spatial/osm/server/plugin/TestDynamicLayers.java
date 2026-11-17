@@ -57,6 +57,8 @@ import org.neo4j.spatial.geotools.plugin.Neo4jSpatialDataStore;
 import org.neo4j.spatial.osm.server.plugin.procedures.OsmSpatialProcedures;
 import org.neo4j.spatial.testutils.Neo4jTestCase;
 
+// tests the deprecated dynamic layer API: remove with it
+@SuppressWarnings("removal")
 public class TestDynamicLayers extends Neo4jTestCase {
 
 	@Override
