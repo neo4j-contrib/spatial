@@ -472,7 +472,7 @@ rtree20 | closest
 rtree20 | cql
   n=60
 sfc_geohash | layerMeta
-  geometryType=org.locationtech.jts.geom.Point, crs=GEOGCS["WGS84(DD)", hasComplexAttributes=false, extraAttributes=[_spatialindex_geohash_sfc_geohash:java.lang.String]
+  geometryType=org.locationtech.jts.geom.Point, crs=GEOGCS["WGS84(DD)", hasComplexAttributes=false, extraAttributes=[]
 sfc_geohash | count
   count=5
 sfc_geohash | layerBbox
@@ -488,7 +488,7 @@ sfc_geohash | closest
 sfc_geohash | cql
   n=3
 sfc_hilbert | layerMeta
-  geometryType=org.locationtech.jts.geom.Point, crs=GEOGCS["WGS84(DD)", hasComplexAttributes=false, extraAttributes=[_spatialindex_hilbert_sfc_hilbert:java.lang.Long]
+  geometryType=org.locationtech.jts.geom.Point, crs=GEOGCS["WGS84(DD)", hasComplexAttributes=false, extraAttributes=[]
 sfc_hilbert | count
   count=5
 sfc_hilbert | layerBbox
