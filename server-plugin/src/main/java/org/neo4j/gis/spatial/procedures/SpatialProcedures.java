@@ -697,6 +697,10 @@ public class SpatialProcedures extends SpatialApiBase {
 	) {
 		Layer layer = getLayerOrThrow(tx, spatial(), name, true);
 		org.neo4j.gis.spatial.index.Envelope envelope = layer.getIndex().getBoundingBox(tx);
+		if (envelope == null) {
+			// empty layer
+			return Stream.empty();
+		}
 		CoordinateReferenceSystem crs = layer.getCoordinateReferenceSystem(tx);
 		String crsName = crs != null ? crs.getName().toString() : null;
 		return Stream.of(new BoundingBoxResult(

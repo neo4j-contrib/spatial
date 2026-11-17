@@ -20,6 +20,7 @@
 package org.neo4j.gis.spatial.rtree;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import static org.neo4j.configuration.GraphDatabaseSettings.DEFAULT_DATABASE_NAME;
@@ -85,6 +86,16 @@ public class RTreeTests {
 	@AfterEach
 	public void teardown() {
 		databases.shutdown();
+	}
+
+	@Test
+	public void rootWithoutChildrenIsEmptyDespiteStaleBbox() {
+		try (Transaction tx = db.beginTx()) {
+			// left by older versions after removing all geometries
+			rtree.getIndexRoot(tx).setProperty(RTreeIndex.INDEX_PROP_BBOX, new double[]{0, 0, 0, 0});
+			assertTrue(rtree.isEmpty(tx));
+			assertNull(rtree.getBoundingBox(tx));
+		}
 	}
 
 	@Test
