@@ -1020,12 +1020,13 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Con
 			visit(tx, counter, getIndexRoot(tx));
 			totalGeometryCount = counter.getResult();
 
-			int savedGeometryCount = (int) getMetadataNode(tx).getProperty("totalGeometryCount", 0);
-			countSaved = savedGeometryCount == totalGeometryCount;
+			// missing (stores of 5.x releases) counts as not saved, also for an empty tree
+			countSaved = getMetadataNode(tx).getProperty("totalGeometryCount", null) instanceof Number saved
+					&& saved.intValue() == totalGeometryCount;
 		}
 
-		if (!countSaved) {
-			checkWritable();
+		// read-only (e.g. a store written by 5.x without a stored count): keep it in memory, the next write saves it
+		if (!countSaved && !readOnly) {
 			getMetadataNode(tx).setProperty("totalGeometryCount", totalGeometryCount);
 			countSaved = true;
 		}

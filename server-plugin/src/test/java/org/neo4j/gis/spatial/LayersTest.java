@@ -173,6 +173,39 @@ public class LayersTest extends Neo4jTestCase {
 	}
 
 	@Test
+	public void testReadOnlyLayerWithoutStoredGeometryCount() {
+		SpatialDatabaseService spatial = new SpatialDatabaseService(
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+		inTx(tx -> {
+			var layer = (EditableLayer) spatial.createLayer(tx, "points", SimplePointLayer.class, null,
+					new SimplePointEncoder(), new LayerRTreeIndex());
+			layer.add(tx, layer.getGeometryFactory().createPoint(new Coordinate(1, 1)));
+			layer.add(tx, layer.getGeometryFactory().createPoint(new Coordinate(2, 2)));
+		});
+		// stores written by 5.x releases may lack the count
+		inTx(tx -> tx.execute("MATCH (:SpatialLayer {layer: 'points'})-[:RTREE_METADATA]->(m) "
+				+ "REMOVE m.totalGeometryCount").close());
+		inTx(tx -> assertEquals(2, spatial.getLayer(tx, "points", true).getIndex().count(tx)));
+		// persisted by the next writable load
+		inTx(tx -> assertEquals(2, spatial.getLayer(tx, "points", false).getIndex().count(tx)));
+		inTx(tx -> assertEquals(2L, ((Number) tx.execute("MATCH (:SpatialLayer {layer: 'points'})-[:RTREE_METADATA]->(m) "
+				+ "RETURN m.totalGeometryCount AS c").next().get("c")).longValue()));
+	}
+
+	@Test
+	public void testWritableLoadPersistsMissingCountOfEmptyLayer() {
+		SpatialDatabaseService spatial = new SpatialDatabaseService(
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+		inTx(tx -> spatial.createLayer(tx, "empty", SimplePointLayer.class, null, new SimplePointEncoder(),
+				new LayerRTreeIndex()));
+		inTx(tx -> tx.execute("MATCH (:SpatialLayer {layer: 'empty'})-[:RTREE_METADATA]->(m) "
+				+ "REMOVE m.totalGeometryCount").close());
+		inTx(tx -> assertEquals(0, spatial.getLayer(tx, "empty", false).getIndex().count(tx)));
+		inTx(tx -> assertEquals(0L, ((Number) tx.execute("MATCH (:SpatialLayer {layer: 'empty'})-[:RTREE_METADATA]->(m) "
+				+ "RETURN m.totalGeometryCount AS c").next().get("c")).longValue()));
+	}
+
+	@Test
 	public void testGetOrCreatePointLayerRejectsNonEditableLayer() {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
