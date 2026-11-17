@@ -13,11 +13,15 @@ include::partial$generated/api/spatial/spatial.removeLayer.adoc[]
 |removed from the index; node, relationships and properties are kept
 |===
 
+A node labelled `_SpatialManagedGeometry` belongs to the layer that created it.
+Don't add it to other layers: removing its layer deletes it from all of them.
+
 === Nodes created by release 2026.10.0 or earlier
 
 These nodes have no `_SpatialManagedGeometry` label, so `spatial.removeLayer` keeps them.
 To delete them with the layer, label them first.
-This example labels the nodes of an RTree layer that have no other labels and no relationships besides the index reference:
+This example labels the nodes of an RTree layer that have no other labels and no relationships besides the index reference.
+For a layer with a custom `referenceRelationshipType`, replace `RTREE_REFERENCE` with that type.
 
 [source,cypher]
 ----
