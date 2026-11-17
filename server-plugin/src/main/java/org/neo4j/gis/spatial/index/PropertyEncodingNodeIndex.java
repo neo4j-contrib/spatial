@@ -83,6 +83,10 @@ public class PropertyEncodingNodeIndex<E> {
 		}
 	}
 
+	public String getPropertyKey() {
+		return propertyKey;
+	}
+
 	public boolean contains(Node node) {
 		return node.hasLabel(label);
 	}

@@ -181,6 +181,8 @@ public abstract class DefaultLayer implements Layer, InternalLayer, SpatialDatas
 				}
 			}
 		}
+		// stored as attributes by releases 2025.07 to 2026.10
+		extraProps.keySet().removeAll(indexReader.getIndexProperties());
 		return extraProps;
 	}
 

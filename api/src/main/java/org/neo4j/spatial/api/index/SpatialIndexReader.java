@@ -19,6 +19,7 @@
  */
 package org.neo4j.spatial.api.index;
 
+import java.util.Set;
 import org.neo4j.gis.spatial.index.Envelope;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
@@ -46,6 +47,13 @@ public interface SpatialIndexReader {
 	SearchResults searchIndex(Transaction tx, SearchFilter filter);
 
 	void addMonitor(TreeMonitor monitor);
+
+	/**
+	 * @return properties this index writes on geometry nodes; they are not feature attributes
+	 */
+	default Set<String> getIndexProperties() {
+		return Set.of();
+	}
 
 	default void finalizeTransaction(Transaction tx) {
 	}

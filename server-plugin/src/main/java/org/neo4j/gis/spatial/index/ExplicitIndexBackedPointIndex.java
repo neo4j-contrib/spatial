@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial.index;
 import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
+import java.util.Set;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
@@ -129,6 +130,11 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements SpatialIndexWr
 	@Override
 	public EnvelopeDecoder getEnvelopeDecoder() {
 		return layer.getGeometryEncoder();
+	}
+
+	@Override
+	public Set<String> getIndexProperties() {
+		return index == null ? Set.of() : Set.of(index.getPropertyKey());
 	}
 
 	@Override

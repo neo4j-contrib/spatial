@@ -1049,6 +1049,20 @@ public class SpatialProceduresTest extends AbstractApiTest {
 		testCallCount(db, "CALL spatial.getLayerBoundingBox('geom')", null, 0);
 	}
 
+	@ParameterizedTest
+	@ValueSource(strings = {"addPointLayerGeohash", "addPointLayerZOrder", "addPointLayerHilbert"})
+	public void index_property_is_no_feature_attribute(String procedure) {
+		execute("CALL spatial." + procedure + "('geom')");
+		execute("CALL spatial.addWKT('geom','POINT (15.2 60.1)')");
+		testCall(db, "CALL spatial.layerMeta('geom')", r -> assertEquals(Map.of(), r.get("extraAttributes")));
+		// stores written since 2025.07 list it on the layer node
+		execute("""
+				MATCH (l:SpatialLayer {layer: 'geom'}), (n)
+				UNWIND [k IN keys(n) WHERE k STARTS WITH '_spatialindex_'] AS key
+				SET l['extraProp.' + key] = 'java.lang.String'""");
+		testCall(db, "CALL spatial.layerMeta('geom')", r -> assertEquals(Map.of(), r.get("extraAttributes")));
+	}
+
 	@Test
 	public void testUpdateWKT() {
 		execute("CALL spatial.addWKTLayer('update_layer', 'wkt') YIELD node");
