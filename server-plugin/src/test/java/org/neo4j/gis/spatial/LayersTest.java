@@ -193,6 +193,19 @@ public class LayersTest extends Neo4jTestCase {
 	}
 
 	@Test
+	public void testWritableLoadPersistsMissingCountOfEmptyLayer() {
+		SpatialDatabaseService spatial = new SpatialDatabaseService(
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+		inTx(tx -> spatial.createLayer(tx, "empty", SimplePointLayer.class, null, new SimplePointEncoder(),
+				new LayerRTreeIndex()));
+		inTx(tx -> tx.execute("MATCH (:SpatialLayer {layer: 'empty'})-[:RTREE_METADATA]->(m) "
+				+ "REMOVE m.totalGeometryCount").close());
+		inTx(tx -> assertEquals(0, spatial.getLayer(tx, "empty", false).getIndex().count(tx)));
+		inTx(tx -> assertEquals(0L, ((Number) tx.execute("MATCH (:SpatialLayer {layer: 'empty'})-[:RTREE_METADATA]->(m) "
+				+ "RETURN m.totalGeometryCount AS c").next().get("c")).longValue()));
+	}
+
+	@Test
 	public void testGetOrCreatePointLayerRejectsNonEditableLayer() {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
