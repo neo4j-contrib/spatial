@@ -39,6 +39,8 @@ import org.neo4j.spatial.api.layer.Layer;
 import org.neo4j.spatial.osm.server.plugin.procedures.OsmSpatialProcedures;
 import org.neo4j.spatial.testutils.Neo4jTestCase;
 
+// uses the deprecated dynamic layer API: adapt when it is removed
+@SuppressWarnings("removal")
 public class OsmLayerSignatureTest extends Neo4jTestCase {
 
 	private SpatialDatabaseService spatial;

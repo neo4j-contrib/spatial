@@ -77,7 +77,9 @@ public class DynamicLayerConfig implements Layer, InternalLayer {
 	 * @param name         of the new dynamic layer
 	 * @param geometryType the geometry this layer supports
 	 * @param query        formatted query string for this dynamic layer
+	 * @deprecated dynamic layers can only be created through the Java API, not with the server plugin; planned for removal, see https://github.com/neo4j-contrib/spatial/discussions/489
 	 */
+	@Deprecated(forRemoval = true)
 	public DynamicLayerConfig(Transaction tx, DynamicLayer parent, String name, int geometryType, String query) {
 		this.parent = parent;
 		this.readOnly = false;
@@ -177,7 +179,9 @@ public class DynamicLayerConfig implements Layer, InternalLayer {
 	/**
 	 * This method will scan the layer for property names that are actually
 	 * used, and restrict the layer properties to those
+	 * @deprecated dynamic layers can only be created through the Java API, not with the server plugin; planned for removal, see https://github.com/neo4j-contrib/spatial/discussions/489
 	 */
+	@Deprecated(forRemoval = true)
 	public void restrictLayerProperties(Transaction tx) {
 		if (propertyNames != null && propertyNames.length > 0) {
 			LOGGER.fine("Restricted property names already exists - will be overwritten");
@@ -198,6 +202,10 @@ public class DynamicLayerConfig implements Layer, InternalLayer {
 		return tx.getNodeByElementId(configNodeId);
 	}
 
+	/**
+	 * @deprecated dynamic layers can only be created through the Java API, not with the server plugin; planned for removal, see https://github.com/neo4j-contrib/spatial/discussions/489
+	 */
+	@Deprecated(forRemoval = true)
 	public void setExtraPropertyNames(Transaction tx, String[] names) {
 		checkWritable();
 		configNode(tx).setProperty("propertyNames", names);

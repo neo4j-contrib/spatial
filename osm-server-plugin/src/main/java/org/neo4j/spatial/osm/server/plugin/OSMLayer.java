@@ -139,6 +139,10 @@ public class OSMLayer extends DynamicLayer {
 		return indexReader.getAllIndexedNodes(tx);
 	}
 
+	/**
+	 * @deprecated dynamic layers can only be created through the Java API, not with the server plugin; planned for removal, see https://github.com/neo4j-contrib/spatial/discussions/489
+	 */
+	@Deprecated(forRemoval = true)
 	public boolean removeDynamicLayer(Transaction tx, String name) {
 		return removeLayerConfig(tx, name);
 	}
@@ -156,8 +160,10 @@ public class OSMLayer extends DynamicLayer {
 	 * This will work with OSM datasets, traversing from the geometry node
 	 * to the way node and then to the tags node to test if the way is a
 	 * residential street.
+	 * @deprecated dynamic layers can only be created through the Java API, not with the server plugin; planned for removal, see https://github.com/neo4j-contrib/spatial/discussions/489
 	 */
-	@SuppressWarnings("unchecked")
+	@Deprecated(forRemoval = true)
+	@SuppressWarnings({"unchecked", "removal"})
 	public DynamicLayerConfig addDynamicLayerOnWayTags(Transaction tx, String name, int type, HashMap<?, ?> tags) {
 		JSONObject query = new JSONObject();
 		if (tags != null && !tags.isEmpty()) {
@@ -201,7 +207,9 @@ public class OSMLayer extends DynamicLayer {
 	 *
 	 * @param key   key to match on way tags
 	 * @param value value to match on way tags
+	 * @deprecated dynamic layers can only be created through the Java API, not with the server plugin; planned for removal, see https://github.com/neo4j-contrib/spatial/discussions/489
 	 */
+	@Deprecated(forRemoval = true)
 	public DynamicLayerConfig addSimpleDynamicLayer(Transaction tx, String key, String value) {
 		return addSimpleDynamicLayer(tx, key, value, GTYPE_LINESTRING);
 	}
@@ -216,7 +224,9 @@ public class OSMLayer extends DynamicLayer {
 	 * @param key   key to match on way tags
 	 * @param value value to match on way tags
 	 * @param gtype type as defined in Constants.
+	 * @deprecated dynamic layers can only be created through the Java API, not with the server plugin; planned for removal, see https://github.com/neo4j-contrib/spatial/discussions/489
 	 */
+	@Deprecated(forRemoval = true)
 	public DynamicLayerConfig addSimpleDynamicLayer(Transaction tx, String key, String value, int gtype) {
 		HashMap<String, String> tags = new HashMap<>();
 		tags.put(key, value);
@@ -233,7 +243,9 @@ public class OSMLayer extends DynamicLayer {
 	 *
 	 * @param gtype     type as defined in Constants.
 	 * @param tagsQuery String of ',' separated key=value tags to match
+	 * @deprecated dynamic layers can only be created through the Java API, not with the server plugin; planned for removal, see https://github.com/neo4j-contrib/spatial/discussions/489
 	 */
+	@Deprecated(forRemoval = true)
 	public DynamicLayerConfig addSimpleDynamicLayer(Transaction tx, int gtype, String tagsQuery) {
 		HashMap<String, String> tags = new HashMap<>();
 		StringBuilder name = new StringBuilder();
@@ -263,7 +275,9 @@ public class OSMLayer extends DynamicLayer {
 	 * method. The geometry type will be assumed to be LineString.
 	 *
 	 * @param tagsQuery String of ',' separated key=value tags to match
+	 * @deprecated dynamic layers can only be created through the Java API, not with the server plugin; planned for removal, see https://github.com/neo4j-contrib/spatial/discussions/489
 	 */
+	@Deprecated(forRemoval = true)
 	public DynamicLayerConfig addSimpleDynamicLayer(Transaction tx, String tagsQuery) {
 		return addSimpleDynamicLayer(tx, GTYPE_LINESTRING, tagsQuery);
 	}
@@ -272,7 +286,9 @@ public class OSMLayer extends DynamicLayer {
 	 * Add a rule for a pure way based search, with a check on geometry type only.
 	 *
 	 * @param gtype type as defined in Constants.
+	 * @deprecated dynamic layers can only be created through the Java API, not with the server plugin; planned for removal, see https://github.com/neo4j-contrib/spatial/discussions/489
 	 */
+	@Deprecated(forRemoval = true)
 	public DynamicLayerConfig addSimpleDynamicLayer(Transaction tx, int gtype) {
 		return addDynamicLayerOnWayTags(tx, SpatialDatabaseService.convertGeometryTypeToName(gtype), gtype, null);
 	}

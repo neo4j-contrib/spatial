@@ -206,6 +206,7 @@ public class LayersTest extends Neo4jTestCase {
 	}
 
 	@Test
+	@SuppressWarnings("removal")
 	public void testGetOrCreatePointLayerRejectsNonEditableLayer() {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(
 				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
