@@ -38,7 +38,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          jars="neo4j-spatial-server-plugin-$VERSION-with-dependencies.jar"
+          # each entry: alternative names of one required jar (asset names changed with 2025.07)
+          jars="neo4j-spatial-server-plugin-$VERSION-with-dependencies.jar|neo4j-spatial-$VERSION-server-plugin.jar"
           # separate OSM plugin since 2026.10
           if git cat-file -e "$VERSION:osm-server-plugin/pom.xml" 2>/dev/null; then
             jars="$jars neo4j-spatial-osm-server-plugin-$VERSION-with-dependencies.jar"
@@ -47,7 +48,7 @@ jobs:
             assets=$(gh release view "$VERSION" --json assets --jq '.assets[].name')
             missing=""
             for jar in $jars; do
-              grep -qxF "$jar" <<< "$assets" || missing="$missing $jar"
+              grep -qxF -e "${jar//|/$'\n'}" <<< "$assets" || missing="$missing $jar"
             done
             if [[ -z "$missing" ]]; then
               exit 0
