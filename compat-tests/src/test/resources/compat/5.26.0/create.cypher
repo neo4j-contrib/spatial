@@ -1,0 +1,18 @@
+// Layer names are used by UpgradeCompatibilityTest: keep them across fixture versions.
+CALL spatial.addLayer('p_SimplePoint', 'SimplePoint', 'longitude:latitude');
+CALL spatial.addLayer('p_Geohash', 'Geohash', 'longitude:latitude');
+CALL spatial.addLayer('p_ZOrder', 'ZOrder', 'longitude:latitude');
+CALL spatial.addLayer('p_Hilbert', 'Hilbert', 'longitude:latitude');
+CALL spatial.addLayer('p_NativePoint', 'NativePoint', 'location');
+CALL spatial.addLayer('p_NativePoints', 'NativePoints', 'geometry');
+CALL spatial.addLayer('p_NativeGeohash', 'NativeGeohash', 'location');
+CALL spatial.addLayer('p_NativeZOrder', 'NativeZOrder', 'location');
+CALL spatial.addLayer('p_NativeHilbert', 'NativeHilbert', 'location');
+CALL spatial.addLayer('p_WKT', 'WKT', 'wkt');
+CALL spatial.addLayer('p_WKB', 'WKB', 'wkb');
+CALL spatial.addLayer('p_OSM', 'OSM', '');
+CALL spatial.addPointLayerXY('xy', 'x', 'y');
+CALL spatial.addNativePointLayerWithConfig('native_cfg', 'pos:mbr', 'rtree');
+CALL spatial.addPointLayer('rtree20', 'rtree', '', '{"maxNodeReferences":20}');
+CALL spatial.addPointLayerGeohash('sfc_geohash');
+CALL spatial.addPointLayerHilbert('sfc_hilbert');

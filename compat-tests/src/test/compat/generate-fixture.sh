@@ -29,7 +29,9 @@ trap 'docker rm -f "$container" >/dev/null 2>&1 || true; rm -rf "$work"' EXIT
 
 mkdir -p "$work/plugins" "$work/data"
 release="https://github.com/neo4j-contrib/spatial/releases/download/$plugin"
-curl -fsSL -o "$work/plugins/server-plugin.jar" "$release/neo4j-spatial-server-plugin-$plugin-with-dependencies.jar"
+# jar names changed with 2025.07
+curl -fsSL -o "$work/plugins/server-plugin.jar" "$release/neo4j-spatial-server-plugin-$plugin-with-dependencies.jar" 2>/dev/null \
+	|| curl -fsSL -o "$work/plugins/server-plugin.jar" "$release/neo4j-spatial-$plugin-server-plugin.jar"
 # separate OSM plugin since 2026.10.0; part of the server plugin before
 curl -fsSL -o "$work/plugins/osm-server-plugin.jar" \
 	"$release/neo4j-spatial-osm-server-plugin-$plugin-with-dependencies.jar" 2>/dev/null \
