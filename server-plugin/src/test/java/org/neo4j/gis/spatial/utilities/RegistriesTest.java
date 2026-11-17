@@ -28,6 +28,7 @@ import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.gis.spatial.SimplePointLayer;
 import org.neo4j.gis.spatial.SpatialDatabaseException;
@@ -69,6 +70,15 @@ class RegistriesTest {
 		assertThat(byShortId.clazz()).isEqualTo(clazz);
 		assertThat(construct.apply(shortId)).isExactlyInstanceOf(clazz);
 		assertThat(construct.apply(clazz.getName())).isExactlyInstanceOf(clazz);
+	}
+
+	// persisted in layers created by releases before 2026.10, before the classes moved (#458)
+	@ParameterizedTest
+	@CsvSource({"org.neo4j.gis.spatial.WKTGeometryEncoder, WKTGeometryEncoder",
+			"org.neo4j.gis.spatial.WKBGeometryEncoder, WKBGeometryEncoder"})
+	void legacyEncoderClassNamesResolve(String legacyName, String id) {
+		assertThat(GeometryEncoderRegistry.INSTANCE.getRegisteredEncoders().get(legacyName))
+				.isSameAs(GeometryEncoderRegistry.INSTANCE.getRegisteredEncoders().get(id));
 	}
 
 	@Test
