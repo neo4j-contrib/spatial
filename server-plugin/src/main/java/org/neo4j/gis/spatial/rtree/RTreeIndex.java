@@ -761,7 +761,8 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Con
 
 	@Override
 	public Envelope getBoundingBox(Transaction tx) {
-		return getIndexNodeEnvelope(getIndexRoot(tx));
+		// isEmpty first: ignores the stale bbox of roots emptied by older versions
+		return isEmpty(tx) ? null : getIndexNodeEnvelope(getIndexRoot(tx));
 	}
 
 	@Override

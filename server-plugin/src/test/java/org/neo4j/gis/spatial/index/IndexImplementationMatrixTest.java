@@ -49,6 +49,7 @@ import org.junit.jupiter.params.ParameterizedClass;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.locationtech.jts.geom.Coordinate;
+import org.neo4j.gis.spatial.pipes.GeoPipeline;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.LinearRing;
@@ -201,6 +202,28 @@ public class IndexImplementationMatrixTest {
 			layer.finalizeTransaction(tx);
 			tx.commit();
 			return layer;
+		}
+	}
+
+	@Test
+	public void shouldFindNoNearestNeighborsInEmptyLayer() {
+		SimplePointLayer layer = makeTestPointLayer();
+		try (Transaction tx = graph.beginTx()) {
+			assertThat(GeoPipeline.startNearestNeighborSearch(tx, layer, new Coordinate(1.0, 1.0), 5).count(),
+					equalTo(0L));
+		}
+		SpatialDatabaseRecord added;
+		try (Transaction tx = graph.beginTx()) {
+			added = layer.add(tx, 1.0, 1.0);
+			tx.commit();
+		}
+		try (Transaction tx = graph.beginTx()) {
+			layer.removeFromIndex(tx, added.getGeomNode().getElementId());
+			tx.commit();
+		}
+		try (Transaction tx = graph.beginTx()) {
+			assertThat(GeoPipeline.startNearestNeighborSearch(tx, layer, new Coordinate(1.0, 1.0), 5).count(),
+					equalTo(0L));
 		}
 	}
 

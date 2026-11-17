@@ -206,7 +206,9 @@ public class SpatialTopologyUtils {
 		if (count > limit) {
 			return createEnvelopeForGeometryDensityEstimate(tx, layer, point, (double) limit / (double) count);
 		}
-		return Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox(tx));
+		org.neo4j.gis.spatial.index.Envelope bbox = layer.getIndex().getBoundingBox(tx);
+		// empty layer
+		return bbox == null ? new Envelope(point) : Utilities.fromNeo4jToJts(bbox);
 	}
 
 	/**
@@ -228,7 +230,12 @@ public class SpatialTopologyUtils {
 		if (fraction < 0.0) {
 			return new Envelope(point);
 		}
-		Envelope bbox = Utilities.fromNeo4jToJts(layer.getIndex().getBoundingBox(tx));
+		org.neo4j.gis.spatial.index.Envelope layerBbox = layer.getIndex().getBoundingBox(tx);
+		if (layerBbox == null) {
+			// empty layer
+			return new Envelope(point);
+		}
+		Envelope bbox = Utilities.fromNeo4jToJts(layerBbox);
 		double width = bbox.getWidth() * fraction;
 		double height = bbox.getWidth() * fraction;
 		Envelope extent = new Envelope(point);

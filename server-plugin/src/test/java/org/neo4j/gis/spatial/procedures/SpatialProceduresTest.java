@@ -1035,6 +1035,20 @@ public class SpatialProceduresTest extends AbstractApiTest {
 		testCallCount(db, "CALL spatial.cql('geom', 'INCLUDE')", null, 2);
 	}
 
+	@ParameterizedTest
+	@ValueSource(strings = {"addPointLayer", "addPointLayerGeohash", "addPointLayerZOrder", "addPointLayerHilbert",
+			"addNativePointLayer", "addNativePointLayerGeohash", "addNativePointLayerZOrder",
+			"addNativePointLayerHilbert"})
+	public void empty_point_layer_has_no_bounding_box(String procedure) {
+		execute("CALL spatial." + procedure + "('geom')");
+		testCallCount(db, "CALL spatial.getLayerBoundingBox('geom')", null, 0);
+		execute("""
+				CALL spatial.addWKT('geom','POINT (15.2 60.1)') YIELD node
+				CALL spatial.removeNode('geom', node) YIELD nodeId
+				RETURN nodeId""");
+		testCallCount(db, "CALL spatial.getLayerBoundingBox('geom')", null, 0);
+	}
+
 	@Test
 	public void testUpdateWKT() {
 		execute("CALL spatial.addWKTLayer('update_layer', 'wkt') YIELD node");
