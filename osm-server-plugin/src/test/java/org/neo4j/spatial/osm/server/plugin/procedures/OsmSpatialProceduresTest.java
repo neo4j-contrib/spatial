@@ -182,6 +182,19 @@ public class OsmSpatialProceduresTest extends AbstractApiTest {
 	}
 
 	@Test
+	public void remove_osm_layer_keeps_dataset() {
+		execute("CALL spatial.addLayer('geom1','OSM','')");
+		testCountQuery("importOSM", "CALL spatial.importOSMToLayer('geom1','map.osm')", 55, "count", null);
+		execute("CALL spatial.removeLayer('geom1')");
+		testCallCount(db, "CALL spatial.layers()", null, 0);
+		testCall(db, "MATCH (d:OSMDataset) RETURN COUNT { (d)-[:LAYERS]->() } AS layers, COUNT { (d)-[:WAYS]->() } AS ways",
+				r -> {
+					assertEquals(0L, r.get("layers"));
+					assertEquals(1L, r.get("ways"));
+				});
+	}
+
+	@Test
 	public void import_osm_to_layer_without_changesets() {
 		execute("CALL spatial.addLayer('osm_example','OSM','')");
 		testCountQuery("importOSMToLayerWithoutChangesets", "CALL spatial.importOSMToLayer('osm_example','sample.osm')",
