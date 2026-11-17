@@ -23,6 +23,9 @@ To delete them with the layer, label them first.
 This example labels the nodes of an RTree layer that have no other labels and no relationships besides the index reference.
 For a layer with a custom `referenceRelationshipType`, replace `RTREE_REFERENCE` with that type.
 
+WARNING: The query can't tell layer-created nodes from your own nodes of the same shape: a node added with `spatial.addNode` that has no labels and no other relationships matches too, and `spatial.removeLayer` then deletes it.
+Run it with `RETURN g` instead of `SET` first, and narrow the `WHERE` clause until it matches only the nodes the layer created.
+
 [source,cypher]
 ----
 MATCH (:SpatialLayer {layer: $name})-[:RTREE_ROOT]->()-[:RTREE_CHILD*0..]->()-[:RTREE_REFERENCE]->(g)
