@@ -4,12 +4,18 @@
 # One fixture per store format, not per release: add one only if a release writes the store differently
 # (layer/metadata node properties, stored ids or class names), i.e. if the property sections of expected.txt
 # differ from the newest fixture. Keep the oldest release of each format; it covers the longest upgrade path.
-#   usage: generate-fixture.sh <plugin-version> <neo4j-version>     e.g. 2026.10.0 2026.10.2
+#   usage: generate-fixture.sh [--reuse-scripts] <plugin-version> <neo4j-version>     e.g. 2026.10.0 2026.10.2
 # The store is built by create.cypher and populate.cypher in the fixture directory, written in that release's
 # procedure syntax. For a new version they are copied from the newest fixture first: adjust them, then rerun.
 # Afterwards: mvn -pl compat-tests -am test -Dtest=UpgradeCompatibilityTest -Dsurefire.failIfNoSpecifiedTests=false -Dcompat.update=true
 # to write expected.txt, then review it.
 set -euo pipefail
+reuse_scripts=false
+if [[ "${1:-}" == "--reuse-scripts" ]]; then
+	# non-interactive (release pipeline): use the newest fixture's scripts unchanged
+	reuse_scripts=true
+	shift
+fi
 plugin=$1
 neo4j=$2
 here=$(cd "$(dirname "$0")" && pwd)
@@ -19,9 +25,11 @@ if [[ ! -f "$target/create.cypher" ]]; then
 	latest=$(ls -d "$fixtures"/*/ 2>/dev/null | sort -V | tail -1)
 	mkdir -p "$target"
 	cp "$latest/create.cypher" "$latest/populate.cypher" "$target/"
-	echo "copied create.cypher and populate.cypher from $(basename "$latest") to $target:"
-	echo "adapt them to $plugin (e.g. config maps instead of strings), then rerun"
-	exit 1
+	echo "copied create.cypher and populate.cypher from $(basename "$latest") to $target"
+	if [[ "$reuse_scripts" == false ]]; then
+		echo "adapt them to $plugin (e.g. config maps instead of strings), then rerun"
+		exit 1
+	fi
 fi
 work=$(mktemp -d)
 container="spatial-compat-$plugin"
