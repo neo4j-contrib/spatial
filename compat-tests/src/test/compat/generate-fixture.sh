@@ -41,9 +41,14 @@ release="https://github.com/neo4j-contrib/spatial/releases/download/$plugin"
 curl -fsSL -o "$work/plugins/server-plugin.jar" "$release/neo4j-spatial-server-plugin-$plugin-with-dependencies.jar" 2>/dev/null \
 	|| curl -fsSL -o "$work/plugins/server-plugin.jar" "$release/neo4j-spatial-$plugin-server-plugin.jar"
 # separate OSM plugin since 2026.10.0; part of the server plugin before
-curl -fsSL -o "$work/plugins/osm-server-plugin.jar" \
-	"$release/neo4j-spatial-osm-server-plugin-$plugin-with-dependencies.jar" 2>/dev/null \
-	|| { rm -f "$work/plugins/osm-server-plugin.jar"; echo "no separate OSM plugin in $plugin"; }
+osm_jar="$release/neo4j-spatial-osm-server-plugin-$plugin-with-dependencies.jar"
+if git -C "$here" cat-file -e "$plugin:osm-server-plugin/pom.xml" 2>/dev/null; then
+	curl -fsSL -o "$work/plugins/osm-server-plugin.jar" "$osm_jar"
+else
+	# tag unknown locally or before 2026.10.0: optional
+	curl -fsSL -o "$work/plugins/osm-server-plugin.jar" "$osm_jar" 2>/dev/null \
+		|| { rm -f "$work/plugins/osm-server-plugin.jar"; echo "no separate OSM plugin in $plugin"; }
+fi
 
 docker pull -q "neo4j:$neo4j-community" >/dev/null
 # no tx log preallocation: keeps the fixture small

@@ -38,13 +38,23 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          jars="neo4j-spatial-server-plugin-$VERSION-with-dependencies.jar"
+          # separate OSM plugin since 2026.10
+          if git cat-file -e "$VERSION:osm-server-plugin/pom.xml" 2>/dev/null; then
+            jars="$jars neo4j-spatial-osm-server-plugin-$VERSION-with-dependencies.jar"
+          fi
           for _ in $(seq 1 20); do
-            if gh release view "$VERSION" --json assets --jq '.assets[].name' | grep -q 'server-plugin.*\.jar$'; then
+            assets=$(gh release view "$VERSION" --json assets --jq '.assets[].name')
+            missing=""
+            for jar in $jars; do
+              grep -qxF "$jar" <<< "$assets" || missing="$missing $jar"
+            done
+            if [[ -z "$missing" ]]; then
               exit 0
             fi
             sleep 30
           done
-          echo "no server plugin jar attached to release $VERSION" >&2
+          echo "not attached to release $VERSION:$missing" >&2
           exit 1
 
       - name: Generate store

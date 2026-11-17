@@ -118,6 +118,9 @@ class UpgradeCompatibilityTest {
 			Path expected = FIXTURES.resolve(version).resolve("expected.txt");
 			String actual = capture(db);
 			if (UPDATE) {
+				// a failing query means the current code cannot read the old store: never accept that as expected
+				assertThat(actual.lines().filter(line -> line.startsWith("  ERROR ")))
+						.as("queries failing on the store of " + version).isEmpty();
 				Files.writeString(expected, actual);
 			} else {
 				// for diffing against expected.txt
