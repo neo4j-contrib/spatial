@@ -226,6 +226,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 		Set<String> encoderProps = getGeometryEncoder().getEncoderProperties();
 		Map<String, Class<?>> props = new HashMap<>(seenProperties);
 		props.keySet().removeAll(encoderProps);
+		props.keySet().removeAll(getIndex().getIndexProperties());
 		props.forEach((s, aClass) -> {
 			var key = PROP_PREFIX_EXTRA_PROP_V2 + s;
 			if (node.hasProperty(key)) {
