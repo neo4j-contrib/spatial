@@ -33,6 +33,7 @@
 		<module>server-plugin</module>
 		<module>osm-server-plugin</module>
 		<module>doc-examples</module>
+		<module>compat-tests</module>
 	</modules>
 
 	<scm>
