@@ -88,6 +88,15 @@ public class RTreeTests {
 	}
 
 	@Test
+	public void rootWithoutChildrenIsEmptyDespiteStaleBbox() {
+		try (Transaction tx = db.beginTx()) {
+			// left by older versions after removing all geometries
+			rtree.getIndexRoot(tx).setProperty(RTreeIndex.INDEX_PROP_BBOX, new double[]{0, 0, 0, 0});
+			assertTrue(rtree.isEmpty(tx));
+		}
+	}
+
+	@Test
 	public void shouldMergeTwoPartiallyOverlappingTrees() throws IOException {
 		NodeWithEnvelope rootLeft;
 		NodeWithEnvelope rootRight;

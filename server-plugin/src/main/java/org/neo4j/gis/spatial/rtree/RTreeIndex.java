@@ -772,8 +772,9 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Con
 
 	@Override
 	public boolean isEmpty(Transaction tx) {
-		Node indexRoot = getIndexRoot(tx);
-		return !indexRoot.hasProperty(INDEX_PROP_BBOX);
+		// children, not the bbox: emptied roots of older versions keep a (0,0,0,0) bbox
+		return !getIndexRoot(tx).hasRelationship(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD,
+				referenceRelationshipType);
 	}
 
 	@Override
@@ -1375,9 +1376,14 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Con
 			}
 		}
 
-		// this could happen in an empty tree
+		// empty tree (only the root is kept): no bbox, as for a new index
 		if (bbox == null) {
-			bbox = new Envelope(0, 0, 0, 0);
+			if (old == null) {
+				return false;
+			}
+			checkWritable();
+			indexNode.removeProperty(INDEX_PROP_BBOX);
+			return true;
 		}
 
 		if (old == null || old.length != 4

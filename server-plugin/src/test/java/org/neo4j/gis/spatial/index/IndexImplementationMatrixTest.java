@@ -252,11 +252,9 @@ public class IndexImplementationMatrixTest {
 			tx.commit();
 		}
 		try (Transaction tx = graph.beginTx()) {
-			// RTree keeps the root bbox after removals, so isEmpty stays false (pre-existing)
-			if (indexClass != LayerRTreeIndex.class) {
-				assertThat(index.isEmpty(tx), is(true));
-			}
+			assertThat(index.isEmpty(tx), is(true));
 			assertThat(index.count(tx), equalTo(0));
+			assertThat(index.getBoundingBox(tx), is(nullValue()));
 		}
 	}
 
