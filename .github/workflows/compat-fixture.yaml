@@ -33,6 +33,20 @@ jobs:
       - uses: ./.github/actions/setup-jdk
       - uses: ./.github/actions/setup-maven-cache
 
+      # published before the release workflow finished uploading: wait for the jars
+      - name: Wait for release assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          for _ in $(seq 1 20); do
+            if gh release view "$VERSION" --json assets --jq '.assets[].name' | grep -q 'server-plugin.*\.jar$'; then
+              exit 0
+            fi
+            sleep 30
+          done
+          echo "no server plugin jar attached to release $VERSION" >&2
+          exit 1
+
       - name: Generate store
         run: |
           neo4j=$(git show "$VERSION:pom.xml" | grep -m1 -oP '(?<=<neo4j.version>)[^<]+')
