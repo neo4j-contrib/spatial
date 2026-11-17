@@ -1,0 +1,521 @@
+CALL spatial.layers() YIELD name, signature RETURN name, signature ORDER BY name
+  name=native_cfg, signature=EditableLayer(name='native_cfg', encoder=NativePointEncoder(geometry='pos', bbox='mbr', crs=4326))
+  name=native_places, signature=EditableLayer(name='native_places', encoder=NativePointEncoder(geometry='location', bbox='bbox', crs=4326))
+  name=p_Geohash, signature=EditableLayer(name='p_Geohash', encoder=SimplePointEncoder(x='longitude', y='latitude', bbox='bbox'))
+  name=p_Hilbert, signature=EditableLayer(name='p_Hilbert', encoder=SimplePointEncoder(x='longitude', y='latitude', bbox='bbox'))
+  name=p_NativeGeohash, signature=EditableLayer(name='p_NativeGeohash', encoder=NativePointEncoder(geometry='location', bbox='bbox', crs=4326))
+  name=p_NativeHilbert, signature=EditableLayer(name='p_NativeHilbert', encoder=NativePointEncoder(geometry='location', bbox='bbox', crs=4326))
+  name=p_NativePoint, signature=EditableLayer(name='p_NativePoint', encoder=NativePointEncoder(geometry='location', bbox='bbox', crs=4326))
+  name=p_NativePoints, signature=EditableLayer(name='p_NativePoints', encoder=NativePointEncoder(geometry='geometry', bbox='bbox', crs=4326))
+  name=p_NativeZOrder, signature=EditableLayer(name='p_NativeZOrder', encoder=NativePointEncoder(geometry='location', bbox='bbox', crs=4326))
+  name=p_OSM, signature=EditableLayer(name='p_OSM', encoder=GeometryEncoder(bbox='bbox'))
+  name=p_SimplePoint, signature=EditableLayer(name='p_SimplePoint', encoder=SimplePointEncoder(x='longitude', y='latitude', bbox='bbox'))
+  name=p_WKB, signature=EditableLayer(name='p_WKB', encoder=WKBGeometryEncoder(geom='wkb', bbox='bbox'))
+  name=p_WKT, signature=EditableLayer(name='p_WKT', encoder=WKTGeometryEncoder(geom='wkt', bbox='bbox'))
+  name=p_ZOrder, signature=EditableLayer(name='p_ZOrder', encoder=SimplePointEncoder(x='longitude', y='latitude', bbox='bbox'))
+  name=places, signature=EditableLayer(name='places', encoder=SimplePointEncoder(x='longitude', y='latitude', bbox='bbox'))
+  name=rtree20, signature=EditableLayer(name='rtree20', encoder=SimplePointEncoder(x='longitude', y='latitude', bbox='bbox'))
+  name=sfc_geohash, signature=EditableLayer(name='sfc_geohash', encoder=SimplePointEncoder(x='longitude', y='latitude', bbox='bbox'))
+  name=sfc_hilbert, signature=EditableLayer(name='sfc_hilbert', encoder=SimplePointEncoder(x='longitude', y='latitude', bbox='bbox'))
+  name=xy, signature=EditableLayer(name='xy', encoder=SimplePointEncoder(x='x', y='y', bbox='bbox'))
+MATCH (l:SpatialLayer) UNWIND keys(l) AS k WITH l, k WHERE k <> 'layercrs' RETURN l.layer AS layer, k, l[k] AS v ORDER BY layer, k
+  layer=native_cfg, k=geomencoder, v=NativePointEncoder
+  layer=native_cfg, k=geomencoder_config, v=pos:mbr
+  layer=native_cfg, k=index_type, v=rtree
+  layer=native_cfg, k=layer, v=native_cfg
+  layer=native_cfg, k=layer_type, v=SimplePointLayer
+  layer=native_cfg, k=layerprops, v=[]
+  layer=native_places, k=geomencoder, v=NativePointEncoder
+  layer=native_places, k=index_type, v=rtree
+  layer=native_places, k=layer, v=native_places
+  layer=native_places, k=layer_type, v=SimplePointLayer
+  layer=native_places, k=layerprops, v=[]
+  layer=p_Geohash, k=geomencoder, v=SimplePointEncoder
+  layer=p_Geohash, k=geomencoder_config, v=longitude:latitude
+  layer=p_Geohash, k=index_type, v=rtree
+  layer=p_Geohash, k=layer, v=p_Geohash
+  layer=p_Geohash, k=layer_type, v=SimplePointLayer
+  layer=p_Geohash, k=layerprops, v=[]
+  layer=p_Hilbert, k=geomencoder, v=SimplePointEncoder
+  layer=p_Hilbert, k=geomencoder_config, v=longitude:latitude
+  layer=p_Hilbert, k=index_type, v=rtree
+  layer=p_Hilbert, k=layer, v=p_Hilbert
+  layer=p_Hilbert, k=layer_type, v=SimplePointLayer
+  layer=p_Hilbert, k=layerprops, v=[]
+  layer=p_NativeGeohash, k=geomencoder, v=NativePointEncoder
+  layer=p_NativeGeohash, k=geomencoder_config, v=location
+  layer=p_NativeGeohash, k=index_type, v=rtree
+  layer=p_NativeGeohash, k=layer, v=p_NativeGeohash
+  layer=p_NativeGeohash, k=layer_type, v=SimplePointLayer
+  layer=p_NativeGeohash, k=layerprops, v=[]
+  layer=p_NativeHilbert, k=geomencoder, v=NativePointEncoder
+  layer=p_NativeHilbert, k=geomencoder_config, v=location
+  layer=p_NativeHilbert, k=index_type, v=rtree
+  layer=p_NativeHilbert, k=layer, v=p_NativeHilbert
+  layer=p_NativeHilbert, k=layer_type, v=SimplePointLayer
+  layer=p_NativeHilbert, k=layerprops, v=[]
+  layer=p_NativePoint, k=geomencoder, v=NativePointEncoder
+  layer=p_NativePoint, k=geomencoder_config, v=location
+  layer=p_NativePoint, k=index_type, v=rtree
+  layer=p_NativePoint, k=layer, v=p_NativePoint
+  layer=p_NativePoint, k=layer_type, v=SimplePointLayer
+  layer=p_NativePoint, k=layerprops, v=[]
+  layer=p_NativePoints, k=geomencoder, v=NativePointsEncoder
+  layer=p_NativePoints, k=geomencoder_config, v=geometry
+  layer=p_NativePoints, k=index_type, v=rtree
+  layer=p_NativePoints, k=layer, v=p_NativePoints
+  layer=p_NativePoints, k=layer_type, v=EditableLayer
+  layer=p_NativePoints, k=layerprops, v=[]
+  layer=p_NativeZOrder, k=geomencoder, v=NativePointEncoder
+  layer=p_NativeZOrder, k=geomencoder_config, v=location
+  layer=p_NativeZOrder, k=index_type, v=rtree
+  layer=p_NativeZOrder, k=layer, v=p_NativeZOrder
+  layer=p_NativeZOrder, k=layer_type, v=SimplePointLayer
+  layer=p_NativeZOrder, k=layerprops, v=[]
+  layer=p_OSM, k=geomencoder, v=OSMGeometryEncoder
+  layer=p_OSM, k=index_type, v=rtree
+  layer=p_OSM, k=layer, v=p_OSM
+  layer=p_OSM, k=layer_type, v=OSMLayer
+  layer=p_OSM, k=layerprops, v=[name, highway]
+  layer=p_SimplePoint, k=geomencoder, v=SimplePointEncoder
+  layer=p_SimplePoint, k=geomencoder_config, v=longitude:latitude
+  layer=p_SimplePoint, k=index_type, v=rtree
+  layer=p_SimplePoint, k=layer, v=p_SimplePoint
+  layer=p_SimplePoint, k=layer_type, v=SimplePointLayer
+  layer=p_SimplePoint, k=layerprops, v=[]
+  layer=p_WKB, k=geomencoder, v=WKBGeometryEncoder
+  layer=p_WKB, k=geomencoder_config, v=wkb
+  layer=p_WKB, k=index_type, v=rtree
+  layer=p_WKB, k=layer, v=p_WKB
+  layer=p_WKB, k=layer_type, v=EditableLayer
+  layer=p_WKB, k=layerprops, v=[]
+  layer=p_WKT, k=geomencoder, v=WKTGeometryEncoder
+  layer=p_WKT, k=geomencoder_config, v=wkt
+  layer=p_WKT, k=index_type, v=rtree
+  layer=p_WKT, k=layer, v=p_WKT
+  layer=p_WKT, k=layer_type, v=EditableLayer
+  layer=p_WKT, k=layerprops, v=[]
+  layer=p_ZOrder, k=geomencoder, v=SimplePointEncoder
+  layer=p_ZOrder, k=geomencoder_config, v=longitude:latitude
+  layer=p_ZOrder, k=index_type, v=rtree
+  layer=p_ZOrder, k=layer, v=p_ZOrder
+  layer=p_ZOrder, k=layer_type, v=SimplePointLayer
+  layer=p_ZOrder, k=layerprops, v=[]
+  layer=places, k=geomencoder, v=SimplePointEncoder
+  layer=places, k=index_type, v=rtree
+  layer=places, k=layer, v=places
+  layer=places, k=layer_type, v=SimplePointLayer
+  layer=places, k=layerprops, v=[]
+  layer=rtree20, k=geomencoder, v=SimplePointEncoder
+  layer=rtree20, k=index_config, v={"maxNodeReferences":20}
+  layer=rtree20, k=index_type, v=rtree
+  layer=rtree20, k=layer, v=rtree20
+  layer=rtree20, k=layer_type, v=SimplePointLayer
+  layer=rtree20, k=layerprops, v=[]
+  layer=sfc_geohash, k=extraProp._spatialindex_geohash_sfc_geohash, v=java.lang.String
+  layer=sfc_geohash, k=geomencoder, v=SimplePointEncoder
+  layer=sfc_geohash, k=index_type, v=geohash
+  layer=sfc_geohash, k=layer, v=sfc_geohash
+  layer=sfc_geohash, k=layer_type, v=SimplePointLayer
+  layer=sfc_geohash, k=layerprops, v=[_spatialindex_geohash_sfc_geohash]
+  layer=sfc_hilbert, k=extraProp._spatialindex_hilbert_sfc_hilbert, v=java.lang.Long
+  layer=sfc_hilbert, k=geomencoder, v=SimplePointEncoder
+  layer=sfc_hilbert, k=index_type, v=hilbert
+  layer=sfc_hilbert, k=layer, v=sfc_hilbert
+  layer=sfc_hilbert, k=layer_type, v=SimplePointLayer
+  layer=sfc_hilbert, k=layerprops, v=[_spatialindex_hilbert_sfc_hilbert]
+  layer=xy, k=geomencoder, v=SimplePointEncoder
+  layer=xy, k=geomencoder_config, v=x:y
+  layer=xy, k=index_type, v=rtree
+  layer=xy, k=layer, v=xy
+  layer=xy, k=layer_type, v=SimplePointLayer
+  layer=xy, k=layerprops, v=[]
+MATCH (l:SpatialLayer)-[:RTREE_METADATA]->(m) UNWIND keys(m) AS k RETURN l.layer AS layer, k, m[k] AS v ORDER BY layer, k
+  layer=native_cfg, k=maxNodeReferences, v=100
+  layer=native_cfg, k=totalGeometryCount, v=5
+  layer=native_places, k=maxNodeReferences, v=100
+  layer=native_places, k=totalGeometryCount, v=3
+  layer=p_Geohash, k=maxNodeReferences, v=100
+  layer=p_Geohash, k=totalGeometryCount, v=5
+  layer=p_Hilbert, k=maxNodeReferences, v=100
+  layer=p_Hilbert, k=totalGeometryCount, v=5
+  layer=p_NativeGeohash, k=maxNodeReferences, v=100
+  layer=p_NativeGeohash, k=totalGeometryCount, v=5
+  layer=p_NativeHilbert, k=maxNodeReferences, v=100
+  layer=p_NativeHilbert, k=totalGeometryCount, v=5
+  layer=p_NativePoint, k=maxNodeReferences, v=100
+  layer=p_NativePoint, k=totalGeometryCount, v=5
+  layer=p_NativePoints, k=maxNodeReferences, v=100
+  layer=p_NativePoints, k=totalGeometryCount, v=2
+  layer=p_NativeZOrder, k=maxNodeReferences, v=100
+  layer=p_NativeZOrder, k=totalGeometryCount, v=5
+  layer=p_OSM, k=maxNodeReferences, v=100
+  layer=p_OSM, k=totalGeometryCount, v=2
+  layer=p_SimplePoint, k=maxNodeReferences, v=100
+  layer=p_SimplePoint, k=totalGeometryCount, v=5
+  layer=p_WKB, k=maxNodeReferences, v=100
+  layer=p_WKB, k=totalGeometryCount, v=4
+  layer=p_WKT, k=maxNodeReferences, v=100
+  layer=p_WKT, k=totalGeometryCount, v=4
+  layer=p_ZOrder, k=maxNodeReferences, v=100
+  layer=p_ZOrder, k=totalGeometryCount, v=5
+  layer=places, k=maxNodeReferences, v=100
+  layer=places, k=totalGeometryCount, v=3
+  layer=rtree20, k=maxNodeReferences, v=100
+  layer=rtree20, k=totalGeometryCount, v=60
+  layer=xy, k=maxNodeReferences, v=100
+  layer=xy, k=totalGeometryCount, v=5
+native_cfg | layerMeta
+  geometryType=org.locationtech.jts.geom.Point, crs=null, hasComplexAttributes=false, extraAttributes=[]
+native_cfg | count
+  count=5
+native_cfg | layerBbox
+  minX=15.2, minY=60.1, maxX=20.0, maxY=65.0
+native_cfg | bbox
+  ids=[98, 99, 100]
+native_cfg | withinDistance
+  id=98, d=0.0
+  id=99, d=37.2395
+  id=100, d=96.8606
+native_cfg | closest
+  ids=[98, 99, 100]
+native_cfg | cql
+  n=3
+native_places | layerMeta
+  geometryType=org.locationtech.jts.geom.Point, crs=null, hasComplexAttributes=false, extraAttributes=[]
+native_places | count
+  count=3
+native_places | layerBbox
+  minX=15.25, minY=60.15, maxX=16.1, maxY=61.0
+native_places | bbox
+  ids=[254, 255]
+native_places | withinDistance
+  id=254, d=6.2113
+  id=255, d=31.0377
+native_places | closest
+  ids=[254, 255, 256]
+native_places | cql
+  n=2
+p_Geohash | layerMeta
+  geometryType=org.locationtech.jts.geom.Point, crs=null, hasComplexAttributes=false, extraAttributes=[]
+p_Geohash | count
+  count=5
+p_Geohash | layerBbox
+  minX=15.2, minY=60.1, maxX=20.0, maxY=65.0
+p_Geohash | bbox
+  ids=[58, 59, 60]
+p_Geohash | withinDistance
+  id=58, d=0.0
+  id=59, d=37.2395
+  id=60, d=96.8606
+p_Geohash | closest
+  ids=[58, 59, 60]
+p_Geohash | cql
+  n=3
+p_Hilbert | layerMeta
+  geometryType=org.locationtech.jts.geom.Point, crs=null, hasComplexAttributes=false, extraAttributes=[]
+p_Hilbert | count
+  count=5
+p_Hilbert | layerBbox
+  minX=15.2, minY=60.1, maxX=20.0, maxY=65.0
+p_Hilbert | bbox
+  ids=[68, 69, 70]
+p_Hilbert | withinDistance
+  id=68, d=0.0
+  id=69, d=37.2395
+  id=70, d=96.8606
+p_Hilbert | closest
+  ids=[68, 69, 70]
+p_Hilbert | cql
+  n=3
+p_NativeGeohash | layerMeta
+  geometryType=org.locationtech.jts.geom.Point, crs=null, hasComplexAttributes=false, extraAttributes=[]
+p_NativeGeohash | count
+  count=5
+p_NativeGeohash | layerBbox
+  minX=15.2, minY=60.1, maxX=20.0, maxY=65.0
+p_NativeGeohash | bbox
+  ids=[78, 79, 80]
+p_NativeGeohash | withinDistance
+  id=78, d=0.0
+  id=79, d=37.2395
+  id=80, d=96.8606
+p_NativeGeohash | closest
+  ids=[78, 79, 80]
+p_NativeGeohash | cql
+  n=3
+p_NativeHilbert | layerMeta
+  geometryType=org.locationtech.jts.geom.Point, crs=null, hasComplexAttributes=false, extraAttributes=[]
+p_NativeHilbert | count
+  count=5
+p_NativeHilbert | layerBbox
+  minX=15.2, minY=60.1, maxX=20.0, maxY=65.0
+p_NativeHilbert | bbox
+  ids=[88, 89, 90]
+p_NativeHilbert | withinDistance
+  id=88, d=0.0
+  id=89, d=37.2395
+  id=90, d=96.8606
+p_NativeHilbert | closest
+  ids=[88, 89, 90]
+p_NativeHilbert | cql
+  n=3
+p_NativePoint | layerMeta
+  geometryType=org.locationtech.jts.geom.Point, crs=null, hasComplexAttributes=false, extraAttributes=[]
+p_NativePoint | count
+  count=5
+p_NativePoint | layerBbox
+  minX=15.2, minY=60.1, maxX=20.0, maxY=65.0
+p_NativePoint | bbox
+  ids=[73, 74, 75]
+p_NativePoint | withinDistance
+  id=73, d=0.0
+  id=74, d=37.2395
+  id=75, d=96.8606
+p_NativePoint | closest
+  ids=[73, 74, 75]
+p_NativePoint | cql
+  n=3
+p_NativePoints | layerMeta
+  geometryType=org.locationtech.jts.geom.LineString, crs=null, hasComplexAttributes=false, extraAttributes=[]
+p_NativePoints | count
+  count=2
+p_NativePoints | layerBbox
+  minX=15.2, minY=60.1, maxX=20.5, maxY=65.5
+p_NativePoints | bbox
+  ids=[121]
+p_NativePoints | withinDistance
+  id=121, d=0.0
+p_NativePoints | closest
+  ids=[121]
+p_NativePoints | cql
+  n=1
+p_NativeZOrder | layerMeta
+  geometryType=org.locationtech.jts.geom.Point, crs=null, hasComplexAttributes=false, extraAttributes=[]
+p_NativeZOrder | count
+  count=5
+p_NativeZOrder | layerBbox
+  minX=15.2, minY=60.1, maxX=20.0, maxY=65.0
+p_NativeZOrder | bbox
+  ids=[83, 84, 85]
+p_NativeZOrder | withinDistance
+  id=83, d=0.0
+  id=84, d=37.2395
+  id=85, d=96.8606
+p_NativeZOrder | closest
+  ids=[83, 84, 85]
+p_NativeZOrder | cql
+  n=3
+p_OSM | layerMeta
+  geometryType=org.locationtech.jts.geom.LineString, crs=null, hasComplexAttributes=true, extraAttributes=[highway:java.lang.String, name:java.lang.String]
+p_OSM | count
+  count=2
+p_OSM | layerBbox
+  minX=12.9639158, minY=56.0538436, maxX=12.9763764, maxY=56.0711966
+p_OSM | bbox
+  ids=[]
+p_OSM | withinDistance
+p_OSM | closest
+  ids=[]
+p_OSM | cql
+  n=0
+p_SimplePoint | layerMeta
+  geometryType=org.locationtech.jts.geom.Point, crs=null, hasComplexAttributes=false, extraAttributes=[]
+p_SimplePoint | count
+  count=5
+p_SimplePoint | layerBbox
+  minX=15.2, minY=60.1, maxX=20.0, maxY=65.0
+p_SimplePoint | bbox
+  ids=[53, 54, 55]
+p_SimplePoint | withinDistance
+  id=53, d=0.0
+  id=54, d=37.2395
+  id=55, d=96.8606
+p_SimplePoint | closest
+  ids=[53, 54, 55]
+p_SimplePoint | cql
+  n=3
+p_WKB | layerMeta
+  geometryType=org.locationtech.jts.geom.LineString, crs=null, hasComplexAttributes=false, extraAttributes=[]
+p_WKB | count
+  count=4
+p_WKB | layerBbox
+  minX=15.0, minY=60.0, maxX=20.0, maxY=65.0
+p_WKB | bbox
+  ids=[117, 118]
+p_WKB | withinDistance
+  id=117, d=0.0
+  id=118, d=6.2113
+  id=119, d=47.4494
+p_WKB | closest
+  ids=[117, 118]
+p_WKB | cql
+  n=3
+p_WKT | layerMeta
+  geometryType=org.locationtech.jts.geom.LineString, crs=null, hasComplexAttributes=false, extraAttributes=[]
+p_WKT | count
+  count=4
+p_WKT | layerBbox
+  minX=15.0, minY=60.0, maxX=20.0, maxY=65.0
+p_WKT | bbox
+  ids=[113, 114]
+p_WKT | withinDistance
+  id=113, d=0.0
+  id=114, d=6.2113
+  id=115, d=47.4494
+p_WKT | closest
+  ids=[113, 114]
+p_WKT | cql
+  n=3
+p_ZOrder | layerMeta
+  geometryType=org.locationtech.jts.geom.Point, crs=null, hasComplexAttributes=false, extraAttributes=[]
+p_ZOrder | count
+  count=5
+p_ZOrder | layerBbox
+  minX=15.2, minY=60.1, maxX=20.0, maxY=65.0
+p_ZOrder | bbox
+  ids=[63, 64, 65]
+p_ZOrder | withinDistance
+  id=63, d=0.0
+  id=64, d=37.2395
+  id=65, d=96.8606
+p_ZOrder | closest
+  ids=[63, 64, 65]
+p_ZOrder | cql
+  n=3
+places | layerMeta
+  geometryType=org.locationtech.jts.geom.Point, crs=null, hasComplexAttributes=false, extraAttributes=[]
+places | count
+  count=3
+places | layerBbox
+  minX=15.25, minY=60.15, maxX=16.1, maxY=61.0
+places | bbox
+  ids=[251, 252]
+places | withinDistance
+  id=251, d=6.2113
+  id=252, d=31.0377
+places | closest
+  ids=[251, 252, 253]
+places | cql
+  n=2
+rtree20 | layerMeta
+  geometryType=org.locationtech.jts.geom.Point, crs=null, hasComplexAttributes=false, extraAttributes=[]
+rtree20 | count
+  count=60
+rtree20 | layerBbox
+  minX=15.0, minY=60.0, maxX=15.9, maxY=60.5
+rtree20 | bbox
+  ids=[134, 135, 136, 137, 138, 139, 140, 141, 142, 144, 145, 146, 147, 148, 149, 150, 151, 152, 154, 155, 156, 157, 158, 159, 160, 161, 162, 164, 165, 166, 167, 168, 169, 170, 171, 172, 174, 175, 176, 177, 178, 179, 180, 181, 182]
+rtree20 | withinDistance
+  id=135, d=0.0
+  id=134, d=5.5429
+  id=136, d=5.5429
+  id=133, d=11.0859
+  id=137, d=11.0859
+  id=125, d=11.1195
+  id=145, d=11.1195
+  id=144, d=12.4207
+  id=146, d=12.4207
+  id=124, d=12.4282
+  id=126, d=12.4282
+  id=143, d=15.6897
+  id=147, d=15.6897
+  id=123, d=15.7134
+  id=127, d=15.7134
+  id=138, d=16.6288
+  id=148, d=19.983
+  id=128, d=20.0249
+  id=139, d=22.1717
+  id=155, d=22.239
+  id=154, d=22.9153
+  id=156, d=22.9153
+  id=149, d=24.7737
+  id=129, d=24.8338
+  id=153, d=24.8339
+  id=157, d=24.8339
+  id=140, d=27.7146
+  id=158, d=27.7382
+  id=150, d=29.823
+  id=130, d=29.901
+  id=159, d=31.3555
+  id=141, d=33.2575
+  id=165, d=33.3585
+  id=164, d=33.8117
+  id=166, d=33.8117
+  id=151, d=35.0192
+  id=131, d=35.1149
+  id=163, d=35.1364
+  id=167, d=35.1364
+  id=160, d=35.4684
+  id=168, d=37.2395
+  id=142, d=38.8003
+  id=161, d=39.9238
+  id=169, d=39.9986
+  id=152, d=40.3056
+  id=132, d=40.4188
+  id=170, d=43.2884
+  id=175, d=44.478
+  id=162, d=44.6194
+  id=174, d=44.8179
+  id=176, d=44.8179
+  id=173, d=45.8224
+  id=177, d=45.8224
+  id=171, d=46.9975
+  id=178, d=47.4494
+  id=179, d=49.6377
+  id=172, d=51.0346
+  id=180, d=52.3168
+  id=181, d=55.4157
+  id=182, d=58.8681
+rtree20 | closest
+  ids=[123, 124, 125, 126, 127, 128, 129, 130, 131, 132, 133, 134, 135, 136, 137, 138, 139, 140, 141, 142, 143, 144, 145, 146, 147, 148, 149, 150, 151, 152, 153, 154, 155, 156, 157, 158, 159, 160, 161, 162, 163, 164, 165, 166, 167, 168, 169, 170, 171, 172, 173, 174, 175, 176, 177, 178, 179, 180, 181, 182]
+rtree20 | cql
+  n=60
+sfc_geohash | layerMeta
+  geometryType=org.locationtech.jts.geom.Point, crs=GEOGCS["WGS84(DD)", hasComplexAttributes=false, extraAttributes=[]
+sfc_geohash | count
+  count=5
+sfc_geohash | layerBbox
+  minX=15.2, minY=60.1, maxX=20.0, maxY=65.0
+sfc_geohash | bbox
+  ids=[103, 104, 105]
+sfc_geohash | withinDistance
+  id=103, d=0.0
+  id=104, d=37.2395
+  id=105, d=96.8606
+sfc_geohash | closest
+  ids=[103, 104, 105]
+sfc_geohash | cql
+  n=3
+sfc_hilbert | layerMeta
+  geometryType=org.locationtech.jts.geom.Point, crs=GEOGCS["WGS84(DD)", hasComplexAttributes=false, extraAttributes=[]
+sfc_hilbert | count
+  count=5
+sfc_hilbert | layerBbox
+  minX=15.2, minY=60.1, maxX=20.0, maxY=65.0
+sfc_hilbert | bbox
+  ids=[108, 109, 110]
+sfc_hilbert | withinDistance
+  id=108, d=0.0
+  id=109, d=37.2395
+  id=110, d=96.8606
+sfc_hilbert | closest
+  ids=[108, 109, 110]
+sfc_hilbert | cql
+  n=3
+xy | layerMeta
+  geometryType=org.locationtech.jts.geom.Point, crs=null, hasComplexAttributes=false, extraAttributes=[]
+xy | count
+  count=5
+xy | layerBbox
+  minX=15.2, minY=60.1, maxX=20.0, maxY=65.0
+xy | bbox
+  ids=[93, 94, 95]
+xy | withinDistance
+  id=93, d=0.0
+  id=94, d=37.2395
+  id=95, d=96.8606
+xy | closest
+  ids=[93, 94, 95]
+xy | cql
+  n=3
