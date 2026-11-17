@@ -60,6 +60,8 @@ public interface Constants {
 	};
 
 	Label LABEL_LAYER = Label.label("SpatialLayer");
+	// marks geometry nodes created by a layer, so removing the layer deletes them but keeps nodes added to it
+	Label LABEL_MANAGED_GEOMETRY = Label.label("_SpatialManagedGeometry");
 
 	// OpenGIS geometry type numbers
 

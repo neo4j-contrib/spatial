@@ -21,6 +21,7 @@ package org.neo4j.gis.spatial;
 
 import static org.neo4j.gis.spatial.Constants.GTYPE_MULTIPOLYGON;
 import static org.neo4j.gis.spatial.Constants.GTYPE_POINT;
+import static org.neo4j.gis.spatial.Constants.LABEL_MANAGED_GEOMETRY;
 import static org.neo4j.gis.spatial.Constants.PROP_CRS;
 import static org.neo4j.gis.spatial.Constants.PROP_LAYERNODEEXTRAPROPS;
 import static org.neo4j.gis.spatial.Constants.PROP_PREFIX_EXTRA_PROP_V2;
@@ -144,12 +145,13 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 	}
 
 	/**
-	 * Delete Layer
+	 * Delete the layer. Only nodes the layer created itself are deleted; nodes added via
+	 * {@link #add(Transaction, Node)} are detached and kept.
 	 */
 	@Override
 	public void delete(Transaction tx, ProgressListener monitor) {
 		checkWritable();
-		indexWriter.removeAll(tx, true, monitor);
+		indexWriter.removeAll(tx, node -> node.hasLabel(LABEL_MANAGED_GEOMETRY), monitor);
 		Node layerNode = getLayerNode(tx);
 		layerNode.delete();
 		layerNodeId = null;
@@ -164,7 +166,7 @@ public class EditableLayerImpl extends DefaultLayer implements EditableLayer {
 
 	protected Node addGeomNode(Transaction tx, Geometry geom, Map<String, Object> properties) {
 		checkWritable();
-		Node geomNode = tx.createNode();
+		Node geomNode = tx.createNode(LABEL_MANAGED_GEOMETRY);
 		if (properties != null) {
 			properties.forEach(geomNode::setProperty);
 		}

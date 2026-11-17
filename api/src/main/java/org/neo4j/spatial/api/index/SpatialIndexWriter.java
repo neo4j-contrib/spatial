@@ -20,6 +20,7 @@
 package org.neo4j.spatial.api.index;
 
 import java.util.List;
+import java.util.function.Predicate;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.spatial.api.Identifiable;
@@ -41,7 +42,12 @@ public interface SpatialIndexWriter extends SpatialIndexReader, Identifiable {
 
 	void remove(Transaction tx, String geomNodeId, boolean deleteGeomNode, boolean throwExceptionIfNotFound);
 
-	void removeAll(Transaction tx, boolean deleteGeomNodes, ProgressListener monitor);
+	/**
+	 * Removes all nodes from the index and deletes the index structure.
+	 *
+	 * @param deleteGeomNode decides per indexed node whether to delete it; all other nodes are only detached
+	 */
+	void removeAll(Transaction tx, Predicate<Node> deleteGeomNode, ProgressListener monitor);
 
 	void clear(Transaction tx, ProgressListener monitor);
 

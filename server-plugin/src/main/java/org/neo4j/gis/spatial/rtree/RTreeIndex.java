@@ -32,6 +32,8 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
+import java.util.function.Predicate;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -273,7 +275,7 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Con
 			uniqueNodes.addAll(geomNodes);
 
 			List<Node> nodesToAdd = new ArrayList<>(uniqueNodes);
-			detachGeometryNodes(tx, false, indexRoot, new NullListener());
+			detachGeometryNodes(tx, indexRoot, node -> {}, new NullListener());
 			deleteTreeBelow(indexRoot);
 			buildRtreeFromScratch(tx, indexRoot, decodeGeometryNodeEnvelopes(nodesToAdd), 0.7);
 			countSaved = false;
@@ -694,45 +696,44 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Con
 		return indexNode;
 	}
 
-	private void detachGeometryNodes(Transaction tx, final boolean deleteGeomNodes, Node indexRoot,
-			final ProgressListener monitor) {
+	private void detachGeometryNodes(Transaction tx, Node indexRoot, Consumer<Node> onDetached,
+			ProgressListener monitor) {
 		checkWritable();
 		monitor.begin(count(tx));
 		try {
-			// delete all geometry nodes
-			visitInTx(tx, new SpatialIndexVisitor() {
-				@Override
-				public boolean needsToVisit(Envelope indexNodeEnvelope) {
-					return true;
-				}
-
-				@Override
-				public void onIndexReference(Node geomNode) {
-					try (var relationships = geomNode.getRelationships(Direction.INCOMING, referenceRelationshipType)) {
-						for (Relationship rel : relationships) {
-							if (rel.getStartNode().equals(indexRoot)) {
-								rel.delete();
-							}
-						}
-					}
-					if (deleteGeomNodes) {
-						deleteNode(geomNode);
-					}
-
-					monitor.worked(1);
-				}
-			}, indexRoot.getElementId());
+			detachGeometryNodesBelow(indexRoot, onDetached, monitor);
 		} finally {
 			monitor.done();
 		}
 	}
 
+	// walks the tree itself: the references to delete start at the leaves of this tree, not at its root
+	private void detachGeometryNodesBelow(Node indexNode, Consumer<Node> onDetached, ProgressListener monitor) {
+		try (var relationships = indexNode.getRelationships(Direction.OUTGOING, RTreeRelationshipTypes.RTREE_CHILD)) {
+			for (Relationship rel : relationships) {
+				detachGeometryNodesBelow(rel.getEndNode(), onDetached, monitor);
+			}
+		}
+		try (var relationships = indexNode.getRelationships(Direction.OUTGOING, referenceRelationshipType)) {
+			for (Relationship rel : relationships) {
+				Node geomNode = rel.getEndNode();
+				rel.delete();
+				onDetached.accept(geomNode);
+				monitor.worked(1);
+			}
+		}
+	}
+
 	@Override
-	public void removeAll(Transaction tx, final boolean deleteGeomNodes, final ProgressListener monitor) {
+	public void removeAll(Transaction tx, Predicate<Node> deleteGeomNode, final ProgressListener monitor) {
 		checkWritable();
 		Node indexRoot = getIndexRoot(tx);
 
-		detachGeometryNodes(tx, deleteGeomNodes, indexRoot, monitor);
+		detachGeometryNodes(tx, indexRoot, geomNode -> {
+			if (deleteGeomNode.test(geomNode)) {
+				deleteNode(geomNode);
+			}
+		}, monitor);
 
 		// delete index root relationship
 		indexRoot.getSingleRelationship(RTreeRelationshipTypes.RTREE_ROOT, Direction.INCOMING).delete();
@@ -754,7 +755,7 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Con
 	@Override
 	public void clear(Transaction tx, final ProgressListener monitor) {
 		checkWritable();
-		removeAll(tx, false, new NullListener());
+		removeAll(tx, node -> false, new NullListener());
 		initIndexRoot(tx);
 		initIndexMetadata(tx);
 	}

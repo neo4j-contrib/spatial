@@ -19,7 +19,7 @@ CALL spatial.addWKTs('geom',[ "POINT (15.2 60.1)", "POINT (25.2 30.1)" ])
 a|
 [source]
 ----
-(:SpatialIndex_geohash_geom {
+(:_SpatialManagedGeometry:SpatialIndex_geohash_geom {
     _spatialindex_geohash_geom: "1110001001100110011110101101011110001011101011010001000100011101",
     bbox: [ 15.2, 60.1, 15.2, 60.1 ],
     gtype: 1,
@@ -31,7 +31,7 @@ a|
 a|
 [source]
 ----
-(:SpatialIndex_geohash_geom {
+(:_SpatialManagedGeometry:SpatialIndex_geohash_geom {
     _spatialindex_geohash_geom: "1100100110001001111101001110111101000010000110110010001101111110",
     bbox: [ 25.2, 30.1, 25.2, 30.1 ],
     gtype: 1,
@@ -55,7 +55,7 @@ CALL spatial.closest('geom',{lon:15.0, lat:60.0}, 1.0)
 a|
 [source]
 ----
-(:SpatialIndex_geohash_geom {
+(:_SpatialManagedGeometry:SpatialIndex_geohash_geom {
     _spatialindex_geohash_geom: "1110001001100110011110101101011110001011101011010001000100011101",
     bbox: [ 15.2, 60.1, 15.2, 60.1 ],
     gtype: 1,

@@ -6,7 +6,7 @@
 label:procedure[]
 
 [.emphasis]
-Removes the given layer
+Removes the given layer. Deletes the nodes the layer created (e.g. by `spatial.addWKT`); nodes added with `spatial.addNode` are only removed from the index
 
 == Signature
 

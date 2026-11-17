@@ -39,6 +39,7 @@ import static org.neo4j.gis.spatial.Constants.PROP_LAYER_TYPE;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.logging.Logger;
@@ -215,6 +216,60 @@ public class SpatialProceduresTest extends AbstractApiTest {
 				r -> assertEquals("b", r.get("name")));
 		execute("CALL spatial.removeLayer('geom')");
 		testCallCount(db, "CALL spatial.layers()", null, 0);
+	}
+
+	// https://github.com/neo4j-contrib/spatial/issues/283
+	@ParameterizedTest
+	@ValueSource(strings = {
+			"spatial.addPointLayer('geom')",
+			"spatial.addPointLayerGeohash('geom')",
+			"spatial.addPointLayerZOrder('geom')",
+			"spatial.addPointLayerHilbert('geom')",
+			"spatial.addWKTLayer('geom','wkt')",
+	})
+	public void remove_layer_keeps_added_domain_nodes(String createLayer) {
+		execute("CALL " + createLayer);
+		execute("""
+				CREATE (a:Loc {name:'a', latitude:60.1, longitude:15.2, wkt:'POINT(15.2 60.1)'})-[:KNOWS]->(b:Loc {name:'b'})
+				WITH a CALL spatial.addNode('geom', a) YIELD node RETURN node""");
+		execute("CALL spatial.removeLayer('geom')");
+		testCall(db, """
+						MATCH (a:Loc {name:'a'})-[r]->(:Loc {name:'b'})
+						RETURN type(r) AS type, a.latitude AS lat, COUNT { (a)--() } AS rels, labels(a) AS labels""",
+				r -> {
+					assertEquals("KNOWS", r.get("type"));
+					assertEquals(60.1, r.get("lat"));
+					assertEquals(1L, r.get("rels"));
+					assertEquals(List.of("Loc"), r.get("labels"));
+				});
+	}
+
+	// https://github.com/neo4j-contrib/spatial/issues/283
+	@Test
+	public void remove_layer_deletes_nodes_created_by_the_layer() {
+		execute("CALL spatial.addWKTLayer('geom','wkt')");
+		execute("CALL spatial.addWKT('geom','POINT(15.2 60.1)')");
+		execute("CALL spatial.addWKTs('geom',['LINESTRING (15.2 60.1, 15.3 60.1)','POINT(15.5 60.3)'])");
+		testCall(db, "MATCH (n:_SpatialManagedGeometry) RETURN count(n) AS count", r -> assertEquals(3L, r.get("count")));
+		execute("CALL spatial.removeLayer('geom')");
+		testCall(db, "MATCH (n) RETURN count(n) AS count", r -> assertEquals(0L, r.get("count")));
+	}
+
+	// the migration statement from spatial.removeLayer.adoc, for nodes created before _SpatialManagedGeometry existed
+	@Test
+	public void remove_layer_deletes_legacy_nodes_after_labelling_them() {
+		execute("CALL spatial.addWKTLayer('geom','wkt')");
+		execute("CALL spatial.addWKTs('geom',['POINT(15.2 60.1)','POINT(15.5 60.3)'])");
+		execute("""
+				CREATE (a:Loc {wkt:'POINT(15.3 60.2)'})-[:KNOWS]->(:Loc)
+				WITH a CALL spatial.addNode('geom', a) YIELD node RETURN node""");
+		execute("MATCH (n:_SpatialManagedGeometry) REMOVE n:_SpatialManagedGeometry");
+		execute("""
+				MATCH (:SpatialLayer {layer: $name})-[:RTREE_ROOT]->()-[:RTREE_CHILD*0..]->()-[:RTREE_REFERENCE]->(g)
+				WHERE size(labels(g)) = 0 AND COUNT { (g)--() } = 1
+				SET g:_SpatialManagedGeometry""", Map.of("name", "geom"));
+		execute("CALL spatial.removeLayer('geom')");
+		testCall(db, "MATCH (n) RETURN count(n) AS count", r -> assertEquals(2L, r.get("count")));
 	}
 
 	// This tests issue https://github.com/neo4j-contrib/spatial/issues/298

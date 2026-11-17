@@ -1,5 +1,31 @@
 include::partial$generated/api/spatial/spatial.removeLayer.adoc[]
 
+== Deleted and kept nodes
+
+[cols="1,1"]
+|===
+|Node |On `spatial.removeLayer`
+
+|Created by the layer (`spatial.addWKT`, `spatial.addWKTs`, shapefile import …), labelled `_SpatialManagedGeometry`
+|deleted, with its relationships
+
+|Added with `spatial.addNode` / `spatial.addNodes`, or created by the OSM importer
+|removed from the index; node, relationships and properties are kept
+|===
+
+=== Nodes created by release 2026.10.0 or earlier
+
+These nodes have no `_SpatialManagedGeometry` label, so `spatial.removeLayer` keeps them.
+To delete them with the layer, label them first.
+This example labels the nodes of an RTree layer that have no other labels and no relationships besides the index reference:
+
+[source,cypher]
+----
+MATCH (:SpatialLayer {layer: $name})-[:RTREE_ROOT]->()-[:RTREE_CHILD*0..]->()-[:RTREE_REFERENCE]->(g)
+WHERE size(labels(g)) = 0 AND COUNT { (g)--() } = 1
+SET g:_SpatialManagedGeometry
+----
+
 == Examples
 
 include::partial$generated/api/spatial/spatial.removeLayer-examples.adoc[]
