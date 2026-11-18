@@ -33,12 +33,14 @@ import org.json.simple.JSONObject;
 import org.neo4j.gis.spatial.DynamicLayer;
 import org.neo4j.gis.spatial.DynamicLayerConfig;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
+import org.neo4j.gis.spatial.SpatialRelationshipTypes;
 import org.neo4j.gis.spatial.rtree.NullListener;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.spatial.api.SpatialDataset;
+import org.neo4j.spatial.api.monitoring.ProgressListener;
 
 /**
  * Instances of this class represent the primary layer of the OSM Dataset. It
@@ -85,6 +87,19 @@ public class OSMLayer extends DynamicLayer {
 			LOGGER.log(Level.WARNING, "Failed to decode WGS84 CRS: ", e);
 			return null;
 		}
+	}
+
+	@Override
+	public void delete(Transaction tx, ProgressListener monitor) {
+		checkWritable();
+		// the dataset and its OSM data outlive the layer; only the association goes
+		Relationship datasetRel = getLayerNode(tx).getSingleRelationship(SpatialRelationshipTypes.LAYERS,
+				Direction.INCOMING);
+		if (datasetRel != null) {
+			datasetRel.delete();
+		}
+		osmDataset = null;
+		super.delete(tx, monitor);
 	}
 
 	protected void clear(Transaction tx) {

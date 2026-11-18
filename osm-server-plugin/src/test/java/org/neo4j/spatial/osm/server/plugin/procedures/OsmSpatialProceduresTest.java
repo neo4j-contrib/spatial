@@ -182,6 +182,29 @@ public class OsmSpatialProceduresTest extends AbstractApiTest {
 	}
 
 	@Test
+	public void remove_osm_layer_keeps_dataset() {
+		execute("CALL spatial.addLayer('geom1','OSM','')");
+		testCountQuery("importOSM", "CALL spatial.importOSMToLayer('geom1','map.osm')", 55, "count", null);
+		String countGeoms = "MATCH (:OSMWay)-[:GEOM]->(g) RETURN count(g) AS geoms, sum(COUNT { (g)<-[:RTREE_REFERENCE]-() }) AS refs";
+		long[] geoms = new long[1];
+		testCall(db, countGeoms, r -> geoms[0] = (Long) r.get("geoms"));
+		execute("CALL spatial.removeLayer('geom1')");
+		testCallCount(db, "CALL spatial.layers()", null, 0);
+		testCall(db, "MATCH (d:OSMDataset) RETURN COUNT { (d)-[:LAYERS]->() } AS layers, COUNT { (d)-[:WAYS]->() } AS ways",
+				r -> {
+					assertEquals(0L, r.get("layers"));
+					assertEquals(1L, r.get("ways"));
+				});
+		// the importer's way geometries are domain data, not managed by the layer
+		testCall(db, countGeoms,
+				r -> {
+					assertTrue(geoms[0] > 0);
+					assertEquals(geoms[0], r.get("geoms"));
+					assertEquals(0L, r.get("refs"));
+				});
+	}
+
+	@Test
 	public void import_osm_to_layer_without_changesets() {
 		execute("CALL spatial.addLayer('osm_example','OSM','')");
 		testCountQuery("importOSMToLayerWithoutChangesets", "CALL spatial.importOSMToLayer('osm_example','sample.osm')",
