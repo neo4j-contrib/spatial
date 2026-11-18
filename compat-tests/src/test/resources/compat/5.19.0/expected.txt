@@ -304,7 +304,7 @@ p_WKB | bbox
   ids=[114, 115]
 p_WKB | withinDistance
   id=114, d=0.0
-  id=115, d=5.1385
+  id=115, d=4.9595
   id=116, d=47.4494
 p_WKB | closest
   ids=[114, 115]
@@ -320,7 +320,7 @@ p_WKT | bbox
   ids=[110, 111]
 p_WKT | withinDistance
   id=110, d=0.0
-  id=111, d=5.1385
+  id=111, d=4.9595
   id=112, d=47.4494
 p_WKT | closest
   ids=[110, 111]

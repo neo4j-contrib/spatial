@@ -20,12 +20,15 @@
 package org.neo4j.gis.spatial.pipes.processing;
 
 import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.CoordinateFilter;
+import org.locationtech.jts.geom.CoordinateSequence;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.util.LinearComponentExtracter;
 import org.locationtech.jts.geom.util.PointExtracter;
+import org.locationtech.jts.operation.distance.DistanceOp;
 import org.neo4j.gis.spatial.pipes.AbstractGeoPipe;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 
@@ -63,65 +66,114 @@ public class OrthodromicDistance extends AbstractGeoPipe {
 
 	/**
 	 * @return the great-circle distance in km from the reference to the nearest point of the geometry, taking the
-	 * edges between its vertices as great-circle arcs; 0 if an areal geometry contains the reference
+	 * edges between its vertices as straight lines in lon/lat (as the index and the topology operations do); 0 if an
+	 * areal geometry contains the reference; infinite if the geometry is empty
 	 */
 	public static double calculateDistanceToGeometry(Coordinate reference, Geometry geometry) {
+		if (geometry.isEmpty()) {
+			return Double.POSITIVE_INFINITY;
+		}
 		if (geometry instanceof Point point) {
 			return calculateDistance(reference, point.getCoordinate());
 		}
 		if (geometry.getDimension() == 2 && geometry.covers(geometry.getFactory().createPoint(reference))) {
 			return 0;
 		}
-		double[] p = toUnitVector(reference);
-		double minAngle = Math.PI;
+		double best = upperBound(reference, geometry);
 		for (Object point : PointExtracter.getPoints(geometry)) {
-			minAngle = Math.min(minAngle, angle(p, toUnitVector(((Point) point).getCoordinate())));
+			best = Math.min(best, haversine(reference, ((Point) point).getCoordinate()));
 		}
 		for (Object line : LinearComponentExtracter.getLines(geometry)) {
-			Coordinate[] coordinates = ((LineString) line).getCoordinates();
-			for (int i = 1; i < coordinates.length; i++) {
-				minAngle = Math.min(minAngle,
-						angleToArc(p, toUnitVector(coordinates[i - 1]), toUnitVector(coordinates[i])));
+			CoordinateSequence coordinates = ((LineString) line).getCoordinateSequence();
+			Coordinate a = coordinates.getCoordinate(0);
+			double distanceToA = haversine(reference, a);
+			best = Math.min(best, distanceToA);
+			for (int i = 1; i < coordinates.size(); i++) {
+				Coordinate b = coordinates.getCoordinate(i);
+				double distanceToB = haversine(reference, b);
+				best = Math.min(best, distanceToB);
+				// every point of the edge is within half its length of an endpoint
+				if (Math.min(distanceToA, distanceToB) - maxEdgeLength(a, b) / 2 < best) {
+					best = Math.min(best, distanceToEdge(reference, a, b, best));
+				}
+				a = b;
+				distanceToA = distanceToB;
 			}
 		}
-		return minAngle * earthRadiusInKm;
+		return best;
 	}
 
-	// angle between p and the shorter great-circle arc from a to b
-	private static double angleToArc(double[] p, double[] a, double[] b) {
-		double[] normal = cross(a, b);
-		double normalLength = Math.sqrt(dot(normal, normal));
-		if (normalLength > 1e-15) {
-			// the arc's closest point to p is p projected onto the arc's great circle, if it lies between a and b
-			double[] n = scale(normal, 1 / normalLength);
-			if (dot(cross(a, p), n) >= 0 && dot(cross(p, b), n) >= 0) {
-				return Math.abs(Math.asin(Math.max(-1, Math.min(1, dot(p, n)))));
+	// exact distance to a near-optimal point, found in a plane scaled by cos(lat) at the reference; lets the edge loop
+	// prune from the start
+	private static double upperBound(Coordinate reference, Geometry geometry) {
+		double scale = Math.cos(Math.toRadians(reference.y));
+		Geometry scaled = geometry.copy();
+		scaled.apply((CoordinateFilter) c -> c.x *= scale);
+		scaled.geometryChanged();
+		Coordinate nearest = DistanceOp.nearestPoints(scaled,
+				geometry.getFactory().createPoint(new Coordinate(reference.x * scale, reference.y)))[0];
+		return haversine(reference, new Coordinate(nearest.x / scale, nearest.y));
+	}
+
+	private static final double KM_PER_DEGREE = Math.toRadians(earthRadiusInKm);
+	private static final double GOLDEN = (Math.sqrt(5) - 1) / 2;
+
+	// upper bound of the length of the straight lon/lat edge: a degree of longitude is longest at the lowest latitude
+	private static double maxEdgeLength(Coordinate a, Coordinate b) {
+		double lowestAbsLat = Math.signum(a.y) == Math.signum(b.y) ? Math.min(Math.abs(a.y), Math.abs(b.y)) : 0;
+		return KM_PER_DEGREE * Math.hypot(b.y - a.y, (b.x - a.x) * Math.cos(Math.toRadians(lowestAbsLat)));
+	}
+
+	// distance to the nearest point of the edge; samples first, since a long edge need not be unimodal
+	private static double distanceToEdge(Coordinate reference, Coordinate a, Coordinate b, double best) {
+		double length = maxEdgeLength(a, b);
+		int samples = (int) Math.min(64, 2 + length / 100);
+		int bestSample = 0;
+		double bestSampleDistance = Double.POSITIVE_INFINITY;
+		for (int i = 0; i <= samples; i++) {
+			double distance = distanceAlongEdge(reference, a, b, (double) i / samples);
+			if (distance < bestSampleDistance) {
+				bestSampleDistance = distance;
+				bestSample = i;
 			}
 		}
-		return Math.min(angle(p, a), angle(p, b));
+		double lo = Math.max(0, bestSample - 1) / (double) samples;
+		double hi = Math.min(samples, bestSample + 1) / (double) samples;
+		double x1 = hi - GOLDEN * (hi - lo);
+		double x2 = lo + GOLDEN * (hi - lo);
+		double f1 = distanceAlongEdge(reference, a, b, x1);
+		double f2 = distanceAlongEdge(reference, a, b, x2);
+		// 1 m along the edge is finer than the distance resolution anyone filters on
+		while ((hi - lo) * length > 0.001) {
+			if (f1 < f2) {
+				hi = x2;
+				x2 = x1;
+				f2 = f1;
+				x1 = hi - GOLDEN * (hi - lo);
+				f1 = distanceAlongEdge(reference, a, b, x1);
+			} else {
+				lo = x1;
+				x1 = x2;
+				f1 = f2;
+				x2 = lo + GOLDEN * (hi - lo);
+				f2 = distanceAlongEdge(reference, a, b, x2);
+			}
+		}
+		return Math.min(Math.min(best, bestSampleDistance), Math.min(f1, f2));
 	}
 
-	private static double[] toUnitVector(Coordinate c) {
-		double lon = Math.toRadians(c.x);
-		double lat = Math.toRadians(c.y);
-		return new double[]{Math.cos(lat) * Math.cos(lon), Math.cos(lat) * Math.sin(lon), Math.sin(lat)};
+	private static double distanceAlongEdge(Coordinate reference, Coordinate a, Coordinate b, double t) {
+		return haversine(reference, new Coordinate(a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t));
 	}
 
-	private static double angle(double[] a, double[] b) {
-		double[] c = cross(a, b);
-		return Math.atan2(Math.sqrt(dot(c, c)), dot(a, b));
-	}
-
-	private static double[] cross(double[] a, double[] b) {
-		return new double[]{a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]};
-	}
-
-	private static double dot(double[] a, double[] b) {
-		return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-	}
-
-	private static double[] scale(double[] a, double factor) {
-		return new double[]{a[0] * factor, a[1] * factor, a[2] * factor};
+	// unlike the acos formula in calculateDistance, accurate down to millimetres
+	private static double haversine(Coordinate reference, Coordinate point) {
+		double lat1 = Math.toRadians(reference.y);
+		double lat2 = Math.toRadians(point.y);
+		double sinDLat = Math.sin((lat2 - lat1) / 2);
+		double sinDLon = Math.sin(Math.toRadians(point.x - reference.x) / 2);
+		double h = sinDLat * sinDLat + Math.cos(lat1) * Math.cos(lat2) * sinDLon * sinDLon;
+		return 2 * earthRadiusInKm * Math.asin(Math.min(1, Math.sqrt(h)));
 	}
 
 	public static Envelope suggestSearchWindow(Coordinate reference, double maxDistanceInKm) {
