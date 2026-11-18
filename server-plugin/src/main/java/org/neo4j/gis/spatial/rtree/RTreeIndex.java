@@ -38,7 +38,6 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import org.json.simple.JSONValue;
 import org.neo4j.gis.spatial.index.Envelope;
 import org.neo4j.gis.spatial.rtree.RTreeIndex.Config;
@@ -265,12 +264,13 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Con
 		checkWritable();
 		List<Node> geomNodes = new ArrayList<>();
 		for (Node geomNode : new LinkedHashSet<>(nodes)) {
-			Node leaf = findLeafInThisIndex(tx, geomNode);
-			if (leaf == null) {
+			List<Relationship> references = findReferencesInThisIndex(tx, geomNode);
+			if (references.isEmpty()) {
 				geomNodes.add(geomNode);
-			} else if (!getIndexNodeEnvelope(leaf).covers(envelopeDecoder.decodeEnvelope(geomNode))) {
-				// added again after moving out of its leaf: re-insert instead of adding a second reference
-				remove(tx, geomNode.getElementId(), false, true);
+			} else if (references.size() > 1 || !getIndexNodeEnvelope(references.get(0).getStartNode())
+					.covers(envelopeDecoder.decodeEnvelope(geomNode))) {
+				// moved out of its leaf, or referenced twice by older versions: re-insert with a single reference
+				references.forEach(this::removeReference);
 				geomNodes.add(geomNode);
 			}
 		}
@@ -660,41 +660,38 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Con
 				throw nfe;
 			}
 		}
-		if (geomNode != null && isGeometryNodeIndexed(geomNode)) {
-
-			Node indexNode = findLeafContainingGeometryNode(geomNode);
-
-			// be sure geomNode is inside this RTree
-			if (isIndexNodeInThisIndex(tx, indexNode)) {
-
-				// remove the entry
-				final Relationship geometryRtreeReference = geomNode.getSingleRelationship(
-						referenceRelationshipType, Direction.INCOMING);
-				if (geometryRtreeReference != null) {
-					geometryRtreeReference.delete();
-				}
-				if (deleteGeomNode) {
-					deleteNode(geomNode);
-				}
-
-				// reorganize the tree if needed
-				if (countChildren(indexNode, referenceRelationshipType) == 0) {
-					indexNode = deleteEmptyTreeNodes(indexNode, referenceRelationshipType);
-					adjustParentBoundingBox(indexNode, RTreeRelationshipTypes.RTREE_CHILD);
-				} else {
-					adjustParentBoundingBox(indexNode, referenceRelationshipType);
-				}
-
-				adjustPathBoundingBox(indexNode);
-
-				countSaved = false;
-				totalGeometryCount--;
-			} else if (throwExceptionIfNotFound) {
-				throw new RuntimeException("GeometryNode not indexed in this RTree: " + geomNodeId);
+		if (geomNode == null) {
+			return;
+		}
+		List<Relationship> references = findReferencesInThisIndex(tx, geomNode);
+		if (!references.isEmpty()) {
+			references.forEach(this::removeReference);
+			if (deleteGeomNode) {
+				deleteNode(geomNode);
 			}
 		} else if (throwExceptionIfNotFound) {
-			throw new RuntimeException("GeometryNode not indexed with an RTree: " + geomNodeId);
+			throw new RuntimeException(isGeometryNodeIndexed(geomNode)
+					? "GeometryNode not indexed in this RTree: " + geomNodeId
+					: "GeometryNode not indexed with an RTree: " + geomNodeId);
 		}
+	}
+
+	private void removeReference(Relationship reference) {
+		Node indexNode = reference.getStartNode();
+		reference.delete();
+
+		// reorganize the tree if needed
+		if (countChildren(indexNode, referenceRelationshipType) == 0) {
+			indexNode = deleteEmptyTreeNodes(indexNode, referenceRelationshipType);
+			adjustParentBoundingBox(indexNode, RTreeRelationshipTypes.RTREE_CHILD);
+		} else {
+			adjustParentBoundingBox(indexNode, referenceRelationshipType);
+		}
+
+		adjustPathBoundingBox(indexNode);
+
+		countSaved = false;
+		totalGeometryCount--;
 	}
 
 	private static Node deleteEmptyTreeNodes(Node indexNode, RelationshipType relType) {
@@ -798,8 +795,7 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Con
 	public boolean isNodeIndexed(Transaction tx, String geomNodeId) {
 		Node geomNode = tx.getNodeByElementId(geomNodeId);
 		// be sure geomNode is inside this RTree
-		return geomNode != null && isGeometryNodeIndexed(geomNode) && isIndexNodeInThisIndex(tx,
-				findLeafContainingGeometryNode(geomNode));
+		return geomNode != null && !findReferencesInThisIndex(tx, geomNode).isEmpty();
 	}
 
 	public void warmUp(Transaction tx) {
@@ -1506,26 +1502,21 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Con
 		node.delete();
 	}
 
-	// unlike findLeafContainingGeometryNode, also works for a node referenced by several RTrees
-	@Nullable
-	private Node findLeafInThisIndex(Transaction tx, Node geomNode) {
+	// a node may also be referenced by other RTrees using the same relationship type
+	private List<Relationship> findReferencesInThisIndex(Transaction tx, Node geomNode) {
+		List<Relationship> references = new ArrayList<>();
 		try (var relationships = geomNode.getRelationships(Direction.INCOMING, referenceRelationshipType)) {
 			for (Relationship rel : relationships) {
 				if (isIndexNodeInThisIndex(tx, rel.getStartNode())) {
-					return rel.getStartNode();
+					references.add(rel);
 				}
 			}
 		}
-		return null;
+		return references;
 	}
 
 	protected boolean isGeometryNodeIndexed(Node geomNode) {
 		return geomNode.hasRelationship(Direction.INCOMING, referenceRelationshipType);
-	}
-
-	protected Node findLeafContainingGeometryNode(Node geomNode) {
-		return geomNode.getSingleRelationship(referenceRelationshipType, Direction.INCOMING)
-				.getStartNode();
 	}
 
 	protected boolean isIndexNodeInThisIndex(Transaction tx, Node indexNode) {

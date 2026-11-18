@@ -328,6 +328,8 @@ public class SpatialProceduresTest extends AbstractApiTest {
 	@ValueSource(strings = {
 			"spatial.addPointLayer('geom')",
 			"spatial.addPointLayerGeohash('geom')",
+			"spatial.addPointLayerZOrder('geom')",
+			"spatial.addPointLayerHilbert('geom')",
 			"spatial.addWKTLayer('geom','wkt')",
 	})
 	public void add_moved_node_again_updates_its_location(String createLayer) {
@@ -341,6 +343,63 @@ public class SpatialProceduresTest extends AbstractApiTest {
 		testCallCount(db, "CALL spatial.withinDistance('geom',{lon:15.2,lat:60.1},10)", null, 0);
 		testCallCount(db, "CALL spatial.withinDistance('geom',{lon:5.2,lat:10.1},10)", null, 1);
 		testCall(db, "CALL spatial.getFeatureCount('geom') YIELD count", r -> assertEquals(1L, r.get("count")));
+	}
+
+	// the node carries an RTREE_REFERENCE from each layer
+	@Test
+	public void add_moved_node_again_to_one_of_two_layers() {
+		execute("CALL spatial.addPointLayer('geom')");
+		execute("CALL spatial.addPointLayer('other')");
+		execute("""
+				CREATE (n:Loc {latitude:60.1, longitude:15.2})
+				WITH n CALL spatial.addNode('geom', n) YIELD node
+				WITH n CALL spatial.addNode('other', n) YIELD node RETURN node""");
+		execute("""
+				MATCH (n:Loc) SET n.latitude = 10.1, n.longitude = 5.2
+				WITH n CALL spatial.addNode('geom', n) YIELD node RETURN node""");
+		testCallCount(db, "CALL spatial.withinDistance('geom',{lon:15.2,lat:60.1},10)", null, 0);
+		testCallCount(db, "CALL spatial.withinDistance('geom',{lon:5.2,lat:10.1},10)", null, 1);
+		testCall(db, "CALL spatial.getFeatureCount('other') YIELD count", r -> assertEquals(1L, r.get("count")));
+		execute("MATCH (n:Loc) CALL spatial.removeNode('other', n) YIELD nodeId RETURN nodeId");
+		testCall(db, "CALL spatial.getFeatureCount('other') YIELD count", r -> assertEquals(0L, r.get("count")));
+		testCall(db, "CALL spatial.getFeatureCount('geom') YIELD count", r -> assertEquals(1L, r.get("count")));
+	}
+
+	// https://github.com/neo4j-contrib/spatial/issues/439
+	@Test
+	public void remove_node_from_one_of_two_wkt_layers() {
+		execute("CALL spatial.addWKTLayer('Layer1', 'area')");
+		execute("CALL spatial.addWKTLayer('Layer2', 'area')");
+		execute("""
+				CREATE (site:Site {area: 'POLYGON((-63.183 -17.784, -63.181 -17.784, -63.181 -17.7825, -63.183 -17.7825, -63.183 -17.784))'})
+				WITH site CALL spatial.addNode('Layer1', site) YIELD node
+				WITH site CALL spatial.addNode('Layer2', site) YIELD node RETURN node""");
+		execute("MATCH (site:Site) CALL spatial.removeNode('Layer1', site) YIELD nodeId RETURN nodeId");
+		String point = "{lon:-63.182, lat:-17.783}";
+		testCallCount(db, "CALL spatial.intersects('Layer1', " + point + ")", null, 0);
+		testCallCount(db, "CALL spatial.intersects('Layer2', " + point + ")", null, 1);
+		execute("MATCH (site:Site) CALL spatial.removeNode('Layer2', site) YIELD nodeId RETURN nodeId");
+		testCall(db, "MATCH (site:Site) RETURN COUNT { (site)<-[:RTREE_REFERENCE]-() } AS refs",
+				r -> assertEquals(0L, r.get("refs")));
+	}
+
+	// older versions added a second reference on each repeated add
+	@ParameterizedTest
+	@ValueSource(booleans = {false, true})
+	public void add_node_again_drops_duplicate_reference_of_older_versions(boolean moved) {
+		execute("CALL spatial.addPointLayer('geom')");
+		execute("""
+				CREATE (n:Loc {latitude:60.1, longitude:15.2})
+				WITH n CALL spatial.addNode('geom', n) YIELD node RETURN node""");
+		execute("MATCH (leaf)-[:RTREE_REFERENCE]->(n:Loc) CREATE (leaf)-[:RTREE_REFERENCE]->(n)");
+		if (moved) {
+			execute("MATCH (n:Loc) SET n.latitude = 10.1, n.longitude = 5.2");
+		}
+		execute("MATCH (n:Loc) CALL spatial.addNode('geom', n) YIELD node RETURN node");
+		testCall(db, "MATCH (n:Loc) RETURN COUNT { (n)<-[:RTREE_REFERENCE]-() } AS refs",
+				r -> assertEquals(1L, r.get("refs")));
+		testCallCount(db, "CALL spatial.withinDistance('geom',{lon:15.2,lat:60.1},10)", null, moved ? 0 : 1);
+		testCallCount(db, "CALL spatial.withinDistance('geom',{lon:5.2,lat:10.1},10)", null, moved ? 1 : 0);
 	}
 
 	private void assertIndexedOnce() {
