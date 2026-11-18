@@ -1008,7 +1008,8 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Con
 			}
 		}
 
-		// O(1) sanity check: a count of 0 for a non-empty tree (or vice versa) is stale
+		// root-only check, no traversal: catches 0 for a non-empty tree; a stale positive count survives
+		// unless the root itself is empty (direct deletes leave empty leaves behind, see #496)
 		if (getMetadataNode(tx).getProperty("totalGeometryCount", null) instanceof Number saved
 				&& saved.intValue() >= 0 && (saved.intValue() == 0) == isEmpty(tx)) {
 			totalGeometryCount = saved.intValue();
