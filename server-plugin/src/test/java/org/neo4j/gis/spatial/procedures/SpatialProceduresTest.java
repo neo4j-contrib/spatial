@@ -47,8 +47,9 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
-import org.hamcrest.MatcherAssert;
 import org.geotools.referencing.crs.DefaultEngineeringCRS;
+import org.geotools.referencing.crs.DefaultGeographicCRS;
+import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -1375,5 +1376,17 @@ public class SpatialProceduresTest extends AbstractApiTest {
 						+ "RETURN node.wkt AS wkt, distance",
 				res -> assertEquals(List.of(Map.of("wkt", "POINT (0 0)", "distance", 0.0),
 						Map.of("wkt", "POINT (10 0)", "distance", 10.0)), res.stream().toList()));
+	}
+
+	@Test
+	public void distance_is_in_km_for_layers_with_a_compound_geographic_crs() {
+		execute("CALL spatial.addWKTLayer('g','wkt')");
+		execute("MATCH (l:SpatialLayer {layer: 'g'}) SET l[$crsProperty] = $crs", Map.of("crsProperty", PROP_CRS, "crs",
+				"COMPD_CS[\"WGS 84 + height\", " + DefaultGeographicCRS.WGS84.toWKT()
+						+ ", VERT_CS[\"height\", VERT_DATUM[\"Ellipsoid\", 2002], UNIT[\"m\", 1.0], AXIS[\"Up\", UP]]]"));
+		execute("CALL spatial.addWKTs('g', ['POINT (15.0 60.05)', 'POINT (15.2 60.1)'])");
+		// about 5.6 km and 15.6 km away; planar degrees would put both within 1
+		testResult(db, "CALL spatial.closest('g', {lon: 15.0, lat: 60.0}, 10) YIELD node RETURN node.wkt AS wkt",
+				res -> assertEquals(List.of("POINT (15 60.05)"), res.stream().map(r -> r.get("wkt")).toList()));
 	}
 }

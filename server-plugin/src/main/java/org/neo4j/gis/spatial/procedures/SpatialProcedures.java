@@ -51,6 +51,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
 import org.geotools.api.referencing.crs.GeographicCRS;
+import org.geotools.referencing.CRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Envelope;
@@ -987,7 +988,8 @@ public class SpatialProcedures extends SpatialApiBase {
 			return encoder.isGeographic();
 		}
 		CoordinateReferenceSystem crs = layer.getCoordinateReferenceSystem(tx);
-		return crs == null || crs instanceof GeographicCRS;
+		// horizontal part, so a geographic CRS with a vertical axis (compound CRS) still counts as geographic
+		return crs == null || CRS.getHorizontalCRS(crs) instanceof GeographicCRS;
 	}
 
 	@Deprecated
