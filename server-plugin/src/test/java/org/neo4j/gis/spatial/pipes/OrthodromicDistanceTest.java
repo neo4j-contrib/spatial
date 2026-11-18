@@ -24,10 +24,15 @@ import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.number.IsCloseTo.closeTo;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
+import org.locationtech.jts.io.ParseException;
+import org.locationtech.jts.io.WKTReader;
 import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
 
 public class OrthodromicDistanceTest {
@@ -122,5 +127,22 @@ public class OrthodromicDistanceTest {
 		assertThat("Should be zero",
 				OrthodromicDistance.calculateDistanceToGeometry(reference.getCoordinate(), polygon),
 				closeTo(0, 0.00001));
+	}
+
+	@ParameterizedTest
+	@CsvSource(delimiter = ';', value = {
+			// reference lon; lat; geometry; great-circle distance in km to its nearest point
+			"0; 60; LINESTRING (1 60, 0 62); 54.03",
+			"-179.9; 0; LINESTRING (179.95 0, 179.99 0); 12.23",
+			"-179.9; 0; POLYGON ((179.95 -1, 179.99 -1, 179.99 1, 179.95 1, 179.95 -1)); 12.23",
+			"0; 60; MULTILINESTRING ((10 10, 11 10), (1 60, 0 62)); 54.03",
+			"0; 60; MULTIPOINT ((10 10), (0 61)); 111.19",
+			"0.5; 60.5; POLYGON ((0 60, 1 60, 1 61, 0 61, 0 60)); 0"
+	})
+	public void shouldCalculateGreatCircleDistanceToTheNearestPointOfAGeometry(double lon, double lat, String wkt,
+			double km) throws ParseException {
+		Geometry geometry = new WKTReader().read(wkt);
+		assertThat(OrthodromicDistance.calculateDistanceToGeometry(new Coordinate(lon, lat), geometry),
+				closeTo(km, 0.01));
 	}
 }
