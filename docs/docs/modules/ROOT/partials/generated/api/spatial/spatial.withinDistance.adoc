@@ -12,7 +12,7 @@ Returns all geometry nodes and their ordered distance in the layer within the di
 
 [source]
 ----
-spatial.withinDistance(layerName :: STRING, coordinate :: ANY, distanceInKm :: FLOAT) :: (node :: NODE, distance :: FLOAT)
+spatial.withinDistance(layerName :: STRING, coordinate :: ANY, distance :: FLOAT) :: (node :: NODE, distance :: FLOAT)
 ----
 
 == Input parameters
@@ -33,8 +33,8 @@ a|A valid value for the coordinate is a:
 * Node or Relationship with properties 'latitude' and 'longitude'
 * Node or Relationship with properties 'lat' and 'lon'
 
-|distanceInKm|FLOAT|null
-a|The distance in kilometers within which to search for geometries
+|distance|FLOAT|null
+a|The distance within which to search for geometries: kilometers for layers in a geographic CRS (WGS84, also assumed for layers without a CRS), CRS units otherwise (projected CRS, Cartesian native points)
 |===
 
 == Output parameters

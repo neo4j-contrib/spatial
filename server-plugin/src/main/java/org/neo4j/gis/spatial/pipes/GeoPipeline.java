@@ -355,7 +355,7 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 
 		return start(tx, layer, new SearchIntersectWindow(layer, extent))
 				.calculateDistance(layer.getGeometryFactory().createPoint(point))
-				.propertyFilter("Distance", maxDistance, FilterPipe.Filter.LESS_THAN_EQUAL);
+				.propertyFilter(Distance.DISTANCE, maxDistance, FilterPipe.Filter.LESS_THAN_EQUAL);
 	}
 
 	/**

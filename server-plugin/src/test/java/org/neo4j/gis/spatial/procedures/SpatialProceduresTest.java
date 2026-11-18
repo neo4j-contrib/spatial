@@ -48,6 +48,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
 import org.hamcrest.MatcherAssert;
+import org.geotools.referencing.crs.DefaultEngineeringCRS;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -1349,5 +1350,30 @@ public class SpatialProceduresTest extends AbstractApiTest {
 		testResult(db, "CALL spatial.closest('geom',{lon:15.0,lat:60.0},20) YIELD node RETURN node.wkt AS wkt",
 				res -> assertEquals(List.of("POINT (15 60.05)", "POINT (15.2 60.1)"),
 						res.stream().map(r -> r.get("wkt")).toList()));
+	}
+
+	@Test
+	public void distance_is_in_crs_units_for_cartesian_layers() {
+		execute("CALL spatial.addLayer('c','NativePoint','pos:bbox:Cartesian')");
+		execute("UNWIND [0, 10, 100] AS x CREATE (n:C {x: x, pos: point({x: x, y: 0})})"
+				+ " WITH collect(n) AS nodes CALL spatial.addNodes('c', nodes) YIELD count RETURN count");
+		testResult(db, "CALL spatial.closest('c', point({x: 0, y: 0}), 20) YIELD node RETURN node.x AS x",
+				res -> assertEquals(List.of(0L, 10L), res.stream().map(r -> r.get("x")).toList()));
+		testResult(db, "CALL spatial.withinDistance('c', point({x: 0, y: 0}), 20) YIELD node, distance "
+						+ "RETURN node.x AS x, distance",
+				res -> assertEquals(List.of(Map.of("x", 0L, "distance", 0.0), Map.of("x", 10L, "distance", 10.0)),
+						res.stream().toList()));
+	}
+
+	@Test
+	public void distance_is_in_crs_units_for_layers_with_a_non_geographic_crs() {
+		execute("CALL spatial.addWKTLayer('g','wkt')");
+		execute("MATCH (l:SpatialLayer {layer: 'g'}) SET l[$crsProperty] = $crs",
+				Map.of("crsProperty", PROP_CRS, "crs", DefaultEngineeringCRS.GENERIC_2D.toWKT()));
+		execute("CALL spatial.addWKTs('g', ['POINT (0 0)', 'POINT (10 0)', 'POINT (100 0)'])");
+		testResult(db, "CALL spatial.withinDistance('g', point({x: 0, y: 0}), 20) YIELD node, distance "
+						+ "RETURN node.wkt AS wkt, distance",
+				res -> assertEquals(List.of(Map.of("wkt", "POINT (0 0)", "distance", 0.0),
+						Map.of("wkt", "POINT (10 0)", "distance", 10.0)), res.stream().toList()));
 	}
 }

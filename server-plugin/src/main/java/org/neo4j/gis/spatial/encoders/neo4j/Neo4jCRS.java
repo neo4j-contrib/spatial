@@ -45,6 +45,10 @@ public class Neo4jCRS implements org.neo4j.graphdb.spatial.CRS {
 		return crs.getHref();
 	}
 
+	public boolean isGeographic() {
+		return crs.isGeographic();
+	}
+
 	public int dimensions() {
 		return crs.getDimension();
 	}
