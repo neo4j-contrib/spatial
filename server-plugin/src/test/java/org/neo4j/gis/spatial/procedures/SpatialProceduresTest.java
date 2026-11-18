@@ -22,6 +22,7 @@ package org.neo4j.gis.spatial.procedures;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -270,6 +271,83 @@ public class SpatialProceduresTest extends AbstractApiTest {
 				SET g:_SpatialManagedGeometry""", Map.of("name", "geom"));
 		execute("CALL spatial.removeLayer('geom')");
 		testCall(db, "MATCH (n) RETURN count(n) AS count", r -> assertEquals(2L, r.get("count")));
+	}
+
+	// https://github.com/neo4j-contrib/spatial/issues/254, #65, #178
+	@ParameterizedTest
+	@ValueSource(strings = {
+			"spatial.addPointLayer('geom')",
+			"spatial.addPointLayerGeohash('geom')",
+			"spatial.addPointLayerZOrder('geom')",
+			"spatial.addPointLayerHilbert('geom')",
+			"spatial.addWKTLayer('geom','wkt')",
+	})
+	public void add_node_twice_indexes_it_once(String createLayer) {
+		execute("CALL " + createLayer);
+		execute("CREATE (:Loc {name:'a', latitude:60.1, longitude:15.2, wkt:'POINT(15.2 60.1)'})");
+		execute("MATCH (n:Loc) CALL spatial.addNode('geom', n) YIELD node RETURN node");
+		execute("MATCH (n:Loc) CALL spatial.addNode('geom', n) YIELD node RETURN node");
+		assertIndexedOnce();
+		execute("MATCH (n:Loc) CALL spatial.addNodes('geom', [n]) YIELD count RETURN count");
+		assertIndexedOnce();
+		execute("MATCH (n:Loc) CALL spatial.addNodes('geom', [n, n]) YIELD count RETURN count");
+		assertIndexedOnce();
+		execute("MATCH (n:Loc) CALL spatial.removeNode('geom', n) YIELD nodeId RETURN nodeId");
+		testCall(db, "CALL spatial.getFeatureCount('geom') YIELD count", r -> assertEquals(0L, r.get("count")));
+		testCallCount(db, "CALL spatial.withinDistance('geom',{lon:15.2,lat:60.1},10)", null, 0);
+	}
+
+	// https://github.com/neo4j-contrib/spatial/issues/254: both adds in one transaction
+	@Test
+	public void add_node_twice_in_one_transaction_indexes_it_once() {
+		execute("CALL spatial.addPointLayer('geom')");
+		execute("""
+				CREATE (n:Loc {name:'a', latitude:60.1, longitude:15.2})
+				WITH n CALL spatial.addNode('geom', n) YIELD node
+				WITH node CALL spatial.addNode('geom', node) YIELD node AS again
+				RETURN again""");
+		assertIndexedOnce();
+	}
+
+	// an unchanged node added again keeps its reference: no remove and re-insert
+	@Test
+	public void add_unchanged_node_again_leaves_the_tree_untouched() {
+		execute("CALL spatial.addPointLayer('geom')");
+		execute("""
+				CREATE (n:Loc {latitude:60.1, longitude:15.2})
+				WITH n CALL spatial.addNode('geom', n) YIELD node RETURN node""");
+		String refId = "MATCH (:Loc)<-[r:RTREE_REFERENCE]-() RETURN elementId(r) AS id";
+		String[] before = new String[1];
+		testCall(db, refId, r -> before[0] = (String) r.get("id"));
+		execute("MATCH (n:Loc) CALL spatial.addNode('geom', n) YIELD node RETURN node");
+		testCall(db, refId, r -> assertEquals(before[0], r.get("id")));
+	}
+
+	// https://github.com/neo4j-contrib/spatial/issues/229
+	@ParameterizedTest
+	@ValueSource(strings = {
+			"spatial.addPointLayer('geom')",
+			"spatial.addPointLayerGeohash('geom')",
+			"spatial.addWKTLayer('geom','wkt')",
+	})
+	public void add_moved_node_again_updates_its_location(String createLayer) {
+		execute("CALL " + createLayer);
+		execute("""
+				CREATE (n:Loc {name:'a', latitude:60.1, longitude:15.2, wkt:'POINT(15.2 60.1)'})
+				WITH n CALL spatial.addNode('geom', n) YIELD node RETURN node""");
+		execute("""
+				MATCH (n:Loc) SET n.latitude = 10.1, n.longitude = 5.2, n.wkt = 'POINT(5.2 10.1)'
+				WITH n CALL spatial.addNode('geom', n) YIELD node RETURN node""");
+		testCallCount(db, "CALL spatial.withinDistance('geom',{lon:15.2,lat:60.1},10)", null, 0);
+		testCallCount(db, "CALL spatial.withinDistance('geom',{lon:5.2,lat:10.1},10)", null, 1);
+		testCall(db, "CALL spatial.getFeatureCount('geom') YIELD count", r -> assertEquals(1L, r.get("count")));
+	}
+
+	private void assertIndexedOnce() {
+		testCall(db, "MATCH (n:Loc) RETURN COUNT { (n)<-[:RTREE_REFERENCE]-() } AS refs", r -> assertThat(
+				(Long) r.get("refs"), lessThanOrEqualTo(1L)));
+		testCall(db, "CALL spatial.getFeatureCount('geom') YIELD count", r -> assertEquals(1L, r.get("count")));
+		testCallCount(db, "CALL spatial.withinDistance('geom',{lon:15.2,lat:60.1},10)", null, 1);
 	}
 
 	// This tests issue https://github.com/neo4j-contrib/spatial/issues/298

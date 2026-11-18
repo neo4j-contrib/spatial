@@ -6,7 +6,7 @@
 label:procedure[]
 
 [.emphasis]
-Adds the given nodes list to the layer, returns the count
+Adds the given nodes list to the layer, returns the count. Adding a node that is already in the layer re-indexes it, e.g. after its location changed
 
 == Signature
 

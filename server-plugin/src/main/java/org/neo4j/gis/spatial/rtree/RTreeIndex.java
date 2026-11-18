@@ -38,6 +38,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import org.json.simple.JSONValue;
 import org.neo4j.gis.spatial.index.Envelope;
 import org.neo4j.gis.spatial.rtree.RTreeIndex.Config;
@@ -260,8 +261,22 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Con
 	 * In practice, it should be fine for most uses.
 	 */
 	@Override
-	public void add(Transaction tx, List<Node> geomNodes) {
+	public void add(Transaction tx, List<Node> nodes) {
 		checkWritable();
+		List<Node> geomNodes = new ArrayList<>();
+		for (Node geomNode : new LinkedHashSet<>(nodes)) {
+			Node leaf = findLeafInThisIndex(tx, geomNode);
+			if (leaf == null) {
+				geomNodes.add(geomNode);
+			} else if (!getIndexNodeEnvelope(leaf).covers(envelopeDecoder.decodeEnvelope(geomNode))) {
+				// added again after moving out of its leaf: re-insert instead of adding a second reference
+				remove(tx, geomNode.getElementId(), false, true);
+				geomNodes.add(geomNode);
+			}
+		}
+		if (geomNodes.isEmpty()) {
+			return;
+		}
 		Node indexRoot = getIndexRoot(tx);
 
 		//If the insertion is large relative to the size of the tree, simply rebuild the whole tree.
@@ -1489,6 +1504,19 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Con
 			}
 		}
 		node.delete();
+	}
+
+	// unlike findLeafContainingGeometryNode, also works for a node referenced by several RTrees
+	@Nullable
+	private Node findLeafInThisIndex(Transaction tx, Node geomNode) {
+		try (var relationships = geomNode.getRelationships(Direction.INCOMING, referenceRelationshipType)) {
+			for (Relationship rel : relationships) {
+				if (isIndexNodeInThisIndex(tx, rel.getStartNode())) {
+					return rel.getStartNode();
+				}
+			}
+		}
+		return null;
 	}
 
 	protected boolean isGeometryNodeIndexed(Node geomNode) {
