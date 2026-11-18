@@ -26,12 +26,14 @@ import java.util.Map;
 import org.locationtech.jts.geom.Geometry;
 import org.neo4j.graphdb.Direction;
 import org.neo4j.graphdb.Node;
+import org.neo4j.graphdb.Relationship;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.traversal.BranchOrderingPolicies;
 import org.neo4j.graphdb.traversal.Evaluators;
 import org.neo4j.graphdb.traversal.TraversalDescription;
 import org.neo4j.kernel.impl.traversal.MonoDirectionalTraversalDescription;
+import org.neo4j.spatial.api.monitoring.ProgressListener;
 
 /**
  * This class extends the EditableLayerImpl in a way that allows for the
@@ -79,6 +81,21 @@ public class OrderedEditableLayer extends EditableLayerImpl {
 		}
 		previousGeomNode = geomNode;
 		return geomNode;
+	}
+
+	@Override
+	public void delete(Transaction tx, ProgressListener monitor) {
+		checkWritable();
+		// unmanaged geometry nodes survive the layer, so unlink the ordering chain from them first
+		Relationship rel = getLayerNode(tx).getSingleRelationship(OrderedRelationshipTypes.GEOMETRIES,
+				Direction.OUTGOING);
+		while (rel != null) {
+			Node geomNode = rel.getEndNode();
+			rel.delete();
+			rel = geomNode.getSingleRelationship(OrderedRelationshipTypes.NEXT_GEOM, Direction.OUTGOING);
+		}
+		previousGeomNode = null;
+		super.delete(tx, monitor);
 	}
 
 	/**

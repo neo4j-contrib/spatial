@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import java.util.function.Predicate;
 import org.neo4j.gis.spatial.SpatialDatabaseRecord;
 import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Node;
@@ -113,9 +114,9 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements SpatialIndexWr
 	}
 
 	@Override
-	public void removeAll(Transaction tx, boolean deleteGeomNodes, ProgressListener monitor) {
-		if (deleteGeomNodes) {
-			for (Node node : getAllIndexedNodes(tx)) {
+	public void removeAll(Transaction tx, Predicate<Node> deleteGeomNode, ProgressListener monitor) {
+		for (Node node : getAllIndexedNodes(tx)) {
+			if (deleteGeomNode.test(node)) {
 				remove(tx, node.getElementId(), true, true);
 			}
 		}
@@ -124,7 +125,7 @@ public abstract class ExplicitIndexBackedPointIndex<E> implements SpatialIndexWr
 
 	@Override
 	public void clear(Transaction tx, ProgressListener monitor) {
-		removeAll(tx, false, monitor);
+		removeAll(tx, node -> false, monitor);
 	}
 
 	@Override

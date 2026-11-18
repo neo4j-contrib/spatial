@@ -31,6 +31,7 @@ import static org.neo4j.gis.spatial.Constants.GTYPE_POINT;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
@@ -277,6 +278,33 @@ public class LayersTest extends Neo4jTestCase {
 				new ProgressLoggingListener("deleting layer '" + layerName + "'", LOGGER)));
 		inTx(tx -> assertNull(spatial.getLayer(tx, layerName, true)));
 		IndexManagerImpl.waitForDeletions();
+	}
+
+	// legacy geometry nodes (created before the managed label existed) are kept, so their ordering chain must go
+	@Test
+	public void testDeleteOrderedLayerKeepsLegacyGeometries() {
+		String layerName = "ordered";
+		SpatialDatabaseService spatial = new SpatialDatabaseService(
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+		inTx(tx -> spatial.createLayer(tx, layerName, OrderedEditableLayer.class, null,
+				GeometryEncoderRegistry.INSTANCE.constructGeometryEncoder(SimplePropertyEncoder.class),
+				new LayerRTreeIndex()));
+		inTx(tx -> {
+			EditableLayer layer = (EditableLayer) spatial.getLayer(tx, layerName, false);
+			layer.add(tx, layer.getGeometryFactory().createPoint(new Coordinate(15.3, 56.2)));
+			layer.add(tx, layer.getGeometryFactory().createPoint(new Coordinate(15.4, 56.3)));
+			layer.finalizeTransaction(tx);
+		});
+		inTx(tx -> tx.execute("MATCH (n:_SpatialManagedGeometry) REMOVE n:_SpatialManagedGeometry").close());
+		inTx(tx -> spatial.deleteLayer(tx, layerName, new ProgressLoggingListener("deleting layer", LOGGER)));
+		inTx(tx -> {
+			assertNull(spatial.getLayer(tx, layerName, true));
+			try (Result result = tx.execute("MATCH (n) RETURN count(n) AS nodes, COUNT { ()-->() } AS rels")) {
+				Map<String, Object> row = result.next();
+				assertEquals(2L, row.get("nodes"));
+				assertEquals(0L, row.get("rels"));
+			}
+		});
 	}
 
 	@ParameterizedTest

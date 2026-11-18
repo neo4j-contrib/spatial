@@ -183,7 +183,7 @@ Lists all spatial procedures with name and signature
 |label:procedure[]
 |xref:api/spatial/spatial.removeLayer.adoc[spatial.removeLayer icon:book[]]
 
-Removes the given layer
+Removes the given layer. Deletes the nodes the layer created (e.g. by `spatial.addWKT`); nodes added with `spatial.addNode` are only removed from the index
 |label:procedure[]
 |xref:api/spatial/spatial.removeNode.adoc[spatial.removeNode icon:book[]]
 

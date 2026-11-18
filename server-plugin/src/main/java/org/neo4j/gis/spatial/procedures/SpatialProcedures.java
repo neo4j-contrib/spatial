@@ -722,7 +722,7 @@ public class SpatialProcedures extends SpatialApiBase {
 	}
 
 	@Procedure(value = "spatial.removeLayer", mode = WRITE)
-	@Description("Removes the given layer")
+	@Description("Removes the given layer. Deletes the nodes the layer created (e.g. by `spatial.addWKT`); nodes added with `spatial.addNode` are only removed from the index")
 	public void removeLayer(@Name(value = "name", description = DOC_LAYER_NAME) String name) {
 		SpatialDatabaseService sdb = spatial();
 		sdb.deleteLayer(tx, name, new ProgressLoggingListener("Deleting layer '" + name + "'", log, Level.INFO));
