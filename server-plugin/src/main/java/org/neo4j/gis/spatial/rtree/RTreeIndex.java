@@ -681,8 +681,11 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Con
 		reference.delete();
 
 		// reorganize the tree if needed
+		boolean treeEmpty = false;
 		if (countChildren(indexNode, referenceRelationshipType) == 0) {
 			indexNode = deleteEmptyTreeNodes(indexNode, referenceRelationshipType);
+			treeEmpty = getIndexNodeParent(indexNode) == null
+					&& countChildren(indexNode, RTreeRelationshipTypes.RTREE_CHILD) == 0;
 			adjustParentBoundingBox(indexNode, RTreeRelationshipTypes.RTREE_CHILD);
 		} else {
 			adjustParentBoundingBox(indexNode, referenceRelationshipType);
@@ -691,7 +694,8 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Con
 		adjustPathBoundingBox(indexNode);
 
 		countSaved = false;
-		totalGeometryCount--;
+		// a count left too high by direct deletes is exact again once the tree is empty
+		totalGeometryCount = treeEmpty ? 0 : totalGeometryCount - 1;
 	}
 
 	private static Node deleteEmptyTreeNodes(Node indexNode, RelationshipType relType) {
@@ -994,6 +998,7 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Con
 			layerNode.createRelationshipTo(metadataNode, RTreeRelationshipTypes.RTREE_METADATA);
 			// read by older versions only; the layer node's index config is authoritative
 			metadataNode.setProperty("maxNodeReferences", (int) configuration.maxNodeReferences);
+			metadataNode.setProperty("totalGeometryCount", 0);
 		} else if (!layerNode.hasProperty(PROP_INDEX_CONFIG + "." + KEY_MAX_NODE_REFERENCES)) {
 			// older trees stored maxNodeReferences only on the metadata node
 			Node metadataNode = layerNode.getSingleRelationship(RTreeRelationshipTypes.RTREE_METADATA,
@@ -1003,7 +1008,20 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Con
 			}
 		}
 
-		saveCount(tx);
+		// root-only check, no traversal: catches 0 for a non-empty tree; a stale positive count survives
+		// unless the root itself is empty (direct deletes leave empty leaves behind, see #496)
+		if (getMetadataNode(tx).getProperty("totalGeometryCount", null) instanceof Number saved
+				&& saved.intValue() >= 0 && (saved.intValue() == 0) == isEmpty(tx)) {
+			totalGeometryCount = saved.intValue();
+			countSaved = true;
+		} else {
+			// missing in stores of 5.x releases
+			SpatialIndexRecordCounter counter = new SpatialIndexRecordCounter();
+			visit(tx, counter, getIndexRoot(tx));
+			totalGeometryCount = counter.getResult();
+			countSaved = false;
+			saveCount(tx);
+		}
 	}
 
 	private void initIndexRoot(Transaction tx) {
@@ -1021,22 +1039,7 @@ public abstract class RTreeIndex implements SpatialIndexWriter, Configurable<Con
 				.getEndNode();
 	}
 
-	/**
-	 * Save the geometry count to the database if it has not been saved yet.
-	 * However, if the count is zero, first do an exhaustive search of the
-	 * tree and count everything before saving it.
-	 */
 	private void saveCount(Transaction tx) {
-		if (totalGeometryCount == 0) {
-			SpatialIndexRecordCounter counter = new SpatialIndexRecordCounter();
-			visit(tx, counter, getIndexRoot(tx));
-			totalGeometryCount = counter.getResult();
-
-			// missing (stores of 5.x releases) counts as not saved, also for an empty tree
-			countSaved = getMetadataNode(tx).getProperty("totalGeometryCount", null) instanceof Number saved
-					&& saved.intValue() == totalGeometryCount;
-		}
-
 		// read-only (e.g. a store written by 5.x without a stored count): keep it in memory, the next write saves it
 		if (!countSaved && !readOnly) {
 			getMetadataNode(tx).setProperty("totalGeometryCount", totalGeometryCount);

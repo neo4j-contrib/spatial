@@ -193,6 +193,72 @@ public class LayersTest extends Neo4jTestCase {
 				+ "RETURN m.totalGeometryCount AS c").next().get("c")).longValue()));
 	}
 
+	// https://github.com/neo4j-contrib/spatial/issues/313, #145: loading a layer must not traverse the tree
+	@Test
+	public void testLoadUsesStoredGeometryCount() {
+		SpatialDatabaseService spatial = new SpatialDatabaseService(
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+		inTx(tx -> {
+			var layer = (EditableLayer) spatial.createLayer(tx, "points", SimplePointLayer.class, null,
+					new SimplePointEncoder(), new LayerRTreeIndex());
+			layer.add(tx, layer.getGeometryFactory().createPoint(new Coordinate(1, 1)));
+			layer.add(tx, layer.getGeometryFactory().createPoint(new Coordinate(2, 2)));
+			layer.finalizeTransaction(tx);
+		});
+		// a recount would yield 2, so 42 proves the stored value is used
+		inTx(tx -> tx.execute("MATCH (:SpatialLayer {layer: 'points'})-[:RTREE_METADATA]->(m) "
+				+ "SET m.totalGeometryCount = 42").close());
+		inTx(tx -> assertEquals(42, spatial.getLayer(tx, "points", true).getIndex().count(tx)));
+		inTx(tx -> {
+			var layer = (EditableLayer) spatial.getLayer(tx, "points", false);
+			layer.add(tx, layer.getGeometryFactory().createPoint(new Coordinate(3, 3)));
+			layer.finalizeTransaction(tx);
+		});
+		inTx(tx -> assertEquals(43, spatial.getLayer(tx, "points", true).getIndex().count(tx)));
+	}
+
+	@Test
+	public void testRemovingLastNodeResetsTooHighCount() {
+		SpatialDatabaseService spatial = new SpatialDatabaseService(
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+		List<String> ids = new ArrayList<>();
+		inTx(tx -> {
+			var layer = (EditableLayer) spatial.createLayer(tx, "points", SimplePointLayer.class, null,
+					new SimplePointEncoder(), new LayerRTreeIndex());
+			ids.add(layer.add(tx, layer.getGeometryFactory().createPoint(new Coordinate(1, 1))).getGeomNode()
+					.getElementId());
+			ids.add(layer.add(tx, layer.getGeometryFactory().createPoint(new Coordinate(2, 2))).getGeomNode()
+					.getElementId());
+			layer.finalizeTransaction(tx);
+		});
+		// as left by a direct DETACH DELETE of three indexed nodes
+		inTx(tx -> tx.execute("MATCH (:SpatialLayer {layer: 'points'})-[:RTREE_METADATA]->(m) "
+				+ "SET m.totalGeometryCount = 5").close());
+		inTx(tx -> {
+			var layer = (EditableLayer) spatial.getLayer(tx, "points", false);
+			ids.forEach(id -> layer.removeFromIndex(tx, id));
+			layer.finalizeTransaction(tx);
+		});
+		inTx(tx -> assertEquals(0L, ((Number) tx.execute("MATCH (:SpatialLayer {layer: 'points'})-[:RTREE_METADATA]->(m) "
+				+ "RETURN m.totalGeometryCount AS c").next().get("c")).longValue()));
+	}
+
+	@Test
+	public void testLoadRecountsStoredZeroOfNonEmptyTree() {
+		SpatialDatabaseService spatial = new SpatialDatabaseService(
+				new IndexManagerImpl((GraphDatabaseAPI) graphDb(), SecurityContext.AUTH_DISABLED));
+		inTx(tx -> {
+			var layer = (EditableLayer) spatial.createLayer(tx, "points", SimplePointLayer.class, null,
+					new SimplePointEncoder(), new LayerRTreeIndex());
+			layer.add(tx, layer.getGeometryFactory().createPoint(new Coordinate(1, 1)));
+			layer.add(tx, layer.getGeometryFactory().createPoint(new Coordinate(2, 2)));
+			layer.finalizeTransaction(tx);
+		});
+		inTx(tx -> tx.execute("MATCH (:SpatialLayer {layer: 'points'})-[:RTREE_METADATA]->(m) "
+				+ "SET m.totalGeometryCount = 0").close());
+		inTx(tx -> assertEquals(2, spatial.getLayer(tx, "points", true).getIndex().count(tx)));
+	}
+
 	@Test
 	public void testWritableLoadPersistsMissingCountOfEmptyLayer() {
 		SpatialDatabaseService spatial = new SpatialDatabaseService(

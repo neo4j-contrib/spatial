@@ -53,6 +53,15 @@ same layer (`spatial.addNode(s)`, `spatial.addWKT(s)`, `spatial.removeNode(s)`, 
 with a `DeadlockDetectedException` and need to be retried. Serialize writes per layer; reads, and writes to different
 layers, can run concurrently.
 
+## Changing indexed nodes
+
+Layers only change through the `spatial.*` procedures; direct graph writes don't update them
+([#496](https://github.com/neo4j-contrib/spatial/issues/496)):
+
+* Call `spatial.removeNode` before deleting an indexed node. Otherwise the layer's bounding boxes and feature count go
+  stale.
+* After changing a node's geometry properties, call `spatial.addNode` again for every layer that holds it.
+
 ## Concept Overview
 
 The key concepts of this library include:
