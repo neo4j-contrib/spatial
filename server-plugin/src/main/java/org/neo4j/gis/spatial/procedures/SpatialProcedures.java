@@ -61,7 +61,6 @@ import org.neo4j.gis.spatial.EditableLayerImpl;
 import org.neo4j.gis.spatial.ShapefileImporter;
 import org.neo4j.gis.spatial.SimplePointLayer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
-import org.neo4j.gis.spatial.SpatialTopologyUtils;
 import org.neo4j.gis.spatial.encoders.NativePointEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.index.ExplicitIndexBackedPointIndex;
@@ -953,16 +952,10 @@ public class SpatialProcedures extends SpatialApiBase {
 			@Name(value = "coordinate", description = DOC_COORDINATE) Object coordinate,
 			@Name(value = "distanceInKm", description = "The distance in kilometers within which to search for geometries") double distanceInKm) {
 		Layer layer = getLayerOrThrow(tx, spatial(), name, true);
-		GeometryFactory factory = layer.getGeometryFactory();
-		Coordinate origin = toCoordinate(coordinate);
-		Geometry searchWindow = factory.toGeometry(OrthodromicDistance.suggestSearchWindow(origin, distanceInKm));
-		record Hit(Node node, double distanceInKm) {}
-		return SpatialTopologyUtils.findClosestEdges(tx, factory.createPoint(origin), layer, searchWindow).stream()
-				.map(e -> new Hit(e.getValue().getGeomNode(),
-						OrthodromicDistance.calculateDistance(origin, e.getKey().getCoordinate())))
-				.filter(hit -> hit.distanceInKm() <= distanceInKm)
-				.sorted(Comparator.comparingDouble(Hit::distanceInKm))
-				.map(hit -> new NodeResult(hit.node()));
+		return GeoPipeline
+				.startNearestNeighborLatLonSearch(tx, layer, toCoordinate(coordinate), distanceInKm)
+				.sort(OrthodromicDistance.DISTANCE)
+				.stream().map(GeoPipeFlow::getGeomNode).map(NodeResult::new);
 	}
 
 	@Procedure(value = "spatial.withinDistance", mode = READ)
