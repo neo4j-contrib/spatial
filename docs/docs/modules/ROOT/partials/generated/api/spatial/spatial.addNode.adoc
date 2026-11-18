@@ -6,7 +6,7 @@
 label:procedure[]
 
 [.emphasis]
-Adds the given node to the layer, returns the geometry-node
+Adds the given node to the layer, returns the geometry-node. Adding a node that is already in the layer re-indexes it, e.g. after its location changed. Re-add a moved node to every layer that holds it
 
 == Signature
 

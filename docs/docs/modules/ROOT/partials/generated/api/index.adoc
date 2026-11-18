@@ -38,11 +38,11 @@ Adds a new native point layer with z-order curve based index, returns the layer 
 |label:procedure[]
 |xref:api/spatial/spatial.addNode.adoc[spatial.addNode icon:book[]]
 
-Adds the given node to the layer, returns the geometry-node
+Adds the given node to the layer, returns the geometry-node. Adding a node that is already in the layer re-indexes it, e.g. after its location changed. Re-add a moved node to every layer that holds it
 |label:procedure[]
 |xref:api/spatial/spatial.addNodes.adoc[spatial.addNodes icon:book[]]
 
-Adds the given nodes list to the layer, returns the count
+Adds the given nodes list to the layer, returns the count. Adding a node that is already in the layer re-indexes it, e.g. after its location changed. Re-add a moved node to every layer that holds it
 |label:procedure[]
 |xref:api/spatial/spatial.addPointLayer.adoc[spatial.addPointLayer icon:book[]]
 

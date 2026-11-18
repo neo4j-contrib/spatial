@@ -729,7 +729,7 @@ public class SpatialProcedures extends SpatialApiBase {
 	}
 
 	@Procedure(value = "spatial.addNode", mode = WRITE)
-	@Description("Adds the given node to the layer, returns the geometry-node")
+	@Description("Adds the given node to the layer, returns the geometry-node. Adding a node that is already in the layer re-indexes it, e.g. after its location changed. Re-add a moved node to every layer that holds it")
 	public Stream<NodeResult> addNodeToLayer(
 			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
 			@Name(value = "node", description = "the node to be added to the index") Node node) {
@@ -740,7 +740,7 @@ public class SpatialProcedures extends SpatialApiBase {
 	}
 
 	@Procedure(value = "spatial.addNodes", mode = WRITE)
-	@Description("Adds the given nodes list to the layer, returns the count")
+	@Description("Adds the given nodes list to the layer, returns the count. Adding a node that is already in the layer re-indexes it, e.g. after its location changed. Re-add a moved node to every layer that holds it")
 	public Stream<CountResult> addNodesToLayer(
 			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
 			@Name(value = "nodes", description = "the nodes to be added to the index") List<Node> nodes) {
