@@ -143,7 +143,12 @@ public class OrthodromicDistanceTest {
 			// edges are straight in lon/lat, as in the index and spatial.intersects
 			"45; 60.5; POLYGON ((0 60, 90 60, 90 70, 0 70, 0 60)); 0",
 			"45; 62; POLYGON ((0 50, 90 50, 90 60, 0 60, 0 50)); 222.39",
-			"45; 67.79; LINESTRING (0 60, 90 60); 866.21"
+			"45; 67.79; LINESTRING (0 60, 90 60); 866.21",
+			// nearest point lies in another basin than the nearest sample
+			"-53.57; -67.07; LINESTRING (-180 -69.23, 180 71.06); 4315.81",
+			"0.5; 0.5; GEOMETRYCOLLECTION (POLYGON ((-1 -1, 1 -1, 1 1, -1 1, -1 -1)), POLYGON ((0 0, 2 0, 2 2, 0 2, 0 0))); 0",
+			"0; 0; MULTILINESTRING (EMPTY, (1 1, 2 2)); 157.25",
+			"0; 0; MULTIPOINT (EMPTY, (1 1)); 157.25"
 	})
 	public void shouldCalculateGreatCircleDistanceToTheNearestPointOfAGeometry(double lon, double lat, String wkt,
 			double km) throws ParseException {

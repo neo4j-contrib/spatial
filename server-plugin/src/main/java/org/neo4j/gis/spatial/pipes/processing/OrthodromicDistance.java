@@ -19,13 +19,15 @@
  */
 package org.neo4j.gis.spatial.pipes.processing;
 
+import org.locationtech.jts.algorithm.locate.SimplePointInAreaLocator;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.CoordinateFilter;
 import org.locationtech.jts.geom.CoordinateSequence;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
-import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.LineString;
+import org.locationtech.jts.geom.Location;
+import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.util.LinearComponentExtracter;
 import org.locationtech.jts.geom.util.PointExtracter;
 import org.locationtech.jts.operation.distance.DistanceOp;
@@ -76,15 +78,22 @@ public class OrthodromicDistance extends AbstractGeoPipe {
 		if (geometry instanceof Point point) {
 			return calculateDistance(reference, point.getCoordinate());
 		}
-		if (geometry.getDimension() == 2 && geometry.covers(geometry.getFactory().createPoint(reference))) {
+		// unlike covers(), needs no topology, so overlapping polygons in a collection don't throw
+		if (geometry.getDimension() == 2
+				&& SimplePointInAreaLocator.locate(reference, geometry) != Location.EXTERIOR) {
 			return 0;
 		}
 		double best = upperBound(reference, geometry);
 		for (Object point : PointExtracter.getPoints(geometry)) {
-			best = Math.min(best, haversine(reference, ((Point) point).getCoordinate()));
+			if (!((Point) point).isEmpty()) {
+				best = Math.min(best, haversine(reference, ((Point) point).getCoordinate()));
+			}
 		}
 		for (Object line : LinearComponentExtracter.getLines(geometry)) {
 			CoordinateSequence coordinates = ((LineString) line).getCoordinateSequence();
+			if (coordinates.size() == 0) {
+				continue;
+			}
 			Coordinate a = coordinates.getCoordinate(0);
 			double distanceToA = haversine(reference, a);
 			best = Math.min(best, distanceToA);
@@ -93,8 +102,9 @@ public class OrthodromicDistance extends AbstractGeoPipe {
 				double distanceToB = haversine(reference, b);
 				best = Math.min(best, distanceToB);
 				// every point of the edge is within half its length of an endpoint
-				if (Math.min(distanceToA, distanceToB) - maxEdgeLength(a, b) / 2 < best) {
-					best = Math.min(best, distanceToEdge(reference, a, b, best));
+				double length = maxEdgeLength(a, b);
+				if (Math.min(distanceToA, distanceToB) - length / 2 < best) {
+					best = distanceToEdge(reference, a, b, length, best);
 				}
 				a = b;
 				distanceToA = distanceToB;
@@ -124,21 +134,30 @@ public class OrthodromicDistance extends AbstractGeoPipe {
 		return KM_PER_DEGREE * Math.hypot(b.y - a.y, (b.x - a.x) * Math.cos(Math.toRadians(lowestAbsLat)));
 	}
 
-	// distance to the nearest point of the edge; samples first, since a long edge need not be unimodal
-	private static double distanceToEdge(Coordinate reference, Coordinate a, Coordinate b, double best) {
-		double length = maxEdgeLength(a, b);
+	// distance to the nearest point of the edge, if below best; samples first, since a long edge need not be unimodal
+	private static double distanceToEdge(Coordinate reference, Coordinate a, Coordinate b, double length,
+			double best) {
 		int samples = (int) Math.min(64, 2 + length / 100);
-		int bestSample = 0;
-		double bestSampleDistance = Double.POSITIVE_INFINITY;
+		double[] distances = new double[samples + 1];
 		for (int i = 0; i <= samples; i++) {
-			double distance = distanceAlongEdge(reference, a, b, (double) i / samples);
-			if (distance < bestSampleDistance) {
-				bestSampleDistance = distance;
-				bestSample = i;
+			distances[i] = distanceAlongEdge(reference, a, b, (double) i / samples);
+			best = Math.min(best, distances[i]);
+		}
+		// refine every local minimum that can still beat best: the lowest sample need not lie in the deepest basin
+		double halfStep = length / samples / 2;
+		for (int i = 0; i <= samples; i++) {
+			boolean localMinimum = (i == 0 || distances[i - 1] > distances[i])
+					&& (i == samples || distances[i + 1] >= distances[i]);
+			if (localMinimum && distances[i] - halfStep < best) {
+				best = Math.min(best, goldenSection(reference, a, b, length,
+						Math.max(0, i - 1) / (double) samples, Math.min(samples, i + 1) / (double) samples));
 			}
 		}
-		double lo = Math.max(0, bestSample - 1) / (double) samples;
-		double hi = Math.min(samples, bestSample + 1) / (double) samples;
+		return best;
+	}
+
+	private static double goldenSection(Coordinate reference, Coordinate a, Coordinate b, double length, double lo,
+			double hi) {
 		double x1 = hi - GOLDEN * (hi - lo);
 		double x2 = lo + GOLDEN * (hi - lo);
 		double f1 = distanceAlongEdge(reference, a, b, x1);
@@ -159,7 +178,7 @@ public class OrthodromicDistance extends AbstractGeoPipe {
 				f2 = distanceAlongEdge(reference, a, b, x2);
 			}
 		}
-		return Math.min(Math.min(best, bestSampleDistance), Math.min(f1, f2));
+		return Math.min(f1, f2);
 	}
 
 	private static double distanceAlongEdge(Coordinate reference, Coordinate a, Coordinate b, double t) {
