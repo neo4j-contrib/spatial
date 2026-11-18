@@ -133,6 +133,7 @@ public class OrthodromicDistanceTest {
 	@CsvSource({
 			// lon, lat, km, target lon, target lat (each target lies within km of the reference)
 			"0, 60, 1000, 18.1, 61.24",
+			"0, -60, 1000, 18.1, -61.24",
 			"179.9, 0, 50, -179.9, 0",
 			"-179.9, 0, 50, 179.9, 0",
 			"0, 89.9, 50, 180, 89.9",
