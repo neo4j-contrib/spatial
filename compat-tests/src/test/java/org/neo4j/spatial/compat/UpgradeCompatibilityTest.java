@@ -127,7 +127,10 @@ class UpgradeCompatibilityTest {
 				Files.writeString(home.resolve("actual.txt"), actual);
 				assertThat(actual).isEqualTo(Files.readString(expected));
 			}
+			assertStoredCountsMatchTrees(db);
 			assertWritesHonourStoredConfig(db);
+			// also covers counts recounted and persisted for stores that lacked them
+			assertStoredCountsMatchTrees(db);
 		} finally {
 			dbms.shutdown();
 		}
@@ -236,6 +239,24 @@ class UpgradeCompatibilityTest {
 			if (layers.contains(layer)) {
 				assertRemovalOfUserNodes(db, layer);
 			}
+		}
+	}
+
+	// layers trust the stored count instead of recounting the tree on every load
+	private static void assertStoredCountsMatchTrees(GraphDatabaseService db) {
+		try (Transaction tx = db.beginTx()) {
+			tx.execute("""
+					MATCH (l:SpatialLayer)-[:RTREE_METADATA]->(m) WHERE m.totalGeometryCount IS NOT NULL
+					MATCH (l)-[:RTREE_ROOT]->(root)
+					CALL (root) {
+						MATCH (root)-[:RTREE_CHILD*0..]->(leaf) WHERE NOT (leaf)-[:RTREE_CHILD]->()
+						RETURN sum(COUNT { (leaf)-->() }) AS refs
+					}
+					RETURN l.layer AS layer, m.totalGeometryCount AS stored, refs""").accept(row -> {
+				assertThat(((Number) row.get("stored")).longValue()).as(row.getString("layer"))
+						.isEqualTo(((Number) row.get("refs")).longValue());
+				return true;
+			});
 		}
 	}
 

@@ -59,6 +59,14 @@ Each layer supports only one writer at a time.
 The RTree index has no locking of its own, so concurrent writes to the same layer (`spatial.addNode(s)`, `spatial.addWKT(s)`, `spatial.removeNode(s)`, `spatial.updateWKT`, imports) can fail with a `DeadlockDetectedException` and need to be retried.
 Serialize writes per layer; reads, and writes to different layers, can run concurrently.
 
+[[spatial-changing-indexed-nodes]]
+== Changing indexed nodes
+
+Layers only change through the `spatial.*` procedures; direct graph writes don't update them (https://github.com/neo4j-contrib/spatial/issues/496[#496]):
+
+* Call `spatial.removeNode` before deleting an indexed node. Otherwise the layer's bounding boxes and feature count go stale.
+* After changing a node's geometry properties, call `spatial.addNode` again for every layer that holds it.
+
 == Further Reading
 
 A good example blog post for how to use them with one of the neo4j drivers, is http://www.lyonwj.com/2016/08/09/neo4j-spatial-procedures-congressional-boundaries[Spatial Procedures in Legis Graph] by http://twitter.com/lyonwj[William Lyon] (http://www.lyonwj.com/2016/03/21/legis-graph-spatial-indexing/[Part 1]).
