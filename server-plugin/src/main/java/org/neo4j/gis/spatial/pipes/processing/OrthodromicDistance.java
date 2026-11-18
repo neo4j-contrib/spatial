@@ -70,20 +70,27 @@ public class OrthodromicDistance extends AbstractGeoPipe {
 		return calculateDistance(nearest[0], nearest[1]);
 	}
 
+	/**
+	 * @return a lon/lat envelope that covers every point within the distance of the reference; it spans all
+	 * longitudes when the circle reaches a pole or crosses the antimeridian
+	 */
 	public static Envelope suggestSearchWindow(Coordinate reference, double maxDistanceInKm) {
 		double lat = reference.y;
 		double lon = reference.x;
-
-		double degrees = Math.toDegrees(maxDistanceInKm / earthRadiusInKm);
-
-		// first-cut bounding box (in degrees)
-		double maxLat = lat + degrees;
+		double angle = maxDistanceInKm / earthRadiusInKm;
+		double degrees = Math.toDegrees(angle);
 		double minLat = lat - degrees;
-
-		degrees = Math.toDegrees(maxDistanceInKm / earthRadiusInKm / Math.cos(Math.toRadians(lat)));
-		// compensate for degrees longitude getting smaller with increasing latitude
-		double maxLon = lon + degrees;
-		double minLon = lon - degrees;
+		double maxLat = lat + degrees;
+		if (minLat <= -90 || maxLat >= 90) {
+			return new Envelope(-180, 180, Math.max(minLat, -90), Math.min(maxLat, 90));
+		}
+		// a circle on the sphere is widest poleward of its centre, so r / cos(lat) underestimates it
+		double halfWidth = Math.toDegrees(Math.asin(Math.sin(angle) / Math.cos(Math.toRadians(lat))));
+		double minLon = lon - halfWidth;
+		double maxLon = lon + halfWidth;
+		if (minLon < -180 || maxLon > 180) {
+			return new Envelope(-180, 180, minLat, maxLat);
+		}
 		return new Envelope(minLon, maxLon, minLat, maxLat);
 	}
 

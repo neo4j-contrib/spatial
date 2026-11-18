@@ -1315,4 +1315,20 @@ public class SpatialProceduresTest extends AbstractApiTest {
 		testCallFails(db, "CALL spatial.getFeatureCount('non_existent_layer')", null,
 				"No such layer 'non_existent_layer'");
 	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {
+			"spatial.addPointLayer('geom')",
+			"spatial.addPointLayerGeohash('geom')",
+			"spatial.addPointLayerZOrder('geom')",
+			"spatial.addPointLayerHilbert('geom')",
+	})
+	public void withinDistance_finds_points_across_the_antimeridian_and_the_pole(String createLayer) {
+		execute("CALL " + createLayer);
+		execute("UNWIND [[-179.9, 0.0], [180.0, 89.9]] AS c"
+				+ " CREATE (n:Node {longitude:c[0], latitude:c[1]}) WITH n CALL spatial.addNode('geom',n) YIELD node RETURN node");
+		// both about 22 km away
+		testCallCount(db, "CALL spatial.withinDistance('geom',{lon:179.9,lat:0},50)", null, 1);
+		testCallCount(db, "CALL spatial.withinDistance('geom',{lon:0,lat:89.9},50)", null, 1);
+	}
 }
