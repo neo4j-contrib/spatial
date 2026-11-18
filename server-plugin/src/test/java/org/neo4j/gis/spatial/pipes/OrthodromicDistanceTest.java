@@ -21,10 +21,15 @@ package org.neo4j.gis.spatial.pipes;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.number.IsCloseTo.closeTo;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.locationtech.jts.geom.Coordinate;
+import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
@@ -122,5 +127,25 @@ public class OrthodromicDistanceTest {
 		assertThat("Should be zero",
 				OrthodromicDistance.calculateDistanceToGeometry(reference.getCoordinate(), polygon),
 				closeTo(0, 0.00001));
+	}
+
+	@ParameterizedTest
+	@CsvSource({
+			// lon, lat, km, target lon, target lat (each target lies within km of the reference)
+			"0, 60, 1000, 18.1, 61.24",
+			"179.9, 0, 50, -179.9, 0",
+			"-179.9, 0, 50, 179.9, 0",
+			"0, 89.9, 50, 180, 89.9",
+			"0, -89.9, 50, 180, -89.9",
+			"0, 0, 25000, 180, 0"
+	})
+	public void searchWindowCoversEveryPointWithinTheDistance(double lon, double lat, double km, double targetLon,
+			double targetLat) {
+		Coordinate reference = new Coordinate(lon, lat);
+		Coordinate target = new Coordinate(targetLon, targetLat);
+		assertThat(OrthodromicDistance.calculateDistance(reference, target), lessThanOrEqualTo(km));
+		Envelope window = OrthodromicDistance.suggestSearchWindow(reference, km);
+		assertTrue(window.covers(target), window + " should cover " + target);
+		assertTrue(new Envelope(-180, 180, -90, 90).covers(window), window + " should stay within the world");
 	}
 }
