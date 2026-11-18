@@ -107,7 +107,7 @@ Finds all geometry nodes in the given layer within the lower left and upper righ
 |label:procedure[]
 |xref:api/spatial/spatial.closest.adoc[spatial.closest icon:book[]]
 
-Finds all geometry nodes in the layer within the distance to the given coordinate
+Finds all geometry nodes in the layer within the distance to the given coordinate, closest first
 |label:procedure[]
 |xref:api/spatial/spatial.cql.adoc[spatial.cql icon:book[]]
 

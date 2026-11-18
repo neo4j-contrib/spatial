@@ -47,6 +47,8 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.assertj.core.api.Assertions;
+import org.geotools.referencing.crs.DefaultEngineeringCRS;
+import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.hamcrest.MatcherAssert;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -1072,7 +1074,7 @@ public class SpatialProceduresTest extends AbstractApiTest {
 			assertEquals(16.2, r.get("maxX"));
 			assertEquals(61.1, r.get("maxY"));
 		});
-		// distance 0: search radius derived from the layer bounding box
+		// distance 0: only geometries at the coordinate
 		testCallCount(db, "CALL spatial.closest('geom', {lon: 15.2, lat: 60.1}, 0.0)", null, 1);
 
 		testCall(db, """
@@ -1081,7 +1083,7 @@ public class SpatialProceduresTest extends AbstractApiTest {
 				CALL spatial.removeNodes('geom', nodes) YIELD count
 				RETURN count""", r -> assertEquals(2L, r.get("count")));
 		testCall(db, "CALL spatial.getFeatureCount('geom')", r -> assertEquals(0L, r.get("count")));
-		// empty layer: closest must not derive a radius from the (absent) bounding box
+		// empty layer: closest must not fail
 		testCallCount(db, "CALL spatial.closest('geom', {lon: 15.2, lat: 60.1}, 0.0)", null, 0);
 	}
 
@@ -1098,7 +1100,8 @@ public class SpatialProceduresTest extends AbstractApiTest {
 				" MATCH (n:Foo)" +
 				" WITH collect(n) AS nodes" +
 				" CALL spatial.addNodes('line', nodes) YIELD count RETURN count");
-		testCallCount(db, "CALL spatial.closest('line',{lon:5.1, lat:4.1}, 1.0)", null, 1);
+		// the line is about 157 km away
+		testCallCount(db, "CALL spatial.closest('line',{lon:5.1, lat:4.1}, 200.0)", null, 1);
 	}
 
 	@Test
@@ -1314,5 +1317,76 @@ public class SpatialProceduresTest extends AbstractApiTest {
 		// Test error for non-existent layer
 		testCallFails(db, "CALL spatial.getFeatureCount('non_existent_layer')", null,
 				"No such layer 'non_existent_layer'");
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {
+			"POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0))",
+			"MULTIPOLYGON (((0 0, 1 0, 1 1, 0 1, 0 0)), ((5 5, 6 5, 6 6, 5 6, 5 5)))",
+			"MULTILINESTRING ((0 0, 1 1), (0 1, 1 0))"
+	})
+	public void closest_finds_any_geometry_type(String wkt) {
+		execute("CALL spatial.addWKTLayer('geom','wkt')");
+		execute("CALL spatial.addWKT('geom',$wkt)", Map.of("wkt", wkt));
+		testCallCount(db, "CALL spatial.closest('geom',{lon:0.5,lat:0.5},10)", null, 1);
+	}
+
+	@Test
+	public void closest_measures_distance_to_the_polygon_edge() {
+		execute("CALL spatial.addWKTLayer('geom','wkt')");
+		execute("CALL spatial.addWKT('geom','POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0))')");
+		// 0.05 degrees east of the edge at the equator is about 5.6 km
+		testCallCount(db, "CALL spatial.closest('geom',{lon:1.05,lat:0.5},10)", null, 1);
+		testCallCount(db, "CALL spatial.closest('geom',{lon:1.05,lat:0.5},5)", null, 0);
+	}
+
+	@Test
+	public void closest_takes_the_distance_in_km() {
+		execute("CALL spatial.addWKTLayer('geom','wkt')");
+		execute("CALL spatial.addWKTs('geom',['POINT (15.2 60.1)','POINT (15.0 60.05)'])");
+		// the points are about 15.6 km and 5.6 km away
+		testCallCount(db, "CALL spatial.closest('geom',{lon:15.0,lat:60.0},1)", null, 0);
+		testResult(db, "CALL spatial.closest('geom',{lon:15.0,lat:60.0},10) YIELD node RETURN node.wkt AS wkt",
+				res -> assertEquals(List.of("POINT (15 60.05)"), res.stream().map(r -> r.get("wkt")).toList()));
+		testResult(db, "CALL spatial.closest('geom',{lon:15.0,lat:60.0},20) YIELD node RETURN node.wkt AS wkt",
+				res -> assertEquals(List.of("POINT (15 60.05)", "POINT (15.2 60.1)"),
+						res.stream().map(r -> r.get("wkt")).toList()));
+	}
+
+	@Test
+	public void distance_is_in_crs_units_for_cartesian_layers() {
+		execute("CALL spatial.addLayer('c','NativePoint','pos:bbox:Cartesian')");
+		execute("UNWIND [0, 10, 100] AS x CREATE (n:C {x: x, pos: point({x: x, y: 0})})"
+				+ " WITH collect(n) AS nodes CALL spatial.addNodes('c', nodes) YIELD count RETURN count");
+		testResult(db, "CALL spatial.closest('c', point({x: 0, y: 0}), 20) YIELD node RETURN node.x AS x",
+				res -> assertEquals(List.of(0L, 10L), res.stream().map(r -> r.get("x")).toList()));
+		testResult(db, "CALL spatial.withinDistance('c', point({x: 0, y: 0}), 20) YIELD node, distance "
+						+ "RETURN node.x AS x, distance",
+				res -> assertEquals(List.of(Map.of("x", 0L, "distance", 0.0), Map.of("x", 10L, "distance", 10.0)),
+						res.stream().toList()));
+	}
+
+	@Test
+	public void distance_is_in_crs_units_for_layers_with_a_non_geographic_crs() {
+		execute("CALL spatial.addWKTLayer('g','wkt')");
+		execute("MATCH (l:SpatialLayer {layer: 'g'}) SET l[$crsProperty] = $crs",
+				Map.of("crsProperty", PROP_CRS, "crs", DefaultEngineeringCRS.GENERIC_2D.toWKT()));
+		execute("CALL spatial.addWKTs('g', ['POINT (0 0)', 'POINT (10 0)', 'POINT (100 0)'])");
+		testResult(db, "CALL spatial.withinDistance('g', point({x: 0, y: 0}), 20) YIELD node, distance "
+						+ "RETURN node.wkt AS wkt, distance",
+				res -> assertEquals(List.of(Map.of("wkt", "POINT (0 0)", "distance", 0.0),
+						Map.of("wkt", "POINT (10 0)", "distance", 10.0)), res.stream().toList()));
+	}
+
+	@Test
+	public void distance_is_in_km_for_layers_with_a_compound_geographic_crs() {
+		execute("CALL spatial.addWKTLayer('g','wkt')");
+		execute("MATCH (l:SpatialLayer {layer: 'g'}) SET l[$crsProperty] = $crs", Map.of("crsProperty", PROP_CRS, "crs",
+				"COMPD_CS[\"WGS 84 + height\", " + DefaultGeographicCRS.WGS84.toWKT()
+						+ ", VERT_CS[\"height\", VERT_DATUM[\"Ellipsoid\", 2002], UNIT[\"m\", 1.0], AXIS[\"Up\", UP]]]"));
+		execute("CALL spatial.addWKTs('g', ['POINT (15.0 60.05)', 'POINT (15.2 60.1)'])");
+		// about 5.6 km and 15.6 km away; planar degrees would put both within 1
+		testResult(db, "CALL spatial.closest('g', {lon: 15.0, lat: 60.0}, 10) YIELD node RETURN node.wkt AS wkt",
+				res -> assertEquals(List.of("POINT (15 60.05)"), res.stream().map(r -> r.get("wkt")).toList()));
 	}
 }

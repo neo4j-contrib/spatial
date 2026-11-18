@@ -104,6 +104,8 @@ public interface Constants {
 			* Node or Relationship with properties 'latitude' and 'longitude'
 			* Node or Relationship with properties 'lat' and 'lon'
 			""";
+	String DOC_DISTANCE = "The distance within which to search for geometries: kilometers for layers in a geographic CRS"
+			+ " (WGS84, also assumed for layers without a CRS), CRS units otherwise (projected CRS, Cartesian native points)";
 	String DOC_URI = "The path of the file to import the data from";
 
 	String DOC_JTS_GEOMETRY = "A WKT string or a coordinate. " + DOC_COORDINATE;

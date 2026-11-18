@@ -44,7 +44,7 @@ a|
 
 [source,cypher]
 ----
-CALL spatial.closest('geom',{lon:15.0, lat:60.0}, 1.0)
+CALL spatial.closest('geom',{lon:15.0, lat:60.0}, 20.0)
 ----
 
 .Result

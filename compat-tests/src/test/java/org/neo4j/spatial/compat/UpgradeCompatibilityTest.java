@@ -82,7 +82,7 @@ class UpgradeCompatibilityTest {
 					+ "WITH toInteger(last(split(elementId(node), ':'))) AS id ORDER BY id RETURN collect(id) AS ids",
 			"5 withinDistance", "CALL spatial.withinDistance($l, {lon: 15.2, lat: 60.1}, 100) YIELD node, distance "
 					+ "RETURN toInteger(last(split(elementId(node), ':'))) AS id, round(distance, 4) AS d ORDER BY d, id",
-			"6 closest", "CALL spatial.closest($l, {lon: 15.2, lat: 60.1}, 1.0) YIELD node "
+			"6 closest", "CALL spatial.closest($l, {lon: 15.2, lat: 60.1}, 100) YIELD node "
 					+ "WITH toInteger(last(split(elementId(node), ':'))) AS id ORDER BY id RETURN collect(id) AS ids",
 			"7 cql", "CALL spatial.cql($l, 'BBOX(the_geom, 15, 60, 16, 61)') YIELD node RETURN count(node) AS n");
 

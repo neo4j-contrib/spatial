@@ -80,6 +80,10 @@ public class NativePointsEncoder extends AbstractGeometryEncoder<Config> {
 		return Neo4jCRS.findCRS(configuration.crs);
 	}
 
+	public boolean isGeographic() {
+		return crs().isGeographic();
+	}
+
 	@Override
 	public List<String> getIdentifiers() {
 		return List.of("NativePointsEncoder", "org.neo4j.gis.spatial.encoders.NativePointsEncoder");

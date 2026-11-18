@@ -28,11 +28,9 @@ import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Envelope;
 import org.locationtech.jts.geom.Geometry;
 import org.locationtech.jts.geom.GeometryFactory;
-import org.locationtech.jts.geom.LineString;
 import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.linearref.LengthIndexedLine;
-import org.locationtech.jts.linearref.LinearLocation;
-import org.locationtech.jts.linearref.LocationIndexedLine;
+import org.locationtech.jts.operation.distance.DistanceOp;
 import org.neo4j.gis.spatial.filter.SearchIntersect;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.spatial.api.SpatialRecord;
@@ -114,9 +112,9 @@ public class SpatialTopologyUtils {
 
 	/**
 	 * Find geometries in the given layer that are closest to the given point while applying the filter
-	 * currently only handles point and linestrings (projecting them to a point) TODO Craig for other geoms
 	 *
-	 * @return list of point results containing the matched point on the geometry, the spatial record and the distance each
+	 * @return list of point results containing the nearest point on the geometry (the given point itself if the
+	 * geometry contains it), the spatial record and the planar distance, closest first
 	 */
 	public static List<PointResult> findClosestEdges(Transaction tx, Point point, Layer layer, Geometry filter) {
 		ArrayList<PointResult> results = new ArrayList<>();
@@ -124,16 +122,9 @@ public class SpatialTopologyUtils {
 		SpatialRecords records = layer.getIndex().search(tx, new SearchIntersect(layer, filter));
 		for (SpatialRecord record : records) {
 			Geometry geom = record.getGeometry();
-			if (geom instanceof LineString) {
-				LocationIndexedLine line = new LocationIndexedLine(geom);
-				LinearLocation here = line.project(point.getCoordinate());
-				Coordinate snap = line.extractPoint(here);
-				double distance = snap.distance(point.getCoordinate());
-				results.add(new PointResult(layer.getGeometryFactory()
-						.createPoint(snap), record, distance));
-			} else if (geom instanceof Point here) {
-				results.add(new PointResult(here, record, here.distance(point)));
-			}
+			Coordinate snap = DistanceOp.nearestPoints(geom, point)[0];
+			results.add(new PointResult(layer.getGeometryFactory().createPoint(snap), record,
+					snap.distance(point.getCoordinate())));
 		}
 		Collections.sort(results);
 		return results;

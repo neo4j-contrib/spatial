@@ -21,6 +21,7 @@ package org.neo4j.gis.spatial.procedures;
 
 import static org.neo4j.gis.spatial.Constants.DOC_COORDINATE;
 import static org.neo4j.gis.spatial.Constants.DOC_CRS;
+import static org.neo4j.gis.spatial.Constants.DOC_DISTANCE;
 import static org.neo4j.gis.spatial.Constants.DOC_ENCODER_CONFIG;
 import static org.neo4j.gis.spatial.Constants.DOC_ENCODER_NAME;
 import static org.neo4j.gis.spatial.Constants.DOC_INDEX_CONFIG;
@@ -49,6 +50,8 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import org.geotools.api.referencing.crs.CoordinateReferenceSystem;
+import org.geotools.api.referencing.crs.GeographicCRS;
+import org.geotools.referencing.CRS;
 import org.geotools.referencing.crs.DefaultGeographicCRS;
 import org.locationtech.jts.geom.Coordinate;
 import org.locationtech.jts.geom.Envelope;
@@ -61,13 +64,14 @@ import org.neo4j.gis.spatial.EditableLayerImpl;
 import org.neo4j.gis.spatial.ShapefileImporter;
 import org.neo4j.gis.spatial.SimplePointLayer;
 import org.neo4j.gis.spatial.SpatialDatabaseService;
-import org.neo4j.gis.spatial.SpatialTopologyUtils;
 import org.neo4j.gis.spatial.encoders.NativePointEncoder;
+import org.neo4j.gis.spatial.encoders.NativePointsEncoder;
 import org.neo4j.gis.spatial.encoders.SimplePointEncoder;
 import org.neo4j.gis.spatial.index.ExplicitIndexBackedPointIndex;
 import org.neo4j.gis.spatial.index.LayerRTreeIndex;
 import org.neo4j.gis.spatial.pipes.GeoPipeFlow;
 import org.neo4j.gis.spatial.pipes.GeoPipeline;
+import org.neo4j.gis.spatial.pipes.processing.Distance;
 import org.neo4j.gis.spatial.pipes.processing.OrthodromicDistance;
 import org.neo4j.gis.spatial.rtree.ProgressLoggingListener;
 import org.neo4j.gis.spatial.utilities.BaseRegistry.EntryMeta;
@@ -947,17 +951,12 @@ public class SpatialProcedures extends SpatialApiBase {
 	}
 
 	@Procedure(value = "spatial.closest", mode = READ)
-	@Description("Finds all geometry nodes in the layer within the distance to the given coordinate")
+	@Description("Finds all geometry nodes in the layer within the distance to the given coordinate, closest first")
 	public Stream<NodeResult> findClosestGeometries(
 			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
 			@Name(value = "coordinate", description = DOC_COORDINATE) Object coordinate,
-			@Name(value = "distanceInKm", description = "The distance in kilometers within which to search for geometries") double distanceInKm) {
-		Layer layer = getLayerOrThrow(tx, spatial(), name, true);
-		GeometryFactory factory = layer.getGeometryFactory();
-		Point point = factory.createPoint(toCoordinate(coordinate));
-		List<SpatialTopologyUtils.PointResult> edgeResults = SpatialTopologyUtils.findClosestEdges(tx, point, layer,
-				distanceInKm);
-		return edgeResults.stream().map(e -> e.getValue().getGeomNode()).map(NodeResult::new);
+			@Name(value = "distance", description = DOC_DISTANCE) double distance) {
+		return withinDistance(name, coordinate, distance).map(r -> new NodeResult(r.node));
 	}
 
 	@Procedure(value = "spatial.withinDistance", mode = READ)
@@ -965,17 +964,32 @@ public class SpatialProcedures extends SpatialApiBase {
 	public Stream<NodeDistanceResult> findGeometriesWithinDistance(
 			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
 			@Name(value = "coordinate", description = DOC_COORDINATE) Object coordinate,
-			@Name(value = "distanceInKm", description = "The distance in kilometers within which to search for geometries") double distanceInKm) {
+			@Name(value = "distance", description = DOC_DISTANCE) double distance) {
+		return withinDistance(name, coordinate, distance);
+	}
 
+	private Stream<NodeDistanceResult> withinDistance(String name, Object coordinate, double distance) {
 		Layer layer = getLayerOrThrow(tx, spatial(), name, true);
-		return GeoPipeline
-				.startNearestNeighborLatLonSearch(tx, layer, toCoordinate(coordinate), distanceInKm)
-				.sort(OrthodromicDistance.DISTANCE)
-				.stream().map(r -> {
-					double distance = r.hasProperty(tx, OrthodromicDistance.DISTANCE) ? ((Number) r.getProperty(tx,
-							OrthodromicDistance.DISTANCE)).doubleValue() : -1;
-					return new NodeDistanceResult(r.getGeomNode(), distance);
-				});
+		boolean geographic = isGeographic(layer);
+		String distanceProperty = geographic ? OrthodromicDistance.DISTANCE : Distance.DISTANCE;
+		GeoPipeline pipeline = geographic
+				? GeoPipeline.startNearestNeighborLatLonSearch(tx, layer, toCoordinate(coordinate), distance)
+				: GeoPipeline.startNearestNeighborSearch(tx, layer, toCoordinate(coordinate), distance);
+		return pipeline.sort(distanceProperty).stream().map(r -> new NodeDistanceResult(r.getGeomNode(),
+				((Number) r.getProperty(tx, distanceProperty)).doubleValue()));
+	}
+
+	// layers without a CRS are taken as WGS84, as procedure-created layers have no other CRS to record
+	private boolean isGeographic(Layer layer) {
+		if (layer.getGeometryEncoder() instanceof NativePointEncoder encoder) {
+			return encoder.isGeographic();
+		}
+		if (layer.getGeometryEncoder() instanceof NativePointsEncoder encoder) {
+			return encoder.isGeographic();
+		}
+		CoordinateReferenceSystem crs = layer.getCoordinateReferenceSystem(tx);
+		// horizontal part, so a geographic CRS with a vertical axis (compound CRS) still counts as geographic
+		return crs == null || CRS.getHorizontalCRS(crs) instanceof GeographicCRS;
 	}
 
 	@Deprecated

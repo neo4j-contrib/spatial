@@ -474,7 +474,7 @@ public class ApiExampleGenerator implements Callable<Integer> {
 				.runCypher("CALL spatial.addLayer('geom','geohash','lon:lat')", ExampleCypher::skipResult)
 				.runCypher("CALL spatial.addWKTs('geom',$wkt)",
 						c -> c.setParams(Map.of("wkt", points)))
-				.runCypher("CALL spatial.closest('geom',{lon:15.0, lat:60.0}, 1.0)");
+				.runCypher("CALL spatial.closest('geom',{lon:15.0, lat:60.0}, 20.0)");
 
 		docExample("spatial.cql", "Find geometries using CQL")
 				.runCypher("CALL spatial.addWKTLayer('geom','wkt') YIELD node")
