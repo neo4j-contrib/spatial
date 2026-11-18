@@ -327,10 +327,10 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 	}
 
 	/**
-	 * Calculates the distance between Layer items inside the given search window and the given point.
+	 * Calculates the planar distance between Layer items inside the given search window and the given point.
 	 *
 	 * @param layer        the layer to search
-	 * @param point        with latitude, longitude coordinates
+	 * @param point        in the layer's CRS
 	 * @param searchWindow the search window
 	 * @return geoPipeline
 	 */
@@ -341,11 +341,11 @@ public class GeoPipeline extends Pipeline<GeoPipeFlow, GeoPipeFlow> {
 	}
 
 	/**
-	 * Extracts Layer items with a distance from the given point that is less than or equal the given distance.
+	 * Extracts Layer items with a planar distance from the given point that is less than or equal the given distance.
 	 *
 	 * @param layer       the layer to search
-	 * @param point       with latitude, longitude coordinates
-	 * @param maxDistance the maximum distance in kilometers
+	 * @param point       in the layer's CRS
+	 * @param maxDistance the maximum distance in the layer's CRS units
 	 * @return geoPipeline
 	 */
 	public static GeoPipeline startNearestNeighborSearch(final Transaction tx, Layer layer, Coordinate point,
