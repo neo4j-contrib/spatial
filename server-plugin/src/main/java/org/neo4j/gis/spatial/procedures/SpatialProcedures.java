@@ -947,17 +947,22 @@ public class SpatialProcedures extends SpatialApiBase {
 	}
 
 	@Procedure(value = "spatial.closest", mode = READ)
-	@Description("Finds all geometry nodes in the layer within the distance to the given coordinate")
+	@Description("Finds all geometry nodes in the layer within the distance to the given coordinate, closest first")
 	public Stream<NodeResult> findClosestGeometries(
 			@Name(value = "layerName", description = DOC_LAYER_NAME) String name,
 			@Name(value = "coordinate", description = DOC_COORDINATE) Object coordinate,
 			@Name(value = "distanceInKm", description = "The distance in kilometers within which to search for geometries") double distanceInKm) {
 		Layer layer = getLayerOrThrow(tx, spatial(), name, true);
 		GeometryFactory factory = layer.getGeometryFactory();
-		Point point = factory.createPoint(toCoordinate(coordinate));
-		List<SpatialTopologyUtils.PointResult> edgeResults = SpatialTopologyUtils.findClosestEdges(tx, point, layer,
-				distanceInKm);
-		return edgeResults.stream().map(e -> e.getValue().getGeomNode()).map(NodeResult::new);
+		Coordinate origin = toCoordinate(coordinate);
+		Geometry searchWindow = factory.toGeometry(OrthodromicDistance.suggestSearchWindow(origin, distanceInKm));
+		record Hit(Node node, double distanceInKm) {}
+		return SpatialTopologyUtils.findClosestEdges(tx, factory.createPoint(origin), layer, searchWindow).stream()
+				.map(e -> new Hit(e.getValue().getGeomNode(),
+						OrthodromicDistance.calculateDistance(origin, e.getKey().getCoordinate())))
+				.filter(hit -> hit.distanceInKm() <= distanceInKm)
+				.sorted(Comparator.comparingDouble(Hit::distanceInKm))
+				.map(hit -> new NodeResult(hit.node()));
 	}
 
 	@Procedure(value = "spatial.withinDistance", mode = READ)

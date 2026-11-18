@@ -1098,7 +1098,8 @@ public class SpatialProceduresTest extends AbstractApiTest {
 				" MATCH (n:Foo)" +
 				" WITH collect(n) AS nodes" +
 				" CALL spatial.addNodes('line', nodes) YIELD count RETURN count");
-		testCallCount(db, "CALL spatial.closest('line',{lon:5.1, lat:4.1}, 1.0)", null, 1);
+		// the line is about 157 km away
+		testCallCount(db, "CALL spatial.closest('line',{lon:5.1, lat:4.1}, 200.0)", null, 1);
 	}
 
 	@Test
@@ -1314,5 +1315,39 @@ public class SpatialProceduresTest extends AbstractApiTest {
 		// Test error for non-existent layer
 		testCallFails(db, "CALL spatial.getFeatureCount('non_existent_layer')", null,
 				"No such layer 'non_existent_layer'");
+	}
+
+	@ParameterizedTest
+	@ValueSource(strings = {
+			"POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0))",
+			"MULTIPOLYGON (((0 0, 1 0, 1 1, 0 1, 0 0)), ((5 5, 6 5, 6 6, 5 6, 5 5)))",
+			"MULTILINESTRING ((0 0, 1 1), (0 1, 1 0))"
+	})
+	public void closest_finds_any_geometry_type(String wkt) {
+		execute("CALL spatial.addWKTLayer('geom','wkt')");
+		execute("CALL spatial.addWKT('geom',$wkt)", Map.of("wkt", wkt));
+		testCallCount(db, "CALL spatial.closest('geom',{lon:0.5,lat:0.5},10)", null, 1);
+	}
+
+	@Test
+	public void closest_measures_distance_to_the_polygon_edge() {
+		execute("CALL spatial.addWKTLayer('geom','wkt')");
+		execute("CALL spatial.addWKT('geom','POLYGON ((0 0, 1 0, 1 1, 0 1, 0 0))')");
+		// 0.05 degrees east of the edge at the equator is about 5.6 km
+		testCallCount(db, "CALL spatial.closest('geom',{lon:1.05,lat:0.5},10)", null, 1);
+		testCallCount(db, "CALL spatial.closest('geom',{lon:1.05,lat:0.5},5)", null, 0);
+	}
+
+	@Test
+	public void closest_takes_the_distance_in_km() {
+		execute("CALL spatial.addWKTLayer('geom','wkt')");
+		execute("CALL spatial.addWKTs('geom',['POINT (15.2 60.1)','POINT (15.0 60.05)'])");
+		// the points are about 15.6 km and 5.6 km away
+		testCallCount(db, "CALL spatial.closest('geom',{lon:15.0,lat:60.0},1)", null, 0);
+		testResult(db, "CALL spatial.closest('geom',{lon:15.0,lat:60.0},10) YIELD node RETURN node.wkt AS wkt",
+				res -> assertEquals(List.of("POINT (15 60.05)"), res.stream().map(r -> r.get("wkt")).toList()));
+		testResult(db, "CALL spatial.closest('geom',{lon:15.0,lat:60.0},20) YIELD node RETURN node.wkt AS wkt",
+				res -> assertEquals(List.of("POINT (15 60.05)", "POINT (15.2 60.1)"),
+						res.stream().map(r -> r.get("wkt")).toList()));
 	}
 }

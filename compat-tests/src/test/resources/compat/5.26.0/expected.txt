@@ -173,7 +173,7 @@ native_places | withinDistance
   id=254, d=6.2113
   id=255, d=31.0377
 native_places | closest
-  ids=[254, 255, 256]
+  ids=[254, 255]
 native_places | cql
   n=2
 p_Geohash | layerMeta
@@ -328,7 +328,7 @@ p_WKB | withinDistance
   id=118, d=6.2113
   id=119, d=47.4494
 p_WKB | closest
-  ids=[117, 118]
+  ids=[117, 118, 119]
 p_WKB | cql
   n=3
 p_WKT | layerMeta
@@ -344,7 +344,7 @@ p_WKT | withinDistance
   id=114, d=6.2113
   id=115, d=47.4494
 p_WKT | closest
-  ids=[113, 114]
+  ids=[113, 114, 115]
 p_WKT | cql
   n=3
 p_ZOrder | layerMeta
@@ -375,7 +375,7 @@ places | withinDistance
   id=251, d=6.2113
   id=252, d=31.0377
 places | closest
-  ids=[251, 252, 253]
+  ids=[251, 252]
 places | cql
   n=2
 rtree20 | layerMeta

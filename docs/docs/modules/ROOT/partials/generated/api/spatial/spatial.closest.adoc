@@ -6,7 +6,7 @@
 label:procedure[]
 
 [.emphasis]
-Finds all geometry nodes in the layer within the distance to the given coordinate
+Finds all geometry nodes in the layer within the distance to the given coordinate, closest first
 
 == Signature
 
